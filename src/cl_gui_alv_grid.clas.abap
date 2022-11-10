@@ -40,6 +40,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         i_soft_refresh TYPE abap_bool OPTIONAL
       EXCEPTIONS
         finished.
+
+    EVENTS double_click
+      EXPORTING
+        VALUE(e_row)     TYPE any OPTIONAL
+        VALUE(e_column)  TYPE any OPTIONAL
+        VALUE(es_row_no) TYPE any OPTIONAL.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
