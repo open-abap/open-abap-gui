@@ -50,9 +50,17 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
     CLASS-METHODS offline
       RETURNING
         VALUE(e_offline) TYPE i.
+
+    METHODS set_ready_for_input
+      IMPORTING
+        i_ready_for_input TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+
+  METHOD set_ready_for_input.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD offline.
     ASSERT 1 = 'todo'.
