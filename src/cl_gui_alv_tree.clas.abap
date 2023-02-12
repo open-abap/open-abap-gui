@@ -35,6 +35,11 @@ CLASS cl_gui_alv_tree DEFINITION PUBLIC.
         VALUE(fieldname) TYPE string
         VALUE(node_key)  TYPE string.
 
+    EVENTS item_double_click
+      EXPORTING
+        VALUE(fieldname) TYPE any
+        VALUE(node_key) TYPE any.
+
     METHODS get_toolbar_object
       EXPORTING
         er_toolbar TYPE REF TO cl_gui_toolbar.
@@ -102,9 +107,27 @@ CLASS cl_gui_alv_tree DEFINITION PUBLIC.
     METHODS get_selected_nodes
       CHANGING
         ct_selected_nodes TYPE any.
+
+    METHODS set_selected_nodes
+      IMPORTING
+        it_selected_nodes TYPE any.
+
+    METHODS change_node
+      IMPORTING
+        i_node_key     TYPE any
+        is_node_layout TYPE any
+        i_outtab_line  TYPE any.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+
+  METHOD change_node.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD set_selected_nodes.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD expand_nodes.
     ASSERT 1 = 'todo'.

@@ -20,6 +20,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC.
       IMPORTING
         fcode   TYPE clike
         icon    TYPE clike
+        ctxmenu TYPE any OPTIONAL
         btntype TYPE i.
 ENDCLASS.
 
