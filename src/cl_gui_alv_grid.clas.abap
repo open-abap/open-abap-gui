@@ -54,11 +54,21 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
     METHODS set_ready_for_input
       IMPORTING
         i_ready_for_input TYPE i.
+
+    METHODS set_selected_rows
+      IMPORTING
+        it_index_rows            TYPE any OPTIONAL
+        it_row_no                TYPE any OPTIONAL
+        is_keep_other_selections TYPE abap_bool OPTIONAL.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD set_ready_for_input.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD set_selected_rows.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
