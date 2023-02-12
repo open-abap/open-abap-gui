@@ -91,12 +91,28 @@ CLASS cl_gui_alv_tree DEFINITION PUBLIC.
 
     METHODS frontend_update.
 
+    METHODS expand_nodes
+      IMPORTING
+        it_node_key TYPE any.
+
+    METHODS get_selected_item
+      EXPORTING
+        e_selected_node TYPE any.
+
     METHODS get_selected_nodes
       CHANGING
         ct_selected_nodes TYPE any.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+
+  METHOD expand_nodes.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD get_selected_item.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD free.
     ASSERT 1 = 'todo'.

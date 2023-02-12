@@ -15,9 +15,19 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC.
         cntl_error
         cntb_btype_error
         cntb_error_fcode.
+
+    METHODS set_static_ctxmenu
+      IMPORTING
+        fcode   TYPE clike
+        icon    TYPE clike
+        btntype TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+
+  METHOD set_static_ctxmenu.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD free.
     ASSERT 1 = 'todo'.

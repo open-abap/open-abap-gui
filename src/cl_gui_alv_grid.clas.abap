@@ -4,11 +4,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 
     METHODS set_table_for_first_display
       IMPORTING
-        i_buffer_active TYPE any OPTIONAL
-        i_bypassing_buffer TYPE abap_bool OPTIONAL
+        i_buffer_active     TYPE any OPTIONAL
+        i_bypassing_buffer  TYPE abap_bool OPTIONAL
         i_consistency_check TYPE abap_bool OPTIONAL
-        i_structure_name TYPE any OPTIONAL
-        is_variant TYPE any OPTIONAL
+        i_structure_name    TYPE any OPTIONAL
+        is_variant          TYPE any OPTIONAL
         i_save TYPE abap_bool OPTIONAL
         i_default TYPE abap_bool DEFAULT 'X'
         is_layout TYPE any OPTIONAL
@@ -46,9 +46,17 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         VALUE(e_row)     TYPE any OPTIONAL
         VALUE(e_column)  TYPE any OPTIONAL
         VALUE(es_row_no) TYPE any OPTIONAL.
+
+    CLASS-METHODS offline
+      RETURNING
+        VALUE(e_offline) TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+
+  METHOD offline.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD free.
     ASSERT 1 = 'todo'.
