@@ -40,6 +40,10 @@ CLASS cl_gui_alv_tree DEFINITION PUBLIC.
         VALUE(fieldname) TYPE any
         VALUE(node_key) TYPE any.
 
+    EVENTS node_double_click
+      EXPORTING
+        VALUE(node_key) TYPE any.
+
     METHODS get_toolbar_object
       EXPORTING
         er_toolbar TYPE REF TO cl_gui_toolbar.

@@ -19,9 +19,13 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC.
     METHODS set_static_ctxmenu
       IMPORTING
         fcode   TYPE clike
-        icon    TYPE clike
+        icon    TYPE clike OPTIONAL
         ctxmenu TYPE any OPTIONAL
-        btntype TYPE i.
+        btntype TYPE i OPTIONAL.
+
+    EVENTS function_selected
+      EXPORTING
+        VALUE(fcode) TYPE any.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
