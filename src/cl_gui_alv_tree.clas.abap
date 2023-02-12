@@ -66,13 +66,13 @@ CLASS cl_gui_alv_tree DEFINITION PUBLIC.
     METHODS add_node
       IMPORTING
         i_relat_node_key TYPE any
-        i_relationship TYPE i
-        is_outtab_line TYPE any OPTIONAL
-        is_node_layout TYPE any OPTIONAL
-        it_item_layout TYPE any OPTIONAL
-        i_node_text TYPE any OPTIONAL
+        i_relationship   TYPE i
+        is_outtab_line   TYPE any OPTIONAL
+        is_node_layout   TYPE any OPTIONAL
+        it_item_layout   TYPE any OPTIONAL
+        i_node_text      TYPE any OPTIONAL
       EXPORTING
-        e_new_node_key TYPE any
+        e_new_node_key   TYPE any
       EXCEPTIONS
         relat_node_not_found
         node_not_found.
@@ -90,11 +90,35 @@ CLASS cl_gui_alv_tree DEFINITION PUBLIC.
         cannot_expand_leaf.
 
     METHODS frontend_update.
+
+    METHODS expand_nodes
+      IMPORTING
+        it_node_key TYPE any.
+
+    METHODS get_selected_item
+      EXPORTING
+        e_selected_node TYPE any.
+
+    METHODS get_selected_nodes
+      CHANGING
+        ct_selected_nodes TYPE any.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
 
+  METHOD expand_nodes.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD get_selected_item.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
   METHOD free.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD get_selected_nodes.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
