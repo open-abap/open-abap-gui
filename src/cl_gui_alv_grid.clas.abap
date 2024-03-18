@@ -52,6 +52,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         VALUE(e_column)  TYPE any OPTIONAL
         VALUE(es_row_no) TYPE any OPTIONAL.
 
+    EVENTS user_command
+      EXPORTING
+        VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
+
     CLASS-METHODS offline
       RETURNING
         VALUE(e_offline) TYPE i.
@@ -65,6 +69,8 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         it_index_rows            TYPE any OPTIONAL
         it_row_no                TYPE any OPTIONAL
         is_keep_other_selections TYPE abap_bool OPTIONAL.
+
+    METHODS set_toolbar_interactive.
 
     CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
@@ -81,6 +87,10 @@ ENDCLASS.
 CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD set_toolbar_interactive.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
