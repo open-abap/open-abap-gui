@@ -56,6 +56,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
       EXPORTING
         VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
 
+    EVENTS hotspot_click
+      EXPORTING
+        VALUE(e_row_id)    TYPE lvc_s_row OPTIONAL
+        VALUE(e_column_id) TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no)   TYPE lvc_s_roid OPTIONAL.
+
     EVENTS toolbar
       EXPORTING
         VALUE(e_object)      TYPE REF TO cl_alv_event_toolbar_set OPTIONAL
