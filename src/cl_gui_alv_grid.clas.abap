@@ -1,21 +1,26 @@
 CLASS cl_gui_alv_grid DEFINITION PUBLIC.
   PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        i_parent TYPE REF TO cl_gui_container.
+
     METHODS free.
 
     METHODS set_table_for_first_display
       IMPORTING
-        i_buffer_active     TYPE any OPTIONAL
-        i_bypassing_buffer  TYPE abap_bool OPTIONAL
-        i_consistency_check TYPE abap_bool OPTIONAL
-        i_structure_name    TYPE any OPTIONAL
-        is_variant          TYPE any OPTIONAL
-        i_save TYPE abap_bool OPTIONAL
-        i_default TYPE abap_bool DEFAULT 'X'
-        is_layout TYPE any OPTIONAL
-        is_print TYPE any OPTIONAL
-        it_special_groups TYPE any OPTIONAL
+        i_buffer_active      TYPE any OPTIONAL
+        i_bypassing_buffer   TYPE abap_bool OPTIONAL
+        i_consistency_check  TYPE abap_bool OPTIONAL
+        i_structure_name     TYPE any OPTIONAL
+        is_variant           TYPE any OPTIONAL
+        i_save               TYPE abap_bool OPTIONAL
+        i_default            TYPE abap_bool DEFAULT abap_true
+        is_layout            TYPE any OPTIONAL
+        is_print             TYPE any OPTIONAL
+        it_special_groups    TYPE any OPTIONAL
         it_toolbar_excluding TYPE any OPTIONAL
-        it_hyperlink TYPE any OPTIONAL
+        it_hyperlink    TYPE any OPTIONAL
         it_alv_graphics TYPE any OPTIONAL
         it_except_qinfo TYPE any OPTIONAL
         ir_salv_adapter TYPE REF TO any OPTIONAL
@@ -63,6 +68,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+
+  METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD set_ready_for_input.
     ASSERT 1 = 'todo'.
