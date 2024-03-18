@@ -3,7 +3,8 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 
     METHODS constructor
       IMPORTING
-        i_parent TYPE REF TO cl_gui_container.
+        i_parent      TYPE REF TO cl_gui_container
+        i_appl_events TYPE char1 DEFAULT space.
 
     METHODS free.
 
