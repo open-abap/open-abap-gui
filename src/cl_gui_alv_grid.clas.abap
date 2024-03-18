@@ -65,6 +65,17 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         it_index_rows            TYPE any OPTIONAL
         it_row_no                TYPE any OPTIONAL
         is_keep_other_selections TYPE abap_bool OPTIONAL.
+
+    CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_insert_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_move_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_cut TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_paste TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
