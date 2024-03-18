@@ -3,7 +3,8 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 
     METHODS constructor
       IMPORTING
-        i_parent TYPE REF TO cl_gui_container.
+        i_parent      TYPE REF TO cl_gui_container
+        i_appl_events TYPE char1 DEFAULT space.
 
     METHODS free.
 
@@ -20,15 +21,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         is_print             TYPE any OPTIONAL
         it_special_groups    TYPE any OPTIONAL
         it_toolbar_excluding TYPE any OPTIONAL
-        it_hyperlink    TYPE any OPTIONAL
-        it_alv_graphics TYPE any OPTIONAL
-        it_except_qinfo TYPE any OPTIONAL
-        ir_salv_adapter TYPE REF TO any OPTIONAL
+        it_hyperlink         TYPE any OPTIONAL
+        it_alv_graphics      TYPE any OPTIONAL
+        it_except_qinfo      TYPE any OPTIONAL
+        ir_salv_adapter      TYPE REF TO any OPTIONAL
       CHANGING
-        it_outtab       TYPE STANDARD TABLE
-        it_fieldcatalog TYPE any OPTIONAL
-        it_sort         TYPE any OPTIONAL
-        it_filter       TYPE any OPTIONAL
+        it_outtab            TYPE STANDARD TABLE
+        it_fieldcatalog      TYPE any OPTIONAL
+        it_sort              TYPE any OPTIONAL
+        it_filter            TYPE any OPTIONAL
       EXCEPTIONS
         invalid_parameter_combination
         program_error
@@ -55,6 +56,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
     EVENTS user_command
       EXPORTING
         VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
+
+    EVENTS hotspot_click
+      EXPORTING
+        VALUE(e_row_id)    TYPE lvc_s_row OPTIONAL
+        VALUE(e_column_id) TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no)   TYPE lvc_s_roid OPTIONAL.
 
     EVENTS toolbar
       EXPORTING

@@ -1,6 +1,8 @@
 CLASS cl_gui_control DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    CLASS-DATA www_active TYPE abap_bool READ-ONLY.
+
     CLASS-METHODS set_focus
       IMPORTING
         control TYPE REF TO cl_gui_control.
