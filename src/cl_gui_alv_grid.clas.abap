@@ -52,6 +52,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         VALUE(e_column)  TYPE any OPTIONAL
         VALUE(es_row_no) TYPE any OPTIONAL.
 
+    EVENTS user_command
+      EXPORTING
+        VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
+
+    EVENTS toolbar
+      EXPORTING
+        VALUE(e_object)      TYPE REF TO cl_alv_event_toolbar_set OPTIONAL
+        VALUE(e_interactive) TYPE char1 OPTIONAL.
+
     CLASS-METHODS offline
       RETURNING
         VALUE(e_offline) TYPE i.
@@ -65,11 +74,28 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         it_index_rows            TYPE any OPTIONAL
         it_row_no                TYPE any OPTIONAL
         is_keep_other_selections TYPE abap_bool OPTIONAL.
+
+    METHODS set_toolbar_interactive.
+
+    CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_insert_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_move_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_cut TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_paste TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD set_toolbar_interactive.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 

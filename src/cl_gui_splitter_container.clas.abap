@@ -1,5 +1,12 @@
 CLASS cl_gui_splitter_container DEFINITION PUBLIC.
   PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        parent  TYPE REF TO cl_gui_container OPTIONAL
+        rows    TYPE i OPTIONAL
+        columns TYPE i OPTIONAL.
+
     METHODS free.
 
     METHODS set_column_width
@@ -28,6 +35,10 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_splitter_container IMPLEMENTATION.
+
+  METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD free.
     ASSERT 1 = 'todo'.

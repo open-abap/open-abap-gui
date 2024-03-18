@@ -1,0 +1,7 @@
+CLASS cl_alv_event_toolbar_set DEFINITION PUBLIC.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_alv_event_toolbar_set IMPLEMENTATION.
+
+ENDCLASS.
