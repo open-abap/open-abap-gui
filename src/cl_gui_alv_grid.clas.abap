@@ -56,6 +56,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
       EXPORTING
         VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
 
+    EVENTS toolbar
+      EXPORTING
+        VALUE(e_object)      TYPE REF TO cl_alv_event_toolbar_set OPTIONAL
+        VALUE(e_interactive) TYPE char1 OPTIONAL.
+
     CLASS-METHODS offline
       RETURNING
         VALUE(e_offline) TYPE i.
