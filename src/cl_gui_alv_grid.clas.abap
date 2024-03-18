@@ -21,15 +21,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
         is_print             TYPE any OPTIONAL
         it_special_groups    TYPE any OPTIONAL
         it_toolbar_excluding TYPE any OPTIONAL
-        it_hyperlink    TYPE any OPTIONAL
-        it_alv_graphics TYPE any OPTIONAL
-        it_except_qinfo TYPE any OPTIONAL
-        ir_salv_adapter TYPE REF TO any OPTIONAL
+        it_hyperlink         TYPE any OPTIONAL
+        it_alv_graphics      TYPE any OPTIONAL
+        it_except_qinfo      TYPE any OPTIONAL
+        ir_salv_adapter      TYPE REF TO any OPTIONAL
       CHANGING
-        it_outtab       TYPE STANDARD TABLE
-        it_fieldcatalog TYPE any OPTIONAL
-        it_sort         TYPE any OPTIONAL
-        it_filter       TYPE any OPTIONAL
+        it_outtab            TYPE STANDARD TABLE
+        it_fieldcatalog      TYPE any OPTIONAL
+        it_sort              TYPE any OPTIONAL
+        it_filter            TYPE any OPTIONAL
       EXCEPTIONS
         invalid_parameter_combination
         program_error
