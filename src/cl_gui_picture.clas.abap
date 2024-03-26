@@ -4,7 +4,9 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS constructor
       IMPORTING
-        i_parent TYPE REF TO cl_gui_container.
+        parent TYPE REF TO cl_gui_container.
+
+    METHODS clear_picture.
 
     METHODS set_display_mode
       IMPORTING
@@ -12,6 +14,10 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_picture IMPLEMENTATION.
+
+  METHOD clear_picture.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD constructor.
     ASSERT 1 = 'todo'.
