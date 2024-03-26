@@ -8,12 +8,18 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS clear_picture.
 
+    METHODS free.
+
     METHODS set_display_mode
       IMPORTING
         display_mode TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_picture IMPLEMENTATION.
+
+  METHOD free.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD clear_picture.
     RETURN. " todo, implement method
