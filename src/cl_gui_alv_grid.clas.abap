@@ -92,6 +92,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
       IMPORTING
         i_gridtitle TYPE lvc_title.
 
+    METHODS check_changed_data
+      EXPORTING
+        e_valid   TYPE abap_bool
+      CHANGING
+        c_refresh TYPE abap_bool DEFAULT abap_true.
+
     CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
@@ -105,6 +111,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD check_changed_data.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_gridtitle.
     RETURN. " todo, implement method
   ENDMETHOD.
