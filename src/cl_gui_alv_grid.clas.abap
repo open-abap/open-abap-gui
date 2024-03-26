@@ -8,6 +8,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 
     METHODS free.
 
+    METHODS set_frontend_layout
+      IMPORTING
+        is_layout TYPE any.
+
     METHODS set_table_for_first_display
       IMPORTING
         i_buffer_active      TYPE any OPTIONAL
@@ -99,6 +103,10 @@ ENDCLASS.
 CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD set_frontend_layout.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
