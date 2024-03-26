@@ -1,4 +1,4 @@
-CLASS cl_gui_alv_grid DEFINITION PUBLIC.
+CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
 
     METHODS constructor
