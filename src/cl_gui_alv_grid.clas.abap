@@ -88,6 +88,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 
     METHODS set_toolbar_interactive.
 
+    METHODS set_gridtitle
+      IMPORTING
+        i_gridtitle TYPE lvc_title.
+
     CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
@@ -101,6 +105,9 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_gridtitle.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD constructor.
     ASSERT 1 = 'todo'.
