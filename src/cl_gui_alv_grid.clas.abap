@@ -1,4 +1,4 @@
-CLASS cl_gui_alv_grid DEFINITION PUBLIC.
+CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
 
     METHODS constructor
@@ -92,19 +92,31 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC.
       IMPORTING
         i_gridtitle TYPE lvc_title.
 
-    CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
+    METHODS check_changed_data
+      EXPORTING
+        e_valid   TYPE abap_bool
+      CHANGING
+        c_refresh TYPE abap_bool DEFAULT abap_true.
+
+    CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_cut TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_insert_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_move_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_cut TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_paste TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_refresh TYPE ui_func VALUE 'TODO'.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD check_changed_data.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_gridtitle.
     RETURN. " todo, implement method
   ENDMETHOD.

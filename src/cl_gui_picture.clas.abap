@@ -13,9 +13,17 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     METHODS set_display_mode
       IMPORTING
         display_mode TYPE i.
+
+    METHODS load_picture_from_url_async
+      IMPORTING
+        url TYPE c.
 ENDCLASS.
 
 CLASS cl_gui_picture IMPLEMENTATION.
+
+  METHOD load_picture_from_url_async.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD free.
     RETURN. " todo, implement method
