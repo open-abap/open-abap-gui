@@ -1,6 +1,7 @@
 CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
   PUBLIC SECTION.
     CONSTANTS false TYPE i VALUE 0.
+    CONSTANTS true  TYPE i VALUE 1.
 
     METHODS constructor
       IMPORTING
@@ -22,9 +23,17 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
         text               TYPE string
         is_modified        TYPE i.
 
+    METHODS set_readonly_mode
+      IMPORTING
+        readonly_mode TYPE i DEFAULT true.
+
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
+
+  METHOD set_readonly_mode.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD constructor.
     ASSERT 1 = 2.
