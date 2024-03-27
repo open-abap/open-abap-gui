@@ -121,9 +121,27 @@ CLASS cl_gui_alv_tree DEFINITION PUBLIC.
         i_node_key     TYPE any
         is_node_layout TYPE any
         i_outtab_line  TYPE any.
+
+    METHODS get_children
+      IMPORTING
+        i_node_key TYPE lvc_nkey
+      EXPORTING
+        et_children TYPE lvc_t_nkey.
+
+    METHODS set_top_node
+      IMPORTING
+        i_node_key TYPE lvc_nkey.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+
+  METHOD set_top_node.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD get_children.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD change_node.
     ASSERT 1 = 'todo'.
