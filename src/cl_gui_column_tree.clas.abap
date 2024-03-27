@@ -1,6 +1,7 @@
 CLASS cl_gui_column_tree DEFINITION PUBLIC.
   PUBLIC SECTION.
     CONSTANTS align_center         TYPE i VALUE 1.
+    CONSTANTS align_right          TYPE i VALUE 2.
     CONSTANTS eventid_button_click TYPE i VALUE 1.
     CONSTANTS eventid_link_click   TYPE i VALUE 2.
     CONSTANTS eventid_node_double_click TYPE i VALUE 25.
@@ -16,6 +17,14 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC.
     CONSTANTS style_emphasized_c        TYPE i VALUE 3.
     CONSTANTS style_emphasized_positive TYPE i VALUE 4.
     CONSTANTS style_inactive            TYPE i VALUE 5.
+
+    METHODS constructor
+      IMPORTING
+        parent                TYPE REF TO cl_gui_container
+        node_selection_mode   TYPE i
+        item_selection        TYPE abap_bool
+        hierarchy_column_name TYPE clike
+        hierarchy_header      TYPE treev_hhdr.
 
     METHODS free.
 
@@ -88,6 +97,10 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_column_tree IMPLEMENTATION.
+
+  METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD expand_node.
     ASSERT 1 = 'todo'.
