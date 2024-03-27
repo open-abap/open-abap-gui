@@ -9,6 +9,12 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 
     METHODS free.
 
+    METHODS set_column_mode
+      IMPORTING
+        mode   TYPE i
+      EXPORTING
+        result TYPE i.
+
     METHODS set_column_width
       IMPORTING
         id    TYPE i
@@ -37,6 +43,10 @@ ENDCLASS.
 CLASS cl_gui_splitter_container IMPLEMENTATION.
 
   METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD set_column_mode.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
