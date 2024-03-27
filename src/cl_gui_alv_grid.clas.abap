@@ -98,6 +98,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       CHANGING
         c_refresh TYPE abap_bool DEFAULT abap_true.
 
+    METHODS get_frontend_layout
+      EXPORTING
+        es_layout TYPE lvc_s_layo.
+
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
@@ -113,6 +117,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_frontend_layout.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD check_changed_data.
     RETURN. " todo, implement method
   ENDMETHOD.
