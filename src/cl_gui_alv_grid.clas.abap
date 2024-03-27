@@ -57,6 +57,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_column)  TYPE any OPTIONAL
         VALUE(es_row_no) TYPE any OPTIONAL.
 
+    EVENTS after_user_command
+      EXPORTING
+        VALUE(e_ucomm)         TYPE sy-ucomm OPTIONAL
+        VALUE(e_saved)         TYPE abap_bool OPTIONAL
+        VALUE(e_not_processed) TYPE abap_bool OPTIONAL.
+
     EVENTS user_command
       EXPORTING
         VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
