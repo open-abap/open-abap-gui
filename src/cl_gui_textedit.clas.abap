@@ -27,9 +27,15 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
       IMPORTING
         readonly_mode TYPE i DEFAULT true.
 
+    METHODS delete_text.
+
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
+
+  METHOD delete_text.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_readonly_mode.
     RETURN. " todo, implement method

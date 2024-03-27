@@ -11,9 +11,17 @@ CLASS cl_gui_control DEFINITION PUBLIC.
       IMPORTING
         enable TYPE c.
 
+    METHODS set_visible
+      IMPORTING
+        visible TYPE c.
+
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+
+  METHOD set_visible.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_focus.
     ASSERT 1 = 'todo'.
