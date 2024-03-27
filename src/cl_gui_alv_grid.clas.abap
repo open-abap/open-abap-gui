@@ -57,6 +57,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_column)  TYPE any OPTIONAL
         VALUE(es_row_no) TYPE any OPTIONAL.
 
+    EVENTS after_user_command
+      EXPORTING
+        VALUE(e_ucomm)         TYPE sy-ucomm OPTIONAL
+        VALUE(e_saved)         TYPE abap_bool OPTIONAL
+        VALUE(e_not_processed) TYPE abap_bool OPTIONAL.
+
     EVENTS user_command
       EXPORTING
         VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
@@ -98,6 +104,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       CHANGING
         c_refresh TYPE abap_bool DEFAULT abap_true.
 
+    METHODS get_frontend_layout
+      EXPORTING
+        es_layout TYPE lvc_s_layo.
+
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
@@ -113,6 +123,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_frontend_layout.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD check_changed_data.
     RETURN. " todo, implement method
   ENDMETHOD.
