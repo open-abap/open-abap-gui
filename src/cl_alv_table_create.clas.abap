@@ -4,7 +4,7 @@ CLASS cl_alv_table_create DEFINITION PUBLIC.
       IMPORTING
         i_style_table    TYPE char1 OPTIONAL
         it_fieldcatalog  TYPE any
-        i_length_in_byte TYPE boolean OPTIONAL
+        i_length_in_byte TYPE abap_bool OPTIONAL
       EXPORTING
         ep_table         TYPE REF TO data
         e_style_fname    TYPE string.
