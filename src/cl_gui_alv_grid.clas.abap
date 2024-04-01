@@ -108,6 +108,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         es_layout TYPE lvc_s_layo.
 
+    METHODS get_frontend_fieldcatalog
+      EXPORTING
+        et_fieldcatalog TYPE any.
+
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
@@ -123,6 +127,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_frontend_fieldcatalog.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_frontend_layout.
     RETURN. " todo, implement method
   ENDMETHOD.
