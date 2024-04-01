@@ -1,6 +1,8 @@
 CLASS cl_gui_splitter_container DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    CONSTANTS mode_absolute TYPE i VALUE 0.
+
     METHODS constructor
       IMPORTING
         parent  TYPE REF TO cl_gui_container OPTIONAL

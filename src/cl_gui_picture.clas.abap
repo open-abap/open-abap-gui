@@ -17,9 +17,19 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     METHODS load_picture_from_url_async
       IMPORTING
         url TYPE c.
+
+    METHODS load_picture_from_url
+      IMPORTING
+        url TYPE c
+      EXPORTING
+        result TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_picture IMPLEMENTATION.
+
+  METHOD load_picture_from_url.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD load_picture_from_url_async.
     RETURN. " todo, implement method
