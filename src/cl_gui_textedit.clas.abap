@@ -29,9 +29,17 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS delete_text.
 
+    METHODS set_text_as_stream
+      IMPORTING
+        text TYPE STANDARD TABLE OPTIONAL.
+
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
+
+  METHOD set_text_as_stream.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD delete_text.
     RETURN. " todo, implement method
