@@ -33,9 +33,25 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
       IMPORTING
         text TYPE STANDARD TABLE OPTIONAL.
 
+    METHODS set_font_fixed
+      IMPORTING
+        mode TYPE i DEFAULT true.
+
+    METHODS set_textstream
+      IMPORTING
+        text TYPE string OPTIONAL.
+
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
+
+  METHOD set_textstream.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_font_fixed.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_text_as_stream.
     RETURN. " todo, implement method
