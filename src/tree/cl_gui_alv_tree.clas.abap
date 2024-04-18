@@ -1,7 +1,5 @@
-CLASS cl_gui_alv_tree DEFINITION PUBLIC.
+CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
   PUBLIC SECTION.
-
-    CONSTANTS c_hierarchy_column_name TYPE string VALUE '&Hierarchy'.
 
     METHODS free.
 
