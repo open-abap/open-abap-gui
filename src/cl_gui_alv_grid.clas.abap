@@ -57,6 +57,14 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_column)  TYPE any OPTIONAL
         VALUE(es_row_no) TYPE any OPTIONAL.
 
+    EVENTS data_changed
+      EXPORTING
+        VALUE(er_data_changed) TYPE REF TO cl_alv_changed_data_protocol OPTIONAL
+        VALUE(e_onf4)          TYPE char1 OPTIONAL
+        VALUE(e_onf4_before)   TYPE char1 OPTIONAL
+        VALUE(e_onf4_after)    TYPE char1 OPTIONAL
+        VALUE(e_ucomm)         TYPE sy-ucomm OPTIONAL.
+
     EVENTS after_user_command
       EXPORTING
         VALUE(e_ucomm)         TYPE sy-ucomm OPTIONAL
