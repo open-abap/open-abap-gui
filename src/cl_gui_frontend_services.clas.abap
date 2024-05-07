@@ -24,7 +24,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           write_field_separator TYPE char1 OPTIONAL
           confirm_overwrite     TYPE abap_bool OPTIONAL
         CHANGING
-          data_tab TYPE any.
+          data_tab              TYPE any.
 
     CLASS-METHODS file_exist
       IMPORTING
@@ -75,17 +75,17 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CLASS-METHODS
       file_save_dialog
         IMPORTING
-          window_title         TYPE string OPTIONAL
-          default_extension    TYPE string OPTIONAL
-          default_file_name    TYPE string OPTIONAL
-          file_filter          TYPE string OPTIONAL
-          initial_directory    TYPE string OPTIONAL
-          prompt_on_overwrite  TYPE abap_bool OPTIONAL
+          window_title        TYPE string OPTIONAL
+          default_extension   TYPE string OPTIONAL
+          default_file_name   TYPE string OPTIONAL
+          file_filter         TYPE string OPTIONAL
+          initial_directory   TYPE string OPTIONAL
+          prompt_on_overwrite TYPE abap_bool OPTIONAL
         CHANGING
-          filename             TYPE string
-          path                 TYPE string
-          fullpath             TYPE string
-          user_action          TYPE i OPTIONAL.
+          filename            TYPE string
+          path                TYPE string
+          fullpath            TYPE string
+          user_action         TYPE i OPTIONAL.
 
     CLASS-METHODS
       directory_browse
@@ -115,7 +115,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CLASS-METHODS
       directory_exist
         IMPORTING
-          directory TYPE string
+          directory     TYPE string
         RETURNING
           VALUE(result) TYPE abap_bool.
 
@@ -124,16 +124,16 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         IMPORTING
           directory TYPE string
         CHANGING
-          rc TYPE i.
+          rc        TYPE i.
 
     CLASS-METHODS
       clipboard_export
         IMPORTING
           no_auth_check TYPE abap_bool OPTIONAL
         EXPORTING
-          data TYPE any
+          data          TYPE any
         CHANGING
-          rc TYPE i.
+          rc            TYPE i.
 
     CLASS-METHODS
       get_system_directory

@@ -3,7 +3,7 @@ CLASS cl_alv_variant DEFINITION PUBLIC.
 
     METHODS delete_variants
       IMPORTING
-        it_variants   TYPE any
+        it_variants    TYPE any
       RETURNING
         VALUE(boolean) TYPE abap_bool.
 

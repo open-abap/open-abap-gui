@@ -10,7 +10,7 @@ CLASS cl_salv_table DEFINITION PUBLIC.
       EXPORTING
         r_salv_table TYPE any
       CHANGING
-        t_table TYPE any.
+        t_table      TYPE any.
     METHODS get_selections RETURNING VALUE(val) TYPE REF TO cl_salv_table.
     METHODS set_selected_rows IMPORTING val TYPE any.
     METHODS set_selection_mode IMPORTING val TYPE i.

@@ -20,7 +20,7 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS load_picture_from_url
       IMPORTING
-        url TYPE c
+        url    TYPE c
       EXPORTING
         result TYPE i.
 ENDCLASS.

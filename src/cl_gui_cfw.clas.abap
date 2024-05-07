@@ -3,8 +3,8 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
     CLASS-METHODS
       compute_pixel_from_metric
         IMPORTING
-          x_or_y TYPE c
-          in     TYPE i
+          x_or_y     TYPE c
+          in         TYPE i
         RETURNING
           VALUE(val) TYPE i.
 
@@ -14,7 +14,7 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
     CLASS-METHODS
       set_new_ok_code
         IMPORTING new_code
-          TYPE clike.
+                           TYPE clike.
 ENDCLASS.
 
 CLASS cl_gui_cfw IMPLEMENTATION.
