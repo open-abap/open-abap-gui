@@ -61,9 +61,9 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         it_toolbar_excluding TYPE any OPTIONAL
         it_except_qinfo      TYPE any OPTIONAL
       CHANGING
-        it_outtab       TYPE STANDARD TABLE
-        it_filter       TYPE any OPTIONAL
-        it_fieldcatalog TYPE any OPTIONAL.
+        it_outtab            TYPE STANDARD TABLE
+        it_filter            TYPE any OPTIONAL
+        it_fieldcatalog      TYPE any OPTIONAL.
 
     METHODS delete_all_nodes
       EXCEPTIONS
@@ -122,7 +122,7 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
 
     METHODS get_children
       IMPORTING
-        i_node_key TYPE lvc_nkey
+        i_node_key  TYPE lvc_nkey
       EXPORTING
         et_children TYPE lvc_t_nkey.
 

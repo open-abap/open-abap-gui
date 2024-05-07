@@ -19,8 +19,8 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 
     METHODS set_column_width
       IMPORTING
-        id    TYPE i
-        width TYPE i
+        id     TYPE i
+        width  TYPE i
       EXPORTING
         result TYPE i
       EXCEPTIONS
@@ -36,8 +36,8 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 
     METHODS get_container
       IMPORTING
-        row TYPE i
-        column TYPE i
+        row              TYPE i
+        column           TYPE i
       RETURNING
         VALUE(container) TYPE REF TO cl_gui_container.
 ENDCLASS.

@@ -19,6 +19,7 @@
     "check_include": true,
     "uncaught_exception": true,
     "cds_legacy_view": true,
+    "align_type_expressions": true,
     "no_external_form_calls": true,
     "superfluous_value": true,
     "cyclic_oo": false,
