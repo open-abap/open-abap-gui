@@ -17,6 +17,10 @@
   ],
   "rules": {
     "check_include": true,
+    "align_pseudo_comments": true,
+    "invalid_table_index": true,
+    "no_prefixes": false,
+    "prefer_pragmas": true,
     "uncaught_exception": true,
     "cds_legacy_view": true,
     "expand_macros": true,
