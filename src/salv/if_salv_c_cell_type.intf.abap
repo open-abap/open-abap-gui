@@ -1,0 +1,11 @@
+INTERFACE if_salv_c_cell_type PUBLIC.
+
+  CONSTANTS text TYPE i VALUE 0.
+  CONSTANTS checkbox TYPE i VALUE 1.
+  CONSTANTS button TYPE i VALUE 2.
+  CONSTANTS dropdown TYPE i VALUE 3.
+  CONSTANTS link TYPE i VALUE 4.
+  CONSTANTS hotspot TYPE i VALUE 5.
+  CONSTANTS checkbox_hotspot TYPE i VALUE 6.
+
+ENDINTERFACE.
