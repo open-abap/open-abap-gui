@@ -1,0 +1,7 @@
+CLASS cl_salv_column_table DEFINITION PUBLIC INHERITING FROM cl_salv_column_list.
+  PUBLIC SECTION.
+
+ENDCLASS.
+
+CLASS cl_salv_column_table IMPLEMENTATION.
+ENDCLASS.
