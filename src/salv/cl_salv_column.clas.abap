@@ -7,9 +7,14 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_output_length IMPORTING value TYPE any.
     METHODS set_sign IMPORTING value TYPE any OPTIONAL.
     METHODS set_optimized IMPORTING value TYPE abap_bool DEFAULT abap_true.
+    METHODS set_alignment IMPORTING svalue TYPE any OPTIONAL.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
+  METHOD set_alignment.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
   METHOD set_optimized.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
