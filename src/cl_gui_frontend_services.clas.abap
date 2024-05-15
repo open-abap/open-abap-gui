@@ -22,6 +22,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           filetype              TYPE string OPTIONAL
           write_lf              TYPE abap_bool OPTIONAL
           write_field_separator TYPE char1 OPTIONAL
+          show_transfer_status  TYPE char1 OPTIONAL
           confirm_overwrite     TYPE abap_bool OPTIONAL
         CHANGING
           data_tab              TYPE any.
