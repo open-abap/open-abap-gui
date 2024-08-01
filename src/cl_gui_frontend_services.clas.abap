@@ -234,6 +234,13 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_gui_version.
-    ASSERT 1 = 'get_gui_verison not supported'.
+* just some dummy values
+
+* release,
+    INSERT '9999' INTO TABLE version_table.
+* sp,
+    INSERT '1' INTO TABLE version_table.
+* patch,
+    INSERT '20' INTO TABLE version_table.
   ENDMETHOD.
 ENDCLASS.
