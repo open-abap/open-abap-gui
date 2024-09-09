@@ -8,7 +8,7 @@ CLASS cl_salv_table DEFINITION PUBLIC.
         list_display TYPE any OPTIONAL
         r_container  TYPE any OPTIONAL
       EXPORTING
-        r_salv_table TYPE any
+        r_salv_table TYPE REF TO cl_salv_table
       CHANGING
         t_table      TYPE any.
     METHODS get_selections RETURNING VALUE(val) TYPE REF TO cl_salv_table.
