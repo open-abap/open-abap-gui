@@ -8,9 +8,14 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_sign IMPORTING value TYPE any OPTIONAL.
     METHODS set_optimized IMPORTING value TYPE abap_bool DEFAULT abap_true.
     METHODS set_alignment IMPORTING svalue TYPE any OPTIONAL.
+    METHODS set_visible IMPORTING value TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
+  METHOD set_visible.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
   METHOD set_alignment.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
