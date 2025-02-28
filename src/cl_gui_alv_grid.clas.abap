@@ -120,6 +120,36 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         et_fieldcatalog TYPE any.
 
+    METHODS get_current_cell
+      EXPORTING
+        es_row_id TYPE lvc_s_row
+        es_col_id TYPE lvc_s_col.
+
+    METHODS set_current_cell_via_id
+      IMPORTING
+        is_row_id    TYPE lvc_s_row OPTIONAL
+        is_column_id TYPE lvc_s_col OPTIONAL
+        is_row_no    TYPE lvc_s_roid OPTIONAL.
+
+    METHODS get_scroll_info_via_id
+      EXPORTING
+        es_row_no   TYPE lvc_s_roid
+        es_row_info TYPE lvc_s_row
+        es_col_info TYPE lvc_s_col.
+
+    METHODS register_edit_event
+      IMPORTING
+        i_event_id TYPE i
+      EXCEPTIONS
+        error.
+
+    METHODS set_scroll_info_via_id
+      IMPORTING
+        is_row_info TYPE lvc_s_row OPTIONAL
+        is_col_info TYPE lvc_s_col
+        is_row_no   TYPE lvc_s_roid OPTIONAL.
+
+    CONSTANTS mc_fc_check TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
@@ -132,9 +162,33 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_refresh TYPE ui_func VALUE 'TODO'.
+
+    CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.
+
+    CONSTANTS mc_evt_enter TYPE i VALUE 1.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_scroll_info_via_id.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD register_edit_event.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_scroll_info_via_id.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_current_cell_via_id.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_current_cell.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_frontend_fieldcatalog.
     RETURN. " todo, implement method
   ENDMETHOD.
