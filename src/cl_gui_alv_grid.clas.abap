@@ -41,8 +41,8 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS get_selected_rows
       EXPORTING
-        et_index_rows TYPE any
-        et_row_no     TYPE any.
+        et_index_rows TYPE lvc_t_row
+        et_row_no     TYPE lvc_t_roid.
 
     METHODS refresh_table_display
       IMPORTING
@@ -53,9 +53,9 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     EVENTS double_click
       EXPORTING
-        VALUE(e_row)     TYPE any OPTIONAL
-        VALUE(e_column)  TYPE any OPTIONAL
-        VALUE(es_row_no) TYPE any OPTIONAL.
+        VALUE(e_row)     TYPE lvc_s_row OPTIONAL
+        VALUE(e_column)  TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no) TYPE lvc_s_roid OPTIONAL.
 
     EVENTS data_changed
       EXPORTING
