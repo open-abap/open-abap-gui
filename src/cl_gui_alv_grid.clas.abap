@@ -86,6 +86,14 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_object)      TYPE REF TO cl_alv_event_toolbar_set OPTIONAL
         VALUE(e_interactive) TYPE char1 OPTIONAL.
 
+    EVENTS data_changed_finished
+      EXPORTING
+        VALUE(e_modified) TYPE abap_bool.
+
+    EVENTS context_menu_request
+      EXPORTING
+        VALUE(e_object) TYPE REF TO cl_ctmenu.
+
     CLASS-METHODS offline
       RETURNING
         VALUE(e_offline) TYPE i.
@@ -122,6 +130,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS get_current_cell
       EXPORTING
+        es_row_no TYPE lvc_s_roid
         es_row_id TYPE lvc_s_row
         es_col_id TYPE lvc_s_col.
 
