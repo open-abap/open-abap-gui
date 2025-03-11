@@ -6,8 +6,9 @@ CLASS cl_ctmenu DEFINITION PUBLIC.
 
     METHODS add_function
       IMPORTING
-        fcode TYPE ui_func
-        text  TYPE gui_text.
+        fcode    TYPE ui_func
+        text     TYPE gui_text
+        disabled TYPE abap_bool OPTIONAL.
 ENDCLASS.
 
 CLASS cl_ctmenu IMPLEMENTATION.
