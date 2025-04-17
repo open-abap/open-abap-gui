@@ -34,15 +34,22 @@ CLASS cl_salv_table DEFINITION PUBLIC.
         end_column   TYPE i
         start_line   TYPE i
         end_line     TYPE i.
+
     METHODS get_event
-      RETURNING VALUE(val) TYPE REF TO cl_salv_events_table.
+      RETURNING
+        VALUE(val) TYPE REF TO cl_salv_events_table.
+
     METHODS get_display_settings
-      RETURNING VALUE(val) TYPE REF TO cl_salv_table.
-    METHODS set_striped_pattern IMPORTING val TYPE any.
+      RETURNING
+        VALUE(val) TYPE REF TO cl_salv_table.
+
+    METHODS set_striped_pattern IMPORTING value TYPE any.
     METHODS set_list_header IMPORTING val TYPE any.
     METHODS set_top_of_list IMPORTING val TYPE any.
+    METHODS set_top_of_list_print IMPORTING val TYPE any.
     METHODS get_columns RETURNING VALUE(val) TYPE REF TO cl_salv_columns_table.
     METHODS get_functions RETURNING VALUE(val) TYPE REF TO cl_salv_functions_list.
+
     METHODS get_aggregations
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_aggregations.
@@ -66,6 +73,9 @@ CLASS cl_salv_table DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
+  METHOD set_top_of_list_print.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD get_sorts.
     ASSERT 1 = 'todo'.
