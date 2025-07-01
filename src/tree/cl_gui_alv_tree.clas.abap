@@ -1,6 +1,14 @@
 CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
   PUBLIC SECTION.
 
+    METHODS constructor
+      IMPORTING
+        parent              TYPE REF TO cl_gui_container OPTIONAL
+        node_selection_mode TYPE i DEFAULT cl_gui_column_tree=>node_sel_mode_single
+        item_selection      TYPE abap_bool DEFAULT 'X'
+        no_toolbar          TYPE abap_bool OPTIONAL
+        no_html_header      TYPE abap_bool OPTIONAL.
+
     METHODS free.
 
     METHODS get_outtab_line
@@ -132,6 +140,10 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+
+  METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD set_top_node.
     ASSERT 1 = 'todo'.
