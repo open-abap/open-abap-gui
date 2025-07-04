@@ -7,6 +7,7 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
       IMPORTING
         parent  TYPE REF TO cl_gui_container OPTIONAL
         rows    TYPE i OPTIONAL
+        align   TYPE i OPTIONAL
         columns TYPE i OPTIONAL.
 
     METHODS free.
