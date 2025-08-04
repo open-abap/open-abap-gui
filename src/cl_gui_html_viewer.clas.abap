@@ -1,0 +1,7 @@
+CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_gui_html_viewer IMPLEMENTATION.
+
+ENDCLASS.
