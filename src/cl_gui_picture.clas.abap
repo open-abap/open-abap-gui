@@ -8,8 +8,6 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS clear_picture.
 
-    METHODS free.
-
     METHODS set_display_mode
       IMPORTING
         display_mode TYPE i.
@@ -32,10 +30,6 @@ CLASS cl_gui_picture IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD load_picture_from_url_async.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD free.
     RETURN. " todo, implement method
   ENDMETHOD.
 
