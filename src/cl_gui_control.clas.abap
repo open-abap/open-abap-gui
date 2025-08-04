@@ -15,9 +15,22 @@ CLASS cl_gui_control DEFINITION PUBLIC.
       IMPORTING
         visible TYPE c.
 
+    METHODS set_registered_events
+      IMPORTING
+        events TYPE any.
+
+    METHODS free.
+
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD free.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_registered_events.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_visible.
     RETURN. " todo, implement method

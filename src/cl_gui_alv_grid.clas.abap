@@ -6,8 +6,6 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         i_parent      TYPE REF TO cl_gui_container
         i_appl_events TYPE char1 DEFAULT space.
 
-    METHODS free.
-
     METHODS set_frontend_layout
       IMPORTING
         is_layout TYPE any.
@@ -235,10 +233,6 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD offline.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD free.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
