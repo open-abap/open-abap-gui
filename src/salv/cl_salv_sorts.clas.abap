@@ -3,6 +3,7 @@ CLASS cl_salv_sorts DEFINITION PUBLIC.
     METHODS add_sort
       IMPORTING
         columnname TYPE clike
+        sequence   TYPE any OPTIONAL
         subtotal   TYPE abap_bool DEFAULT abap_false
       RAISING
         cx_salv_not_found
