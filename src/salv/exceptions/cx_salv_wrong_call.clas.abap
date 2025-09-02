@@ -1,0 +1,7 @@
+CLASS cx_salv_wrong_call DEFINITION PUBLIC INHERITING FROM cx_salv_access_error.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cx_salv_wrong_call IMPLEMENTATION.
+
+ENDCLASS.
