@@ -124,7 +124,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS get_frontend_fieldcatalog
       EXPORTING
-        et_fieldcatalog TYPE any.
+        et_fieldcatalog TYPE lvc_t_fcat.
+
+    METHODS set_frontend_fieldcatalog
+      IMPORTING
+        it_fieldcatalog TYPE lvc_t_fcat.
 
     METHODS get_current_cell
       EXPORTING
@@ -176,6 +180,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_frontend_fieldcatalog.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_scroll_info_via_id.
     RETURN. " todo, implement method
   ENDMETHOD.
