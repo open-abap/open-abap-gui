@@ -88,11 +88,12 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC.
 
     EVENTS button_click
       EXPORTING
-        VALUE(node_key) TYPE string
+        VALUE(node_key)  TYPE string
         VALUE(item_name) TYPE string.
+
     EVENTS link_click
       EXPORTING
-        VALUE(node_key) TYPE string
+        VALUE(node_key)  TYPE string
         VALUE(item_name) TYPE string.
 ENDCLASS.
 
