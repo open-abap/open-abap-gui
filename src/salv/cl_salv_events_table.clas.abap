@@ -11,7 +11,7 @@ CLASS cl_salv_events_table DEFINITION PUBLIC.
 
     EVENTS link_click
       EXPORTING
-        VALUE(row) TYPE i
+        VALUE(row)    TYPE i
         VALUE(column) TYPE string.
 
 ENDCLASS.

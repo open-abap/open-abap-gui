@@ -44,7 +44,7 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
     EVENTS item_double_click
       EXPORTING
         VALUE(fieldname) TYPE any
-        VALUE(node_key) TYPE any.
+        VALUE(node_key)  TYPE any.
 
     EVENTS node_double_click
       EXPORTING

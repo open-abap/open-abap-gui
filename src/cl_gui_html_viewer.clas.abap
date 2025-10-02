@@ -2,10 +2,10 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
     EVENTS sapevent
       EXPORTING
-        VALUE(action) TYPE c OPTIONAL
-        VALUE(frame) TYPE c OPTIONAL
-        VALUE(getdata) TYPE c OPTIONAL
-        VALUE(postdata) TYPE any OPTIONAL
+        VALUE(action)      TYPE c OPTIONAL
+        VALUE(frame)       TYPE c OPTIONAL
+        VALUE(getdata)     TYPE c OPTIONAL
+        VALUE(postdata)    TYPE any OPTIONAL
         VALUE(query_table) TYPE any OPTIONAL.
 
     METHODS constructor
