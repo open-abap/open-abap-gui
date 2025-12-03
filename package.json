@@ -9,11 +9,11 @@
     "integration": "rm -rf output_test && abap_transpile ./abap_transpile_test.json && node output_test/index.mjs",
     "test": "npm run lint && npm run unit"
   },
-  "license": "MIT",
+  "license": "",
   "dependencies": {
-    "@abaplint/cli": "^2.113.219",
-    "@abaplint/runtime": "^2.11.96",
+    "@abaplint/cli": "^2.114.5",
+    "@abaplint/runtime": "^2.12.13",
     "@abaplint/database-sqlite": "^2.11.78",
-    "@abaplint/transpiler-cli": "^2.11.96"
+    "@abaplint/transpiler-cli": "^2.12.13"
   }
 }
