@@ -2,7 +2,6 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
   PUBLIC SECTION.
     DATA mt_mod_cells TYPE lvc_t_modi.
     DATA mt_deleted_rows TYPE lvc_t_moce.
-    DATA mt_deleted_rows TYPE lvc_t_moce.
     DATA mt_inserted_rows TYPE lvc_t_moce.
     DATA mt_good_cells TYPE lvc_t_modi.
 
@@ -43,6 +42,7 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_alv_changed_data_protocol IMPLEMENTATION.
+
   METHOD modify_cell.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
