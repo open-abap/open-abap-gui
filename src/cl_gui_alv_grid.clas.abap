@@ -174,6 +174,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_refresh TYPE ui_func VALUE 'TODO'.
 
+    CONSTANTS mc_style_disabled TYPE x LENGTH 4 VALUE '00100000'.
     CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.
 
     CONSTANTS mc_evt_enter TYPE i VALUE 1.
