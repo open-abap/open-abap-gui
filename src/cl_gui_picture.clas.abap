@@ -1,5 +1,6 @@
 CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
   PUBLIC SECTION.
+    CONSTANTS display_mode_normal TYPE i VALUE 1.
     CONSTANTS display_mode_fit TYPE i VALUE 2.
 
     METHODS constructor
