@@ -1,5 +1,7 @@
 CLASS cl_gui_cfw DEFINITION PUBLIC.
   PUBLIC SECTION.
+    CONSTANTS rc_noevent TYPE i VALUE -1.
+
     CLASS-METHODS compute_pixel_from_metric
       IMPORTING
         x_or_y     TYPE c
