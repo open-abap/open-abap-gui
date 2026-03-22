@@ -1,6 +1,11 @@
-CLASS cl_gui_toolbar DEFINITION PUBLIC.
+CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
-    METHODS free.
+
+    CONSTANTS m_id_function_selected TYPE i VALUE 1.
+
+    METHODS constructor
+      IMPORTING
+        parent TYPE REF TO cl_gui_container.
 
     METHODS add_button
       IMPORTING
@@ -29,6 +34,9 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD constructor.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
 
   METHOD set_static_ctxmenu.
     ASSERT 1 = 'todo'.
