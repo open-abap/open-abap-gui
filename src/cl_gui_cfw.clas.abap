@@ -17,7 +17,7 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
 
     CLASS-METHODS dispatch
       EXPORTING
-        VALUE(return_code) TYPE i.
+        return_code TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_cfw IMPLEMENTATION.
