@@ -25,6 +25,7 @@ CLASS cl_gui_cfw IMPLEMENTATION.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
+
   METHOD compute_pixel_from_metric.
     val = 1.
   ENDMETHOD.
