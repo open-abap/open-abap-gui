@@ -160,6 +160,20 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         is_col_info TYPE lvc_s_col
         is_row_no   TYPE lvc_s_roid OPTIONAL.
 
+    METHODS get_subtotals
+      EXPORTING
+        ep_collect00   TYPE REF TO data
+        ep_collect01   TYPE REF TO data
+        ep_collect02   TYPE REF TO data
+        ep_collect03   TYPE REF TO data
+        ep_collect04   TYPE REF TO data
+        ep_collect05   TYPE REF TO data
+        ep_collect06   TYPE REF TO data
+        ep_collect07   TYPE REF TO data
+        ep_collect08   TYPE REF TO data
+        ep_collect09   TYPE REF TO data
+        et_grouplevels TYPE lvc_t_grpl.
+
     CONSTANTS mc_fc_check TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
@@ -187,6 +201,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_subtotals.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_frontend_fieldcatalog.
     RETURN. " todo, implement method
   ENDMETHOD.
