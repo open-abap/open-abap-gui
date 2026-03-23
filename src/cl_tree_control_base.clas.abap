@@ -1,0 +1,7 @@
+CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_tree_control_base IMPLEMENTATION.
+
+ENDCLASS.

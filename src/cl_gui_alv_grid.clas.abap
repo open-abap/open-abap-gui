@@ -160,6 +160,20 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         is_col_info TYPE lvc_s_col
         is_row_no   TYPE lvc_s_roid OPTIONAL.
 
+    METHODS get_subtotals
+      EXPORTING
+        ep_collect00   TYPE REF TO data
+        ep_collect01   TYPE REF TO data
+        ep_collect02   TYPE REF TO data
+        ep_collect03   TYPE REF TO data
+        ep_collect04   TYPE REF TO data
+        ep_collect05   TYPE REF TO data
+        ep_collect06   TYPE REF TO data
+        ep_collect07   TYPE REF TO data
+        ep_collect08   TYPE REF TO data
+        ep_collect09   TYPE REF TO data
+        et_grouplevels TYPE lvc_t_grpl.
+
     CONSTANTS mc_fc_check TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
@@ -173,14 +187,24 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_refresh TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_graph TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_info TYPE ui_func VALUE 'TODO'.
 
     CONSTANTS mc_style_disabled TYPE x LENGTH 4 VALUE '00100000'.
     CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.
+
+    CONSTANTS mc_mb_sum TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_mb_subtot TYPE ui_func VALUE 'TODO'.
 
     CONSTANTS mc_evt_enter TYPE i VALUE 1.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_subtotals.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_frontend_fieldcatalog.
     RETURN. " todo, implement method
   ENDMETHOD.

@@ -9,9 +9,17 @@ CLASS cl_salv_sorts DEFINITION PUBLIC.
         cx_salv_not_found
         cx_salv_existing
         cx_salv_data_error.
+
+    METHODS set_compressed_subtotal
+      IMPORTING
+        value TYPE lvc_fname OPTIONAL.
 ENDCLASS.
 
 CLASS cl_salv_sorts IMPLEMENTATION.
+  METHOD set_compressed_subtotal.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_sort.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
