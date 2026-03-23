@@ -1,4 +1,4 @@
-CLASS cl_gui_column_tree DEFINITION PUBLIC.
+CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
   PUBLIC SECTION.
     CONSTANTS align_center         TYPE i VALUE 1.
     CONSTANTS align_right          TYPE i VALUE 2.
@@ -26,8 +26,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC.
         hierarchy_column_name TYPE clike
         hierarchy_header      TYPE treev_hhdr.
 
-    METHODS free.
-
     METHODS add_nodes_and_items
       IMPORTING
         node_table                TYPE any OPTIONAL
@@ -39,14 +37,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC.
         error_in_tables
         dp_error
         table_structure_name_not_found.
-
-    METHODS set_registered_events
-      IMPORTING
-        events TYPE cntl_simple_events
-      EXCEPTIONS
-        cntl_error
-        cntl_system_error
-        illegal_event_combination.
 
     METHODS delete_all_nodes
       EXCEPTIONS
