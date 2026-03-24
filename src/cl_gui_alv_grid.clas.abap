@@ -194,7 +194,6 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_graph TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_info TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_sum TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_help TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_html TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_subtot TYPE ui_func VALUE 'TODO'.

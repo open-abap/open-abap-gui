@@ -3,10 +3,16 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     CONSTANTS false TYPE i VALUE 0.
     CONSTANTS true  TYPE i VALUE 1.
 
+    CONSTANTS wordwrap_at_fixed_position TYPE i VALUE 1.
+    CONSTANTS wordwrap_at_windowborder TYPE i VALUE 2.
+    CONSTANTS wordwrap_off TYPE i VALUE 3.
+
     METHODS constructor
       IMPORTING
-        max_number_chars TYPE i OPTIONAL
-        parent           TYPE REF TO cl_gui_container.
+        max_number_chars  TYPE i OPTIONAL
+        wordwrap_mode     TYPE i DEFAULT wordwrap_at_windowborder
+        wordwrap_position TYPE i DEFAULT -1
+        parent            TYPE REF TO cl_gui_container.
 
     METHODS set_toolbar_mode
       IMPORTING
