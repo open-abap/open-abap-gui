@@ -92,6 +92,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         VALUE(e_object) TYPE REF TO cl_ctmenu.
 
+    EVENTS top_of_page
+      EXPORTING
+        VALUE(e_dyndoc_id) TYPE REF TO cl_dd_document OPTIONAL
+        VALUE(table_index) TYPE i OPTIONAL.
+
     CLASS-METHODS offline
       RETURNING
         VALUE(e_offline) TYPE i.

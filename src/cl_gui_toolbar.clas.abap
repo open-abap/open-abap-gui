@@ -21,6 +21,13 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntb_btype_error
         cntb_error_fcode.
 
+    METHODS set_button_info
+      IMPORTING
+        fcode     TYPE ui_func
+        icon      TYPE any OPTIONAL
+        text      TYPE any OPTIONAL
+        quickinfo TYPE any OPTIONAL.
+
     METHODS set_static_ctxmenu
       IMPORTING
         fcode   TYPE clike
@@ -34,6 +41,10 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD set_button_info.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD constructor.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
