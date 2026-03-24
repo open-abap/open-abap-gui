@@ -92,6 +92,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         VALUE(e_object) TYPE REF TO cl_ctmenu.
 
+    EVENTS top_of_page
+      EXPORTING
+        VALUE(e_dyndoc_id) TYPE REF TO cl_dd_document OPTIONAL
+        VALUE(table_index) TYPE i OPTIONAL.
+
     CLASS-METHODS offline
       RETURNING
         VALUE(e_offline) TYPE i.
@@ -174,6 +179,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         ep_collect09   TYPE REF TO data
         et_grouplevels TYPE lvc_t_grpl.
 
+    METHODS register_f4_for_fields
+      IMPORTING
+        it_f4 TYPE lvc_t_f.
+
     CONSTANTS mc_fc_check TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
@@ -190,6 +199,21 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_graph TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_info TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_help TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_html TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_subtot TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_sum TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_to_office TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_to_rep_tree TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_unfix_columns TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_url_copy_to_clipboard TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_variant_admin TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_views TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_view_crystal TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_view_excel TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_view_grid TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_view_lotus TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_word_processor TYPE ui_func VALUE 'TODO'.
 
     CONSTANTS mc_style_disabled TYPE x LENGTH 4 VALUE '00100000'.
     CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.
@@ -198,9 +222,14 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_mb_subtot TYPE ui_func VALUE 'TODO'.
 
     CONSTANTS mc_evt_enter TYPE i VALUE 1.
+    CONSTANTS mc_evt_modified TYPE i VALUE 2.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD register_f4_for_fields.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_subtotals.
     RETURN. " todo, implement method
   ENDMETHOD.

@@ -18,6 +18,19 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
       EXPORTING
         result TYPE i.
 
+    METHODS set_row_height
+      IMPORTING
+        id     TYPE i
+        height TYPE i
+      EXPORTING
+        result TYPE i.
+
+    METHODS set_row_mode
+      IMPORTING
+        mode   TYPE   i
+      EXPORTING
+        result TYPE i.
+
     METHODS set_column_width
       IMPORTING
         id     TYPE i
@@ -44,6 +57,13 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_splitter_container IMPLEMENTATION.
+  METHOD set_row_mode.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_row_height.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD constructor.
     ASSERT 1 = 'todo'.

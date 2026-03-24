@@ -41,7 +41,7 @@ CLASS cl_salv_table DEFINITION PUBLIC.
 
     METHODS get_display_settings
       RETURNING
-        VALUE(val) TYPE REF TO cl_salv_table.
+        VALUE(val) TYPE REF TO cl_salv_display_settings.
 
     METHODS set_striped_pattern IMPORTING value TYPE any.
     METHODS set_list_header IMPORTING val TYPE any.
