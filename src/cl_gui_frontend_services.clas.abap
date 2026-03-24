@@ -14,6 +14,8 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CONSTANTS platform_windows98 TYPE i VALUE 5.
     CONSTANTS platform_windowsxp TYPE i VALUE 6.
 
+    CONSTANTS hkey_current_user TYPE i VALUE 1.
+
     CLASS-METHODS
       gui_download
         IMPORTING
