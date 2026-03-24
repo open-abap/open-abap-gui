@@ -174,6 +174,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         ep_collect09   TYPE REF TO data
         et_grouplevels TYPE lvc_t_grpl.
 
+    METHODS register_f4_for_fields
+      IMPORTING
+        it_f4 TYPE lvc_t_f.
+
     CONSTANTS mc_fc_check TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
@@ -198,9 +202,13 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_mb_subtot TYPE ui_func VALUE 'TODO'.
 
     CONSTANTS mc_evt_enter TYPE i VALUE 1.
+    CONSTANTS mc_evt_modified TYPE i VALUE 2.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD register_f4_for_fields.
+    RETURN. " todo, implement method
+  ENDMETHOD.
   METHOD get_subtotals.
     RETURN. " todo, implement method
   ENDMETHOD.
