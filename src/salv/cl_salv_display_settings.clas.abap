@@ -8,9 +8,16 @@ CLASS cl_salv_display_settings DEFINITION PUBLIC.
     METHODS set_striped_pattern
       IMPORTING
         value TYPE abap_bool.
+
+    METHODS set_list_header
+      IMPORTING
+        value TYPE lvc_title.
 ENDCLASS.
 
 CLASS cl_salv_display_settings IMPLEMENTATION.
+  METHOD set_list_header.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_striped_pattern.
     RETURN. " todo, implement method
