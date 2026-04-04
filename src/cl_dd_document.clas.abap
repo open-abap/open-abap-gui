@@ -26,7 +26,9 @@ CLASS cl_dd_document DEFINITION PUBLIC.
       CHANGING
         document      TYPE REF TO cl_dd_document OPTIONAL.
 
-    METHODS new_line.
+    METHODS new_line
+      IMPORTING
+        repeat TYPE i OPTIONAL.
 
 ENDCLASS.
 
