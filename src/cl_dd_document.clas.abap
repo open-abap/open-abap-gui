@@ -26,11 +26,27 @@ CLASS cl_dd_document DEFINITION PUBLIC.
       CHANGING
         document      TYPE REF TO cl_dd_document OPTIONAL.
 
-    METHODS new_line.
+    METHODS new_line
+      IMPORTING
+        repeat TYPE i OPTIONAL.
+
+    METHODS add_icon
+      IMPORTING
+      sap_icon TYPE any.
+
+    METHODS add_gap.
 
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD add_gap.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD add_icon.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD new_line.
     RETURN. " todo, implement method
   ENDMETHOD.
