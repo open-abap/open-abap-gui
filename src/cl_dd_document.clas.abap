@@ -34,9 +34,15 @@ CLASS cl_dd_document DEFINITION PUBLIC.
       IMPORTING
       sap_icon TYPE any.
 
+    METHODS add_gap.
+
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD add_gap.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_icon.
     RETURN. " todo, implement method
   ENDMETHOD.
