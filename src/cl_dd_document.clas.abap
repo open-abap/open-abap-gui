@@ -30,9 +30,17 @@ CLASS cl_dd_document DEFINITION PUBLIC.
       IMPORTING
         repeat TYPE i OPTIONAL.
 
+    METHODS add_icon
+      IMPORTING
+      sap_icon TYPE any.
+
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD add_icon.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD new_line.
     RETURN. " todo, implement method
   ENDMETHOD.
