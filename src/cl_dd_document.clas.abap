@@ -7,6 +7,10 @@ CLASS cl_dd_document DEFINITION PUBLIC.
     CONSTANTS medium TYPE c LENGTH 50 VALUE 'MEDIUM'.
     CONSTANTS small TYPE c LENGTH 50 VALUE 'SMALL'.
 
+    METHODS add_picture
+      IMPORTING
+        picture_id TYPE any.
+
     METHODS set_document_background
       IMPORTING
         picture_id TYPE any OPTIONAL.
@@ -39,6 +43,10 @@ CLASS cl_dd_document DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD add_picture.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_gap.
     RETURN. " todo, implement method
   ENDMETHOD.

@@ -1,5 +1,6 @@
 CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
   PUBLIC SECTION.
+    CONSTANTS eventid_header_click TYPE i VALUE 28.
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.
