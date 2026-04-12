@@ -11,6 +11,13 @@ CLASS cl_dd_document DEFINITION PUBLIC.
       IMPORTING
         picture_id TYPE any.
 
+    METHODS display_document
+      IMPORTING
+        reuse_control      TYPE abap_bool OPTIONAL
+        reuse_registration TYPE abap_bool OPTIONAL
+        container          TYPE clike OPTIONAL
+        parent             TYPE REF TO cl_gui_container OPTIONAL.
+
     METHODS set_document_background
       IMPORTING
         picture_id TYPE any OPTIONAL.
@@ -38,11 +45,29 @@ CLASS cl_dd_document DEFINITION PUBLIC.
       IMPORTING
       sap_icon TYPE any.
 
+    METHODS merge_document.
+
     METHODS add_gap.
+
+    METHODS initialize_document
+      IMPORTING
+        background_color TYPE i OPTIONAL.
 
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD initialize_document.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD merge_document.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD display_document.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_picture.
     RETURN. " todo, implement method
   ENDMETHOD.
