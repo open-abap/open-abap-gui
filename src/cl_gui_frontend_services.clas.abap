@@ -16,6 +16,10 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
 
     CONSTANTS hkey_current_user TYPE i VALUE 1.
 
+    CLASS-METHODS get_temp_directory
+      CHANGING
+        temp_dir TYPE string.
+
     CLASS-METHODS
       gui_download
         IMPORTING
@@ -164,9 +168,26 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       CHANGING
         sapworkdir TYPE string.
 
+    CLASS-METHODS registry_get_value
+      IMPORTING
+        root      TYPE i
+        key       TYPE string
+        value     TYPE string OPTIONAL
+        no_flush  TYPE c OPTIONAL
+      EXPORTING
+        reg_value TYPE string.
+
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD registry_get_value.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_temp_directory.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD directory_exist.
     ASSERT 1 = 'directory_exist not supported'.
   ENDMETHOD.

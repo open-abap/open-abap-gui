@@ -183,8 +183,42 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         it_f4 TYPE lvc_t_f.
 
+    CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_chain TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_crbatch TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_crweb TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_lineitems TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_master_data TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_more TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_report TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_xint TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_xxl TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_check TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_col_invisible TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_col_optimize TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_count TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_current_variant TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_data_save TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_delete_filter TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_deselect_all TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_excl_all TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_expcrdata TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_expcrdesig TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_expcrtempl TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_expmdb TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_extend TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_f4 TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_filter TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_find TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_fix_columns TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_graph TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_help TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_html TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_info TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_load_variant TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
@@ -195,12 +229,22 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_loc_paste TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_maintain_variant TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_maximum TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_minimum TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_pc_file TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_print TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_print_back TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_print_prev TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_refresh TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_graph TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_info TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_help TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_html TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_reprep TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_save_variant TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_select_all TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_send TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_separator TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_sort TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_sort_asc TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_sort_dsc TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_subtot TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_sum TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_to_office TYPE ui_func VALUE 'TODO'.
@@ -208,12 +252,13 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_unfix_columns TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_url_copy_to_clipboard TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_variant_admin TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_views TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_view_crystal TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_view_excel TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_view_grid TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_view_lotus TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_views TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_word_processor TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
 
     CONSTANTS mc_style_disabled TYPE x LENGTH 4 VALUE '00100000'.
     CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.

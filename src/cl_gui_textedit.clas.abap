@@ -19,6 +19,10 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
       IMPORTING
         toolbar_mode TYPE i DEFAULT false.
 
+    METHODS set_text_as_r3table
+      IMPORTING
+        table TYPE STANDARD TABLE OPTIONAL.
+
     METHODS set_statusbar_mode
       IMPORTING
         statusbar_mode TYPE i DEFAULT false.
@@ -51,6 +55,9 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
+  METHOD set_text_as_r3table.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_textstream.
     RETURN. " todo, implement method
