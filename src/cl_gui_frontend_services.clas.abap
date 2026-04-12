@@ -21,7 +21,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         IMPORTING
           bin_filesize          TYPE i OPTIONAL
           filename              TYPE string
-          filetype              TYPE string OPTIONAL
+          filetype              TYPE clike OPTIONAL
           write_lf              TYPE abap_bool OPTIONAL
           write_field_separator TYPE char1 OPTIONAL
           show_transfer_status  TYPE char1 OPTIONAL
