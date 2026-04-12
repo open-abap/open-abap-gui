@@ -9,10 +9,11 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS constructor
       IMPORTING
-        max_number_chars  TYPE i OPTIONAL
-        wordwrap_mode     TYPE i DEFAULT wordwrap_at_windowborder
-        wordwrap_position TYPE i DEFAULT -1
-        parent            TYPE REF TO cl_gui_container.
+        max_number_chars           TYPE i OPTIONAL
+        wordwrap_mode              TYPE i DEFAULT wordwrap_at_windowborder
+        wordwrap_to_linebreak_mode TYPE i DEFAULT false
+        wordwrap_position          TYPE i DEFAULT -1
+        parent                     TYPE REF TO cl_gui_container.
 
     METHODS set_toolbar_mode
       IMPORTING
