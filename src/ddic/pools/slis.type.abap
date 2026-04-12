@@ -1,0 +1,8 @@
+TYPE-POOL slis.
+
+CONSTANTS slis_ev_data_changed TYPE c LENGTH 30 VALUE 'DATA_CHANGED'.
+CONSTANTS slis_ev_end_of_list TYPE c LENGTH 30 VALUE 'END_OF_LIST'.
+CONSTANTS slis_ev_pf_status_set TYPE c LENGTH 30 VALUE 'PF_STATUS_SET'.
+CONSTANTS slis_ev_top_of_list TYPE c LENGTH 30 VALUE 'TOP_OF_LIST'.
+CONSTANTS slis_ev_top_of_page TYPE c LENGTH 30 VALUE 'TOP_OF_PAGE'.
+CONSTANTS slis_ev_user_command TYPE c LENGTH 30 VALUE 'USER_COMMAND'.
