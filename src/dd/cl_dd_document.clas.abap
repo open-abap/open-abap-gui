@@ -47,7 +47,8 @@ CLASS cl_dd_document DEFINITION PUBLIC.
 
     METHODS merge_document.
 
-    METHODS add_gap.
+    METHODS add_gap
+      IMPORTING width TYPE i OPTIONAL.
 
     METHODS initialize_document
       IMPORTING
