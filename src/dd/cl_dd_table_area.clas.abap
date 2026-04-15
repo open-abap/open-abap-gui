@@ -9,9 +9,17 @@ CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
         sap_fontstyle TYPE any OPTIONAL
         sap_emphasis  TYPE any OPTIONAL.
 
+    METHODS add_heading
+      IMPORTING
+        text TYPE clike.
+
 ENDCLASS.
 
 CLASS cl_dd_table_area IMPLEMENTATION.
+
+  METHOD add_heading.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD new_row.
     RETURN. " todo, implement method
