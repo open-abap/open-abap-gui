@@ -49,6 +49,13 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         finished.
 
+    METHODS list_processing_events
+      IMPORTING
+        i_event_name   TYPE char30
+        i_dyndoc_id    TYPE REF TO cl_dd_document OPTIONAL
+        ip_subtot_line TYPE REF TO data OPTIONAL
+        i_table_index  TYPE i OPTIONAL.
+
     EVENTS double_click
       EXPORTING
         VALUE(e_row)     TYPE lvc_s_row OPTIONAL
@@ -183,6 +190,24 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         it_f4 TYPE lvc_t_f.
 
+    METHODS get_frontend_print
+      EXPORTING
+        es_print TYPE lvc_s_prnt.
+
+    METHODS get_sort_criteria
+      EXPORTING
+        et_sort TYPE lvc_t_sort.
+
+    METHODS get_variant
+      EXPORTING
+        es_variant TYPE disvariant
+        e_save     TYPE char1.
+
+    METHODS set_drop_down_table
+      IMPORTING
+        it_drop_down       TYPE lvc_t_drop OPTIONAL
+        it_drop_down_alias TYPE lvc_t_dral OPTIONAL.
+
     CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
@@ -271,6 +296,26 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_drop_down_table.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_variant.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_sort_criteria.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_frontend_print.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD list_processing_events.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD register_f4_for_fields.
     RETURN. " todo, implement method
   ENDMETHOD.
