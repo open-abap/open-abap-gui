@@ -49,6 +49,13 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         finished.
 
+    METHODS list_processing_events
+      IMPORTING
+        i_event_name   TYPE char30
+        i_dyndoc_id    TYPE REF TO cl_dd_document OPTIONAL
+        ip_subtot_line TYPE REF TO data OPTIONAL
+        i_table_index  TYPE i OPTIONAL.
+
     EVENTS double_click
       EXPORTING
         VALUE(e_row)     TYPE lvc_s_row OPTIONAL
@@ -271,6 +278,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD list_processing_events.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD register_f4_for_fields.
     RETURN. " todo, implement method
   ENDMETHOD.
