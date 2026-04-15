@@ -150,9 +150,19 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
     METHODS set_top_node
       IMPORTING
         i_node_key TYPE lvc_nkey.
+
+    METHODS get_subtree
+      IMPORTING
+        i_node_key       TYPE lvc_nkey
+      EXPORTING
+        et_subtree_nodes TYPE lvc_t_nkey.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+  METHOD get_subtree.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD collapse_subtree.
     RETURN. " todo, implement method
   ENDMETHOD.
