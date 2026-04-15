@@ -22,6 +22,10 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
       EXCEPTIONS
         node_not_found.
 
+    METHODS get_expanded_nodes
+      CHANGING
+        ct_expanded_nodes TYPE lvc_t_nkey.
+
     METHODS get_top_node
       EXPORTING
         e_node_key TYPE lvc_nkey.
@@ -145,6 +149,10 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+  METHOD get_expanded_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_top_node.
     RETURN. " todo, implement method
   ENDMETHOD.
