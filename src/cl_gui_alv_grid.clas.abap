@@ -203,6 +203,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         es_variant TYPE disvariant
         e_save     TYPE char1.
 
+    METHODS set_drop_down_table
+      IMPORTING
+        it_drop_down       TYPE lvc_t_drop OPTIONAL
+        it_drop_down_alias TYPE lvc_t_dral OPTIONAL.
+
     CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
@@ -291,6 +296,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_drop_down_table.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_variant.
     RETURN. " todo, implement method
   ENDMETHOD.
