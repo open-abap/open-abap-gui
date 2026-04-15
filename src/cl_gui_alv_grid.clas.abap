@@ -144,9 +144,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS get_current_cell
       EXPORTING
-        es_row_no TYPE lvc_s_roid
+        e_row     TYPE i
+        e_value   TYPE c
+        e_col     TYPE i
         es_row_id TYPE lvc_s_row
-        es_col_id TYPE lvc_s_col.
+        es_col_id TYPE lvc_s_col
+        es_row_no TYPE lvc_s_roid.
 
     METHODS set_current_cell_via_id
       IMPORTING
