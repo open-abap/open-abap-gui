@@ -1,0 +1,7 @@
+CLASS cl_dd_table_element DEFINITION PUBLIC.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_dd_table_element IMPLEMENTATION.
+
+ENDCLASS.
