@@ -190,6 +190,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         it_f4 TYPE lvc_t_f.
 
+    METHODS get_frontend_print
+      EXPORTING
+        es_print TYPE lvc_s_prnt.
+
     CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
@@ -278,6 +282,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_frontend_print.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD list_processing_events.
     RETURN. " todo, implement method
   ENDMETHOD.
