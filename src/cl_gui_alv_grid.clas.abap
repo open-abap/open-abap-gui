@@ -198,6 +198,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         et_sort TYPE lvc_t_sort.
 
+    METHODS get_variant
+      EXPORTING
+        es_variant TYPE disvariant
+        e_save     TYPE char1.
+
     CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
@@ -286,6 +291,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_variant.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_sort_criteria.
     RETURN. " todo, implement method
   ENDMETHOD.
