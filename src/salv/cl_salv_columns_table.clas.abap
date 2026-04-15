@@ -1,4 +1,4 @@
-CLASS cl_salv_columns_table DEFINITION PUBLIC.
+CLASS cl_salv_columns_table DEFINITION PUBLIC INHERITING FROM cl_salv_columns_list.
   PUBLIC SECTION.
     METHODS set_cell_type_column
       IMPORTING value TYPE string.
