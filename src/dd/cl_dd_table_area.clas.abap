@@ -1,4 +1,4 @@
-CLASS cl_dd_table_area DEFINITION PUBLIC.
+CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
   PUBLIC SECTION.
 
     METHODS new_row

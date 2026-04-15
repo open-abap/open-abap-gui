@@ -1,4 +1,4 @@
-CLASS cl_dd_document DEFINITION PUBLIC.
+CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
   PUBLIC SECTION.
 
     CONSTANTS heading TYPE c LENGTH 50 VALUE 'HEADING'.
@@ -21,21 +21,6 @@ CLASS cl_dd_document DEFINITION PUBLIC.
     METHODS set_document_background
       IMPORTING
         picture_id TYPE any OPTIONAL.
-
-    METHODS add_text
-      IMPORTING
-        text          TYPE any OPTIONAL
-        text_table    TYPE any OPTIONAL
-        fix_lines     TYPE any OPTIONAL
-        sap_style     TYPE any OPTIONAL
-        sap_color     TYPE any OPTIONAL
-        sap_fontsize  TYPE any OPTIONAL
-        sap_fontstyle TYPE any OPTIONAL
-        sap_emphasis  TYPE any OPTIONAL
-        style_class   TYPE any OPTIONAL
-        a11y_tooltip  TYPE string OPTIONAL
-      CHANGING
-        document      TYPE REF TO cl_dd_document OPTIONAL.
 
     METHODS new_line
       IMPORTING
@@ -103,10 +88,6 @@ CLASS cl_dd_document IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_document_background.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD add_text.
     RETURN. " todo, implement method
   ENDMETHOD.
 
