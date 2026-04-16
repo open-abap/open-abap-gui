@@ -7,7 +7,7 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_output_length IMPORTING value TYPE any.
     METHODS set_sign IMPORTING value TYPE any OPTIONAL.
     METHODS set_optimized IMPORTING value TYPE abap_bool DEFAULT abap_true.
-    METHODS set_alignment IMPORTING svalue TYPE any OPTIONAL.
+    METHODS set_alignment IMPORTING value TYPE any OPTIONAL.
     METHODS set_visible IMPORTING value TYPE abap_bool.
     METHODS set_zero IMPORTING value TYPE abap_bool DEFAULT abap_true.
 
