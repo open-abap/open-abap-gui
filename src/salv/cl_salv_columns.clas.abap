@@ -14,9 +14,17 @@ CLASS cl_salv_columns DEFINITION PUBLIC.
       RAISING
         cx_salv_not_found.
 
+    METHODS set_optimize
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
+
 ENDCLASS.
 
 CLASS cl_salv_columns IMPLEMENTATION.
+  METHOD set_optimize.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_column.
     RETURN. " todo, implement method
   ENDMETHOD.
