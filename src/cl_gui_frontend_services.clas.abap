@@ -54,12 +54,13 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CLASS-METHODS
       directory_list_files
         IMPORTING
-          directory  TYPE string
-          files_only TYPE abap_bool OPTIONAL
-          filter     TYPE any OPTIONAL
+          directory        TYPE string
+          files_only       TYPE abap_bool OPTIONAL
+          directories_only TYPE abap_bool OPTIONAL
+          filter           TYPE any OPTIONAL
         CHANGING
-          file_table TYPE any
-          count      TYPE i.
+          file_table       TYPE any
+          count            TYPE i.
 
     CLASS-METHODS
       gui_upload
