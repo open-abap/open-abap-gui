@@ -227,9 +227,22 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         not_supported_by_gui
         wrong_parameter.
 
+    CLASS-METHODS directory_get_current
+      CHANGING
+        current_directory TYPE string
+      EXCEPTIONS
+        directory_get_current_failed
+        cntl_error
+        error_no_gui
+        not_supported_by_gui.
+
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD directory_get_current.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD file_copy.
     RETURN. " todo, implement method
   ENDMETHOD.
