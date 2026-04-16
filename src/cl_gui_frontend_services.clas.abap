@@ -20,6 +20,25 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       CHANGING
         temp_dir TYPE string.
 
+    CLASS-METHODS file_copy
+      IMPORTING
+        source      TYPE string
+        destination TYPE string
+        overwrite   TYPE abap_bool DEFAULT abap_false
+      EXCEPTIONS
+        cntl_error
+        error_no_gui
+        wrong_parameter
+        disk_full
+        access_denied
+        file_not_found
+        destination_exists
+        unknown_error
+        path_not_found
+        disk_write_protect
+        drive_not_ready
+        not_supported_by_gui.
+
     CLASS-METHODS
       gui_download
         IMPORTING
@@ -211,6 +230,10 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD file_copy.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD directory_delete.
     RETURN. " todo, implement method
   ENDMETHOD.
