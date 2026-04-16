@@ -1,4 +1,4 @@
-CLASS cl_gui_control DEFINITION PUBLIC.
+CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
   PUBLIC SECTION.
 
     CLASS-DATA www_active TYPE abap_bool READ-ONLY.
@@ -19,11 +19,19 @@ CLASS cl_gui_control DEFINITION PUBLIC.
       IMPORTING
         events TYPE any.
 
+    CLASS-METHODS get_focus
+      EXPORTING
+        control TYPE REF TO cl_gui_control.
+
     METHODS free.
 
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD get_focus.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD free.
     RETURN. " todo, implement method
   ENDMETHOD.

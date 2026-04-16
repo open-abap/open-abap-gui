@@ -38,9 +38,18 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     EVENTS function_selected
       EXPORTING
         VALUE(fcode) TYPE any.
+
+    METHODS add_button_group
+      IMPORTING
+        data_table                TYPE ttb_button
+        g_target_editor_maximized TYPE abap_bool OPTIONAL.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD add_button_group.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_button_info.
     RETURN. " todo, implement method
   ENDMETHOD.

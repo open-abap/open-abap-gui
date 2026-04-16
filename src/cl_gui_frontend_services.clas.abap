@@ -20,18 +20,39 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       CHANGING
         temp_dir TYPE string.
 
+    CLASS-METHODS file_copy
+      IMPORTING
+        source      TYPE string
+        destination TYPE string
+        overwrite   TYPE abap_bool DEFAULT abap_false
+      EXCEPTIONS
+        cntl_error
+        error_no_gui
+        wrong_parameter
+        disk_full
+        access_denied
+        file_not_found
+        destination_exists
+        unknown_error
+        path_not_found
+        disk_write_protect
+        drive_not_ready
+        not_supported_by_gui.
+
     CLASS-METHODS
       gui_download
         IMPORTING
-          bin_filesize          TYPE i OPTIONAL
-          filename              TYPE string
-          filetype              TYPE clike OPTIONAL
-          write_lf              TYPE abap_bool OPTIONAL
-          write_field_separator TYPE char1 OPTIONAL
-          show_transfer_status  TYPE char1 OPTIONAL
-          confirm_overwrite     TYPE abap_bool OPTIONAL
+          bin_filesize              TYPE i OPTIONAL
+          filename                  TYPE string
+          filetype                  TYPE clike OPTIONAL
+          write_lf                  TYPE abap_bool OPTIONAL
+          write_field_separator     TYPE char1 OPTIONAL
+          show_transfer_status      TYPE char1 OPTIONAL
+          confirm_overwrite         TYPE abap_bool OPTIONAL
+          trunc_trailing_blanks     TYPE abap_bool OPTIONAL
+          trunc_trailing_blanks_eol TYPE abap_bool OPTIONAL
         CHANGING
-          data_tab              TYPE any.
+          data_tab                  TYPE any.
 
     CLASS-METHODS file_exist
       IMPORTING
@@ -39,15 +60,28 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       RETURNING
         VALUE(result) TYPE abap_bool.
 
+    CLASS-METHODS file_get_size
+      IMPORTING
+        file_name TYPE string
+      EXPORTING
+        file_size TYPE i
+      EXCEPTIONS
+        file_get_size_failed
+        cntl_error
+        error_no_gui
+        not_supported_by_gui
+        invalid_default_file_name.
+
     CLASS-METHODS
       directory_list_files
         IMPORTING
-          directory  TYPE string
-          files_only TYPE abap_bool OPTIONAL
-          filter     TYPE any OPTIONAL
+          directory        TYPE string
+          files_only       TYPE abap_bool OPTIONAL
+          directories_only TYPE abap_bool OPTIONAL
+          filter           TYPE any OPTIONAL
         CHANGING
-          file_table TYPE any
-          count      TYPE i.
+          file_table       TYPE any
+          count            TYPE i.
 
     CLASS-METHODS
       gui_upload
@@ -178,9 +212,49 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       EXPORTING
         reg_value TYPE string.
 
+    CLASS-METHODS directory_delete
+      IMPORTING
+        directory TYPE string
+      CHANGING
+        rc        TYPE i
+      EXCEPTIONS
+        directory_delete_failed
+        cntl_error
+        error_no_gui
+        path_not_found
+        directory_access_denied
+        unknown_error
+        not_supported_by_gui
+        wrong_parameter.
+
+    CLASS-METHODS directory_get_current
+      CHANGING
+        current_directory TYPE string
+      EXCEPTIONS
+        directory_get_current_failed
+        cntl_error
+        error_no_gui
+        not_supported_by_gui.
+
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD directory_get_current.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD file_copy.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD directory_delete.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD file_get_size.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD registry_get_value.
     RETURN. " todo, implement method
   ENDMETHOD.

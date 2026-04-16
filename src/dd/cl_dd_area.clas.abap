@@ -31,9 +31,25 @@ CLASS cl_dd_area DEFINITION PUBLIC.
         alternative_text TYPE string OPTIONAL
         tabindex         TYPE i OPTIONAL.
 
+    METHODS underline.
+
+    METHODS add_form
+      EXPORTING
+        formarea         TYPE REF TO cl_dd_form_area
+        main_url         TYPE string
+        alv_offline_info TYPE string.
+
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD add_form.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD underline.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_icon.
     RETURN. " todo, implement method
   ENDMETHOD.
