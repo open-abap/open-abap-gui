@@ -16,9 +16,19 @@ CLASS cl_dd_area DEFINITION PUBLIC.
       CHANGING
         document      TYPE REF TO cl_dd_document OPTIONAL.
 
+    METHODS html_insert
+      IMPORTING
+        contents TYPE string
+      CHANGING
+        position TYPE i.
+
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD html_insert.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_text.
     RETURN. " todo, implement method
   ENDMETHOD.
