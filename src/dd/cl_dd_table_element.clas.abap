@@ -13,9 +13,22 @@ CLASS cl_dd_table_element DEFINITION PUBLIC.
         sap_valign    TYPE any OPTIONAL
         sap_symbol    TYPE any OPTIONAL.
 
+    METHODS add_column
+      IMPORTING
+        width       TYPE any OPTIONAL
+        bg_color    TYPE any OPTIONAL
+        heading     TYPE any OPTIONAL
+        sap_style   TYPE any OPTIONAL
+        style_class TYPE any OPTIONAL
+      EXPORTING
+        column      TYPE REF TO cl_dd_area.
+
 ENDCLASS.
 
 CLASS cl_dd_table_element IMPLEMENTATION.
+  METHOD add_column.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_column_style.
     RETURN. " todo, implement method
