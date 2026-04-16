@@ -27,10 +27,6 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
       IMPORTING
         repeat TYPE i OPTIONAL.
 
-    METHODS add_icon
-      IMPORTING
-      sap_icon TYPE any.
-
     METHODS merge_document.
 
     METHODS add_gap
@@ -89,10 +85,6 @@ CLASS cl_dd_document IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_gap.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD add_icon.
     RETURN. " todo, implement method
   ENDMETHOD.
 

@@ -2,8 +2,6 @@ CLASS cl_salv_columns_table DEFINITION PUBLIC INHERITING FROM cl_salv_columns_li
   PUBLIC SECTION.
     METHODS set_cell_type_column
       IMPORTING value TYPE string.
-    METHODS set_optimize
-      IMPORTING value TYPE abap_bool DEFAULT abap_true.
     METHODS set_color_column
       IMPORTING value TYPE string.
     METHODS get
@@ -25,10 +23,6 @@ CLASS cl_salv_columns_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_cell_type_column.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD set_optimize.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
