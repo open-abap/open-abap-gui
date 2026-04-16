@@ -13,7 +13,9 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
 
     CLASS-METHODS set_new_ok_code
       IMPORTING
-        new_code TYPE clike.
+        new_code  TYPE clike
+      RETURNING
+        VALUE(rc) TYPE i.
 
     CLASS-METHODS dispatch
       EXPORTING
