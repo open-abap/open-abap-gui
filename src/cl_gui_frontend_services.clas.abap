@@ -39,6 +39,18 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       RETURNING
         VALUE(result) TYPE abap_bool.
 
+    CLASS-METHODS file_get_size
+      IMPORTING
+        file_name TYPE string
+      EXPORTING
+        file_size TYPE i
+      EXCEPTIONS
+        file_get_size_failed
+        cntl_error
+        error_no_gui
+        not_supported_by_gui
+        invalid_default_file_name.
+
     CLASS-METHODS
       directory_list_files
         IMPORTING
@@ -181,6 +193,10 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD file_get_size.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD registry_get_value.
     RETURN. " todo, implement method
   ENDMETHOD.
