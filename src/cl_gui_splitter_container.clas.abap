@@ -25,6 +25,17 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
       EXPORTING
         result TYPE i.
 
+    METHODS set_column_sash
+      IMPORTING
+        id     TYPE i
+        type   TYPE i
+        value  TYPE i
+      EXPORTING
+        result TYPE i
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
+
     METHODS set_row_mode
       IMPORTING
         mode   TYPE   i
@@ -57,6 +68,10 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_splitter_container IMPLEMENTATION.
+  METHOD set_column_sash.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_row_mode.
     RETURN. " todo, implement method
   ENDMETHOD.
