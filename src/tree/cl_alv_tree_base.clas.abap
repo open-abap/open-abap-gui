@@ -10,8 +10,16 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC.
     CONSTANTS mc_fc_print_back_all TYPE ui_func VALUE '&PRINT_BACK_ALL'.
     CONSTANTS mc_fc_save_variant TYPE ui_func VALUE '&SAVE'.
 
+    METHODS get_frontend_fieldcatalog
+      EXPORTING
+        VALUE(et_fieldcatalog) TYPE lvc_t_fcat.
+
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+
+  METHOD get_frontend_fieldcatalog.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
 ENDCLASS.
