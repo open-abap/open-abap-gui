@@ -1,4 +1,4 @@
-CLASS cl_gui_control DEFINITION PUBLIC.
+CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
   PUBLIC SECTION.
 
     CLASS-DATA www_active TYPE abap_bool READ-ONLY.
