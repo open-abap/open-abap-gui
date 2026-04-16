@@ -31,9 +31,15 @@ CLASS cl_dd_area DEFINITION PUBLIC.
         alternative_text TYPE string OPTIONAL
         tabindex         TYPE i OPTIONAL.
 
+    METHODS underline.
+
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD underline.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_icon.
     RETURN. " todo, implement method
   ENDMETHOD.
