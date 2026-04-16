@@ -124,6 +124,7 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
 
     METHODS get_selected_item
       EXPORTING
+        e_fieldname     TYPE any
         e_selected_node TYPE any.
 
     METHODS get_selected_nodes

@@ -44,6 +44,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         IMPORTING
           directory  TYPE string
           files_only TYPE abap_bool OPTIONAL
+          filter     TYPE any OPTIONAL
         CHANGING
           file_table TYPE any
           count      TYPE i.

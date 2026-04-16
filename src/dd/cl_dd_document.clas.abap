@@ -9,7 +9,8 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
 
     METHODS add_picture
       IMPORTING
-        picture_id TYPE any.
+        picture_id TYPE any
+        width      TYPE any.
 
     METHODS display_document
       IMPORTING
@@ -26,10 +27,6 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
       IMPORTING
         repeat TYPE i OPTIONAL.
 
-    METHODS add_icon
-      IMPORTING
-      sap_icon TYPE any.
-
     METHODS merge_document.
 
     METHODS add_gap
@@ -38,6 +35,13 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
     METHODS initialize_document
       IMPORTING
         background_color TYPE i OPTIONAL.
+
+    METHODS vertical_split
+      IMPORTING
+        split_area  TYPE REF TO cl_dd_area
+        split_width TYPE clike OPTIONAL
+      EXPORTING
+        right_area  TYPE REF TO cl_dd_area.
 
     METHODS add_table
       IMPORTING
@@ -56,6 +60,10 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD vertical_split.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_table.
     RETURN. " todo, implement method
   ENDMETHOD.
@@ -77,10 +85,6 @@ CLASS cl_dd_document IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_gap.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD add_icon.
     RETURN. " todo, implement method
   ENDMETHOD.
 
