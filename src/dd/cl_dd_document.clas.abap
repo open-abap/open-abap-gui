@@ -39,6 +39,13 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
       IMPORTING
         background_color TYPE i OPTIONAL.
 
+    METHODS vertical_split
+      IMPORTING
+        split_area  TYPE REF TO cl_dd_area
+        split_width TYPE clike OPTIONAL
+      EXPORTING
+        right_area  TYPE REF TO cl_dd_area.
+
     METHODS add_table
       IMPORTING
         no_of_columns               TYPE i
@@ -56,6 +63,10 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD vertical_split.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_table.
     RETURN. " todo, implement method
   ENDMETHOD.
