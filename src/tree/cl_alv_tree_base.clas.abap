@@ -18,9 +18,19 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC.
       IMPORTING
         no_frontend_update TYPE c OPTIONAL.
 
+    METHODS column_optimize
+      IMPORTING
+        i_start_column    TYPE lvc_fname OPTIONAL
+        i_end_column      TYPE lvc_fname OPTIONAL
+        i_include_heading TYPE abap_bool DEFAULT abap_true.
+
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD column_optimize.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD update_calculations.
     RETURN. " todo, implement method
   ENDMETHOD.
