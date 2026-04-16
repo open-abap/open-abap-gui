@@ -22,9 +22,22 @@ CLASS cl_dd_area DEFINITION PUBLIC.
       CHANGING
         position TYPE i.
 
+    METHODS add_icon
+      IMPORTING
+        sap_icon         TYPE any
+        sap_size         TYPE any OPTIONAL
+        sap_style        TYPE any OPTIONAL
+        sap_color        TYPE any OPTIONAL
+        alternative_text TYPE string OPTIONAL
+        tabindex         TYPE i OPTIONAL.
+
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD add_icon.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD html_insert.
     RETURN. " todo, implement method
   ENDMETHOD.
