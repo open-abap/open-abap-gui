@@ -19,11 +19,19 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       IMPORTING
         events TYPE any.
 
+    CLASS-METHODS get_focus
+      EXPORTING
+        control TYPE REF TO cl_gui_control.
+
     METHODS free.
 
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD get_focus.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD free.
     RETURN. " todo, implement method
   ENDMETHOD.
