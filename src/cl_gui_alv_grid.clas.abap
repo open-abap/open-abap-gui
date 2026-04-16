@@ -223,6 +223,13 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         i_event_id TYPE i.
 
+    METHODS is_ready_for_input
+      IMPORTING
+        i_row_id               TYPE i OPTIONAL
+        is_col_id              TYPE lvc_s_col OPTIONAL
+      RETURNING
+        VALUE(ready_for_input) TYPE i.
+
     CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
@@ -311,6 +318,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD is_ready_for_input.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD register_delayed_event.
     RETURN. " todo, implement method
   ENDMETHOD.
