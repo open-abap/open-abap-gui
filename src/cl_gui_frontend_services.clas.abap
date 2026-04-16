@@ -190,9 +190,28 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       EXPORTING
         reg_value TYPE string.
 
+    CLASS-METHODS directory_delete
+      IMPORTING
+        directory TYPE string
+      CHANGING
+        rc        TYPE i
+      EXCEPTIONS
+        directory_delete_failed
+        cntl_error
+        error_no_gui
+        path_not_found
+        directory_access_denied
+        unknown_error
+        not_supported_by_gui
+        wrong_parameter.
+
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD directory_delete.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD file_get_size.
     RETURN. " todo, implement method
   ENDMETHOD.
