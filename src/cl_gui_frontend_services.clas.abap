@@ -23,15 +23,17 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CLASS-METHODS
       gui_download
         IMPORTING
-          bin_filesize          TYPE i OPTIONAL
-          filename              TYPE string
-          filetype              TYPE clike OPTIONAL
-          write_lf              TYPE abap_bool OPTIONAL
-          write_field_separator TYPE char1 OPTIONAL
-          show_transfer_status  TYPE char1 OPTIONAL
-          confirm_overwrite     TYPE abap_bool OPTIONAL
+          bin_filesize              TYPE i OPTIONAL
+          filename                  TYPE string
+          filetype                  TYPE clike OPTIONAL
+          write_lf                  TYPE abap_bool OPTIONAL
+          write_field_separator     TYPE char1 OPTIONAL
+          show_transfer_status      TYPE char1 OPTIONAL
+          confirm_overwrite         TYPE abap_bool OPTIONAL
+          trunc_trailing_blanks     TYPE abap_bool OPTIONAL
+          trunc_trailing_blanks_eol TYPE abap_bool OPTIONAL
         CHANGING
-          data_tab              TYPE any.
+          data_tab                  TYPE any.
 
     CLASS-METHODS file_exist
       IMPORTING
