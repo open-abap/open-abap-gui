@@ -161,9 +161,17 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         i_node_key       TYPE lvc_nkey
       EXPORTING
         et_subtree_nodes TYPE lvc_t_nkey.
+
+    METHODS unselect_nodes
+      IMPORTING
+        it_node_key TYPE lvc_t_nkey.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+  METHOD unselect_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_checked_items.
     RETURN. " todo, implement method
   ENDMETHOD.
