@@ -10,15 +10,24 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_alignment IMPORTING svalue TYPE any OPTIONAL.
     METHODS set_visible IMPORTING value TYPE abap_bool.
     METHODS set_zero IMPORTING value TYPE abap_bool DEFAULT abap_true.
+
     METHODS set_currency_column
       IMPORTING
         value TYPE any
       RAISING
         cx_salv_not_found
         cx_salv_data_error.
+
+    METHODS set_tooltip
+      IMPORTING
+        value TYPE lvc_tip.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
+  METHOD set_tooltip.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_currency_column.
     ASSERT 1 = 'todo'.
   ENDMETHOD.

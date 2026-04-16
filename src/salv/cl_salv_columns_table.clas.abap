@@ -6,9 +6,6 @@ CLASS cl_salv_columns_table DEFINITION PUBLIC INHERITING FROM cl_salv_columns_li
       IMPORTING value TYPE abap_bool DEFAULT abap_true.
     METHODS set_color_column
       IMPORTING value TYPE string.
-    METHODS get_column
-      IMPORTING columnname   TYPE lvc_fname
-      RETURNING VALUE(value) TYPE REF TO cl_salv_column.
     METHODS get
       RETURNING VALUE(value) TYPE string.
     METHODS set_exception_column
@@ -20,10 +17,6 @@ ENDCLASS.
 
 CLASS cl_salv_columns_table IMPLEMENTATION.
   METHOD set_hyperlink_entry_column.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD get_column.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
