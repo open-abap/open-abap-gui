@@ -23,9 +23,16 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
         url    TYPE c
       EXPORTING
         result TYPE i.
+
+    METHODS set_3d_border
+      IMPORTING
+        border TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_picture IMPLEMENTATION.
+  METHOD set_3d_border.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD load_picture_from_url.
     RETURN. " todo, implement method
