@@ -142,6 +142,10 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         i_outtab_line  TYPE any
         it_item_layout TYPE any OPTIONAL.
 
+    METHODS get_checked_items
+      EXPORTING
+        et_checked_items TYPE lvc_t_chit.
+
     METHODS get_children
       IMPORTING
         i_node_key  TYPE lvc_nkey
@@ -160,6 +164,10 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+  METHOD get_checked_items.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_subtree.
     RETURN. " todo, implement method
   ENDMETHOD.
