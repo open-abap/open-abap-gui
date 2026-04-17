@@ -62,10 +62,6 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
       EXPORTING
         VALUE(node_key) TYPE any.
 
-    METHODS get_toolbar_object
-      EXPORTING
-        er_toolbar TYPE REF TO cl_gui_toolbar.
-
     METHODS set_table_for_first_display
       IMPORTING
         i_structure_name     TYPE any OPTIONAL
@@ -259,10 +255,6 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_table_for_first_display.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD get_toolbar_object.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 

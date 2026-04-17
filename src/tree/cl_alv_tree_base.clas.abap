@@ -24,9 +24,17 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC.
         i_end_column      TYPE lvc_fname OPTIONAL
         i_include_heading TYPE abap_bool DEFAULT abap_true.
 
+    METHODS get_toolbar_object
+      EXPORTING
+        er_toolbar TYPE REF TO cl_gui_toolbar.
+
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD get_toolbar_object.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD column_optimize.
     RETURN. " todo, implement method
   ENDMETHOD.
