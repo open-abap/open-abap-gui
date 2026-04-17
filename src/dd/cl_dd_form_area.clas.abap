@@ -16,9 +16,27 @@ CLASS cl_dd_form_area DEFINITION PUBLIC.
     METHODS new_line
       IMPORTING
         repeating TYPE i OPTIONAL.
+
+    METHODS add_input_element
+      IMPORTING
+        value         TYPE any OPTIONAL
+        name          TYPE any OPTIONAL
+        size          TYPE i OPTIONAL
+        maxlength     TYPE i OPTIONAL
+        sub_area      TYPE REF TO cl_dd_area OPTIONAL
+        tooltip       TYPE string OPTIONAL
+        tabindex      TYPE i OPTIONAL
+        hotkey        TYPE any OPTIONAL
+        a11y_label    TYPE string OPTIONAL
+      EXPORTING
+        input_element TYPE REF TO cl_dd_input_element.
 ENDCLASS.
 
 CLASS cl_dd_form_area IMPLEMENTATION.
+  METHOD add_input_element.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD new_line.
     RETURN. " todo, implement method
   ENDMETHOD.
