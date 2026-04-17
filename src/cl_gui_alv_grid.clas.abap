@@ -99,6 +99,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         VALUE(e_modified) TYPE abap_bool.
 
+    EVENTS menu_button
+      EXPORTING
+        VALUE(e_object) TYPE REF TO cl_ctmenu OPTIONAL
+        VALUE(e_ucomm)  TYPE sy-ucomm OPTIONAL.
+
     EVENTS context_menu_request
       EXPORTING
         VALUE(e_object) TYPE REF TO cl_ctmenu.
