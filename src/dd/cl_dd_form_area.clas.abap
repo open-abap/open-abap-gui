@@ -12,9 +12,16 @@ CLASS cl_dd_form_area DEFINITION PUBLIC.
         hotkey   TYPE any OPTIONAL
       EXPORTING
         button   TYPE REF TO cl_dd_button_element.
+
+    METHODS new_line
+      IMPORTING
+        repeating TYPE i OPTIONAL.
 ENDCLASS.
 
 CLASS cl_dd_form_area IMPLEMENTATION.
+  METHOD new_line.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD add_button.
     RETURN. " todo, implement method
