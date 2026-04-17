@@ -19,7 +19,8 @@ CLASS cl_salv_table DEFINITION PUBLIC.
     METHODS refresh
       IMPORTING
         s_stable     TYPE any OPTIONAL
-        refresh_mode TYPE any OPTIONAL.
+        refresh_mode TYPE any OPTIONAL
+      PREFERRED PARAMETER s_stable.
     METHODS display.
     METHODS is_offline RETURNING VALUE(value) TYPE abap_bool.
     METHODS get_metadata.
