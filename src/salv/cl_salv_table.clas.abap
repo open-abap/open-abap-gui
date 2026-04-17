@@ -3,6 +3,10 @@ CLASS cl_salv_table DEFINITION PUBLIC.
     CONSTANTS c_functions_all TYPE i VALUE 1.
     TYPES ty_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
 
+    METHODS set_end_of_list
+      IMPORTING
+        value TYPE REF TO cl_salv_form_element.
+
     CLASS-METHODS factory
       IMPORTING
         list_display TYPE any OPTIONAL
@@ -77,6 +81,10 @@ CLASS cl_salv_table DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
+  METHOD set_end_of_list.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_top_of_list_print.
     RETURN. " todo, implement method
   ENDMETHOD.
