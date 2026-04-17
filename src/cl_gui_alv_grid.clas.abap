@@ -49,6 +49,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         finished.
 
+    METHODS get_filtered_entries
+      EXPORTING
+        et_filtered_entries TYPE lvc_t_fidx.
+
     METHODS list_processing_events
       IMPORTING
         i_event_name   TYPE char30
@@ -328,6 +332,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_filtered_entries.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_filter_criteria.
     RETURN. " todo, implement method
   ENDMETHOD.
