@@ -7,9 +7,17 @@ CLASS cl_salv_column_list DEFINITION PUBLIC INHERITING FROM cl_salv_column.
     METHODS set_cell_type
       IMPORTING
         value TYPE any OPTIONAL.
+
+    METHODS set_key
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
 ENDCLASS.
 
 CLASS cl_salv_column_list IMPLEMENTATION.
+  METHOD set_key.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_cell_type.
     RETURN. " todo, implement method
   ENDMETHOD.
