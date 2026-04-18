@@ -9,15 +9,16 @@ CLASS cl_dd_area DEFINITION PUBLIC.
 
     METHODS add_table
       IMPORTING
-        no_of_columns   TYPE i
-        with_heading    TYPE sdydo_flag OPTIONAL
-        border          TYPE sdydo_value DEFAULT '1'
-        width           TYPE sdydo_value OPTIONAL
-        with_a11y_marks TYPE sdydo_flag OPTIONAL
-        a11y_label      TYPE string OPTIONAL
+        no_of_columns               TYPE i
+        with_heading                TYPE sdydo_flag OPTIONAL
+        border                      TYPE sdydo_value DEFAULT '1'
+        width                       TYPE sdydo_value OPTIONAL
+        with_a11y_marks             TYPE sdydo_flag OPTIONAL
+        a11y_label                  TYPE string OPTIONAL
+        cell_background_transparent TYPE any OPTIONAL
       EXPORTING
-        table           TYPE REF TO cl_dd_table_element
-        tablearea       TYPE REF TO cl_dd_table_area
+        table                       TYPE REF TO cl_dd_table_element
+        tablearea                   TYPE REF TO cl_dd_table_area
       EXCEPTIONS
         table_already_used.
 
