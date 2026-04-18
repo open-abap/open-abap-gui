@@ -18,9 +18,17 @@ CLASS cl_salv_columns DEFINITION PUBLIC.
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
 
+    METHODS get
+      RETURNING
+        VALUE(value) TYPE salv_t_column_ref.
+
 ENDCLASS.
 
 CLASS cl_salv_columns IMPLEMENTATION.
+  METHOD get.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_optimize.
     RETURN. " todo, implement method
   ENDMETHOD.
