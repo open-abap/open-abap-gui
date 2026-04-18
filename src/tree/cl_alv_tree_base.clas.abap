@@ -1,4 +1,4 @@
-CLASS cl_alv_tree_base DEFINITION PUBLIC.
+CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
     CONSTANTS c_hierarchy_column_name TYPE string VALUE '&Hierarchy'.
 
@@ -52,6 +52,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   METHOD set_default_drop.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD get_registered_events.
     RETURN. " todo, implement method
   ENDMETHOD.
