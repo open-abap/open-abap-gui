@@ -8,6 +8,14 @@ CLASS cl_salv_layout_service DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE salv_s_layout_info.
 
+    CLASS-METHODS get_default_layout
+      IMPORTING
+        s_key         TYPE any
+        restrict      TYPE any OPTIONAL
+        mandt         TYPE mandt DEFAULT sy-mandt
+        bypass_buffer TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(value)  TYPE salv_s_layout_info.
 
     CLASS-METHODS get_layouts
       IMPORTING
@@ -17,6 +25,9 @@ CLASS cl_salv_layout_service DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_layout_service IMPLEMENTATION.
+  METHOD get_default_layout.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD get_layouts.
     ASSERT 1 = 2.
