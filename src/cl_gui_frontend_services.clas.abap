@@ -236,9 +236,24 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         error_no_gui
         not_supported_by_gui.
 
+    CLASS-METHODS get_upload_download_path
+      CHANGING
+        upload_path   TYPE string
+        download_path TYPE string
+      EXCEPTIONS
+        cntl_error
+        error_no_gui
+        not_supported_by_gui
+        gui_upload_download_path
+        upload_download_path_failed.
+
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD get_upload_download_path.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD directory_get_current.
     RETURN. " todo, implement method
   ENDMETHOD.
