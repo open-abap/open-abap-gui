@@ -15,6 +15,12 @@ CLASS cl_salv_table DEFINITION PUBLIC.
         r_salv_table TYPE REF TO cl_salv_table
       CHANGING
         t_table      TYPE any.
+
+    METHODS get_screen_status
+      EXPORTING
+        report   TYPE syrepid
+        pfstatus TYPE any.
+
     METHODS get_selections RETURNING VALUE(val) TYPE REF TO cl_salv_table.
     METHODS set_selected_rows IMPORTING val TYPE any.
     METHODS set_selection_mode IMPORTING value TYPE i.
@@ -81,6 +87,10 @@ CLASS cl_salv_table DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
+  METHOD get_screen_status.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_end_of_list.
     RETURN. " todo, implement method
   ENDMETHOD.
