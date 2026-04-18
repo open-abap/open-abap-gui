@@ -15,6 +15,12 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
       IMPORTING
         i_node_key TYPE lvc_nkey.
 
+    METHODS get_parent
+      IMPORTING
+        i_node_key        TYPE lvc_nkey
+      EXPORTING
+        e_parent_node_key TYPE lvc_nkey.
+
     METHODS get_outtab_line
       IMPORTING
         i_node_key     TYPE any
@@ -168,6 +174,10 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+  METHOD get_parent.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD change_item.
     RETURN. " todo, implement method
   ENDMETHOD.

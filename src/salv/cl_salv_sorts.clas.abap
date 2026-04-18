@@ -13,9 +13,15 @@ CLASS cl_salv_sorts DEFINITION PUBLIC.
     METHODS set_compressed_subtotal
       IMPORTING
         value TYPE lvc_fname OPTIONAL.
+
+    METHODS clear.
 ENDCLASS.
 
 CLASS cl_salv_sorts IMPLEMENTATION.
+  METHOD clear.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_compressed_subtotal.
     RETURN. " todo, implement method
   ENDMETHOD.

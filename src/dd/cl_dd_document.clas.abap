@@ -40,9 +40,19 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
       EXPORTING
         right_area  TYPE REF TO cl_dd_area.
 
+    METHODS print_document
+      IMPORTING
+        reuse_control TYPE sdydo_flag OPTIONAL
+      EXCEPTIONS
+        html_print_error.
+
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD print_document.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD vertical_split.
     RETURN. " todo, implement method
   ENDMETHOD.
