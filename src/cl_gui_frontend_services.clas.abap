@@ -87,14 +87,15 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CLASS-METHODS
       gui_upload
         IMPORTING
-          filename     TYPE string
-          filetype     TYPE char10 OPTIONAL
-          codepage     TYPE abap_encoding DEFAULT space
-          read_by_line TYPE abap_bool OPTIONAL
+          filename            TYPE string
+          filetype            TYPE char10 OPTIONAL
+          codepage            TYPE abap_encoding DEFAULT space
+          has_field_separator TYPE abap_bool OPTIONAL
+          read_by_line        TYPE abap_bool OPTIONAL
         EXPORTING
-          filelength   TYPE i
+          filelength          TYPE i
         CHANGING
-          data_tab     TYPE any.
+          data_tab            TYPE any.
 
     CLASS-METHODS
       file_open_dialog
