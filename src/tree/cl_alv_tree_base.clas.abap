@@ -28,9 +28,17 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC.
       EXPORTING
         er_toolbar TYPE REF TO cl_gui_toolbar.
 
+    METHODS get_selected_columns
+      EXPORTING
+        et_sel_columns TYPE any.
+
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD get_selected_columns.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_toolbar_object.
     RETURN. " todo, implement method
   ENDMETHOD.
