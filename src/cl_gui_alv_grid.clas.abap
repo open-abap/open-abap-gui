@@ -10,6 +10,8 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         is_layout TYPE any.
 
+    METHODS select_text_in_curr_cell.
+
     METHODS set_table_for_first_display
       IMPORTING
         i_buffer_active      TYPE any OPTIONAL
@@ -348,6 +350,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD select_text_in_curr_cell.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_selected_columns.
     RETURN. " todo, implement method
   ENDMETHOD.
