@@ -29,9 +29,6 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
 
     METHODS merge_document.
 
-    METHODS add_gap
-      IMPORTING width TYPE i OPTIONAL.
-
     METHODS initialize_document
       IMPORTING
         background_color TYPE i OPTIONAL.
@@ -81,10 +78,6 @@ CLASS cl_dd_document IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_picture.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD add_gap.
     RETURN. " todo, implement method
   ENDMETHOD.
 

@@ -1,4 +1,4 @@
-CLASS cl_dd_form_area DEFINITION PUBLIC.
+CLASS cl_dd_form_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
   PUBLIC SECTION.
 
     METHODS add_button

@@ -117,6 +117,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(e_offline) TYPE i.
 
+    METHODS set_sort_criteria
+      IMPORTING
+        it_sort TYPE lvc_t_sort
+      EXCEPTIONS
+        no_fieldcatalog_available.
+
     METHODS set_ready_for_input
       IMPORTING
         i_ready_for_input TYPE i.
@@ -337,6 +343,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_sort_criteria.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_filtered_entries.
     RETURN. " todo, implement method
   ENDMETHOD.

@@ -24,13 +24,31 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC.
         i_end_column      TYPE lvc_fname OPTIONAL
         i_include_heading TYPE abap_bool DEFAULT abap_true.
 
+    METHODS get_registered_events
+      EXPORTING
+        events TYPE cntl_simple_events
+      EXCEPTIONS
+        cntl_error.
+
     METHODS get_toolbar_object
       EXPORTING
         er_toolbar TYPE REF TO cl_gui_toolbar.
 
+    METHODS get_selected_columns
+      EXPORTING
+        et_sel_columns TYPE any.
+
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD get_registered_events.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_selected_columns.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_toolbar_object.
     RETURN. " todo, implement method
   ENDMETHOD.
