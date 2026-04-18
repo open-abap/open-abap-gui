@@ -38,9 +38,20 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC.
       EXPORTING
         et_sel_columns TYPE any.
 
+    METHODS set_default_drop
+      IMPORTING
+        i_drag_drop TYPE REF TO cl_dragdrop
+      EXCEPTIONS
+        cntl_system_error
+        failed
+        invalid_drag_drop_obj.
+
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD set_default_drop.
+    RETURN. " todo, implement method
+  ENDMETHOD.
   METHOD get_registered_events.
     RETURN. " todo, implement method
   ENDMETHOD.
