@@ -11,9 +11,31 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         node_key_table TYPE treev_nks.
 
+    METHODS expand_root_nodes
+      IMPORTING
+        level_count    TYPE i OPTIONAL
+        expand_subtree TYPE abap_bool OPTIONAL
+      EXCEPTIONS
+        failed
+        illegal_level_count
+        cntl_system_error.
+
+    METHODS collapse_all_nodes
+      EXCEPTIONS
+        failed
+        cntl_system_error.
+
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
+  METHOD collapse_all_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD expand_root_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD expand_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.

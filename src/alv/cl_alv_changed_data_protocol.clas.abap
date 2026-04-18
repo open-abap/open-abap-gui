@@ -31,7 +31,7 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
         i_tabix     TYPE int4 OPTIONAL
         i_fieldname TYPE lvc_fname
       EXPORTING
-        !e_value    TYPE any.
+        e_value     TYPE any.
 
     METHODS modify_cell
       IMPORTING

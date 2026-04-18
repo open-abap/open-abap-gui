@@ -12,6 +12,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS select_text_in_curr_cell.
 
+    METHODS get_selected_columns
+      EXPORTING
+        et_index_columns TYPE any.
+
     METHODS set_table_for_first_display
       IMPORTING
         i_buffer_active      TYPE any OPTIONAL
@@ -262,6 +266,23 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         it_filter TYPE lvc_t_filt.
 
+    METHODS set_selected_cells
+      IMPORTING
+        it_cells TYPE lvc_t_cell.
+
+    METHODS set_3d_border
+      IMPORTING
+        border TYPE i
+      EXCEPTIONS
+        error.
+
+    METHODS raise_event
+      IMPORTING
+      i_ucomm         TYPE sy-ucomm OPTIONAL
+      i_user_command  TYPE abap_bool OPTIONAL
+      i_not_processed TYPE abap_bool OPTIONAL
+      PREFERRED PARAMETER i_ucomm.
+
     CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
@@ -350,6 +371,22 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD raise_event.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_3d_border.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_selected_cells.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_selected_columns.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD select_text_in_curr_cell.
     RETURN. " todo, implement method
   ENDMETHOD.
