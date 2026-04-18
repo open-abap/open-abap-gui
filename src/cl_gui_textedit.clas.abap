@@ -34,6 +34,14 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
         table              TYPE STANDARD TABLE
         is_modified        TYPE i.
 
+    METHODS set_wordwrap_behavior
+      IMPORTING
+        wordwrap_mode              TYPE i DEFAULT -1
+        wordwrap_position          TYPE i DEFAULT -1
+        wordwrap_to_linebreak_mode TYPE i DEFAULT 0
+      EXCEPTIONS
+        error_cntl_call_method.
+
     METHODS get_textstream
       IMPORTING
         only_when_modified TYPE i DEFAULT false
@@ -62,6 +70,10 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
+  METHOD set_wordwrap_behavior.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_text_as_r3table.
     RETURN. " todo, implement method
   ENDMETHOD.
