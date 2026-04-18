@@ -64,6 +64,12 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         failed
         predecessor_column_not_found.
 
+    METHODS hierarchy_header_get_width
+      IMPORTING
+        width_pix TYPE abap_bool DEFAULT abap_true
+      EXPORTING
+        width     TYPE i.
+
     METHODS expand_node
       IMPORTING
         node_key       TYPE clike
@@ -85,9 +91,23 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
       EXPORTING
         VALUE(node_key)  TYPE string
         VALUE(item_name) TYPE string.
+
+    METHODS column_get_width
+      IMPORTING
+        column_name TYPE any
+        width_pix   TYPE abap_bool DEFAULT abap_true
+      EXPORTING
+        width       TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_column_tree IMPLEMENTATION.
+  METHOD column_get_width.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD hierarchy_header_get_width.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD constructor.
     ASSERT 1 = 'todo'.
