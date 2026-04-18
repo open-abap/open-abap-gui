@@ -21,9 +21,28 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_tooltip
       IMPORTING
         value TYPE lvc_tip.
+
+    METHODS set_quantity
+      IMPORTING
+        value TYPE any.
+
+    METHODS set_quantity_column
+      IMPORTING
+        value TYPE any
+      RAISING
+        cx_salv_not_found
+        cx_salv_data_error.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
+  METHOD set_quantity_column.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_quantity.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_tooltip.
     RETURN. " todo, implement method
   ENDMETHOD.
