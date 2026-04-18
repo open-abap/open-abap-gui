@@ -12,6 +12,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS select_text_in_curr_cell.
 
+    METHODS get_selected_columns
+      EXPORTING
+        et_index_columns TYPE any.
+
     METHODS set_table_for_first_display
       IMPORTING
         i_buffer_active      TYPE any OPTIONAL
@@ -350,6 +354,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_selected_columns.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD select_text_in_curr_cell.
     RETURN. " todo, implement method
   ENDMETHOD.
