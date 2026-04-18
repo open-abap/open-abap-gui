@@ -21,6 +21,10 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntb_btype_error
         cntb_error_fcode.
 
+    METHODS assign_static_ctxmenu_table
+      IMPORTING
+        table_ctxmenu TYPE any.
+
     METHODS set_button_info
       IMPORTING
         fcode     TYPE ui_func
@@ -46,6 +50,10 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD assign_static_ctxmenu_table.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_button_group.
     RETURN. " todo, implement method
   ENDMETHOD.

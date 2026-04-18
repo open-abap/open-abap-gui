@@ -42,12 +42,6 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         cntl_system_error
         illegal_event_combination.
 
-    METHODS get_registered_events
-      EXPORTING
-        events TYPE cntl_simple_events
-      EXCEPTIONS
-        cntl_error.
-
     EVENTS link_click
       EXPORTING
         VALUE(fieldname) TYPE string
@@ -259,10 +253,6 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_registered_events.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD get_registered_events.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
