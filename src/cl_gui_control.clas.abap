@@ -25,9 +25,17 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
 
     METHODS free.
 
+    METHODS set_alignment
+      IMPORTING
+        alignment TYPE i.
+
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD set_alignment.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_focus.
     RETURN. " todo, implement method
   ENDMETHOD.

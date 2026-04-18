@@ -1,0 +1,7 @@
+CLASS cl_salv_form_element DEFINITION PUBLIC.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_salv_form_element IMPLEMENTATION.
+
+ENDCLASS.

@@ -1,0 +1,7 @@
+CLASS cl_dd_input_element DEFINITION PUBLIC.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_dd_input_element IMPLEMENTATION.
+
+ENDCLASS.

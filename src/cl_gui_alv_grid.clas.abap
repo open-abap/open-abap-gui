@@ -49,6 +49,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         finished.
 
+    METHODS get_filtered_entries
+      EXPORTING
+        et_filtered_entries TYPE lvc_t_fidx.
+
     METHODS list_processing_events
       IMPORTING
         i_event_name   TYPE char30
@@ -94,6 +98,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     EVENTS data_changed_finished
       EXPORTING
         VALUE(e_modified) TYPE abap_bool.
+
+    EVENTS menu_button
+      EXPORTING
+        VALUE(e_object) TYPE REF TO cl_ctmenu OPTIONAL
+        VALUE(e_ucomm)  TYPE sy-ucomm OPTIONAL.
 
     EVENTS context_menu_request
       EXPORTING
@@ -328,6 +337,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_filtered_entries.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_filter_criteria.
     RETURN. " todo, implement method
   ENDMETHOD.
