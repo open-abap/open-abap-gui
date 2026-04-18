@@ -45,9 +45,18 @@ CLASS cl_dd_area DEFINITION PUBLIC.
         end              TYPE abap_bool OPTIONAL
         no_leading_break TYPE abap_bool DEFAULT abap_false.
 
+    METHODS add_gap
+      IMPORTING
+        width      TYPE i OPTIONAL
+        width_like TYPE any OPTIONAL.
+
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD add_gap.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD line_with_layout.
     RETURN. " todo, implement method
   ENDMETHOD.
