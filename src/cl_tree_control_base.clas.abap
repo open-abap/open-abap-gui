@@ -20,9 +20,18 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         illegal_level_count
         cntl_system_error.
 
+    METHODS collapse_all_nodes
+      EXCEPTIONS
+        failed
+        cntl_system_error.
+
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
+  METHOD collapse_all_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD expand_root_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.
