@@ -1,21 +1,6 @@
 CLASS cl_dd_area DEFINITION PUBLIC.
   PUBLIC SECTION.
 
-    METHODS add_text
-      IMPORTING
-        text          TYPE any OPTIONAL
-        text_table    TYPE any OPTIONAL
-        fix_lines     TYPE any OPTIONAL
-        sap_style     TYPE any OPTIONAL
-        sap_color     TYPE any OPTIONAL
-        sap_fontsize  TYPE any OPTIONAL
-        sap_fontstyle TYPE any OPTIONAL
-        sap_emphasis  TYPE any OPTIONAL
-        style_class   TYPE any OPTIONAL
-        a11y_tooltip  TYPE string OPTIONAL
-      CHANGING
-        document      TYPE REF TO cl_dd_document OPTIONAL.
-
     METHODS html_insert
       IMPORTING
         contents TYPE string
@@ -49,6 +34,21 @@ CLASS cl_dd_area DEFINITION PUBLIC.
       IMPORTING
         width      TYPE i OPTIONAL
         width_like TYPE any OPTIONAL.
+
+    METHODS add_text
+      IMPORTING
+        text          TYPE sdydo_text_element OPTIONAL
+        text_table    TYPE sdydo_text_table OPTIONAL
+        fix_lines     TYPE sdydo_flag OPTIONAL
+        sap_style     TYPE sdydo_attribute OPTIONAL
+        sap_color     TYPE sdydo_attribute OPTIONAL
+        sap_fontsize  TYPE sdydo_attribute OPTIONAL
+        sap_fontstyle TYPE sdydo_attribute OPTIONAL
+        sap_emphasis  TYPE sdydo_attribute OPTIONAL
+        style_class   TYPE sdydo_attribute OPTIONAL
+        a11y_tooltip  TYPE string OPTIONAL
+      CHANGING
+        document      TYPE REF TO cl_dd_document OPTIONAL.
 
 ENDCLASS.
 
