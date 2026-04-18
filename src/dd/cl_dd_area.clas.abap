@@ -39,9 +39,19 @@ CLASS cl_dd_area DEFINITION PUBLIC.
         main_url         TYPE string
         alv_offline_info TYPE string.
 
+    METHODS line_with_layout
+      IMPORTING
+        start            TYPE abap_bool OPTIONAL
+        end              TYPE abap_bool OPTIONAL
+        no_leading_break TYPE abap_bool DEFAULT abap_false.
+
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD line_with_layout.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_form.
     RETURN. " todo, implement method
   ENDMETHOD.
