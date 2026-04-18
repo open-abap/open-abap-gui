@@ -98,9 +98,20 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         width_pix   TYPE abap_bool DEFAULT abap_true
       EXPORTING
         width       TYPE i.
+
+    METHODS adjust_column_width
+      IMPORTING
+        start_column    TYPE any OPTIONAL
+        end_column      TYPE any OPTIONAL
+        all_columns     TYPE abap_bool OPTIONAL
+        include_heading TYPE abap_bool OPTIONAL.
 ENDCLASS.
 
 CLASS cl_gui_column_tree IMPLEMENTATION.
+  METHOD adjust_column_width.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD column_get_width.
     RETURN. " todo, implement method
   ENDMETHOD.
