@@ -204,6 +204,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         ep_collect09   TYPE REF TO data
         et_grouplevels TYPE lvc_t_grpl.
 
+    METHODS set_selected_columns
+      IMPORTING
+        it_col_table             TYPE any
+        is_keep_other_selections TYPE abap_bool OPTIONAL.
+
     METHODS register_f4_for_fields
       IMPORTING
         it_f4 TYPE lvc_t_f.
@@ -343,6 +348,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_selected_columns.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_sort_criteria.
     RETURN. " todo, implement method
   ENDMETHOD.

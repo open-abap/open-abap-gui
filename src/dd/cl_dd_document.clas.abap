@@ -40,28 +40,10 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
       EXPORTING
         right_area  TYPE REF TO cl_dd_area.
 
-    METHODS add_table
-      IMPORTING
-        no_of_columns               TYPE i
-        with_heading                TYPE abap_bool OPTIONAL
-        border                      TYPE clike DEFAULT '1'
-        width                       TYPE clike OPTIONAL
-        a11y_label                  TYPE string OPTIONAL
-        cell_background_transparent TYPE abap_bool OPTIONAL
-      EXPORTING
-        table                       TYPE REF TO cl_dd_table_element
-        tablearea                   TYPE REF TO cl_dd_table_area
-      EXCEPTIONS
-        table_already_used.
-
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
   METHOD vertical_split.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD add_table.
     RETURN. " todo, implement method
   ENDMETHOD.
 

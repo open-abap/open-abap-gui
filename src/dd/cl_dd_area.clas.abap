@@ -7,6 +7,20 @@ CLASS cl_dd_area DEFINITION PUBLIC.
       CHANGING
         position TYPE i.
 
+    METHODS add_table
+      IMPORTING
+        no_of_columns   TYPE i
+        with_heading    TYPE sdydo_flag OPTIONAL
+        border          TYPE sdydo_value DEFAULT '1'
+        width           TYPE sdydo_value OPTIONAL
+        with_a11y_marks TYPE sdydo_flag OPTIONAL
+        a11y_label      TYPE string OPTIONAL
+      EXPORTING
+        table           TYPE REF TO cl_dd_table_element
+        tablearea       TYPE REF TO cl_dd_table_area
+      EXCEPTIONS
+        table_already_used.
+
     METHODS add_icon
       IMPORTING
         sap_icon         TYPE any
@@ -53,6 +67,10 @@ CLASS cl_dd_area DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD add_table.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_gap.
     RETURN. " todo, implement method
   ENDMETHOD.
