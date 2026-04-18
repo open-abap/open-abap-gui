@@ -32,9 +32,17 @@ CLASS cl_salv_column DEFINITION PUBLIC.
       RAISING
         cx_salv_not_found
         cx_salv_data_error.
+
+    METHODS set_currency
+      IMPORTING
+        value TYPE clike.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
+  METHOD set_currency.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_quantity_column.
     RETURN. " todo, implement method
   ENDMETHOD.

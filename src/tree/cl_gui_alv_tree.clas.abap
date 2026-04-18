@@ -9,8 +9,6 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         no_toolbar          TYPE abap_bool OPTIONAL
         no_html_header      TYPE abap_bool OPTIONAL.
 
-    METHODS free.
-
     METHODS collapse_subtree
       IMPORTING
         i_node_key TYPE lvc_nkey.
@@ -39,14 +37,6 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
     METHODS get_top_node
       EXPORTING
         e_node_key TYPE lvc_nkey.
-
-    METHODS set_registered_events
-      IMPORTING
-        events TYPE cntl_simple_events
-      EXCEPTIONS
-        cntl_error
-        cntl_system_error
-        illegal_event_combination.
 
     EVENTS link_click
       EXPORTING
@@ -234,10 +224,6 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
-  METHOD free.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
   METHOD get_selected_nodes.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
@@ -259,10 +245,6 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_table_for_first_display.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD set_registered_events.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 

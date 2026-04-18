@@ -25,6 +25,14 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         table_ctxmenu TYPE any.
 
+    METHODS track_context_menu
+      IMPORTING
+        context_menu TYPE REF TO cl_ctmenu
+        posx         TYPE i
+        posy         TYPE i
+      EXCEPTIONS
+        ctmenu_error.
+
     METHODS set_button_info
       IMPORTING
         fcode     TYPE ui_func
@@ -64,6 +72,10 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD track_context_menu.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD fill_buttons_data_table.
     RETURN. " todo, implement method
   ENDMETHOD.
