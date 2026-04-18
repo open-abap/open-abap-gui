@@ -34,7 +34,8 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS show_url
       IMPORTING
-        url TYPE c.
+        in_place TYPE abap_bool OPTIONAL
+        url      TYPE c.
 ENDCLASS.
 
 CLASS cl_gui_html_viewer IMPLEMENTATION.
