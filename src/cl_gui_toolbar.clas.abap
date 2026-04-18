@@ -47,9 +47,27 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         data_table                TYPE ttb_button
         g_target_editor_maximized TYPE abap_bool OPTIONAL.
+
+    CLASS-METHODS fill_buttons_data_table
+      IMPORTING
+        fcode      TYPE ui_func
+        icon       TYPE c
+        disabled   TYPE c OPTIONAL
+        butn_type  TYPE clike
+        text       TYPE clike OPTIONAL
+        quickinfo  TYPE clike OPTIONAL
+        checked    TYPE c OPTIONAL
+      CHANGING
+        data_table TYPE ttb_button
+      EXCEPTIONS
+        cntb_btype_error.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD fill_buttons_data_table.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD assign_static_ctxmenu_table.
     RETURN. " todo, implement method
   ENDMETHOD.
