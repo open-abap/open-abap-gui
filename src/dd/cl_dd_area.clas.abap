@@ -23,6 +23,10 @@ CLASS cl_dd_area DEFINITION PUBLIC.
     CONSTANTS serif TYPE sdydo_attribute VALUE 'SERIF'.
     CONSTANTS sans_serif TYPE sdydo_attribute VALUE 'SANS_SERIF'.
 
+    CONSTANTS success TYPE sdydo_attribute VALUE 'SUCCESS'.
+    CONSTANTS emphasis TYPE sdydo_attribute VALUE 'EMPHASIS'.
+    CONSTANTS cursor TYPE sdydo_attribute VALUE '<!%_CURSOR!>'.
+
     DATA html_table TYPE sdydo_html_table.
 
     METHODS html_insert
