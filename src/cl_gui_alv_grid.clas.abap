@@ -360,6 +360,8 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_word_processor TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
 
+    CONSTANTS mc_style4_link_no TYPE x LENGTH 4 VALUE '00000008'.
+    CONSTANTS mc_style_button TYPE x LENGTH 4 VALUE '20000000'.
     CONSTANTS mc_style_disabled TYPE x LENGTH 4 VALUE '00100000'.
     CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.
     CONSTANTS mc_style4_link_no TYPE x LENGTH 4 VALUE '00000008'.
