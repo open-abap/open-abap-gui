@@ -8,9 +8,15 @@ CLASS cl_dd_area DEFINITION PUBLIC.
     CONSTANTS list_negative_inv TYPE sdydo_attribute VALUE 'LIST_NEGATIVE_INV'.
     CONSTANTS list_group TYPE sdydo_attribute VALUE 'LIST_GROUP'.
     CONSTANTS list_total_int TYPE sdydo_attribute VALUE 'LIST_TOTAL_INT'.
+    CONSTANTS list_negative TYPE sdydo_attribute VALUE 'LIST_NEGATIVE'.
+    CONSTANTS list_negative_int TYPE sdydo_attribute VALUE 'LIST_NEGATIVE_INT'.
+    CONSTANTS list_key TYPE sdydo_attribute VALUE 'LIST_KEY'.
+    CONSTANTS list_normal_int TYPE sdydo_attribute VALUE 'LIST_NORMAL_INT'.
 
     CONSTANTS col_textarea TYPE i VALUE 31.
-
+    CONSTANTS standard TYPE sdydo_attribute VALUE 'STANDARD'.
+    CONSTANTS table_heading TYPE sdydo_attribute VALUE 'TABLE_HEADING'.
+    CONSTANTS key TYPE sdydo_attribute VALUE 'KEY'.
     CONSTANTS warning TYPE sdydo_attribute VALUE 'WARNING'.
 
     CONSTANTS heading TYPE sdydo_attribute VALUE 'HEADING'.
