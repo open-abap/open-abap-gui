@@ -5,6 +5,9 @@ CLASS cl_dd_area DEFINITION PUBLIC.
     CONSTANTS list_heading_int TYPE sdydo_attribute VALUE 'LIST_HEADING_INT'.
     CONSTANTS list_heading_inv TYPE sdydo_attribute VALUE 'LIST_HEADING_INV'.
     CONSTANTS list_normal TYPE sdydo_attribute VALUE 'LIST_NORMAL'.
+    CONSTANTS list_negative_inv TYPE sdydo_attribute VALUE 'LIST_NEGATIVE_INV'.
+    CONSTANTS list_group TYPE sdydo_attribute VALUE 'LIST_GROUP'.
+    CONSTANTS list_total_int TYPE sdydo_attribute VALUE 'LIST_TOTAL_INT'.
 
     CONSTANTS col_textarea TYPE i VALUE 31.
 
@@ -12,12 +15,19 @@ CLASS cl_dd_area DEFINITION PUBLIC.
 
     CONSTANTS heading TYPE sdydo_attribute VALUE 'HEADING'.
 
+    CONSTANTS strong TYPE sdydo_attribute VALUE 'STRONG'.
     CONSTANTS large TYPE sdydo_attribute VALUE 'LARGE'.
     CONSTANTS medium TYPE c LENGTH 50 VALUE 'MEDIUM'.
     CONSTANTS small TYPE c LENGTH 50 VALUE 'SMALL'.
 
     CONSTANTS serif TYPE sdydo_attribute VALUE 'SERIF'.
     CONSTANTS sans_serif TYPE sdydo_attribute VALUE 'SANS_SERIF'.
+
+    CONSTANTS success TYPE sdydo_attribute VALUE 'SUCCESS'.
+    CONSTANTS emphasis TYPE sdydo_attribute VALUE 'EMPHASIS'.
+    CONSTANTS cursor TYPE sdydo_attribute VALUE '<!%_CURSOR!>'.
+
+    DATA html_table TYPE sdydo_html_table.
 
     METHODS html_insert
       IMPORTING
