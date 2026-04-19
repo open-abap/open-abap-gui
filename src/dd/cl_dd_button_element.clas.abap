@@ -1,4 +1,4 @@
-CLASS cl_dd_button_element DEFINITION PUBLIC.
+CLASS cl_dd_button_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element.
   PUBLIC SECTION.
 ENDCLASS.
 
