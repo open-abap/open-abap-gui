@@ -1,6 +1,7 @@
 CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
   PUBLIC SECTION.
     CONSTANTS eventid_header_click TYPE i VALUE 28.
+    CONSTANTS item_class_checkbox TYPE i VALUE 3.
 
     EVENTS item_context_menu_request
       EXPORTING
