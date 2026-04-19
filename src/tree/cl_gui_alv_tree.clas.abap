@@ -102,8 +102,6 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         node_not_found
         cannot_expand_leaf.
 
-    METHODS frontend_update.
-
     METHODS expand_nodes
       IMPORTING
         it_node_key TYPE any.
@@ -225,10 +223,6 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selected_nodes.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD frontend_update.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
