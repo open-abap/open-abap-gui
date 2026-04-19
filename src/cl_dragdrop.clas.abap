@@ -1,7 +1,33 @@
 CLASS cl_dragdrop DEFINITION PUBLIC.
   PUBLIC SECTION.
+
+    METHODS get
+      IMPORTING
+        flavor         TYPE c
+      EXPORTING
+        isdragsrc      TYPE abap_bool
+        isdroptarget   TYPE abap_bool
+        effect         TYPE i
+        effect_in_ctrl TYPE i
+      EXCEPTIONS
+        not_found
+        obj_invalid.
+
+    METHODS get_handle
+      EXPORTING
+        handle TYPE i
+      EXCEPTIONS
+        obj_invalid.
+
 ENDCLASS.
 
 CLASS cl_dragdrop IMPLEMENTATION.
+  METHOD get_handle.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
 ENDCLASS.

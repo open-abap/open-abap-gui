@@ -24,6 +24,8 @@
     "uncaught_exception": true,
     "add_test_attributes": true,
     "cds_association_name": true,
+    "catch_and_raise": true,
+    "no_exclamation_escape": true,
     "cds_field_order": true,
     "cds_naming": true,
     "empty_event": true,
