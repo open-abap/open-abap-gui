@@ -358,12 +358,17 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_view_lotus TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_views TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fc_word_processor TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_call_xml_export TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
 
     CONSTANTS mc_style_disabled TYPE x LENGTH 4 VALUE '00100000'.
     CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.
     CONSTANTS mc_style4_link_no TYPE x LENGTH 4 VALUE '00000008'.
     CONSTANTS mc_style_button TYPE x LENGTH 4 VALUE '20000000'.
+    CONSTANTS mc_style_f4 TYPE x LENGTH 4 VALUE '02000000'.
+    CONSTANTS mc_style_f4_no TYPE x LENGTH 4 VALUE '04000000'.
+    CONSTANTS mc_style_hotspot TYPE x LENGTH 4 VALUE '00200000'.
+    CONSTANTS mc_style_hotspot_no TYPE x LENGTH 4 VALUE '00400000'.
 
     CONSTANTS mc_mb_paste TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_mb_sum TYPE ui_func VALUE 'TODO'.
@@ -371,6 +376,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     CONSTANTS mc_evt_enter TYPE i VALUE 1.
     CONSTANTS mc_evt_modified TYPE i VALUE 2.
+
+    CONSTANTS mc_evt_delayed_change_select TYPE i VALUE 7.
+    CONSTANTS mc_fc_auf TYPE ui_func VALUE '&AUF'.
+    CONSTANTS mc_fc_find_more TYPE ui_func VALUE '&FIND_MORE'.
+    CONSTANTS mc_fg_sort TYPE ui_func VALUE '&FG_SORT'.
+    CONSTANTS mc_mb_export TYPE ui_func VALUE '&MB_EXPORT'.
+    CONSTANTS mc_mb_filter TYPE ui_func VALUE '&MB_FILTER'.
+    CONSTANTS mc_mb_variant TYPE ui_func VALUE '&MB_VARIANT'.
+    CONSTANTS mc_mb_view TYPE ui_func VALUE '&MB_VIEW'.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
