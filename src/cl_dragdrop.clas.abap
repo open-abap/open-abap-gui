@@ -1,6 +1,9 @@
 CLASS cl_dragdrop DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    CONSTANTS copy TYPE i VALUE 1.
+    CONSTANTS move TYPE i VALUE 2.
+
     METHODS add
       IMPORTING
         flavor         TYPE c

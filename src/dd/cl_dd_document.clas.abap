@@ -1,11 +1,7 @@
 CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
   PUBLIC SECTION.
 
-    CONSTANTS heading TYPE c LENGTH 50 VALUE 'HEADING'.
-    CONSTANTS list_heading_int TYPE c LENGTH 50 VALUE 'LIST_HEADING_INT'.
-    CONSTANTS list_normal TYPE c LENGTH 50 VALUE 'LIST_NORMAL'.
-    CONSTANTS medium TYPE c LENGTH 50 VALUE 'MEDIUM'.
-    CONSTANTS small TYPE c LENGTH 50 VALUE 'SMALL'.
+    DATA html_control TYPE REF TO cl_gui_html_viewer.
 
     METHODS add_picture
       IMPORTING

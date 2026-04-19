@@ -1,6 +1,24 @@
 CLASS cl_dd_area DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    CONSTANTS list_heading TYPE sdydo_attribute VALUE 'LIST_HEADING'.
+    CONSTANTS list_heading_int TYPE sdydo_attribute VALUE 'LIST_HEADING_INT'.
+    CONSTANTS list_heading_inv TYPE sdydo_attribute VALUE 'LIST_HEADING_INV'.
+    CONSTANTS list_normal TYPE sdydo_attribute VALUE 'LIST_NORMAL'.
+
+    CONSTANTS col_textarea TYPE i VALUE 31.
+
+    CONSTANTS warning TYPE sdydo_attribute VALUE 'WARNING'.
+
+    CONSTANTS heading TYPE sdydo_attribute VALUE 'HEADING'.
+
+    CONSTANTS large TYPE sdydo_attribute VALUE 'LARGE'.
+    CONSTANTS medium TYPE c LENGTH 50 VALUE 'MEDIUM'.
+    CONSTANTS small TYPE c LENGTH 50 VALUE 'SMALL'.
+
+    CONSTANTS serif TYPE sdydo_attribute VALUE 'SERIF'.
+    CONSTANTS sans_serif TYPE sdydo_attribute VALUE 'SANS_SERIF'.
+
     METHODS html_insert
       IMPORTING
         contents TYPE string
