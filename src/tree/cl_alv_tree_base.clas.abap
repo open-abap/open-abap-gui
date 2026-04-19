@@ -46,9 +46,56 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         failed
         invalid_drag_drop_obj.
 
+    METHODS frontend_update.
+
+  PROTECTED SECTION.
+
+    METHODS get_node_key_from_index
+      IMPORTING
+        i_index   TYPE lvc_index
+      EXPORTING
+        _node_key TYPE lvc_nkey
+      EXCEPTIONS
+        index_not_found.
+
+    METHODS change_line
+      IMPORTING
+        i_node_key     TYPE lvc_nkey
+        i_outtab_line  TYPE any OPTIONAL
+        is_node_layout TYPE any OPTIONAL
+        it_item_layout TYPE any OPTIONAL
+        i_node_text    TYPE any OPTIONAL
+        i_u_node_text  TYPE any OPTIONAL
+      EXCEPTIONS
+        node_not_found.
+
+    METHODS determine_icon_for_exception
+      IMPORTING
+        i_exception_value   TYPE any
+      EXPORTING
+        VALUE(e_icon_value) TYPE tv_image.
+
+  PRIVATE SECTION.
+
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD frontend_update.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD determine_icon_for_exception.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD change_line.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_node_key_from_index.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_default_drop.
     RETURN. " todo, implement method
   ENDMETHOD.
