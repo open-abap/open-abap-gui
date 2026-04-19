@@ -7,6 +7,8 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
     CONSTANTS medium TYPE c LENGTH 50 VALUE 'MEDIUM'.
     CONSTANTS small TYPE c LENGTH 50 VALUE 'SMALL'.
 
+    DATA html_control TYPE REF TO cl_gui_html_viewer.
+
     METHODS add_picture
       IMPORTING
         picture_id TYPE any
