@@ -21,3 +21,5 @@ TYPES: BEGIN OF sdydo_act_gui_properties,
          fontsize    TYPE sdydo_attribute,
          fontstyle   TYPE sdydo_attribute,
        END OF sdydo_act_gui_properties.
+
+TYPES sdydo_object_table TYPE STANDARD TABLE OF REF TO object WITH DEFAULT KEY.

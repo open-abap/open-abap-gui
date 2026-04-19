@@ -1,6 +1,8 @@
 CLASS cl_dd_table_element DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    DATA table_of_columns TYPE sdydo_object_table.
+
     METHODS set_column_style
       IMPORTING
         col_no        TYPE i
