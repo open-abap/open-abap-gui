@@ -13,6 +13,8 @@ CLASS cl_dd_area DEFINITION PUBLIC.
     CONSTANTS heading TYPE sdydo_attribute VALUE 'HEADING'.
 
     CONSTANTS large TYPE sdydo_attribute VALUE 'LARGE'.
+    CONSTANTS medium TYPE c LENGTH 50 VALUE 'MEDIUM'.
+    CONSTANTS small TYPE c LENGTH 50 VALUE 'SMALL'.
 
     CONSTANTS serif TYPE sdydo_attribute VALUE 'SERIF'.
     CONSTANTS sans_serif TYPE sdydo_attribute VALUE 'SANS_SERIF'.
