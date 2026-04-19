@@ -124,7 +124,7 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
     METHODS change_node
       IMPORTING
         i_node_key     TYPE any
-        is_node_layout TYPE any
+        is_node_layout TYPE any OPTIONAL
         i_outtab_line  TYPE any
         it_item_layout TYPE any OPTIONAL.
 
