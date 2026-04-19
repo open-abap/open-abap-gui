@@ -15,6 +15,8 @@ CLASS cl_dd_area DEFINITION PUBLIC.
 
     CONSTANTS heading TYPE sdydo_attribute VALUE 'HEADING'.
 
+    CONSTANTS col_background_level2 TYPE i VALUE 35.
+
     CONSTANTS strong TYPE sdydo_attribute VALUE 'STRONG'.
     CONSTANTS large TYPE sdydo_attribute VALUE 'LARGE'.
     CONSTANTS medium TYPE c LENGTH 50 VALUE 'MEDIUM'.
@@ -28,6 +30,7 @@ CLASS cl_dd_area DEFINITION PUBLIC.
     CONSTANTS cursor TYPE sdydo_attribute VALUE '<!%_CURSOR!>'.
 
     DATA html_table TYPE sdydo_html_table.
+    CLASS-DATA act_gui_properties TYPE sdydo_act_gui_properties.
 
     METHODS html_insert
       IMPORTING
