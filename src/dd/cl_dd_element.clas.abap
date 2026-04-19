@@ -1,0 +1,8 @@
+CLASS cl_dd_element DEFINITION PUBLIC.
+  PUBLIC SECTION.
+    DATA name TYPE sdydo_element_name.
+ENDCLASS.
+
+CLASS cl_dd_element IMPLEMENTATION.
+
+ENDCLASS.

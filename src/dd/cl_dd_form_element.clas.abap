@@ -1,0 +1,7 @@
+CLASS cl_dd_form_element DEFINITION PUBLIC INHERITING FROM cl_dd_element.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_dd_form_element IMPLEMENTATION.
+
+ENDCLASS.
