@@ -10,7 +10,7 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
     METHODS add_picture
       IMPORTING
         picture_id TYPE any
-        width      TYPE any.
+        width      TYPE any OPTIONAL.
 
     METHODS display_document
       IMPORTING
