@@ -190,6 +190,14 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           version_table TYPE filetable
           rc            TYPE i.
 
+    CLASS-METHODS get_desktop_directory
+      CHANGING
+        desktop_directory TYPE string
+      EXCEPTIONS
+        cntl_error
+        error_no_gui
+        not_supported_by_gui.
+
     CLASS-METHODS clipboard_import
       EXPORTING
         data   TYPE STANDARD TABLE
@@ -252,6 +260,10 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD get_desktop_directory.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_upload_download_path.
     RETURN. " todo, implement method
   ENDMETHOD.

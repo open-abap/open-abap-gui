@@ -58,6 +58,14 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         index_not_found.
 
+    METHODS get_index_from_node_key
+      IMPORTING
+        i_node_key TYPE lvc_nkey
+      EXPORTING
+        e_index    TYPE lvc_index
+      EXCEPTIONS
+        node_not_found.
+
     METHODS change_line
       IMPORTING
         i_node_key     TYPE lvc_nkey
@@ -75,11 +83,28 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         VALUE(e_icon_value) TYPE tv_image.
 
+    METHODS tree_get_children
+      IMPORTING
+        i_node_key  TYPE lvc_nkey
+      EXPORTING
+        et_children TYPE lvc_t_nkey
+      EXCEPTIONS
+        historic_error
+        node_key_not_found.
+
   PRIVATE SECTION.
 
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD tree_get_children.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_index_from_node_key.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD frontend_update.
     RETURN. " todo, implement method
   ENDMETHOD.
