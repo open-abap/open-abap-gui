@@ -105,6 +105,11 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_object)      TYPE REF TO cl_alv_event_toolbar_set OPTIONAL
         VALUE(e_interactive) TYPE char1 OPTIONAL.
 
+    EVENTS button_click
+      EXPORTING
+        VALUE(es_col_id) TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no) TYPE lvc_s_roid OPTIONAL.
+
     EVENTS data_changed_finished
       EXPORTING
         VALUE(e_modified)    TYPE abap_bool
