@@ -17,12 +17,23 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
       EXPORTING
         rc       TYPE i.
 
+    CLASS-METHODS update_view
+      IMPORTING
+        called_by_system TYPE abap_bool OPTIONAL
+      EXCEPTIONS
+        cntl_system_error
+        cntl_error.
+
     CLASS-METHODS dispatch
       EXPORTING
         return_code TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_cfw IMPLEMENTATION.
+  METHOD update_view.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
   METHOD dispatch.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
