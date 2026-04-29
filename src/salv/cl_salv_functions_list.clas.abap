@@ -16,6 +16,14 @@ CLASS cl_salv_functions_list DEFINITION PUBLIC.
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
 
+    METHODS set_group_filter
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
+
+    METHODS set_group_sort
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
+
     METHODS add_function
       IMPORTING
         name     TYPE any
@@ -26,6 +34,14 @@ CLASS cl_salv_functions_list DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_functions_list IMPLEMENTATION.
+  METHOD set_group_sort.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_group_filter.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_view_excel.
     RETURN. " todo, implement method
   ENDMETHOD.

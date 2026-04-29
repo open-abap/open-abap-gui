@@ -22,6 +22,12 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntb_btype_error
         cntb_error_fcode.
 
+    EVENTS dropdown_clicked
+      EXPORTING
+        VALUE(fcode) TYPE ui_func
+        VALUE(posx)  TYPE i
+        VALUE(posy)  TYPE i.
+
     METHODS assign_static_ctxmenu_table
       IMPORTING
         table_ctxmenu TYPE any.
