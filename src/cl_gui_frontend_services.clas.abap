@@ -94,6 +94,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           read_by_line        TYPE abap_bool OPTIONAL
         EXPORTING
           filelength          TYPE i
+          header              TYPE xstring
         CHANGING
           data_tab            TYPE any.
 
