@@ -29,9 +29,19 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       IMPORTING
         alignment TYPE i.
 
+    METHODS get_height
+      EXPORTING
+        height TYPE i
+      EXCEPTIONS
+        cntl_error.
+
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD get_height.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_alignment.
     RETURN. " todo, implement method
   ENDMETHOD.
