@@ -52,9 +52,9 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS get_node_key_from_index
       IMPORTING
-        i_index   TYPE lvc_index
+        i_index    TYPE lvc_index
       EXPORTING
-        _node_key TYPE lvc_nkey
+        e_node_key TYPE lvc_nkey
       EXCEPTIONS
         index_not_found.
 
