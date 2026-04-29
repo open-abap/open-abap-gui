@@ -107,7 +107,8 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     EVENTS data_changed_finished
       EXPORTING
-        VALUE(e_modified) TYPE abap_bool.
+        VALUE(e_modified)    TYPE abap_bool
+        VALUE(et_good_cells) TYPE lvc_t_modi OPTIONAL.
 
     EVENTS menu_button
       EXPORTING
