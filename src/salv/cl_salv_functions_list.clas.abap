@@ -1,8 +1,8 @@
 CLASS cl_salv_functions_list DEFINITION PUBLIC.
   PUBLIC SECTION.
     METHODS set_all
-      IMPORTING flag
-                     TYPE abap_bool OPTIONAL.
+      IMPORTING
+        flag TYPE abap_bool OPTIONAL.
 
     METHODS get_functions
       RETURNING

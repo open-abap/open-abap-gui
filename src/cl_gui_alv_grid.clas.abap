@@ -16,6 +16,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         et_index_columns TYPE any.
 
+    METHODS set_user_command
+      IMPORTING
+        i_ucomm TYPE sy-ucomm.
+
     METHODS set_table_for_first_display
       IMPORTING
         i_buffer_active      TYPE any OPTIONAL
@@ -101,9 +105,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_object)      TYPE REF TO cl_alv_event_toolbar_set OPTIONAL
         VALUE(e_interactive) TYPE char1 OPTIONAL.
 
+    EVENTS button_click
+      EXPORTING
+        VALUE(es_col_id) TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no) TYPE lvc_s_roid OPTIONAL.
+
     EVENTS data_changed_finished
       EXPORTING
-        VALUE(e_modified) TYPE abap_bool.
+        VALUE(e_modified)    TYPE abap_bool
+        VALUE(et_good_cells) TYPE lvc_t_modi OPTIONAL.
 
     EVENTS menu_button
       EXPORTING
@@ -144,6 +154,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS set_gridtitle
       IMPORTING
         i_gridtitle TYPE lvc_title.
+
+    METHODS set_delta_cells
+      IMPORTING
+        it_delta_cells  TYPE lvc_t_modi
+        i_modified      TYPE abap_bool OPTIONAL
+        i_frontend_only TYPE abap_bool OPTIONAL.
 
     METHODS check_changed_data
       EXPORTING
@@ -388,6 +404,14 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_user_command.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_delta_cells.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD raise_event.
     RETURN. " todo, implement method
   ENDMETHOD.

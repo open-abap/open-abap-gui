@@ -12,6 +12,12 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
         i_optimize_columns TYPE abap_bool OPTIONAL
       PREFERRED PARAMETER i_container.
 
+    METHODS modify_style
+      IMPORTING
+        i_row_id    TYPE int4
+        i_fieldname TYPE lvc_fname
+        i_style     TYPE xsequence.
+
     METHODS add_protocol_entry
       IMPORTING
         i_msgid     TYPE symsgid
@@ -42,6 +48,9 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_alv_changed_data_protocol IMPLEMENTATION.
+  METHOD modify_style.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD modify_cell.
     ASSERT 1 = 'todo'.

@@ -2,10 +2,17 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
   PUBLIC SECTION.
 
     CLASS-DATA www_active TYPE abap_bool READ-ONLY.
+    DATA parent TYPE REF TO cl_gui_container READ-ONLY.
 
     CLASS-METHODS set_focus
       IMPORTING
         control TYPE REF TO cl_gui_control.
+
+    METHODS get_width
+      EXPORTING
+        width TYPE i
+      EXCEPTIONS
+        cntl_error.
 
     METHODS set_enable
       IMPORTING
@@ -38,6 +45,10 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD get_width.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_height.
     RETURN. " todo, implement method
   ENDMETHOD.
