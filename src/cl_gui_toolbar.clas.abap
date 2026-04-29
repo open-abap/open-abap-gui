@@ -85,9 +85,21 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         cntl_error
         cntb_error_fcode.
+
+    METHODS set_button_visible
+      IMPORTING
+        visible TYPE c DEFAULT 'X'
+        fcode   TYPE ui_func
+      EXCEPTIONS
+        cntl_error
+        cntb_error_fcode.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD set_button_visible.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD delete_button.
     RETURN. " todo, implement method
   ENDMETHOD.
