@@ -1,0 +1,7 @@
+CLASS cl_alv_event_data DEFINITION PUBLIC.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_alv_event_data IMPLEMENTATION.
+
+ENDCLASS.
