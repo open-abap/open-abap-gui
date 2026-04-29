@@ -8,6 +8,7 @@ CLASS cl_ctmenu DEFINITION PUBLIC.
       IMPORTING
         fcode    TYPE ui_func
         text     TYPE gui_text
+        checked  TYPE abap_bool OPTIONAL
         disabled TYPE abap_bool OPTIONAL.
 
     METHODS add_separator.

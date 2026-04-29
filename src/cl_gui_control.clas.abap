@@ -7,6 +7,12 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       IMPORTING
         control TYPE REF TO cl_gui_control.
 
+    METHODS get_width
+      EXPORTING
+        width TYPE i
+      EXCEPTIONS
+        cntl_error.
+
     METHODS set_enable
       IMPORTING
         enable TYPE c.
@@ -38,6 +44,10 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD get_width.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_height.
     RETURN. " todo, implement method
   ENDMETHOD.
