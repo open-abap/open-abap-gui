@@ -29,9 +29,60 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         failed
         cntl_system_error.
 
+    METHODS get_selected_node
+      EXPORTING
+        node_key TYPE tv_nodekey
+      EXCEPTIONS
+        failed
+        single_node_selection_only
+        cntl_system_error.
+
+    METHODS get_expanded_nodes
+      IMPORTING
+        no_hidden_nodes TYPE abap_bool OPTIONAL
+      CHANGING
+        node_key_table  TYPE treev_nks
+      EXCEPTIONS
+        cntl_system_error
+        dp_error
+        failed.
+
+    METHODS delete_nodes
+      IMPORTING
+        node_key_table TYPE treev_nks
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        error_in_node_key_table
+        dp_error.
+
+    METHODS collapse_nodes
+      IMPORTING
+        node_key_table TYPE treev_nks
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        error_in_node_key_table
+        dp_error.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
+  METHOD collapse_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD delete_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_expanded_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_selected_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD collapse_all_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.

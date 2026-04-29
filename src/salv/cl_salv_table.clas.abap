@@ -3,6 +3,10 @@ CLASS cl_salv_table DEFINITION PUBLIC.
     CONSTANTS c_functions_all TYPE i VALUE 1.
     TYPES ty_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
 
+    CLASS-METHODS is_offline
+      RETURNING
+        VALUE(value) TYPE abap_bool.
+
     METHODS set_end_of_list
       IMPORTING
         value TYPE REF TO cl_salv_form_element.
@@ -32,7 +36,7 @@ CLASS cl_salv_table DEFINITION PUBLIC.
         refresh_mode TYPE any OPTIONAL
       PREFERRED PARAMETER s_stable.
     METHODS display.
-    METHODS is_offline RETURNING VALUE(value) TYPE abap_bool.
+
     METHODS get_metadata.
     METHODS get_layout
       RETURNING

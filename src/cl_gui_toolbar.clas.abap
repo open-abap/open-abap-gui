@@ -13,8 +13,8 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         icon        TYPE c
         is_disabled TYPE abap_bool OPTIONAL
         butn_type   TYPE i
-        text        TYPE string OPTIONAL
-        quickinfo   TYPE string OPTIONAL
+        text        TYPE clike OPTIONAL
+        quickinfo   TYPE clike OPTIONAL
         is_checked  TYPE c OPTIONAL
       EXCEPTIONS
         cntl_error
@@ -78,9 +78,32 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         cntl_error
         cntb_error_fcode.
+
+    METHODS delete_button
+      IMPORTING
+        fcode TYPE ui_func
+      EXCEPTIONS
+        cntl_error
+        cntb_error_fcode.
+
+    METHODS set_button_visible
+      IMPORTING
+        visible TYPE c DEFAULT 'X'
+        fcode   TYPE ui_func
+      EXCEPTIONS
+        cntl_error
+        cntb_error_fcode.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD set_button_visible.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD delete_button.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_button_state.
     RETURN. " todo, implement method
   ENDMETHOD.

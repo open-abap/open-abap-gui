@@ -42,9 +42,23 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       EXCEPTIONS
         cntl_error.
 
+    METHODS set_position
+      IMPORTING
+        height TYPE i OPTIONAL
+        left   TYPE i OPTIONAL
+        top    TYPE i OPTIONAL
+        width  TYPE i OPTIONAL
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
+
 ENDCLASS.
 
 CLASS cl_gui_control IMPLEMENTATION.
+  METHOD set_position.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_width.
     RETURN. " todo, implement method
   ENDMETHOD.
