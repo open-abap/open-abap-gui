@@ -69,9 +69,22 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         data_table TYPE ttb_button
       EXCEPTIONS
         cntb_btype_error.
+
+    METHODS set_button_state
+      IMPORTING
+        enabled TYPE c DEFAULT 'X'
+        checked TYPE c DEFAULT ' '
+        fcode   TYPE ui_func
+      EXCEPTIONS
+        cntl_error
+        cntb_error_fcode.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
+  METHOD set_button_state.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD track_context_menu.
     RETURN. " todo, implement method
   ENDMETHOD.
