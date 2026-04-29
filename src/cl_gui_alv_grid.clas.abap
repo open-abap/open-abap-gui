@@ -20,6 +20,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         i_ucomm TYPE sy-ucomm.
 
+    CLASS-METHODS cell_display
+      IMPORTING
+        is_data     TYPE any
+        i_int_value TYPE any
+      EXPORTING
+        e_ext_value TYPE any
+      CHANGING
+        cs_fieldcat TYPE lvc_s_fcat.
+
     METHODS set_table_for_first_display
       IMPORTING
         i_buffer_active      TYPE any OPTIONAL
@@ -404,6 +413,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD cell_display.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_user_command.
     RETURN. " todo, implement method
   ENDMETHOD.
