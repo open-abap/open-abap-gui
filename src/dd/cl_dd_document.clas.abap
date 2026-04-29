@@ -3,6 +3,13 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
 
     DATA html_control TYPE REF TO cl_gui_html_viewer.
 
+    METHODS constructor
+      IMPORTING
+        style            TYPE sdydo_attribute OPTIONAL
+        background_color TYPE i OPTIONAL
+        bds_stylesheet   TYPE any OPTIONAL
+        no_margins       TYPE abap_bool OPTIONAL.
+
     METHODS add_picture
       IMPORTING
         picture_id TYPE any
@@ -45,6 +52,10 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
 ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
+  METHOD constructor.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD print_document.
     RETURN. " todo, implement method
   ENDMETHOD.

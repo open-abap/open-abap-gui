@@ -85,14 +85,34 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_column)  TYPE lvc_s_col OPTIONAL
         VALUE(es_row_no) TYPE lvc_s_roid OPTIONAL.
 
+    EVENTS subtotal_text
+      EXPORTING
+        VALUE(es_subtottxt_info) TYPE lvc_s_stxt OPTIONAL
+        VALUE(ep_subtot_line)    TYPE REF TO data OPTIONAL
+        VALUE(e_event_data)      TYPE REF TO cl_alv_event_data OPTIONAL.
+
     EVENTS onf4
       EXPORTING
-        VALUE(e_fieldname)  TYPE lvc_fname OPTIONAL
-        VALUE(e_fieldvalue) TYPE lvc_value OPTIONAL
-        VALUE(es_row_no)    TYPE lvc_s_roid OPTIONAL
-*        VALUE(er_event_data) TYPE REF TO cl_alv_event_data OPTIONAL
-        VALUE(et_bad_cells) TYPE lvc_t_modi OPTIONAL
-        VALUE(e_display)    TYPE char1 OPTIONAL.
+        VALUE(e_fieldname)   TYPE lvc_fname OPTIONAL
+        VALUE(e_fieldvalue)  TYPE lvc_value OPTIONAL
+        VALUE(es_row_no)     TYPE lvc_s_roid OPTIONAL
+        VALUE(er_event_data) TYPE REF TO cl_alv_event_data OPTIONAL
+        VALUE(et_bad_cells)  TYPE lvc_t_modi OPTIONAL
+        VALUE(e_display)     TYPE char1 OPTIONAL.
+
+    EVENTS ondropcomplete
+      EXPORTING
+        VALUE(e_row)         TYPE lvc_s_row OPTIONAL
+        VALUE(e_column)      TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no)     TYPE lvc_s_roid OPTIONAL
+        VALUE(e_dragdropobj) TYPE REF TO cl_dragdropobject OPTIONAL.
+
+    EVENTS ondrop
+      EXPORTING
+        VALUE(e_row)         TYPE lvc_s_row OPTIONAL
+        VALUE(e_column)      TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no)     TYPE lvc_s_roid OPTIONAL
+        VALUE(e_dragdropobj) TYPE REF TO cl_dragdropobject OPTIONAL.
 
     EVENTS data_changed
       EXPORTING

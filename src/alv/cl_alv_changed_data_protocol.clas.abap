@@ -7,6 +7,11 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
     DATA mt_protocol TYPE lvc_t_msg1.
     DATA mt_fieldcatalog TYPE lvc_t_fcat.
 
+    METHODS constructor
+      IMPORTING
+        i_container   TYPE REF TO cl_gui_container OPTIONAL
+        i_calling_alv TYPE REF TO cl_gui_alv_grid OPTIONAL.
+
     METHODS display_protocol
       IMPORTING
         i_container        TYPE REF TO cl_gui_container OPTIONAL
@@ -50,6 +55,10 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_alv_changed_data_protocol IMPLEMENTATION.
+  METHOD constructor.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD modify_style.
     RETURN. " todo, implement method
   ENDMETHOD.
