@@ -58,6 +58,28 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         index_not_found.
 
+    METHODS tree_get_first_leafe
+      IMPORTING
+        i_node_key TYPE lvc_nkey
+      EXPORTING
+        e_node_key TYPE lvc_nkey
+      EXCEPTIONS
+        node_not_found.
+
+    METHODS tree_get_parent
+      IMPORTING
+        i_node_key        TYPE lvc_nkey
+      EXPORTING
+        e_parent_node_key TYPE lvc_nkey.
+
+    METHODS tree_node_has_children
+      IMPORTING
+        i_node_key     TYPE lvc_nkey
+      EXPORTING
+        e_has_children TYPE c
+      EXCEPTIONS
+        node_key_not_found.
+
     METHODS get_index_from_node_key
       IMPORTING
         i_node_key TYPE lvc_nkey
@@ -97,6 +119,18 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD tree_node_has_children.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD tree_get_first_leafe.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD tree_get_parent.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD tree_get_children.
     RETURN. " todo, implement method
   ENDMETHOD.
