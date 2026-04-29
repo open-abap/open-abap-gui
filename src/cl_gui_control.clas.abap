@@ -2,6 +2,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
   PUBLIC SECTION.
 
     CLASS-DATA www_active TYPE abap_bool READ-ONLY.
+    DATA parent TYPE REF TO cl_gui_container READ-ONLY.
 
     CLASS-METHODS set_focus
       IMPORTING
