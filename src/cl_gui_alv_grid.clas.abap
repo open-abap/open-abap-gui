@@ -145,6 +145,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         i_gridtitle TYPE lvc_title.
 
+    METHODS set_delta_cells
+      IMPORTING
+        it_delta_cells  TYPE lvc_t_modi
+        i_modified      TYPE abap_bool OPTIONAL
+        i_frontend_only TYPE abap_bool OPTIONAL.
+
     METHODS check_changed_data
       EXPORTING
         e_valid   TYPE abap_bool
@@ -388,6 +394,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_delta_cells.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD raise_event.
     RETURN. " todo, implement method
   ENDMETHOD.
