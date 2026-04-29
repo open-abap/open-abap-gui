@@ -16,6 +16,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         et_index_columns TYPE any.
 
+    METHODS set_user_command
+      IMPORTING
+        i_ucomm TYPE sy-ucomm.
+
     METHODS set_table_for_first_display
       IMPORTING
         i_buffer_active      TYPE any OPTIONAL
@@ -394,6 +398,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_user_command.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_delta_cells.
     RETURN. " todo, implement method
   ENDMETHOD.
