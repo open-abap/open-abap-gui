@@ -53,6 +53,12 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         failed
         cntl_system_error
         no_item_selection.
+
+    EVENTS checkbox_change
+      EXPORTING
+        VALUE(node_key)  TYPE tv_nodekey
+        VALUE(item_name) TYPE tv_itmname
+        VALUE(checked)   TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.

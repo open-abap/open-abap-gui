@@ -5,7 +5,8 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS constructor
       IMPORTING
-        parent TYPE REF TO cl_gui_container.
+        parent       TYPE REF TO cl_gui_container
+        display_mode TYPE i OPTIONAL.
 
     METHODS add_button
       IMPORTING

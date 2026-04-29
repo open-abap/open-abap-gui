@@ -10,6 +10,10 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     CONSTANTS node_sel_mode_multiple TYPE i VALUE 1.
 
+    EVENTS node_double_click
+      EXPORTING
+        VALUE(node_key) TYPE tv_nodekey.
+
     METHODS collapse_subtree
       IMPORTING
         node_key TYPE tv_nodekey.
