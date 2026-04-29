@@ -2,7 +2,9 @@ CLASS cl_gui_custom_container DEFINITION PUBLIC INHERITING FROM cl_gui_container
   PUBLIC SECTION.
     METHODS constructor
       IMPORTING
-        container_name TYPE c.
+        container_name TYPE c
+        repid          TYPE sy-repid OPTIONAL
+        dynnr          TYPE sy-dynnr OPTIONAL.
 ENDCLASS.
 
 CLASS cl_gui_custom_container IMPLEMENTATION.
