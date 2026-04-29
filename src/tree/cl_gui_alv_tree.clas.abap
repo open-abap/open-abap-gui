@@ -19,6 +19,12 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
       EXPORTING
         e_parent_node_key TYPE lvc_nkey.
 
+    EVENTS on_drag
+      EXPORTING
+        VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject
+        VALUE(fieldname)        TYPE lvc_fname
+        VALUE(node_key)         TYPE lvc_nkey.
+
     METHODS get_outtab_line
       IMPORTING
         i_node_key     TYPE any
