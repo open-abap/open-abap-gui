@@ -13,8 +13,8 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         icon        TYPE c
         is_disabled TYPE abap_bool OPTIONAL
         butn_type   TYPE i
-        text        TYPE string OPTIONAL
-        quickinfo   TYPE string OPTIONAL
+        text        TYPE clike OPTIONAL
+        quickinfo   TYPE clike OPTIONAL
         is_checked  TYPE c OPTIONAL
       EXCEPTIONS
         cntl_error
