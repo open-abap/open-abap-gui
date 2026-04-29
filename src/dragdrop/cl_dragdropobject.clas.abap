@@ -1,0 +1,7 @@
+CLASS cl_dragdropobject DEFINITION PUBLIC.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_dragdropobject IMPLEMENTATION.
+
+ENDCLASS.

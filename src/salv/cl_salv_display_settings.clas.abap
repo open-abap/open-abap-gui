@@ -1,6 +1,9 @@
 CLASS cl_salv_display_settings DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    CONSTANTS true TYPE abap_bool VALUE abap_true.
+    CONSTANTS false TYPE abap_bool VALUE abap_false.
+
     METHODS set_list_header_size
       IMPORTING
         value TYPE any.

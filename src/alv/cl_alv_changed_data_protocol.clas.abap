@@ -4,6 +4,8 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
     DATA mt_deleted_rows TYPE lvc_t_moce.
     DATA mt_inserted_rows TYPE lvc_t_moce.
     DATA mt_good_cells TYPE lvc_t_modi.
+    DATA mt_protocol TYPE lvc_t_msg1.
+    DATA mt_fieldcatalog TYPE lvc_t_fcat.
 
     METHODS display_protocol
       IMPORTING

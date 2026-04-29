@@ -5,7 +5,10 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     CONSTANTS style_intensified TYPE i VALUE 2.
     CONSTANTS style_intensifd_critical TYPE i VALUE 4.
+    CONSTANTS style_default TYPE i VALUE 1.
+    CONSTANTS style_emphasized_negative TYPE i VALUE 5.
 
+    CONSTANTS node_sel_mode_multiple TYPE i VALUE 1.
 
     METHODS collapse_subtree
       IMPORTING
