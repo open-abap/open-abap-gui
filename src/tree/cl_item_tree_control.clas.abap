@@ -22,6 +22,36 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         VALUE(node_key)  TYPE tv_nodekey
         VALUE(item_name) TYPE tv_itmname.
 
+    METHODS update_nodes_and_items
+      IMPORTING
+        node_table                TYPE any OPTIONAL
+        item_table                TYPE STANDARD TABLE OPTIONAL
+        item_table_structure_name TYPE any
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        error_in_tables
+        dp_error
+        table_structure_name_not_found.
+
+    METHODS delete_all_items_of_nodes
+      IMPORTING
+        node_key_table TYPE treev_nks
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        error_in_node_key_table
+        dp_error.
+
+    METHODS delete_items
+      IMPORTING
+        item_key_table TYPE any
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        error_in_item_key_table
+        dp_error.
+
     METHODS item_set_t_image
       IMPORTING
         node_key  TYPE tv_nodekey
@@ -75,6 +105,18 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.
+  METHOD update_nodes_and_items.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD delete_all_items_of_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD delete_items.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_selected_item.
     RETURN. " todo, implement method
   ENDMETHOD.

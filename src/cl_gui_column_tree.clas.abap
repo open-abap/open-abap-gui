@@ -35,6 +35,15 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         dp_error
         table_structure_name_not_found.
 
+    METHODS column_set_hidden
+      IMPORTING
+        column_name TYPE tv_itmname
+        hidden      TYPE abap_bool
+      EXCEPTIONS
+        failed
+        column_not_found
+        cntl_system_error.
+
     METHODS delete_all_nodes
       EXCEPTIONS
         failed
@@ -105,6 +114,10 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
 ENDCLASS.
 
 CLASS cl_gui_column_tree IMPLEMENTATION.
+  METHOD column_set_hidden.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD adjust_column_width.
     RETURN. " todo, implement method
   ENDMETHOD.
