@@ -19,6 +19,14 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
       EXPORTING
         e_parent_node_key TYPE lvc_nkey.
 
+    METHODS set_hierarchy_header
+      IMPORTING
+        is_hierarchy_header TYPE treev_hhdr
+        u_t_image           TYPE abap_bool DEFAULT abap_true
+        u_heading           TYPE abap_bool DEFAULT abap_true
+        u_tooltip           TYPE abap_bool DEFAULT abap_true
+        u_width             TYPE abap_bool DEFAULT abap_true.
+
     EVENTS checkbox_change
       EXPORTING
         VALUE(checked)   TYPE c
@@ -178,13 +186,17 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         i_node_key     TYPE lvc_nkey
         i_fieldname    TYPE lvc_fname
         i_data         TYPE any
-        i_u_data       TYPE abap_bool DEFAULT 'X'
+        i_u_data       TYPE abap_bool DEFAULT abap_true
         is_item_layout TYPE any OPTIONAL
       EXCEPTIONS
         node_not_found.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
+  METHOD set_hierarchy_header.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_parent.
     RETURN. " todo, implement method
   ENDMETHOD.

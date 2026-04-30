@@ -202,6 +202,17 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         no_fieldcatalog_available.
 
+    METHODS save_variant
+      IMPORTING
+        i_dialog      TYPE abap_bool DEFAULT abap_true
+      EXPORTING
+        VALUE(e_exit) TYPE abap_bool.
+
+    METHODS set_variant
+      IMPORTING
+        is_variant TYPE disvariant
+        i_save     TYPE abap_bool OPTIONAL.
+
     METHODS set_ready_for_input
       IMPORTING
         i_ready_for_input TYPE i.
@@ -467,6 +478,14 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD save_variant.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_variant.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD cell_display.
     RETURN. " todo, implement method
   ENDMETHOD.
