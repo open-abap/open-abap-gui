@@ -1,11 +1,13 @@
 CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
   PUBLIC SECTION.
-    DATA mt_mod_cells TYPE lvc_t_modi.
-    DATA mt_deleted_rows TYPE lvc_t_moce.
+    DATA mp_mod_rows      TYPE REF TO data.
+    DATA mt_deleted_rows  TYPE lvc_t_moce.
+    DATA mt_fieldcatalog  TYPE lvc_t_fcat.
+    DATA mt_good_cells    TYPE lvc_t_modi.
     DATA mt_inserted_rows TYPE lvc_t_moce.
-    DATA mt_good_cells TYPE lvc_t_modi.
-    DATA mt_protocol TYPE lvc_t_msg1.
-    DATA mt_fieldcatalog TYPE lvc_t_fcat.
+    DATA mt_mod_cells     TYPE lvc_t_modi.
+    DATA mt_protocol      TYPE lvc_t_msg1.
+    DATA mt_roid_front    TYPE lvc_t_roid.
 
     METHODS constructor
       IMPORTING
