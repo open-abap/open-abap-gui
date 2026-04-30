@@ -17,6 +17,11 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         VALUE(item_name) TYPE tv_itmname
         VALUE(menu)      TYPE REF TO cl_ctmenu.
 
+    EVENTS item_double_click
+      EXPORTING
+        VALUE(node_key)  TYPE tv_nodekey
+        VALUE(item_name) TYPE tv_itmname.
+
     METHODS item_set_t_image
       IMPORTING
         node_key  TYPE tv_nodekey

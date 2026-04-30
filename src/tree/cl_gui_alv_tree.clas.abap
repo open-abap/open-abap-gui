@@ -19,6 +19,12 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
       EXPORTING
         e_parent_node_key TYPE lvc_nkey.
 
+    EVENTS checkbox_change
+      EXPORTING
+        VALUE(checked)   TYPE c
+        VALUE(fieldname) TYPE lvc_fname
+        VALUE(node_key)  TYPE lvc_nkey.
+
     EVENTS node_context_menu_selected
       EXPORTING
         VALUE(fcode)    TYPE sy-ucomm
