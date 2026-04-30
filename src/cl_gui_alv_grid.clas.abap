@@ -129,6 +129,24 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(e_onf4_after)    TYPE char1 OPTIONAL
         VALUE(e_ucomm)         TYPE sy-ucomm OPTIONAL.
 
+    EVENTS onf1
+      EXPORTING
+        VALUE(e_fieldname)   TYPE lvc_fname OPTIONAL
+        VALUE(es_row_no)     TYPE lvc_s_roid OPTIONAL
+        VALUE(er_event_data) TYPE REF TO cl_alv_event_data OPTIONAL.
+
+    EVENTS before_user_command
+      EXPORTING
+        VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
+
+    EVENTS ondropgetflavor
+      EXPORTING
+        VALUE(e_row)         TYPE lvc_s_row OPTIONAL
+        VALUE(e_column)      TYPE lvc_s_col OPTIONAL
+        VALUE(es_row_no)     TYPE lvc_s_roid OPTIONAL
+        VALUE(e_dragdropobj) TYPE REF TO cl_dragdropobject OPTIONAL
+        VALUE(e_flavors)     TYPE char40 OPTIONAL.
+
     EVENTS after_user_command
       EXPORTING
         VALUE(e_ucomm)         TYPE sy-ucomm OPTIONAL

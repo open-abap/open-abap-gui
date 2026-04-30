@@ -16,6 +16,11 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS style_emphasized_b TYPE i VALUE 9.
     CONSTANTS style_emphasized_c TYPE i VALUE 10.
 
+    EVENTS node_context_menu_request
+      EXPORTING
+        VALUE(node_key) TYPE tv_nodekey
+        VALUE(menu)     TYPE REF TO cl_ctmenu.
+
     EVENTS node_double_click
       EXPORTING
         VALUE(node_key) TYPE tv_nodekey.

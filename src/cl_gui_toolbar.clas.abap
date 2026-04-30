@@ -2,6 +2,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
 
     CONSTANTS m_id_function_selected TYPE i VALUE 1.
+    CONSTANTS m_id_dropdown_clicked TYPE i VALUE 2.
 
     METHODS constructor
       IMPORTING
