@@ -10,6 +10,12 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     CONSTANTS node_sel_mode_multiple TYPE i VALUE 1.
 
+    CONSTANTS relat_first_child TYPE i VALUE 4.
+
+    CONSTANTS style_emphasized_a TYPE i VALUE 8.
+    CONSTANTS style_emphasized_b TYPE i VALUE 9.
+    CONSTANTS style_emphasized_c TYPE i VALUE 10.
+
     EVENTS node_double_click
       EXPORTING
         VALUE(node_key) TYPE tv_nodekey.

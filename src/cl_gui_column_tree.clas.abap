@@ -2,10 +2,9 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
   PUBLIC SECTION.
     CONSTANTS align_center         TYPE i VALUE 1.
     CONSTANTS align_right          TYPE i VALUE 2.
-    CONSTANTS eventid_button_click TYPE i VALUE 1.
-    CONSTANTS eventid_link_click   TYPE i VALUE 2.
+
     CONSTANTS eventid_node_double_click TYPE i VALUE 25.
-    CONSTANTS eventid_item_double_click TYPE i VALUE 22.
+
     CONSTANTS item_class_button    TYPE i VALUE 2.
     CONSTANTS item_class_link      TYPE i VALUE 3.
     CONSTANTS item_class_text      TYPE i VALUE 1.
@@ -13,8 +12,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
     CONSTANTS relat_last_child     TYPE i VALUE 1.
 
     CONSTANTS style_emphasized          TYPE i VALUE 1.
-    CONSTANTS style_emphasized_a        TYPE i VALUE 2.
-    CONSTANTS style_emphasized_c        TYPE i VALUE 3.
     CONSTANTS style_emphasized_positive TYPE i VALUE 4.
     CONSTANTS style_inactive            TYPE i VALUE 5.
 

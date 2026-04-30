@@ -2,6 +2,13 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
   PUBLIC SECTION.
 
     CONSTANTS mode_absolute TYPE i VALUE 0.
+    CONSTANTS mode_relative TYPE i VALUE 1.
+
+    CONSTANTS type_movable TYPE i VALUE 0.
+    CONSTANTS type_sashvisible TYPE i VALUE 1.
+
+    CONSTANTS true TYPE i VALUE 1.
+    CONSTANTS false TYPE i VALUE 0.
 
     METHODS constructor
       IMPORTING
