@@ -20,6 +20,25 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       CHANGING
         temp_dir TYPE string.
 
+    CLASS-METHODS get_computer_name
+      CHANGING
+        computer_name TYPE string
+      EXCEPTIONS
+        cntl_error
+        error_no_gui
+        not_supported_by_gui.
+
+    CLASS-METHODS get_drive_type
+      IMPORTING
+        drive      TYPE string
+      CHANGING
+        drive_type TYPE string
+      EXCEPTIONS
+        cntl_error
+        bad_parameter
+        error_no_gui
+        not_supported_by_gui.
+
     CLASS-METHODS file_copy
       IMPORTING
         source      TYPE string
@@ -261,6 +280,14 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
+  METHOD get_drive_type.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_computer_name.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_desktop_directory.
     RETURN. " todo, implement method
   ENDMETHOD.
