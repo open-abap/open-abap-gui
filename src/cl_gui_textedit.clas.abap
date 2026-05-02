@@ -7,6 +7,8 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     CONSTANTS wordwrap_at_windowborder TYPE i VALUE 2.
     CONSTANTS wordwrap_off TYPE i VALUE 3.
 
+    CONSTANTS event_double_click TYPE i VALUE -601.
+
     METHODS constructor
       IMPORTING
         max_number_chars           TYPE i OPTIONAL

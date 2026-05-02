@@ -1,6 +1,7 @@
 CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
     CONSTANTS c_hierarchy_column_name TYPE string VALUE '&Hierarchy'.
+    CONSTANTS c_virtual_root_node TYPE lvc_nkey VALUE '&VIRTUALROOT'.
 
     CONSTANTS mc_fc_calculate TYPE ui_func VALUE '&CALC'.
     CONSTANTS mc_fc_current_variant TYPE ui_func VALUE '&COL0'.
@@ -49,6 +50,54 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS frontend_update.
 
   PROTECTED SECTION.
+
+    DATA m_batch_mode TYPE sy-batch.
+    DATA mt_toolbar_excluding TYPE ui_functions.
+    DATA mr_toolbar TYPE REF TO cl_gui_toolbar.
+    DATA mt_outtab TYPE REF TO data.
+    DATA mt_sort TYPE lvc_t_sort.
+    DATA mt_fieldcatalog TYPE lvc_t_fcat.
+    DATA mr_column_tree TYPE REF TO cl_gui_column_tree.
+    DATA mt_checked_items TYPE lvc_t_chit.
+    DATA m_node_selection_mode TYPE i.
+
+    METHODS add_children_to_control
+      IMPORTING
+        i_node   TYPE lvc_nkey
+      EXPORTING
+        e_change TYPE c.
+
+    METHODS set_item_context_menu
+      IMPORTING
+        i_node_key  TYPE lvc_nkey
+        i_fieldname TYPE lvc_fname
+      CHANGING
+        c_menu      TYPE REF TO cl_ctmenu.
+
+    METHODS update_checked_items
+      IMPORTING
+        i_node_key  TYPE lvc_nkey
+        i_fieldname TYPE lvc_fname
+        i_checked   TYPE abap_bool
+      EXCEPTIONS
+        program_error.
+
+    METHODS set_children_at_front
+      IMPORTING
+        i_node_key TYPE lvc_nkey
+      EXCEPTIONS
+        node_not_found.
+
+    METHODS add_subtree_to_control
+      IMPORTING
+        i_node_key    TYPE lvc_nkey
+        i_level_count TYPE i OPTIONAL.
+
+    METHODS ensure_node_in_control_int
+      IMPORTING
+        i_node_key TYPE lvc_nkey
+      EXCEPTIONS
+        node_not_found.
 
     METHODS get_node_key_from_index
       IMPORTING
@@ -114,11 +163,47 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         historic_error
         node_key_not_found.
 
+    METHODS handle_generic_functions
+      IMPORTING
+        i_fcode         TYPE sy-ucomm OPTIONAL
+        it_node_key     TYPE lvc_t_nkey OPTIONAL
+        i_fieldname     TYPE lvc_fname OPTIONAL
+      EXPORTING
+        e_event_handled TYPE c.
+
   PRIVATE SECTION.
 
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD handle_generic_functions.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_item_context_menu.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD add_children_to_control.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_children_at_front.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD update_checked_items.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD add_subtree_to_control.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD ensure_node_in_control_int.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD tree_node_has_children.
     RETURN. " todo, implement method
   ENDMETHOD.
