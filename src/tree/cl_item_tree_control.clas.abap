@@ -17,6 +17,34 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         VALUE(item_name) TYPE tv_itmname
         VALUE(menu)      TYPE REF TO cl_ctmenu.
 
+    EVENTS on_drag_multiple
+      EXPORTING
+      VALUE(node_key_table)   TYPE treev_nks
+      VALUE(item_name)        TYPE tv_itmname
+      VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS on_drop_complete
+      EXPORTING
+      VALUE(node_key)         TYPE tv_nodekey
+      VALUE(item_name)        TYPE tv_itmname
+      VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS on_drop_complete_multiple
+      EXPORTING
+      VALUE(node_key_table)   TYPE treev_nks
+      VALUE(item_name)        TYPE tv_itmname
+      VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS header_click
+      EXPORTING
+      VALUE(header_name) TYPE tv_hdrname.
+
+    EVENTS item_context_menu_select
+      EXPORTING
+      VALUE(node_key)  TYPE tv_nodekey
+      VALUE(item_name) TYPE tv_itmname
+      VALUE(fcode)     TYPE sy-ucomm.
+
     EVENTS item_double_click
       EXPORTING
         VALUE(node_key)  TYPE tv_nodekey
