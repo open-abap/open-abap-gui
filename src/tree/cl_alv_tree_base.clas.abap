@@ -62,25 +62,30 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PROTECTED SECTION.
 
     DATA m_batch_mode TYPE sy-batch.
-    DATA mt_toolbar_excluding TYPE ui_functions.
-    DATA mr_toolbar TYPE REF TO cl_gui_toolbar.
-    DATA mt_outtab TYPE REF TO data.
-    DATA mt_sort TYPE lvc_t_sort.
-    DATA mt_fieldcatalog TYPE lvc_t_fcat.
-    DATA mr_column_tree TYPE REF TO cl_gui_column_tree.
-    DATA mt_checked_items TYPE lvc_t_chit.
-    DATA m_node_selection_mode TYPE i.
     DATA m_fcode TYPE sy-ucomm.
     DATA m_item_selection TYPE abap_bool.
-    DATA mt_filter_index TYPE lvc_t_fidx.
-    DATA mt_index_outtab TYPE lvc_t_iton.
-    DATA mt_filter TYPE lvc_t_filt.
-    DATA ms_exception_field TYPE lvc_s_l004.
-    DATA mt_special_groups TYPE lvc_t_sgrp.
-    DATA mt_list_commentary TYPE slis_t_listheader.
     DATA m_no_html_header TYPE abap_bool.
     DATA m_no_toolbar TYPE abap_bool.
+    DATA m_node_selection_mode TYPE i.
+
+    DATA mr_column_tree TYPE REF TO cl_gui_column_tree.
+    DATA mr_toolbar TYPE REF TO cl_gui_toolbar.
+
+    DATA ms_exception_field TYPE lvc_s_l004.
     DATA ms_hierarchy_header TYPE treev_hhdr.
+    DATA mt_calculated_items TYPE HASHED TABLE OF lvc_s_item WITH UNIQUE KEY node_key item_name.
+    DATA mt_checked_items TYPE lvc_t_chit.
+    DATA mt_fieldcatalog TYPE lvc_t_fcat.
+    DATA mt_filter TYPE lvc_t_filt.
+    DATA mt_filter_index TYPE lvc_t_fidx.
+    DATA mt_index_outtab TYPE lvc_t_iton.
+    DATA mt_item_layout TYPE lvc_t_lyin.
+    DATA mt_list_commentary TYPE slis_t_listheader.
+    DATA mt_outtab TYPE REF TO data.
+    DATA mt_simple_hierarchy_data TYPE HASHED TABLE OF lvc_s_item WITH UNIQUE KEY node_key item_name.
+    DATA mt_sort TYPE lvc_t_sort.
+    DATA mt_special_groups TYPE lvc_t_sgrp.
+    DATA mt_toolbar_excluding TYPE ui_functions.
 
     EVENTS after_user_command
       EXPORTING
