@@ -459,6 +459,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_style_f4_no TYPE x LENGTH 4 VALUE '04000000'.
     CONSTANTS mc_style_hotspot TYPE x LENGTH 4 VALUE '00200000'.
     CONSTANTS mc_style_hotspot_no TYPE x LENGTH 4 VALUE '00400000'.
+    CONSTANTS mc_style_no_delete_row TYPE x LENGTH 4 VALUE '10000000'.
 
     CONSTANTS mc_mb_paste TYPE ui_func VALUE 'TODO'.
     CONSTANTS mc_mb_sum TYPE ui_func VALUE 'TODO'.
@@ -475,6 +476,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_mb_filter TYPE ui_func VALUE '&MB_FILTER'.
     CONSTANTS mc_mb_variant TYPE ui_func VALUE '&MB_VARIANT'.
     CONSTANTS mc_mb_view TYPE ui_func VALUE '&MB_VIEW'.
+
+  PROTECTED SECTION.
+    DATA mt_outtab TYPE REF TO data.
+
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.

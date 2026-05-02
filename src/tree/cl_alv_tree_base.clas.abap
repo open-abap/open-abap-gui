@@ -4,7 +4,6 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS c_virtual_root_node TYPE lvc_nkey VALUE '&VIRTUALROOT'.
     CONSTANTS c_hierarchy_header_name TYPE lvc_fname VALUE 'HierarchyHeader'.
 
-    CONSTANTS mc_fc_calculate TYPE ui_func VALUE '&CALC'.
     CONSTANTS mc_fc_current_variant TYPE ui_func VALUE '&COL0'.
     CONSTANTS mc_fc_load_variant TYPE ui_func VALUE '&LOAD'.
     CONSTANTS mc_fc_maintain_variant TYPE ui_func VALUE '&MAINTAIN'.
@@ -13,6 +12,12 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_save_variant TYPE ui_func VALUE '&SAVE'.
     CONSTANTS mc_fc_help TYPE ui_func VALUE '&HELP'.
     CONSTANTS mc_fc_graphics TYPE ui_func VALUE '&GRAPHCIS'.
+
+    CONSTANTS mc_fc_calculate TYPE ui_func VALUE '&CALC'.
+    CONSTANTS mc_fc_calculate_avg TYPE ui_func VALUE '&CALC_AVG'.
+    CONSTANTS mc_fc_calculate_max TYPE ui_func VALUE '&CALC_MAX'.
+    CONSTANTS mc_fc_calculate_min TYPE ui_func VALUE '&CALC_MIN'.
+    CONSTANTS mc_fc_calculate_sum TYPE ui_func VALUE '&CALC_SUM'.
 
     METHODS set_hierarchy_help_fields
       IMPORTING

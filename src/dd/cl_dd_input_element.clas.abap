@@ -1,6 +1,8 @@
 CLASS cl_dd_input_element DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    DATA value TYPE sdydo_value.
+
     METHODS set_value
       IMPORTING
         value TYPE sdydo_value OPTIONAL.
