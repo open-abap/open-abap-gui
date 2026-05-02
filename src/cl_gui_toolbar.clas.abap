@@ -4,6 +4,9 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS m_id_function_selected TYPE i VALUE 1.
     CONSTANTS m_id_dropdown_clicked TYPE i VALUE 2.
 
+    CONSTANTS m_mode_vertical TYPE i VALUE 1.
+    CONSTANTS m_mode_horizontal TYPE i VALUE 0.
+
     METHODS constructor
       IMPORTING
         parent       TYPE REF TO cl_gui_container
