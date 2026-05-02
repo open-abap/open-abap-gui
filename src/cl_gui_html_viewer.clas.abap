@@ -1,5 +1,9 @@
 CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
+
+    CONSTANTS uiflag_no3dborder TYPE i VALUE 4.
+    CONSTANTS m_id_sapevent TYPE i VALUE 1.
+
     EVENTS sapevent
       EXPORTING
         VALUE(action)      TYPE c OPTIONAL

@@ -1,8 +1,13 @@
 CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
   PUBLIC SECTION.
-
-    CLASS-DATA www_active TYPE abap_bool READ-ONLY.
     DATA parent TYPE REF TO cl_gui_container READ-ONLY.
+
+    CONSTANTS align_at_bottom TYPE i VALUE 8.
+    CONSTANTS align_at_left TYPE i VALUE 1.
+    CONSTANTS align_at_right TYPE i VALUE 2.
+    CONSTANTS align_at_top TYPE i VALUE 4.
+
+    CONSTANTS ws_clipsiblings TYPE i VALUE 67108864.
 
     CLASS-METHODS set_focus
       IMPORTING

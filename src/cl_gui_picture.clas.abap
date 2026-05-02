@@ -4,6 +4,7 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     CONSTANTS display_mode_fit TYPE i VALUE 2.
     CONSTANTS display_mode_stretch TYPE i VALUE 1.
     CONSTANTS display_mode_normal_center TYPE i VALUE 3.
+    CONSTANTS display_mode_fit_center TYPE i VALUE 4.
 
     METHODS constructor
       IMPORTING

@@ -2,6 +2,9 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
     CONSTANTS eventid_expand_no_children TYPE i VALUE 1.
     CONSTANTS eventid_node_context_menu_req TYPE i VALUE 2.
+    CONSTANTS eventid_selection_changed TYPE i VALUE 21.
+    CONSTANTS eventid_node_keypress TYPE i VALUE 40.
+    CONSTANTS eventid_def_context_menu_req TYPE i VALUE 42.
 
     CONSTANTS style_intensified TYPE i VALUE 2.
     CONSTANTS style_intensifd_critical TYPE i VALUE 4.

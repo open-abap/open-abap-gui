@@ -1,6 +1,8 @@
 CLASS cl_salv_table DEFINITION PUBLIC.
   PUBLIC SECTION.
+    CONSTANTS c_functions_none TYPE i VALUE 0.
     CONSTANTS c_functions_all TYPE i VALUE 1.
+
     TYPES ty_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
 
     CLASS-METHODS is_offline

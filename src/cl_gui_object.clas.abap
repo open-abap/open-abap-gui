@@ -3,6 +3,7 @@ CLASS cl_gui_object DEFINITION PUBLIC.
 
     CLASS-DATA activex TYPE abap_bool READ-ONLY.
     CLASS-DATA javabean TYPE abap_bool READ-ONLY.
+    CLASS-DATA www_active TYPE abap_bool READ-ONLY.
 
     METHODS is_valid
       EXPORTING
