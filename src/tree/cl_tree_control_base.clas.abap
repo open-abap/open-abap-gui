@@ -16,6 +16,23 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS style_emphasized_b TYPE i VALUE 9.
     CONSTANTS style_emphasized_c TYPE i VALUE 10.
 
+    METHODS get_selected_nodes
+      CHANGING
+        node_key_table TYPE treev_nks
+      EXCEPTIONS
+        cntl_system_error
+        dp_error
+        failed
+        multiple_node_selection_only.
+
+    METHODS ensure_visible
+      IMPORTING
+        node_key TYPE tv_nodekey
+      EXCEPTIONS
+        failed
+        node_not_found
+        cntl_system_error.
+
     EVENTS node_context_menu_request
       EXPORTING
         VALUE(node_key) TYPE tv_nodekey
@@ -85,6 +102,12 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
+  METHOD get_selected_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+  METHOD ensure_visible.
+    RETURN. " todo, implement method
+  ENDMETHOD.
   METHOD collapse_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.
