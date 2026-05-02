@@ -39,6 +39,25 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         dp_error
         multiple_node_selection_only.
 
+    EVENTS on_drop
+      EXPORTING
+      VALUE(node_key)         TYPE tv_nodekey
+      VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS selection_changed
+      EXPORTING
+      VALUE(node_key) TYPE tv_nodekey.
+
+    EVENTS node_context_menu_select
+      EXPORTING
+      VALUE(node_key) TYPE tv_nodekey
+      VALUE(fcode)    TYPE sy-ucomm.
+
+    EVENTS node_keypress
+      EXPORTING
+      VALUE(node_key) TYPE tv_nodekey
+      VALUE(key)      TYPE i.
+
     METHODS set_top_node
       IMPORTING
         node_key TYPE tv_nodekey

@@ -17,6 +17,18 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         VALUE(item_name) TYPE tv_itmname
         VALUE(menu)      TYPE REF TO cl_ctmenu.
 
+    EVENTS on_drag
+      EXPORTING
+      VALUE(node_key)         TYPE tv_nodekey
+      VALUE(item_name)        TYPE tv_itmname
+      VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS item_keypress
+      EXPORTING
+      VALUE(node_key)  TYPE tv_nodekey
+      VALUE(item_name) TYPE tv_itmname
+      VALUE(key)       TYPE i.
+
     EVENTS on_drag_multiple
       EXPORTING
       VALUE(node_key_table)   TYPE treev_nks
