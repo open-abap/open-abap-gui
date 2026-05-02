@@ -9,3 +9,12 @@ CONSTANTS slis_ev_subtotal_text TYPE c LENGTH 30 VALUE 'SUBTOTAL_TEXT'.
 CONSTANTS slis_ev_top_of_list TYPE c LENGTH 30 VALUE 'TOP_OF_LIST'.
 CONSTANTS slis_ev_top_of_page TYPE c LENGTH 30 VALUE 'TOP_OF_PAGE'.
 CONSTANTS slis_ev_user_command TYPE c LENGTH 30 VALUE 'USER_COMMAND'.
+
+TYPES slis_entry TYPE c LENGTH 60.
+
+TYPES: BEGIN OF slis_listheader,
+         typ  TYPE c LENGTH 1,
+         key  TYPE c LENGTH 20,
+         info TYPE slis_entry,
+       END OF slis_listheader.
+TYPES slis_t_listheader TYPE STANDARD TABLE OF slis_listheader WITH DEFAULT KEY.
