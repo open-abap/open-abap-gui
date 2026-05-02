@@ -80,6 +80,11 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mt_list_commentary TYPE slis_t_listheader.
     DATA m_no_html_header TYPE abap_bool.
     DATA m_no_toolbar TYPE abap_bool.
+    DATA ms_hierarchy_header TYPE treev_hhdr.
+
+    EVENTS after_user_command
+      EXPORTING
+      VALUE(ucomm) TYPE sy-ucomm.
 
     METHODS create_report_header
       IMPORTING

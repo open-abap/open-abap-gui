@@ -29,6 +29,34 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         dp_error
         multiple_node_selection_only.
 
+    METHODS unselect_nodes
+      IMPORTING
+        node_key_table TYPE treev_nks
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        error_in_node_key_table
+        dp_error
+        multiple_node_selection_only.
+
+    METHODS set_top_node
+      IMPORTING
+        node_key TYPE tv_nodekey
+      EXCEPTIONS
+        failed
+        node_not_found
+        cntl_system_error.
+
+    EVENTS on_drop_get_flavor
+      EXPORTING
+      VALUE(node_key)         TYPE tv_nodekey
+      VALUE(flavors)          TYPE char40
+      VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS expand_no_children
+      EXPORTING
+        VALUE(node_key) TYPE tv_nodekey.
+
     METHODS set_selected_node
       IMPORTING
         node_key TYPE tv_nodekey
@@ -124,6 +152,14 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
+  METHOD unselect_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_top_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_selected_node.
     RETURN. " todo, implement method
   ENDMETHOD.
