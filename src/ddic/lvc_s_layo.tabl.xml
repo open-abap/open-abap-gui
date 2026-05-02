@@ -542,6 +542,14 @@
      <LENG>000010</LENG>
      <MASK>  INT4</MASK>
     </DD03P>
+    <DD03P>
+     <FIELDNAME>S_DRAGDROP</FIELDNAME>
+     <ROLLNAME>LVC_S_DD01</ROLLNAME>
+     <ADMINFIELD>0</ADMINFIELD>
+     <DATATYPE>STRU</DATATYPE>
+     <MASK>  STRU</MASK>
+     <COMPTYPE>S</COMPTYPE>
+    </DD03P>
    </DD03P_TABLE>
   </asx:values>
  </asx:abap>
