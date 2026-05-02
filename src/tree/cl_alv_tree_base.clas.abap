@@ -2,6 +2,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
     CONSTANTS c_hierarchy_column_name TYPE string VALUE '&Hierarchy'.
     CONSTANTS c_virtual_root_node TYPE lvc_nkey VALUE '&VIRTUALROOT'.
+    CONSTANTS c_hierarchy_header_name TYPE lvc_fname VALUE 'HierarchyHeader'.
 
     CONSTANTS mc_fc_calculate TYPE ui_func VALUE '&CALC'.
     CONSTANTS mc_fc_current_variant TYPE ui_func VALUE '&COL0'.
@@ -10,6 +11,15 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS mc_fc_print_back TYPE ui_func VALUE '&PRINT_BACK'.
     CONSTANTS mc_fc_print_back_all TYPE ui_func VALUE '&PRINT_BACK_ALL'.
     CONSTANTS mc_fc_save_variant TYPE ui_func VALUE '&SAVE'.
+    CONSTANTS mc_fc_help TYPE ui_func VALUE '&HELP'.
+    CONSTANTS mc_fc_graphics TYPE ui_func VALUE '&GRAPHCIS'.
+
+    METHODS set_hierarchy_help_fields
+      IMPORTING
+        i_ref_table TYPE any OPTIONAL
+        i_ref_field TYPE lvc_fname OPTIONAL
+        i_doktitle  TYPE scrtext_s OPTIONAL
+        i_rollname  TYPE any OPTIONAL.
 
     METHODS get_frontend_fieldcatalog
       EXPORTING
@@ -60,6 +70,45 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mr_column_tree TYPE REF TO cl_gui_column_tree.
     DATA mt_checked_items TYPE lvc_t_chit.
     DATA m_node_selection_mode TYPE i.
+    DATA m_fcode TYPE sy-ucomm.
+    DATA m_item_selection TYPE abap_bool.
+    DATA mt_filter_index TYPE lvc_t_fidx.
+    DATA mt_index_outtab TYPE lvc_t_iton.
+    DATA mt_filter TYPE lvc_t_filt.
+    DATA ms_exception_field TYPE lvc_s_l004.
+
+    METHODS add_model_node
+      IMPORTING
+        i_relat_node_key TYPE lvc_nkey
+        i_relationship   TYPE int4
+        is_node_layout   TYPE any OPTIONAL
+        it_item_layout   TYPE any OPTIONAL
+        i_node_text      TYPE lvc_value OPTIONAL
+        i_index_outtab   TYPE sy-tabix
+      EXPORTING
+        e_new_node_key   TYPE lvc_nkey
+      EXCEPTIONS
+        node_not_found
+        relat_node_not_found.
+
+    METHODS vroot_children_to_queue.
+
+    METHODS calculate_subtree
+      IMPORTING
+        i_node_key         TYPE lvc_nkey
+      EXPORTING
+        es_calculated_line TYPE any
+        i_leafcount        TYPE i
+      EXCEPTIONS
+        program_error.
+
+    METHODS apply_filter
+      EXCEPTIONS
+        program_error.
+
+    METHODS tree_init
+      EXCEPTIONS
+        error.
 
     METHODS add_children_to_control
       IMPORTING
@@ -171,11 +220,45 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXPORTING
         e_event_handled TYPE c.
 
+    METHODS set_node_context_menu
+      IMPORTING
+        i_node_key TYPE lvc_nkey
+      CHANGING
+        c_menu     TYPE REF TO cl_ctmenu.
+
   PRIVATE SECTION.
 
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD add_model_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD vroot_children_to_queue.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD calculate_subtree.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD apply_filter.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD tree_init.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_node_context_menu.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_hierarchy_help_fields.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD handle_generic_functions.
     RETURN. " todo, implement method
   ENDMETHOD.
