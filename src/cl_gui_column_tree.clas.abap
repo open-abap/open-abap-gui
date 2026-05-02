@@ -22,6 +22,28 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         hierarchy_column_name TYPE clike
         hierarchy_header      TYPE treev_hhdr.
 
+    METHODS hierarchy_header_set_text
+      IMPORTING
+        text TYPE any
+      EXCEPTIONS
+        failed
+        cntl_system_error.
+
+    METHODS hierarchy_header_set_tooltip
+      IMPORTING
+        tooltip TYPE any
+      EXCEPTIONS
+        failed
+        cntl_system_error.
+
+    METHODS hierarchy_header_set_width
+      IMPORTING
+        width     TYPE i
+        width_pix TYPE abap_bool OPTIONAL
+      EXCEPTIONS
+        failed
+        cntl_system_error.
+
     METHODS add_nodes_and_items
       IMPORTING
         node_table                TYPE any OPTIONAL
@@ -113,6 +135,18 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
 ENDCLASS.
 
 CLASS cl_gui_column_tree IMPLEMENTATION.
+  METHOD hierarchy_header_set_width.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD hierarchy_header_set_tooltip.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD hierarchy_header_set_text.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD column_set_hidden.
     RETURN. " todo, implement method
   ENDMETHOD.

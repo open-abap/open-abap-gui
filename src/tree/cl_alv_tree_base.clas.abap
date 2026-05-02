@@ -76,6 +76,50 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mt_index_outtab TYPE lvc_t_iton.
     DATA mt_filter TYPE lvc_t_filt.
     DATA ms_exception_field TYPE lvc_s_l004.
+    DATA mt_special_groups TYPE lvc_t_sgrp.
+    DATA mt_list_commentary TYPE slis_t_listheader.
+    DATA m_no_html_header TYPE abap_bool.
+    DATA m_no_toolbar TYPE abap_bool.
+
+    METHODS create_report_header
+      IMPORTING
+        it_list_commentary    TYPE slis_t_listheader
+        i_logo                TYPE sdydo_value OPTIONAL
+        i_background_id       TYPE sdydo_key OPTIONAL
+        i_set_splitter_height TYPE abap_bool OPTIONAL
+        i_model_mode          TYPE abap_bool OPTIONAL.
+
+    METHODS set_toolbar_buttons.
+
+    METHODS add_column
+      IMPORTING
+        i_column TYPE lvc_fname
+      EXCEPTIONS
+        column_not_found
+        too_many_columns.
+
+    METHODS authority_check.
+
+    METHODS set_first_fieldcatalog
+      IMPORTING
+      i_structure_name   TYPE any OPTIONAL
+      is_variant         TYPE disvariant OPTIONAL
+      i_save             TYPE abap_bool OPTIONAL
+      i_default          TYPE abap_bool OPTIONAL
+      it_sort            TYPE lvc_t_sort OPTIONAL
+      it_filter          TYPE lvc_t_filt OPTIONAL
+      is_layout          TYPE lvc_s_layo OPTIONAL
+      it_specific_groups TYPE lvc_t_sgrp OPTIONAL
+      CHANGING
+      it_fieldcatalog    TYPE lvc_t_fcat OPTIONAL
+      EXCEPTIONS
+      exception_field_not_found
+      invalid_parameter_combination
+      program_error.
+
+    METHODS set_fieldcatalog
+      IMPORTING
+        it_fieldcatalog TYPE lvc_t_fcat.
 
     METHODS add_model_node
       IMPORTING
@@ -109,6 +153,12 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS tree_init
       EXCEPTIONS
         error.
+
+    METHODS set_filter
+      IMPORTING
+      it_filter TYPE lvc_t_filt
+      EXCEPTIONS
+      no_fieldcatalog_available.
 
     METHODS add_children_to_control
       IMPORTING
@@ -231,6 +281,34 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD authority_check.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD add_column.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_toolbar_buttons.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_filter.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_fieldcatalog.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_first_fieldcatalog.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD create_report_header.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_model_node.
     RETURN. " todo, implement method
   ENDMETHOD.
