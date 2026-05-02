@@ -11,6 +11,7 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS node_sel_mode_multiple TYPE i VALUE 1.
 
     CONSTANTS relat_first_child TYPE i VALUE 4.
+    CONSTANTS relat_last_child TYPE i VALUE 6.
 
     CONSTANTS style_emphasized_a TYPE i VALUE 8.
     CONSTANTS style_emphasized_b TYPE i VALUE 9.
@@ -105,9 +106,11 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   METHOD get_selected_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD ensure_visible.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD collapse_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.

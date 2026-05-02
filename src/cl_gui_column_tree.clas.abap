@@ -9,7 +9,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
     CONSTANTS item_class_link      TYPE i VALUE 3.
     CONSTANTS item_class_text      TYPE i VALUE 1.
     CONSTANTS node_sel_mode_single TYPE i VALUE 1.
-    CONSTANTS relat_last_child     TYPE i VALUE 1.
 
     CONSTANTS style_emphasized          TYPE i VALUE 1.
     CONSTANTS style_emphasized_positive TYPE i VALUE 4.

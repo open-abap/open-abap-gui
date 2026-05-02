@@ -74,8 +74,37 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA m_item_selection TYPE abap_bool.
     DATA mt_filter_index TYPE lvc_t_fidx.
     DATA mt_index_outtab TYPE lvc_t_iton.
-    DATA mt_filter_index TYPE lvc_t_fidx.
     DATA mt_filter TYPE lvc_t_filt.
+    DATA ms_exception_field TYPE lvc_s_l004.
+
+    METHODS add_model_node
+      IMPORTING
+        i_relat_node_key TYPE lvc_nkey
+        i_relationship   TYPE int4
+        is_node_layout   TYPE any OPTIONAL
+        it_item_layout   TYPE any OPTIONAL
+        i_node_text      TYPE lvc_value OPTIONAL
+        i_index_outtab   TYPE sy-tabix
+      EXPORTING
+        e_new_node_key   TYPE lvc_nkey
+      EXCEPTIONS
+        node_not_found
+        relat_node_not_found.
+
+    METHODS vroot_children_to_queue.
+
+    METHODS calculate_subtree
+      IMPORTING
+        i_node_key         TYPE lvc_nkey
+      EXPORTING
+        es_calculated_line TYPE any
+        i_leafcount        TYPE i
+      EXCEPTIONS
+        program_error.
+
+    METHODS apply_filter
+      EXCEPTIONS
+        program_error.
 
     METHODS tree_init
       EXCEPTIONS
@@ -202,9 +231,26 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD add_model_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD vroot_children_to_queue.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD calculate_subtree.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD apply_filter.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD tree_init.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD set_node_context_menu.
     RETURN. " todo, implement method
   ENDMETHOD.
