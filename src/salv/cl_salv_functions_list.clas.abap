@@ -1,8 +1,6 @@
-CLASS cl_salv_functions_list DEFINITION PUBLIC.
+CLASS cl_salv_functions_list DEFINITION PUBLIC INHERITING FROM cl_salv_functions.
   PUBLIC SECTION.
-    METHODS set_all
-      IMPORTING
-        flag TYPE abap_bool OPTIONAL.
+
 
     METHODS get_functions
       RETURNING
@@ -24,13 +22,6 @@ CLASS cl_salv_functions_list DEFINITION PUBLIC.
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
 
-    METHODS add_function
-      IMPORTING
-        name     TYPE any
-        icon     TYPE string OPTIONAL
-        text     TYPE string OPTIONAL
-        tooltip  TYPE string
-        position TYPE any.
 ENDCLASS.
 
 CLASS cl_salv_functions_list IMPLEMENTATION.
@@ -46,10 +37,6 @@ CLASS cl_salv_functions_list IMPLEMENTATION.
     RETURN. " todo, implement method
   ENDMETHOD.
 
-  METHOD set_all.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
   METHOD get_functions.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
@@ -58,7 +45,4 @@ CLASS cl_salv_functions_list IMPLEMENTATION.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
-  METHOD add_function.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
 ENDCLASS.
