@@ -40,9 +40,24 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         in_place TYPE abap_bool OPTIONAL
         url      TYPE c.
+
+    METHODS show_data
+      IMPORTING
+        url      TYPE c
+        frame    TYPE c OPTIONAL
+        in_place TYPE c DEFAULT 'X '
+      EXCEPTIONS
+        cntl_error
+        cnht_error_not_allowed
+        cnht_error_parameter
+        dp_error_general.
 ENDCLASS.
 
 CLASS cl_gui_html_viewer IMPLEMENTATION.
+  METHOD show_data.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD show_url.
     RETURN. " todo, implement method
   ENDMETHOD.

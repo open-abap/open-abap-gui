@@ -1,9 +1,6 @@
 CLASS cl_salv_functions_list DEFINITION PUBLIC INHERITING FROM cl_salv_functions.
   PUBLIC SECTION.
 
-
-    METHODS get_functions REDEFINITION.
-
     METHODS set_default
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
@@ -23,6 +20,7 @@ CLASS cl_salv_functions_list DEFINITION PUBLIC INHERITING FROM cl_salv_functions
 ENDCLASS.
 
 CLASS cl_salv_functions_list IMPLEMENTATION.
+
   METHOD set_group_sort.
     RETURN. " todo, implement method
   ENDMETHOD.
@@ -32,10 +30,6 @@ CLASS cl_salv_functions_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_view_excel.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD get_functions.
     RETURN. " todo, implement method
   ENDMETHOD.
 
