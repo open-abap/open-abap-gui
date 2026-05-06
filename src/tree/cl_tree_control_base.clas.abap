@@ -42,6 +42,10 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         dp_error
         multiple_node_selection_only.
 
+    METHODS set_ctx_menu_select_event_appl
+      IMPORTING
+        appl_event TYPE abap_bool.
+
     EVENTS on_drop
       EXPORTING
       VALUE(node_key)         TYPE tv_nodekey
@@ -174,6 +178,11 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
+
+  METHOD set_ctx_menu_select_event_appl.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD unselect_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.
