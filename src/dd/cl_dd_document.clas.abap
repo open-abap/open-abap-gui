@@ -26,10 +26,6 @@ CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
       IMPORTING
         picture_id TYPE any OPTIONAL.
 
-    METHODS new_line
-      IMPORTING
-        repeat TYPE i OPTIONAL.
-
     METHODS merge_document.
 
     METHODS initialize_document
@@ -77,10 +73,6 @@ CLASS cl_dd_document IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_picture.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD new_line.
     RETURN. " todo, implement method
   ENDMETHOD.
 

@@ -1,4 +1,4 @@
-CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
+CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
   PUBLIC SECTION.
 
     METHODS constructor
@@ -491,6 +491,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   METHOD get_selected_cells_id.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD save_variant.
     RETURN. " todo, implement method
   ENDMETHOD.

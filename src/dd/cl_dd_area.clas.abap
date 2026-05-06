@@ -110,6 +110,7 @@ CLASS cl_dd_area IMPLEMENTATION.
   METHOD new_line.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD add_table.
     RETURN. " todo, implement method
   ENDMETHOD.

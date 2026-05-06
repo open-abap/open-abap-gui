@@ -48,6 +48,7 @@ CLASS cl_dd_table_element IMPLEMENTATION.
   METHOD set_row_style.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD new_row.
     RETURN. " todo, implement method
   ENDMETHOD.

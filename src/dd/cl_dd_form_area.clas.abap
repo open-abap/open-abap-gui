@@ -13,10 +13,6 @@ CLASS cl_dd_form_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
       EXPORTING
         button   TYPE REF TO cl_dd_button_element.
 
-    METHODS new_line
-      IMPORTING
-        repeating TYPE i OPTIONAL.
-
     METHODS add_input_element
       IMPORTING
         value         TYPE any OPTIONAL
@@ -34,10 +30,6 @@ ENDCLASS.
 
 CLASS cl_dd_form_area IMPLEMENTATION.
   METHOD add_input_element.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD new_line.
     RETURN. " todo, implement method
   ENDMETHOD.
 
