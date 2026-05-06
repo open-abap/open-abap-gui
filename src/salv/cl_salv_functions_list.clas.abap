@@ -17,9 +17,24 @@ CLASS cl_salv_functions_list DEFINITION PUBLIC INHERITING FROM cl_salv_functions
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
 
+    METHODS set_group_layout
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
+
+    METHODS set_layout_save
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
+
 ENDCLASS.
 
 CLASS cl_salv_functions_list IMPLEMENTATION.
+  METHOD set_layout_save.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_group_layout.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_group_sort.
     RETURN. " todo, implement method

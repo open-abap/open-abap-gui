@@ -11,6 +11,10 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_visible IMPORTING value TYPE abap_bool.
     METHODS set_zero IMPORTING value TYPE abap_bool DEFAULT abap_true.
 
+    METHODS get_columnname
+      RETURNING
+        VALUE(value) TYPE lvc_fname.
+
     METHODS set_currency_column
       IMPORTING
         value TYPE any
@@ -39,6 +43,10 @@ CLASS cl_salv_column DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
+  METHOD get_columnname.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_currency.
     RETURN. " todo, implement method
   ENDMETHOD.

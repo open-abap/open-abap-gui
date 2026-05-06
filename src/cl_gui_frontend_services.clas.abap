@@ -71,6 +71,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           trunc_trailing_blanks     TYPE abap_bool OPTIONAL
           trunc_trailing_blanks_eol TYPE abap_bool OPTIONAL
           append                    TYPE abap_bool OPTIONAL
+          no_auth_check             TYPE abap_bool OPTIONAL
         CHANGING
           data_tab                  TYPE any.
 

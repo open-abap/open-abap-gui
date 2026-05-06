@@ -1,10 +1,15 @@
-CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
+CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
   PUBLIC SECTION.
 
     METHODS constructor
       IMPORTING
-        i_parent      TYPE REF TO cl_gui_container
-        i_appl_events TYPE char1 DEFAULT space.
+        i_parent       TYPE REF TO cl_gui_container
+        i_applogparent TYPE REF TO cl_gui_container OPTIONAL
+        i_appl_events  TYPE char1 DEFAULT space.
+
+    METHODS get_selected_cells_id
+      EXPORTING
+        et_cells TYPE lvc_t_ceno.
 
     METHODS set_frontend_layout
       IMPORTING
@@ -483,6 +488,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD get_selected_cells_id.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD save_variant.
     RETURN. " todo, implement method
   ENDMETHOD.

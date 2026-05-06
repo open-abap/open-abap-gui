@@ -36,6 +36,10 @@ CLASS cl_dd_area DEFINITION PUBLIC.
     DATA html_table TYPE sdydo_html_table.
     CLASS-DATA act_gui_properties TYPE sdydo_act_gui_properties.
 
+    METHODS new_line
+      IMPORTING
+        repeat TYPE i OPTIONAL.
+
     METHODS html_insert
       IMPORTING
         contents TYPE string
@@ -103,6 +107,10 @@ CLASS cl_dd_area DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
+  METHOD new_line.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_table.
     RETURN. " todo, implement method
   ENDMETHOD.

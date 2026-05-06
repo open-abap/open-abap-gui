@@ -15,6 +15,15 @@ CLASS cl_dd_table_element DEFINITION PUBLIC.
         sap_valign    TYPE any OPTIONAL
         sap_symbol    TYPE any OPTIONAL.
 
+    METHODS set_row_style
+      IMPORTING
+        row_no        TYPE i
+        sap_style     TYPE sdydo_attribute OPTIONAL
+        sap_color     TYPE sdydo_attribute OPTIONAL
+        sap_fontsize  TYPE sdydo_attribute OPTIONAL
+        sap_fontstyle TYPE sdydo_attribute OPTIONAL
+        sap_emphasis  TYPE sdydo_attribute OPTIONAL.
+
     METHODS add_column
       IMPORTING
         width       TYPE any OPTIONAL
@@ -36,6 +45,10 @@ CLASS cl_dd_table_element DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_dd_table_element IMPLEMENTATION.
+  METHOD set_row_style.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD new_row.
     RETURN. " todo, implement method
   ENDMETHOD.

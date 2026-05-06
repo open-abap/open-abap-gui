@@ -15,12 +15,13 @@ CLASS cl_salv_table DEFINITION PUBLIC.
 
     CLASS-METHODS factory
       IMPORTING
-        list_display TYPE any OPTIONAL
-        r_container  TYPE any OPTIONAL
+        list_display   TYPE any OPTIONAL
+        r_container    TYPE any OPTIONAL
+        container_name TYPE clike OPTIONAL
       EXPORTING
-        r_salv_table TYPE REF TO cl_salv_table
+        r_salv_table   TYPE REF TO cl_salv_table
       CHANGING
-        t_table      TYPE any.
+        t_table        TYPE any.
 
     METHODS get_screen_status
       EXPORTING
