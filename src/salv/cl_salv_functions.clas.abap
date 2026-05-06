@@ -15,9 +15,21 @@ CLASS cl_salv_functions DEFINITION PUBLIC.
     METHODS get_functions
       RETURNING
         VALUE(function_list) TYPE salv_t_ui_func.
+
+    METHODS remove_function
+      IMPORTING
+        name TYPE salv_de_function
+      RAISING
+        cx_salv_not_found
+        cx_salv_wrong_call.
+
 ENDCLASS.
 
 CLASS cl_salv_functions IMPLEMENTATION.
+  METHOD remove_function.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_functions.
     RETURN. " todo, implement method
   ENDMETHOD.
