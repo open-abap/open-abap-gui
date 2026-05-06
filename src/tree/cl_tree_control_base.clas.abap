@@ -178,12 +178,11 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
-  METHOD set_default_drop.
-    RETURN. " todo, implement method
-  ENDMETHOD.
+
   METHOD set_ctx_menu_select_event_appl.
     RETURN. " todo, implement method
   ENDMETHOD.
+
   METHOD unselect_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.
