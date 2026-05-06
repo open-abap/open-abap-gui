@@ -17,6 +17,15 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
         align   TYPE i OPTIONAL
         columns TYPE i OPTIONAL.
 
+    METHODS get_row_height
+      IMPORTING
+        id     TYPE i
+      EXPORTING
+        result TYPE i
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
+
     METHODS free.
 
     METHODS set_column_mode
@@ -83,6 +92,10 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_splitter_container IMPLEMENTATION.
+  METHOD get_row_height.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_row_sash.
     RETURN. " todo, implement method
   ENDMETHOD.

@@ -5,6 +5,8 @@ CLASS cl_salv_sorts DEFINITION PUBLIC.
         columnname TYPE clike
         sequence   TYPE any OPTIONAL
         subtotal   TYPE abap_bool DEFAULT abap_false
+        group      TYPE i OPTIONAL
+        obligatory TYPE abap_bool OPTIONAL
       RAISING
         cx_salv_not_found
         cx_salv_existing
