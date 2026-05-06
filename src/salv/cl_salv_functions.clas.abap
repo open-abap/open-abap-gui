@@ -3,9 +3,9 @@ CLASS cl_salv_functions DEFINITION PUBLIC.
     METHODS add_function
         IMPORTING
         name     TYPE any
-        icon     TYPE string OPTIONAL
-        text     TYPE string OPTIONAL
-        tooltip  TYPE string
+        icon     TYPE any OPTIONAL
+        text     TYPE any OPTIONAL
+        tooltip  TYPE any
         position TYPE any.
 
     METHODS set_all

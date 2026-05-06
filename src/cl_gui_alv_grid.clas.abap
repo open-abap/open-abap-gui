@@ -3,8 +3,9 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS constructor
       IMPORTING
-        i_parent      TYPE REF TO cl_gui_container
-        i_appl_events TYPE char1 DEFAULT space.
+        i_parent       TYPE REF TO cl_gui_container
+        i_applogparent TYPE REF TO cl_gui_container OPTIONAL
+        i_appl_events  TYPE char1 DEFAULT space.
 
     METHODS set_frontend_layout
       IMPORTING
