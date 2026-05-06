@@ -2,9 +2,7 @@ CLASS cl_salv_functions_list DEFINITION PUBLIC INHERITING FROM cl_salv_functions
   PUBLIC SECTION.
 
 
-    METHODS get_functions
-      RETURNING
-        VALUE(sdf) TYPE string.
+    METHODS get_functions REDEFINITION.
 
     METHODS set_default
       IMPORTING
@@ -38,7 +36,7 @@ CLASS cl_salv_functions_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_functions.
-    ASSERT 1 = 'todo'.
+    RETURN. " todo, implement method
   ENDMETHOD.
 
   METHOD set_default.
