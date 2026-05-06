@@ -2,11 +2,13 @@ CLASS cl_salv_sorts DEFINITION PUBLIC.
   PUBLIC SECTION.
     METHODS add_sort
       IMPORTING
-        columnname TYPE clike
-        sequence   TYPE any OPTIONAL
-        subtotal   TYPE abap_bool DEFAULT abap_false
-        group      TYPE i OPTIONAL
-        obligatory TYPE abap_bool OPTIONAL
+        columnname   TYPE clike
+        sequence     TYPE any OPTIONAL
+        subtotal     TYPE abap_bool DEFAULT abap_false
+        group        TYPE i OPTIONAL
+        obligatory   TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_sort
       RAISING
         cx_salv_not_found
         cx_salv_existing
