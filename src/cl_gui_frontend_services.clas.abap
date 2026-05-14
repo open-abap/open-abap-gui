@@ -1,8 +1,9 @@
 CLASS cl_gui_frontend_services DEFINITION PUBLIC.
   PUBLIC SECTION.
-    CONSTANTS filetype_all  TYPE string VALUE 'abc'.
-    CONSTANTS filetype_xml  TYPE string VALUE 'xml'.
-    CONSTANTS filetype_text TYPE string VALUE 'txt'.
+    CONSTANTS filetype_all   TYPE string VALUE 'abc'.
+    CONSTANTS filetype_xml   TYPE string VALUE 'xml'.
+    CONSTANTS filetype_text  TYPE string VALUE 'txt'.
+    CONSTANTS filetype_excel TYPE string VALUE 'xls'.
 
     CONSTANTS action_cancel TYPE i VALUE 1.
     CONSTANTS action_ok     TYPE i VALUE 1.
