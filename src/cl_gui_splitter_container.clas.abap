@@ -1,4 +1,4 @@
-CLASS cl_gui_splitter_container DEFINITION PUBLIC.
+CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_container.
   PUBLIC SECTION.
 
     CONSTANTS mode_absolute TYPE i VALUE 0.
@@ -12,10 +12,12 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
 
     METHODS constructor
       IMPORTING
-        parent  TYPE REF TO cl_gui_container OPTIONAL
-        rows    TYPE i OPTIONAL
-        align   TYPE i OPTIONAL
-        columns TYPE i OPTIONAL.
+        parent     TYPE REF TO cl_gui_container OPTIONAL
+        rows       TYPE i OPTIONAL
+        align      TYPE i OPTIONAL
+        link_dynnr TYPE sy-dynnr OPTIONAL
+        link_repid TYPE sy-repid OPTIONAL
+        columns    TYPE i OPTIONAL.
 
     METHODS get_row_height
       IMPORTING
@@ -25,8 +27,6 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
       EXCEPTIONS
         cntl_error
         cntl_system_error.
-
-    METHODS free.
 
     METHODS set_column_mode
       IMPORTING

@@ -40,9 +40,41 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_currency
       IMPORTING
         value TYPE clike.
+
+    METHODS get_ddic_datatype
+      RETURNING
+        VALUE(value) TYPE char4.
+
+    METHODS get_ddic_inttype
+      RETURNING
+        VALUE(value) TYPE char1.
+
+    METHODS get_ddic_domain
+      RETURNING
+        VALUE(value) TYPE char30.
+
+    METHODS set_edit_mask
+      IMPORTING
+        value TYPE any.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
+  METHOD set_edit_mask.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_ddic_domain.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_ddic_inttype.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_ddic_datatype.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_columnname.
     RETURN. " todo, implement method
   ENDMETHOD.
