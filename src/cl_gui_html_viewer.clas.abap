@@ -41,6 +41,12 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         in_place TYPE abap_bool OPTIONAL
         url      TYPE c.
 
+    METHODS set_ui_flag
+      IMPORTING
+        uiflag TYPE i DEFAULT 0
+      EXCEPTIONS
+        cntl_error.
+
     METHODS show_data
       IMPORTING
         url      TYPE c
@@ -54,6 +60,10 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_html_viewer IMPLEMENTATION.
+  METHOD set_ui_flag.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD show_data.
     RETURN. " todo, implement method
   ENDMETHOD.
