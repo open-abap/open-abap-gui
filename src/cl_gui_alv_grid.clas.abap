@@ -479,6 +479,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
     CONSTANTS mc_evt_enter TYPE i VALUE 1.
     CONSTANTS mc_evt_modified TYPE i VALUE 2.
 
+    CONSTANTS mc_evt_delayed_move_curr_cell TYPE i VALUE 5.
     CONSTANTS mc_evt_delayed_change_select TYPE i VALUE 7.
     CONSTANTS mc_fc_auf TYPE ui_func VALUE '&AUF'.
     CONSTANTS mc_fc_find_more TYPE ui_func VALUE '&FIND_MORE'.

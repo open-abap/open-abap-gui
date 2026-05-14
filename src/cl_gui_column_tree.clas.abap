@@ -109,16 +109,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         node_not_found
         cannot_expand_leaf.
 
-    EVENTS button_click
-      EXPORTING
-        VALUE(node_key)  TYPE string
-        VALUE(item_name) TYPE string.
-
-    EVENTS link_click
-      EXPORTING
-        VALUE(node_key)  TYPE string
-        VALUE(item_name) TYPE string.
-
     METHODS column_get_width
       IMPORTING
         column_name TYPE any
