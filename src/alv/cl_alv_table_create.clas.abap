@@ -7,7 +7,7 @@ CLASS cl_alv_table_create DEFINITION PUBLIC.
         i_length_in_byte TYPE abap_bool OPTIONAL
       EXPORTING
         ep_table         TYPE REF TO data
-        e_style_fname    TYPE string.
+        e_style_fname    TYPE lvc_fname.
 ENDCLASS.
 
 CLASS cl_alv_table_create IMPLEMENTATION.
