@@ -11,6 +11,16 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
     CONSTANTS eventid_item_keypress TYPE i VALUE 39.
     CONSTANTS eventid_link_click TYPE i VALUE 35.
 
+    EVENTS button_click
+      EXPORTING
+        VALUE(node_key)  TYPE tv_nodekey
+        VALUE(item_name) TYPE tv_itmname.
+
+    EVENTS link_click
+      EXPORTING
+        VALUE(node_key)  TYPE tv_nodekey
+        VALUE(item_name) TYPE tv_itmname.
+
     EVENTS item_context_menu_request
       EXPORTING
         VALUE(node_key)  TYPE tv_nodekey
