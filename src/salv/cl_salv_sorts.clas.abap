@@ -4,6 +4,7 @@ CLASS cl_salv_sorts DEFINITION PUBLIC.
       IMPORTING
         columnname   TYPE clike
         sequence     TYPE any OPTIONAL
+        position     TYPE i OPTIONAL
         subtotal     TYPE abap_bool DEFAULT abap_false
         group        TYPE i OPTIONAL
         obligatory   TYPE abap_bool OPTIONAL
