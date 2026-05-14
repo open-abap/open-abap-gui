@@ -1,4 +1,4 @@
-CLASS cl_gui_splitter_container DEFINITION PUBLIC.
+CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_container.
   PUBLIC SECTION.
 
     CONSTANTS mode_absolute TYPE i VALUE 0.
@@ -25,8 +25,6 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC.
       EXCEPTIONS
         cntl_error
         cntl_system_error.
-
-    METHODS free.
 
     METHODS set_column_mode
       IMPORTING
