@@ -12,10 +12,12 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
 
     METHODS constructor
       IMPORTING
-        parent  TYPE REF TO cl_gui_container OPTIONAL
-        rows    TYPE i OPTIONAL
-        align   TYPE i OPTIONAL
-        columns TYPE i OPTIONAL.
+        parent     TYPE REF TO cl_gui_container OPTIONAL
+        rows       TYPE i OPTIONAL
+        align      TYPE i OPTIONAL
+        link_dynnr TYPE sy-dynnr OPTIONAL
+        link_repid TYPE sy-repid OPTIONAL
+        columns    TYPE i OPTIONAL.
 
     METHODS get_row_height
       IMPORTING

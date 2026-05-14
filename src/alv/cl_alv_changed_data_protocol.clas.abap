@@ -21,6 +21,8 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
         i_optimize_columns TYPE abap_bool OPTIONAL
       PREFERRED PARAMETER i_container.
 
+    METHODS refresh_protocol.
+
     METHODS modify_style
       IMPORTING
         i_row_id    TYPE int4
@@ -57,6 +59,10 @@ CLASS cl_alv_changed_data_protocol DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_alv_changed_data_protocol IMPLEMENTATION.
+  METHOD refresh_protocol.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD constructor.
     RETURN. " todo, implement method
   ENDMETHOD.

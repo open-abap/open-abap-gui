@@ -3,9 +3,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
 
     METHODS constructor
       IMPORTING
-        i_parent       TYPE REF TO cl_gui_container
-        i_applogparent TYPE REF TO cl_gui_container OPTIONAL
-        i_appl_events  TYPE char1 DEFAULT space.
+        i_parent         TYPE REF TO cl_gui_container
+        i_applogparent   TYPE REF TO cl_gui_container OPTIONAL
+        i_shellstyle     TYPE any OPTIONAL
+        i_lifetime       TYPE any OPTIONAL
+        i_parentdbg      TYPE any OPTIONAL
+        i_graphicsparent TYPE any OPTIONAL
+        i_name           TYPE any OPTIONAL
+        i_fcat_complete  TYPE any OPTIONAL
+        i_appl_events    TYPE char1 DEFAULT space.
 
     METHODS get_selected_cells_id
       EXPORTING
