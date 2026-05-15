@@ -5,6 +5,7 @@ CLASS cl_gui_custom_container DEFINITION PUBLIC INHERITING FROM cl_gui_container
         container_name          TYPE c
         repid                   TYPE sy-repid OPTIONAL
         no_autodef_progid_dynnr TYPE abap_bool OPTIONAL
+        lifetime                TYPE i OPTIONAL
         dynnr                   TYPE sy-dynnr OPTIONAL.
 ENDCLASS.
 
