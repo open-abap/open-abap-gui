@@ -10,6 +10,7 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         repid     TYPE syrepid OPTIONAL
         dynnr     TYPE sy-dynnr OPTIONAL
         container TYPE c OPTIONAL
+        parent    TYPE REF TO cl_gui_container OPTIONAL
       EXCEPTIONS
         cntl_error
         cntl_system_error
