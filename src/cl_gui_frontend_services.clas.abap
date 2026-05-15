@@ -176,7 +176,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CLASS-METHODS
       get_file_separator
         CHANGING
-          file_separator TYPE string.
+          file_separator TYPE clike.
 
     CLASS-METHODS
       directory_exist
