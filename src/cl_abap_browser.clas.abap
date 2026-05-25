@@ -2,11 +2,12 @@ CLASS cl_abap_browser DEFINITION PUBLIC.
   PUBLIC SECTION.
     CLASS-METHODS show_xml
       IMPORTING
-        xml_string TYPE string
-        title      TYPE string OPTIONAL
-        container  TYPE REF TO cl_gui_container OPTIONAL
-        dialog     TYPE abap_bool OPTIONAL
-        printing   TYPE abap_bool OPTIONAL.
+        xml_string  TYPE string
+        title       TYPE string OPTIONAL
+        container   TYPE REF TO cl_gui_container OPTIONAL
+        dialog      TYPE abap_bool OPTIONAL
+        xml_xstring TYPE xstring OPTIONAL
+        printing    TYPE abap_bool OPTIONAL.
 
     CLASS-METHODS show_html
       IMPORTING

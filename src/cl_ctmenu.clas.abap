@@ -8,7 +8,10 @@ CLASS cl_ctmenu DEFINITION PUBLIC.
       IMPORTING
         fcode       TYPE ui_func
         text        TYPE gui_text
+        icon        TYPE icon_d OPTIONAL
+        ftype       TYPE ui_func OPTIONAL
         checked     TYPE abap_bool OPTIONAL
+        hidden      TYPE abap_bool OPTIONAL
         accelerator TYPE c OPTIONAL
         disabled    TYPE abap_bool OPTIONAL.
 
