@@ -1,6 +1,6 @@
 CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
-    CONSTANTS c_hierarchy_column_name TYPE string VALUE '&Hierarchy'.
+    CONSTANTS c_hierarchy_column_name TYPE lvc_fname VALUE '&Hierarchy'.
     CONSTANTS c_virtual_root_node TYPE lvc_nkey VALUE '&VIRTUALROOT'.
     CONSTANTS c_hierarchy_header_name TYPE lvc_fname VALUE 'HierarchyHeader'.
 
