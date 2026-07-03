@@ -17,6 +17,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
       EXPORTING
         et_cells TYPE lvc_t_ceno.
 
+    METHODS set_selected_cells_id
+      IMPORTING
+        it_cells TYPE lvc_t_ceno.
+
     METHODS set_frontend_layout
       IMPORTING
         is_layout TYPE any.
@@ -495,6 +499,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
+  METHOD set_selected_cells_id.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_selected_cells_id.
     RETURN. " todo, implement method
   ENDMETHOD.
