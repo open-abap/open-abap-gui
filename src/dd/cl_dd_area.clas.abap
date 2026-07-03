@@ -32,6 +32,7 @@ CLASS cl_dd_area DEFINITION PUBLIC.
     CONSTANTS success TYPE sdydo_attribute VALUE 'SUCCESS'.
     CONSTANTS table_heading TYPE sdydo_attribute VALUE 'TABLE_HEADING'.
     CONSTANTS warning TYPE sdydo_attribute VALUE 'WARNING'.
+    CONSTANTS list_group_int TYPE sdydo_attribute VALUE 'LIST_GROUP_INT'.
 
     DATA html_table TYPE sdydo_html_table.
     CLASS-DATA act_gui_properties TYPE sdydo_act_gui_properties.
