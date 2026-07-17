@@ -496,6 +496,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
   PROTECTED SECTION.
     DATA mt_outtab TYPE REF TO data.
 
+  PRIVATE SECTION.
+    DATA mt_f4 TYPE lvc_t_f4.
+    DATA m_cl_variant TYPE REF TO cl_alv_variant.
+    DATA mt_hyperlinks TYPE lvc_t_hype.
+    DATA m_init_toolbar TYPE c LENGTH 1.
+
 ENDCLASS.
 
 CLASS cl_gui_alv_grid IMPLEMENTATION.
