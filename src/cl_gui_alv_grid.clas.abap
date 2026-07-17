@@ -50,7 +50,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
         i_bypassing_buffer   TYPE abap_bool OPTIONAL
         i_consistency_check  TYPE abap_bool OPTIONAL
         i_structure_name     TYPE any OPTIONAL
-        is_variant           TYPE any OPTIONAL
+        is_variant           TYPE disvariant OPTIONAL
         i_save               TYPE abap_bool OPTIONAL
         i_default            TYPE abap_bool DEFAULT abap_true
         is_layout            TYPE any OPTIONAL
@@ -495,6 +495,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
 
   PROTECTED SECTION.
     DATA mt_outtab TYPE REF TO data.
+
+  PRIVATE SECTION.
+    DATA mt_f4 TYPE lvc_t_f4.
+    DATA m_cl_variant TYPE REF TO cl_alv_variant.
+    DATA mt_hyperlinks TYPE lvc_t_hype.
+    DATA m_init_toolbar TYPE c LENGTH 1.
 
 ENDCLASS.
 
