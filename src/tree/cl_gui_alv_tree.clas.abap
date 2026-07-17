@@ -86,7 +86,7 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
     METHODS set_table_for_first_display
       IMPORTING
         i_structure_name     TYPE any OPTIONAL
-        is_variant           TYPE any OPTIONAL
+        is_variant           TYPE disvariant OPTIONAL
         i_save               TYPE abap_bool OPTIONAL
         i_default            TYPE abap_bool DEFAULT 'X'
         is_hierarchy_header  TYPE any OPTIONAL

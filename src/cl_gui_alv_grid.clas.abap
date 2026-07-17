@@ -50,7 +50,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
         i_bypassing_buffer   TYPE abap_bool OPTIONAL
         i_consistency_check  TYPE abap_bool OPTIONAL
         i_structure_name     TYPE any OPTIONAL
-        is_variant           TYPE any OPTIONAL
+        is_variant           TYPE disvariant OPTIONAL
         i_save               TYPE abap_bool OPTIONAL
         i_default            TYPE abap_bool DEFAULT abap_true
         is_layout            TYPE any OPTIONAL
