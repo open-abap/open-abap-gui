@@ -30,7 +30,7 @@ CLASS cl_salv_table DEFINITION PUBLIC.
 
     METHODS get_selections RETURNING VALUE(val) TYPE REF TO cl_salv_table.
     METHODS set_selected_rows IMPORTING val TYPE any.
-    METHODS set_selection_mode IMPORTING value TYPE i.
+*    METHODS set_selection_mode IMPORTING value TYPE i.
     METHODS get_selected_rows RETURNING VALUE(rows) TYPE ty_rows.
     METHODS close_screen.
     METHODS refresh
@@ -143,10 +143,6 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_metadata.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD set_selection_mode.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
