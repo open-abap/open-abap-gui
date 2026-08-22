@@ -187,7 +187,7 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         i_fieldname    TYPE lvc_fname
         i_data         TYPE any
         i_u_data       TYPE abap_bool DEFAULT abap_true
-        is_item_layout TYPE any OPTIONAL
+        is_item_layout TYPE lvc_s_laci OPTIONAL
       EXCEPTIONS
         node_not_found.
 ENDCLASS.
