@@ -29,9 +29,6 @@ CLASS cl_salv_table DEFINITION PUBLIC.
         pfstatus TYPE any.
 
     METHODS get_selections RETURNING VALUE(val) TYPE REF TO cl_salv_selections.
-    METHODS set_selected_rows IMPORTING val TYPE any.
-*    METHODS set_selection_mode IMPORTING value TYPE i.
-    METHODS get_selected_rows RETURNING VALUE(rows) TYPE ty_rows.
     METHODS close_screen.
     METHODS refresh
       IMPORTING
@@ -114,10 +111,6 @@ CLASS cl_salv_table IMPLEMENTATION.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
-  METHOD set_selected_rows.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
   METHOD get_layout.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
@@ -135,10 +128,6 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_functions.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD get_selected_rows.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 

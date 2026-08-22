@@ -11,9 +11,17 @@ CLASS cl_salv_selections DEFINITION PUBLIC.
     METHODS get_selected_rows
       RETURNING
         VALUE(value) TYPE salv_t_row.
+
+    METHODS get_selection_mode
+      RETURNING
+        VALUE(value) TYPE i.
 ENDCLASS.
 
 CLASS cl_salv_selections IMPLEMENTATION.
+  METHOD get_selection_mode.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_selected_rows.
     RETURN. " todo, implement method
   ENDMETHOD.
