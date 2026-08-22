@@ -112,7 +112,7 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         i_relat_node_key TYPE any
         i_relationship   TYPE i
         is_outtab_line   TYPE any OPTIONAL
-        is_node_layout   TYPE any OPTIONAL
+        is_node_layout   TYPE lvc_s_layn OPTIONAL
         it_item_layout   TYPE any OPTIONAL
         i_node_text      TYPE any OPTIONAL
       EXPORTING
