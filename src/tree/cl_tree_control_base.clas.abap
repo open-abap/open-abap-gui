@@ -76,7 +76,7 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     EVENTS on_drop_get_flavor
       EXPORTING
       VALUE(node_key)         TYPE tv_nodekey
-      VALUE(flavors)          TYPE char40
+      VALUE(flavors)          TYPE cndd_flavors
       VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
 
     EVENTS expand_no_children

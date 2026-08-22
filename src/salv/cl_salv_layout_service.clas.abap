@@ -2,7 +2,7 @@ CLASS cl_salv_layout_service DEFINITION PUBLIC.
   PUBLIC SECTION.
     CLASS-METHODS f4_layouts
       IMPORTING
-        s_key        TYPE any
+        s_key        TYPE salv_s_layout_key
         layout       TYPE any OPTIONAL
         restrict     TYPE any OPTIONAL
       RETURNING
@@ -10,7 +10,7 @@ CLASS cl_salv_layout_service DEFINITION PUBLIC.
 
     CLASS-METHODS get_default_layout
       IMPORTING
-        s_key         TYPE any
+        s_key         TYPE salv_s_layout_key
         restrict      TYPE any OPTIONAL
         mandt         TYPE mandt DEFAULT sy-mandt
         bypass_buffer TYPE abap_bool OPTIONAL
@@ -19,7 +19,7 @@ CLASS cl_salv_layout_service DEFINITION PUBLIC.
 
     CLASS-METHODS get_layouts
       IMPORTING
-        s_key           TYPE any
+        s_key           TYPE salv_s_layout_key
       RETURNING
         VALUE(t_layout) TYPE salv_t_layout_info.
 ENDCLASS.

@@ -46,7 +46,7 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
 
     METHODS add_nodes_and_items
       IMPORTING
-        node_table                TYPE any OPTIONAL
+        node_table                TYPE treev_ntab OPTIONAL
         item_table                TYPE STANDARD TABLE
         item_table_structure_name TYPE clike
       EXCEPTIONS

@@ -4,7 +4,7 @@ CLASS cl_salv_layout DEFINITION PUBLIC.
 
     METHODS set_key
       IMPORTING
-        value TYPE any.
+        value TYPE salv_s_layout_key.
 
     METHODS set_save_restriction
       IMPORTING
