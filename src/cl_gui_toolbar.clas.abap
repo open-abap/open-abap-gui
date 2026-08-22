@@ -50,7 +50,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         fcode     TYPE ui_func
         icon      TYPE any OPTIONAL
-        text      TYPE text40 OPTIONAL
+        text      TYPE char40 OPTIONAL
         quickinfo TYPE char30 OPTIONAL.
 
     METHODS set_static_ctxmenu
