@@ -1,0 +1,4 @@
+TYPE-POOL cndd.
+
+TYPES cndd_flavor TYPE c LENGTH 40.
+TYPES cndd_flavors TYPE STANDARD TABLE OF cndd_flavor WITH DEFAULT KEY.

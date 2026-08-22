@@ -160,7 +160,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
         VALUE(e_column)      TYPE lvc_s_col OPTIONAL
         VALUE(es_row_no)     TYPE lvc_s_roid OPTIONAL
         VALUE(e_dragdropobj) TYPE REF TO cl_dragdropobject OPTIONAL
-        VALUE(e_flavors)     TYPE char40 OPTIONAL.
+        VALUE(e_flavors)     TYPE cndd_flavors OPTIONAL.
 
     EVENTS after_user_command
       EXPORTING
