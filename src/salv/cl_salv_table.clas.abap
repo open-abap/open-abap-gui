@@ -28,7 +28,7 @@ CLASS cl_salv_table DEFINITION PUBLIC.
         report   TYPE syrepid
         pfstatus TYPE any.
 
-    METHODS get_selections RETURNING VALUE(val) TYPE REF TO cl_salv_table.
+    METHODS get_selections RETURNING VALUE(val) TYPE REF TO cl_salv_selections.
     METHODS set_selected_rows IMPORTING val TYPE any.
 *    METHODS set_selection_mode IMPORTING value TYPE i.
     METHODS get_selected_rows RETURNING VALUE(rows) TYPE ty_rows.
