@@ -24,7 +24,7 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
 
     METHODS hierarchy_header_set_text
       IMPORTING
-        text TYPE any
+        text TYPE tv_heading
       EXCEPTIONS
         failed
         cntl_system_error.
