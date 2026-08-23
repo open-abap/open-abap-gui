@@ -11,20 +11,12 @@ CLASS cl_gui_barchart DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         create_error
         lifetime_error.
 
-    METHODS display
-      EXCEPTIONS
-        cntl_error.
-
 ENDCLASS.
 
 CLASS cl_gui_barchart IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD display.
     RETURN. " todo, implement method
   ENDMETHOD.
 
