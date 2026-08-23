@@ -19,6 +19,14 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS go_back.
 
+    METHODS go_forward
+      EXCEPTIONS
+        cntl_error.
+
+    METHODS do_refresh
+      EXCEPTIONS
+        cntl_error.
+
     METHODS close_document.
 
     METHODS get_current_url
@@ -85,6 +93,14 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD go_back.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD go_forward.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD do_refresh.
     RETURN. " todo, implement method
   ENDMETHOD.
 

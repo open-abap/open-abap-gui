@@ -40,6 +40,13 @@ CLASS cl_gui_docking_container DEFINITION PUBLIC INHERITING FROM cl_gui_containe
       EXCEPTIONS
         cntl_error.
 
+    METHODS float
+      IMPORTING
+        do_float TYPE i
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
+
 ENDCLASS.
 
 CLASS cl_gui_docking_container IMPLEMENTATION.
@@ -54,6 +61,10 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_extension.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD float.
     RETURN. " todo, implement method
   ENDMETHOD.
 

@@ -68,6 +68,14 @@ CLASS cl_gui_calendar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_error
         cntl_system_error.
 
+    METHODS reset_day_info
+      EXCEPTIONS
+        cntl_error.
+
+    METHODS reset_selection
+      EXCEPTIONS
+        cntl_error.
+
 ENDCLASS.
 
 CLASS cl_gui_calendar IMPLEMENTATION.
@@ -90,6 +98,14 @@ CLASS cl_gui_calendar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_day_info.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD reset_day_info.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD reset_selection.
     RETURN. " todo, implement method
   ENDMETHOD.
 
