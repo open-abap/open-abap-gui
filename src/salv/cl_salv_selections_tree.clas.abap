@@ -5,9 +5,17 @@ CLASS cl_salv_selections_tree DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE salv_t_nodes.
 
-    METHODS get_selected_node
+    METHODS set_selected_nodes
+      IMPORTING
+        value TYPE salv_t_nodes.
+
+    METHODS get_selected_item
       RETURNING
-        VALUE(value) TYPE REF TO cl_salv_node.
+        VALUE(value) TYPE REF TO cl_salv_item.
+
+    METHODS set_selected_item
+      IMPORTING
+        value TYPE REF TO cl_salv_item.
 
 ENDCLASS.
 
@@ -17,7 +25,15 @@ CLASS cl_salv_selections_tree IMPLEMENTATION.
     RETURN. " todo, implement method
   ENDMETHOD.
 
-  METHOD get_selected_node.
+  METHOD set_selected_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_selected_item.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_selected_item.
     RETURN. " todo, implement method
   ENDMETHOD.
 

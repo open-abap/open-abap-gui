@@ -3,7 +3,10 @@ CLASS cl_salv_columns_tree DEFINITION PUBLIC INHERITING FROM cl_salv_columns.
 
     METHODS set_exception_column
       IMPORTING
-        value TYPE lvc_fname.
+        value TYPE lvc_fname
+        group TYPE salv_de_constant DEFAULT 0
+      RAISING
+        cx_salv_data_error.
 
     METHODS get_exception_column
       RETURNING

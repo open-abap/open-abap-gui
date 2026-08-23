@@ -168,6 +168,10 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
         VALUE(e_saved)         TYPE abap_bool OPTIONAL
         VALUE(e_not_processed) TYPE abap_bool OPTIONAL.
 
+* Raised once the selection has settled, after REGISTER_DELAYED_EVENT was
+* called with MC_EVT_DELAYED_CHANGE_SELECT. The event carries no parameters.
+    EVENTS delayed_changed_sel_callback.
+
     EVENTS user_command
       EXPORTING
         VALUE(e_ucomm) TYPE sy-ucomm OPTIONAL.
