@@ -5,12 +5,18 @@ CLASS cl_gui_gp_pres DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS set_dc_names
       IMPORTING
-        objid  TYPE clike OPTIONAL
-        grpid  TYPE clike OPTIONAL
-        x_val  TYPE clike OPTIONAL
-        y_val  TYPE clike OPTIONAL
+        dim1      TYPE clike OPTIONAL
+        dim2      TYPE clike OPTIONAL
+        dim3      TYPE clike OPTIONAL
+        filter    TYPE clike OPTIONAL
+        grp_id    TYPE clike OPTIONAL
+        objref_id TYPE clike OPTIONAL
+        obj_id    TYPE clike OPTIONAL
+        text      TYPE clike OPTIONAL
+        t_dim1    TYPE clike OPTIONAL
+        t_grp_id  TYPE clike OPTIONAL
       EXPORTING
-        retval TYPE i.
+        retval    TYPE symsgno.
 
 ENDCLASS.
 
