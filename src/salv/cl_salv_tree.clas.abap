@@ -1,6 +1,11 @@
 CLASS cl_salv_tree DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    METHODS constructor
+      IMPORTING
+        hide_header TYPE abap_bool OPTIONAL
+        r_container TYPE REF TO cl_gui_container OPTIONAL.
+
     CLASS-METHODS factory
       IMPORTING
         hide_header TYPE abap_bool OPTIONAL
@@ -36,13 +41,41 @@ CLASS cl_salv_tree DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_display_settings.
 
+    METHODS get_aggregations
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_aggregations.
+
+    METHODS get_layout
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_layout.
+
+    METHODS set_data
+      CHANGING
+        t_table TYPE STANDARD TABLE.
+
     METHODS display.
 
 ENDCLASS.
 
 CLASS cl_salv_tree IMPLEMENTATION.
 
+  METHOD constructor.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD factory.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_aggregations.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_layout.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_data.
     RETURN. " todo, implement method
   ENDMETHOD.
 

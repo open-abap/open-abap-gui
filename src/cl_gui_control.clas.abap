@@ -9,6 +9,21 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
 
     CONSTANTS ws_clipsiblings TYPE i VALUE 67108864.
 
+    CONSTANTS lifetime_default TYPE i VALUE 0.
+    CONSTANTS lifetime_dynpro TYPE i VALUE 1.
+    CONSTANTS lifetime_imode TYPE i VALUE 2.
+
+    CONSTANTS mode_run TYPE i VALUE 0.
+    CONSTANTS mode_design TYPE i VALUE 1.
+
+    CONSTANTS metric_default TYPE i VALUE 0.
+    CONSTANTS metric_pixel TYPE i VALUE 1.
+    CONSTANTS metric_mm TYPE i VALUE 2.
+
+    CONSTANTS state_alive TYPE i VALUE 0.
+    CONSTANTS state_alive_on_other_screen TYPE i VALUE 1.
+    CONSTANTS state_dead TYPE i VALUE -1.
+
     CLASS-METHODS set_focus
       IMPORTING
         control TYPE REF TO cl_gui_control.
