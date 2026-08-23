@@ -1,0 +1,6 @@
+CLASS cl_salv_column_tree DEFINITION PUBLIC INHERITING FROM cl_salv_column_list.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_salv_column_tree IMPLEMENTATION.
+ENDCLASS.

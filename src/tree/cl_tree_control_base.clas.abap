@@ -167,6 +167,19 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         error_in_node_key_table
         dp_error.
 
+    METHODS move_node
+      IMPORTING
+        node_key          TYPE tv_nodekey
+        relative_node_key TYPE tv_nodekey
+        relationship      TYPE i
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        node_not_found
+        relative_node_not_found
+        illegal_relationship
+        dp_error.
+
     METHODS collapse_nodes
       IMPORTING
         node_key_table TYPE treev_nks
@@ -212,6 +225,10 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD delete_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD move_node.
     RETURN. " todo, implement method
   ENDMETHOD.
 

@@ -7,6 +7,13 @@ TYPES sdydo_element_name TYPE c LENGTH 100.
 TYPES sdydo_text_table TYPE STANDARD TABLE OF sdydo_text_element WITH DEFAULT KEY.
 TYPES sdydo_value TYPE c LENGTH 250.
 TYPES sdydo_key TYPE c LENGTH 70.
+TYPES sdydo_c1 TYPE c LENGTH 1.
+
+TYPES: BEGIN OF sdydo_option,
+         value TYPE sdydo_value,
+         text  TYPE string,
+       END OF sdydo_option.
+TYPES sdydo_option_tab TYPE STANDARD TABLE OF sdydo_option WITH DEFAULT KEY.
 
 TYPES: BEGIN OF sdydo_html_line,
          line TYPE c LENGTH 255,

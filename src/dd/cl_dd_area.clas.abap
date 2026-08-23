@@ -73,6 +73,19 @@ CLASS cl_dd_area DEFINITION PUBLIC.
 
     METHODS underline.
 
+    METHODS add_link
+      IMPORTING
+        url                    TYPE sdydo_text_element
+        text                   TYPE sdydo_text_element
+        name                   TYPE sdydo_element_name OPTIONAL
+        tooltip                TYPE string OPTIONAL
+        destination_in_doc_set TYPE string OPTIONAL
+        destination_in_doc_pos TYPE string OPTIONAL
+        tabindex               TYPE i OPTIONAL
+        hotkey                 TYPE sdydo_c1 OPTIONAL
+      EXPORTING
+        link                   TYPE REF TO cl_dd_link_element.
+
     METHODS add_form
       EXPORTING
         formarea         TYPE REF TO cl_dd_form_area
@@ -125,6 +138,10 @@ CLASS cl_dd_area IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_form.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD add_link.
     RETURN. " todo, implement method
   ENDMETHOD.
 

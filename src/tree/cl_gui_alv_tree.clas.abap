@@ -107,6 +107,15 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         failed
         cntl_system_error.
 
+    METHODS delete_subtree
+      IMPORTING
+        i_node_key TYPE lvc_nkey
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        node_not_found
+        error_in_node_key_table.
+
     METHODS add_node
       IMPORTING
         i_relat_node_key TYPE any
@@ -267,6 +276,10 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD add_node.
     ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD delete_subtree.
+    RETURN. " todo, implement method
   ENDMETHOD.
 
   METHOD delete_all_nodes.

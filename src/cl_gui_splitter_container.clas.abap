@@ -29,6 +29,15 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
         cntl_error
         cntl_system_error.
 
+    METHODS get_column_width
+      IMPORTING
+        id     TYPE i
+      EXPORTING
+        result TYPE i
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
+
     METHODS set_column_mode
       IMPORTING
         mode   TYPE i
@@ -94,6 +103,10 @@ ENDCLASS.
 
 CLASS cl_gui_splitter_container IMPLEMENTATION.
   METHOD get_row_height.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_column_width.
     RETURN. " todo, implement method
   ENDMETHOD.
 

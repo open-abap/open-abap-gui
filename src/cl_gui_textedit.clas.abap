@@ -55,6 +55,30 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
       IMPORTING
         readonly_mode TYPE i DEFAULT true.
 
+    METHODS get_selection_pos
+      EXPORTING
+        from_line TYPE i
+        from_pos  TYPE i
+        to_line   TYPE i
+        to_pos    TYPE i
+      EXCEPTIONS
+        error_cntl_call_method.
+
+    METHODS protect_lines
+      IMPORTING
+        from_line                     TYPE i
+        to_line                       TYPE i
+        protect_mode                  TYPE i DEFAULT 1
+        enable_editing_protected_text TYPE i OPTIONAL
+      EXCEPTIONS
+        error_cntl_call_method.
+
+    METHODS go_to_line
+      IMPORTING
+        line TYPE i
+      EXCEPTIONS
+        error_cntl_call_method.
+
     METHODS delete_text.
 
     METHODS set_text_as_stream
@@ -97,6 +121,18 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD delete_text.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_selection_pos.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD protect_lines.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD go_to_line.
     RETURN. " todo, implement method
   ENDMETHOD.
 
