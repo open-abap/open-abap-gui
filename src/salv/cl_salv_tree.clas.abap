@@ -37,10 +37,6 @@ CLASS cl_salv_tree DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_events_tree.
 
-    METHODS get_display_settings
-      RETURNING
-        VALUE(value) TYPE REF TO cl_salv_display_settings.
-
     METHODS get_aggregations
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_aggregations.
@@ -96,10 +92,6 @@ CLASS cl_salv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_event.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD get_display_settings.
     RETURN. " todo, implement method
   ENDMETHOD.
 
