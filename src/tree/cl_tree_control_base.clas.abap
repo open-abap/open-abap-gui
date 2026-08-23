@@ -169,9 +169,9 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS move_node
       IMPORTING
-        node_key          TYPE tv_nodekey
-        relative_node_key TYPE tv_nodekey
-        relationship      TYPE i
+        node_key  TYPE tv_nodekey
+        relatkey  TYPE tv_nodekey
+        relatship TYPE i
       EXCEPTIONS
         failed
         cntl_system_error

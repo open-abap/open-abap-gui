@@ -22,8 +22,6 @@ CLASS cl_tree_model DEFINITION PUBLIC.
         failed
         illegal_node_selection_mode.
 
-    METHODS destroy_tree_control.
-
     METHODS expand_node
       IMPORTING
         node_key       TYPE tv_nodekey
@@ -52,10 +50,6 @@ CLASS cl_tree_model IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_tree_control.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD destroy_tree_control.
     RETURN. " todo, implement method
   ENDMETHOD.
 
