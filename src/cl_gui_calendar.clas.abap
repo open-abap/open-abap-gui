@@ -1,6 +1,13 @@
 CLASS cl_gui_calendar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
 
+    CONSTANTS m_id_ctxmenu_request TYPE i VALUE 1.
+    CONSTANTS m_id_date_selected TYPE i VALUE 3.
+    CONSTANTS m_id_info_request TYPE i VALUE 4.
+    CONSTANTS m_id_pre_selection TYPE i VALUE 6.
+    CONSTANTS m_id_f2 TYPE i VALUE 7.
+    CONSTANTS m_id_f12 TYPE i VALUE 8.
+
     EVENTS date_selected
       EXPORTING
         VALUE(date_begin)      TYPE cnca_utc_date

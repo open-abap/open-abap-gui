@@ -1,4 +1,4 @@
-CLASS cl_dd_input_element DEFINITION PUBLIC.
+CLASS cl_dd_input_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element.
   PUBLIC SECTION.
 
     DATA value TYPE sdydo_value.

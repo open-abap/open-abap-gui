@@ -6,6 +6,23 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     CONSTANTS display_mode_normal_center TYPE i VALUE 3.
     CONSTANTS display_mode_fit_center TYPE i VALUE 4.
 
+    CONSTANTS eventid_context_menu TYPE i VALUE 1.
+    CONSTANTS eventid_picture_click TYPE i VALUE 2.
+    CONSTANTS eventid_picture_dblclick TYPE i VALUE 3.
+    CONSTANTS eventid_control_click TYPE i VALUE 4.
+    CONSTANTS eventid_control_dblclick TYPE i VALUE 5.
+    CONSTANTS eventid_context_menu_selected TYPE i VALUE 6.
+
+    EVENTS picture_click
+      EXPORTING
+        VALUE(mouse_pos_x) TYPE i
+        VALUE(mouse_pos_y) TYPE i.
+
+    EVENTS picture_dblclick
+      EXPORTING
+        VALUE(mouse_pos_x) TYPE i
+        VALUE(mouse_pos_y) TYPE i.
+
     METHODS constructor
       IMPORTING
         parent TYPE REF TO cl_gui_container.
