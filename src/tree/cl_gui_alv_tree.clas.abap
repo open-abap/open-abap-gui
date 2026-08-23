@@ -33,6 +33,11 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         VALUE(fieldname) TYPE lvc_fname
         VALUE(node_key)  TYPE lvc_nkey.
 
+    EVENTS node_context_menu_request
+      EXPORTING
+        VALUE(node_key) TYPE lvc_nkey
+        VALUE(menu)     TYPE REF TO cl_ctmenu.
+
     EVENTS node_context_menu_selected
       EXPORTING
         VALUE(fcode)    TYPE sy-ucomm
