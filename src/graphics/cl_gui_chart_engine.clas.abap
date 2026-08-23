@@ -13,9 +13,9 @@ CLASS cl_gui_chart_engine DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS set_data
       IMPORTING
-        data TYPE string
-      EXCEPTIONS
-        cntl_error.
+        data  TYPE string OPTIONAL
+        xdata TYPE xstring OPTIONAL
+        size  TYPE i OPTIONAL.
 
     METHODS render
       EXCEPTIONS
