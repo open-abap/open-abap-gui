@@ -38,8 +38,6 @@ CLASS cl_salv_tree DEFINITION PUBLIC.
 
     METHODS display.
 
-    METHODS refresh.
-
 ENDCLASS.
 
 CLASS cl_salv_tree IMPLEMENTATION.
@@ -73,10 +71,6 @@ CLASS cl_salv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD display.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD refresh.
     RETURN. " todo, implement method
   ENDMETHOD.
 
