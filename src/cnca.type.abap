@@ -1,7 +1,7 @@
 TYPE-POOL cnca.
 
-TYPES cnca_utc_date TYPE d.
-TYPES cnca_format TYPE c LENGTH 20.
+TYPES cnca_utc_date TYPE c LENGTH 8.
+TYPES cnca_format TYPE c LENGTH 80.
 
 CONSTANTS cnca_sel_day TYPE i VALUE 1.
 CONSTANTS cnca_sel_week TYPE i VALUE 2.
