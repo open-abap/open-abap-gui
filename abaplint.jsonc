@@ -7,7 +7,10 @@
     "errorOnDuplicateFilenames": true
   },
   "syntax": {
-    "version": "open-abap",
+    "version": {
+      "release": "open-abap",
+      "language": "Normal"
+    },
     "errorNamespace": "."
   },
   "dependencies": [
@@ -20,6 +23,9 @@
     "check_include": true,
     "align_pseudo_comments": true,
     "invalid_table_index": true,
+    "cds_check_syntax": true,
+    "no_dynamic_stuff": true,
+    "xml_bom": false,
     "no_prefixes": false,
     "clear_exporting_parameters": true,
     "no_macros": true,

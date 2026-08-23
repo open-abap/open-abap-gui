@@ -225,6 +225,33 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         data   TYPE STANDARD TABLE
         length TYPE i.
 
+    CLASS-METHODS gui_is_available
+      RETURNING
+        VALUE(return) TYPE abap_bool.
+
+    CLASS-METHODS get_gui_type
+      RETURNING
+        VALUE(return) TYPE i.
+
+    CLASS-METHODS get_sapgui_directory
+      CHANGING
+        sapgui_directory TYPE string
+      EXCEPTIONS
+        cntl_error
+        error_no_gui
+        not_supported_by_gui.
+
+    CLASS-METHODS directory_set_current
+      IMPORTING
+        current_directory TYPE string
+      CHANGING
+        rc                TYPE i OPTIONAL
+      EXCEPTIONS
+        cntl_error
+        directory_set_current_failed
+        error_no_gui
+        not_supported_by_gui.
+
     CLASS-METHODS file_delete
       IMPORTING
         filename TYPE string
@@ -336,6 +363,22 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
 
   METHOD file_delete.
     ASSERT 1 = 'file_delete not supported'.
+  ENDMETHOD.
+
+  METHOD gui_is_available.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_gui_type.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_sapgui_directory.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD directory_set_current.
+    RETURN. " todo, implement method
   ENDMETHOD.
 
   METHOD clipboard_import.
