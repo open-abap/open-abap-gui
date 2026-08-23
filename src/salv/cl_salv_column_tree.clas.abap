@@ -1,4 +1,4 @@
-CLASS cl_salv_column_tree DEFINITION PUBLIC INHERITING FROM cl_salv_column_list.
+CLASS cl_salv_column_tree DEFINITION PUBLIC INHERITING FROM cl_salv_column.
   PUBLIC SECTION.
 ENDCLASS.
 
