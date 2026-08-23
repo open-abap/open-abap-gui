@@ -5,10 +5,10 @@ CLASS cl_salv_filters DEFINITION PUBLIC.
     METHODS add_filter
       IMPORTING
         columnname   TYPE lvc_fname
-        sign         TYPE any DEFAULT 'I'
-        option       TYPE any DEFAULT 'EQ'
-        low          TYPE any OPTIONAL
-        high         TYPE any OPTIONAL
+        sign         TYPE char1 DEFAULT 'I'
+        option       TYPE char2 DEFAULT 'EQ'
+        low          TYPE char80 OPTIONAL
+        high         TYPE char80 OPTIONAL
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_filter
       RAISING

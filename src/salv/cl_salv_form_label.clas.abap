@@ -1,0 +1,6 @@
+CLASS cl_salv_form_label DEFINITION PUBLIC INHERITING FROM cl_salv_form_element.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_salv_form_label IMPLEMENTATION.
+ENDCLASS.

@@ -3,6 +3,14 @@ CLASS cl_dd_input_element DEFINITION PUBLIC.
 
     DATA value TYPE sdydo_value.
 
+    EVENTS entered
+      EXPORTING
+        VALUE(sender) TYPE REF TO cl_dd_input_element.
+
+    EVENTS help_f1
+      EXPORTING
+        VALUE(sender) TYPE REF TO cl_dd_input_element.
+
     METHODS set_value
       IMPORTING
         value TYPE sdydo_value OPTIONAL.
