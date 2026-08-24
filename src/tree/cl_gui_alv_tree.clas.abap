@@ -55,6 +55,11 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         VALUE(fieldname)        TYPE lvc_fname
         VALUE(node_key)         TYPE lvc_nkey.
 
+    EVENTS on_drop
+      EXPORTING
+        VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject
+        VALUE(node_key)         TYPE lvc_nkey.
+
     METHODS get_outtab_line
       IMPORTING
         i_node_key     TYPE any
@@ -87,6 +92,14 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
     EVENTS node_double_click
       EXPORTING
         VALUE(node_key) TYPE any.
+
+    EVENTS expand_nc
+      EXPORTING
+        VALUE(node_key) TYPE lvc_nkey.
+
+    EVENTS header_click
+      EXPORTING
+        VALUE(fieldname) TYPE lvc_fname.
 
     METHODS set_table_for_first_display
       IMPORTING
