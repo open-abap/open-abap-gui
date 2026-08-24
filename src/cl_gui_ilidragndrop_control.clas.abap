@@ -16,6 +16,13 @@ CLASS cl_gui_ilidragndrop_control DEFINITION PUBLIC INHERITING FROM cl_gui_contr
     CONSTANTS co_mf_unchecked TYPE i VALUE 0.
     CONSTANTS co_mf_separator TYPE i VALUE 2048.
 
+    CONSTANTS mf_enabled TYPE i VALUE 0.
+    CONSTANTS mf_grayed TYPE i VALUE 1.
+    CONSTANTS mf_disabled TYPE i VALUE 2.
+    CONSTANTS mf_checked TYPE i VALUE 8.
+    CONSTANTS mf_unchecked TYPE i VALUE 0.
+    CONSTANTS mf_separator TYPE i VALUE 2048.
+
     CONSTANTS event_dropped TYPE i VALUE 1.
     CONSTANTS event_resized TYPE i VALUE 2.
     CONSTANTS event_contextmenurequest TYPE i VALUE 14.

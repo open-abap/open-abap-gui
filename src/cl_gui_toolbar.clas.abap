@@ -74,7 +74,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         fcode      TYPE ui_func
         icon       TYPE c
         disabled   TYPE c OPTIONAL
-        butn_type  TYPE clike
+        butn_type  TYPE i
         text       TYPE clike OPTIONAL
         quickinfo  TYPE clike OPTIONAL
         checked    TYPE c OPTIONAL
