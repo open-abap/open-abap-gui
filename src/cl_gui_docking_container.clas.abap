@@ -6,6 +6,9 @@ CLASS cl_gui_docking_container DEFINITION PUBLIC INHERITING FROM cl_gui_containe
     CONSTANTS dock_at_bottom TYPE i VALUE 4.
     CONSTANTS dock_at_right TYPE i VALUE 8.
 
+    CONSTANTS property_docking TYPE i VALUE 470.
+    CONSTANTS property_floating TYPE i VALUE 480.
+
     METHODS constructor
       IMPORTING
         parent                  TYPE REF TO cl_gui_container OPTIONAL
@@ -34,11 +37,31 @@ CLASS cl_gui_docking_container DEFINITION PUBLIC INHERITING FROM cl_gui_containe
         cntl_error
         cntl_system_error.
 
+    METHODS get_docking_side
+      RETURNING
+        VALUE(docking_side) TYPE i
+      EXCEPTIONS
+        not_docked.
+
     METHODS set_extension
       IMPORTING
         extension TYPE i
       EXCEPTIONS
         cntl_error.
+
+    METHODS get_extension
+      EXPORTING
+        extension TYPE i
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
+
+    METHODS set_caption
+      IMPORTING
+        caption TYPE clike
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
 
     METHODS float
       IMPORTING
@@ -60,7 +83,19 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
     RETURN. " todo, implement method
   ENDMETHOD.
 
+  METHOD get_docking_side.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_extension.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_extension.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_caption.
     RETURN. " todo, implement method
   ENDMETHOD.
 

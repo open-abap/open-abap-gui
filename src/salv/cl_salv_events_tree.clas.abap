@@ -1,6 +1,8 @@
 CLASS cl_salv_events_tree DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    INTERFACES if_salv_events_tree.
+
     EVENTS link_click
       EXPORTING
         VALUE(columnname) TYPE lvc_fname

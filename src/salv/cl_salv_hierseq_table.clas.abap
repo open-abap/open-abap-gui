@@ -23,9 +23,35 @@ CLASS cl_salv_hierseq_table DEFINITION PUBLIC.
       RAISING
         cx_salv_not_found.
 
+    METHODS get_level
+      IMPORTING
+        level        TYPE i
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_hierseq_level
+      RAISING
+        cx_salv_not_found.
+
+    METHODS get_selections
+      IMPORTING
+        level        TYPE i
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_selections
+      RAISING
+        cx_salv_not_found.
+
     METHODS get_functions
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_functions_list.
+
+    METHODS get_layout
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_layout.
+
+    METHODS set_screen_status
+      IMPORTING
+        pfstatus      TYPE any
+        set_functions TYPE any OPTIONAL
+        report        TYPE any.
 
     METHODS get_sorts
       IMPORTING
@@ -75,7 +101,23 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
     RETURN. " todo, implement method
   ENDMETHOD.
 
+  METHOD get_level.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_selections.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD get_functions.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_layout.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_screen_status.
     RETURN. " todo, implement method
   ENDMETHOD.
 

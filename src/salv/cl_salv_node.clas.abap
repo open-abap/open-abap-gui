@@ -13,9 +13,27 @@ CLASS cl_salv_node DEFINITION PUBLIC.
       RAISING
         cx_salv_msg.
 
+    METHODS get_hierarchy_item
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_item.
+
     METHODS set_text
       IMPORTING
         value TYPE clike.
+
+    METHODS get_text
+      RETURNING
+        VALUE(value) TYPE lvc_value.
+
+    METHODS set_data_row
+      IMPORTING
+        value TYPE any.
+
+    METHODS get_parent
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_node
+      RAISING
+        cx_salv_msg.
 
     METHODS set_folder
       IMPORTING
@@ -43,7 +61,23 @@ CLASS cl_salv_node IMPLEMENTATION.
     RETURN. " todo, implement method
   ENDMETHOD.
 
+  METHOD get_hierarchy_item.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD set_text.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_text.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_data_row.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_parent.
     RETURN. " todo, implement method
   ENDMETHOD.
 

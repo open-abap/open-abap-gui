@@ -1,4 +1,4 @@
-CLASS cl_salv_form_header_info DEFINITION PUBLIC INHERITING FROM cl_salv_form_uie_text_view.
+CLASS cl_salv_form_text DEFINITION PUBLIC INHERITING FROM cl_salv_form_uie_text_view.
   PUBLIC SECTION.
 
     METHODS constructor
@@ -8,7 +8,7 @@ CLASS cl_salv_form_header_info DEFINITION PUBLIC INHERITING FROM cl_salv_form_ui
 
 ENDCLASS.
 
-CLASS cl_salv_form_header_info IMPLEMENTATION.
+CLASS cl_salv_form_text IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
