@@ -1,4 +1,4 @@
-CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_element.
+CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_uie_layout_grid.
   PUBLIC SECTION.
 
     METHODS constructor
