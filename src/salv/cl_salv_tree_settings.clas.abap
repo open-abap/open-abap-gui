@@ -1,6 +1,14 @@
 CLASS cl_salv_tree_settings DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    METHODS set_header
+      IMPORTING
+        value TYPE salv_de_tree_text.
+
+    METHODS get_header
+      RETURNING
+        VALUE(value) TYPE salv_de_tree_text.
+
     METHODS set_hierarchy_header
       IMPORTING
         value TYPE salv_de_tree_text.
@@ -36,6 +44,14 @@ CLASS cl_salv_tree_settings DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_tree_settings IMPLEMENTATION.
+
+  METHOD set_header.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_header.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_hierarchy_header.
     RETURN. " todo, implement method
