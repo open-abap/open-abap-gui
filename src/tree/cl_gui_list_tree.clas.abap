@@ -5,17 +5,13 @@ CLASS cl_gui_list_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
     CONSTANTS align_center TYPE i VALUE 1.
     CONSTANTS align_right  TYPE i VALUE 2.
 
-    CONSTANTS item_class_text   TYPE i VALUE 1.
-    CONSTANTS item_class_button TYPE i VALUE 2.
-    CONSTANTS item_class_link   TYPE i VALUE 3.
+    CONSTANTS item_class_text   TYPE i VALUE 2.
+    CONSTANTS item_class_button TYPE i VALUE 4.
+    CONSTANTS item_class_link   TYPE i VALUE 5.
 
     CONSTANTS item_font_default TYPE i VALUE 0.
     CONSTANTS item_font_fixed   TYPE i VALUE 1.
     CONSTANTS item_font_prop    TYPE i VALUE 2.
-
-    CONSTANTS node_sel_mode_single TYPE i VALUE 1.
-
-    CONSTANTS eventid_node_double_click TYPE i VALUE 25.
 
     METHODS constructor
       IMPORTING

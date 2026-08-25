@@ -1,24 +1,29 @@
 CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
-    CONSTANTS eventid_expand_no_children TYPE i VALUE 1.
-    CONSTANTS eventid_node_context_menu_req TYPE i VALUE 2.
+    CONSTANTS eventid_expand_no_children TYPE i VALUE 18.
+    CONSTANTS eventid_node_context_menu_req TYPE i VALUE 36.
     CONSTANTS eventid_selection_changed TYPE i VALUE 21.
+    CONSTANTS eventid_node_double_click TYPE i VALUE 25.
     CONSTANTS eventid_node_keypress TYPE i VALUE 40.
     CONSTANTS eventid_def_context_menu_req TYPE i VALUE 42.
 
-    CONSTANTS style_intensified TYPE i VALUE 2.
-    CONSTANTS style_intensifd_critical TYPE i VALUE 4.
+    CONSTANTS style_inherited TYPE i VALUE 0.
     CONSTANTS style_default TYPE i VALUE 1.
+    CONSTANTS style_intensified TYPE i VALUE 2.
+    CONSTANTS style_inactive TYPE i VALUE 3.
+    CONSTANTS style_intensifd_critical TYPE i VALUE 4.
     CONSTANTS style_emphasized_negative TYPE i VALUE 5.
+    CONSTANTS style_emphasized_positive TYPE i VALUE 6.
+    CONSTANTS style_emphasized TYPE i VALUE 7.
+    CONSTANTS style_emphasized_a TYPE i VALUE 8.
+    CONSTANTS style_emphasized_b TYPE i VALUE 9.
+    CONSTANTS style_emphasized_c TYPE i VALUE 10.
 
+    CONSTANTS node_sel_mode_single TYPE i VALUE 0.
     CONSTANTS node_sel_mode_multiple TYPE i VALUE 1.
 
     CONSTANTS relat_first_child TYPE i VALUE 4.
     CONSTANTS relat_last_child TYPE i VALUE 6.
-
-    CONSTANTS style_emphasized_a TYPE i VALUE 8.
-    CONSTANTS style_emphasized_b TYPE i VALUE 9.
-    CONSTANTS style_emphasized_c TYPE i VALUE 10.
 
     CONSTANTS key_f1 TYPE i VALUE 1.
 

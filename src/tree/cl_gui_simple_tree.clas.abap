@@ -1,9 +1,5 @@
 CLASS cl_gui_simple_tree DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
   PUBLIC SECTION.
-    CONSTANTS node_sel_mode_single TYPE i VALUE 1.
-
-    CONSTANTS eventid_node_double_click TYPE i VALUE 25.
-
     METHODS constructor
       IMPORTING
         parent              TYPE REF TO cl_gui_container
