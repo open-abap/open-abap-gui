@@ -326,7 +326,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
 
     METHODS register_f4_for_fields
       IMPORTING
-        it_f4 TYPE lvc_t_f.
+        it_f4 TYPE lvc_t_f4.
 
     METHODS get_frontend_print
       EXPORTING
