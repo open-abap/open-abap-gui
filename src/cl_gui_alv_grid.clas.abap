@@ -392,86 +392,86 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
       i_not_processed TYPE abap_bool OPTIONAL
       PREFERRED PARAMETER i_ucomm.
 
-    CONSTANTS mc_fc_average TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_back_classic TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_abc TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_chain TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_crbatch TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_crweb TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_lineitems TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_master_data TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_more TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_report TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_xint TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_xxl TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_check TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_col_invisible TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_col_optimize TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_count TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_current_variant TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_data_save TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_delete_filter TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_deselect_all TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_detail TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_excl_all TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_expcrdata TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_expcrdesig TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_expcrtempl TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_expmdb TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_extend TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_f4 TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_filter TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_find TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_fix_columns TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_graph TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_help TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_html TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_info TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_load_variant TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_cut TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_insert_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_move_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_paste TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_maintain_variant TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_maximum TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_minimum TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_pc_file TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_print TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_print_back TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_print_prev TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_refresh TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_reprep TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_save_variant TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_select_all TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_send TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_separator TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_sort TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_sort_asc TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_sort_dsc TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_subtot TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_sum TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_to_office TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_to_rep_tree TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_unfix_columns TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_url_copy_to_clipboard TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_variant_admin TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_view_crystal TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_view_excel TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_view_grid TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_view_lotus TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_views TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_word_processor TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fc_call_xml_export TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_fg_edit TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_fc_average TYPE ui_func VALUE '&AVERAGE'.
+    CONSTANTS mc_fc_back_classic TYPE ui_func VALUE '&F03'.
+    CONSTANTS mc_fc_call_abc TYPE ui_func VALUE '&ABC'.
+    CONSTANTS mc_fc_call_chain TYPE ui_func VALUE '&BEBN'.
+    CONSTANTS mc_fc_call_crbatch TYPE ui_func VALUE '&CRBATCH'.
+    CONSTANTS mc_fc_call_crweb TYPE ui_func VALUE '&CRWEB'.
+    CONSTANTS mc_fc_call_lineitems TYPE ui_func VALUE '&BEB1'.
+    CONSTANTS mc_fc_call_master_data TYPE ui_func VALUE '&BEB2'.
+    CONSTANTS mc_fc_call_more TYPE ui_func VALUE '&BEB3'.
+    CONSTANTS mc_fc_call_report TYPE ui_func VALUE '&BEB9'.
+    CONSTANTS mc_fc_call_xint TYPE ui_func VALUE '&XINT'.
+    CONSTANTS mc_fc_call_xxl TYPE ui_func VALUE '&XXL'.
+    CONSTANTS mc_fc_check TYPE ui_func VALUE '&CHECK'.
+    CONSTANTS mc_fc_col_invisible TYPE ui_func VALUE '&COL_INV'.
+    CONSTANTS mc_fc_col_optimize TYPE ui_func VALUE '&OPTIMIZE'.
+    CONSTANTS mc_fc_count TYPE ui_func VALUE '&COUNT'.
+    CONSTANTS mc_fc_current_variant TYPE ui_func VALUE '&COL0'.
+    CONSTANTS mc_fc_data_save TYPE ui_func VALUE '&DATA_SAVE'.
+    CONSTANTS mc_fc_delete_filter TYPE ui_func VALUE '&DELETE_FILTER'.
+    CONSTANTS mc_fc_deselect_all TYPE ui_func VALUE '&SAL'.
+    CONSTANTS mc_fc_detail TYPE ui_func VALUE '&DETAIL'.
+    CONSTANTS mc_fc_excl_all TYPE ui_func VALUE '&EXCLALLFC'.
+    CONSTANTS mc_fc_expcrdata TYPE ui_func VALUE '&CRDATA'.
+    CONSTANTS mc_fc_expcrdesig TYPE ui_func VALUE '&CRDESIG'.
+    CONSTANTS mc_fc_expcrtempl TYPE ui_func VALUE '&CRTEMPL'.
+    CONSTANTS mc_fc_expmdb TYPE ui_func VALUE '&MDB'.
+    CONSTANTS mc_fc_extend TYPE ui_func VALUE '&EXT'.
+    CONSTANTS mc_fc_f4 TYPE ui_func VALUE '&F4'.
+    CONSTANTS mc_fc_filter TYPE ui_func VALUE '&FILTER'.
+    CONSTANTS mc_fc_find TYPE ui_func VALUE '&FIND'.
+    CONSTANTS mc_fc_fix_columns TYPE ui_func VALUE '&CFI'.
+    CONSTANTS mc_fc_graph TYPE ui_func VALUE '&GRAPH'.
+    CONSTANTS mc_fc_help TYPE ui_func VALUE '&HELP'.
+    CONSTANTS mc_fc_html TYPE ui_func VALUE '&HTML'.
+    CONSTANTS mc_fc_info TYPE ui_func VALUE '&INFO'.
+    CONSTANTS mc_fc_load_variant TYPE ui_func VALUE '&LOAD'.
+    CONSTANTS mc_fc_loc_append_row TYPE ui_func VALUE '&LOCAL&APPEND'.
+    CONSTANTS mc_fc_loc_copy TYPE ui_func VALUE '&LOCAL&COPY'.
+    CONSTANTS mc_fc_loc_copy_row TYPE ui_func VALUE '&LOCAL&COPY_ROW'.
+    CONSTANTS mc_fc_loc_cut TYPE ui_func VALUE '&LOCAL&CUT'.
+    CONSTANTS mc_fc_loc_delete_row TYPE ui_func VALUE '&LOCAL&DELETE_ROW'.
+    CONSTANTS mc_fc_loc_insert_row TYPE ui_func VALUE '&LOCAL&INSERT_ROW'.
+    CONSTANTS mc_fc_loc_move_row TYPE ui_func VALUE '&LOCAL&MOVE_ROW'.
+    CONSTANTS mc_fc_loc_paste TYPE ui_func VALUE '&LOCAL&PASTE'.
+    CONSTANTS mc_fc_loc_paste_new_row TYPE ui_func VALUE '&LOCAL&PASTE_NEW_ROW'.
+    CONSTANTS mc_fc_loc_undo TYPE ui_func VALUE '&LOCAL&UNDO'.
+    CONSTANTS mc_fc_maintain_variant TYPE ui_func VALUE '&MAINTAIN'.
+    CONSTANTS mc_fc_maximum TYPE ui_func VALUE '&MAXIMUM'.
+    CONSTANTS mc_fc_minimum TYPE ui_func VALUE '&MINIMUM'.
+    CONSTANTS mc_fc_pc_file TYPE ui_func VALUE '&PC'.
+    CONSTANTS mc_fc_print TYPE ui_func VALUE '&PRINT'.
+    CONSTANTS mc_fc_print_back TYPE ui_func VALUE '&PRINT_BACK'.
+    CONSTANTS mc_fc_print_prev TYPE ui_func VALUE '&PRINT_BACK_PREVIEW'.
+    CONSTANTS mc_fc_refresh TYPE ui_func VALUE '&REFRESH'.
+    CONSTANTS mc_fc_reprep TYPE ui_func VALUE '&REPREP'.
+    CONSTANTS mc_fc_save_variant TYPE ui_func VALUE '&SAVE'.
+    CONSTANTS mc_fc_select_all TYPE ui_func VALUE '&ALL'.
+    CONSTANTS mc_fc_send TYPE ui_func VALUE '&SEND'.
+    CONSTANTS mc_fc_separator TYPE ui_func VALUE '&&SEP'.
+    CONSTANTS mc_fc_sort TYPE ui_func VALUE '&SORT'.
+    CONSTANTS mc_fc_sort_asc TYPE ui_func VALUE '&SORT_ASC'.
+    CONSTANTS mc_fc_sort_dsc TYPE ui_func VALUE '&SORT_DSC'.
+    CONSTANTS mc_fc_subtot TYPE ui_func VALUE '&SUBTOT'.
+    CONSTANTS mc_fc_sum TYPE ui_func VALUE '&SUMC'.
+    CONSTANTS mc_fc_to_office TYPE ui_func VALUE '&ML'.
+    CONSTANTS mc_fc_to_rep_tree TYPE ui_func VALUE '&SERP'.
+    CONSTANTS mc_fc_unfix_columns TYPE ui_func VALUE '&CDF'.
+    CONSTANTS mc_fc_url_copy_to_clipboard TYPE ui_func VALUE '&URL_COPY_TO_CLIPBOARD'.
+    CONSTANTS mc_fc_variant_admin TYPE ui_func VALUE '&VARI_ADMIN'.
+    CONSTANTS mc_fc_view_crystal TYPE ui_func VALUE '&VCRYSTAL'.
+    CONSTANTS mc_fc_view_excel TYPE ui_func VALUE '&VEXCEL'.
+    CONSTANTS mc_fc_view_grid TYPE ui_func VALUE '&VGRID'.
+    CONSTANTS mc_fc_view_lotus TYPE ui_func VALUE '&VLOTUS'.
+    CONSTANTS mc_fc_views TYPE ui_func VALUE '&VIEW'.
+    CONSTANTS mc_fc_word_processor TYPE ui_func VALUE '&AQW'.
+    CONSTANTS mc_fc_call_xml_export TYPE ui_func VALUE '&XML'.
+    CONSTANTS mc_fg_edit TYPE ui_func VALUE '&FG_EDIT'.
 
     CONSTANTS mc_style_disabled TYPE x LENGTH 4 VALUE '00100000'.
-    CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00000000'.
+    CONSTANTS mc_style_enabled TYPE x LENGTH 4 VALUE '00080000'.
     CONSTANTS mc_style4_link_no TYPE x LENGTH 4 VALUE '00000008'.
     CONSTANTS mc_style_button TYPE x LENGTH 4 VALUE '20000000'.
     CONSTANTS mc_style_f4 TYPE x LENGTH 4 VALUE '02000000'.
@@ -480,12 +480,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
     CONSTANTS mc_style_hotspot_no TYPE x LENGTH 4 VALUE '00400000'.
     CONSTANTS mc_style_no_delete_row TYPE x LENGTH 4 VALUE '10000000'.
 
-    CONSTANTS mc_mb_paste TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_mb_sum TYPE ui_func VALUE 'TODO'.
-    CONSTANTS mc_mb_subtot TYPE ui_func VALUE 'TODO'.
+    CONSTANTS mc_mb_paste TYPE ui_func VALUE '&MB_PASTE'.
+    CONSTANTS mc_mb_sum TYPE ui_func VALUE '&MB_SUM'.
+    CONSTANTS mc_mb_subtot TYPE ui_func VALUE '&MB_SUBTOT'.
 
-    CONSTANTS mc_evt_enter TYPE i VALUE 1.
-    CONSTANTS mc_evt_modified TYPE i VALUE 2.
+    CONSTANTS mc_evt_enter TYPE i VALUE 19.
+    CONSTANTS mc_evt_modified TYPE i VALUE 18.
 
     CONSTANTS mc_evt_delayed_move_curr_cell TYPE i VALUE 5.
     CONSTANTS mc_evt_delayed_change_select TYPE i VALUE 7.

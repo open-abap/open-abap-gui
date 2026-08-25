@@ -3,16 +3,9 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
     CONSTANTS align_center         TYPE i VALUE 1.
     CONSTANTS align_right          TYPE i VALUE 2.
 
-    CONSTANTS eventid_node_double_click TYPE i VALUE 25.
-
-    CONSTANTS item_class_button    TYPE i VALUE 2.
-    CONSTANTS item_class_link      TYPE i VALUE 3.
-    CONSTANTS item_class_text      TYPE i VALUE 1.
-    CONSTANTS node_sel_mode_single TYPE i VALUE 1.
-
-    CONSTANTS style_emphasized          TYPE i VALUE 1.
-    CONSTANTS style_emphasized_positive TYPE i VALUE 4.
-    CONSTANTS style_inactive            TYPE i VALUE 5.
+    CONSTANTS item_class_button    TYPE i VALUE 4.
+    CONSTANTS item_class_link      TYPE i VALUE 5.
+    CONSTANTS item_class_text      TYPE i VALUE 2.
 
     METHODS constructor
       IMPORTING

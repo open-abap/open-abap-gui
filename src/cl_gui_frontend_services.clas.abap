@@ -5,15 +5,15 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
     CONSTANTS filetype_text  TYPE string VALUE 'txt'.
     CONSTANTS filetype_excel TYPE string VALUE 'xls'.
 
-    CONSTANTS action_cancel TYPE i VALUE 1.
-    CONSTANTS action_ok     TYPE i VALUE 1.
+    CONSTANTS action_cancel TYPE i VALUE 9.
+    CONSTANTS action_ok     TYPE i VALUE 0.
 
-    CONSTANTS platform_nt351 TYPE i VALUE 1.
-    CONSTANTS platform_nt40 TYPE i VALUE 2.
-    CONSTANTS platform_nt50 TYPE i VALUE 3.
-    CONSTANTS platform_windows95 TYPE i VALUE 4.
-    CONSTANTS platform_windows98 TYPE i VALUE 5.
-    CONSTANTS platform_windowsxp TYPE i VALUE 6.
+    CONSTANTS platform_windows95 TYPE i VALUE 1.
+    CONSTANTS platform_windows98 TYPE i VALUE 2.
+    CONSTANTS platform_nt351 TYPE i VALUE 3.
+    CONSTANTS platform_nt40 TYPE i VALUE 4.
+    CONSTANTS platform_nt50 TYPE i VALUE 5.
+    CONSTANTS platform_windowsxp TYPE i VALUE 14.
 
     CONSTANTS hkey_current_user TYPE i VALUE 1.
 
