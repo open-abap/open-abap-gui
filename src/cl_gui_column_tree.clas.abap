@@ -1,12 +1,5 @@
 CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
   PUBLIC SECTION.
-    CONSTANTS align_center         TYPE i VALUE 1.
-    CONSTANTS align_right          TYPE i VALUE 2.
-
-    CONSTANTS item_class_button    TYPE i VALUE 4.
-    CONSTANTS item_class_link      TYPE i VALUE 5.
-    CONSTANTS item_class_text      TYPE i VALUE 2.
-
     METHODS constructor
       IMPORTING
         parent                TYPE REF TO cl_gui_container
@@ -37,18 +30,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         failed
         cntl_system_error.
 
-    METHODS add_nodes_and_items
-      IMPORTING
-        node_table                TYPE treev_ntab OPTIONAL
-        item_table                TYPE STANDARD TABLE
-        item_table_structure_name TYPE clike
-      EXCEPTIONS
-        failed
-        cntl_system_error
-        error_in_tables
-        dp_error
-        table_structure_name_not_found.
-
     METHODS column_set_hidden
       IMPORTING
         column_name TYPE tv_itmname
@@ -56,11 +37,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
       EXCEPTIONS
         failed
         column_not_found
-        cntl_system_error.
-
-    METHODS delete_all_nodes
-      EXCEPTIONS
-        failed
         cntl_system_error.
 
     METHODS add_column
@@ -89,18 +65,6 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         width_pix TYPE abap_bool DEFAULT abap_true
       EXPORTING
         width     TYPE i.
-
-    METHODS expand_node
-      IMPORTING
-        node_key       TYPE clike
-        level_count    TYPE i OPTIONAL
-        expand_subtree TYPE abap_bool OPTIONAL
-      EXCEPTIONS
-        failed
-        illegal_level_count
-        cntl_system_error
-        node_not_found
-        cannot_expand_leaf.
 
     METHODS column_get_width
       IMPORTING
@@ -150,10 +114,6 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
-  METHOD expand_node.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
   METHOD free.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
@@ -162,15 +122,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 
-  METHOD add_nodes_and_items.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
   METHOD set_registered_events.
-    ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD delete_all_nodes.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 

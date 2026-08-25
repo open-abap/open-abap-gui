@@ -1,6 +1,17 @@
 CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
   PUBLIC SECTION.
+    CONSTANTS align_left   TYPE i VALUE 0.
+    CONSTANTS align_center TYPE i VALUE 1.
+    CONSTANTS align_right  TYPE i VALUE 2.
+
+    CONSTANTS item_class_text     TYPE i VALUE 2.
     CONSTANTS item_class_checkbox TYPE i VALUE 3.
+    CONSTANTS item_class_button   TYPE i VALUE 4.
+    CONSTANTS item_class_link     TYPE i VALUE 5.
+
+    CONSTANTS item_font_default TYPE i VALUE 0.
+    CONSTANTS item_font_fixed   TYPE i VALUE 1.
+    CONSTANTS item_font_prop    TYPE i VALUE 2.
 
     CONSTANTS eventid_button_click TYPE i VALUE 29.
     CONSTANTS eventid_checkbox_change TYPE i VALUE 33.
@@ -72,6 +83,18 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         VALUE(node_key)  TYPE tv_nodekey
         VALUE(item_name) TYPE tv_itmname.
 
+    METHODS add_nodes_and_items
+      IMPORTING
+        node_table                TYPE STANDARD TABLE OPTIONAL
+        item_table                TYPE STANDARD TABLE
+        item_table_structure_name TYPE clike
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        error_in_tables
+        dp_error
+        table_structure_name_not_found.
+
     METHODS update_nodes_and_items
       IMPORTING
         node_table                TYPE any OPTIONAL
@@ -101,6 +124,17 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         cntl_system_error
         error_in_item_key_table
         dp_error.
+
+    METHODS item_set_text
+      IMPORTING
+        node_key  TYPE clike
+        item_name TYPE clike
+        text      TYPE clike
+      EXCEPTIONS
+        failed
+        node_not_found
+        item_not_found
+        cntl_system_error.
 
     METHODS item_set_t_image
       IMPORTING
@@ -155,6 +189,10 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.
+  METHOD add_nodes_and_items.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD update_nodes_and_items.
     RETURN. " todo, implement method
   ENDMETHOD.
@@ -176,6 +214,10 @@ CLASS cl_item_tree_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD item_set_chosen.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD item_set_text.
     RETURN. " todo, implement method
   ENDMETHOD.
 
