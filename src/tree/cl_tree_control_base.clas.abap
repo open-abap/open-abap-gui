@@ -22,7 +22,11 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS node_sel_mode_single TYPE i VALUE 0.
     CONSTANTS node_sel_mode_multiple TYPE i VALUE 1.
 
+    CONSTANTS relat_first_sibling TYPE i VALUE 1.
+    CONSTANTS relat_last_sibling TYPE i VALUE 2.
+    CONSTANTS relat_next_sibling TYPE i VALUE 3.
     CONSTANTS relat_first_child TYPE i VALUE 4.
+    CONSTANTS relat_prev_sibling TYPE i VALUE 5.
     CONSTANTS relat_last_child TYPE i VALUE 6.
 
     CONSTANTS key_f1 TYPE i VALUE 1.
@@ -193,6 +197,61 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_system_error
         error_in_node_key_table
         dp_error.
+
+    METHODS delete_all_nodes
+      EXCEPTIONS
+        failed
+        cntl_system_error.
+
+    METHODS delete_node
+      IMPORTING
+        node_key TYPE clike
+      EXCEPTIONS
+        failed
+        node_not_found
+        cntl_system_error.
+
+    METHODS expand_node
+      IMPORTING
+        node_key       TYPE clike
+        level_count    TYPE i OPTIONAL
+        expand_subtree TYPE abap_bool OPTIONAL
+      EXCEPTIONS
+        failed
+        illegal_level_count
+        cntl_system_error
+        node_not_found
+        cannot_expand_leaf.
+
+    METHODS get_top_node
+      EXPORTING
+        node_key TYPE tv_nodekey
+      EXCEPTIONS
+        failed
+        cntl_system_error.
+
+    METHODS node_set_hidden
+      IMPORTING
+        node_key TYPE clike
+        hidden   TYPE abap_bool
+      EXCEPTIONS
+        failed
+        node_not_found
+        cntl_system_error.
+
+    METHODS node_set_n_image
+      IMPORTING
+        node_key TYPE clike
+        n_image  TYPE tv_image
+      EXCEPTIONS
+        failed
+        node_not_found
+        cntl_system_error.
+
+    METHODS unselect_all
+      EXCEPTIONS
+        failed
+        cntl_system_error.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
@@ -258,6 +317,34 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD collapse_subtree.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD delete_all_nodes.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD delete_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD expand_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_top_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD node_set_hidden.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD node_set_n_image.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD unselect_all.
     RETURN. " todo, implement method
   ENDMETHOD.
 

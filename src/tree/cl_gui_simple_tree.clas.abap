@@ -26,11 +26,6 @@ CLASS cl_gui_simple_tree DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
         dp_error
         table_structure_name_not_found.
 
-    METHODS delete_all_nodes
-      EXCEPTIONS
-        failed
-        cntl_system_error.
-
     METHODS node_set_text
       IMPORTING
         node_key TYPE clike
@@ -44,6 +39,11 @@ CLASS cl_gui_simple_tree DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
       EXPORTING
         VALUE(node_key_table)   TYPE treev_nks
         VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS on_drop_complete_multiple
+      EXPORTING
+        VALUE(node_key_table)   TYPE treev_nks
+        VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
 ENDCLASS.
 
 CLASS cl_gui_simple_tree IMPLEMENTATION.
@@ -53,10 +53,6 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_nodes.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD delete_all_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.
 
