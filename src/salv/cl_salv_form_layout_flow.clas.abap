@@ -1,4 +1,4 @@
-CLASS cl_salv_form_layout_flow DEFINITION PUBLIC INHERITING FROM cl_salv_form_element.
+CLASS cl_salv_form_layout_flow DEFINITION PUBLIC INHERITING FROM cl_salv_form_uie.
   PUBLIC SECTION.
 
     METHODS create_text

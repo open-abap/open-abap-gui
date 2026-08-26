@@ -27,6 +27,10 @@ CLASS cl_salv_nodes DEFINITION PUBLIC.
       RAISING
         cx_salv_msg.
 
+    METHODS get_all_nodes
+      RETURNING
+        VALUE(value) TYPE salv_t_nodes.
+
     METHODS expand_all.
 
     METHODS collapse_all.
@@ -44,6 +48,10 @@ CLASS cl_salv_nodes IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_node.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_all_nodes.
     RETURN. " todo, implement method
   ENDMETHOD.
 

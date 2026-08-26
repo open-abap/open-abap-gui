@@ -1,4 +1,4 @@
-CLASS cl_salv_form_uie_text_view DEFINITION PUBLIC INHERITING FROM cl_salv_form_element.
+CLASS cl_salv_form_uie_text_view DEFINITION PUBLIC INHERITING FROM cl_salv_form_uie.
   PUBLIC SECTION.
 
     METHODS set_text

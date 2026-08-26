@@ -1,8 +1,5 @@
-CLASS cl_salv_table DEFINITION PUBLIC.
+CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
   PUBLIC SECTION.
-    CONSTANTS c_functions_none TYPE i VALUE 0.
-    CONSTANTS c_functions_all TYPE i VALUE 1.
-
     TYPES ty_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
 
     CLASS-METHODS is_offline
@@ -41,11 +38,6 @@ CLASS cl_salv_table DEFINITION PUBLIC.
     METHODS get_layout
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_layout.
-    METHODS set_screen_status
-      IMPORTING
-        pfstatus      TYPE any
-        set_functions TYPE any OPTIONAL
-        report        TYPE any.
     METHODS set_screen_popup
       IMPORTING
         start_column TYPE i
@@ -165,10 +157,6 @@ CLASS cl_salv_table IMPLEMENTATION.
 
   METHOD display.
     ASSERT 1 = 'todo'.
-  ENDMETHOD.
-
-  METHOD set_screen_status.
-    ASSERT 1 = 'TODO'.
   ENDMETHOD.
 
   METHOD set_screen_popup.

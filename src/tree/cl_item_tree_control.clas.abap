@@ -181,6 +181,16 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         cntl_system_error
         no_item_selection.
 
+    METHODS select_item
+      IMPORTING
+        node_key  TYPE tv_nodekey
+        item_name TYPE tv_itmname
+      EXCEPTIONS
+        failed
+        cntl_system_error
+        key_or_item_name_not_found
+        no_item_selection.
+
     EVENTS checkbox_change
       EXPORTING
         VALUE(node_key)  TYPE tv_nodekey
@@ -189,6 +199,10 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.
+  METHOD select_item.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
   METHOD add_nodes_and_items.
     RETURN. " todo, implement method
   ENDMETHOD.

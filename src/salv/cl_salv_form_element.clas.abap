@@ -3,5 +3,4 @@ CLASS cl_salv_form_element DEFINITION PUBLIC.
 ENDCLASS.
 
 CLASS cl_salv_form_element IMPLEMENTATION.
-
 ENDCLASS.

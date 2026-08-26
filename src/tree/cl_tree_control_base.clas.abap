@@ -30,6 +30,15 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS relat_last_child TYPE i VALUE 6.
 
     CONSTANTS key_f1 TYPE i VALUE 1.
+    CONSTANTS key_enter TYPE i VALUE 5.
+
+    METHODS add_key_stroke
+      IMPORTING
+        key TYPE i
+      EXCEPTIONS
+        illegal_key
+        cntl_system_error
+        failed.
 
     METHODS select_nodes
       IMPORTING
@@ -255,6 +264,10 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
+
+  METHOD add_key_stroke.
+    RETURN. " todo, implement method
+  ENDMETHOD.
 
   METHOD set_ctx_menu_select_event_appl.
     RETURN. " todo, implement method

@@ -17,6 +17,22 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       IMPORTING
         value TYPE any.
 
+    METHODS set_style
+      IMPORTING
+        value TYPE i.
+
+    METHODS set_editable
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
+
+    METHODS set_checked
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
+
+    METHODS is_checked
+      RETURNING
+        VALUE(value) TYPE abap_bool.
+
 ENDCLASS.
 
 CLASS cl_salv_item IMPLEMENTATION.
@@ -34,6 +50,22 @@ CLASS cl_salv_item IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_icon.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_style.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_editable.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_checked.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD is_checked.
     RETURN. " todo, implement method
   ENDMETHOD.
 

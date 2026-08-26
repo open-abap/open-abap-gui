@@ -35,6 +35,28 @@ CLASS cl_salv_node DEFINITION PUBLIC.
       RAISING
         cx_salv_msg.
 
+    METHODS get_children
+      RETURNING
+        VALUE(value) TYPE salv_t_nodes
+      RAISING
+        cx_salv_msg.
+
+    METHODS get_data_row
+      RETURNING
+        VALUE(value) TYPE REF TO data.
+
+    METHODS set_row_style
+      IMPORTING
+        value TYPE i.
+
+    METHODS set_collapsed_icon
+      IMPORTING
+        value TYPE any.
+
+    METHODS set_expanded_icon
+      IMPORTING
+        value TYPE any.
+
     METHODS set_folder
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
@@ -78,6 +100,26 @@ CLASS cl_salv_node IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_parent.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_children.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_data_row.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_row_style.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_collapsed_icon.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_expanded_icon.
     RETURN. " todo, implement method
   ENDMETHOD.
 

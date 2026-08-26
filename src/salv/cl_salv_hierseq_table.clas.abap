@@ -1,4 +1,4 @@
-CLASS cl_salv_hierseq_table DEFINITION PUBLIC.
+CLASS cl_salv_hierseq_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
   PUBLIC SECTION.
 
     CLASS-METHODS factory
@@ -46,12 +46,6 @@ CLASS cl_salv_hierseq_table DEFINITION PUBLIC.
     METHODS get_layout
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_layout.
-
-    METHODS set_screen_status
-      IMPORTING
-        pfstatus      TYPE any
-        set_functions TYPE any OPTIONAL
-        report        TYPE any.
 
     METHODS get_sorts
       IMPORTING
@@ -114,10 +108,6 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_layout.
-    RETURN. " todo, implement method
-  ENDMETHOD.
-
-  METHOD set_screen_status.
     RETURN. " todo, implement method
   ENDMETHOD.
 

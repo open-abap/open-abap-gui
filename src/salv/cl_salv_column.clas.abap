@@ -5,6 +5,7 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_medium_text IMPORTING value TYPE clike.
     METHODS set_long_text IMPORTING value TYPE clike.
     METHODS set_output_length IMPORTING value TYPE any.
+    METHODS get_output_length RETURNING VALUE(length) TYPE i.
     METHODS set_sign IMPORTING value TYPE any OPTIONAL.
     METHODS set_optimized IMPORTING value TYPE abap_bool DEFAULT abap_true.
     METHODS set_alignment IMPORTING value TYPE any OPTIONAL.
@@ -56,10 +57,26 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_edit_mask
       IMPORTING
         value TYPE any.
+
+    METHODS set_ddic_reference
+      IMPORTING
+        value TYPE salv_s_ddic_reference.
+
+    METHODS get_ddic_reference
+      RETURNING
+        VALUE(value) TYPE salv_s_ddic_reference.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
   METHOD set_edit_mask.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_ddic_reference.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD get_ddic_reference.
     RETURN. " todo, implement method
   ENDMETHOD.
 
@@ -132,6 +149,10 @@ CLASS cl_salv_column IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_output_length.
+    ASSERT 1 = 'todo'.
+  ENDMETHOD.
+
+  METHOD get_output_length.
     ASSERT 1 = 'todo'.
   ENDMETHOD.
 

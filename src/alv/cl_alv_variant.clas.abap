@@ -1,6 +1,11 @@
 CLASS cl_alv_variant DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    DATA ms_layout TYPE lvc_s_layo.
+    DATA mt_fieldcatalog TYPE lvc_t_fcat.
+    DATA mt_sort TYPE lvc_t_sort.
+    DATA mt_filter TYPE lvc_t_filt.
+
     METHODS constructor
       IMPORTING
         it_outtab       TYPE REF TO data OPTIONAL

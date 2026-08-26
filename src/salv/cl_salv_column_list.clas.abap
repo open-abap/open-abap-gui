@@ -15,10 +15,18 @@ CLASS cl_salv_column_list DEFINITION PUBLIC INHERITING FROM cl_salv_column.
     METHODS set_color
       IMPORTING
         value TYPE lvc_s_colo.
+
+    METHODS set_f4
+      IMPORTING
+        value TYPE abap_bool DEFAULT abap_true.
 ENDCLASS.
 
 CLASS cl_salv_column_list IMPLEMENTATION.
   METHOD set_color.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_f4.
     RETURN. " todo, implement method
   ENDMETHOD.
 
