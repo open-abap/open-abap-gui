@@ -52,36 +52,69 @@ terms. An example that calls a nested screen states
 
 Shorthand used throughout: `lo_writer = io_session->get_list( )->get_writer( )`.
 
+The test for item 3 lives in `zcl_gg_ex_<nn>.clas.testclasses.abap`, one
+`ltcl_ex_<nn>` per example.
+
+Two things that bite and are not caught where you would expect:
+
+- Pass parameters by name whenever a method has more than one, optional ones
+  included. The transpiler does not resolve positional passing in that case,
+  and it fails at runtime rather than at lint time.
+- A call with a single parameter must stay on one line, including a `VALUE #( )`
+  argument, or `keep_single_parameter_on_one_line` rejects it.
+
 ## Definition of done
 
 A feature's box is ticked when all four hold:
 
 1. `zgg_ex_<nn>.prog.abap` exists and states the feature in one construct.
 2. `zcl_gg_ex_<nn>.clas.abap` exists and expresses the same thing.
-3. The host executes the class and produces output equal to the report's.
+3. A unit test runs the class through `zcl_gg_host` and asserts the output.
+   There is no classic list renderer here to diff against, so the report is the
+   specification for what that output should be, not a second thing to execute.
 4. `npm test` is green — abaplint and the transpiled run.
 
-Until item 3 is possible, ticking means items 1, 2 and 4 only; the checklist
-notes that explicitly per phase.
+A feature whose operations the host does not drive yet cannot reach item 3. Do
+items 1, 2 and 4, leave the box open, and say in the section which host
+operation is missing.
 
 ## Prerequisites
 
-- [ ] **P1 — a host.** Something that takes a `zif_gg_report_v1`, drives the
-      event order, and renders the list to text. Nothing can be executed until
-      this exists, so item 3 above stays open across every phase.
-      `abap_transpile.json` already reads `input_folder: ["src", "scaffold"]`,
-      so a host written here is transpiled and runs under `npm run unit`.
-- [ ] **P2 — message class `zgg_ex`.** Needed by feature 40; abaplint's
-      `message_exists` rejects `MESSAGE nnn(id)` against a missing class.
-- [ ] **P3 — text pools.** `selection_screen_texts_missing` and
-      `check_text_elements` are on, so every report from phase 3 onward needs
-      its texts. This is also open scaffold gap #5 (no text-element model).
+- [x] **P1 — a host.** Done, `scaffold/host/`. `zcl_gg_host=>run( io_report )`
+      drives LOAD-OF-PROGRAM, the screen definition and its defaults,
+      INITIALIZATION, START-OF-SELECTION, END-OF-SELECTION, STOP and MESSAGE,
+      and renders the classic list to right-trimmed text. Seven unit tests in
+      `zcl_gg_host.clas.testclasses.abap` cover it.
+      The host grows with the phases. It describes a selection screen but never
+      displays one, and the interactive list, navigation and logical-database
+      operations raise `zcx_gg_control_flow` with `kind_unsupported` naming the
+      ABAP statement, so an example that runs ahead of the host fails loudly
+      instead of silently doing nothing.
+P1 was the only real prerequisite. What were P2 and P3 are not artefacts that
+can be built up front — see the next section.
+
+## Per-feature obligations
+
+Neither of these can be created ahead of the feature that uses it. Both were
+tried as prerequisites and both fail lint on their own.
+
+- **Message class `zgg_ex`.** It must land in the same change as feature 40,
+  not before it. `message_exists` rejects `MESSAGE nnn(id)` against a missing
+  class, but `easy_to_find_messages` equally rejects a message that no code
+  references — a message class with no consumer reports
+  `Message 001 not statically referenced`. The XML abaplint parses is given in
+  the feature 40 section, so it does not have to be worked out again.
+- **Text pools.** `selection_screen_texts_missing` and `check_text_elements`
+  fire per report, on the report that has the untranslated `PARAMETERS` or the
+  bare `TEXT-001`. So each report from phase 3 onward brings its own texts;
+  there is nothing to build in advance. This is also open scaffold gap #5, the
+  scaffold having no text-element model at all.
 
 ## Checklist
 
 ### Phase 1 — Basic list, no selection screen
 
-- [ ] 01 `WRITE` literal
+- [x] 01 `WRITE` literal
 - [ ] 02 `WRITE AT <pos>(<len>)`, `NO-GAP`
 - [ ] 03 `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
 - [ ] 04 `WRITE` numeric and mask additions
@@ -197,8 +230,7 @@ START-OF-SELECTION.
 
 ```abap
 METHOD zif_gg_report_v1~start_of_selection.
-  io_session->get_list( )->get_writer( )->write_field(
-    VALUE #( text = 'hello world' ) ).
+  io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'hello world' ) ).
 ENDMETHOD.
 ```
 
@@ -1198,7 +1230,33 @@ ENDMETHOD.
 
 ### 40 — `MESSAGE nnn(id) WITH`
 
-Exercises `id`, `number` and `v1..v4`. Needs prerequisite P2.
+Exercises `id`, `number` and `v1..v4`. The message class ships in this same
+change, as `zgg_ex.msag.xml` next to the report — this is the exact shape
+abaplint parses, and a message with no consumer does not lint, so the two
+cannot be split.
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_MSAG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <T100A>
+    <ARBGB>ZGG_EX</ARBGB>
+    <MASTERLANG>E</MASTERLANG>
+    <STEXT>Scaffold coverage examples</STEXT>
+   </T100A>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZGG_EX</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>&amp;1 &amp;2</TEXT>
+    </T100>
+   </T100>
+  </asx:values>
+ </asx:abap>
+</abapGit>
+```
 
 ```abap
 REPORT zgg_ex_40.
