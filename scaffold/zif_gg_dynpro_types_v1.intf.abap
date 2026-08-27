@@ -9,21 +9,6 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
   TYPES ty_group         TYPE c LENGTH 4.
   TYPES ty_modif_id      TYPE c LENGTH 3.
   TYPES ty_ucomm         TYPE c LENGTH 70.
-  TYPES ty_message_type  TYPE c LENGTH 1.
-  TYPES ty_navigation    TYPE string.
-
-  TYPES ty_ucomms TYPE STANDARD TABLE OF ty_ucomm WITH DEFAULT KEY.
-
-  CONSTANTS navigation_none          TYPE ty_navigation VALUE 'NONE'.
-  CONSTANTS navigation_set_screen    TYPE ty_navigation VALUE 'SET-SCREEN'.
-  CONSTANTS navigation_call_screen   TYPE ty_navigation VALUE 'CALL-SCREEN'.
-  CONSTANTS navigation_leave_screen  TYPE ty_navigation VALUE 'LEAVE-SCREEN'.
-  CONSTANTS navigation_leave_program TYPE ty_navigation VALUE 'LEAVE-PROGRAM'.
-
-  CONSTANTS message_type_error   TYPE ty_message_type VALUE 'E'.
-  CONSTANTS message_type_warning TYPE ty_message_type VALUE 'W'.
-  CONSTANTS message_type_info    TYPE ty_message_type VALUE 'I'.
-  CONSTANTS message_type_success TYPE ty_message_type VALUE 'S'.
 
   TYPES: BEGIN OF ty_fixed_value,
            key  TYPE string,
@@ -219,30 +204,5 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_state.
   TYPES ty_states TYPE SORTED TABLE OF ty_state
     WITH UNIQUE KEY container name row.
-
-* SET PF-STATUS, SET TITLEBAR, SET CURSOR and a dynamic next screen from PBO.
-  TYPES: BEGIN OF ty_screen_state,
-           title          TYPE string,
-           status         TYPE ty_name,
-           excluded_ucomm TYPE ty_ucomms,
-           cursor_field   TYPE ty_name,
-           cursor_row     TYPE i,
-           next_screen    TYPE ty_screen_number,
-         END OF ty_screen_state.
-
-  TYPES: BEGIN OF ty_message,
-           type      TYPE ty_message_type,
-           text      TYPE string,
-           field     TYPE ty_name,
-           table_row TYPE i,
-         END OF ty_message.
-  TYPES ty_messages TYPE STANDARD TABLE OF ty_message WITH DEFAULT KEY.
-
-* Navigation requested by PAI. screen is used by SET-SCREEN and CALL-SCREEN.
-  TYPES: BEGIN OF ty_result,
-           navigation TYPE ty_navigation,
-           screen     TYPE ty_screen_number,
-           messages   TYPE ty_messages,
-         END OF ty_result.
 
 ENDINTERFACE.

@@ -10,7 +10,6 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
   TYPES ty_ucomm        TYPE c LENGTH 70.
   TYPES ty_sign         TYPE c LENGTH 1.
   TYPES ty_option       TYPE c LENGTH 2.
-  TYPES ty_message_type TYPE c LENGTH 1.
 
   CONSTANTS sign_include TYPE ty_sign VALUE 'I'.
   CONSTANTS sign_exclude TYPE ty_sign VALUE 'E'.
@@ -193,18 +192,5 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
            obligatory   TYPE abap_bool,
          END OF ty_state.
   TYPES ty_states TYPE SORTED TABLE OF ty_state WITH UNIQUE KEY name.
-
-  CONSTANTS message_type_error   TYPE ty_message_type VALUE 'E'.
-  CONSTANTS message_type_warning TYPE ty_message_type VALUE 'W'.
-  CONSTANTS message_type_info    TYPE ty_message_type VALUE 'I'.
-  CONSTANTS message_type_success TYPE ty_message_type VALUE 'S'.
-
-* returned instead of MESSAGE, an error keeps the screen open
-  TYPES: BEGIN OF ty_message,
-           type  TYPE ty_message_type,
-           text  TYPE string,
-           field TYPE ty_name,
-         END OF ty_message.
-  TYPES ty_messages TYPE STANDARD TABLE OF ty_message WITH DEFAULT KEY.
 
 ENDINTERFACE.

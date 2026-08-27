@@ -7,7 +7,6 @@ INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
   TYPES ty_ucomm         TYPE c LENGTH 70.
   TYPES ty_color         TYPE i.
   TYPES ty_justification TYPE string.
-  TYPES ty_message_type  TYPE c LENGTH 1.
 
 * FORMAT COLOR, the classic col_* constants
   CONSTANTS color_background TYPE ty_color VALUE 0.
@@ -23,11 +22,6 @@ INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
   CONSTANTS justify_left   TYPE ty_justification VALUE 'LEFT'.
   CONSTANTS justify_center TYPE ty_justification VALUE 'CENTER'.
   CONSTANTS justify_right  TYPE ty_justification VALUE 'RIGHT'.
-
-  CONSTANTS message_type_error   TYPE ty_message_type VALUE 'E'.
-  CONSTANTS message_type_warning TYPE ty_message_type VALUE 'W'.
-  CONSTANTS message_type_info    TYPE ty_message_type VALUE 'I'.
-  CONSTANTS message_type_success TYPE ty_message_type VALUE 'S'.
 
 * the values carried along with a line, as HIDE stores them and
 * READ LINE gives them back
@@ -117,14 +111,6 @@ INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
            text   TYPE string,
            fields TYPE ty_hidden_fields,
          END OF ty_line.
-
-* non-output effects of an interactive event; output is written to the
-* zif_gg_list_writer_v1 passed to the event method
-  TYPES: BEGIN OF ty_result,
-           message      TYPE string,
-           message_type TYPE ty_message_type,
-           leave        TYPE abap_bool,
-         END OF ty_result.
 
 * REPORT ... LINE-SIZE n LINE-COUNT n(m) NO STANDARD PAGE HEADING,
 * plus SET TITLEBAR and SET PF-STATUS
