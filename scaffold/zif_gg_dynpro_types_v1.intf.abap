@@ -4,6 +4,8 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 
   TYPES ty_screen_number TYPE n LENGTH 4.
   TYPES ty_name          TYPE c LENGTH 30.
+  TYPES ty_program       TYPE c LENGTH 40.
+  TYPES ty_module_name   TYPE c LENGTH 30.
   TYPES ty_group         TYPE c LENGTH 4.
   TYPES ty_modif_id      TYPE c LENGTH 3.
   TYPES ty_ucomm         TYPE c LENGTH 70.
@@ -151,6 +153,43 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            required      TYPE abap_bool,
          END OF ty_table_column.
 
+* Dynpro flow-logic instructions. The builder preserves their order and
+* nesting within PBO, PAI, POV and POH processing blocks.
+  TYPES: BEGIN OF ty_flow_module,
+           name                TYPE ty_module_name,
+           on_input            TYPE abap_bool,
+           on_request          TYPE abap_bool,
+           on_chain_input      TYPE abap_bool,
+           on_chain_request    TYPE abap_bool,
+           at_exit_command     TYPE abap_bool,
+           at_cursor_selection TYPE abap_bool,
+         END OF ty_flow_module.
+
+  TYPES: BEGIN OF ty_table_loop,
+           table_control TYPE ty_name,
+         END OF ty_table_loop.
+
+  TYPES: BEGIN OF ty_subscreen_call,
+           area    TYPE ty_name,
+           program TYPE ty_program,
+           screen  TYPE ty_screen_number,
+         END OF ty_subscreen_call.
+
+* Context supplied for each MODULE invocation. table_control and row are
+* initial outside a table-control loop; loop_index corresponds to sy-stepl.
+  TYPES: BEGIN OF ty_module_context,
+           screen        TYPE ty_screen_number,
+           module        TYPE ty_module_name,
+           field         TYPE ty_name,
+           table_control TYPE ty_name,
+           row           TYPE i,
+           loop_index    TYPE i,
+           loop_lines    TYPE i,
+           ucomm         TYPE ty_ucomm,
+           cursor_field  TYPE ty_name,
+           cursor_row    TYPE i,
+         END OF ty_module_context.
+
 * Current program data. row is zero for ordinary controls and one-based for
 * table-control rows; container identifies the table control when applicable.
   TYPES: BEGIN OF ty_value,
@@ -164,18 +203,19 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 
 * Mutable SCREEN-like state, seeded from the definition before every PBO.
   TYPES: BEGIN OF ty_state,
-           container    TYPE ty_name,
-           name         TYPE ty_name,
-           row          TYPE i,
-           text         TYPE string,
-           fixed_values TYPE ty_fixed_values,
-           visible      TYPE abap_bool,
-           enabled      TYPE abap_bool,
-           required     TYPE abap_bool,
-           intensified  TYPE abap_bool,
-           password     TYPE abap_bool,
-           value_help   TYPE abap_bool,
-           subscreen    TYPE ty_screen_number,
+           container         TYPE ty_name,
+           name              TYPE ty_name,
+           row               TYPE i,
+           text              TYPE string,
+           fixed_values      TYPE ty_fixed_values,
+           visible           TYPE abap_bool,
+           enabled           TYPE abap_bool,
+           required          TYPE abap_bool,
+           intensified       TYPE abap_bool,
+           password          TYPE abap_bool,
+           value_help        TYPE abap_bool,
+           subscreen_program TYPE ty_program,
+           subscreen         TYPE ty_screen_number,
          END OF ty_state.
   TYPES ty_states TYPE SORTED TABLE OF ty_state
     WITH UNIQUE KEY container name row.

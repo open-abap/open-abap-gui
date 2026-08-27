@@ -1,16 +1,8 @@
 INTERFACE zif_gg_list_processing_v1 PUBLIC.
 
-* Implement this in a program that writes a classic list. Output is sent to a
-* zif_gg_list_writer_v1 in statement order. The remaining methods correspond
-* to events raised while the list is processed. All types and constants live
-* in zif_gg_list_processing_types_v1.
-
-  "! Describe the basic list, ie what START-OF-SELECTION would WRITE.
-  "! Called once; commands sent to io_writer are shown at level 0.
-  "! @parameter io_writer | receives output and layout operations in order
-  METHODS write_list
-    IMPORTING
-      io_writer TYPE REF TO zif_gg_list_writer_v1.
+* Optional classic-list event handler returned by zif_gg_report_v1. The basic
+* list itself is written by the report's START-OF-SELECTION and
+* END-OF-SELECTION callbacks using one zif_gg_list_writer_v1.
 
   "! Page and status settings of the list, corresponds to the REPORT
   "! additions plus SET TITLEBAR and SET PF-STATUS.
@@ -20,7 +12,8 @@ INTERFACE zif_gg_list_processing_v1 PUBLIC.
       VALUE(rs_settings) TYPE zif_gg_list_processing_types_v1=>ty_settings.
 
   "! Write the page header, corresponds to TOP-OF-PAGE. Called for every
-  "! page of the basic list, unless NO STANDARD PAGE HEADING is set.
+  "! page of the basic list. NO STANDARD PAGE HEADING suppresses only the
+  "! built-in header and does not suppress this event.
   "! @parameter iv_page   | number of the page being started, ie sy-pagno
   "! @parameter io_writer | receives the header output
   METHODS top_of_page

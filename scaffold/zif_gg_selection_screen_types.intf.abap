@@ -3,7 +3,8 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
 * Vocabulary shared between a program with a selection screen and whatever
 * renders and drives that screen, see zif_gg_report_v1
 
-  TYPES ty_name         TYPE c LENGTH 30.
+  TYPES ty_screen_number TYPE n LENGTH 4.
+  TYPES ty_name          TYPE c LENGTH 30.
   TYPES ty_group        TYPE c LENGTH 4.
   TYPES ty_modif_id     TYPE c LENGTH 3.
   TYPES ty_ucomm        TYPE c LENGTH 70.
@@ -167,7 +168,7 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
          END OF ty_tab.
 
   TYPES: BEGIN OF ty_screen,
-           name         TYPE ty_name,
+           number       TYPE ty_screen_number,
            as_window    TYPE abap_bool,
            as_subscreen TYPE abap_bool,
          END OF ty_screen.
