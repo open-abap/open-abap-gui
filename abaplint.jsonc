@@ -17,6 +17,10 @@
     {
       "url": "https://github.com/open-abap/open-abap-core",
       "files": "/src/**/*.*"
+    },
+    {
+      "url": "https://github.com/open-abap/open-abap-bal",
+      "files": "/src/**/*.*"
     }
   ],
   "rules": {

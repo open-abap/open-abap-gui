@@ -499,6 +499,9 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
 
   PROTECTED SECTION.
     DATA mt_outtab TYPE REF TO data.
+    DATA mt_toolbar TYPE ttb_button.
+    DATA m_batch_mode TYPE sy-batch.
+    DATA m_display_protocol TYPE abap_bool.
 
   PRIVATE SECTION.
     DATA mt_f4 TYPE lvc_t_f4.
