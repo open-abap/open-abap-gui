@@ -115,7 +115,7 @@ tried as prerequisites and both fail lint on their own.
 ### Phase 1 — Basic list, no selection screen
 
 - [x] 01 `WRITE` literal
-- [ ] 02 `WRITE AT <pos>(<len>)`, `NO-GAP`
+- [x] 02 `WRITE AT <pos>(<len>)`, `NO-GAP`
 - [ ] 03 `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
 - [ ] 04 `WRITE` numeric and mask additions
 - [ ] 05 `FORMAT` colour and attributes
