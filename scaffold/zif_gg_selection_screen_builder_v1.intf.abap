@@ -1,4 +1,4 @@
-INTERFACE zif_gg_selection_screen_builder PUBLIC.
+INTERFACE zif_gg_selection_screen_builder_v1 PUBLIC.
 
 * Command sink used to describe a selection screen. Separate methods make
 * invalid combinations of kind-specific additions unrepresentable.

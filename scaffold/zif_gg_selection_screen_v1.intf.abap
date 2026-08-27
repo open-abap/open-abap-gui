@@ -11,7 +11,7 @@ INTERFACE zif_gg_selection_screen_v1 PUBLIC.
   "! @parameter io_builder | receives the declarations in rendering order
   METHODS build_screen
     IMPORTING
-      io_builder TYPE REF TO zif_gg_selection_screen_builder.
+      io_builder TYPE REF TO zif_gg_selection_screen_builder_v1.
 
   "! Set up the initial values, corresponds to INITIALIZATION.
   "! Called once after build_screen, before the first rendering.

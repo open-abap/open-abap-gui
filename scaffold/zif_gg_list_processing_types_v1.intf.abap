@@ -1,4 +1,4 @@
-INTERFACE zif_gg_list_processing_types PUBLIC.
+INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
 
 * Vocabulary shared between a program that writes a classic list and
 * whatever renders and drives that list, see zif_gg_list_processing_v1
@@ -119,7 +119,7 @@ INTERFACE zif_gg_list_processing_types PUBLIC.
          END OF ty_line.
 
 * non-output effects of an interactive event; output is written to the
-* zif_gg_list_writer passed to the event method
+* zif_gg_list_writer_v1 passed to the event method
   TYPES: BEGIN OF ty_result,
            message      TYPE string,
            message_type TYPE ty_message_type,
