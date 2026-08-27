@@ -12,23 +12,43 @@ group is one atom.
 ## Conventions
 
 Report `scaffold/examples/zgg_ex_<nn>.prog.abap`, class
-`scaffold/examples/zcl_gg_ex_<nn>.clas.abap`. Every example class has the same
-wrapper, so the sections below show only the method bodies:
+`scaffold/examples/zcl_gg_ex_<nn>.clas.abap`.
+
+Each example class is self contained. It implements `zif_gg_report_v1`
+directly, with no superclass and no shared helper, so one file shows the whole
+program the way the report next to it does. The cost is that every class spells
+out all eighteen interface methods and leaves the ones the feature does not use
+empty. That is accepted deliberately: these are read one at a time as
+specimens, not maintained as a family, and an inherited no-op would hide the
+event surface the example is supposed to demonstrate.
 
 ```abap
-CLASS zcl_gg_ex_nn DEFINITION PUBLIC INHERITING FROM zcl_gg_report_base FINAL.
+CLASS zcl_gg_ex_nn DEFINITION PUBLIC FINAL CREATE PUBLIC.
+
   PUBLIC SECTION.
-    METHODS zif_gg_report_v1~start_of_selection REDEFINITION.
+    INTERFACES zif_gg_report_v1.
+
 ENDCLASS.
 
 CLASS zcl_gg_ex_nn IMPLEMENTATION.
-  ...
+
+  METHOD zif_gg_report_v1~start_of_selection.
+    " the feature under test
+  ENDMETHOD.
+
+* the other seventeen methods, each empty
+
 ENDCLASS.
 ```
 
-Examples that need classic-list events also implement `zif_gg_list_processing_v1`
-and return `me` from `get_list_processing`; examples that call a nested screen
-also implement `zif_gg_resumable_v1`.
+The sections below show only the methods that carry the feature; the empty
+remainder is implied every time.
+
+An example that needs classic-list events states
+`INTERFACES zif_gg_list_processing_v1` as well, returns `me` from
+`get_list_processing`, and carries that interface's seven methods on the same
+terms. An example that calls a nested screen states
+`INTERFACES zif_gg_resumable_v1`.
 
 Shorthand used throughout: `lo_writer = io_session->get_list( )->get_writer( )`.
 
@@ -46,12 +66,11 @@ notes that explicitly per phase.
 
 ## Prerequisites
 
-- [ ] **P0 — `zcl_gg_report_base`.** Abstract class implementing every
-      `zif_gg_report_v1` method as a no-op. Without it each example carries
-      eighteen empty methods and the feature under test is invisible.
 - [ ] **P1 — a host.** Something that takes a `zif_gg_report_v1`, drives the
       event order, and renders the list to text. Nothing can be executed until
-      this exists, so items 3 above stays open across every phase.
+      this exists, so item 3 above stays open across every phase.
+      `abap_transpile.json` already reads `input_folder: ["src", "scaffold"]`,
+      so a host written here is transpiled and runs under `npm run unit`.
 - [ ] **P2 — message class `zgg_ex`.** Needed by feature 40; abaplint's
       `message_exists` rejects `MESSAGE nnn(id)` against a missing class.
 - [ ] **P3 — text pools.** `selection_screen_texts_missing` and
