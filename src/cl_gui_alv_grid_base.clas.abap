@@ -11,6 +11,16 @@ CLASS cl_gui_alv_grid_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         error.
 
+    METHODS set_delay_move_current_cell
+      IMPORTING
+        time TYPE i
+      EXCEPTIONS
+        error.
+
+    METHODS set_toolbar_visible
+      IMPORTING
+        visible TYPE any.
+
     EVENTS toolbar_menu_selected
       EXPORTING
         VALUE(fcode) TYPE c OPTIONAL.
@@ -27,6 +37,14 @@ ENDCLASS.
 
 CLASS cl_gui_alv_grid_base IMPLEMENTATION.
   METHOD set_delay_change_selection.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_delay_move_current_cell.
+    RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD set_toolbar_visible.
     RETURN. " todo, implement method
   ENDMETHOD.
 

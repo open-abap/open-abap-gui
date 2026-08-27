@@ -29,6 +29,14 @@ CLASS cl_salv_layout DEFINITION PUBLIC.
     METHODS get_layouts
       RETURNING
         VALUE(value) TYPE salv_t_layout_info.
+
+    METHODS get_current_layout
+      RETURNING
+        VALUE(value) TYPE salv_s_layout.
+
+    METHODS f4_layouts
+      RETURNING
+        VALUE(value) TYPE salv_s_layout.
 ENDCLASS.
 
 CLASS cl_salv_layout IMPLEMENTATION.
@@ -37,6 +45,14 @@ CLASS cl_salv_layout IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_default_layout.
+    ASSERT 1 = 'not supported'.
+  ENDMETHOD.
+
+  METHOD get_current_layout.
+    ASSERT 1 = 'not supported'.
+  ENDMETHOD.
+
+  METHOD f4_layouts.
     ASSERT 1 = 'not supported'.
   ENDMETHOD.
 

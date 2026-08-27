@@ -1,4 +1,4 @@
-CLASS cl_salv_tree DEFINITION PUBLIC.
+CLASS cl_salv_tree DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
   PUBLIC SECTION.
 
     METHODS constructor

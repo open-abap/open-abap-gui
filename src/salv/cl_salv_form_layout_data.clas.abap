@@ -1,0 +1,7 @@
+CLASS cl_salv_form_layout_data DEFINITION PUBLIC.
+  PUBLIC SECTION.
+ENDCLASS.
+
+CLASS cl_salv_form_layout_data IMPLEMENTATION.
+
+ENDCLASS.
