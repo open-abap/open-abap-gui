@@ -1,9 +1,8 @@
-INTERFACE zif_gg_selection_screen_v1 PUBLIC.
+INTERFACE zif_gg_report_v1 PUBLIC.
 
-* Implement this in a program with a selection screen: build_screen describes
-* screen, the remaining methods correspond to the events raised while it is
-* processed. All types and constants live in zif_gg_selection_screen_types,
-* which is shared across versions of this interface
+* Normal entry point for an executable report. build_screen describes its
+* selection screen; the remaining methods correspond to report and selection-
+* screen events. Screen types live in zif_gg_selection_screen_types.
 
   "! Describe the selection screen, called once before it is rendered.
   "! Corresponds to the PARAMETERS, SELECT-OPTIONS and SELECTION-SCREEN

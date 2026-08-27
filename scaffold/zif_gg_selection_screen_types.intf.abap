@@ -1,7 +1,7 @@
 INTERFACE zif_gg_selection_screen_types PUBLIC.
 
 * Vocabulary shared between a program with a selection screen and whatever
-* renders and drives that screen, see zif_gg_selection_screen_v1
+* renders and drives that screen, see zif_gg_report_v1
 
   TYPES ty_name         TYPE c LENGTH 30.
   TYPES ty_group        TYPE c LENGTH 4.
