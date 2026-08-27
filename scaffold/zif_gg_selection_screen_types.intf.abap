@@ -54,10 +54,14 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
 * Definitions passed to the operation-specific screen builder methods.
 * Every component applies to its operation, so invalid combinations cannot be
 * represented by filling unrelated fields.
+*
+* default corresponds to the DEFAULT addition. The host seeds ty_values from
+* it before INITIALIZATION runs, so the program can still overwrite it there.
   TYPES: BEGIN OF ty_parameter,
            name        TYPE ty_name,
            text        TYPE string,
            data_type   TYPE ty_data_type,
+           default     TYPE string,
            modif_id    TYPE ty_modif_id,
            memory_id   TYPE ty_name,
            search_help TYPE ty_name,
@@ -71,6 +75,7 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
   TYPES: BEGIN OF ty_checkbox,
            name       TYPE ty_name,
            text       TYPE string,
+           default    TYPE abap_bool,
            modif_id   TYPE ty_modif_id,
            memory_id  TYPE ty_name,
            ucomm      TYPE ty_ucomm,
@@ -81,6 +86,7 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
   TYPES: BEGIN OF ty_radiobutton,
            name        TYPE ty_name,
            text        TYPE string,
+           default     TYPE abap_bool,
            radio_group TYPE ty_group,
            modif_id    TYPE ty_modif_id,
            ucomm       TYPE ty_ucomm,
@@ -92,6 +98,7 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
            name         TYPE ty_name,
            text         TYPE string,
            data_type    TYPE ty_data_type,
+           default      TYPE string,
            fixed_values TYPE ty_fixed_values,
            modif_id     TYPE ty_modif_id,
            memory_id    TYPE ty_name,
@@ -101,10 +108,13 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
            value_help   TYPE abap_bool,
          END OF ty_listbox.
 
+* DEFAULT <low> [TO <high>] [OPTION <o>] [SIGN <s>] fills exactly one range
+* row, so an initial sign means the select-option has no default.
   TYPES: BEGIN OF ty_select_option,
            name            TYPE ty_name,
            text            TYPE string,
            data_type       TYPE ty_data_type,
+           default         TYPE ty_range,
            modif_id        TYPE ty_modif_id,
            memory_id       TYPE ty_name,
            search_help     TYPE ty_name,

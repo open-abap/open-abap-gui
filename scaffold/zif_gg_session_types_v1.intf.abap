@@ -4,23 +4,31 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
 * is grouped by processor so callbacks do not receive one growing flat bag of
 * sy-* fields.
 
-  TYPES ty_processor     TYPE string.
-  TYPES ty_event         TYPE string.
-  TYPES ty_program       TYPE c LENGTH 40.
-  TYPES ty_name          TYPE c LENGTH 30.
-  TYPES ty_ucomm         TYPE c LENGTH 70.
-  TYPES ty_message_type  TYPE c LENGTH 1.
-  TYPES ty_continuation_id TYPE string.
+  TYPES ty_processor        TYPE string.
+  TYPES ty_event            TYPE string.
+  TYPES ty_program          TYPE c LENGTH 40.
+  TYPES ty_name             TYPE c LENGTH 30.
+  TYPES ty_ucomm            TYPE c LENGTH 70.
+  TYPES ty_tcode            TYPE c LENGTH 20.
+  TYPES ty_variant          TYPE c LENGTH 14.
+  TYPES ty_message_type     TYPE c LENGTH 1.
+  TYPES ty_message_id       TYPE c LENGTH 20.
+  TYPES ty_message_number   TYPE n LENGTH 3.
+  TYPES ty_message_variable TYPE c LENGTH 50.
+  TYPES ty_continuation_id  TYPE string.
 
   CONSTANTS processor_report    TYPE ty_processor VALUE 'REPORT'.
   CONSTANTS processor_selection TYPE ty_processor VALUE 'SELECTION'.
   CONSTANTS processor_dynpro    TYPE ty_processor VALUE 'DYNPRO'.
   CONSTANTS processor_list      TYPE ty_processor VALUE 'LIST'.
 
+* Types A and X end the program instead of returning to the callback.
   CONSTANTS message_type_error   TYPE ty_message_type VALUE 'E'.
   CONSTANTS message_type_warning TYPE ty_message_type VALUE 'W'.
   CONSTANTS message_type_info    TYPE ty_message_type VALUE 'I'.
   CONSTANTS message_type_success TYPE ty_message_type VALUE 'S'.
+  CONSTANTS message_type_abort   TYPE ty_message_type VALUE 'A'.
+  CONSTANTS message_type_exit    TYPE ty_message_type VALUE 'X'.
 
   TYPES ty_ucomms TYPE STANDARD TABLE OF ty_ucomm WITH DEFAULT KEY.
 
@@ -84,6 +92,26 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            modal  TYPE ty_modal_position,
          END OF ty_selection_screen_call.
 
+* SUBMIT <program> [USING SELECTION-SET <variant>] [WITH <sel> ...]
+* [VIA SELECTION-SCREEN] [EXPORTING LIST TO MEMORY]. Selections supplied in
+* values are applied on top of the variant, as WITH does.
+  TYPES: BEGIN OF ty_submit,
+           program              TYPE ty_program,
+           variant              TYPE ty_variant,
+           values               TYPE zif_gg_selection_screen_types=>ty_values,
+           via_selection_screen TYPE abap_bool,
+           list_to_memory       TYPE abap_bool,
+         END OF ty_submit.
+
+* The basic list of a submitted program, as LIST_FROM_MEMORY returns it.
+  TYPES ty_memory_list TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+
+* CALL TRANSACTION or LEAVE TO TRANSACTION <tcode> [AND SKIP FIRST SCREEN].
+  TYPES: BEGIN OF ty_transaction_call,
+           tcode             TYPE ty_tcode,
+           skip_first_screen TYPE abap_bool,
+         END OF ty_transaction_call.
+
 * id is opaque to the host. state is owned and interpreted by the program.
   TYPES: BEGIN OF ty_continuation,
            id    TYPE ty_continuation_id,
@@ -95,11 +123,23 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            subrc        TYPE i,
          END OF ty_resume.
 
+* MESSAGE <type><number>(<id>) WITH <v1> .. <v4>. An initial id means a free
+* text message, where text carries the literal and the variables are unused.
+* Otherwise the host resolves the text from id and number and substitutes the
+* variables. display_like corresponds to DISPLAY LIKE and only changes how the
+* message is rendered, not how it behaves.
   TYPES: BEGIN OF ty_message,
-           type  TYPE ty_message_type,
-           text  TYPE string,
-           field TYPE ty_name,
-           row   TYPE i,
+           type         TYPE ty_message_type,
+           id           TYPE ty_message_id,
+           number       TYPE ty_message_number,
+           v1           TYPE ty_message_variable,
+           v2           TYPE ty_message_variable,
+           v3           TYPE ty_message_variable,
+           v4           TYPE ty_message_variable,
+           text         TYPE string,
+           display_like TYPE ty_message_type,
+           field        TYPE ty_name,
+           row          TYPE i,
          END OF ty_message.
 
   TYPES: BEGIN OF ty_gui_status,

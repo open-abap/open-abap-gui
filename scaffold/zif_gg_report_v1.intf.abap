@@ -3,6 +3,14 @@ INTERFACE zif_gg_report_v1 PUBLIC.
 * Normal entry point for an executable report. Every event callback receives
 * the same execution-scoped session. The list writer, MESSAGE, STOP and dialog
 * transfers are operations of that session rather than returned effects.
+*
+* Events that run while a selection screen is still being processed receive
+* ct_values as CHANGING, matching the global program fields behind PARAMETERS
+* and SELECT-OPTIONS. Changes made in at_selection_screen_output are
+* transported to the screen and displayed; changes made in the PAI events stay
+* in the program and reach the screen only if it is displayed again. The PAI
+* events run in the order on_field, on_end_of, on_block, on_radio and finally
+* at_selection_screen, each seeing the changes made by the previous ones.
 
   TYPES ty_logical_database TYPE c LENGTH 30.
   TYPES ty_node             TYPE c LENGTH 30.
@@ -32,7 +40,8 @@ INTERFACE zif_gg_report_v1 PUBLIC.
     IMPORTING
       io_builder TYPE REF TO zif_gg_selection_screen_builder_v1.
 
-  "! Corresponds to INITIALIZATION.
+  "! Corresponds to INITIALIZATION. ct_values already holds the defaults
+  "! declared in the screen definition.
   METHODS initialization
     IMPORTING
       io_session TYPE REF TO zif_gg_session_v1
@@ -43,51 +52,56 @@ INTERFACE zif_gg_report_v1 PUBLIC.
   METHODS at_selection_screen_output
     IMPORTING
       iv_screen  TYPE zif_gg_selection_screen_types=>ty_screen_number
-      it_values  TYPE zif_gg_selection_screen_types=>ty_values
       io_session TYPE REF TO zif_gg_session_v1
     CHANGING
+      ct_values  TYPE zif_gg_selection_screen_types=>ty_values
       ct_states  TYPE zif_gg_selection_screen_types=>ty_states.
 
-  "! Corresponds to AT SELECTION-SCREEN. MESSAGE and dialog control are
-  "! performed through io_session.
+  "! Corresponds to AT SELECTION-SCREEN, the last event of the screen's PAI.
+  "! MESSAGE and dialog control are performed through io_session.
   METHODS at_selection_screen
     IMPORTING
       iv_screen  TYPE zif_gg_selection_screen_types=>ty_screen_number
       iv_ucomm   TYPE zif_gg_selection_screen_types=>ty_ucomm
-      it_values  TYPE zif_gg_selection_screen_types=>ty_values
-      io_session TYPE REF TO zif_gg_session_v1.
+      io_session TYPE REF TO zif_gg_session_v1
+    CHANGING
+      ct_values  TYPE zif_gg_selection_screen_types=>ty_values.
 
   "! Corresponds to AT SELECTION-SCREEN ON <field>.
   METHODS at_selection_screen_on_field
     IMPORTING
       iv_screen  TYPE zif_gg_selection_screen_types=>ty_screen_number
       iv_name    TYPE zif_gg_selection_screen_types=>ty_name
-      it_values  TYPE zif_gg_selection_screen_types=>ty_values
-      io_session TYPE REF TO zif_gg_session_v1.
+      io_session TYPE REF TO zif_gg_session_v1
+    CHANGING
+      ct_values  TYPE zif_gg_selection_screen_types=>ty_values.
 
   "! Corresponds to AT SELECTION-SCREEN ON END OF <field>.
   METHODS at_selection_screen_on_end_of
     IMPORTING
       iv_screen  TYPE zif_gg_selection_screen_types=>ty_screen_number
       iv_name    TYPE zif_gg_selection_screen_types=>ty_name
-      it_values  TYPE zif_gg_selection_screen_types=>ty_values
-      io_session TYPE REF TO zif_gg_session_v1.
+      io_session TYPE REF TO zif_gg_session_v1
+    CHANGING
+      ct_values  TYPE zif_gg_selection_screen_types=>ty_values.
 
   "! Corresponds to AT SELECTION-SCREEN ON BLOCK <block>.
   METHODS at_selection_screen_on_block
     IMPORTING
       iv_screen  TYPE zif_gg_selection_screen_types=>ty_screen_number
       iv_block   TYPE zif_gg_selection_screen_types=>ty_name
-      it_values  TYPE zif_gg_selection_screen_types=>ty_values
-      io_session TYPE REF TO zif_gg_session_v1.
+      io_session TYPE REF TO zif_gg_session_v1
+    CHANGING
+      ct_values  TYPE zif_gg_selection_screen_types=>ty_values.
 
   "! Corresponds to AT SELECTION-SCREEN ON RADIOBUTTON GROUP <group>.
   METHODS at_selection_screen_on_radio
     IMPORTING
       iv_screen  TYPE zif_gg_selection_screen_types=>ty_screen_number
       iv_group   TYPE zif_gg_selection_screen_types=>ty_group
-      it_values  TYPE zif_gg_selection_screen_types=>ty_values
-      io_session TYPE REF TO zif_gg_session_v1.
+      io_session TYPE REF TO zif_gg_session_v1
+    CHANGING
+      ct_values  TYPE zif_gg_selection_screen_types=>ty_values.
 
   "! Corresponds to AT SELECTION-SCREEN ON VALUE-REQUEST FOR <field>.
   METHODS at_selection_screen_value_req

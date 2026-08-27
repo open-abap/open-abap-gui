@@ -46,7 +46,4 @@ INTERFACE zif_gg_dialog_session_v1 PUBLIC.
   "! sscrfields-ucomm-driven background flows and runtime-owned skipping.
   METHODS suppress_dialog.
 
-  "! LEAVE PROGRAM. It terminates the current internal session.
-  METHODS leave_program.
-
 ENDINTERFACE.

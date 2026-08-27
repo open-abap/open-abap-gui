@@ -19,8 +19,14 @@ INTERFACE zif_gg_session_v1 PUBLIC.
     RETURNING
       VALUE(ro_list) TYPE REF TO zif_gg_list_session_v1.
 
+  "! Transfers to another program or transaction.
+  METHODS get_navigation
+    RETURNING
+      VALUE(ro_navigation) TYPE REF TO zif_gg_navigation_v1.
+
   "! Execute MESSAGE with processor-specific ABAP semantics. Error and warning
-  "! messages may abort the current callback and return control to the host.
+  "! messages may abort the current callback and return control to the host,
+  "! and the types A and X end the program without returning at all.
   METHODS message
     IMPORTING
       is_message TYPE zif_gg_session_types_v1=>ty_message.
