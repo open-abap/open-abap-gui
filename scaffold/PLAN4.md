@@ -38,8 +38,6 @@ unless they require an HTTP or browser boundary.
   shared by the report, dynpro, renderer, and transport boundaries.
 - ABAP Unit covers report semantics, selection processing, list interaction,
   dynpro flow, navigation, failures, variants, and runtime round trips.
-- `integration/html-http.mjs` exercises the minimal GET/POST/DELETE ABAP
-  runtime bridge through the Node HTTP adapter.
 - `integration/html-browser.mjs` uses Playwright against the real report and
   dynpro server routes; it does not define HTML or session state.
 - `ZCL_GG_HTTP_HANDLER` owns the index, route allow-list, fixture construction,
@@ -83,14 +81,10 @@ in ABAP.
 - Renderer semantics, escaping, accessibility attributes, and page contracts.
 - Error and recovery behavior.
 
-### Node integration
-
-- Loading the transpiled ABAP handler through the ICF shim.
-- Minimal HTTP request/response forwarding through the real ABAP handler.
-- Proof that requests reach the real ABAP runtime and ABAP-generated responses.
-
 ### Playwright
 
+- Loading the transpiled ABAP handler through the ICF shim.
+- HTTP request/response forwarding through the real ABAP handler.
 - Browser form serialization and submit-button behavior.
 - Accessible discovery and activation of controls.
 - Focus, visibility, navigation, and rendered message announcements.
@@ -151,15 +145,15 @@ in ABAP.
   response headers are ABAP-owned.
 - [x] Ensure `GET` starts a real ABAP session, `POST /dispatch` invokes real
   ABAP dispatch, and `DELETE /session/:id` invokes real ABAP close.
-- [x] Add a thin HTTP integration test for the ABAP-generated index, initial
-  HTML, JSON dispatch, and session deletion.
+- [x] Verify the ABAP-generated index, initial HTML, JSON dispatch, and session
+  deletion through the real Playwright-backed HTTP host.
 - [x] Assert an ABAP-specific fixture value in each successful HTTP response so
   the test cannot pass against a generic adapter stub.
 
 ## 4. Replace synthetic integration tests
 
-- [x] Rewrite `integration/html-http.mjs` to use the executable real ABAP host;
-  remove local `start` and `dispatch` functions.
+- [x] Remove the separate raw-HTTP test after its bridge checks were covered by
+  the real Playwright-backed HTTP host.
 - [x] Move detailed session-isolation assertions into ABAP Unit and retain
   browser-context isolation in `integration/html-browser.mjs`.
 - [x] Delete JavaScript `Map` session stores from integration tests.
@@ -167,8 +161,8 @@ in ABAP.
   helpers from browser tests.
 - [x] Remove any test callback that returns `{valid, html}` without invoking
   `ZCL_GG_HOST_RUNTIME`.
-- [x] Keep the Node integration test limited to proving the real HTTP bridge;
-  detailed behavior remains in ABAP Unit and representative browser flows.
+- [x] Keep detailed behavior in ABAP Unit and representative browser flows;
+  the Node adapter remains transport-only.
 - [x] Move action and state assertions into ABAP Unit when they can be tested
   through `ty_request` and `ty_response` without HTTP.
 - [x] Replace `integration/html-snapshots.mjs` digest checks with focused ABAP
@@ -227,8 +221,7 @@ in ABAP.
   supported startup command.
 - [x] Replace the generic runtime callback example with the concrete ABAP-backed
   composition.
-- [x] Document which checks belong to ABAP Unit, Node integration, and
-  Playwright.
+- [x] Document which checks belong to ABAP Unit and Playwright.
 - [x] Remove claims that synthetic browser or callback tests provide end-to-end
   coverage.
 - [x] Remove obsolete npm scripts and files after their real replacements pass.
@@ -241,7 +234,6 @@ in ABAP.
 - [x] Run `npm run lint`.
 - [x] Run `npm run unit`.
 - [x] Run the real bridge contract test through the real HTTP integration.
-- [x] Run the real HTTP integration test.
 - [x] Run the real Playwright test with installed Chromium.
 - [ ] Run `npm test` from a clean checkout.
 - [ ] Run the CI workflow on Linux without machine-specific browser paths.
@@ -255,8 +247,8 @@ in ABAP.
 - [x] Playwright completes selection, validation, help/value help, list,
   line-selection, dynpro, back, and terminal interactions using HTML generated
   by transpiled ABAP.
-- [x] HTTP tests exercise the real ABAP runtime and retain only transport-owned
-  assertions in JavaScript.
+- [x] Playwright exercises the real ABAP runtime through the HTTP host and
+  retains only browser-bound assertions in JavaScript.
 - [x] ABAP Unit owns detailed fixture, runtime, renderer, and state-transition
   coverage.
 - [x] No integration or browser test can pass with ABAP output unavailable.

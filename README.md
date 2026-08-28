@@ -52,7 +52,7 @@ The ABAP HTTP handler follows the same boundary as
 forwards the request to `IF_HTTP_EXTENSION`, and ABAP writes the response.
 
 Checks have separate ownership. ABAP Unit covers fixture behavior, renderer
-contracts, and session semantics. Node integration covers the bridge and HTTP
-transport contract. Playwright covers representative browser workflows and
-real session isolation; install its managed browser with
+contracts, and session semantics. Playwright covers the real HTTP bridge,
+representative browser workflows, and session isolation; install its managed
+browser with
 `npm run install:html-browser` before running `npm run test:html-e2e` locally.
