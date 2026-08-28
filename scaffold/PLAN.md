@@ -197,22 +197,10 @@ tried as prerequisites and both fail lint on their own.
 - [x] 57 `LEAVE TO TRANSACTION` / `LEAVE PROGRAM`
 - [x] 58 `SET SCREEN` / `LEAVE SCREEN` / `LEAVE TO SCREEN`
 
-### Blocked
+### Historical notes
 
-These are historical scaffold gaps that were closed while implementing the
-closed. Write the report anyway — it documents the target.
-
-| Feature | Blocked on |
-| Note | All feature checklist entries above are now checked; these rows are historical. |
-|---|---|
-| 04, 15, 16, 19, 20 | #7 — values are `string`, no internal/external conversion contract |
-| 07 | #6 — no print or spool parameters |
-| 16 | #8 — `ty_state` lacks `input`/`output` split and `group1..group4` |
-| 21 | #5 — no text elements, so `TEXT-001` has no counterpart |
-| 35 | #18 — F4 cannot update fields other than the one requested |
-| 46 | #10 — `read_line` returns hidden fields only, not editable field values |
-| 50 | #10 — no `sy-lsind` control, no `DESCRIBE LIST` |
-| 54 | #3 — `ty_submit-variant` exists but variants are not managed anywhere |
+The items formerly listed as blocked have been implemented. The checklist
+above is authoritative; there are currently no blocked items.
 
 ---
 
