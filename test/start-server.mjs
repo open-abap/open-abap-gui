@@ -61,5 +61,6 @@ export function launchAbapHtmlHost({host = "127.0.0.1", port = 8080} = {}) {
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
-  launchAbapHtmlHost();
+  const port = Number(process.env.OPEN_ABAP_GUI_PORT ?? 8080);
+  launchAbapHtmlHost({port});
 }

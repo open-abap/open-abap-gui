@@ -38,8 +38,9 @@ unless they require an HTTP or browser boundary.
   shared by the report, dynpro, renderer, and transport boundaries.
 - ABAP Unit covers report semantics, selection processing, list interaction,
   dynpro flow, navigation, failures, variants, and runtime round trips.
-- `test/playwright.mjs` uses Playwright against the real report and
-  dynpro server routes; it does not define HTML or session state.
+- `test/zcl_gg_integration_*.spec.mjs` and `test/examples/*.spec.mjs` use
+  Playwright against the real report and dynpro server routes; they do not
+  define HTML or session state.
 - `ZCL_GG_HTTP_HANDLER` owns the index, route allow-list, fixture construction,
   request decoding, response status mapping, and lifecycle cleanup in ABAP.
 - `test/start-server.mjs` owns the Node transport adapter and reports the
@@ -156,7 +157,7 @@ in ABAP.
 - [x] Remove the separate raw-HTTP test after its bridge checks were covered by
   the real Playwright-backed HTTP host.
 - [x] Move detailed session-isolation assertions into ABAP Unit and retain
-  browser-context isolation in `test/playwright.mjs`.
+  browser-context isolation in `test/zcl_gg_integration_html_report.spec.mjs`.
 - [x] Delete JavaScript `Map` session stores from integration tests.
 - [x] Delete JavaScript page, form, selection, list, dynpro, and HTML escaping
   helpers from browser tests.
@@ -172,8 +173,8 @@ in ABAP.
 
 ## 5. Playwright against real ABAP
 
-- [x] Rewrite `test/playwright.mjs` to launch the real ABAP-backed
-  server in-process and navigate to its ephemeral URL.
+- [x] Replace the monolithic browser script with per-example specs and launch
+  the real ABAP-backed server through the shared Playwright fixture.
 - [x] Verify the initial document and page metadata were emitted by the selected
   ABAP fixture.
 - [x] Fill a real selection field, submit the form, and assert the resulting

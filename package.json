@@ -7,7 +7,7 @@
     "lint": "abaplint",
     "transpile": "abap_transpile",
     "unit": "abap_transpile && echo RUNNING && node output/index.mjs",
-    "test:html-browser": "node test/playwright.mjs",
+    "test:html-browser": "playwright test",
     "install:html-browser": "playwright install chromium",
     "test:html-e2e": "npm run transpile && npm run test:html-browser",
     "start": "npm run transpile && node test/start-server.mjs",
