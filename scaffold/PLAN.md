@@ -738,9 +738,9 @@ the general value conversion contract remains gap #7.
 ```abap
 REPORT zgg_ex_20.
 
-TABLES sflight.
+TABLES zsflight.
 
-SELECT-OPTIONS s_carr FOR sflight-carrid
+SELECT-OPTIONS s_carr FOR zsflight-carrid
   DEFAULT 'AA' TO 'LH' NO-EXTENSION NO INTERVALS.
 ```
 
@@ -1059,8 +1059,8 @@ available.
 ```abap
 REPORT zgg_ex_32.
 
-TABLES sflight.
-SELECT-OPTIONS s_carr FOR sflight-carrid.
+TABLES zsflight.
+SELECT-OPTIONS s_carr FOR zsflight-carrid.
 
 AT SELECTION-SCREEN ON END OF s_carr.
   IF lines( s_carr ) > 5.

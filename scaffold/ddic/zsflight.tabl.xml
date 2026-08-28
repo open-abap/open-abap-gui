@@ -3,7 +3,7 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <DD02V>
-    <TABNAME>SFLIGHT</TABNAME>
+    <TABNAME>ZSFLIGHT</TABNAME>
     <DDLANGUAGE>E</DDLANGUAGE>
     <TABCLASS>TRANSP</TABCLASS>
     <DDTEXT>Flight schedule fixture for scaffold examples</DDTEXT>
@@ -12,7 +12,7 @@
    </DD02V>
    <DD03P_TABLE>
     <DD03P>
-     <TABNAME>SFLIGHT</TABNAME>
+     <TABNAME>ZSFLIGHT</TABNAME>
      <FIELDNAME>CARRID</FIELDNAME>
      <DDLANGUAGE>E</DDLANGUAGE>
      <POSITION>0001</POSITION>

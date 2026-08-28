@@ -1,7 +1,7 @@
 REPORT zgg_ex_32.
 
-TABLES sflight.
-SELECT-OPTIONS s_carr FOR sflight-carrid.
+TABLES zsflight.
+SELECT-OPTIONS s_carr FOR zsflight-carrid.
 
 AT SELECTION-SCREEN ON END OF s_carr.
   IF lines( s_carr ) > 5.
