@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {test} from "./fixtures.mjs";
+import {test} from "../fixtures.mjs";
 
 test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);

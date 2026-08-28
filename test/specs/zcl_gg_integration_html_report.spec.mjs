@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {test} from "./fixtures.mjs";
+import {test} from "../fixtures.mjs";
 
 test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation", async ({page: pageA, browser, host}) => {
   const contextB = await browser.newContext();
