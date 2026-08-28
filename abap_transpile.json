@@ -7,7 +7,7 @@
   "write_source_map": true,
   "options": {
     "setup": {
-      "filename": "../integration/integration-setup.mjs",
+      "filename": "../setup.mjs",
       "preFunction": "setupDatabase"
     },
     "ignoreSyntaxCheck": false,
