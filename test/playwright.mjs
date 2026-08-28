@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {chromium} from "playwright";
-import {createAbapHtmlHostServer} from "../host/abap-html-server.mjs";
+import {createAbapHtmlHostServer} from "./start-server.mjs";
 
 const server = createAbapHtmlHostServer();
 let browser;

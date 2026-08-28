@@ -26,7 +26,7 @@ Start the real ABAP-backed HTML server with one command:
 npm run start:html
 ```
 
-This transpiles the ABAP scaffold and starts `host/abap-html-server.mjs` on
+This transpiles the ABAP scaffold and starts `test/start-server.mjs` on
 `http://127.0.0.1:8080`. The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT` and
 `/ZCL_GG_INTEGRATION_DYNPRO` routes construct allow-listed integration
 fixtures. The `/ZCL_GG_EX_01` through
@@ -41,7 +41,7 @@ Node only provides Express, request-body buffering, and the ICF-compatible
 request/response shim:
 
 ```js
-import {createAbapHtmlHostServer} from "./host/abap-html-server.mjs";
+import {createAbapHtmlHostServer} from "./test/start-server.mjs";
 
 const server = createAbapHtmlHostServer();
 server.listen(8080);

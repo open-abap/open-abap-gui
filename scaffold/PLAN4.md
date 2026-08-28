@@ -17,8 +17,8 @@ unless they require an HTTP or browser boundary.
 - [x] Do not define HTML strings, page builders, session maps, or transition
   state machines in JavaScript tests.
 - [x] Do not inject mocked or synthetic `start`, `dispatch`, or `close`
-  callbacks. Callbacks supplied to `createHtmlHostServer` must delegate directly
-  to the real ABAP runtime bridge.
+  callbacks. The executable host delegates directly to the real ABAP runtime
+  bridge.
 - [x] Do not duplicate ABAP business, selection-screen, list-processing,
   dynpro, navigation, validation, or session assertions in JavaScript.
 - [x] Keep the JavaScript bridge mechanical: construct ABAP inputs, invoke
@@ -38,12 +38,12 @@ unless they require an HTTP or browser boundary.
   shared by the report, dynpro, renderer, and transport boundaries.
 - ABAP Unit covers report semantics, selection processing, list interaction,
   dynpro flow, navigation, failures, variants, and runtime round trips.
-- `integration/html-browser.mjs` uses Playwright against the real report and
+- `test/playwright.mjs` uses Playwright against the real report and
   dynpro server routes; it does not define HTML or session state.
 - `ZCL_GG_HTTP_HANDLER` owns the index, route allow-list, fixture construction,
   request decoding, response status mapping, and lifecycle cleanup in ABAP.
-- `host/abap-html-server.mjs` only starts Express and reports the listening
-  address.
+- `test/start-server.mjs` owns the Node transport adapter and reports the
+  listening address; all HTTP application behavior remains in ABAP.
 - The browser script uses the Playwright-managed Chromium installed locally or
   by CI.
 
@@ -131,7 +131,8 @@ in ABAP.
 
 ## 3. Wire a real HTTP server
 
-- [x] Update `host/html-launcher.mjs` to launch the ABAP ICF-backed server.
+- [x] Consolidate the ABAP ICF-backed server and its transport adapter into
+  `test/start-server.mjs`.
 - [x] Add an executable server entry point that composes Express with the real
   ABAP ICF handler and no test callbacks.
 - [x] Keep entry-point selection explicit and allow-listed in ABAP, including
@@ -141,8 +142,8 @@ in ABAP.
 - [x] Make server shutdown close active ABAP sessions and release the database
   connection.
 - [x] Keep only socket, Express buffering, and body-limit concerns in
-  `host/html-http.mjs`; route parsing, content types, status mapping, and
-  response headers are ABAP-owned.
+  `test/start-server.mjs`; route parsing, content types, status mapping,
+  and response headers are ABAP-owned.
 - [x] Ensure `GET` starts a real ABAP session, `POST /dispatch` invokes real
   ABAP dispatch, and `DELETE /session/:id` invokes real ABAP close.
 - [x] Verify the ABAP-generated index, initial HTML, JSON dispatch, and session
@@ -155,7 +156,7 @@ in ABAP.
 - [x] Remove the separate raw-HTTP test after its bridge checks were covered by
   the real Playwright-backed HTTP host.
 - [x] Move detailed session-isolation assertions into ABAP Unit and retain
-  browser-context isolation in `integration/html-browser.mjs`.
+  browser-context isolation in `test/playwright.mjs`.
 - [x] Delete JavaScript `Map` session stores from integration tests.
 - [x] Delete JavaScript page, form, selection, list, dynpro, and HTML escaping
   helpers from browser tests.
@@ -171,7 +172,7 @@ in ABAP.
 
 ## 5. Playwright against real ABAP
 
-- [x] Rewrite `integration/html-browser.mjs` to launch the real ABAP-backed
+- [x] Rewrite `test/playwright.mjs` to launch the real ABAP-backed
   server in-process and navigate to its ephemeral URL.
 - [x] Verify the initial document and page metadata were emitted by the selected
   ABAP fixture.
