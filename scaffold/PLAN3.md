@@ -328,10 +328,10 @@ registry/adapter boundary instead.
 - [x] Run `git diff --check` after the HTML changes.
 - [x] Run `npm test` (lint, transpilation, ABAP Unit, and the focused HTTP
   adapter test).
-- [x] Run `node integration/html-http.mjs` independently.
-- [x] Run `node integration/html-golden.mjs` and `node integration/html-smoke.mjs`.
-- [x] Run `node integration/html-a11y.mjs`, `node integration/html-snapshots.mjs`,
-  and `node integration/gui-inventory.mjs`.
+- [x] Run the HTML golden primitive and accessibility checks in ABAP Unit.
+- [x] Run `node integration/html-http.mjs` and
+  `node integration/html-smoke.mjs` independently.
+- [x] Run `node integration/html-snapshots.mjs`.
 - [x] Exercise stateful HTML round trips for nested selection, screen,
   submit-and-return, and transaction continuations in ABAP Unit.
 - [x] Run the downstream regression suite to a passing result; on 2026-08-28

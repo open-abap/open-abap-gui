@@ -5,11 +5,6 @@ The source compatibility layer keeps its control model in the registry owned by
 not listed as model or render are intentionally no-ops and must not assert or
 abort a host request.
 
-The method-level inventory is generated and checked by
-`node integration/gui-inventory.mjs`; it scans every concrete `src/` class,
-classifies every declared method as model, render, event, or intentional no-op,
-and fails if the 115-class inventory drifts without an explicit update.
-
 When a report creates GUI controls during its host execution, the list-page
 renderer embeds the registry's fragment output in the same HTML document. The
 standalone `cl_gui_control=>render_html( )` form remains available for direct
