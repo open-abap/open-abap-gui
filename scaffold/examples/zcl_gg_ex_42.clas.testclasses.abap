@@ -22,6 +22,8 @@ CLASS ltcl_ex_42 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-messages[ 1 ]-text
       exp = 'looks like an error' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-message gg-error"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'role="alert" aria-live="polite"' ) ).
   ENDMETHOD.
 
 ENDCLASS.

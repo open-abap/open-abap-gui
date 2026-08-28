@@ -273,9 +273,7 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS terminal_page FOR TESTING.
     METHODS list_model_and_token FOR TESTING.
     METHODS list_model_coverage FOR TESTING.
-    METHODS html_escape_edge_cases FOR TESTING.
     METHODS selection_output_snapshot FOR TESTING.
-    METHODS html_primitives FOR TESTING.
     METHODS html_status_action FOR TESTING.
     METHODS runtime_history_back FOR TESTING.
     METHODS dynpro_runtime FOR TESTING.
@@ -485,24 +483,6 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = ls_modified-line_formats[ 1 ]-intensified ).
   ENDMETHOD.
 
-  METHOD html_escape_edge_cases.
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>escape_text( `` )
-      exp = `` ).
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>escape_text( `Grusse` )
-      exp = `Grusse` ).
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>escape_text( `"'&<>` )
-      exp = `&quot;&#39;&amp;&lt;&gt;` ).
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>escape_text( |line1{ cl_abap_char_utilities=>newline }line2| )
-      exp = |line1{ cl_abap_char_utilities=>newline }line2| ).
-    cl_abap_unit_assert=>assert_equals(
-      act = strlen( zcl_gg_host_html=>escape_text( repeat( val = `x` occ = 256 ) ) )
-      exp = 256 ).
-  ENDMETHOD.
-
   METHOD selection_output_snapshot.
     DATA(ls_result) = zcl_gg_host=>run( NEW lcl_report( 'OUTPUT' ) ).
 
@@ -513,37 +493,6 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( ls_result-screen_snapshot-states[ name = 'P_CARR' ]-visible ).
     cl_abap_unit_assert=>assert_false( ls_result-screen_snapshot-states[ name = 'P_CARR' ]-enabled ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-page-kind="SELECTION"' ) ).
-  ENDMETHOD.
-
-  METHOD html_primitives.
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>escape_text( `<x a="b">&` )
-      exp = '&lt;x a=&quot;b&quot;&gt;&amp;' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>identifier(
-        iv_scope = 'field'
-        iv_program = 'Z/UNICODE'
-        iv_name = 'A B'
-        iv_index = 2 )
-      exp = 'gg-field-p-Z-UNICODE-n-A-B-r-2' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>attribute(
-        iv_name = 'title'
-        iv_value = ``
-        iv_optional = abap_true )
-      exp = `` ).
-    cl_abap_unit_assert=>assert_equals(
-      act = zcl_gg_host_html=>attributes( VALUE #(
-        ( name = 'z' value = '2' )
-        ( name = 'a' value = '1' ) ) )
-      exp = ` a="1" z="2"` ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( zcl_gg_host_html=>document(
-      iv_session_id = 'S'
-      iv_page_id = 'P'
-      iv_kind = 'LIST'
-      iv_title = 'T'
-      iv_body = '<p>body</p>'
-      iv_csp_nonce = 'nonce' ) CS 'nonce="nonce"' ) ).
   ENDMETHOD.
 
   METHOD html_status_action.

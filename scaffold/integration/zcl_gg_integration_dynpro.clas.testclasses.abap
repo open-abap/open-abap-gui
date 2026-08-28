@@ -117,6 +117,9 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
       exp = zif_gg_host_html_v1=>page_dynpro ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<!doctype html>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-page-kind="DYNPRO"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<form method="post" action="/dispatch">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'name="gg_action" value="SUBMIT"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'aria-label="Dynpro' ) ).
   ENDMETHOD.
 
   METHOD skips_pai_when_not_submitted.

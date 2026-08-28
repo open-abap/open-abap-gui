@@ -16,6 +16,9 @@ CLASS ltcl_ex_17 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'P_TEST' ]-value
       exp = 'X' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<form method="post" action="/dispatch">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-page-kind="LIST"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'aria-label="List output"' ) ).
   ENDMETHOD.
 
 ENDCLASS.
