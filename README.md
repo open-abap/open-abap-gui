@@ -6,8 +6,8 @@ GUI controls
 The scaffold host can return a complete HTML5 document for report lists,
 selection screens, messages, terminal results, and dynpro snapshots. The
 page/request contract is transport-neutral; `zcl_gg_host_runtime` owns the
-session and page history, while `host/html-http.mjs` is a small optional Node
-HTTP adapter for GET/start and POST/dispatch requests.
+session and page history, while `ZCL_GG_HTTP_HANDLER` owns the HTTP routes,
+payload conversion, and response status/content type in ABAP.
 
 The existing structured and text result fields remain available during the
 migration. HTML output escapes dynamic text and attributes, keeps list `HIDE`
@@ -37,10 +37,8 @@ The index also lists all `ZCL_GG_INTEGRATION_*` classes. The executable
 integration classes are available through the same ABAP-backed HTTP host;
 `ZCL_GG_DB_HELPER` is listed as the database-fixture utility it is and
 does not start an executable page.
-`host/abap-html-runtime.mjs` converts HTTP payloads to typed
-`zcl_gg_host_runtime` requests and unwraps its public response.
-The transport adapter remains responsible for HTTP parsing, limits, status
-codes, and headers:
+Node only provides Express, request-body buffering, and the ICF-compatible
+request/response shim:
 
 ```js
 import {createAbapHtmlHostServer} from "./host/abap-html-server.mjs";
@@ -48,6 +46,10 @@ import {createAbapHtmlHostServer} from "./host/abap-html-server.mjs";
 const server = createAbapHtmlHostServer();
 server.listen(8080);
 ```
+
+The ABAP HTTP handler follows the same boundary as
+[express-icf-shim](https://github.com/open-abap/express-icf-shim): Express
+forwards the request to `IF_HTTP_EXTENSION`, and ABAP writes the response.
 
 Checks have separate ownership. ABAP Unit covers fixture behavior, renderer
 contracts, and session semantics. Node integration covers the bridge and HTTP

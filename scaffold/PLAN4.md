@@ -1,9 +1,9 @@
 # Real end-to-end HTML host test plan
 
-This plan closes the gap between the Node HTTP adapter, the transpiled ABAP
-runtime, and browser verification. The target is a test in which Playwright
-interacts with HTML produced by real ABAP code and every request returns through
-the real `zcl_gg_host_runtime` session.
+This plan closes the gap between the Express/ICF transport seam, the
+transpiled ABAP runtime, and browser verification. The target is a test in
+which Playwright interacts with HTML produced by real ABAP code and every
+request returns through the real `zcl_gg_host_runtime` session.
 
 Every checkbox is one reviewable change with an observable result. Do not check
 a box until its focused test passes. Keep behavior assertions in ABAP Unit
@@ -11,9 +11,9 @@ unless they require an HTTP or browser boundary.
 
 ## Non-negotiable constraints
 
-- [x] Define end to end as Playwright or `fetch` -> Node HTTP adapter -> ABAP
-  runtime bridge -> transpiled `zcl_gg_host_runtime` -> ABAP renderer -> HTTP
-  response.
+- [x] Define end to end as Playwright or `fetch` -> Express -> ICF shim ->
+  ABAP `ZCL_GG_HTTP_HANDLER` -> transpiled `zcl_gg_host_runtime` -> ABAP
+  renderer -> HTTP response.
 - [x] Do not define HTML strings, page builders, session maps, or transition
   state machines in JavaScript tests.
 - [x] Do not inject mocked or synthetic `start`, `dispatch`, or `close`
@@ -42,8 +42,10 @@ unless they require an HTTP or browser boundary.
   ABAP runtime bridge through the Node HTTP adapter.
 - `integration/html-browser.mjs` uses Playwright against the real report and
   dynpro server routes; it does not define HTML or session state.
-- `host/abap-html-server.mjs` composes the fixed routes with the concrete
-  `abap.Classes.ZCL_GG_HOST_RUNTIME` facade.
+- `ZCL_GG_HTTP_HANDLER` owns the index, route allow-list, fixture construction,
+  request decoding, response status mapping, and lifecycle cleanup in ABAP.
+- `host/abap-html-server.mjs` only starts Express and reports the listening
+  address.
 - The browser script uses the Playwright-managed Chromium installed locally or
   by CI.
 
@@ -51,20 +53,22 @@ unless they require an HTTP or browser boundary.
 
 ```mermaid
 flowchart LR
-  PW[Playwright] -->|HTTP forms and navigation| HTTP[host/html-http.mjs]
-  HTTP --> BRIDGE[ABAP runtime bridge]
-  BRIDGE --> RT[zcl_gg_host_runtime]
+  PW[Playwright] -->|HTTP forms and navigation| HTTP[Express]
+  HTTP --> SHIM[cl_express_icf_shim]
+  SHIM --> HANDLER[ZCL_GG_HTTP_HANDLER]
+  HANDLER --> RT[zcl_gg_host_runtime]
   RT --> REPORT[ABAP report or dynpro fixture]
   REPORT --> RENDERER[ABAP HTML renderer]
   RENDERER --> RT
-  RT --> BRIDGE
-  BRIDGE --> HTTP
+  RT --> HANDLER
+  HANDLER --> SHIM
+  SHIM --> HTTP
   HTTP --> PW
 ```
 
-The HTTP adapter remains transport-only. The bridge is the only JavaScript
-module allowed to know both generated ABAP runtime objects and plain HTTP-facing
-objects. Test fixtures, expected state transitions, and detailed behavior stay
+The JavaScript adapter remains transport-only. `ZCL_GG_HTTP_HANDLER` is the
+only application boundary that knows both HTTP semantics and the ABAP host
+runtime. Test fixtures, expected state transitions, and detailed behavior stay
 in ABAP.
 
 ## Test ownership
@@ -81,11 +85,9 @@ in ABAP.
 
 ### Node integration
 
-- Loading transpiled ABAP and constructing a configured report or dynpro.
-- Lossless conversion between HTTP payloads and `ty_request`.
-- Lossless conversion of public `ty_response` fields to plain JavaScript.
+- Loading the transpiled ABAP handler through the ICF shim.
 - HTTP method, status, header, body-size, JSON, and form-encoding behavior.
-- Proof that HTTP requests reach the real ABAP runtime.
+- Proof that requests reach the real ABAP runtime and ABAP-generated responses.
 
 ### Playwright
 
@@ -115,46 +117,38 @@ in ABAP.
   deterministic reset.
 - [x] Keep browser-only expectations out of these fixture tests.
 
-## 2. Add the transpiled ABAP runtime bridge
+## 2. Add the transpiled ABAP runtime boundary
 
-- [x] Add a host module that imports `output/init.mjs` and exposes a plain
-  `start`, `dispatch`, `close`, and `clear` runtime facade backed directly by
-  `abap.Classes.ZCL_GG_HOST_RUNTIME`.
-- [x] Configure the facade with explicit report and dynpro factories. Do not
+- [x] Consume `cl_express_icf_shim` and its minimal `if_http_server`
+  implementation from the external `express-icf-shim` transpiler library.
+- [x] Add `ZCL_GG_HTTP_HANDLER` implementing `IF_HTTP_EXTENSION`.
+- [x] Configure the handler with explicit report and dynpro factories. Do not
   accept arbitrary class names from an HTTP request.
-- [x] Instantiate only allow-listed ABAP entry points and verify that they
-  implement the required report or dynpro interface.
 - [x] Initialize and reset integration data through transpiled ABAP fixture
   methods, not JavaScript SQL or duplicated rows.
-- [x] Convert a plain transport request into the generated
-  `zif_gg_host_html_v1=>ty_request` shape without reinterpreting ABAP actions.
-- [x] Call `ZCL_GG_HOST_RUNTIME.dispatch` with the typed request and preserve
-  empty strings, zero values, tables, ranges, and dynpro row numbers.
-- [x] Unwrap only the public response contract: `valid`, `error`, `session_id`,
-  `page_id`, `page_kind`, `html`, and any diagnostics required by the adapter.
-- [x] Normalize `abap_bool` explicitly at the bridge boundary; do not rely on
-  JavaScript truthiness for `X` and space.
-- [x] Forward close and clear operations to ABAP so no JavaScript session store
-  is introduced.
+- [x] Convert JSON and form requests into the generated
+  `zif_gg_host_html_v1=>ty_request` shape in ABAP.
+- [x] Call `ZCL_GG_HOST_RUNTIME` and write its HTML/error response directly to
+  the ICF response entity.
+- [x] Forward close and shutdown operations to ABAP so no JavaScript session
+  store or fixture registry is introduced.
 - [x] Surface generated-runtime exceptions as failed requests with useful test
   diagnostics; never replace them with a successful fallback page.
-- [x] Add one narrow Node contract test that calls the real bridge directly and
-  proves start -> dispatch -> close against transpiled ABAP.
 
 ## 3. Wire a real HTTP server
 
-- [x] Update `host/html-launcher.mjs` to preserve start context such as the URL
-  while delegating directly to the configured ABAP bridge.
-- [x] Add an executable server entry point that composes
-  `createHtmlHostServer` with the real bridge and no test callbacks.
-- [x] Keep entry-point selection explicit and allow-listed, for example fixed
-  report and dynpro routes used by both local development and tests.
+- [x] Update `host/html-launcher.mjs` to launch the ABAP ICF-backed server.
+- [x] Add an executable server entry point that composes Express with the real
+  ABAP ICF handler and no test callbacks.
+- [x] Keep entry-point selection explicit and allow-listed in ABAP, including
+  the report, dynpro, example, and integration routes.
 - [x] Start the server on port `0` in tests and return the selected address to
   the caller without parsing console output.
 - [x] Make server shutdown close active ABAP sessions and release the database
   connection.
-- [x] Preserve HTTP concerns in `host/html-http.mjs`: request parsing, body
-  limits, content types, status mapping, and response headers.
+- [x] Keep only socket, Express buffering, and body-limit concerns in
+  `host/html-http.mjs`; route parsing, content types, status mapping, and
+  response headers are ABAP-owned.
 - [x] Ensure `GET` starts a real ABAP session, `POST /dispatch` invokes real
   ABAP dispatch, and `DELETE /session/:id` invokes real ABAP close.
 - [x] Add a real HTTP integration test for initial HTML, JSON dispatch,

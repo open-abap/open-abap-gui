@@ -20,9 +20,10 @@
   "license": "",
   "dependencies": {
     "@abaplint/cli": "^2.120.38",
-    "@abaplint/runtime": "^2.13.64",
     "@abaplint/database-sqlite": "^2.13.40",
-    "@abaplint/transpiler-cli": "^2.13.64"
+    "@abaplint/runtime": "^2.13.64",
+    "@abaplint/transpiler-cli": "^2.13.64",
+    "express": "^4.22.2"
   },
   "devDependencies": {
     "playwright": "^1.55.0"

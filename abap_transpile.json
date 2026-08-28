@@ -19,6 +19,9 @@
       "url": "https://github.com/open-abap/open-abap-core"
     },
     {
+      "url": "https://github.com/open-abap/express-icf-shim"
+    },
+    {
       "url": "https://github.com/open-abap/open-abap-bal"
     }
   ]
