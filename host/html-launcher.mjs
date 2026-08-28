@@ -7,7 +7,7 @@ export function launchHtmlHost(runtime, {host = "127.0.0.1", port = 8080} = {}) 
     throw new TypeError("a host runtime with start and dispatch is required");
   }
   const server = createHtmlHostServer({
-    start: () => runtime.start(),
+    start: ({url} = {}) => runtime.start({url}),
     dispatch: (request) => runtime.dispatch(request),
     close: (sessionId) => runtime.close?.(sessionId),
   });

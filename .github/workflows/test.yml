@@ -18,3 +18,5 @@ jobs:
     - uses: actions/setup-node@v6
     - run: npm ci
     - run: npm test
+    - run: npx playwright install --with-deps chromium
+    - run: npm run test:html-e2e

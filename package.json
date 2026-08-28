@@ -8,10 +8,12 @@
     "transpile": "abap_transpile",
     "unit": "abap_transpile && echo RUNNING && node output/index.mjs",
     "test:html-http": "node integration/html-http.mjs",
-    "test:html-snapshots": "node integration/html-snapshots.mjs",
     "test:html-smoke": "node integration/html-smoke.mjs",
     "test:html-browser": "node integration/html-browser.mjs",
-    "test": "npm run lint && npm run unit && npm run test:html-http && npm run test:html-snapshots && npm run test:html-smoke",
+    "install:html-browser": "playwright install chromium",
+    "test:html-e2e": "npm run transpile && npm run test:html-browser",
+    "start:html": "npm run transpile && node host/abap-html-server.mjs",
+    "test": "npm run lint && npm run unit && npm run test:html-http && npm run test:html-smoke",
     "regression": "node .github/regression/run.js"
   },
   "license": "",
@@ -19,7 +21,9 @@
     "@abaplint/cli": "^2.120.38",
     "@abaplint/runtime": "^2.13.64",
     "@abaplint/database-sqlite": "^2.13.40",
-    "@abaplint/transpiler-cli": "^2.13.64",
-    "playwright-core": "^1.55.0"
+    "@abaplint/transpiler-cli": "^2.13.64"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
   }
 }

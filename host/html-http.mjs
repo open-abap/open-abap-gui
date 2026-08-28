@@ -160,7 +160,7 @@ function responseStatus(result) {
   return String(result?.error ?? "").includes("Stale") ? 409 : 400;
 }
 
-export function createHtmlHostServer({start, dispatch, close = () => {}}) {
+export function createHtmlHostServer({start, dispatch, close = () => {}, startPaths = ["/"]}) {
   if (typeof start !== "function" || typeof dispatch !== "function") {
     throw new TypeError("start and dispatch callbacks are required");
   }
@@ -177,7 +177,7 @@ export function createHtmlHostServer({start, dispatch, close = () => {}}) {
       }
 
       const url = new URL(request.url ?? "/", "http://localhost");
-      if (request.method === "GET" && url.pathname === "/") {
+      if (request.method === "GET" && startPaths.includes(url.pathname)) {
         const result = await start({url});
         sendHtml(response, responseStatus(result), result?.html ?? "");
         return;

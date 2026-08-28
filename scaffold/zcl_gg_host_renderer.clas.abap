@@ -123,6 +123,12 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_name         TYPE string
       RETURNING
         VALUE(rv_attrs) TYPE string.
+
+    CLASS-METHODS render_selection_value_help
+      IMPORTING
+        it_ranges      TYPE zif_gg_selection_screen_types=>ty_ranges
+      RETURNING
+        VALUE(rv_html) TYPE string.
 ENDCLASS.
 
 CLASS zcl_gg_host_renderer IMPLEMENTATION.
@@ -290,11 +296,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           ENDIF.
           lv_body = lv_body && |<div class="gg-field"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }"{ state_attrs( ls_state ) }{ field_message_attrs( it_messages = it_messages iv_name = CONV string( ls_element-name ) ) }>|.
           IF ls_element-value_help = abap_true OR ls_state-value_help = abap_true.
-            lv_body = lv_body && |<button type="submit" name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
-          ELSEIF ls_state-search_help IS NOT INITIAL.
-            lv_body = lv_body && |<button type="submit" name="gg_action" value="HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Field help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
+            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
+          ENDIF.
+          IF ls_state-search_help IS NOT INITIAL.
+            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Field help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
           ENDIF.
           lv_body = lv_body && |</div>|.
+          IF ls_value-ranges IS NOT INITIAL.
+            lv_body = lv_body && render_selection_value_help( ls_value-ranges ).
+          ENDIF.
         WHEN 'CHECKBOX'.
           lv_element_id = zcl_gg_host_html=>identifier( iv_scope = 'selection-field' iv_program = CONV string( is_context-program ) iv_name = CONV string( ls_element-name ) ).
           CLEAR: ls_value, ls_state.
@@ -422,6 +432,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       CASE ls_control-kind.
         WHEN 'INPUT'.
           lv_body = lv_body && |<label class="gg-dynpro-control" style="{ lv_style }" for="{ zcl_gg_host_html=>escape_attribute( lv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_value-value ) }"{ COND string( WHEN ls_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_attrs }></label>|.
+          IF ls_control-value_help = abap_true.
+            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }">?</button>|.
+          ENDIF.
+          IF ls_control-search_help IS NOT INITIAL.
+            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" aria-label="Field help for { zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }">?</button>|.
+          ENDIF.
         WHEN 'OUTPUT'.
           lv_body = lv_body && |<output class="gg-dynpro-control" style="{ lv_style }" id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }">{ zcl_gg_host_html=>escape_text( ls_value-value ) }</output>|.
         WHEN 'TEXT'.
@@ -492,7 +508,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_body = lv_body && |<div class="gg-dynpro-control" style="{ lv_style }">{ zcl_gg_host_html=>escape_text( ls_control-text ) }</div>|.
       ENDCASE.
     ENDLOOP.
-    lv_body = lv_body && |<div class="gg-field"><button type="submit" name="gg_ucomm" value="BACK">Back</button></div></form></section>|.
+    lv_body = lv_body && |<div class="gg-field"><button type="submit" formnovalidate name="gg_ucomm" value="BACK">Back</button></div></form></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
@@ -553,8 +569,20 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         iv_scope = 'message'
         iv_name  = iv_name
         iv_index = sy-tabix ).
-      rv_attrs = | aria-describedby="{ zcl_gg_host_html=>escape_attribute( lv_message_id ) }" aria-invalid="true"|.
+      rv_attrs = | aria-describedby="{ zcl_gg_host_html=>escape_attribute( lv_message_id ) }" aria-invalid="true" autofocus|.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD render_selection_value_help.
+    rv_html = |<aside class="gg-value-help" role="status" aria-label="Value help"><ul>|.
+    LOOP AT it_ranges INTO DATA(ls_range).
+      DATA(lv_value) = ls_range-low.
+      IF ls_range-high IS NOT INITIAL.
+        lv_value = lv_value && | - { ls_range-high }|.
+      ENDIF.
+      rv_html = rv_html && |<li>{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
+    ENDLOOP.
+    rv_html = rv_html && `</ul></aside>`.
   ENDMETHOD.
 
   METHOD spaces.

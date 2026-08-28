@@ -15,6 +15,9 @@ CLASS ltcl_gg_integration_dyn DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS maps_module_context FOR TESTING.
     METHODS drives_pov_and_poh FOR TESTING.
     METHODS retains_builder_flow_ops FOR TESTING.
+    METHODS renders_editable_input FOR TESTING.
+    METHODS retains_entered_input FOR TESTING.
+    METHODS reaches_terminal_state FOR TESTING.
 
 ENDCLASS.
 
@@ -267,6 +270,36 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     lo_flow->zif_gg_dynpro_flow_builder_v1~end_screen( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lines( lo_flow->get_steps( ) ) >= 18 ) ).
     cl_abap_unit_assert=>assert_equals( act = lines( lo_flow->get_modules( ) ) exp = 4 ).
+  ENDMETHOD.
+
+  METHOD renders_editable_input.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run(
+      io_program = NEW zcl_gg_integration_dynpro( )
+      iv_submitted = abap_false ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'name="P_INPUT"' ) ).
+    cl_abap_unit_assert=>assert_true( ls_result-controls[ name = 'P_INPUT' ]-value_help ).
+    cl_abap_unit_assert=>assert_true( ls_result-states[ name = 'P_INPUT' ]-enabled ).
+  ENDMETHOD.
+
+  METHOD retains_entered_input.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run(
+      io_program = NEW zcl_gg_integration_dynpro( )
+      iv_ucomm = 'NEXT'
+      it_values = VALUE #( ( name = 'P_INPUT' value = 'entered flight' ) ) ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-values[ name = 'P_INPUT' ]-value
+      exp = 'entered flight' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-screen exp = '0200' ).
+  ENDMETHOD.
+
+  METHOD reaches_terminal_state.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run(
+      io_program = NEW zcl_gg_integration_dynpro( )
+      iv_ucomm = 'EXIT' ).
+
+    cl_abap_unit_assert=>assert_true( ls_result-terminal_state ).
   ENDMETHOD.
 
 ENDCLASS.

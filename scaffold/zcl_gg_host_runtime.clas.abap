@@ -64,6 +64,20 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_error           TYPE string
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+    CLASS-METHODS dispatch_dynpro
+      IMPORTING
+        is_request         TYPE zif_gg_host_html_v1=>ty_request
+        is_session         TYPE ty_session
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+    CLASS-METHODS dispatch_report
+      IMPORTING
+        is_request         TYPE zif_gg_host_html_v1=>ty_request
+        is_session         TYPE ty_session
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 ENDCLASS.
 
 CLASS zcl_gg_host_runtime IMPLEMENTATION.
@@ -107,7 +121,12 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       APPEND ls_dynpro-page TO ls_session-pages.
     ELSE.
       ls_session-last_result = ls_result.
-      ls_session-pending_navigation = ls_result-navigation.
+      IF ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_screen
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_submit_return
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_transaction.
+        ls_session-pending_navigation = ls_result-navigation.
+      ENDIF.
       ls_session-pending_submit = ls_result-submit.
       APPEND ls_result TO ls_session-results.
       APPEND ls_result-page TO ls_session-pages.
@@ -118,13 +137,6 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
 
   METHOD dispatch.
     DATA ls_session TYPE ty_session.
-    DATA ls_result TYPE zcl_gg_host=>ty_result.
-    DATA lv_index TYPE i.
-    DATA lv_page_id TYPE string.
-    DATA lv_ucomm TYPE zif_gg_session_types_v1=>ty_ucomm.
-    DATA lt_input TYPE zif_gg_selection_screen_types=>ty_values.
-    DATA ls_dynpro TYPE zcl_gg_host_dynpro=>ty_result.
-    DATA lt_dynpro_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     DATA lv_current_page_id TYPE string.
 
     READ TABLE mt_sessions INTO ls_session
@@ -181,47 +193,72 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         RETURN.
       ENDIF.
     ENDIF.
-
     IF ls_session-dynpro_program IS BOUND.
-      lt_dynpro_values = is_request-dynpro_values.
-      IF lt_dynpro_values IS INITIAL.
-        lt_dynpro_values = ls_session-last_dynpro-values.
-      ENDIF.
-      lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-ucomm ).
-      IF lv_ucomm IS INITIAL.
-        lv_ucomm = 'BACK'.
-      ENDIF.
-      lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
-      ls_dynpro = zcl_gg_host_dynpro=>run(
-        io_program       = ls_session-dynpro_program
-        iv_ucomm         = lv_ucomm
-        iv_submitted     = xsdbool( is_request-action <> zif_gg_host_html_v1=>action_help
-                                    AND is_request-action <> zif_gg_host_html_v1=>action_value_help )
-        it_values        = lt_dynpro_values
-        iv_field         = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
-        iv_row           = is_request-row
-        iv_cursor_field  = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-cursor_field )
-        iv_value_request = CONV zif_gg_dynpro_types_v1=>ty_name(
-                             COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_value_help
-                                          THEN is_request-target ELSE `` ) )
-        iv_help_request  = CONV zif_gg_dynpro_types_v1=>ty_name(
-                             COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_help
-                                          THEN is_request-target ELSE `` ) )
-        iv_session_id    = ls_session-session_id
-        iv_page_id       = lv_page_id ).
-      ls_session-next_page = ls_session-next_page + 1.
-      ls_session-last_dynpro = ls_dynpro.
-      APPEND ls_dynpro-page TO ls_session-pages.
-      READ TABLE mt_sessions INTO DATA(ls_old_dynpro)
-        WITH KEY session_id = ls_session-session_id.
-      lv_index = sy-tabix.
-      IF sy-subrc = 0.
-        MODIFY mt_sessions FROM ls_session INDEX lv_index.
-      ENDIF.
-      rs_response = response_for( ls_session ).
+      rs_response = dispatch_dynpro(
+        is_request = is_request
+        is_session = ls_session ).
       RETURN.
     ENDIF.
+    rs_response = dispatch_report(
+      is_request = is_request
+      is_session = ls_session ).
+  ENDMETHOD.
 
+  METHOD dispatch_dynpro.
+    DATA ls_session TYPE ty_session.
+    DATA ls_dynpro TYPE zcl_gg_host_dynpro=>ty_result.
+    DATA lt_dynpro_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    DATA lv_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm.
+    DATA lv_page_id TYPE string.
+
+    ls_session = is_session.
+    lt_dynpro_values = is_request-dynpro_values.
+    IF lt_dynpro_values IS INITIAL.
+      lt_dynpro_values = ls_session-last_dynpro-values.
+    ENDIF.
+    lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-ucomm ).
+    IF lv_ucomm IS INITIAL.
+      lv_ucomm = 'BACK'.
+    ENDIF.
+    lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
+    ls_dynpro = zcl_gg_host_dynpro=>run(
+      io_program       = ls_session-dynpro_program
+      iv_ucomm         = lv_ucomm
+      iv_submitted     = xsdbool( is_request-action <> zif_gg_host_html_v1=>action_help
+                                  AND is_request-action <> zif_gg_host_html_v1=>action_value_help )
+      it_values        = lt_dynpro_values
+      iv_field         = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
+      iv_row           = is_request-row
+      iv_cursor_field  = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-cursor_field )
+      iv_value_request = CONV zif_gg_dynpro_types_v1=>ty_name(
+                           COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_value_help
+                                        THEN is_request-target ELSE `` ) )
+      iv_help_request  = CONV zif_gg_dynpro_types_v1=>ty_name(
+                           COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_help
+                                        THEN is_request-target ELSE `` ) )
+      iv_session_id    = ls_session-session_id
+      iv_page_id       = lv_page_id ).
+    ls_session-next_page = ls_session-next_page + 1.
+    ls_session-last_dynpro = ls_dynpro.
+    APPEND ls_dynpro-page TO ls_session-pages.
+    READ TABLE mt_sessions INTO DATA(ls_old_dynpro)
+      WITH KEY session_id = ls_session-session_id.
+    DATA(lv_index) = sy-tabix.
+    IF sy-subrc = 0.
+      MODIFY mt_sessions FROM ls_session INDEX lv_index.
+    ENDIF.
+    rs_response = response_for( ls_session ).
+  ENDMETHOD.
+
+  METHOD dispatch_report.
+    DATA ls_session TYPE ty_session.
+    DATA ls_result TYPE zcl_gg_host=>ty_result.
+    DATA lv_index TYPE i.
+    DATA lv_page_id TYPE string.
+    DATA lv_ucomm TYPE zif_gg_session_types_v1=>ty_ucomm.
+    DATA lt_input TYPE zif_gg_selection_screen_types=>ty_values.
+
+    ls_session = is_session.
     lt_input = is_request-values.
     IF lt_input IS INITIAL.
       lt_input = ls_session-last_result-values.
@@ -318,7 +355,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         ls_result = zcl_gg_host=>run(
           io_report       = ls_session-report
           iv_program      = ls_session-program
-          iv_batch         = ls_session-batch
+          iv_batch        = ls_session-batch
           it_input        = lt_input
           iv_exit_ucomm   = lv_ucomm
           iv_ucomm        = lv_ucomm
@@ -365,11 +402,17 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
 
     ls_session-next_page = ls_session-next_page + 1.
     ls_session-last_result = ls_result.
-    ls_session-pending_navigation = ls_result-navigation.
+    CLEAR ls_session-pending_navigation.
+    IF ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
+        OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_screen
+        OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_submit_return
+        OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_transaction.
+      ls_session-pending_navigation = ls_result-navigation.
+    ENDIF.
     ls_session-pending_submit = ls_result-submit.
     APPEND ls_result TO ls_session-results.
     APPEND ls_result-page TO ls_session-pages.
-    READ TABLE mt_sessions INTO DATA(ls_old)
+    READ TABLE mt_sessions INTO DATA(ls_old_report)
       WITH KEY session_id = ls_session-session_id.
     lv_index = sy-tabix.
     IF sy-subrc = 0.

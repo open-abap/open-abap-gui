@@ -1,62 +1,102 @@
 import assert from "node:assert/strict";
-import {createHtmlHostServer} from "../host/html-http.mjs";
+import {createAbapHtmlHostServer} from "../host/abap-html-server.mjs";
 
-let nextSession = 0;
-const sessions = new Map();
-
-function page(sessionId, pageId, label) {
-  return `<!doctype html><html><body><main data-session-id="${sessionId}" data-page-id="${pageId}">${label}</main></body></html>`;
+function metadata(html) {
+  return {
+    sessionId: html.match(/data-session-id="([^"]+)"/)[1],
+    pageId: html.match(/data-page-id="([^"]+)"/)[1],
+  };
 }
 
-const server = createHtmlHostServer({
-  start: async () => {
-    const sessionId = `SMOKE-${++nextSession}`;
-    sessions.set(sessionId, 1);
-    return {valid: true, html: page(sessionId, "1", "start")};
-  },
-  dispatch: async (request) => {
-    const current = sessions.get(request.session_id);
-    if (current === undefined) return {valid: false, error: "Unknown host session"};
-    if (request.page_id !== String(current)) return {valid: false, error: "Stale host page"};
-    const nextPage = current + 1;
-    sessions.set(request.session_id, nextPage);
-    return {valid: true, html: page(request.session_id, String(nextPage), request.action)};
-  },
-  close: async (sessionId) => sessions.delete(sessionId),
-});
-
+const server = createAbapHtmlHostServer();
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const address = server.address();
 const base = `http://127.0.0.1:${address.port}`;
 
 try {
-  const [first, second] = await Promise.all([fetch(base + "/"), fetch(base + "/")]);
+  const [first, second] = await Promise.all([
+    fetch(`${base}/report`),
+    fetch(`${base}/report`),
+  ]);
   const firstHtml = await first.text();
   const secondHtml = await second.text();
-  assert.match(firstHtml, /SMOKE-1/);
-  assert.match(secondHtml, /SMOKE-2/);
+  const firstPage = metadata(firstHtml);
+  const secondPage = metadata(secondHtml);
+  assert.notEqual(firstPage.sessionId, secondPage.sessionId);
+  assert.notEqual(firstPage.pageId, secondPage.pageId);
 
-  const firstNext = await fetch(base + "/dispatch", {
-    method: "POST",
-    headers: {"content-type": "application/x-www-form-urlencoded"},
-    body: new URLSearchParams({
-      session_id: "SMOKE-1", page_id: "1", gg_action: "SUBMIT",
-    }),
-  });
-  assert.equal(firstNext.status, 200);
-  assert.match(await firstNext.text(), /data-page-id="2"/);
-
-  const secondStale = await fetch(base + "/dispatch", {
+  const firstListResponse = await fetch(`${base}/dispatch`, {
     method: "POST",
     headers: {"content-type": "application/json"},
-    body: JSON.stringify({session_id: "SMOKE-2", page_id: "0", action: "SUBMIT"}),
+    body: JSON.stringify({
+      session_id: firstPage.sessionId,
+      page_id: firstPage.pageId,
+      action: "SUBMIT",
+      values: [{name: "P_CARR", value: "AA", ranges: []}],
+    }),
+  });
+  assert.equal(firstListResponse.status, 200);
+  const firstListHtml = await firstListResponse.text();
+  assert.match(firstListHtml, /AA\/0017/);
+  assert.doesNotMatch(firstListHtml, /LH\/0400/);
+  const firstListPage = metadata(firstListHtml);
+
+  const secondStale = await fetch(`${base}/dispatch`, {
+    method: "POST",
+    headers: {"content-type": "application/json"},
+    body: JSON.stringify({
+      session_id: secondPage.sessionId,
+      page_id: `${secondPage.sessionId}-999`,
+      action: "SUBMIT",
+      values: [{name: "P_CARR", value: "LH", ranges: []}],
+    }),
   });
   assert.equal(secondStale.status, 409);
 
-  assert.equal((await fetch(base + "/session/SMOKE-1", {method: "DELETE"})).status, 204);
-  assert.equal(sessions.has("SMOKE-1"), false);
+  const secondListResponse = await fetch(`${base}/dispatch`, {
+    method: "POST",
+    headers: {"content-type": "application/x-www-form-urlencoded"},
+    body: new URLSearchParams({
+      session_id: secondPage.sessionId,
+      page_id: secondPage.pageId,
+      gg_action: "SUBMIT",
+      P_CARR: "LH",
+    }),
+  });
+  assert.equal(secondListResponse.status, 200);
+  const secondListHtml = await secondListResponse.text();
+  assert.match(secondListHtml, /LH\/0400/);
+  assert.doesNotMatch(secondListHtml, /AA\/0017/);
+  const secondListPage = metadata(secondListHtml);
+
+  assert.equal((await fetch(`${base}/session/${firstPage.sessionId}`, {method: "DELETE"})).status, 204);
+  const closed = await fetch(`${base}/dispatch`, {
+    method: "POST",
+    headers: {"content-type": "application/json"},
+    body: JSON.stringify({
+      session_id: firstPage.sessionId,
+      page_id: firstListPage.pageId,
+      action: "SUBMIT",
+    }),
+  });
+  assert.equal(closed.status, 400);
+
+  const secondDetail = await fetch(`${base}/dispatch`, {
+    method: "POST",
+    headers: {"content-type": "application/x-www-form-urlencoded"},
+    body: new URLSearchParams({
+      session_id: secondPage.sessionId,
+      page_id: secondListPage.pageId,
+      gg_action: "LINE:1|H-1-1",
+      gg_token: "H-1-1",
+    }),
+  });
+  const secondDetailBody = await secondDetail.text();
+  assert.equal(secondDetail.status, 200, secondDetailBody);
+  assert.match(secondDetailBody, /LH\/0400/);
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  await server.shutdown();
 }
 
 console.log("HTML smoke test: ok");

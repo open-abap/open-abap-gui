@@ -9,6 +9,9 @@ The plan is intentionally implementation-sized: every checkbox is one reviewable
 change with one observable result. Do not check a box until its focused test and
 the repository verification command pass.
 
+The real end-to-end HTML host follow-up is tracked in
+[scaffold/PLAN4.md](PLAN4.md).
+
 When the transpiler does not support a statement or construct, record the gap
 in `scaffold/ANORMALIES.md`. Include the feature/report, the exact
 statement, the transpiler error, and the verification date. Keep the related

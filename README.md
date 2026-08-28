@@ -20,17 +20,28 @@ SALV `display()` publishes its generated semantic table into the same registry;
 registry extensions must provide already-safe generated HTML and must not pass
 user text as markup.
 
-The transport adapter and the sample launcher need only Node's built-in HTTP
-module. Embed it by connecting the callbacks to the host runtime, or import
-`host/html-launcher.mjs` for the same wiring:
+Start the real ABAP-backed HTML server with one command:
+
+```sh
+npm run start:html
+```
+
+This transpiles the ABAP scaffold and starts `host/abap-html-server.mjs` on
+`http://127.0.0.1:8080`. The fixed `/report` and `/dynpro` routes construct
+allow-listed ABAP fixtures; `host/abap-html-runtime.mjs` converts HTTP payloads
+to typed `zcl_gg_host_runtime` requests and unwraps its public response.
+The transport adapter remains responsible for HTTP parsing, limits, status
+codes, and headers:
 
 ```js
-import {createHtmlHostServer} from "./host/html-http.mjs";
+import {createAbapHtmlHostServer} from "./host/abap-html-server.mjs";
 
-const server = createHtmlHostServer({
-  start: ({url}) => runtime.start({url}),
-  dispatch: (request) => runtime.dispatch(request),
-  close: (sessionId) => runtime.close(sessionId),
-});
+const server = createAbapHtmlHostServer();
 server.listen(8080);
 ```
+
+Checks have separate ownership. ABAP Unit covers fixture behavior, renderer
+contracts, and session semantics. Node integration covers the bridge and HTTP
+transport contract. Playwright covers representative browser workflows and
+real session isolation; install its managed browser with
+`npm run install:html-browser` before running `npm run test:html-e2e` locally.

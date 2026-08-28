@@ -54,6 +54,13 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         ct_actions  TYPE zif_gg_host_html_v1=>ty_actions.
 
+    CLASS-METHODS render_terminal_page
+      IMPORTING
+        iv_session_id TYPE string
+        iv_page_id    TYPE string
+      CHANGING
+        cs_result     TYPE ty_result.
+
 ENDCLASS.
 
 CLASS zcl_gg_host_dynpro IMPLEMENTATION.
@@ -269,9 +276,15 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       it_controls   = lt_controls
       it_values     = lt_values
       it_states     = lt_states
-      iv_help_text  = rs_result-help_text
+      iv_help_text   = rs_result-help_text
       it_help_values = rs_result-help_values
       it_messages   = rs_result-messages ).
+    render_terminal_page(
+      EXPORTING
+        iv_session_id = lv_session_id
+        iv_page_id    = lv_page_id
+      CHANGING
+        cs_result     = rs_result ).
     rs_result-page = VALUE #(
       session_id = lv_session_id
       page_id    = lv_page_id
@@ -295,6 +308,19 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       APPEND VALUE #( kind = zif_gg_host_html_v1=>action_submit ) TO ct_actions.
       APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back
                       ucomm = 'BACK' ) TO ct_actions.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_terminal_page.
+    IF cs_result-terminal_state = abap_true
+        AND cs_result-terminal IS INITIAL.
+      cs_result-page_kind = zif_gg_host_html_v1=>page_terminal.
+      cs_result-html = zcl_gg_host_renderer=>render_terminal(
+        iv_session_id = iv_session_id
+        iv_page_id    = iv_page_id
+        iv_title      = 'Terminal'
+        iv_text       = cs_result-terminal
+        it_messages    = cs_result-messages ).
     ENDIF.
   ENDMETHOD.
 
