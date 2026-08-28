@@ -406,7 +406,7 @@ ENDMETHOD.
 Exercises `new_page`, `reserve`, `set_blank_lines`.
 
 The report and class specimens are present. The report remains excluded from
-the runtime transpile because the toolchain does not support `RESERVE`.
+the runtime transpile because the toolchain does not support `NEW-PAGE`.
 
 ```abap
 REPORT zgg_ex_08.

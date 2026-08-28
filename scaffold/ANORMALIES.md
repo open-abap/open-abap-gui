@@ -3,12 +3,21 @@
 Record every transpiler statement or construct gap here, including the
 affected plan feature, exact source statement, error text, and date observed.
 
-## AN-001 — `RESERVE` statement unsupported
+## AN-001 — `RESERVE` statement unsupported (resolved)
 
 - Feature: 08, `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
 - Report: `scaffold/examples/zgg_ex_08.prog.abap`
 - Statement: `RESERVE 5 LINES.`
 - Error: `Statement Reserve not supported, RESERVE 5 LINES.`
+- Observed: 2026-08-28
+- Resolved: 2026-08-28; the updated transpiler accepts the statement.
+
+## AN-007 — `NEW-PAGE` statement unsupported
+
+- Feature: 08, `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
+- Report: `scaffold/examples/zgg_ex_08.prog.abap`
+- Statement: `NEW-PAGE NO-TITLE LINE-SIZE 80.`
+- Error: `Statement NewPage not supported, NEW-PAGE NO-TITLE LINE-SIZE 80.`
 - Observed: 2026-08-28
 - Status: The report remains excluded from `abap_transpile.json`; the scaffold
   counterpart and host test remain available.
