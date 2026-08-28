@@ -2,8 +2,6 @@
   "input_folder": ["src", "scaffold"],
   "input_filter": [],
   "exclude_filter": [
-    "scaffold/examples/zgg_ex_05\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_06\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_08\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_09\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_10\\.prog\\.abap$",

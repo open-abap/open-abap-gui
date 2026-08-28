@@ -118,8 +118,8 @@ tried as prerequisites and both fail lint on their own.
 - [x] 02 `WRITE AT <pos>(<len>)`, `NO-GAP`
 - [x] 03 `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
 - [ ] 04 `WRITE` numeric and mask additions
-- [ ] 05 `FORMAT` colour and attributes
-- [ ] 06 `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
+- [x] 05 `FORMAT` colour and attributes
+- [x] 06 `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
 - [ ] 07 `REPORT ... LINE-SIZE / LINE-COUNT / NO STANDARD PAGE HEADING`
 - [ ] 08 `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
 - [ ] 09 `TOP-OF-PAGE`
@@ -317,9 +317,8 @@ ENDMETHOD.
 
 Exercises `set_format` and `reset_format`.
 
-The report and class specimens are present. The report is excluded from the
-runtime transpile until that toolchain supports `FORMAT`; lint still checks it,
-so this checkbox stays open until the report can run through the full gate.
+The report and class specimens are present, and the report runs through the
+runtime transpile and host test.
 
 ```abap
 REPORT zgg_ex_05.
@@ -348,9 +347,8 @@ ENDMETHOD.
 
 Exercises `write_checkbox`, `write_icon`, `write_symbol`.
 
-The report and class specimens are present. The report is excluded from the
-runtime transpile until the toolchain supports the required list statements;
-this checkbox stays open until it can run through the full gate.
+The report and class specimens are present, and the report runs through the
+runtime transpile and host test.
 
 ```abap
 REPORT zgg_ex_06.
