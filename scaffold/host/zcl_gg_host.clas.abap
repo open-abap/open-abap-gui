@@ -26,6 +26,8 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              status            TYPE zif_gg_session_types_v1=>ty_gui_status,
              title             TYPE string,
              submit            TYPE zif_gg_session_types_v1=>ty_submit,
+             transaction_call  TYPE zif_gg_session_types_v1=>ty_transaction_call,
+             selection_active  TYPE abap_bool,
              unsupported       TYPE string,
            END OF ty_result.
 
@@ -36,6 +38,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_program       TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
         iv_batch         TYPE abap_bool DEFAULT abap_false
         it_input         TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
+        it_retry_input   TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
         iv_ucomm         TYPE zif_gg_selection_screen_types=>ty_ucomm DEFAULT 'ONLI'
         iv_value_request TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
         iv_help_name     TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
@@ -65,6 +68,19 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         ix_flow          TYPE REF TO zcx_gg_control_flow
       RETURNING
         VALUE(rs_result) TYPE ty_flow_result.
+
+    CLASS-METHODS retry_selection
+      IMPORTING
+        iv_active        TYPE abap_bool
+        io_report        TYPE REF TO zif_gg_report_v1
+        io_session       TYPE REF TO zcl_gg_host_session
+        it_input         TYPE zif_gg_selection_screen_types=>ty_values
+        it_states        TYPE zif_gg_selection_screen_types=>ty_states
+      CHANGING
+        ct_values        TYPE zif_gg_selection_screen_types=>ty_values
+        cv_ended         TYPE abap_bool
+      RETURNING
+        VALUE(rv_active) TYPE abap_bool.
 
     CLASS-METHODS resume_selection_call
       IMPORTING
@@ -113,6 +129,12 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_ended)  TYPE abap_bool.
 
+    CLASS-METHODS validate_required
+      IMPORTING
+        it_states  TYPE zif_gg_selection_screen_types=>ty_states
+        it_values  TYPE zif_gg_selection_screen_types=>ty_values
+        io_session TYPE REF TO zcl_gg_host_session.
+
 ENDCLASS.
 
 CLASS zcl_gg_host IMPLEMENTATION.
@@ -133,6 +155,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lv_call_screen TYPE abap_bool.
     DATA lv_call_transaction TYPE abap_bool.
     DATA lv_submit_return TYPE abap_bool.
+    DATA lv_selection_screen_active TYPE abap_bool.
 
     lo_list   = NEW zcl_gg_host_list( ).
     lo_screen = NEW zcl_gg_host_screen( ).
@@ -267,6 +290,11 @@ CLASS zcl_gg_host IMPLEMENTATION.
           CHANGING
             ct_values  = lt_values ).
 
+        validate_required(
+          it_states  = lt_states
+          it_values  = lt_values
+          io_session = lo_session ).
+
         lo_session->set_event( 'START-OF-SELECTION' ).
         io_report->start_of_selection(
           it_values  = lt_values
@@ -280,7 +308,21 @@ CLASS zcl_gg_host IMPLEMENTATION.
         lv_submit_return = ls_flow_result-submit_return.
         rs_result-unsupported = ls_flow_result-unsupported.
         rs_result-terminal = ls_flow_result-terminal.
+        rs_result-transaction_call = lo_session->get_transaction_call( ).
+        lv_selection_screen_active = xsdbool(
+          lx_flow->mv_kind = zcx_gg_control_flow=>kind_message ).
     ENDTRY.
+
+    lv_selection_screen_active = retry_selection(
+      EXPORTING
+        iv_active  = lv_selection_screen_active
+        io_report  = io_report
+        io_session = lo_session
+        it_input   = it_retry_input
+        it_states  = lt_states
+      CHANGING
+        ct_values = lt_values
+        cv_ended  = lv_ended ).
 
     IF lv_call_selection = abap_true.
       resume_selection_call(
@@ -352,6 +394,44 @@ CLASS zcl_gg_host IMPLEMENTATION.
     rs_result-status   = lo_list->get_status( ).
     rs_result-title    = lo_list->get_title( ).
     rs_result-submit   = lo_session->get_submit_call( ).
+    rs_result-selection_active = lv_selection_screen_active.
+  ENDMETHOD.
+
+  METHOD retry_selection.
+    rv_active = iv_active.
+    IF iv_active = abap_false OR it_input IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    cv_ended = abap_true.
+    TRY.
+        LOOP AT it_input INTO DATA(ls_input).
+          IF line_exists( ct_values[ name = ls_input-name ] ).
+            ct_values[ name = ls_input-name ] = ls_input.
+          ENDIF.
+        ENDLOOP.
+
+        io_session->set_event( 'AT SELECTION-SCREEN' ).
+        io_report->at_selection_screen(
+          EXPORTING
+            iv_screen  = '1000'
+            iv_ucomm   = 'ONLI'
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+        validate_required(
+          it_states  = it_states
+          it_values  = ct_values
+          io_session = io_session ).
+        io_session->set_event( 'START-OF-SELECTION' ).
+        io_report->start_of_selection(
+          it_values  = ct_values
+          io_session = io_session ).
+        cv_ended = abap_false.
+        rv_active = abap_false.
+      CATCH zcx_gg_control_flow.
+        RETURN.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD resume_selection_call.
@@ -399,7 +479,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       iv_name    = iv_name
       it_values  = ct_values
       io_session = io_session ).
-    IF line_exists( ct_values[ name = iv_name ] ).
+    IF line_exists( ct_values[ name = iv_name ] ) AND lt_requested_ranges IS NOT INITIAL.
       ct_values[ name = iv_name ]-ranges = lt_requested_ranges.
     ENDIF.
   ENDMETHOD.
@@ -500,6 +580,27 @@ CLASS zcl_gg_host IMPLEMENTATION.
     rv_ended = resume_screen_call(
       io_report  = io_report
       io_session = io_session ).
+  ENDMETHOD.
+
+  METHOD validate_required.
+    LOOP AT it_states INTO DATA(ls_required_state)
+        WHERE obligatory = abap_true.
+      READ TABLE it_values INTO DATA(ls_required_value)
+        WITH TABLE KEY name = ls_required_state-name.
+      IF sy-subrc <> 0.
+        io_session->zif_gg_session_v1~message( VALUE #(
+          type  = zif_gg_session_types_v1=>message_type_error
+          text  = |Field { ls_required_state-name } is required|
+          field = ls_required_state-name ) ).
+      ENDIF.
+      IF ls_required_value-value IS INITIAL
+          AND ls_required_value-ranges IS INITIAL.
+        io_session->zif_gg_session_v1~message( VALUE #(
+          type  = zif_gg_session_types_v1=>message_type_error
+          text  = |Field { ls_required_state-name } is required|
+          field = ls_required_state-name ) ).
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.

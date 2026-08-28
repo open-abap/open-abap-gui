@@ -9,8 +9,8 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * What is only recorded, having no meaning in text: FORMAT, the title and the
 * GUI status, and SET BLANK LINES. Tests reach them through the getters.
 *
-* Interactive list processing raises zcx_gg_control_flow rather than pretending
-* to work; it arrives with phase 6 of examples/PLAN.md.
+* Interactive list processing is driven explicitly by the host and retains
+* hidden fields, cursor context, list levels, and line formats.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_list_session_v1.
@@ -378,7 +378,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       REPLACE FIRST OCCURRENCE OF '*' IN rv_text WITH iv_text.
     ENDIF.
 
-    IF is_format-decimals > 0.
+    IF is_format-decimals > 0 AND rv_text CO '0123456789.-+'.
       FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
       IF sy-subrc = 0.
         lv_integer = substring( val = rv_text off = 0 len = lv_offset ).
@@ -395,7 +395,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
                                  len = is_format-decimals ).
       ENDIF.
       rv_text = lv_integer && `.` && lv_fraction.
-    ELSEIF is_format-decimals = 0.
+    ELSEIF is_format-decimals = 0 AND rv_text CO '0123456789.-+'.
       FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
       IF sy-subrc = 0.
         rv_text = substring( val = rv_text off = 0 len = lv_offset ).
@@ -555,6 +555,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       rs_cursor-field = mv_cursor_field.
       rs_cursor-value = mv_cursor_value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_session_v1~get_context.
+    rs_context = get_context( ).
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~read_line.

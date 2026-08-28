@@ -5,6 +5,15 @@
   "output_folder": "output",
   "write_unit_tests": true,
   "write_source_map": true,
+  "options": {
+    "setup": {
+      "filename": "../integration/integration-setup.mjs",
+      "preFunction": "setupDatabase"
+    },
+    "ignoreSyntaxCheck": false,
+    "addFilenames": true,
+    "addCommonJS": true
+  },
   "libs": [
     {
       "url": "https://github.com/open-abap/open-abap-core"
@@ -12,10 +21,5 @@
     {
       "url": "https://github.com/open-abap/open-abap-bal"
     }
-  ],
-  "options": {
-    "ignoreSyntaxCheck": false,
-    "addFilenames": true,
-    "addCommonJS": true
-  }
+  ]
 }

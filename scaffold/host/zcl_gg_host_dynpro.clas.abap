@@ -5,6 +5,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              screen   TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
              terminal TYPE string,
              values   TYPE zif_gg_dynpro_types_v1=>ty_values,
+             lines    TYPE zcl_gg_host_list=>ty_text_lines,
            END OF ty_result.
 
     CLASS-METHODS run
@@ -78,8 +79,26 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         ENDCASE.
     ENDTRY.
 
+    IF lx_flow IS BOUND
+        AND ( lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_screen
+        OR lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_screen )
+        AND lv_screen IS NOT INITIAL.
+      LOOP AT lo_flow->get_modules( ) INTO ls_module
+          WHERE screen = lv_screen AND phase = 'PBO'.
+        lo_session->set_event( 'PROCESS BEFORE OUTPUT' ).
+        io_program->process_output_module(
+          EXPORTING
+            is_context = VALUE #( screen = lv_screen module = ls_module-module-name )
+            io_session = lo_session
+          CHANGING
+            ct_values  = lt_values
+            ct_states  = lt_states ).
+      ENDLOOP.
+    ENDIF.
+
     rs_result-screen = lv_screen.
     rs_result-values = lt_values.
+    rs_result-lines = lo_list->finish_output( ).
   ENDMETHOD.
 
 ENDCLASS.

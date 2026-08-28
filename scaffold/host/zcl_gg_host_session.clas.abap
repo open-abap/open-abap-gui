@@ -46,6 +46,10 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_call) TYPE zif_gg_session_types_v1=>ty_submit.
 
+    METHODS get_transaction_call
+      RETURNING
+        VALUE(rs_call) TYPE zif_gg_session_types_v1=>ty_transaction_call.
+
     METHODS get_continuation
       RETURNING
         VALUE(rs_continuation) TYPE zif_gg_session_types_v1=>ty_continuation.
@@ -112,6 +116,10 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD get_submit_call.
     rs_call = ms_submit_call.
+  ENDMETHOD.
+
+  METHOD get_transaction_call.
+    rs_call = ms_transaction_call.
   ENDMETHOD.
 
   METHOD get_continuation.
