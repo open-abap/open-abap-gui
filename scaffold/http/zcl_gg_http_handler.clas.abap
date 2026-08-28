@@ -572,22 +572,17 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       WHEN '/ZCL_GG_INTEGRATION_HTML_REPORT'.
         CREATE OBJECT ro_report TYPE zcl_gg_integration_html_report.
       WHEN '/ZCL_GG_INTEGRATION_FAILURE'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_failure
-          EXPORTING iv_mode = 'VALID'.
+        CREATE OBJECT ro_report TYPE zcl_gg_integration_failure.
       WHEN '/ZCL_GG_INTEGRATION_FLIGHTS'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_flights
-          EXPORTING iv_mode = 'ALL'.
+        CREATE OBJECT ro_report TYPE zcl_gg_integration_flights.
       WHEN '/ZCL_GG_INTEGRATION_INTERACTIVE'.
         CREATE OBJECT ro_report TYPE zcl_gg_integration_interactive.
       WHEN '/ZCL_GG_INTEGRATION_NAVIGATION'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_navigation
-          EXPORTING iv_mode = 'CALL'.
+        CREATE OBJECT ro_report TYPE zcl_gg_integration_navigation.
       WHEN '/ZCL_GG_INTEGRATION_SELECTION'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_selection
-          EXPORTING iv_mode = 'DEFAULT'.
+        CREATE OBJECT ro_report TYPE zcl_gg_integration_selection.
       WHEN '/ZCL_GG_INTEGRATION_VARIANTS'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_variants
-          EXPORTING iv_mode = 'PLAIN'.
+        CREATE OBJECT ro_report TYPE zcl_gg_integration_variants.
       WHEN '/ZCL_GG_EX_01'.
         CREATE OBJECT ro_report TYPE zcl_gg_ex_01.
       WHEN '/ZCL_GG_EX_02'.

@@ -6,7 +6,7 @@ CLASS zcl_gg_integration_navigation DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS constructor
       IMPORTING
-        iv_mode TYPE string.
+        iv_mode TYPE string DEFAULT 'CALL'.
 
   PRIVATE SECTION.
     DATA mv_mode TYPE string.

@@ -6,7 +6,7 @@ CLASS zcl_gg_integration_variants DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS constructor
       IMPORTING
-        iv_mode TYPE string.
+        iv_mode TYPE string DEFAULT 'PLAIN'.
 
   PRIVATE SECTION.
     DATA mv_mode TYPE string.

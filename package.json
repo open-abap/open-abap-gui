@@ -10,7 +10,7 @@
     "test:html-browser": "node test/playwright.mjs",
     "install:html-browser": "playwright install chromium",
     "test:html-e2e": "npm run transpile && npm run test:html-browser",
-    "start:html": "npm run transpile && node test/start-server.mjs",
+    "start": "npm run transpile && node test/start-server.mjs",
     "test": "npm run lint && npm run unit",
     "regression": "node .github/regression/run.js"
   },
@@ -23,6 +23,6 @@
     "express": "^4.22.2"
   },
   "devDependencies": {
-    "playwright": "^1.55.0"
+    "playwright": "^1.62.1"
   }
 }

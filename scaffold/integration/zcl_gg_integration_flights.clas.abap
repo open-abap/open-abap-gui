@@ -5,7 +5,7 @@ CLASS zcl_gg_integration_flights DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS constructor
       IMPORTING
-        iv_mode TYPE string.
+        iv_mode TYPE string DEFAULT 'ALL'.
 
   PRIVATE SECTION.
     TYPES ty_flights TYPE STANDARD TABLE OF zsflight WITH DEFAULT KEY.
