@@ -151,3 +151,13 @@ explicitly documents a different host or scaffold blocker.
 - [x] Review failures for deterministic fixtures and remove timing dependence.
 - [x] Document known differences between the host runtime and SAP behavior.
 - [x] Mark this plan complete only when every checkbox above is checked.
+
+## 10. Consolidate database isolation in ABAP Unit
+
+- [x] Confirm that `open-abap-core` provides the SQLite-backed OSQL test-double framework.
+- [x] Add a shared typed `ZSFLIGHT` fixture using `CL_OSQL_TEST_ENVIRONMENT`.
+- [x] Add ABAP Unit lifecycle hooks for database setup, reset, and teardown.
+- [x] Reduce the JavaScript setup to schema bootstrap only.
+- [x] Remove the duplicate JavaScript integration scenario runner.
+- [x] Update package scripts and integration documentation to use ABAP Unit as the single test entry point.
+- [x] Run linting, transpilation, unit tests, and repository validation.

@@ -1,6 +1,9 @@
 CLASS ltcl_gg_integration_selection DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
+    CLASS-METHODS class_setup.
+    CLASS-METHODS class_teardown.
+    METHODS setup.
     METHODS applies_default FOR TESTING.
     METHODS accepts_required_field FOR TESTING.
     METHODS rejects_missing_required_field FOR TESTING.
@@ -20,6 +23,18 @@ CLASS ltcl_gg_integration_selection DEFINITION FINAL FOR TESTING DURATION SHORT 
 ENDCLASS.
 
 CLASS ltcl_gg_integration_selection IMPLEMENTATION.
+
+  METHOD class_setup.
+    zcl_gg_integration_db=>create( ).
+  ENDMETHOD.
+
+  METHOD setup.
+    zcl_gg_integration_db=>reset( ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    zcl_gg_integration_db=>destroy( ).
+  ENDMETHOD.
 
   METHOD applies_default.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_integration_selection( 'DEFAULT' ) ).

@@ -1,6 +1,9 @@
 CLASS ltcl_gg_integration_fail DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
+    CLASS-METHODS class_setup.
+    CLASS-METHODS class_teardown.
+    METHODS setup.
     METHODS handles_empty_database FOR TESTING.
     METHODS handles_invalid_carrier FOR TESTING.
     METHODS handles_reversed_range FOR TESTING.
@@ -14,7 +17,20 @@ ENDCLASS.
 
 CLASS ltcl_gg_integration_fail IMPLEMENTATION.
 
+  METHOD class_setup.
+    zcl_gg_integration_db=>create( ).
+  ENDMETHOD.
+
+  METHOD setup.
+    zcl_gg_integration_db=>reset( ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    zcl_gg_integration_db=>destroy( ).
+  ENDMETHOD.
+
   METHOD handles_empty_database.
+    zcl_gg_integration_db=>clear( ).
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_integration_flights( 'NONE' ) ).
 
     cl_abap_unit_assert=>assert_equals(

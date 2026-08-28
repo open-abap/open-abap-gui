@@ -1,6 +1,9 @@
 CLASS ltcl_gg_integration_int DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
+    CLASS-METHODS class_setup.
+    CLASS-METHODS class_teardown.
+    METHODS setup.
     METHODS renders_flight_list FOR TESTING.
     METHODS asserts_initial_contents FOR TESTING.
     METHODS selects_line FOR TESTING.
@@ -21,6 +24,18 @@ CLASS ltcl_gg_integration_int DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
 ENDCLASS.
 
 CLASS ltcl_gg_integration_int IMPLEMENTATION.
+
+  METHOD class_setup.
+    zcl_gg_integration_db=>create( ).
+  ENDMETHOD.
+
+  METHOD setup.
+    zcl_gg_integration_db=>reset( ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    zcl_gg_integration_db=>destroy( ).
+  ENDMETHOD.
 
   METHOD renders_flight_list.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_integration_interactive( ) ).

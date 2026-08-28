@@ -1,6 +1,9 @@
 CLASS ltcl_gg_integration_flights DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
+    CLASS-METHODS class_setup.
+    CLASS-METHODS class_teardown.
+    METHODS setup.
     METHODS returns_all_fixture_rows FOR TESTING.
     METHODS filters_by_carrier FOR TESTING.
     METHODS filters_by_single_date FOR TESTING.
@@ -21,6 +24,18 @@ CLASS ltcl_gg_integration_flights DEFINITION FINAL FOR TESTING DURATION SHORT RI
 ENDCLASS.
 
 CLASS ltcl_gg_integration_flights IMPLEMENTATION.
+
+  METHOD class_setup.
+    zcl_gg_integration_db=>create( ).
+  ENDMETHOD.
+
+  METHOD setup.
+    zcl_gg_integration_db=>reset( ).
+  ENDMETHOD.
+
+  METHOD class_teardown.
+    zcl_gg_integration_db=>destroy( ).
+  ENDMETHOD.
 
   METHOD returns_all_fixture_rows.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_integration_flights( 'ALL' ) ).
