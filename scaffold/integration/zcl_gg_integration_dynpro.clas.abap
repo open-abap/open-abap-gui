@@ -26,6 +26,12 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
     io_builder->begin_pai( ).
     io_builder->add_module( VALUE #( name = 'PAI_0100' on_input = abap_true ) ).
     io_builder->end_processing( ).
+    io_builder->begin_value_request( 'P_INPUT' ).
+    io_builder->add_module( VALUE #( name = 'POV_0100' ) ).
+    io_builder->end_processing( ).
+    io_builder->begin_help_request( 'P_INPUT' ).
+    io_builder->add_module( VALUE #( name = 'POH_0100' ) ).
+    io_builder->end_processing( ).
     io_builder->end_screen( ).
 
     io_builder->begin_screen( '0200' ).
@@ -39,6 +45,12 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
     INSERT VALUE #( name = 'PBO_0100' ) INTO TABLE ct_values.
     INSERT VALUE #( name = 'PBO_0200' ) INTO TABLE ct_values.
     INSERT VALUE #( name = 'PAI_0100' ) INTO TABLE ct_values.
+    INSERT VALUE #( name = 'PAI_FIELD' ) INTO TABLE ct_values.
+    INSERT VALUE #( name = 'PAI_TABLE' ) INTO TABLE ct_values.
+    INSERT VALUE #( name = 'PAI_ROW' ) INTO TABLE ct_values.
+    INSERT VALUE #( name = 'PAI_LOOP' ) INTO TABLE ct_values.
+    INSERT VALUE #( name = 'PAI_CURSOR' ) INTO TABLE ct_values.
+    INSERT VALUE #( name = 'PAI_CURSOR_ROW' ) INTO TABLE ct_values.
     INSERT VALUE #( name = 'P_STATE' value = 'INITIAL' ) INTO TABLE ct_values.
   ENDMETHOD.
 
@@ -58,6 +70,12 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
 
   METHOD zif_gg_dynpro_v1~process_input_module.
     ct_values[ name = 'PAI_0100' ]-value = 'X'.
+    ct_values[ name = 'PAI_FIELD' ]-value = is_context-field.
+    ct_values[ name = 'PAI_TABLE' ]-value = is_context-table_control.
+    ct_values[ name = 'PAI_ROW' ]-value = |{ is_context-row }|.
+    ct_values[ name = 'PAI_LOOP' ]-value = |{ is_context-loop_lines }|.
+    ct_values[ name = 'PAI_CURSOR' ]-value = is_context-cursor_field.
+    ct_values[ name = 'PAI_CURSOR_ROW' ]-value = |{ is_context-cursor_row }|.
     CASE is_context-ucomm.
       WHEN 'NEXT' OR 'LIST'.
         io_session->get_dialog( )->set_next_screen( '0200' ).
@@ -73,11 +91,15 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_on_value_request.
-    RETURN.
+    IF is_context-module = 'POV_0100'.
+      rt_values = VALUE #( ( name = 'POV_VALUE' value = 'Value from POV' ) ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_on_help_request.
-    RETURN.
+    IF is_context-module = 'POH_0100'.
+      rv_text = 'Help from POH'.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

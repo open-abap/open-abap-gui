@@ -41,7 +41,14 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'DIALOGBOX_CONTAINER' ).
+    set_position( height = height width = width left = left top = top ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_caption.

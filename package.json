@@ -7,7 +7,14 @@
     "lint": "abaplint",
     "transpile": "abap_transpile",
     "unit": "abap_transpile && echo RUNNING && node output/index.mjs",
-    "test": "npm run lint && npm run unit",
+    "test:html": "node integration/html-http.mjs",
+    "test:html-a11y": "node integration/html-a11y.mjs",
+    "test:html-golden": "node integration/html-golden.mjs",
+    "test:html-snapshots": "node integration/html-snapshots.mjs",
+    "test:html-smoke": "node integration/html-smoke.mjs",
+    "test:html-browser": "node integration/html-browser.mjs",
+    "test:gui-inventory": "node integration/gui-inventory.mjs",
+    "test": "npm run lint && npm run unit && npm run test:html && npm run test:html-a11y && npm run test:html-golden && npm run test:html-snapshots && npm run test:html-smoke && npm run test:gui-inventory",
     "regression": "node .github/regression/run.js"
   },
   "license": "",
@@ -15,6 +22,7 @@
     "@abaplint/cli": "^2.120.38",
     "@abaplint/runtime": "^2.13.64",
     "@abaplint/database-sqlite": "^2.13.40",
-    "@abaplint/transpiler-cli": "^2.13.64"
+    "@abaplint/transpiler-cli": "^2.13.64",
+    "playwright-core": "^1.55.0"
   }
 }

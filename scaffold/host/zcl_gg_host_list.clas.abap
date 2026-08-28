@@ -1,7 +1,7 @@
 CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
-* Classic list processor rendering to plain text. Lines are trimmed on the
-* right, so an expected list can be written down as an ordinary string table.
+* Classic list processor model. Text lines remain available for compatibility,
+* while fragments retain enough information for an HTML page renderer.
 *
 * What is modelled: placement, the gap between fields, justification, page
 * breaks with top_of_page and end_of_page, and reading or replacing a line.
@@ -21,6 +21,37 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       WITH DEFAULT KEY.
     TYPES ty_hidden_lines TYPE STANDARD TABLE OF zif_gg_list_processing_types_v1=>ty_hidden_fields
       WITH DEFAULT KEY.
+    TYPES: BEGIN OF ty_fragment,
+             kind     TYPE string,
+             text     TYPE string,
+             position TYPE i,
+             length   TYPE i,
+             format   TYPE zif_gg_list_processing_types_v1=>ty_format,
+             hidden   TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields,
+           END OF ty_fragment.
+    TYPES ty_fragments TYPE STANDARD TABLE OF ty_fragment WITH DEFAULT KEY.
+    TYPES: BEGIN OF ty_render_line,
+             level     TYPE i,
+             page      TYPE i,
+             index     TYPE i,
+             token     TYPE string,
+             text      TYPE string,
+             format    TYPE zif_gg_list_processing_types_v1=>ty_format,
+             fields    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields,
+             fragments TYPE ty_fragments,
+           END OF ty_render_line.
+    TYPES ty_render_lines TYPE STANDARD TABLE OF ty_render_line WITH DEFAULT KEY.
+
+    TYPES: BEGIN OF ty_model_event,
+             kind       TYPE string,
+             level      TYPE i,
+             page       TYPE i,
+             line       TYPE i,
+             position   TYPE i,
+             text       TYPE string,
+             line_count TYPE i,
+           END OF ty_model_event.
+    TYPES ty_model_events TYPE STANDARD TABLE OF ty_model_event WITH DEFAULT KEY.
 
     CONSTANTS default_line_size TYPE i VALUE 132.
 
@@ -65,6 +96,14 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_enabled) TYPE abap_bool.
 
+    METHODS get_render_lines
+      RETURNING
+        VALUE(rt_lines) TYPE ty_render_lines.
+
+    METHODS get_model_events
+      RETURNING
+        VALUE(rt_events) TYPE ty_model_events.
+
     METHODS select_line
       IMPORTING
         iv_index TYPE i
@@ -85,6 +124,9 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_line_formats TYPE ty_line_formats.
     DATA mt_hidden_lines TYPE ty_hidden_lines.
     DATA mt_current_hidden TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields.
+    DATA mt_render_lines TYPE ty_render_lines.
+    DATA mt_model_events TYPE ty_model_events.
+    DATA mt_current_fragments TYPE ty_fragments.
     DATA mv_title     TYPE string.
     DATA mv_current   TYPE string.
     DATA mv_column    TYPE i.
@@ -121,6 +163,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         is_placement TYPE zif_gg_list_processing_types_v1=>ty_placement
         iv_text      TYPE string
+        iv_kind      TYPE string DEFAULT 'TEXT'
         it_hidden    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields OPTIONAL.
 
     METHODS fit
@@ -208,6 +251,14 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     rv_enabled = mv_blank.
   ENDMETHOD.
 
+  METHOD get_render_lines.
+    rt_lines = mt_render_lines.
+  ENDMETHOD.
+
+  METHOD get_model_events.
+    rt_events = mt_model_events.
+  ENDMETHOD.
+
   METHOD select_line.
     mv_selected_line = iv_index.
     mv_cursor_field = iv_field.
@@ -242,6 +293,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   METHOD begin_page.
     mv_page = mv_page + 1.
     mv_line = 0.
+    APPEND VALUE #( kind = 'PAGE_BEGIN'
+                    level = mv_list_level
+                    page = mv_page ) TO mt_model_events.
     IF iv_no_heading = abap_true OR mo_handler IS NOT BOUND.
       RETURN.
     ENDIF.
@@ -254,10 +308,18 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD end_line.
+    DATA lv_page TYPE i.
+    DATA lv_line TYPE i.
     IF mv_current IS INITIAL AND mv_column <= 1.
       RETURN.
     ENDIF.
+    lv_page = mv_page.
+    lv_line = mv_line.
     flush( ).
+    APPEND VALUE #( kind = 'LINE_BREAK'
+                    level = mv_list_level
+                    page = lv_page
+                    line = lv_line ) TO mt_model_events.
   ENDMETHOD.
 
   METHOD flush.
@@ -280,8 +342,19 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
                       len = lv_length ) TO mt_lines.
     APPEND ms_format TO mt_line_formats.
     APPEND mt_current_hidden TO mt_hidden_lines.
+    APPEND VALUE #( level     = mv_list_level
+                    page      = mv_page
+                    index     = lines( mt_lines )
+                    token     = |H-{ mv_page }-{ lines( mt_lines ) }|
+                    text      = substring( val = mv_current
+                                           off = 0
+                                           len = lv_length )
+                    format    = ms_format
+                    fields    = mt_current_hidden
+                    fragments = mt_current_fragments ) TO mt_render_lines.
     CLEAR mv_current.
     CLEAR mt_current_hidden.
+    CLEAR mt_current_fragments.
     mv_column = 1.
     mv_no_gap = abap_false.
     mv_line   = mv_line + 1.
@@ -303,6 +376,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       RETURN.
     ENDIF.
     mv_breaking = abap_true.
+    APPEND VALUE #( kind = 'PAGE_END'
+                    level = mv_list_level
+                    page = mv_page
+                    line = mv_line ) TO mt_model_events.
     IF mo_handler IS BOUND.
       mv_in_event = abap_true.
       mo_handler->end_of_page(
@@ -337,7 +414,14 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ELSEIF mv_column > 1 AND mv_no_gap = abap_false.
       mv_column = mv_column + 1.
     ENDIF.
+    DATA(lv_position) = mv_column.
     place( iv_text ).
+    APPEND VALUE #( kind     = iv_kind
+                    text     = iv_text
+                    position = lv_position
+                    length   = strlen( iv_text )
+                    format   = ms_format
+                    hidden   = it_hidden ) TO mt_current_fragments.
     APPEND LINES OF it_hidden TO mt_current_hidden.
     mv_no_gap = is_placement-no_gap.
   ENDMETHOD.
@@ -429,6 +513,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   METHOD zif_gg_list_writer_v1~write_field.
     write_at(
       is_placement = is_field-placement
+      iv_kind      = 'TEXT'
       iv_text      = fit( iv_text          = format_write(
                             iv_text   = is_field-text
                             is_format = is_field-write_format )
@@ -447,19 +532,22 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ENDIF.
     write_at(
       is_placement = is_checkbox-placement
-      iv_text      = lv_text ).
+      iv_text      = lv_text
+      iv_kind      = 'CHECKBOX' ).
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_icon.
     write_at(
       is_placement = is_icon-placement
-      iv_text      = |@{ is_icon-name }@| ).
+      iv_text      = |@{ is_icon-name }@|
+      iv_kind      = 'ICON' ).
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_symbol.
     write_at(
       is_placement = is_symbol-placement
-      iv_text      = |@{ is_symbol-name }@| ).
+      iv_text      = |@{ is_symbol-name }@|
+      iv_kind      = 'SYMBOL' ).
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~new_line.
@@ -471,6 +559,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ensure_page( ).
     end_line( ).
     DO iv_lines TIMES.
+      APPEND VALUE #( kind = 'SKIP'
+                      level = mv_list_level
+                      page = mv_page
+                      line_count = 1 ) TO mt_model_events.
       flush( ).
     ENDDO.
   ENDMETHOD.
@@ -479,6 +571,11 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     DATA lv_length TYPE i.
 
     ensure_page( ).
+    APPEND VALUE #( kind = 'ULINE'
+                    level = mv_list_level
+                    page = mv_page
+                    position = is_uline-position
+                    line_count = is_uline-length ) TO mt_model_events.
     end_line( ).
     lv_length = is_uline-length.
     IF lv_length <= 0.
@@ -582,6 +679,16 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       RETURN.
     ENDIF.
     mt_lines[ is_line-index ] = is_line-text.
+    IF is_line-index <= lines( mt_render_lines ).
+      mt_render_lines[ is_line-index ]-text = is_line-text.
+      CLEAR mt_render_lines[ is_line-index ]-fragments.
+      APPEND VALUE #( kind     = 'TEXT'
+                      text     = is_line-text
+                      position = 1
+                      length   = strlen( is_line-text )
+                      format   = is_line-format )
+        TO mt_render_lines[ is_line-index ]-fragments.
+    ENDIF.
     IF is_line-index <= lines( mt_line_formats ).
       mt_line_formats[ is_line-index ] = is_line-format.
     ENDIF.

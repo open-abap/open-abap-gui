@@ -92,6 +92,17 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mt_special_groups TYPE lvc_t_sgrp.
     DATA mt_toolbar_excluding TYPE ui_functions.
 
+    TYPES: BEGIN OF ty_html_node,
+             node_key   TYPE string,
+             parent_key TYPE string,
+             text       TYPE string,
+             expanded   TYPE abap_bool,
+             selected   TYPE abap_bool,
+           END OF ty_html_node.
+    TYPES ty_html_nodes TYPE STANDARD TABLE OF ty_html_node WITH DEFAULT KEY.
+    DATA mt_html_nodes TYPE ty_html_nodes.
+    DATA mv_html_top_node TYPE string.
+
     EVENTS after_user_command
       EXPORTING
       VALUE(ucomm) TYPE sy-ucomm.
@@ -291,6 +302,26 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       CHANGING
         c_menu     TYPE REF TO cl_ctmenu.
 
+    METHODS add_html_node
+      IMPORTING
+        node_key   TYPE string
+        parent_key TYPE string OPTIONAL
+        text       TYPE string OPTIONAL.
+
+    METHODS refresh_tree_html.
+
+    METHODS set_html_node_state
+      IMPORTING
+        node_key TYPE string
+        expanded TYPE abap_bool OPTIONAL
+        selected TYPE abap_bool OPTIONAL.
+
+    METHODS clear_html_nodes.
+
+    METHODS tree_html
+      RETURNING
+        VALUE(result) TYPE string.
+
   PRIVATE SECTION.
 
 ENDCLASS.
@@ -442,6 +473,70 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD get_frontend_fieldcatalog.
     RETURN. " todo, implement method
+  ENDMETHOD.
+
+  METHOD add_html_node.
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = node_key.
+    IF sy-subrc = 0.
+      RETURN.
+    ENDIF.
+    APPEND VALUE #( node_key = node_key
+                    parent_key = parent_key
+                    text = text
+                    expanded = abap_true ) TO mt_html_nodes.
+    refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD refresh_tree_html.
+    cl_gui_control=>set_html( control = me html = tree_html( ) ).
+  ENDMETHOD.
+
+  METHOD tree_html.
+    DATA lv_depth TYPE i.
+    DATA lv_parent TYPE string.
+    result = |<ul role="tree" aria-label="ALV tree">|.
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      lv_depth = 1.
+      lv_parent = ls_node-parent_key.
+      DO 32 TIMES.
+        IF lv_parent IS INITIAL.
+          EXIT.
+        ENDIF.
+        READ TABLE mt_html_nodes INTO DATA(ls_parent)
+          WITH KEY node_key = lv_parent.
+        IF sy-subrc <> 0.
+          EXIT.
+        ENDIF.
+        lv_depth = lv_depth + 1.
+        lv_parent = ls_parent-parent_key.
+      ENDDO.
+      DATA(lv_selected) = COND string( WHEN ls_node-selected = abap_true THEN ' aria-current="true"' ELSE '' ).
+      DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
+      result = result && |<li role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }>{ escape_html( ls_node-text ) }</li>|.
+    ENDLOOP.
+    result = result && |</ul>|.
+  ENDMETHOD.
+
+  METHOD set_html_node_state.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    IF expanded IS SUPPLIED.
+      ls_node-expanded = expanded.
+    ENDIF.
+    IF selected IS SUPPLIED.
+      ls_node-selected = selected.
+    ENDIF.
+    MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD clear_html_nodes.
+    CLEAR mt_html_nodes.
+    refresh_tree_html( ).
   ENDMETHOD.
 
 ENDCLASS.

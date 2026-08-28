@@ -12,11 +12,11 @@ ENDCLASS.
 CLASS cl_gui_timer IMPLEMENTATION.
 
   METHOD run.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD cancel.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

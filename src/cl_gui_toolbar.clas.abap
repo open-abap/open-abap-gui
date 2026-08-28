@@ -126,7 +126,14 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD fill_buttons_data_table.
-    RETURN. " todo, implement method
+    APPEND VALUE #(
+      function  = fcode
+      icon      = icon
+      disabled  = disabled
+      butn_type = butn_type
+      text      = text
+      quickinfo = quickinfo
+      checked   = checked ) TO data_table.
   ENDMETHOD.
 
   METHOD assign_static_ctxmenu_table.
@@ -134,7 +141,8 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_button_group.
-    RETURN. " todo, implement method
+    APPEND LINES OF data_table TO m_table_button.
+    cl_gui_control=>set_buttons( control = me buttons = m_table_button ).
   ENDMETHOD.
 
   METHOD set_button_info.
@@ -142,19 +150,37 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'TOOLBAR' ).
+    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD set_static_ctxmenu.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD free.
-    ASSERT 1 = 'todo'.
+    super->free( ).
   ENDMETHOD.
 
   METHOD add_button.
-    ASSERT 1 = 'todo'.
+    fill_buttons_data_table(
+      EXPORTING
+        fcode      = fcode
+        icon       = icon
+        disabled   = COND #( WHEN is_disabled = abap_true THEN 'X' ELSE ' ' )
+        butn_type  = butn_type
+        text       = text
+        quickinfo  = quickinfo
+        checked    = is_checked
+      CHANGING
+        data_table = m_table_button ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |{ fcode } { text }| ).
+    cl_gui_control=>set_buttons( control = me buttons = m_table_button ).
   ENDMETHOD.
 
 ENDCLASS.

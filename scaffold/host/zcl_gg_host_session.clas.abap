@@ -18,9 +18,16 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS constructor
       IMPORTING
-        io_list    TYPE REF TO zcl_gg_host_list
-        iv_program TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
-        iv_batch   TYPE abap_bool DEFAULT abap_false.
+        io_list      TYPE REF TO zcl_gg_host_list
+        iv_program   TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
+        iv_batch     TYPE abap_bool DEFAULT abap_false
+        iv_processor TYPE zif_gg_session_types_v1=>ty_processor DEFAULT zif_gg_session_types_v1=>processor_report
+        iv_screen    TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL.
+
+    METHODS set_processor
+      IMPORTING
+        iv_processor TYPE zif_gg_session_types_v1=>ty_processor
+        iv_screen    TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL.
 
     METHODS set_event
       IMPORTING
@@ -50,6 +57,18 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_call) TYPE zif_gg_session_types_v1=>ty_transaction_call.
 
+    METHODS get_title
+      RETURNING
+        VALUE(rv_title) TYPE string.
+
+    METHODS get_status
+      RETURNING
+        VALUE(rs_status) TYPE zif_gg_session_types_v1=>ty_gui_status.
+
+    METHODS get_cursor
+      RETURNING
+        VALUE(rs_cursor) TYPE zif_gg_session_types_v1=>ty_dialog_cursor.
+
     METHODS get_continuation
       RETURNING
         VALUE(rs_continuation) TYPE zif_gg_session_types_v1=>ty_continuation.
@@ -60,13 +79,20 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS set_list_from_memory
       IMPORTING
-        it_lines TYPE zif_gg_session_types_v1=>ty_memory_list.
+        it_lines        TYPE zif_gg_session_types_v1=>ty_memory_list
+        it_render_lines TYPE zcl_gg_host_list=>ty_render_lines OPTIONAL.
+
+    METHODS get_list_render_from_memory
+      RETURNING
+        VALUE(rt_lines) TYPE zcl_gg_host_list=>ty_render_lines.
 
   PRIVATE SECTION.
     DATA mo_list      TYPE REF TO zcl_gg_host_list.
     DATA mv_program   TYPE zif_gg_session_types_v1=>ty_program.
     DATA mv_event     TYPE zif_gg_session_types_v1=>ty_event.
     DATA mv_batch     TYPE abap_bool.
+    DATA mv_processor TYPE zif_gg_session_types_v1=>ty_processor.
+    DATA mv_screen    TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
     DATA mv_suppress  TYPE abap_bool.
     DATA mv_next_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
     DATA mv_title     TYPE string.
@@ -78,6 +104,7 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA ms_submit_call TYPE zif_gg_session_types_v1=>ty_submit.
     DATA ms_continuation TYPE zif_gg_session_types_v1=>ty_continuation.
     DATA mt_memory_lines TYPE zif_gg_session_types_v1=>ty_memory_list.
+    DATA mt_memory_render_lines TYPE zcl_gg_host_list=>ty_render_lines.
     DATA mt_messages  TYPE ty_messages.
 
     METHODS unsupported
@@ -92,6 +119,15 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     mo_list    = io_list.
     mv_program = iv_program.
     mv_batch   = iv_batch.
+    mv_processor = iv_processor.
+    mv_screen = iv_screen.
+  ENDMETHOD.
+
+  METHOD set_processor.
+    mv_processor = iv_processor.
+    IF iv_screen IS NOT INITIAL.
+      mv_screen = iv_screen.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_event.
@@ -122,6 +158,18 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     rs_call = ms_transaction_call.
   ENDMETHOD.
 
+  METHOD get_title.
+    rv_title = mv_title.
+  ENDMETHOD.
+
+  METHOD get_status.
+    rs_status = ms_status.
+  ENDMETHOD.
+
+  METHOD get_cursor.
+    rs_cursor = ms_cursor.
+  ENDMETHOD.
+
   METHOD get_continuation.
     rs_continuation = ms_continuation.
   ENDMETHOD.
@@ -132,6 +180,11 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD set_list_from_memory.
     mt_memory_lines = it_lines.
+    mt_memory_render_lines = it_render_lines.
+  ENDMETHOD.
+
+  METHOD get_list_render_from_memory.
+    rt_lines = mt_memory_render_lines.
   ENDMETHOD.
 
   METHOD unsupported.
@@ -141,11 +194,21 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_session_v1~get_context.
-    rs_context-processor       = zif_gg_session_types_v1=>processor_report.
+    rs_context-processor       = mv_processor.
     rs_context-program-program = mv_program.
     rs_context-program-event   = mv_event.
     rs_context-program-batch   = mv_batch.
     rs_context-list            = mo_list->get_context( ).
+    rs_context-selection-active = xsdbool(
+      mv_processor = zif_gg_session_types_v1=>processor_selection ).
+    rs_context-selection-screen = mv_screen.
+    IF rs_context-selection-screen IS INITIAL.
+      rs_context-selection-screen = '1000'.
+    ENDIF.
+    rs_context-dynpro-active = xsdbool(
+      mv_processor = zif_gg_session_types_v1=>processor_dynpro ).
+    rs_context-dynpro-program = mv_program.
+    rs_context-dynpro-screen = mv_screen.
   ENDMETHOD.
 
   METHOD zif_gg_session_v1~get_dialog.

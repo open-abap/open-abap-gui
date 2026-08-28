@@ -32,7 +32,11 @@ ENDCLASS.
 CLASS cl_gui_list_tree IMPLEMENTATION.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'LIST_TREE' ).
+    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD hierarchy_header_set_text.

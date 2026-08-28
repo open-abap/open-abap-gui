@@ -34,12 +34,17 @@ const UNIT = process.env.REGRESSION_UNIT || "npm run unit";
 const WORK = "regression-work";
 const LIB_FOLDER = "regression-lib";
 const TAIL_LINES = 60;
+const GIT_BASH = "C:\\Program Files\\Git\\bin\\bash.exe";
+// abapGit's build script uses POSIX rm; use Git Bash for the default unit
+// command on Windows when it is available.
+const UNIT_SHELL = process.platform === "win32" && UNIT === "npm run unit" &&
+  fs.existsSync(GIT_BASH) ? GIT_BASH : true;
 
-function run(command, cwd, logfile) {
+function run(command, cwd, logfile, shell = true) {
   console.log("\n$ " + command + "    [" + cwd + "]");
   const res = childProcess.spawnSync(command, {
     cwd: cwd,
-    shell: true,
+    shell: shell,
     encoding: "utf-8",
     maxBuffer: 256 * 1024 * 1024,
   });
@@ -120,7 +125,7 @@ function main() {
   const upstream = fs.readFileSync(configFile, "utf-8");
   useLocalLib(configFile, LIB_FOLDER);
 
-  const local = run(UNIT, clone, path.join(WORK, "unit-local.log"));
+  const local = run(UNIT, clone, path.join(WORK, "unit-local.log"), UNIT_SHELL);
   if (local.ok) {
     report(":green_circle:", REPO + " unit tests pass");
     return 0;
@@ -129,7 +134,7 @@ function main() {
   // failed, check whether the upstream open-abap-gui fails in the same way
   console.log("\nFailed, running again with the upstream " + LIB + " for comparison");
   fs.writeFileSync(configFile, upstream);
-  const reference = run(UNIT, clone, path.join(WORK, "unit-upstream.log"));
+  const reference = run(UNIT, clone, path.join(WORK, "unit-upstream.log"), UNIT_SHELL);
   if (reference.ok) {
     report(":red_circle:", "Regression, " + REPO + " unit tests fail with this branch, but pass with " +
       LIB + " main", tail(local.output, TAIL_LINES));

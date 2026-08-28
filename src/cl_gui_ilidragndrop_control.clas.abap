@@ -90,7 +90,13 @@ ENDCLASS.
 CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent = parent
+      kind = 'DRAGDROP' ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD start_dragging.

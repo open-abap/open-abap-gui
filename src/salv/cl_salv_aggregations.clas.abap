@@ -8,6 +8,6 @@ ENDCLASS.
 
 CLASS cl_salv_aggregations IMPLEMENTATION.
   METHOD add_aggregation.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 ENDCLASS.

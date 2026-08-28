@@ -113,7 +113,7 @@ CLASS cl_salv_functions_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_default.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

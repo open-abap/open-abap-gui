@@ -80,6 +80,14 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
     METHODS get_functional_settings
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_functional_settings.
+
+    METHODS get_html
+      RETURNING
+        VALUE(value) TYPE string.
+
+  PRIVATE SECTION.
+    DATA mv_row_count TYPE i.
+    DATA mv_header TYPE string.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
@@ -96,87 +104,92 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_sorts.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_functional_settings.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_layout.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD to_xml.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_filters.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_aggregations.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_functions.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_metadata.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_striped_pattern.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_list_header.
-    ASSERT 1 = 'todo'.
+    mv_header = CONV string( val ).
   ENDMETHOD.
 
   METHOD factory.
-    ASSERT 1 = 'todo'.
+    r_salv_table = NEW cl_salv_table( ).
+    r_salv_table->mv_row_count = lines( t_table ).
   ENDMETHOD.
 
   METHOD is_offline.
-    ASSERT 1 = 'todo'.
+    value = abap_false.
   ENDMETHOD.
 
   METHOD get_selections.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD close_screen.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD refresh.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD display.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD set_screen_popup.
-    ASSERT 1 = 'TODO'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_event.
-    ASSERT 1 = 'TODO'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_display_settings.
-    ASSERT 1 = 'TODO'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_top_of_list.
-    ASSERT 1 = 'TODO'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_columns.
-    ASSERT 1 = 'TODO'.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD get_html.
+    value = |<section class="gg-salv-table" aria-label="SALV table"><h2>{ cl_gui_control=>escape_html( mv_header ) }</h2><p>{ mv_row_count } rows</p><table><caption>{ cl_gui_control=>escape_html( mv_header ) }</caption><tbody></tbody></table></section>|.
   ENDMETHOD.
 
 ENDCLASS.

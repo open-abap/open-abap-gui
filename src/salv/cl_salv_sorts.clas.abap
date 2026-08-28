@@ -32,6 +32,6 @@ CLASS cl_salv_sorts IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_sort.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 ENDCLASS.

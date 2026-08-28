@@ -113,50 +113,50 @@ CLASS cl_salv_column IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_currency_column.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_zero.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_visible.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_alignment.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_optimized.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_technical.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_short_text.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_medium_text.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_long_text.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_output_length.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_output_length.
-    ASSERT 1 = 'todo'.
+    length = 0.
   ENDMETHOD.
 
   METHOD set_sign.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 ENDCLASS.

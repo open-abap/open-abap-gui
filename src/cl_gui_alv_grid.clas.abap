@@ -504,6 +504,26 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
     DATA m_display_protocol TYPE abap_bool.
 
   PRIVATE SECTION.
+    TYPES: BEGIN OF ty_html_cell,
+             fieldname TYPE lvc_fname,
+             text      TYPE string,
+           END OF ty_html_cell.
+    TYPES ty_html_cells TYPE STANDARD TABLE OF ty_html_cell WITH DEFAULT KEY.
+    TYPES: BEGIN OF ty_html_row,
+             index TYPE i,
+             cells TYPE ty_html_cells,
+           END OF ty_html_row.
+    TYPES ty_html_rows TYPE STANDARD TABLE OF ty_html_row WITH DEFAULT KEY.
+    DATA mt_fieldcatalog TYPE lvc_t_fcat.
+    DATA mt_html_rows TYPE ty_html_rows.
+    DATA mt_selected_rows TYPE lvc_t_row.
+    DATA mt_sort TYPE lvc_t_sort.
+    DATA mt_filter TYPE lvc_t_filt.
+    DATA mv_gridtitle TYPE lvc_title.
+
+    METHODS render_model
+      RETURNING
+        VALUE(result) TYPE string.
     DATA mt_f4 TYPE lvc_t_f4.
     DATA m_cl_variant TYPE REF TO cl_alv_variant.
     DATA mt_hyperlinks TYPE lvc_t_hype.
@@ -565,15 +585,17 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_sort_criteria.
-    RETURN. " todo, implement method
+    mt_sort = it_sort.
+    refresh_table_display( ).
   ENDMETHOD.
 
   METHOD get_filtered_entries.
-    RETURN. " todo, implement method
+    CLEAR et_filtered_entries.
   ENDMETHOD.
 
   METHOD set_filter_criteria.
-    RETURN. " todo, implement method
+    mt_filter = it_filter.
+    refresh_table_display( ).
   ENDMETHOD.
 
   METHOD set_function_code.
@@ -593,7 +615,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_filter_criteria.
-    RETURN. " todo, implement method
+    et_filter = mt_filter.
   ENDMETHOD.
 
   METHOD set_drop_down_table.
@@ -605,7 +627,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_sort_criteria.
-    RETURN. " todo, implement method
+    et_sort = mt_sort.
   ENDMETHOD.
 
   METHOD get_frontend_print.
@@ -625,7 +647,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_frontend_fieldcatalog.
-    RETURN. " todo, implement method
+    mt_fieldcatalog = it_fieldcatalog.
+    refresh_table_display( ).
   ENDMETHOD.
 
   METHOD set_scroll_info_via_id.
@@ -649,7 +672,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_frontend_fieldcatalog.
-    RETURN. " todo, implement method
+    et_fieldcatalog = mt_fieldcatalog.
   ENDMETHOD.
 
   METHOD get_frontend_layout.
@@ -661,43 +684,111 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_gridtitle.
-    RETURN. " todo, implement method
+    mv_gridtitle = i_gridtitle.
+    refresh_table_display( ).
   ENDMETHOD.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = i_parent
+      kind    = 'ALV_GRID' ).
+    i_parent->add_child( me ).
   ENDMETHOD.
 
   METHOD set_frontend_layout.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_toolbar_interactive.
-    ASSERT 1 = 'todo'.
+    refresh_table_display( ).
   ENDMETHOD.
 
   METHOD set_ready_for_input.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_selected_rows.
-    ASSERT 1 = 'todo'.
+    CLEAR mt_selected_rows.
+    IF it_row_no IS SUPPLIED.
+      mt_selected_rows = it_row_no.
+    ELSEIF it_index_rows IS SUPPLIED.
+      mt_selected_rows = it_index_rows.
+    ENDIF.
+    refresh_table_display( ).
   ENDMETHOD.
 
   METHOD offline.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD refresh_table_display.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>set_html(
+      control = me
+      html    = render_model( ) ).
   ENDMETHOD.
 
   METHOD set_table_for_first_display.
-    ASSERT 1 = 'todo'.
+    FIELD-SYMBOLS <row> TYPE any.
+    DATA ls_row TYPE ty_html_row.
+    DATA ls_fieldcat TYPE lvc_s_fcat.
+
+    CLEAR mt_html_rows.
+    CLEAR mt_fieldcatalog.
+    IF it_fieldcatalog IS SUPPLIED.
+      mt_fieldcatalog = it_fieldcatalog.
+    ENDIF.
+    LOOP AT it_outtab ASSIGNING <row>.
+      ls_row = VALUE #( index = sy-tabix ).
+      IF mt_fieldcatalog IS INITIAL.
+        APPEND VALUE #( fieldname = `VALUE`
+                        text = |{ <row> }| ) TO ls_row-cells.
+      ELSE.
+        READ TABLE mt_fieldcatalog INTO ls_fieldcat INDEX 1.
+        IF sy-subrc = 0.
+          APPEND VALUE #( fieldname = ls_fieldcat-fieldname
+                          text = |{ <row> }| ) TO ls_row-cells.
+        ENDIF.
+      ENDIF.
+      APPEND ls_row TO mt_html_rows.
+    ENDLOOP.
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |ALV rows: { lines( mt_html_rows ) }| ).
+    cl_gui_control=>set_html(
+      control = me
+      html    = render_model( ) ).
+  ENDMETHOD.
+
+  METHOD render_model.
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header><div class="gg-alv-toolbar" role="toolbar"><button type="submit" name="gg_ucomm" value="&REFRESH">Refresh</button><button type="submit" name="gg_ucomm" value="&SORT">Sort</button><button type="submit" name="gg_ucomm" value="&FILTER">Filter</button></div><table data-sortable="true"><thead><tr><th scope="col">Select</th>|.
+    LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
+      IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
+        DATA(lv_heading) = ls_fieldcat-coltext.
+        IF lv_heading IS INITIAL.
+          lv_heading = ls_fieldcat-scrtext_l.
+        ENDIF.
+        IF lv_heading IS INITIAL.
+          lv_heading = ls_fieldcat-fieldname.
+        ENDIF.
+        result = result && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-sortable="true">{ cl_gui_control=>escape_html( CONV string( lv_heading ) ) }</th>|.
+      ENDIF.
+    ENDLOOP.
+    result = result && |</tr></thead><tbody>|.
+    LOOP AT mt_html_rows INTO DATA(ls_row).
+      DATA(lv_selected) = COND string( WHEN line_exists( mt_selected_rows[ index = ls_row-index ] ) THEN ` selected` ELSE `` ).
+      result = result && |<tr data-row-index="{ ls_row-index }"{ lv_selected }><td><input type="checkbox" name="gg-alv-row-{ ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected IS NOT INITIAL THEN ` checked` ELSE `` ) }></td>|.
+      LOOP AT ls_row-cells INTO DATA(ls_cell).
+        result = result && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
+      ENDLOOP.
+      result = result && |</tr>|.
+    ENDLOOP.
+    result = result && |</tbody></table></section>|.
   ENDMETHOD.
 
   METHOD get_selected_rows.
-    ASSERT 1 = 'todo'.
+    et_index_rows = mt_selected_rows.
+    et_row_no = mt_selected_rows.
   ENDMETHOD.
 
 ENDCLASS.

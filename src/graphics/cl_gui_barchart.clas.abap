@@ -17,7 +17,13 @@ CLASS cl_gui_barchart IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
+    cl_gui_control=>initialize(
+      control = me
+      parent = parent
+      kind = 'BARCHART' ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
