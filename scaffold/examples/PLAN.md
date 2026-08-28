@@ -57,9 +57,9 @@ The test for item 3 lives in `zcl_gg_ex_<nn>.clas.testclasses.abap`, one
 
 Two things that bite and are not caught where you would expect:
 
-- Pass parameters by name whenever a method has more than one, optional ones
-  included. The transpiler does not resolve positional passing in that case,
-  and it fails at runtime rather than at lint time.
+- In ABAP, a method call with more than one parameter must mention the
+  parameter names, including optional parameters. Use named parameter passing
+  for those calls.
 - A call with a single parameter must stay on one line, including a `VALUE #( )`
   argument, or `keep_single_parameter_on_one_line` rejects it.
 
@@ -127,7 +127,7 @@ tried as prerequisites and both fail lint on their own.
 - [x] 05 `FORMAT` colour and attributes
 - [x] 06 `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
 - [ ] 07 `REPORT ... LINE-SIZE / LINE-COUNT / NO STANDARD PAGE HEADING`
-- [ ] 08 `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
+- [x] 08 `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
 - [x] 09 `TOP-OF-PAGE`
 - [x] 10 `END-OF-PAGE`
 
@@ -405,8 +405,8 @@ ENDMETHOD.
 
 Exercises `new_page`, `reserve`, `set_blank_lines`.
 
-The report and class specimens are present. The report remains excluded from
-the runtime transpile because the toolchain does not support `NEW-PAGE`.
+The report and class specimens are present, and the report runs through the
+runtime transpile and host test.
 
 ```abap
 REPORT zgg_ex_08.
@@ -1389,8 +1389,8 @@ METHOD zif_gg_list_processing_v1~at_line_selection.
 ENDMETHOD.
 ```
 The report and counterpart are present, but the checkbox stays open until the
-transpiler supports `HIDE` and the host drives a line-selection event while
-retaining HIDE fields on rendered lines.
+the host drives a line-selection event while retaining HIDE fields on rendered
+lines.
 
 ### 44 — `SET PF-STATUS` and `AT USER-COMMAND`
 
@@ -1430,8 +1430,7 @@ ENDMETHOD.
 ```
 
 The report and counterpart are present, but the checkbox stays open until the
-transpiler supports `AT USER-COMMAND`, the host drives that event, and it
-exposes the recorded PF-STATUS to a test.
+the host drives that event and exposes the recorded PF-STATUS to a test.
 
 ### 45 — `SET TITLEBAR`
 
@@ -1565,7 +1564,7 @@ ENDMETHOD.
 ```
 
 The report and counterpart are present, but the checkbox stays open until the
-transpiler supports `AT PFnn` and the host drives the PF5 event.
+host drives the PF5 event.
 
 ### 50 — `LEAVE TO LIST-PROCESSING` / `LEAVE LIST-PROCESSING`
 
@@ -1644,8 +1643,7 @@ ENDMETHOD.
 `ty_resume` returns only `subrc`.
 
 The report and counterpart are present, but the checkbox stays open until the
-transpiler supports `CALL SELECTION-SCREEN` and the host drives its resumable
-continuation.
+host drives its resumable continuation.
 
 ### 52 — `CALL SCREEN`
 

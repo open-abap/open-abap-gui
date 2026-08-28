@@ -1,13 +1,7 @@
 {
   "input_folder": ["src", "scaffold"],
   "input_filter": [],
-  "exclude_filter": [
-    "scaffold/examples/zgg_ex_08\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_43\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_44\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_49\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_51\\.prog\\.abap$"
-  ],
+  "exclude_filter": [],
   "output_folder": "output",
   "write_unit_tests": true,
   "write_source_map": true,
