@@ -38,8 +38,8 @@ unless they require an HTTP or browser boundary.
   shared by the report, dynpro, renderer, and transport boundaries.
 - ABAP Unit covers report semantics, selection processing, list interaction,
   dynpro flow, navigation, failures, variants, and runtime round trips.
-- `integration/html-http.mjs` and `integration/html-smoke.mjs` exercise the real
-  ABAP runtime bridge through the Node HTTP adapter.
+- `integration/html-http.mjs` exercises the minimal GET/POST/DELETE ABAP
+  runtime bridge through the Node HTTP adapter.
 - `integration/html-browser.mjs` uses Playwright against the real report and
   dynpro server routes; it does not define HTML or session state.
 - `ZCL_GG_HTTP_HANDLER` owns the index, route allow-list, fixture construction,
@@ -86,7 +86,7 @@ in ABAP.
 ### Node integration
 
 - Loading the transpiled ABAP handler through the ICF shim.
-- HTTP method, status, header, body-size, JSON, and form-encoding behavior.
+- Minimal HTTP request/response forwarding through the real ABAP handler.
 - Proof that requests reach the real ABAP runtime and ABAP-generated responses.
 
 ### Playwright
@@ -151,9 +151,8 @@ in ABAP.
   response headers are ABAP-owned.
 - [x] Ensure `GET` starts a real ABAP session, `POST /dispatch` invokes real
   ABAP dispatch, and `DELETE /session/:id` invokes real ABAP close.
-- [x] Add a real HTTP integration test for initial HTML, JSON dispatch,
-  form-urlencoded dispatch, stale-page `409`, invalid JSON `400`, unknown route
-  `405`, body limit, and session deletion.
+- [x] Add a thin HTTP integration test for the ABAP-generated index, initial
+  HTML, JSON dispatch, and session deletion.
 - [x] Assert an ABAP-specific fixture value in each successful HTTP response so
   the test cannot pass against a generic adapter stub.
 
@@ -161,15 +160,15 @@ in ABAP.
 
 - [x] Rewrite `integration/html-http.mjs` to use the executable real ABAP host;
   remove local `start` and `dispatch` functions.
-- [x] Rewrite `integration/html-smoke.mjs` to start two real ABAP sessions and
-  prove their page ids, values, histories, and close behavior remain isolated.
+- [x] Move detailed session-isolation assertions into ABAP Unit and retain
+  browser-context isolation in `integration/html-browser.mjs`.
 - [x] Delete JavaScript `Map` session stores from integration tests.
 - [x] Delete JavaScript page, form, selection, list, dynpro, and HTML escaping
   helpers from browser tests.
 - [x] Remove any test callback that returns `{valid, html}` without invoking
   `ZCL_GG_HOST_RUNTIME`.
-- [x] Keep transport-only malformed-input cases in Node because ABAP never
-  receives requests rejected by the HTTP parser.
+- [x] Keep the Node integration test limited to proving the real HTTP bridge;
+  detailed behavior remains in ABAP Unit and representative browser flows.
 - [x] Move action and state assertions into ABAP Unit when they can be tested
   through `ty_request` and `ty_response` without HTTP.
 - [x] Replace `integration/html-snapshots.mjs` digest checks with focused ABAP

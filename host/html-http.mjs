@@ -5,13 +5,9 @@ import {cl_express_icf_shim} from "../output/cl_express_icf_shim.clas.mjs";
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
-// Node owns only the socket and Express request-body buffering. The ABAP ICF
-// handler owns paths, forms, JSON, sessions, status codes, and response data.
-export function createHtmlHostServer({
-  handlerClass = "ZCL_GG_HTTP_HANDLER",
-  base = "",
-  shutdown = async () => {},
-} = {}) {
+// Node owns only the transport. Every request is handed to the fixed ABAP
+// IF_HTTP_EXTENSION handler, which owns the HTTP application behavior.
+export function createHtmlHostServer() {
   const app = express();
   app.disable("x-powered-by");
   app.set("etag", false);
@@ -22,8 +18,7 @@ export function createHtmlHostServer({
       await cl_express_icf_shim.run({
         req: request,
         res: response,
-        class: handlerClass,
-        base,
+        class: "ZCL_GG_HTTP_HANDLER",
       });
     } catch (error) {
       next(error);
@@ -35,8 +30,7 @@ export function createHtmlHostServer({
       next(error);
       return;
     }
-    const status = error?.status === 413 ? 400 : 400;
-    response.status(status).type("application/json").send({
+    response.status(400).type("application/json").send({
       valid: false,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -45,7 +39,8 @@ export function createHtmlHostServer({
   const server = createServer(app);
   let shutdownPromise;
   server.shutdown = async () => {
-    shutdownPromise ??= Promise.resolve().then(() => shutdown());
+    shutdownPromise ??= Promise.resolve().then(() =>
+      globalThis.abap.Classes.ZCL_GG_HTTP_HANDLER.shutdown());
     await shutdownPromise;
   };
   return server;
