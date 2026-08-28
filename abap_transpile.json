@@ -3,11 +3,8 @@
   "input_filter": [],
   "exclude_filter": [
     "scaffold/examples/zgg_ex_08\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_09\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_10\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_43\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_44\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_48\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_49\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_51\\.prog\\.abap$"
   ],

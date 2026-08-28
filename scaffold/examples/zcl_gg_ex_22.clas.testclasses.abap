@@ -12,6 +12,16 @@ CLASS ltcl_ex_22 IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_initial( ls_result-lines ).
     cl_abap_unit_assert=>assert_initial( ls_result-values[ name = 'P_A' ]-value ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-blocks[ 1 ]-block-name
+      exp = 'B1' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-blocks[ 1 ]-block-title
+      exp = 'Options' ).
+    cl_abap_unit_assert=>assert_true( ls_result-blocks[ 1 ]-block-with_frame ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-blocks[ 1 ]-depth
+      exp = 1 ).
   ENDMETHOD.
 
 ENDCLASS.

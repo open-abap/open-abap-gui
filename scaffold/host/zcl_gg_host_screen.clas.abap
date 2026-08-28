@@ -1,21 +1,32 @@
 CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
-* Selection screen builder that records just enough to produce the initial
-* values, namely the name and the DEFAULT of every value bearing element.
+* Selection screen builder that records the initial values and the block
+* definitions needed by the host tests.
 *
-* Layout is accepted and dropped. This host does not render a selection screen
-* yet, so blocks, lines, comments, tabs and screen boundaries have nowhere to
-* go; recording them belongs with the phase 3 work in examples/PLAN.md.
+* The host does not render a selection screen yet, so lines, comments, tabs and
+* screen boundaries are still accepted and dropped.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_selection_screen_builder_v1.
+
+    TYPES: BEGIN OF ty_block,
+             block TYPE zif_gg_selection_screen_types=>ty_block,
+             depth TYPE i,
+           END OF ty_block.
+    TYPES ty_blocks TYPE STANDARD TABLE OF ty_block WITH DEFAULT KEY.
 
     METHODS get_values
       RETURNING
         VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_values.
 
+    METHODS get_blocks
+      RETURNING
+        VALUE(rt_blocks) TYPE ty_blocks.
+
   PRIVATE SECTION.
     DATA mt_values TYPE zif_gg_selection_screen_types=>ty_values.
+    DATA mt_blocks TYPE ty_blocks.
+    DATA mv_block_depth TYPE i.
 
     METHODS add_value
       IMPORTING
@@ -29,6 +40,10 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
 
   METHOD get_values.
     rt_values = mt_values.
+  ENDMETHOD.
+
+  METHOD get_blocks.
+    rt_blocks = mt_blocks.
   ENDMETHOD.
 
   METHOD add_value.
@@ -101,11 +116,15 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~begin_block.
-    RETURN.
+    mv_block_depth = mv_block_depth + 1.
+    APPEND VALUE #( block = is_block
+                    depth = mv_block_depth ) TO mt_blocks.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~end_block.
-    RETURN.
+    IF mv_block_depth > 0.
+      mv_block_depth = mv_block_depth - 1.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~begin_line.

@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_22 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 22, selection-screen block with frame and title. Counterpart of
-* zgg_ex_22.prog.abap. The host currently does not retain screen layout.
+* zgg_ex_22.prog.abap. The host records block definitions and nesting depth.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

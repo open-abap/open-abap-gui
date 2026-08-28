@@ -14,6 +14,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              lines       TYPE zcl_gg_host_list=>ty_text_lines,
              messages    TYPE zcl_gg_host_session=>ty_messages,
              values      TYPE zif_gg_selection_screen_types=>ty_values,
+             blocks      TYPE zcl_gg_host_screen=>ty_blocks,
              title       TYPE string,
              unsupported TYPE string,
            END OF ty_result.
@@ -95,6 +96,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     rs_result-lines    = lo_list->finish_output( ).
     rs_result-messages = lo_session->get_messages( ).
     rs_result-values   = lt_values.
+    rs_result-blocks   = lo_screen->get_blocks( ).
     rs_result-title    = lo_list->get_title( ).
   ENDMETHOD.
 

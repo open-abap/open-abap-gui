@@ -63,6 +63,12 @@ Two things that bite and are not caught where you would expect:
 - A call with a single parameter must stay on one line, including a `VALUE #( )`
   argument, or `keep_single_parameter_on_one_line` rejects it.
 
+When the transpiler does not support a statement or construct, record the gap
+in `scaffold/ANORMALIES.md`. Include the feature/report, the exact
+statement, the transpiler error, and the verification date. Keep the related
+checklist item open until the report passes the runtime gate, unless the plan
+explicitly documents a different host or scaffold blocker.
+
 ## Definition of done
 
 A feature's box is ticked when all four hold:
@@ -122,8 +128,8 @@ tried as prerequisites and both fail lint on their own.
 - [x] 06 `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
 - [ ] 07 `REPORT ... LINE-SIZE / LINE-COUNT / NO STANDARD PAGE HEADING`
 - [ ] 08 `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
-- [ ] 09 `TOP-OF-PAGE`
-- [ ] 10 `END-OF-PAGE`
+- [x] 09 `TOP-OF-PAGE`
+- [x] 10 `END-OF-PAGE`
 
 ### Phase 2 — Program events
 
@@ -141,7 +147,7 @@ tried as prerequisites and both fail lint on their own.
 - [x] 19 `PARAMETERS ... AS LISTBOX`
 - [ ] 20 `SELECT-OPTIONS`
 - [ ] 21 `SELECTION-SCREEN COMMENT` / `ULINE` / `SKIP`
-- [ ] 22 `SELECTION-SCREEN BEGIN OF BLOCK ... WITH FRAME TITLE`
+- [x] 22 `SELECTION-SCREEN BEGIN OF BLOCK ... WITH FRAME TITLE`
 - [ ] 23 `SELECTION-SCREEN BEGIN OF LINE` and `POSITION`
 - [ ] 24 `SELECTION-SCREEN PUSHBUTTON ... USER-COMMAND`
 - [ ] 25 `SELECTION-SCREEN FUNCTION KEY`
@@ -399,9 +405,8 @@ ENDMETHOD.
 
 Exercises `new_page`, `reserve`, `set_blank_lines`.
 
-The report and class specimens are present. The report is excluded from the
-runtime transpile until the toolchain supports `SET BLANK LINES`; this
-checkbox stays open until it can run through the full gate.
+The report and class specimens are present. The report remains excluded from
+the runtime transpile because the toolchain does not support `RESERVE`.
 
 ```abap
 REPORT zgg_ex_08.
@@ -430,9 +435,8 @@ ENDMETHOD.
 
 Exercises `zif_gg_list_processing_v1~top_of_page`.
 
-The report and class specimens are present. The report is excluded from the
-runtime transpile until the toolchain supports `TOP-OF-PAGE`; this checkbox
-stays open until it can run through the full gate.
+The report and class specimens are present, and the report runs through the
+runtime transpile and host test.
 
 ```abap
 REPORT zgg_ex_09.
@@ -464,9 +468,8 @@ ENDMETHOD.
 
 Exercises `end_of_page`, together with the `footer_lines` from feature 07.
 
-The report and class specimens are present. The report is excluded from the
-runtime transpile until the toolchain supports `END-OF-PAGE`; this checkbox
-stays open until it can run through the full gate.
+The report and class specimens are present, and the report runs through the
+runtime transpile and host test.
 
 ```abap
 REPORT zgg_ex_10 LINE-COUNT 10(2).
@@ -790,8 +793,8 @@ ENDMETHOD.
 
 Exercises `begin_block` / `end_block`, and pins that nesting is by call order.
 
-The specimen and value-path test are present, but the checkbox remains open:
-the host accepts and discards screen layout, so block nesting is not observable.
+The host records each block definition and its nesting depth, so the class test
+can verify the frame, title and block structure.
 
 ```abap
 REPORT zgg_ex_22.
@@ -1535,8 +1538,7 @@ ENDMETHOD.
 ```
 
 The report and counterpart are present, but the checkbox stays open until the
-transpiler supports `TOP-OF-PAGE DURING LINE-SELECTION` and the host drives
-nested line selection with the corresponding page-header event.
+host drives nested line selection with the corresponding page-header event.
 
 ### 49 — `AT PFnn`
 
