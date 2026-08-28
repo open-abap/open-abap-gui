@@ -29,7 +29,11 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
              error TYPE string,
            END OF ty_error_response.
 
+    TYPES ty_class_names TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+
     CLASS-DATA mv_database_ready TYPE abap_bool.
+    CLASS-DATA mt_report_classes TYPE ty_class_names.
+    CLASS-DATA mt_dynpro_classes TYPE ty_class_names.
 
     CLASS-METHODS handle_get
       IMPORTING
@@ -100,6 +104,12 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_path          TYPE string
       RETURNING
         VALUE(ro_dynpro) TYPE REF TO zif_gg_dynpro_v1.
+
+    CLASS-METHODS get_list_classes_impl_intf
+      IMPORTING
+        val           TYPE string
+      RETURNING
+        VALUE(result) TYPE ty_class_names.
 
     CLASS-METHODS ensure_database.
 
@@ -568,144 +578,147 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD report_for_path.
-    CASE iv_path.
-      WHEN '/ZCL_GG_INTEGRATION_HTML_REPORT'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_html_report.
-      WHEN '/ZCL_GG_INTEGRATION_FAILURE'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_failure.
-      WHEN '/ZCL_GG_INTEGRATION_FLIGHTS'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_flights.
-      WHEN '/ZCL_GG_INTEGRATION_INTERACTIVE'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_interactive.
-      WHEN '/ZCL_GG_INTEGRATION_NAVIGATION'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_navigation.
-      WHEN '/ZCL_GG_INTEGRATION_SELECTION'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_selection.
-      WHEN '/ZCL_GG_INTEGRATION_VARIANTS'.
-        CREATE OBJECT ro_report TYPE zcl_gg_integration_variants.
-      WHEN '/ZCL_GG_EX_01'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_01.
-      WHEN '/ZCL_GG_EX_02'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_02.
-      WHEN '/ZCL_GG_EX_03'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_03.
-      WHEN '/ZCL_GG_EX_04'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_04.
-      WHEN '/ZCL_GG_EX_05'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_05.
-      WHEN '/ZCL_GG_EX_06'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_06.
-      WHEN '/ZCL_GG_EX_07'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_07.
-      WHEN '/ZCL_GG_EX_08'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_08.
-      WHEN '/ZCL_GG_EX_09'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_09.
-      WHEN '/ZCL_GG_EX_10'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_10.
-      WHEN '/ZCL_GG_EX_11'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_11.
-      WHEN '/ZCL_GG_EX_12'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_12.
-      WHEN '/ZCL_GG_EX_13'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_13.
-      WHEN '/ZCL_GG_EX_14'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_14.
-      WHEN '/ZCL_GG_EX_15'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_15.
-      WHEN '/ZCL_GG_EX_16'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_16.
-      WHEN '/ZCL_GG_EX_17'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_17.
-      WHEN '/ZCL_GG_EX_18'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_18.
-      WHEN '/ZCL_GG_EX_19'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_19.
-      WHEN '/ZCL_GG_EX_20'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_20.
-      WHEN '/ZCL_GG_EX_21'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_21.
-      WHEN '/ZCL_GG_EX_22'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_22.
-      WHEN '/ZCL_GG_EX_23'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_23.
-      WHEN '/ZCL_GG_EX_24'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_24.
-      WHEN '/ZCL_GG_EX_25'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_25.
-      WHEN '/ZCL_GG_EX_26'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_26.
-      WHEN '/ZCL_GG_EX_27'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_27.
-      WHEN '/ZCL_GG_EX_28'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_28.
-      WHEN '/ZCL_GG_EX_29'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_29.
-      WHEN '/ZCL_GG_EX_30'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_30.
-      WHEN '/ZCL_GG_EX_31'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_31.
-      WHEN '/ZCL_GG_EX_32'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_32.
-      WHEN '/ZCL_GG_EX_33'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_33.
-      WHEN '/ZCL_GG_EX_34'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_34.
-      WHEN '/ZCL_GG_EX_35'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_35.
-      WHEN '/ZCL_GG_EX_36'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_36.
-      WHEN '/ZCL_GG_EX_37'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_37.
-      WHEN '/ZCL_GG_EX_38'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_38.
-      WHEN '/ZCL_GG_EX_39'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_39.
-      WHEN '/ZCL_GG_EX_40'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_40.
-      WHEN '/ZCL_GG_EX_41'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_41.
-      WHEN '/ZCL_GG_EX_42'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_42.
-      WHEN '/ZCL_GG_EX_43'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_43.
-      WHEN '/ZCL_GG_EX_44'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_44.
-      WHEN '/ZCL_GG_EX_45'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_45.
-      WHEN '/ZCL_GG_EX_46'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_46.
-      WHEN '/ZCL_GG_EX_47'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_47.
-      WHEN '/ZCL_GG_EX_48'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_48.
-      WHEN '/ZCL_GG_EX_49'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_49.
-      WHEN '/ZCL_GG_EX_50'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_50.
-      WHEN '/ZCL_GG_EX_51'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_51.
-      WHEN '/ZCL_GG_EX_52'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_52.
-      WHEN '/ZCL_GG_EX_53'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_53.
-      WHEN '/ZCL_GG_EX_54'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_54.
-      WHEN '/ZCL_GG_EX_55'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_55.
-      WHEN '/ZCL_GG_EX_56'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_56.
-      WHEN '/ZCL_GG_EX_57'.
-        CREATE OBJECT ro_report TYPE zcl_gg_ex_57.
-    ENDCASE.
+    DATA lv_class_name TYPE string.
+    DATA lt_class_names TYPE ty_class_names.
+
+    lv_class_name = substring( val = iv_path off = 1 ).
+    IF lv_class_name NP 'ZCL_GG_*'.
+      RETURN.
+    ENDIF.
+
+    lt_class_names = get_list_classes_impl_intf( 'ZIF_GG_REPORT_V1' ).
+    READ TABLE lt_class_names TRANSPORTING NO FIELDS
+      WITH KEY table_line = lv_class_name.
+    IF sy-subrc = 0.
+      CREATE OBJECT ro_report TYPE (lv_class_name).
+    ENDIF.
   ENDMETHOD.
 
   METHOD dynpro_for_path.
-    CASE iv_path.
-      WHEN '/ZCL_GG_INTEGRATION_DYNPRO'.
-        CREATE OBJECT ro_dynpro TYPE zcl_gg_integration_dynpro.
-      WHEN '/ZCL_GG_EX_58'.
-        CREATE OBJECT ro_dynpro TYPE zcl_gg_ex_58.
+    DATA lv_class_name TYPE string.
+    DATA lt_class_names TYPE ty_class_names.
+
+    lv_class_name = substring( val = iv_path off = 1 ).
+    IF lv_class_name NP 'ZCL_GG_*'.
+      RETURN.
+    ENDIF.
+
+    lt_class_names = get_list_classes_impl_intf( 'ZIF_GG_DYNPRO_V1' ).
+    READ TABLE lt_class_names TRANSPORTING NO FIELDS
+      WITH KEY table_line = lv_class_name.
+    IF sy-subrc = 0.
+      CREATE OBJECT ro_dynpro TYPE (lv_class_name).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD get_list_classes_impl_intf.
+    TYPES:
+      BEGIN OF ty_s_impl,
+        clsname    TYPE c LENGTH 30,
+        refclsname TYPE c LENGTH 30,
+      END OF ty_s_impl,
+      BEGIN OF ty_s_key,
+        intkey TYPE c LENGTH 30,
+      END OF ty_s_key,
+      BEGIN OF ty_source,
+        progname TYPE c LENGTH 40,
+        data     TYPE string,
+      END OF ty_source.
+    DATA obj TYPE REF TO object.
+    DATA lt_implementation_names TYPE string_table.
+    DATA lv_fm TYPE string.
+    DATA lt_impl TYPE STANDARD TABLE OF ty_s_impl WITH DEFAULT KEY.
+    DATA ls_key TYPE ty_s_key.
+    DATA lt_sources TYPE STANDARD TABLE OF ty_source WITH DEFAULT KEY.
+    DATA lv_interface TYPE string.
+    DATA ls_source TYPE ty_source.
+    DATA lv_source TYPE string.
+    DATA lv_class_name TYPE string.
+    DATA lr_impl TYPE REF TO ty_s_impl.
+    FIELD-SYMBOLS <any> TYPE any.
+    FIELD-SYMBOLS <class_name> TYPE string.
+
+    IF val = 'ZIF_GG_REPORT_V1' AND mt_report_classes IS NOT INITIAL.
+      result = mt_report_classes.
+      RETURN.
+    ELSEIF val = 'ZIF_GG_DYNPRO_V1' AND mt_dynpro_classes IS NOT INITIAL.
+      result = mt_dynpro_classes.
+      RETURN.
+    ENDIF.
+
+    TRY.
+        CALL METHOD ('XCO_CP_ABAP')=>interface
+          EXPORTING
+            iv_name      = val
+          RECEIVING
+            ro_interface = obj.
+
+        ASSIGN obj->('IF_XCO_AO_INTERFACE~IMPLEMENTATIONS') TO <any>.
+        IF sy-subrc <> 0.
+          RAISE EXCEPTION TYPE cx_sy_dyn_call_illegal_class.
+        ENDIF.
+        obj = <any>.
+
+        ASSIGN obj->('IF_XCO_INTF_IMPLEMENTATIONS_FC~ALL') TO <any>.
+        IF sy-subrc <> 0.
+          RAISE EXCEPTION TYPE cx_sy_dyn_call_illegal_class.
+        ENDIF.
+        obj = <any>.
+
+        CALL METHOD obj->('IF_XCO_INTF_IMPLEMENTATIONS~GET').
+
+        CALL METHOD obj->('IF_XCO_INTF_IMPLEMENTATIONS~GET_NAMES')
+          RECEIVING
+            rt_names = lt_implementation_names.
+
+        result = lt_implementation_names.
+
+      CATCH cx_sy_dyn_call_illegal_class.
+        lv_fm = `SEO_INTERFACE_IMPLEM_GET_ALL`.
+        TRY.
+            ls_key-intkey = val.
+
+            CALL FUNCTION lv_fm
+              EXPORTING
+                intkey       = ls_key
+              IMPORTING
+                impkeys      = lt_impl
+              EXCEPTIONS
+                not_existing = 1
+                OTHERS       = 2.
+
+            LOOP AT lt_impl REFERENCE INTO lr_impl.
+              INSERT CONV #( lr_impl->clsname ) INTO TABLE result.
+            ENDLOOP.
+          CATCH cx_root.
+            lv_interface = val.
+            TRANSLATE lv_interface TO UPPER CASE.
+            SELECT progname, data FROM reposrc
+              INTO TABLE @lt_sources
+              ORDER BY progname.
+            LOOP AT lt_sources INTO ls_source.
+              lv_source = ls_source-data.
+              TRANSLATE lv_source TO UPPER CASE.
+              IF lv_source CS |INTERFACES { lv_interface }|.
+                lv_class_name = CONV string( ls_source-progname ).
+                SHIFT lv_class_name RIGHT DELETING TRAILING space.
+                INSERT lv_class_name INTO TABLE result.
+              ENDIF.
+            ENDLOOP.
+        ENDTRY.
+    ENDTRY.
+
+    LOOP AT result ASSIGNING <class_name>.
+      TRANSLATE <class_name> TO UPPER CASE.
+      SHIFT <class_name> RIGHT DELETING TRAILING space.
+    ENDLOOP.
+    SORT result.
+    DELETE ADJACENT DUPLICATES FROM result.
+    CASE val.
+      WHEN 'ZIF_GG_REPORT_V1'.
+        mt_report_classes = result.
+      WHEN 'ZIF_GG_DYNPRO_V1'.
+        mt_dynpro_classes = result.
     ENDCASE.
   ENDMETHOD.
 
@@ -726,29 +739,26 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD index_html.
-    DATA lv_suffix TYPE string.
-    DATA lv_number TYPE i.
+    DATA lt_report_classes TYPE ty_class_names.
+    DATA lt_dynpro_classes TYPE ty_class_names.
+    DATA lv_class_name TYPE string.
 
     rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ABAP examples and integration classes</title></head><body><main><h1>ABAP examples</h1><ul>'.
-    DO 58 TIMES.
-      lv_number = sy-index.
-      IF lv_number < 10.
-        lv_suffix = |0{ lv_number }|.
-      ELSE.
-        lv_suffix = |{ lv_number }|.
+    lt_report_classes = get_list_classes_impl_intf( 'ZIF_GG_REPORT_V1' ).
+    LOOP AT lt_report_classes INTO lv_class_name.
+      IF lv_class_name CP 'ZCL_GG_*'.
+        rv_html = rv_html && |<li><a href="/{ lv_class_name }">{ lv_class_name }</a></li>|.
       ENDIF.
-      rv_html = rv_html && |<li><a href="/ZCL_GG_EX_{ lv_suffix }">ZCL_GG_EX_{ lv_suffix }</a></li>|.
-    ENDDO.
-    rv_html = rv_html && '</ul><h2>Integration classes</h2><ul>'.
+    ENDLOOP.
+    rv_html = rv_html && '</ul><h2>Dynpro classes</h2><ul>'.
+    lt_dynpro_classes = get_list_classes_impl_intf( 'ZIF_GG_DYNPRO_V1' ).
+    LOOP AT lt_dynpro_classes INTO lv_class_name.
+      IF lv_class_name CP 'ZCL_GG_*'.
+        rv_html = rv_html && |<li><a href="/{ lv_class_name }">{ lv_class_name }</a></li>|.
+      ENDIF.
+    ENDLOOP.
+    rv_html = rv_html && '</ul><h2>Utilities</h2><ul>'.
     rv_html = rv_html && '<li><a href="/ZCL_GG_DB_HELPER">ZCL_GG_DB_HELPER</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_DYNPRO">ZCL_GG_INTEGRATION_DYNPRO</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_FAILURE">ZCL_GG_INTEGRATION_FAILURE</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_FLIGHTS">ZCL_GG_INTEGRATION_FLIGHTS</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_HTML_REPORT">ZCL_GG_INTEGRATION_HTML_REPORT</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_INTERACTIVE">ZCL_GG_INTEGRATION_INTERACTIVE</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_NAVIGATION">ZCL_GG_INTEGRATION_NAVIGATION</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_SELECTION">ZCL_GG_INTEGRATION_SELECTION</a></li>'.
-    rv_html = rv_html && '<li><a href="/ZCL_GG_INTEGRATION_VARIANTS">ZCL_GG_INTEGRATION_VARIANTS</a></li>'.
     rv_html = rv_html && '</ul></main></body></html>'.
   ENDMETHOD.
 
