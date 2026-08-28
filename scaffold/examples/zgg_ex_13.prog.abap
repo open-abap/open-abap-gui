@@ -1,0 +1,7 @@
+REPORT zgg_ex_13.
+
+START-OF-SELECTION.
+  WRITE 'select'.
+
+END-OF-SELECTION.
+  WRITE / 'done'.

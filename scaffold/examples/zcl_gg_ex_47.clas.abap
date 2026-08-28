@@ -1,0 +1,121 @@
+CLASS zcl_gg_ex_47 DEFINITION PUBLIC FINAL CREATE PUBLIC.
+
+* Feature 47, GET CURSOR. Counterpart of zgg_ex_47.prog.abap.
+* The host does not drive line selection yet. Self contained: no superclass,
+* every callback present.
+
+  PUBLIC SECTION.
+    INTERFACES zif_gg_report_v1.
+    INTERFACES zif_gg_list_processing_v1.
+
+ENDCLASS.
+
+CLASS zcl_gg_ex_47 IMPLEMENTATION.
+
+  METHOD zif_gg_report_v1~get_list_processing.
+    ro_list_processing = me.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~start_of_selection.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_processing_v1~at_line_selection.
+    DATA(ls_cursor) = io_session->get_list( )->get_cursor( ).
+    DATA(lo_writer) = io_session->get_list( )->get_writer( ).
+
+    lo_writer->write_field( VALUE #(
+      text      = ls_cursor-field
+      placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = |{ ls_cursor-line }| ) ).
+  ENDMETHOD.
+
+  METHOD zif_gg_list_processing_v1~get_settings.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_processing_v1~top_of_page.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_processing_v1~end_of_page.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_processing_v1~top_of_page_during_line_sel.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_processing_v1~at_user_command.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_processing_v1~at_pf.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~load_of_program.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~get_logical_database.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~build_screen.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~initialization.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_output.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_on_field.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_on_block.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_on_radio.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_value_req.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_help_req.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_selection_screen_on_exit.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_get.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~at_get_late.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_report_v1~end_of_selection.
+    RETURN.
+  ENDMETHOD.
+
+ENDCLASS.

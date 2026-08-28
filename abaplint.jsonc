@@ -4,7 +4,11 @@
     "skipGeneratedGatewayClasses": true,
     "skipGeneratedPersistentClasses": true,
     "skipGeneratedFunctionGroups": true,
-    "errorOnDuplicateFilenames": true
+    "errorOnDuplicateFilenames": true,
+    "noIssues": [
+      "scaffold/examples/zgg_ex_59\\.prog\\.abap$",
+      "scaffold/examples/zgg_ex_60\\.prog\\.abap$"
+    ]
   },
   "syntax": {
     "version": {

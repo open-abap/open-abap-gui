@@ -1,0 +1,10 @@
+REPORT zgg_ex_57.
+
+PARAMETERS p_go AS CHECKBOX.
+
+START-OF-SELECTION.
+  IF p_go = abap_true.
+    LEAVE TO TRANSACTION 'SE38'.
+  ELSE.
+    LEAVE PROGRAM.
+  ENDIF.

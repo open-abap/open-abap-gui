@@ -1,0 +1,7 @@
+REPORT zgg_ex_05.
+
+START-OF-SELECTION.
+  FORMAT COLOR 4 INTENSIFIED ON.
+  WRITE 'key column'.
+  FORMAT RESET.
+  WRITE 'plain'.

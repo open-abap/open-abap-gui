@@ -1,0 +1,5 @@
+REPORT zgg_ex_45.
+
+START-OF-SELECTION.
+  SET TITLEBAR 'MAIN'.
+  WRITE 'body'.

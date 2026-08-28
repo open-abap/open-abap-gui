@@ -1,0 +1,13 @@
+PROGRAM zgg_ex_58.
+
+MODULE user_command_0100 INPUT.
+  CASE sy-ucomm.
+    WHEN 'NEXT'.
+      SET SCREEN 0200.
+      LEAVE SCREEN.
+    WHEN 'BACK'.
+      LEAVE TO SCREEN 0.
+    WHEN OTHERS.
+      RETURN.
+  ENDCASE.
+ENDMODULE.

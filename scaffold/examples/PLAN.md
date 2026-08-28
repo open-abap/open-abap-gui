@@ -116,7 +116,7 @@ tried as prerequisites and both fail lint on their own.
 
 - [x] 01 `WRITE` literal
 - [x] 02 `WRITE AT <pos>(<len>)`, `NO-GAP`
-- [ ] 03 `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
+- [x] 03 `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
 - [ ] 04 `WRITE` numeric and mask additions
 - [ ] 05 `FORMAT` colour and attributes
 - [ ] 06 `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
@@ -127,18 +127,18 @@ tried as prerequisites and both fail lint on their own.
 
 ### Phase 2 — Program events
 
-- [ ] 11 `LOAD-OF-PROGRAM`
-- [ ] 12 `INITIALIZATION`
-- [ ] 13 `START-OF-SELECTION` / `END-OF-SELECTION`
-- [ ] 14 `STOP`
+- [x] 11 `LOAD-OF-PROGRAM`
+- [x] 12 `INITIALIZATION`
+- [x] 13 `START-OF-SELECTION` / `END-OF-SELECTION`
+- [x] 14 `STOP`
 
 ### Phase 3 — Selection screen definition
 
-- [ ] 15 `PARAMETERS` with `DEFAULT`
+- [x] 15 `PARAMETERS` with `DEFAULT`
 - [ ] 16 `PARAMETERS` attribute additions
-- [ ] 17 `PARAMETERS ... AS CHECKBOX`
-- [ ] 18 `PARAMETERS ... RADIOBUTTON GROUP`
-- [ ] 19 `PARAMETERS ... AS LISTBOX`
+- [x] 17 `PARAMETERS ... AS CHECKBOX`
+- [x] 18 `PARAMETERS ... RADIOBUTTON GROUP`
+- [x] 19 `PARAMETERS ... AS LISTBOX`
 - [ ] 20 `SELECT-OPTIONS`
 - [ ] 21 `SELECTION-SCREEN COMMENT` / `ULINE` / `SKIP`
 - [ ] 22 `SELECTION-SCREEN BEGIN OF BLOCK ... WITH FRAME TITLE`
@@ -164,16 +164,16 @@ tried as prerequisites and both fail lint on their own.
 
 ### Phase 5 — Messages
 
-- [ ] 39 `MESSAGE <text> TYPE`
-- [ ] 40 `MESSAGE nnn(id) WITH`
-- [ ] 41 `MESSAGE ... TYPE 'A'` and `'X'`
-- [ ] 42 `MESSAGE ... DISPLAY LIKE`
+- [x] 39 `MESSAGE <text> TYPE`
+- [x] 40 `MESSAGE nnn(id) WITH`
+- [x] 41 `MESSAGE ... TYPE 'A'` and `'X'`
+- [x] 42 `MESSAGE ... DISPLAY LIKE`
 
 ### Phase 6 — Interactive lists
 
 - [ ] 43 `HIDE` and `AT LINE-SELECTION`
 - [ ] 44 `SET PF-STATUS` and `AT USER-COMMAND`
-- [ ] 45 `SET TITLEBAR`
+- [x] 45 `SET TITLEBAR`
 - [ ] 46 `READ LINE` / `MODIFY LINE`
 - [ ] 47 `GET CURSOR`
 - [ ] 48 `TOP-OF-PAGE DURING LINE-SELECTION`
@@ -272,9 +272,11 @@ START-OF-SELECTION.
   WRITE 'first'.
   SKIP 2.
   ULINE AT 1(20).
-  NEW-LINE.
-  WRITE 'second'.
+  WRITE / 'second'.
 ```
+
+`WRITE /` is the transpiler-compatible spelling of the explicit line break;
+the class counterpart calls `new_line( )` and `set_position( )` directly.
 
 ```abap
 METHOD zif_gg_report_v1~start_of_selection.
@@ -284,6 +286,7 @@ METHOD zif_gg_report_v1~start_of_selection.
   lo_writer->skip( 2 ).
   lo_writer->uline( VALUE #( position = 1 length = 20 ) ).
   lo_writer->new_line( ).
+  lo_writer->set_position( 5 ).
   lo_writer->write_field( VALUE #( text = 'second' ) ).
 ENDMETHOD.
 ```
@@ -292,6 +295,9 @@ ENDMETHOD.
 
 Exercises `ty_write_format`. **Blocked on #7** — the amount arrives as a
 `string`, so who applies `DECIMALS` and the currency shift is undefined.
+
+The report and class specimens are present, but this checkbox stays open until
+gap #7 defines numeric conversion for writer text.
 
 ```abap
 REPORT zgg_ex_04.
@@ -316,6 +322,10 @@ ENDMETHOD.
 ### 05 — `FORMAT` colour and attributes
 
 Exercises `set_format` and `reset_format`.
+
+The report and class specimens are present. The report is excluded from the
+runtime transpile until that toolchain supports `FORMAT`; lint still checks it,
+so this checkbox stays open until the report can run through the full gate.
 
 ```abap
 REPORT zgg_ex_05.
@@ -343,6 +353,10 @@ ENDMETHOD.
 ### 06 — `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
 
 Exercises `write_checkbox`, `write_icon`, `write_symbol`.
+
+The report and class specimens are present. The report is excluded from the
+runtime transpile until the toolchain supports the required list statements;
+this checkbox stays open until it can run through the full gate.
 
 ```abap
 REPORT zgg_ex_06.
@@ -393,6 +407,10 @@ ENDMETHOD.
 
 Exercises `new_page`, `reserve`, `set_blank_lines`.
 
+The report and class specimens are present. The report is excluded from the
+runtime transpile until the toolchain supports `SET BLANK LINES`; this
+checkbox stays open until it can run through the full gate.
+
 ```abap
 REPORT zgg_ex_08.
 
@@ -419,6 +437,10 @@ ENDMETHOD.
 ### 09 — `TOP-OF-PAGE`
 
 Exercises `zif_gg_list_processing_v1~top_of_page`.
+
+The report and class specimens are present. The report is excluded from the
+runtime transpile until the toolchain supports `TOP-OF-PAGE`; this checkbox
+stays open until it can run through the full gate.
 
 ```abap
 REPORT zgg_ex_09.
@@ -449,6 +471,10 @@ ENDMETHOD.
 ### 10 — `END-OF-PAGE`
 
 Exercises `end_of_page`, together with the `footer_lines` from feature 07.
+
+The report and class specimens are present. The report is excluded from the
+runtime transpile until the toolchain supports `END-OF-PAGE`; this checkbox
+stays open until it can run through the full gate.
 
 ```abap
 REPORT zgg_ex_10 LINE-COUNT 10(2).
@@ -710,6 +736,9 @@ ENDMETHOD.
 
 Exercises `add_select_option` and `ty_select_option-default`.
 
+The default range is implemented and tested; the checkbox stays open because
+the general value conversion contract remains gap #7.
+
 ```abap
 REPORT zgg_ex_20.
 
@@ -768,6 +797,9 @@ ENDMETHOD.
 ### 22 — `SELECTION-SCREEN BEGIN OF BLOCK ... WITH FRAME TITLE`
 
 Exercises `begin_block` / `end_block`, and pins that nesting is by call order.
+
+The specimen and value-path test are present, but the checkbox remains open:
+the host accepts and discards screen layout, so block nesting is not observable.
 
 ```abap
 REPORT zgg_ex_22.
@@ -1362,6 +1394,10 @@ METHOD zif_gg_list_processing_v1~at_line_selection.
 ENDMETHOD.
 ```
 
+The report and counterpart are present, but the checkbox stays open until the
+transpiler supports `HIDE` and the host drives a line-selection event while
+retaining HIDE fields on rendered lines.
+
 ### 44 — `SET PF-STATUS` and `AT USER-COMMAND`
 
 Exercises `zif_gg_list_session_v1~set_status` and `at_user_command`, including
@@ -1398,6 +1434,10 @@ METHOD zif_gg_list_processing_v1~at_user_command.
   ENDIF.
 ENDMETHOD.
 ```
+
+The report and counterpart are present, but the checkbox stays open until the
+transpiler supports `AT USER-COMMAND`, the host drives that event, and it
+exposes the recorded PF-STATUS to a test.
 
 ### 45 — `SET TITLEBAR`
 
@@ -1444,6 +1484,10 @@ METHOD zif_gg_list_processing_v1~at_line_selection.
 ENDMETHOD.
 ```
 
+The report and counterpart are present, but the checkbox stays open because
+the host does not drive line selection and `ty_line` lacks editable field
+values; see scaffold gap #10.
+
 ### 47 — `GET CURSOR`
 
 Exercises `zif_gg_list_session_v1~get_cursor`.
@@ -1471,6 +1515,9 @@ METHOD zif_gg_list_processing_v1~at_line_selection.
 ENDMETHOD.
 ```
 
+The report and counterpart are present, but the checkbox stays open until the
+host drives a line-selection event with cursor context.
+
 ### 48 — `TOP-OF-PAGE DURING LINE-SELECTION`
 
 Exercises `top_of_page_during_line_sel`, and pins that it replaces
@@ -1496,6 +1543,10 @@ METHOD zif_gg_list_processing_v1~top_of_page_during_line_sel.
 ENDMETHOD.
 ```
 
+The report and counterpart are present, but the checkbox stays open until the
+transpiler supports `TOP-OF-PAGE DURING LINE-SELECTION` and the host drives
+nested line selection with the corresponding page-header event.
+
 ### 49 — `AT PFnn`
 
 Exercises `at_pf`.
@@ -1516,9 +1567,12 @@ METHOD zif_gg_list_processing_v1~at_pf.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
       text      = 'pf5'
       placement = VALUE #( new_line = abap_true ) ) ).
-  ENDIF.
+ENDIF.
 ENDMETHOD.
 ```
+
+The report and counterpart are present, but the checkbox stays open until the
+transpiler supports `AT PFnn` and the host drives the PF5 event.
 
 ### 50 — `LEAVE TO LIST-PROCESSING` / `LEAVE LIST-PROCESSING`
 
@@ -1544,6 +1598,10 @@ METHOD zif_gg_report_v1~start_of_selection.
   lo_list->leave_list_processing( ).
 ENDMETHOD.
 ```
+
+The report and counterpart are present, but the checkbox stays open because
+the host intentionally reports list-processing transfers as unsupported and
+does not model `sy-lsind` or list depth; see scaffold gap #10.
 
 ---
 
@@ -1591,6 +1649,10 @@ ENDMETHOD.
 
 `mv_p_b` is captured in `at_selection_screen` for screen `0500`; see gap #17,
 `ty_resume` returns only `subrc`.
+
+The report and counterpart are present, but the checkbox stays open until the
+transpiler supports `CALL SELECTION-SCREEN` and the host drives its resumable
+continuation.
 
 ### 52 — `CALL SCREEN`
 
@@ -1644,6 +1706,9 @@ METHOD zif_gg_report_v1~start_of_selection.
   " unreachable, the current program ends
 ENDMETHOD.
 ```
+
+The report and counterpart are present, but the checkbox stays open until the
+host can execute the submitted program and model terminal navigation.
 
 ### 54 — `SUBMIT ... AND RETURN` with `WITH` and `USING SELECTION-SET`
 
@@ -1716,9 +1781,12 @@ METHOD zif_gg_resumable_v1~resume.
         text      = lv_line
         placement = VALUE #( new_line = abap_true ) ) ).
     ENDLOOP.
-  ENDIF.
+ENDIF.
 ENDMETHOD.
 ```
+
+The report and counterpart are present, but the checkbox stays open until the
+host executes the submitted program and implements `LIST_FROM_MEMORY`.
 
 ### 56 — `CALL TRANSACTION`
 
@@ -1743,9 +1811,12 @@ METHOD zif_gg_resumable_v1~resume.
   IF is_resume-continuation-id = 'AFTER_TCODE'.
     io_session->get_list( )->get_writer( )->write_field(
       VALUE #( text = 'back' ) ).
-  ENDIF.
+ENDIF.
 ENDMETHOD.
 ```
+
+The report and counterpart are present, but the checkbox stays open until the
+host executes the transaction and invokes its resumable continuation.
 
 ### 57 — `LEAVE TO TRANSACTION` / `LEAVE PROGRAM`
 
@@ -1842,9 +1913,15 @@ METHOD zif_gg_report_v1~at_get.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
       text      = <lv_carrid>
       placement = VALUE #( new_line = abap_true ) ) ).
-  ENDIF.
+ENDIF.
 ENDMETHOD.
 ```
+
+The report, DDIC fixture, and counterpart are present, but the checkbox stays
+open until the host exposes logical-database nodes and drives `GET` events.
+The report is file-scoped out of lint issue reporting because the current
+implicit-start rule classifies `NODES` as executable content, and it is excluded
+from transpilation because `NODES` is unsupported there.
 
 ### 60 — `GET LATE`
 
@@ -1879,3 +1956,9 @@ METHOD zif_gg_report_v1~at_get_late.
     placement = VALUE #( new_line = abap_true ) ) ).
 ENDMETHOD.
 ```
+
+The report, DDIC-backed node declarations, and counterpart are present, but
+the checkbox stays open until the host exposes logical-database nodes and
+drives the ordered `GET`/`GET LATE` events. The report is file-scoped out of
+lint issue reporting for the same implicit-start classifier limitation as item
+59, and excluded from transpilation because `NODES` is unsupported there.
