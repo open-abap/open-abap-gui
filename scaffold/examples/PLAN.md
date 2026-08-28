@@ -191,11 +191,6 @@ tried as prerequisites and both fail lint on their own.
 - [ ] 57 `LEAVE TO TRANSACTION` / `LEAVE PROGRAM`
 - [ ] 58 `SET SCREEN` / `LEAVE SCREEN` / `LEAVE TO SCREEN`
 
-### Phase 8 — Logical database
-
-- [ ] 59 `NODES` and `GET`
-- [ ] 60 `GET LATE`
-
 ### Blocked
 
 These cannot reach the definition of done until the named scaffold gap is
@@ -211,7 +206,6 @@ closed. Write the report anyway — it documents the target.
 | 46 | #10 — `read_line` returns hidden fields only, not editable field values |
 | 50 | #10 — no `sy-lsind` control, no `DESCRIBE LIST` |
 | 54 | #3 — `ty_submit-variant` exists but variants are not managed anywhere |
-| 59, 60 | #11 — no `get_nodes( )`, so the host cannot know which subtrees to read |
 
 ---
 
@@ -1393,7 +1387,6 @@ METHOD zif_gg_list_processing_v1~at_line_selection.
     placement = VALUE #( new_line = abap_true ) ) ).
 ENDMETHOD.
 ```
-
 The report and counterpart are present, but the checkbox stays open until the
 transpiler supports `HIDE` and the host drives a line-selection event while
 retaining HIDE fields on rendered lines.
@@ -1880,85 +1873,3 @@ METHOD zif_gg_dynpro_v1~process_input_module.
   ENDCASE.
 ENDMETHOD.
 ```
-
----
-
-## Phase 8 — Logical database
-
-### 59 — `NODES` and `GET`
-
-Exercises `get_logical_database` and `at_get`. **Blocked on #11** — without a
-`get_nodes( )` the host cannot know which subtrees the program wants, so it
-either over-reads or guesses.
-
-```abap
-REPORT zgg_ex_59.
-
-NODES spfli.
-
-GET spfli.
-  WRITE / spfli-carrid.
-```
-
-```abap
-METHOD zif_gg_report_v1~get_logical_database.
-  rv_logical_database = 'F1S'.
-ENDMETHOD.
-
-METHOD zif_gg_report_v1~at_get.
-  IF iv_node = 'SPFLI'.
-    FIELD-SYMBOLS <ls_spfli> TYPE any.
-    ASSIGN ir_record->* TO <ls_spfli>.
-    ASSIGN COMPONENT 'CARRID' OF STRUCTURE <ls_spfli> TO FIELD-SYMBOL(<lv_carrid>).
-    io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text      = <lv_carrid>
-      placement = VALUE #( new_line = abap_true ) ) ).
-ENDIF.
-ENDMETHOD.
-```
-
-The report, DDIC fixture, and counterpart are present, but the checkbox stays
-open until the host exposes logical-database nodes and drives `GET` events.
-The report is file-scoped out of lint issue reporting because the current
-implicit-start rule classifies `NODES` as executable content, and it is excluded
-from transpilation because `NODES` is unsupported there.
-
-### 60 — `GET LATE`
-
-Exercises `at_get_late`, and pins the ordering against `at_get` for a nested
-node.
-
-```abap
-REPORT zgg_ex_60.
-
-NODES: spfli, sflight.
-
-GET spfli.
-  WRITE / 'spfli'.
-
-GET sflight.
-  WRITE / 'sflight'.
-
-GET spfli LATE.
-  WRITE / 'spfli late'.
-```
-
-```abap
-METHOD zif_gg_report_v1~at_get.
-  io_session->get_list( )->get_writer( )->write_field( VALUE #(
-    text      = to_lower( iv_node )
-    placement = VALUE #( new_line = abap_true ) ) ).
-ENDMETHOD.
-
-METHOD zif_gg_report_v1~at_get_late.
-  io_session->get_list( )->get_writer( )->write_field( VALUE #(
-    text      = |{ to_lower( iv_node ) } late|
-    placement = VALUE #( new_line = abap_true ) ) ).
-ENDMETHOD.
-```
-
-The report, DDIC-backed node declarations, and counterpart are present, but
-the checkbox stays open until the host exposes logical-database nodes and
-drives the ordered `GET`/`GET LATE` events. The report is file-scoped out of
-lint issue reporting for the same implicit-start classifier limitation as item
-59, and excluded from transpilation because `NODES` is unsupported there.

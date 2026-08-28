@@ -11,9 +11,7 @@
     "scaffold/examples/zgg_ex_44\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_48\\.prog\\.abap$",
     "scaffold/examples/zgg_ex_49\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_51\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_59\\.prog\\.abap$",
-    "scaffold/examples/zgg_ex_60\\.prog\\.abap$"
+    "scaffold/examples/zgg_ex_51\\.prog\\.abap$"
   ],
   "output_folder": "output",
   "write_unit_tests": true,
