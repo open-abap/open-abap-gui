@@ -1,8 +1,8 @@
 CLASS zcl_gg_ex_52 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 52, CALL SCREEN. Counterpart of zgg_ex_52.prog.abap.
-* The host does not drive dynpro calls. Self contained: no superclass,
-* every callback present.
+* The host records the dynpro call and drives its resumable continuation.
+* Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

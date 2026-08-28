@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_30 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 30, AT SELECTION-SCREEN. Counterpart of zgg_ex_30.prog.abap.
-* The host does not drive selection-screen events yet.
+* The host drives the selection-screen PAI event with supplied input values.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

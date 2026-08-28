@@ -10,8 +10,18 @@ CLASS ltcl_ex_21 IMPLEMENTATION.
   METHOD builds_comment_layout.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_21( ) ).
 
-    cl_abap_unit_assert=>assert_initial( ls_result-lines ).
-    cl_abap_unit_assert=>assert_initial( ls_result-values[ name = 'P_A' ]-value ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-elements[ kind = 'COMMENT' ]-text
+      exp = 'Selection criteria' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-elements[ kind = 'COMMENT' ]-length
+      exp = 30 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-elements[ kind = 'ULINE' ]-length
+      exp = 40 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-elements[ kind = 'PARAMETER' ]-line
+      exp = 1 ).
   ENDMETHOD.
 
 ENDCLASS.

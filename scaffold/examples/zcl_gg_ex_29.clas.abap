@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_29 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 29, AT SELECTION-SCREEN OUTPUT writing a parameter. Counterpart of
-* zgg_ex_29.prog.abap. The host does not drive selection-screen events yet.
+* zgg_ex_29.prog.abap. The host drives the output event before the run.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

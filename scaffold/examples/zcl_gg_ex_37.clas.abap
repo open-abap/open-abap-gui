@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_37 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 37, AT SELECTION-SCREEN ON EXIT-COMMAND. Counterpart of
-* zgg_ex_37.prog.abap. The host does not drive selection-screen events yet.
+* zgg_ex_37.prog.abap. The host drives exit-command control flow.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

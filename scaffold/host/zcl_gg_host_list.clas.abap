@@ -17,6 +17,10 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     INTERFACES zif_gg_list_writer_v1.
 
     TYPES ty_text_lines TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    TYPES ty_line_formats TYPE STANDARD TABLE OF zif_gg_list_processing_types_v1=>ty_format
+      WITH DEFAULT KEY.
+    TYPES ty_hidden_lines TYPE STANDARD TABLE OF zif_gg_list_processing_types_v1=>ty_hidden_fields
+      WITH DEFAULT KEY.
 
     CONSTANTS default_line_size TYPE i VALUE 132.
 
@@ -49,9 +53,27 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_status) TYPE zif_gg_session_types_v1=>ty_gui_status.
 
+    METHODS get_settings
+      RETURNING
+        VALUE(rs_settings) TYPE zif_gg_list_processing_types_v1=>ty_settings.
+
+    METHODS get_line_formats
+      RETURNING
+        VALUE(rt_formats) TYPE ty_line_formats.
+
     METHODS get_blank_lines
       RETURNING
         VALUE(rv_enabled) TYPE abap_bool.
+
+    METHODS select_line
+      IMPORTING
+        iv_index TYPE i
+        iv_field TYPE zif_gg_session_types_v1=>ty_name OPTIONAL
+        iv_value TYPE string OPTIONAL.
+
+    METHODS begin_line_selection
+      IMPORTING
+        iv_level TYPE i.
 
   PRIVATE SECTION.
     DATA mo_session   TYPE REF TO zif_gg_session_v1.
@@ -60,15 +82,22 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA ms_format    TYPE zif_gg_list_processing_types_v1=>ty_format.
     DATA ms_status    TYPE zif_gg_session_types_v1=>ty_gui_status.
     DATA mt_lines     TYPE ty_text_lines.
+    DATA mt_line_formats TYPE ty_line_formats.
+    DATA mt_hidden_lines TYPE ty_hidden_lines.
+    DATA mt_current_hidden TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields.
     DATA mv_title     TYPE string.
     DATA mv_current   TYPE string.
     DATA mv_column    TYPE i.
     DATA mv_page      TYPE i.
     DATA mv_line      TYPE i.
+    DATA mv_list_level TYPE i.
     DATA mv_no_gap    TYPE abap_bool.
     DATA mv_blank     TYPE abap_bool.
     DATA mv_in_event  TYPE abap_bool.
     DATA mv_breaking  TYPE abap_bool.
+    DATA mv_selected_line TYPE i.
+    DATA mv_cursor_field TYPE zif_gg_session_types_v1=>ty_name.
+    DATA mv_cursor_value TYPE string.
 
     METHODS ensure_page.
 
@@ -91,7 +120,8 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     METHODS write_at
       IMPORTING
         is_placement TYPE zif_gg_list_processing_types_v1=>ty_placement
-        iv_text      TYPE string.
+        iv_text      TYPE string
+        it_hidden    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields OPTIONAL.
 
     METHODS fit
       IMPORTING
@@ -100,6 +130,13 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_justification TYPE zif_gg_list_processing_types_v1=>ty_justification OPTIONAL
       RETURNING
         VALUE(rv_text)   TYPE string.
+
+    METHODS format_write
+      IMPORTING
+        iv_text        TYPE string
+        is_format      TYPE zif_gg_list_processing_types_v1=>ty_write_format
+      RETURNING
+        VALUE(rv_text) TYPE string.
 
     METHODS spaces
       IMPORTING
@@ -144,6 +181,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     rs_context-page   = mv_page.
     rs_context-line   = mv_line.
     rs_context-column = mv_column.
+    rs_context-level  = mv_list_level.
   ENDMETHOD.
 
   METHOD get_format.
@@ -158,8 +196,41 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     rs_status = ms_status.
   ENDMETHOD.
 
+  METHOD get_settings.
+    rs_settings = ms_settings.
+  ENDMETHOD.
+
+  METHOD get_line_formats.
+    rt_formats = mt_line_formats.
+  ENDMETHOD.
+
   METHOD get_blank_lines.
     rv_enabled = mv_blank.
+  ENDMETHOD.
+
+  METHOD select_line.
+    mv_selected_line = iv_index.
+    mv_cursor_field = iv_field.
+    mv_cursor_value = iv_value.
+    IF mv_cursor_field IS INITIAL AND iv_index > 0
+        AND iv_index <= lines( mt_hidden_lines )
+        AND lines( mt_hidden_lines[ iv_index ] ) > 0.
+      mv_cursor_field = mt_hidden_lines[ iv_index ][ 1 ]-name.
+      mv_cursor_value = mt_hidden_lines[ iv_index ][ 1 ]-value.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD begin_line_selection.
+    ensure_page( ).
+    IF mo_handler IS BOUND.
+      mv_in_event = abap_true.
+      mo_handler->top_of_page_during_line_sel(
+        iv_level = iv_level
+        iv_page  = mv_page
+        io_session = mo_session ).
+      mv_in_event = abap_false.
+      end_line( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD ensure_page.
@@ -207,7 +278,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     APPEND substring( val = mv_current
                       off = 0
                       len = lv_length ) TO mt_lines.
+    APPEND ms_format TO mt_line_formats.
+    APPEND mt_current_hidden TO mt_hidden_lines.
     CLEAR mv_current.
+    CLEAR mt_current_hidden.
     mv_column = 1.
     mv_no_gap = abap_false.
     mv_line   = mv_line + 1.
@@ -264,6 +338,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       mv_column = mv_column + 1.
     ENDIF.
     place( iv_text ).
+    APPEND LINES OF it_hidden TO mt_current_hidden.
     mv_no_gap = is_placement-no_gap.
   ENDMETHOD.
 
@@ -292,6 +367,46 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
 
+  METHOD format_write.
+    DATA lv_integer TYPE string.
+    DATA lv_fraction TYPE string.
+    DATA lv_offset TYPE i.
+
+    rv_text = iv_text.
+    IF is_format-edit_mask IS NOT INITIAL.
+      rv_text = is_format-edit_mask.
+      REPLACE FIRST OCCURRENCE OF '*' IN rv_text WITH iv_text.
+    ENDIF.
+
+    IF is_format-decimals > 0.
+      FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
+      IF sy-subrc = 0.
+        lv_integer = substring( val = rv_text off = 0 len = lv_offset ).
+        lv_fraction = substring( val = rv_text off = lv_offset + 1 ).
+      ELSE.
+        lv_integer = rv_text.
+      ENDIF.
+      WHILE strlen( lv_fraction ) < is_format-decimals.
+        lv_fraction = lv_fraction && `0`.
+      ENDWHILE.
+      IF strlen( lv_fraction ) > is_format-decimals.
+        lv_fraction = substring( val = lv_fraction
+                                 off = 0
+                                 len = is_format-decimals ).
+      ENDIF.
+      rv_text = lv_integer && `.` && lv_fraction.
+    ELSEIF is_format-decimals = 0.
+      FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
+      IF sy-subrc = 0.
+        rv_text = substring( val = rv_text off = 0 len = lv_offset ).
+      ENDIF.
+    ENDIF.
+
+    IF is_format-no_zero = abap_true AND rv_text CO '0.-+'.
+      rv_text = ``.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD spaces.
     IF iv_count <= 0.
       RETURN.
@@ -314,9 +429,12 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   METHOD zif_gg_list_writer_v1~write_field.
     write_at(
       is_placement = is_field-placement
-      iv_text      = fit( iv_text          = is_field-text
+      iv_text      = fit( iv_text          = format_write(
+                            iv_text   = is_field-text
+                            is_format = is_field-write_format )
                           iv_length        = is_field-placement-length
-                          iv_justification = is_field-write_format-justification ) ).
+                          iv_justification = is_field-write_format-justification )
+      it_hidden    = is_field-hide ).
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_checkbox.
@@ -419,21 +537,24 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~enter_list_processing.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
-      iv_kind      = zcx_gg_control_flow=>kind_unsupported
-      iv_operation = 'LEAVE TO LIST-PROCESSING' ).
+    mv_list_level = mv_list_level + 1.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~leave_list_processing.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
-      iv_kind      = zcx_gg_control_flow=>kind_unsupported
-      iv_operation = 'LEAVE LIST-PROCESSING' ).
+    IF mv_list_level > 0.
+      mv_list_level = mv_list_level - 1.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~get_cursor.
     rs_cursor-page   = mv_page.
     rs_cursor-line   = mv_line.
     rs_cursor-column = mv_column.
+    IF mv_selected_line > 0.
+      rs_cursor-line  = mv_selected_line.
+      rs_cursor-field = mv_cursor_field.
+      rs_cursor-value = mv_cursor_value.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~read_line.
@@ -444,6 +565,12 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     rs_line-index = iv_index.
     rs_line-page  = mv_page.
     rs_line-text  = mt_lines[ iv_index ].
+    IF iv_index <= lines( mt_hidden_lines ).
+      rs_line-fields = mt_hidden_lines[ iv_index ].
+    ENDIF.
+    IF iv_index <= lines( mt_line_formats ).
+      rs_line-format = mt_line_formats[ iv_index ].
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~modify_line.
@@ -451,6 +578,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       RETURN.
     ENDIF.
     mt_lines[ is_line-index ] = is_line-text.
+    IF is_line-index <= lines( mt_line_formats ).
+      mt_line_formats[ is_line-index ] = is_line-format.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~set_title.

@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_21 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 21, SELECTION-SCREEN COMMENT / ULINE / SKIP. Counterpart of
-* zgg_ex_21.prog.abap. Text elements remain blocked by gap #5.
+* zgg_ex_21.prog.abap. The host retains literal comment structure.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

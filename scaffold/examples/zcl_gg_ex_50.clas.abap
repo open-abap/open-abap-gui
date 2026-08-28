@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_50 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 50, LEAVE TO/LIST-PROCESSING. Counterpart of zgg_ex_50.prog.abap.
-* Blocked by scaffold gap #10: list depth and sy-lsind are not modeled.
+* The host tracks list-processing depth while executing the transfer pair.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

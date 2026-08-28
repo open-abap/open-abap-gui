@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_46 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 46, READ LINE and MODIFY LINE. Counterpart of zgg_ex_46.prog.abap.
-* Blocked by scaffold gap #10: the line contract lacks editable field values.
+* The host round-trips line text and format state through READ/MODIFY LINE.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -21,6 +21,7 @@ CLASS zcl_gg_ex_46 IMPLEMENTATION.
 
   METHOD zif_gg_list_processing_v1~at_line_selection.
     DATA(ls_line) = io_session->get_list( )->read_line( iv_index = 1 ).
+    ls_line-format-intensified = abap_true.
     io_session->get_list( )->modify_line( ls_line ).
   ENDMETHOD.
 

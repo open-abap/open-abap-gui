@@ -34,15 +34,46 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_suppressed) TYPE abap_bool.
 
+    METHODS get_selection_call
+      RETURNING
+        VALUE(rs_call) TYPE zif_gg_session_types_v1=>ty_selection_screen_call.
+
+    METHODS get_screen_call
+      RETURNING
+        VALUE(rs_call) TYPE zif_gg_session_types_v1=>ty_screen_call.
+
+    METHODS get_submit_call
+      RETURNING
+        VALUE(rs_call) TYPE zif_gg_session_types_v1=>ty_submit.
+
+    METHODS get_continuation
+      RETURNING
+        VALUE(rs_continuation) TYPE zif_gg_session_types_v1=>ty_continuation.
+
+    METHODS get_next_screen
+      RETURNING
+        VALUE(rv_screen) TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+
+    METHODS set_list_from_memory
+      IMPORTING
+        it_lines TYPE zif_gg_session_types_v1=>ty_memory_list.
+
   PRIVATE SECTION.
     DATA mo_list      TYPE REF TO zcl_gg_host_list.
     DATA mv_program   TYPE zif_gg_session_types_v1=>ty_program.
     DATA mv_event     TYPE zif_gg_session_types_v1=>ty_event.
     DATA mv_batch     TYPE abap_bool.
     DATA mv_suppress  TYPE abap_bool.
+    DATA mv_next_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
     DATA mv_title     TYPE string.
     DATA ms_status    TYPE zif_gg_session_types_v1=>ty_gui_status.
     DATA ms_cursor    TYPE zif_gg_session_types_v1=>ty_dialog_cursor.
+    DATA ms_selection_call TYPE zif_gg_session_types_v1=>ty_selection_screen_call.
+    DATA ms_screen_call TYPE zif_gg_session_types_v1=>ty_screen_call.
+    DATA ms_transaction_call TYPE zif_gg_session_types_v1=>ty_transaction_call.
+    DATA ms_submit_call TYPE zif_gg_session_types_v1=>ty_submit.
+    DATA ms_continuation TYPE zif_gg_session_types_v1=>ty_continuation.
+    DATA mt_memory_lines TYPE zif_gg_session_types_v1=>ty_memory_list.
     DATA mt_messages  TYPE ty_messages.
 
     METHODS unsupported
@@ -69,6 +100,30 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD is_dialog_suppressed.
     rv_suppressed = mv_suppress.
+  ENDMETHOD.
+
+  METHOD get_selection_call.
+    rs_call = ms_selection_call.
+  ENDMETHOD.
+
+  METHOD get_screen_call.
+    rs_call = ms_screen_call.
+  ENDMETHOD.
+
+  METHOD get_submit_call.
+    rs_call = ms_submit_call.
+  ENDMETHOD.
+
+  METHOD get_continuation.
+    rs_continuation = ms_continuation.
+  ENDMETHOD.
+
+  METHOD get_next_screen.
+    rv_screen = mv_next_screen.
+  ENDMETHOD.
+
+  METHOD set_list_from_memory.
+    mt_memory_lines = it_lines.
   ENDMETHOD.
 
   METHOD unsupported.
@@ -129,23 +184,36 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~set_next_screen.
-    unsupported( 'SET SCREEN' ).
+    mv_next_screen = iv_screen.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~leave_screen.
-    unsupported( 'LEAVE SCREEN' ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_leave_screen
+      iv_operation = 'LEAVE SCREEN' ).
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~leave_to_screen.
-    unsupported( 'LEAVE TO SCREEN' ).
+    mv_next_screen = iv_screen.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_leave_to_screen
+      iv_operation = |LEAVE TO SCREEN { iv_screen }| ).
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~call_screen.
-    unsupported( 'CALL SCREEN' ).
+    ms_screen_call = is_call.
+    ms_continuation = is_continuation.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_call_screen
+      iv_operation = 'CALL SCREEN' ).
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~call_selection_screen.
-    unsupported( 'CALL SELECTION-SCREEN' ).
+    ms_selection_call = is_call.
+    ms_continuation = is_continuation.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_call_selection_screen
+      iv_operation = 'CALL SELECTION-SCREEN' ).
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~leave_program.
@@ -153,23 +221,35 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~submit.
-    unsupported( 'SUBMIT' ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_submit
+      iv_operation = |SUBMIT { is_submit-program }| ).
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~submit_and_return.
-    unsupported( 'SUBMIT AND RETURN' ).
+    ms_submit_call = is_submit.
+    ms_continuation = is_continuation.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_submit_return
+      iv_operation = |SUBMIT { is_submit-program } AND RETURN| ).
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~get_list_from_memory.
-    unsupported( 'LIST_FROM_MEMORY' ).
+    rt_lines = mt_memory_lines.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~call_transaction.
-    unsupported( 'CALL TRANSACTION' ).
+    ms_transaction_call = is_call.
+    ms_continuation = is_continuation.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_call_transaction
+      iv_operation = |CALL TRANSACTION { is_call-tcode }| ).
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~leave_to_transaction.
-    unsupported( 'LEAVE TO TRANSACTION' ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_leave_to_transaction
+      iv_operation = |LEAVE TO TRANSACTION { is_call-tcode }| ).
   ENDMETHOD.
 
 ENDCLASS.

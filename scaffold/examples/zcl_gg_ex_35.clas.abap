@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_35 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 35, AT SELECTION-SCREEN ON VALUE-REQUEST. Counterpart of
-* zgg_ex_35.prog.abap. Updating the requested field remains blocked by gap #18.
+* zgg_ex_35.prog.abap. The host applies the returned range to the requested field.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

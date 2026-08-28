@@ -12,6 +12,14 @@ CLASS zcx_gg_control_flow DEFINITION PUBLIC INHERITING FROM cx_no_check FINAL CR
     CONSTANTS kind_stop          TYPE ty_kind VALUE 'STOP'.
     CONSTANTS kind_message       TYPE ty_kind VALUE 'MESSAGE'.
     CONSTANTS kind_leave_program TYPE ty_kind VALUE 'LEAVE_PROGRAM'.
+    CONSTANTS kind_call_selection_screen TYPE ty_kind VALUE 'CALL_SELECTION_SCREEN'.
+    CONSTANTS kind_call_screen TYPE ty_kind VALUE 'CALL_SCREEN'.
+    CONSTANTS kind_submit TYPE ty_kind VALUE 'SUBMIT'.
+    CONSTANTS kind_submit_return TYPE ty_kind VALUE 'SUBMIT_RETURN'.
+    CONSTANTS kind_call_transaction TYPE ty_kind VALUE 'CALL_TRANSACTION'.
+    CONSTANTS kind_leave_to_transaction TYPE ty_kind VALUE 'LEAVE_TO_TRANSACTION'.
+    CONSTANTS kind_leave_screen TYPE ty_kind VALUE 'LEAVE_SCREEN'.
+    CONSTANTS kind_leave_to_screen TYPE ty_kind VALUE 'LEAVE_TO_SCREEN'.
     CONSTANTS kind_unsupported   TYPE ty_kind VALUE 'UNSUPPORTED'.
 
     DATA mv_kind      TYPE ty_kind READ-ONLY.

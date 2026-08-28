@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_20 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 20, SELECT-OPTIONS. Counterpart of zgg_ex_20.prog.abap.
-* The general value conversion remains blocked by gap #7.
+* The host retains the select-option range and its default.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

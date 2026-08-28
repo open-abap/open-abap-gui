@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_54 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 54, SUBMIT AND RETURN with WITH and variant. Counterpart of
-* zgg_ex_54.prog.abap. Variant management remains blocked by gap #3.
+* zgg_ex_54.prog.abap. The host forwards selections and retains the variant.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

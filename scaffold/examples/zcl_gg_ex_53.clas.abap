@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_53 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 53, terminal SUBMIT. Counterpart of zgg_ex_53.prog.abap.
-* The host does not drive submitted programs. Self contained: no superclass,
+* The host records terminal SUBMIT navigation. Self contained: no superclass,
 * every callback present.
 
   PUBLIC SECTION.

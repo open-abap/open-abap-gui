@@ -1,8 +1,8 @@
 CLASS zcl_gg_ex_49 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 49, AT PF5. Counterpart of zgg_ex_49.prog.abap.
-* The host does not drive PF events yet. Self contained: no superclass,
-* every callback present.
+* The host drives the requested PF event. Self contained: no superclass, every
+* callback present.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

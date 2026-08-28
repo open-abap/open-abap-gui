@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_26 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 26, selection-screen tabbed block and tabs. Counterpart of
-* zgg_ex_26.prog.abap. Subscreen support remains dependent on feature 27.
+* zgg_ex_26.prog.abap. The host records tab and subscreen metadata.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

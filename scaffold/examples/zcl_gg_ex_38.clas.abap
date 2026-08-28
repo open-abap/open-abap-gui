@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_38 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 38, sscrfields-ucomm driven suppression. Counterpart of
-* zgg_ex_38.prog.abap. The host does not drive selection-screen events yet.
+* zgg_ex_38.prog.abap. The host drives output with batch context.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

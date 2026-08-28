@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_16 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 16, PARAMETERS attribute additions. Counterpart of
-* zgg_ex_16.prog.abap. The modif/group half remains blocked by gap #8.
+* zgg_ex_16.prog.abap. The host retains the parameter attributes and groups.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

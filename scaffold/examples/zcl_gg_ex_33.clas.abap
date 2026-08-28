@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_33 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 33, AT SELECTION-SCREEN ON BLOCK. Counterpart of
-* zgg_ex_33.prog.abap. The host does not drive selection-screen events yet.
+* zgg_ex_33.prog.abap. The host drives block-level PAI before general PAI.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

@@ -12,6 +12,17 @@ CLASS ltcl_ex_16 IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_initial( ls_result-lines ).
     cl_abap_unit_assert=>assert_initial( ls_result-values[ name = 'P_NAME' ]-value ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-states[ name = 'P_NAME' ]-modif_id
+      exp = 'ABC' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-states[ name = 'P_NAME' ]-memory_id
+      exp = 'ZGG' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-states[ name = 'P_NAME' ]-search_help
+      exp = 'ZGG_SH' ).
+    cl_abap_unit_assert=>assert_true( ls_result-states[ name = 'P_NAME' ]-obligatory ).
+    cl_abap_unit_assert=>assert_true( ls_result-states[ name = 'P_NAME' ]-lower_case ).
   ENDMETHOD.
 
 ENDCLASS.

@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_56 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 56, CALL TRANSACTION. Counterpart of zgg_ex_56.prog.abap.
-* The host does not drive transactions. Self contained: no superclass,
+* The host records transactions and resumes the continuation. Self contained: no superclass,
 * every callback present.
 
   PUBLIC SECTION.

@@ -1,8 +1,8 @@
 CLASS zcl_gg_ex_43 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 43, HIDE and AT LINE-SELECTION. Counterpart of zgg_ex_43.prog.abap.
-* The host does not drive line selection yet. Self contained: no superclass,
-* every callback present.
+* The host drives line selection and retains HIDE fields. Self contained: no
+* superclass, every callback present.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

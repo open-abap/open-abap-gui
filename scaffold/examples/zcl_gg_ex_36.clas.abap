@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_36 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 36, AT SELECTION-SCREEN ON HELP-REQUEST. Counterpart of
-* zgg_ex_36.prog.abap. The host does not drive selection-screen events yet.
+* zgg_ex_36.prog.abap. The host exposes an optional help-request probe.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

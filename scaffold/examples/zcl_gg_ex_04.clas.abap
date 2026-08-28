@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_04 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 04, WRITE numeric and mask additions. Counterpart of
-* zgg_ex_04.prog.abap. The numeric conversion remains blocked by gap #7.
+* zgg_ex_04.prog.abap. The host formats numeric text at the writer boundary.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

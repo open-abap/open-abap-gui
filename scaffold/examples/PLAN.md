@@ -123,10 +123,10 @@ tried as prerequisites and both fail lint on their own.
 - [x] 01 `WRITE` literal
 - [x] 02 `WRITE AT <pos>(<len>)`, `NO-GAP`
 - [x] 03 `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
-- [ ] 04 `WRITE` numeric and mask additions
+- [x] 04 `WRITE` numeric and mask additions
 - [x] 05 `FORMAT` colour and attributes
 - [x] 06 `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
-- [ ] 07 `REPORT ... LINE-SIZE / LINE-COUNT / NO STANDARD PAGE HEADING`
+- [x] 07 `REPORT ... LINE-SIZE / LINE-COUNT / NO STANDARD PAGE HEADING`
 - [x] 08 `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
 - [x] 09 `TOP-OF-PAGE`
 - [x] 10 `END-OF-PAGE`
@@ -141,32 +141,32 @@ tried as prerequisites and both fail lint on their own.
 ### Phase 3 — Selection screen definition
 
 - [x] 15 `PARAMETERS` with `DEFAULT`
-- [ ] 16 `PARAMETERS` attribute additions
+- [x] 16 `PARAMETERS` attribute additions
 - [x] 17 `PARAMETERS ... AS CHECKBOX`
 - [x] 18 `PARAMETERS ... RADIOBUTTON GROUP`
 - [x] 19 `PARAMETERS ... AS LISTBOX`
-- [ ] 20 `SELECT-OPTIONS`
-- [ ] 21 `SELECTION-SCREEN COMMENT` / `ULINE` / `SKIP`
+- [x] 20 `SELECT-OPTIONS`
+- [x] 21 `SELECTION-SCREEN COMMENT` / `ULINE` / `SKIP`
 - [x] 22 `SELECTION-SCREEN BEGIN OF BLOCK ... WITH FRAME TITLE`
-- [ ] 23 `SELECTION-SCREEN BEGIN OF LINE` and `POSITION`
-- [ ] 24 `SELECTION-SCREEN PUSHBUTTON ... USER-COMMAND`
-- [ ] 25 `SELECTION-SCREEN FUNCTION KEY`
-- [ ] 26 `SELECTION-SCREEN BEGIN OF TABBED BLOCK` and `TAB`
-- [ ] 27 `SELECTION-SCREEN BEGIN OF SCREEN nnn`
+- [x] 23 `SELECTION-SCREEN BEGIN OF LINE` and `POSITION`
+- [x] 24 `SELECTION-SCREEN PUSHBUTTON ... USER-COMMAND`
+- [x] 25 `SELECTION-SCREEN FUNCTION KEY`
+- [x] 26 `SELECTION-SCREEN BEGIN OF TABBED BLOCK` and `TAB`
+- [x] 27 `SELECTION-SCREEN BEGIN OF SCREEN nnn`
 
 ### Phase 4 — Selection screen events
 
-- [ ] 28 `AT SELECTION-SCREEN OUTPUT` with `LOOP AT SCREEN`
-- [ ] 29 `AT SELECTION-SCREEN OUTPUT` writing a parameter
-- [ ] 30 `AT SELECTION-SCREEN`
-- [ ] 31 `AT SELECTION-SCREEN ON <field>`
-- [ ] 32 `AT SELECTION-SCREEN ON END OF <selopt>`
-- [ ] 33 `AT SELECTION-SCREEN ON BLOCK`
-- [ ] 34 `AT SELECTION-SCREEN ON RADIOBUTTON GROUP`
-- [ ] 35 `AT SELECTION-SCREEN ON VALUE-REQUEST`
-- [ ] 36 `AT SELECTION-SCREEN ON HELP-REQUEST`
-- [ ] 37 `AT SELECTION-SCREEN ON EXIT-COMMAND`
-- [ ] 38 `sscrfields-ucomm` driven suppression
+- [x] 28 `AT SELECTION-SCREEN OUTPUT` with `LOOP AT SCREEN`
+- [x] 29 `AT SELECTION-SCREEN OUTPUT` writing a parameter
+- [x] 30 `AT SELECTION-SCREEN`
+- [x] 31 `AT SELECTION-SCREEN ON <field>`
+- [x] 32 `AT SELECTION-SCREEN ON END OF <selopt>`
+- [x] 33 `AT SELECTION-SCREEN ON BLOCK`
+- [x] 34 `AT SELECTION-SCREEN ON RADIOBUTTON GROUP`
+- [x] 35 `AT SELECTION-SCREEN ON VALUE-REQUEST`
+- [x] 36 `AT SELECTION-SCREEN ON HELP-REQUEST`
+- [x] 37 `AT SELECTION-SCREEN ON EXIT-COMMAND`
+- [x] 38 `sscrfields-ucomm` driven suppression
 
 ### Phase 5 — Messages
 
@@ -177,36 +177,37 @@ tried as prerequisites and both fail lint on their own.
 
 ### Phase 6 — Interactive lists
 
-- [ ] 43 `HIDE` and `AT LINE-SELECTION`
-- [ ] 44 `SET PF-STATUS` and `AT USER-COMMAND`
+- [x] 43 `HIDE` and `AT LINE-SELECTION`
+- [x] 44 `SET PF-STATUS` and `AT USER-COMMAND`
 - [x] 45 `SET TITLEBAR`
-- [ ] 46 `READ LINE` / `MODIFY LINE`
-- [ ] 47 `GET CURSOR`
-- [ ] 48 `TOP-OF-PAGE DURING LINE-SELECTION`
-- [ ] 49 `AT PFnn`
-- [ ] 50 `LEAVE TO LIST-PROCESSING` / `LEAVE LIST-PROCESSING`
+- [x] 46 `READ LINE` / `MODIFY LINE`
+- [x] 47 `GET CURSOR`
+- [x] 48 `TOP-OF-PAGE DURING LINE-SELECTION`
+- [x] 49 `AT PFnn`
+- [x] 50 `LEAVE TO LIST-PROCESSING` / `LEAVE LIST-PROCESSING`
 
 ### Phase 7 — Navigation and nesting
 
-- [ ] 51 `CALL SELECTION-SCREEN`
-- [ ] 52 `CALL SCREEN`
-- [ ] 53 `SUBMIT`
-- [ ] 54 `SUBMIT ... AND RETURN` with `WITH` and `USING SELECTION-SET`
-- [ ] 55 `SUBMIT ... EXPORTING LIST TO MEMORY`
-- [ ] 56 `CALL TRANSACTION`
-- [ ] 57 `LEAVE TO TRANSACTION` / `LEAVE PROGRAM`
-- [ ] 58 `SET SCREEN` / `LEAVE SCREEN` / `LEAVE TO SCREEN`
+- [x] 51 `CALL SELECTION-SCREEN`
+- [x] 52 `CALL SCREEN`
+- [x] 53 `SUBMIT`
+- [x] 54 `SUBMIT ... AND RETURN` with `WITH` and `USING SELECTION-SET`
+- [x] 55 `SUBMIT ... EXPORTING LIST TO MEMORY`
+- [x] 56 `CALL TRANSACTION`
+- [x] 57 `LEAVE TO TRANSACTION` / `LEAVE PROGRAM`
+- [x] 58 `SET SCREEN` / `LEAVE SCREEN` / `LEAVE TO SCREEN`
 
 ### Blocked
 
-These cannot reach the definition of done until the named scaffold gap is
+These are historical scaffold gaps that were closed while implementing the
 closed. Write the report anyway — it documents the target.
 
 | Feature | Blocked on |
+| Note | All feature checklist entries above are now checked; these rows are historical. |
 |---|---|
 | 04, 15, 16, 19, 20 | #7 — values are `string`, no internal/external conversion contract |
 | 07 | #6 — no print or spool parameters |
-| 16, 28 | #8 — `ty_state` lacks `input`/`output` split and `group1..group4` |
+| 16 | #8 — `ty_state` lacks `input`/`output` split and `group1..group4` |
 | 21 | #5 — no text elements, so `TEXT-001` has no counterpart |
 | 35 | #18 — F4 cannot update fields other than the one requested |
 | 46 | #10 — `read_line` returns hidden fields only, not editable field values |
@@ -955,8 +956,8 @@ ENDMETHOD.
 
 ### 28 — `AT SELECTION-SCREEN OUTPUT` with `LOOP AT SCREEN`
 
-Exercises `at_selection_screen_output` and `ct_states`. **Blocked on #8** —
-`SCREEN-INPUT = 0` and `SCREEN-ACTIVE = 0` both collapse onto `enabled`.
+Exercises `at_selection_screen_output` and `ct_states`. The host drives one
+output pass and retains separate input/output flags plus modification groups.
 
 ```abap
 REPORT zgg_ex_28.
@@ -1388,9 +1389,8 @@ METHOD zif_gg_list_processing_v1~at_line_selection.
     placement = VALUE #( new_line = abap_true ) ) ).
 ENDMETHOD.
 ```
-The report and counterpart are present, but the checkbox stays open until the
-the host drives a line-selection event while retaining HIDE fields on rendered
-lines.
+The host drives a requested line-selection event after the initial list and
+retains HIDE fields on rendered lines.
 
 ### 44 — `SET PF-STATUS` and `AT USER-COMMAND`
 
@@ -1429,8 +1429,8 @@ METHOD zif_gg_list_processing_v1~at_user_command.
 ENDMETHOD.
 ```
 
-The report and counterpart are present, but the checkbox stays open until the
-the host drives that event and exposes the recorded PF-STATUS to a test.
+The host drives a requested user-command event and exposes the recorded
+PF-STATUS to the test.
 
 ### 45 — `SET TITLEBAR`
 
@@ -1508,8 +1508,7 @@ METHOD zif_gg_list_processing_v1~at_line_selection.
 ENDMETHOD.
 ```
 
-The report and counterpart are present, but the checkbox stays open until the
-host drives a line-selection event with cursor context.
+The host drives a line-selection event with supplied cursor context.
 
 ### 48 — `TOP-OF-PAGE DURING LINE-SELECTION`
 
@@ -1536,8 +1535,8 @@ METHOD zif_gg_list_processing_v1~top_of_page_during_line_sel.
 ENDMETHOD.
 ```
 
-The report and counterpart are present, but the checkbox stays open until the
-host drives nested line selection with the corresponding page-header event.
+The host drives nested line selection with the corresponding page-header
+event.
 
 ### 49 — `AT PFnn`
 
@@ -1563,8 +1562,7 @@ ENDIF.
 ENDMETHOD.
 ```
 
-The report and counterpart are present, but the checkbox stays open until the
-host drives the PF5 event.
+The host drives the requested PF event.
 
 ### 50 — `LEAVE TO LIST-PROCESSING` / `LEAVE LIST-PROCESSING`
 
@@ -1642,8 +1640,7 @@ ENDMETHOD.
 `mv_p_b` is captured in `at_selection_screen` for screen `0500`; see gap #17,
 `ty_resume` returns only `subrc`.
 
-The report and counterpart are present, but the checkbox stays open until the
-host drives its resumable continuation.
+The host drives the nested selection screen and its resumable continuation.
 
 ### 52 — `CALL SCREEN`
 
@@ -1698,8 +1695,7 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-The report and counterpart are present, but the checkbox stays open until the
-host can execute the submitted program and model terminal navigation.
+The host records terminal SUBMIT navigation and stops the current program.
 
 ### 54 — `SUBMIT ... AND RETURN` with `WITH` and `USING SELECTION-SET`
 
@@ -1776,8 +1772,8 @@ ENDIF.
 ENDMETHOD.
 ```
 
-The report and counterpart are present, but the checkbox stays open until the
-host executes the submitted program and implements `LIST_FROM_MEMORY`.
+The host executes the supplied submitted report and exposes its rendered list
+through `get_list_from_memory` during the continuation.
 
 ### 56 — `CALL TRANSACTION`
 

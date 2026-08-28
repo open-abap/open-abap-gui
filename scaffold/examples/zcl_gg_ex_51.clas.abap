@@ -1,8 +1,8 @@
 CLASS zcl_gg_ex_51 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 51, CALL SELECTION-SCREEN. Counterpart of zgg_ex_51.prog.abap.
-* The host does not drive nested selection screens. Self contained: no
-* superclass, every callback present.
+* The host drives the nested selection screen and resumable continuation.
+* Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_44 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 44, SET PF-STATUS and AT USER-COMMAND. Counterpart of
-* zgg_ex_44.prog.abap. The host does not drive user commands yet.
+* zgg_ex_44.prog.abap. The host drives user commands and exposes status.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

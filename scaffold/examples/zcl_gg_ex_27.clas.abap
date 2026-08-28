@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_27 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 27, selection-screen BEGIN OF SCREEN. Counterpart of
-* zgg_ex_27.prog.abap. The host currently does not display nested screens.
+* zgg_ex_27.prog.abap. The host records named-screen metadata for inspection.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

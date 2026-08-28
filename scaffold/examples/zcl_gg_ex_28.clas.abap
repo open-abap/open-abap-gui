@@ -1,8 +1,8 @@
 CLASS zcl_gg_ex_28 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 28, AT SELECTION-SCREEN OUTPUT with LOOP AT SCREEN. Counterpart of
-* zgg_ex_28.prog.abap. State groups and event driving remain blocked by gaps
-* #8 and the host's missing selection-screen operation.
+* zgg_ex_28.prog.abap. The host drives selection-screen output and retains state
+* groups plus input/output flags.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

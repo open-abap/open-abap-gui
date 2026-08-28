@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_57 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 57, LEAVE TO TRANSACTION and LEAVE PROGRAM. Counterpart of
-* zgg_ex_57.prog.abap. Transaction navigation remains host-dependent.
+* zgg_ex_57.prog.abap. The host records either terminal navigation path.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

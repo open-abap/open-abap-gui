@@ -110,6 +110,7 @@ INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
            page   TYPE i,
            text   TYPE string,
            fields TYPE ty_hidden_fields,
+           format TYPE ty_format,
          END OF ty_line.
 
 * REPORT ... LINE-SIZE n LINE-COUNT n(m) NO STANDARD PAGE HEADING,

@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_48 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 48, TOP-OF-PAGE DURING LINE-SELECTION. Counterpart of
-* zgg_ex_48.prog.abap. The host does not drive line selection yet.
+* zgg_ex_48.prog.abap. The host drives the nested-list page header.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

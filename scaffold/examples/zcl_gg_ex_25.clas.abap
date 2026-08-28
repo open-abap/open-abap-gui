@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_25 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 25, SELECTION-SCREEN FUNCTION KEY. Counterpart of
-* zgg_ex_25.prog.abap. The host currently does not retain function keys.
+* zgg_ex_25.prog.abap. The host records function-key metadata for inspection.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

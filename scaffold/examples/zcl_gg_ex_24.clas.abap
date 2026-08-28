@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_24 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 24, selection-screen pushbutton and USER-COMMAND. Counterpart of
-* zgg_ex_24.prog.abap. The host currently does not render pushbuttons.
+* zgg_ex_24.prog.abap. The host records pushbutton metadata for inspection.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

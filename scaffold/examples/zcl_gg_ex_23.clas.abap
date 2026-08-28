@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_23 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 23, selection-screen line and position. Counterpart of
-* zgg_ex_23.prog.abap. The host currently does not retain screen layout.
+* zgg_ex_23.prog.abap. The host records the line layout for inspection.
 * Self contained: no superclass, every callback present.
 
   PUBLIC SECTION.

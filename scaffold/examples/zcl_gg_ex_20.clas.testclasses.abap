@@ -11,17 +11,12 @@ CLASS ltcl_ex_20 IMPLEMENTATION.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_20( ) ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-values[ name = 'S_CARR' ]-ranges[ 1 ]-sign
-      exp = zif_gg_selection_screen_types=>sign_include ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-values[ name = 'S_CARR' ]-ranges[ 1 ]-option
-      exp = zif_gg_selection_screen_types=>option_bt ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-values[ name = 'S_CARR' ]-ranges[ 1 ]-low
-      exp = 'AA' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-values[ name = 'S_CARR' ]-ranges[ 1 ]-high
-      exp = 'LH' ).
+      act = ls_result-values[ name = 'S_CARR' ]-ranges
+      exp = VALUE zif_gg_selection_screen_types=>ty_ranges( (
+        sign   = zif_gg_selection_screen_types=>sign_include
+        option = zif_gg_selection_screen_types=>option_bt
+        low    = 'AA'
+        high   = 'LH' ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

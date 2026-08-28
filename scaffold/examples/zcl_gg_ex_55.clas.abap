@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_55 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 55, SUBMIT EXPORTING LIST TO MEMORY. Counterpart of
-* zgg_ex_55.prog.abap. The host does not execute submitted programs.
+* zgg_ex_55.prog.abap. The host submits a supplied report and retains its list.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
