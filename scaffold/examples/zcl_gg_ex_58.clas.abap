@@ -1,7 +1,7 @@
 CLASS zcl_gg_ex_58 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 58, SET SCREEN, LEAVE SCREEN and LEAVE TO SCREEN. Counterpart of
-* zgg_ex_58.prog.abap. The host does not drive dynpro programs yet.
+* zgg_ex_58.prog.abap. The HTML host drives this as the /ZCL_GG_EX_58 route.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_dynpro_v1.

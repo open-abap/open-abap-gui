@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import {createAbapHtmlRuntime} from "../host/abap-html-runtime.mjs";
 
-const report = createAbapHtmlRuntime({entryPoint: "report"});
-const dynpro = createAbapHtmlRuntime({entryPoint: "dynpro"});
+const report = createAbapHtmlRuntime({entryPoint: "ZCL_GG_INTEGRATION_HTML_REPORT"});
+const dynpro = createAbapHtmlRuntime({entryPoint: "ZCL_GG_INTEGRATION_DYNPRO"});
 
 try {
   const selection = await report.start();

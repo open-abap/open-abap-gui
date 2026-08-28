@@ -18,19 +18,19 @@ ENDCLASS.
 CLASS ltcl_gg_integration_fail IMPLEMENTATION.
 
   METHOD class_setup.
-    zcl_gg_integration_db=>create( ).
+    zcl_gg_db_helper=>create( ).
   ENDMETHOD.
 
   METHOD setup.
-    zcl_gg_integration_db=>reset( ).
+    zcl_gg_db_helper=>reset( ).
   ENDMETHOD.
 
   METHOD class_teardown.
-    zcl_gg_integration_db=>destroy( ).
+    zcl_gg_db_helper=>destroy( ).
   ENDMETHOD.
 
   METHOD handles_empty_database.
-    zcl_gg_integration_db=>clear( ).
+    zcl_gg_db_helper=>clear( ).
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_integration_flights( 'NONE' ) ).
 
     cl_abap_unit_assert=>assert_equals(

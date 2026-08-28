@@ -105,7 +105,7 @@ in ABAP.
 - [x] Choose or add one deterministic dynpro fixture that exercises initial
   PBO, editable input, PAI, help/value help, next-screen navigation, back, and a
   terminal state.
-- [x] Reuse `zcl_gg_integration_db` for deterministic data setup and teardown;
+- [x] Reuse `zcl_gg_db_helper` for deterministic data setup and teardown;
   do not seed fixture data in JavaScript.
 - [x] Add ABAP Unit tests for every fixture transition before exposing it to
   HTTP.

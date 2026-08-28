@@ -7,7 +7,7 @@ const address = server.address();
 const base = `http://127.0.0.1:${address.port}`;
 
 try {
-  const initial = await fetch(`${base}/report`);
+  const initial = await fetch(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`);
   assert.equal(initial.status, 200);
   assert.match(initial.headers.get("content-type"), /^text\/html; charset=utf-8/);
   const initialHtml = await initial.text();

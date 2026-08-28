@@ -26,15 +26,15 @@ ENDCLASS.
 CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD class_setup.
-    zcl_gg_integration_db=>create( ).
+    zcl_gg_db_helper=>create( ).
   ENDMETHOD.
 
   METHOD setup.
-    zcl_gg_integration_db=>reset( ).
+    zcl_gg_db_helper=>reset( ).
   ENDMETHOD.
 
   METHOD class_teardown.
-    zcl_gg_integration_db=>destroy( ).
+    zcl_gg_db_helper=>destroy( ).
   ENDMETHOD.
 
   METHOD renders_flight_list.

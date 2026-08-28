@@ -2,18 +2,68 @@ import "../output/init.mjs";
 import {database} from "../setup.mjs";
 
 const reportFactories = {
-  report: {
+  ZCL_GG_INTEGRATION_HTML_REPORT: {
     className: "ZCL_GG_INTEGRATION_HTML_REPORT",
     interfaceName: "ZIF_GG_REPORT_V1",
     field: "io_report",
   },
+  ZCL_GG_INTEGRATION_FAILURE: {
+    className: "ZCL_GG_INTEGRATION_FAILURE",
+    interfaceName: "ZIF_GG_REPORT_V1",
+    field: "io_report",
+    constructorInput: {iv_mode: "VALID"},
+  },
+  ZCL_GG_INTEGRATION_FLIGHTS: {
+    className: "ZCL_GG_INTEGRATION_FLIGHTS",
+    interfaceName: "ZIF_GG_REPORT_V1",
+    field: "io_report",
+    constructorInput: {iv_mode: "ALL"},
+  },
+  ZCL_GG_INTEGRATION_INTERACTIVE: {
+    className: "ZCL_GG_INTEGRATION_INTERACTIVE",
+    interfaceName: "ZIF_GG_REPORT_V1",
+    field: "io_report",
+  },
+  ZCL_GG_INTEGRATION_NAVIGATION: {
+    className: "ZCL_GG_INTEGRATION_NAVIGATION",
+    interfaceName: "ZIF_GG_REPORT_V1",
+    field: "io_report",
+    constructorInput: {iv_mode: "CALL"},
+  },
+  ZCL_GG_INTEGRATION_SELECTION: {
+    className: "ZCL_GG_INTEGRATION_SELECTION",
+    interfaceName: "ZIF_GG_REPORT_V1",
+    field: "io_report",
+    constructorInput: {iv_mode: "DEFAULT"},
+  },
+  ZCL_GG_INTEGRATION_VARIANTS: {
+    className: "ZCL_GG_INTEGRATION_VARIANTS",
+    interfaceName: "ZIF_GG_REPORT_V1",
+    field: "io_report",
+    constructorInput: {iv_mode: "PLAIN"},
+  },
 };
 const dynproFactories = {
-  dynpro: {
+  ZCL_GG_INTEGRATION_DYNPRO: {
     className: "ZCL_GG_INTEGRATION_DYNPRO",
     interfaceName: "ZIF_GG_DYNPRO_V1",
     field: "io_dynpro_program",
   },
+};
+
+for (let index = 1; index <= 57; index++) {
+  const suffix = String(index).padStart(2, "0");
+  reportFactories[`zgg_ex_${suffix}`] = {
+    className: `ZCL_GG_EX_${suffix}`,
+    interfaceName: "ZIF_GG_REPORT_V1",
+    field: "io_report",
+  };
+}
+
+dynproFactories.zgg_ex_58 = {
+  className: "ZCL_GG_EX_58",
+  interfaceName: "ZIF_GG_DYNPRO_V1",
+  field: "io_dynpro_program",
 };
 
 let fixturePromise;
@@ -130,14 +180,14 @@ function fixtureFor(entryPoint) {
 async function createFixture(entryPoint) {
   const {factory, definition} = fixtureFor(entryPoint);
   const instance = new definition();
-  await instance.constructor_();
+  await instance.constructor_(factory.constructorInput);
   return {factory, instance};
 }
 
 async function ensureFixtureData() {
   fixturePromise ??= (async () => {
-    await abap.Classes.ZCL_GG_INTEGRATION_DB.create();
-    await abap.Classes.ZCL_GG_INTEGRATION_DB.reset();
+    await abap.Classes.ZCL_GG_DB_HELPER.create();
+    await abap.Classes.ZCL_GG_DB_HELPER.reset();
   })();
   return fixturePromise;
 }
@@ -188,14 +238,14 @@ export function createAbapHtmlRuntime({entryPoint = "report"} = {}) {
     async clear() {
       await abap.Classes.ZCL_GG_HOST_RUNTIME.clear();
       await ensureFixtureData();
-      await abap.Classes.ZCL_GG_INTEGRATION_DB.reset();
+      await abap.Classes.ZCL_GG_DB_HELPER.reset();
       fixture = undefined;
     },
 
     async destroy() {
       destroyPromise ??= (async () => {
         await abap.Classes.ZCL_GG_HOST_RUNTIME.clear();
-        await abap.Classes.ZCL_GG_INTEGRATION_DB.destroy();
+      await abap.Classes.ZCL_GG_DB_HELPER.destroy();
         await database?.disconnect();
         fixturePromise = undefined;
       })();

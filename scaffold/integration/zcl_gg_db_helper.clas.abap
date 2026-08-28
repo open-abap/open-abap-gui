@@ -1,4 +1,4 @@
-CLASS zcl_gg_integration_db DEFINITION PUBLIC FINAL CREATE PUBLIC.
+CLASS zcl_gg_db_helper DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     CLASS-METHODS create.
@@ -13,7 +13,7 @@ CLASS zcl_gg_integration_db DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 ENDCLASS.
 
-CLASS zcl_gg_integration_db IMPLEMENTATION.
+CLASS zcl_gg_db_helper IMPLEMENTATION.
 
   METHOD create.
     environment = cl_osql_test_environment=>create( VALUE #( ( 'ZSFLIGHT' ) ) ).

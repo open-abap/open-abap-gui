@@ -27,9 +27,18 @@ npm run start:html
 ```
 
 This transpiles the ABAP scaffold and starts `host/abap-html-server.mjs` on
-`http://127.0.0.1:8080`. The fixed `/report` and `/dynpro` routes construct
-allow-listed ABAP fixtures; `host/abap-html-runtime.mjs` converts HTTP payloads
-to typed `zcl_gg_host_runtime` requests and unwraps its public response.
+`http://127.0.0.1:8080`. The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT` and
+`/ZCL_GG_INTEGRATION_DYNPRO` routes construct allow-listed integration
+fixtures. The `/ZCL_GG_EX_01` through
+`/ZCL_GG_EX_58` routes expose all of the ABAP examples through their
+transpiled class counterparts; examples 01-57 are reports and example 58 is
+a dynpro.
+The index also lists all `ZCL_GG_INTEGRATION_*` classes. The executable
+integration classes are available through the same ABAP-backed HTTP host;
+`ZCL_GG_DB_HELPER` is listed as the database-fixture utility it is and
+does not start an executable page.
+`host/abap-html-runtime.mjs` converts HTTP payloads to typed
+`zcl_gg_host_runtime` requests and unwraps its public response.
 The transport adapter remains responsible for HTTP parsing, limits, status
 codes, and headers:
 

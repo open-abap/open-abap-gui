@@ -20,7 +20,7 @@ try {
   const pageA = await contextA.newPage();
   const pageB = await contextB.newPage();
 
-  await pageA.goto(`${base}/report`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`);
   assert.equal(await pageA.locator("[data-page-kind]").getAttribute("data-page-kind"), "SELECTION");
   const initialSession = await pageA.locator("[data-page-kind]").getAttribute("data-session-id");
   const initialPage = await pageA.locator("[data-page-kind]").getAttribute("data-page-id");
@@ -30,7 +30,7 @@ try {
   await pageA.waitForLoadState("networkidle");
   assert.match(await pageA.getByRole("status").textContent(), /Enter a carrier from the integration fixture/);
 
-  await pageA.goto(`${base}/report`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`);
   await pageA.locator('[name="P_CARR"]').fill("ZZZ");
   await pageA.getByRole("button", {name: "Continue"}).click();
   await pageA.waitForLoadState("networkidle");
@@ -50,7 +50,7 @@ try {
   await pageA.waitForLoadState("networkidle");
   assert.match(await pageA.getByText(/Selected flight: LH\/0401/).textContent(), /LH\/0401/);
 
-  await pageA.goto(`${base}/report`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`);
   const valueHelpPage = await pageA.locator("[data-page-kind]").getAttribute("data-page-id");
   await pageA.getByRole("button", {name: "Value help for Carrier"}).click();
   await pageA.waitForLoadState("networkidle");
@@ -58,22 +58,22 @@ try {
   assert.notEqual(await pageA.locator("[data-page-kind]").getAttribute("data-page-id"), valueHelpPage);
   assert.match(await pageA.getByRole("status").textContent(), /AA/);
 
-  await pageA.goto(`${base}/dynpro`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_DYNPRO`);
   await pageA.getByRole("button", {name: "Field help for P_INPUT"}).click();
   await pageA.waitForLoadState("networkidle");
   assert.match(await pageA.getByRole("status").textContent(), /Help from POH/);
 
-  await pageA.goto(`${base}/dynpro`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_DYNPRO`);
   await pageA.getByRole("button", {name: "Value help for P_INPUT"}).click();
   await pageA.waitForLoadState("networkidle");
   assert.match(await pageA.getByRole("region", {name: "Value help"}).textContent(), /Value from POV/);
 
-  await pageA.goto(`${base}/dynpro`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_DYNPRO`);
   await pageA.getByRole("button", {name: "Back"}).click();
   await pageA.waitForLoadState("networkidle");
   assert.equal(await pageA.locator("[data-screen=\"0000\"]").count(), 1);
 
-  await pageA.goto(`${base}/dynpro`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_DYNPRO`);
   assert.equal(await pageA.locator("[data-page-kind]").getAttribute("data-page-kind"), "DYNPRO");
   await pageA.locator('[name="P_INPUT"]').fill("AA-0017");
   await pageA.getByRole("button", {name: "Next"}).click();
@@ -101,8 +101,8 @@ try {
   assert.equal(closedDispatch.status, 400);
   assert.match(closedDispatch.body.error, /Unknown host session/);
 
-  await pageA.goto(`${base}/report`);
-  await pageB.goto(`${base}/report`);
+  await pageA.goto(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`);
+  await pageB.goto(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`);
   await pageA.locator('[name="P_CARR"]').fill("AA");
   await pageB.locator('[name="P_CARR"]').fill("LH");
   await pageA.getByRole("button", {name: "Continue"}).click();

@@ -15,8 +15,8 @@ const base = `http://127.0.0.1:${address.port}`;
 
 try {
   const [first, second] = await Promise.all([
-    fetch(`${base}/report`),
-    fetch(`${base}/report`),
+    fetch(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`),
+    fetch(`${base}/ZCL_GG_INTEGRATION_HTML_REPORT`),
   ]);
   const firstHtml = await first.text();
   const secondHtml = await second.text();
