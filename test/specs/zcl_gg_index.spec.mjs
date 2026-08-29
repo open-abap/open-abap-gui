@@ -92,6 +92,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("navigation", {name: "Application tree"})).toBeVisible();
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
+  await expect(page.locator(".wb-tree").getByText("Favorites", {exact: true})).toHaveCount(0);
   await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(1);
   await expect(page.locator('a[href="/ZCL_GG_DB_HELPER"] svg use[href="#wb-icon-database"]')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveCount(1);

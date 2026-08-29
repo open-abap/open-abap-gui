@@ -219,7 +219,9 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-visually-hidden\{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);\}|.
     rv_html = rv_html && |</style></head><body><div class="wb-shell">|.
     rv_html = rv_html && zcl_gg_host_icons=>sprite( ).
-    rv_html = rv_html && zcl_gg_workbench_utility=>render_top( iv_runtime = abap_true ).
+    rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
+      iv_runtime = abap_true
+      iv_title   = iv_title ).
     rv_html = rv_html && |<div class="wb-runtime-content" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main>{ iv_body }</main></div>|.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( ).

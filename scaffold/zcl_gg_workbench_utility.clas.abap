@@ -8,6 +8,7 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS render_top
       IMPORTING
         iv_runtime     TYPE abap_bool DEFAULT abap_false
+        iv_title       TYPE string DEFAULT `Workbench`
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -60,8 +61,10 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
   METHOD render_top.
     DATA lv_navigation_aria TYPE string.
+    DATA lv_title            TYPE string.
 
     lv_navigation_aria = COND #( WHEN iv_runtime = abap_true THEN `Global command` ELSE `Back` ).
+    lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items">' &&
       '<button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && '<section class="wb-commandbar" aria-label="Command bar"><label class="wb-sr-only" for="wb-command">Command</label><input class="wb-command-input" id="wb-command" type="text" placeholder="Command" autocomplete="off"><button class="wb-command-button" type="button" aria-label="Save" title="Save">' &&
@@ -87,7 +90,9 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '</button><button class="wb-command-button wb-command-button--page" type="button" aria-label="Last page" title="Last page">' &&
       zcl_gg_host_icons=>icon( iv_name = `arrow-bar-to-down` ) &&
       '</button></section>'.
-    rv_html = rv_html && '<header class="wb-appbar"><span class="wb-app-title">Workbench</span></header><div class="wb-toolbar" aria-label="Application toolbar"><button class="wb-toolbar-button" type="button" title="Create">' &&
+    rv_html = rv_html && '<header class="wb-appbar"><span class="wb-app-title">' &&
+      zcl_gg_host_html=>escape_text( lv_title ) &&
+      '</span></header><div class="wb-toolbar" aria-label="Application toolbar"><button class="wb-toolbar-button" type="button" title="Create">' &&
       zcl_gg_host_icons=>icon( iv_name = `plus` ) &&
       '</button><button class="wb-toolbar-button" type="button" title="Open">' &&
       zcl_gg_host_icons=>icon( iv_name = `folder-open` ) &&

@@ -592,7 +592,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       zcl_gg_workbench_utility=>render_styles( ) &&
       '</style></head><body><div class="wb-shell">' &&
       zcl_gg_host_icons=>sprite( ) &&
-      zcl_gg_workbench_utility=>render_top( iv_runtime = abap_true ) &&
+      zcl_gg_workbench_utility=>render_top(
+        iv_runtime = abap_true
+        iv_title   = `ZCL_GG_DB_HELPER` ) &&
       '<div class="wb-runtime-content"><main><h1>ZCL_GG_DB_HELPER</h1><p>This is the database fixture support class used by the integration examples.</p><p>It is not an executable report or dynpro program.</p></main></div>' &&
       zcl_gg_workbench_utility=>render_bottom( ).
   ENDMETHOD.

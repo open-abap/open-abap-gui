@@ -86,13 +86,6 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top( ).
     rv_html = rv_html && '<div class="wb-workspace"><aside class="wb-tree-panel"><div class="wb-tree-heading">Applications</div><nav class="wb-tree" aria-label="Application tree"><ul role="tree"><li role="treeitem"><details open><summary><span class="wb-twist" aria-hidden="true"></span>' &&
       zcl_gg_host_icons=>icon( iv_name = `folder-open` ) &&
-      'Favorites</summary><ul role="group"><li role="treeitem"><a class="wb-tree-link" href="/ZCL_GG_INTEGRATION_HTML_REPORT">' &&
-      zcl_gg_host_icons=>icon( iv_name = `star` ) &&
-      'ZCL_GG_INTEGRATION_HTML_REPORT</a></li><li role="treeitem"><a class="wb-tree-link" href="/ZCL_GG_INTEGRATION_DYNPRO">' &&
-      zcl_gg_host_icons=>icon( iv_name = `star` ) &&
-      'ZCL_GG_INTEGRATION_DYNPRO</a></li></ul></details></li>'.
-    rv_html = rv_html && '<li role="treeitem"><details open><summary><span class="wb-twist" aria-hidden="true"></span>' &&
-      zcl_gg_host_icons=>icon( iv_name = `folder-open` ) &&
       'Application Menu</summary><ul role="group"><li role="treeitem"><details open><summary><span class="wb-twist" aria-hidden="true"></span>' &&
       zcl_gg_host_icons=>icon( iv_name = `folder-open` ) &&
       'ABAP Reports</summary><ul role="group">'.
