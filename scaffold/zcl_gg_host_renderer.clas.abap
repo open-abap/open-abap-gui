@@ -148,6 +148,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_column TYPE i.
     DATA lv_line_id TYPE string.
     DATA lv_fragment_text TYPE string.
+    DATA lv_fragment_html TYPE string.
     DATA lv_fragment_title TYPE string.
     DATA lv_nav TYPE string.
     DATA lv_action_value TYPE string.
@@ -174,6 +175,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         ENDIF.
         lv_fragment_text = ls_fragment-text.
         lv_fragment_title = ls_fragment-format-quickinfo.
+        CLEAR lv_fragment_html.
         CASE ls_fragment-kind.
           WHEN 'CHECKBOX'.
             IF ls_fragment-text = '[X]'.
@@ -181,12 +183,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             ELSE.
               lv_fragment_text = '[not selected]'.
             ENDIF.
+            lv_fragment_html = zcl_gg_host_html=>escape_text( lv_fragment_text ).
           WHEN 'ICON' OR 'SYMBOL'.
-            lv_fragment_text = |[{ ls_fragment-text }] |.
+            lv_fragment_html = zcl_gg_host_icons=>icon(
+              iv_name  = ls_fragment-text
+              iv_label = COND string( WHEN lv_fragment_title IS INITIAL THEN ls_fragment-text ELSE lv_fragment_title ) ).
+            lv_fragment_html = lv_fragment_html && |<span class="gg-visually-hidden">[{ zcl_gg_host_html=>escape_text( ls_fragment-text ) }]</span>|.
           WHEN OTHERS.
-            lv_fragment_text = ls_fragment-text.
+            lv_fragment_html = zcl_gg_host_html=>escape_text( lv_fragment_text ).
         ENDCASE.
-        lv_line = lv_line && |<span class="gg-list-fragment { zcl_gg_host_html=>css_class( ls_fragment-format ) }" data-column="{ ls_fragment-position }"{ zcl_gg_host_html=>attribute( iv_name = `title` iv_value = lv_fragment_title iv_optional = abap_true ) }>{ zcl_gg_host_html=>escape_text( lv_fragment_text ) }</span>|.
+        lv_line = lv_line && |<span class="gg-list-fragment { zcl_gg_host_html=>css_class( ls_fragment-format ) }" data-column="{ ls_fragment-position }"{ zcl_gg_host_html=>attribute( iv_name = `title` iv_value = lv_fragment_title iv_optional = abap_true ) }>{ lv_fragment_html }</span>|.
         lv_column = ls_fragment-position + strlen( ls_fragment-text ).
       ENDLOOP.
       IF ls_line-fragments IS INITIAL.

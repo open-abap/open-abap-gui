@@ -23,7 +23,7 @@ user text as markup.
 Start the real ABAP-backed HTML server with one command:
 
 ```sh
-npm run start:html
+npm start
 ```
 
 This transpiles the ABAP scaffold and starts `test/start-server.mjs` on

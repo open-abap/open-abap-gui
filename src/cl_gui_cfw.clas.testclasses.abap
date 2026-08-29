@@ -4,6 +4,7 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS test1 FOR TESTING.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
+    METHODS html_alv_structured_rows FOR TESTING.
 
 ENDCLASS.
 
@@ -85,6 +86,32 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-salv-table' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<root>' ) ).
     cl_gui_control=>clear_external_html( ).
+  ENDMETHOD.
+
+  METHOD html_alv_structured_rows.
+    TYPES: BEGIN OF ty_row,
+             carrier    TYPE c LENGTH 3,
+             connection TYPE i,
+             note       TYPE string,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'STRUCTURED_ALV' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_container ).
+
+    APPEND VALUE #( carrier = 'AA' connection = 17 note = '<unsafe>' ) TO lt_rows.
+    APPEND VALUE #( fieldname = 'CARRIER' coltext = 'Carrier' ) TO lt_fcat.
+    APPEND VALUE #( fieldname = 'CONNECTION' coltext = 'Connection' ) TO lt_fcat.
+    APPEND VALUE #( fieldname = 'NOTE' coltext = 'Note' ) TO lt_fcat.
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CARRIER">AA</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CONNECTION">17</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="NOTE">&lt;unsafe&gt;</td>' ) ).
   ENDMETHOD.
 
 ENDCLASS.

@@ -208,6 +208,8 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-list-line button\{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;\}|.
     rv_html = rv_html && |.gg-list-page\{break-after:page;margin-bottom:1rem;\}|.
     rv_html = rv_html && |.gg-list-fragment\{white-space:pre;\}|.
+    rv_html = rv_html && |.wb-icon-sprite\{position:absolute;width:0;height:0;overflow:hidden;\}|.
+    rv_html = rv_html && |.wb-icon\{display:inline-block;width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;\}|.
     rv_html = rv_html && |.gg-selection fieldset\{margin:.75rem 0;padding:.75rem;\}|.
     rv_html = rv_html && |.gg-field\{display:flex;gap:.5rem;align-items:center;margin:.35rem 0;\}|.
     rv_html = rv_html && |.gg-field label\{min-width:12rem;\}|.
@@ -215,6 +217,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-visually-hidden\{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);\}|.
     rv_html = rv_html && |</style></head><body>|.
+    rv_html = rv_html && zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && |<div data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main>{ iv_body }</main></div></body></html>|.
   ENDMETHOD.
