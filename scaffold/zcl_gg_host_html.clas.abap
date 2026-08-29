@@ -196,8 +196,9 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |<meta name="viewport" content="width=device-width,initial-scale=1">|.
     rv_html = rv_html && |<title>{ escape_text( iv_title ) }</title>|.
     rv_html = rv_html && |<style{ attribute( iv_name = `nonce` iv_value = iv_csp_nonce iv_optional = abap_true ) }>|.
+    rv_html = rv_html && zcl_gg_workbench_utility=>render_styles( ).
     rv_html = rv_html && |:root\{font-family:system-ui,sans-serif;color-scheme:light dark;\}|.
-    rv_html = rv_html && |body\{margin:1rem;line-height:1.4;\}|.
+    rv_html = rv_html && |body\{line-height:1.4;\}|.
     rv_html = rv_html && |main\{max-width:100%;overflow:auto;\}|.
     rv_html = rv_html && |.gg-message\{padding:.5rem;margin:.5rem 0;border:1px solid;\}|.
     rv_html = rv_html && |.gg-error\{color:#b00020;border-color:#b00020;\}|.
@@ -216,10 +217,12 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro\{position:relative;min-height:12rem;\}|.
     rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-visually-hidden\{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);\}|.
-    rv_html = rv_html && |</style></head><body>|.
+    rv_html = rv_html && |</style></head><body><div class="wb-shell">|.
     rv_html = rv_html && zcl_gg_host_icons=>sprite( ).
-    rv_html = rv_html && |<div data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
-    rv_html = rv_html && |<main>{ iv_body }</main></div></body></html>|.
+    rv_html = rv_html && zcl_gg_workbench_utility=>render_top( iv_runtime = abap_true ).
+    rv_html = rv_html && |<div class="wb-runtime-content" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
+    rv_html = rv_html && |<main>{ iv_body }</main></div>|.
+    rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( ).
   ENDMETHOD.
 
   METHOD css_class.

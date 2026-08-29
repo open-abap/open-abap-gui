@@ -588,7 +588,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD helper_html.
-    rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZCL_GG_DB_HELPER</title></head><body><main><h1>ZCL_GG_DB_HELPER</h1><p>This is the database fixture support class used by the integration examples.</p><p>It is not an executable report or dynpro program.</p></main></body></html>'.
+    rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZCL_GG_DB_HELPER</title><style>' &&
+      zcl_gg_workbench_utility=>render_styles( ) &&
+      '</style></head><body><div class="wb-shell">' &&
+      zcl_gg_host_icons=>sprite( ) &&
+      zcl_gg_workbench_utility=>render_top( iv_runtime = abap_true ) &&
+      '<div class="wb-runtime-content"><main><h1>ZCL_GG_DB_HELPER</h1><p>This is the database fixture support class used by the integration examples.</p><p>It is not an executable report or dynpro program.</p></main></div>' &&
+      zcl_gg_workbench_utility=>render_bottom( ).
   ENDMETHOD.
 
   METHOD send_runtime_response.
