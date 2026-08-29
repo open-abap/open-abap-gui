@@ -766,9 +766,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       '.wb-icon{display:inline-block;width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}' &&
       '.wb-command-button .wb-icon{width:17px;height:17px}' &&
       '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
-      '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:1px solid #8da9c5;border-top:0;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
+      '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
       '.wb-app-title{font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
-      '.wb-toolbar{margin:0;padding:7px 10px;display:flex;gap:5px;background:#dce8f3;border:1px solid #a8bfd6;border-top:0;border-radius:0}' &&
+      '.wb-toolbar{margin:0;padding:7px 18px;display:flex;gap:5px;background:#dce8f3;border:0;border-bottom:1px solid #a8bfd6;border-radius:0}' &&
       '.wb-toolbar-button{height:28px;min-width:32px;border:1px solid #91adca;border-radius:3px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-toolbar-button:hover,.wb-toolbar-button:focus{background:#fff;border-color:#5e8fbd;outline:0}' &&
       '.wb-workspace{display:flex;flex:1;min-height:430px;margin:16px 28px 0;border:1px solid #aebfd2;border-radius:5px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(34,67,102,.12)}' &&
@@ -880,11 +880,11 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     rv_html = rv_html && '<main class="wb-content" id="main-content"><header class="wb-content-header"><span class="wb-content-icon">' &&
       zcl_gg_host_icons=>icon( iv_name = `device-desktop` iv_label = `Application` ) &&
       '</span><div><h1>ABAP examples and integration classes</h1><p>Select an application from the tree to start it.</p></div></header><section class="wb-welcome" aria-label="Welcome"><div class="wb-welcome-art" aria-hidden="true"><span class="wb-wordmark">open-abap</span></div><div class="wb-welcome-copy"><h2>Welcome to open-abap GUI</h2><p>This launchpad exposes the executable ABAP examples, dynpro applications, and integration fixtures through the HTML host.</p><p class="wb-hint">Use the application tree on the left, or enter a command above, to open a page.</p></div></section></main></div>'.
-    rv_html = rv_html && '<footer class="wb-statusbar"><div class="wb-status-context"><span>System: ' &&
+    rv_html = rv_html && '<footer class="wb-statusbar"><div class="wb-status-context"><span>System:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-sysid ) ) &&
-      '</span><span>Client: ' &&
+      '</span><span>Client:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
-      '</span><span>User: ' &&
+      '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
       '</span></div></footer></div></body></html>'.
   ENDMETHOD.
