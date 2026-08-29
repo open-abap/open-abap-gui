@@ -751,11 +751,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       '.wb-menu-items{display:flex;align-self:stretch;align-items:center;gap:2px}' &&
       '.wb-menu{border:0;border-radius:3px;background:transparent;height:30px;padding:0 10px;color:#163e6b;font:inherit;cursor:pointer}' &&
       '.wb-menu:hover,.wb-menu:focus{background:#d7e5f4;color:#092f5b;outline:0}' &&
-      '.wb-commandbar{height:48px;display:flex;align-items:center;gap:6px;padding:0 18px;background:linear-gradient(#f7faff,#e4edf7);border-bottom:1px solid #afc2d8;box-sizing:border-box}' &&
+      '.wb-commandbar{height:48px;display:flex;align-items:center;gap:2px;padding:0 18px;background:linear-gradient(#f7faff,#e4edf7);border-bottom:1px solid #afc2d8;box-sizing:border-box}' &&
       '.wb-command-input{width:190px;height:30px;padding:3px 9px;border:1px solid #829fbe;border-radius:2px;background:#fff;box-sizing:border-box;color:#1d2d3e;font:inherit;box-shadow:inset 0 1px 2px #d6e0eb}' &&
       '.wb-command-input:focus{outline:2px solid #8db5df;outline-offset:0}' &&
-      '.wb-command-button{height:30px;min-width:30px;padding:0 8px;border:1px solid transparent;border-radius:3px;background:transparent;color:#15589a;font-weight:600;cursor:pointer}' &&
+      '.wb-command-button{height:30px;min-width:28px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-command-button:hover,.wb-command-button:focus{border-color:#86a9cc;background:#d9e8f7;outline:0}' &&
+      '.wb-command-button:disabled,.wb-command-button:disabled:hover{border-color:transparent;background:transparent;color:#a8afb6;cursor:default}' &&
+      '.wb-command-button--back{color:#3b9348}' &&
+      '.wb-command-button--exit{color:#e2a100}' &&
+      '.wb-command-button--cancel{color:#d63b3b}' &&
+      '.wb-command-button--page{color:#15589a}' &&
       '.wb-command-separator{height:24px;border-left:1px solid #b8c9dc;margin:0 4px}' &&
       '.wb-icon-sprite{position:absolute;width:0;height:0;overflow:hidden}' &&
       '.wb-icon{display:inline-block;width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}' &&
@@ -803,24 +808,28 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items">' &&
       '<button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
-    rv_html = rv_html && '<section class="wb-commandbar" aria-label="Command bar"><button class="wb-command-button" type="button" aria-label="Go" title="Go">' &&
-      zcl_gg_host_icons=>icon( iv_name = `player-play` ) &&
-      '</button><label class="wb-sr-only" for="wb-command">Command</label><input class="wb-command-input" id="wb-command" type="text" placeholder="Command" autocomplete="off"><button class="wb-command-button" type="button" aria-label="Back" title="Back">' &&
-      zcl_gg_host_icons=>icon( iv_name = `arrow-left` ) &&
-      '</button><button class="wb-command-button" type="button" aria-label="Forward" title="Forward">' &&
-      zcl_gg_host_icons=>icon( iv_name = `arrow-right` ) &&
-      '</button><span class="wb-command-separator" aria-hidden="true"></span><button class="wb-command-button" type="button" aria-label="Save" title="Save">' &&
+    rv_html = rv_html && '<section class="wb-commandbar" aria-label="Command bar"><label class="wb-sr-only" for="wb-command">Command</label><input class="wb-command-input" id="wb-command" type="text" placeholder="Command" autocomplete="off"><button class="wb-command-button" type="button" aria-label="Save" title="Save">' &&
       zcl_gg_host_icons=>icon( iv_name = `device-floppy` ) &&
-      '</button><button class="wb-command-button" type="button" aria-label="Undo" title="Undo">' &&
+      '</button><span class="wb-command-separator" aria-hidden="true"></span><button class="wb-command-button wb-command-button--back" type="button" aria-label="Back" title="Back">' &&
       zcl_gg_host_icons=>icon( iv_name = `arrow-back-up` ) &&
-      '</button><button class="wb-command-button" type="button" aria-label="Redo" title="Redo">' &&
-      zcl_gg_host_icons=>icon( iv_name = `arrow-forward-up` ) &&
+      '</button><button class="wb-command-button wb-command-button--exit" type="button" aria-label="Exit" title="Exit">' &&
+      zcl_gg_host_icons=>icon( iv_name = `logout` ) &&
+      '</button><button class="wb-command-button wb-command-button--cancel" type="button" aria-label="Cancel" title="Cancel">' &&
+      zcl_gg_host_icons=>icon( iv_name = `circle-x` ) &&
       '</button><span class="wb-command-separator" aria-hidden="true"></span><button class="wb-command-button" type="button" aria-label="Print" title="Print">' &&
       zcl_gg_host_icons=>icon( iv_name = `printer` ) &&
       '</button><button class="wb-command-button" type="button" aria-label="Find" title="Find">' &&
       zcl_gg_host_icons=>icon( iv_name = `search` ) &&
-      '</button><button class="wb-command-button" type="button" aria-label="Help" title="Help">' &&
-      zcl_gg_host_icons=>icon( iv_name = `help-circle` ) &&
+      '</button><button class="wb-command-button" type="button" aria-label="Find next" title="Find next">' &&
+      zcl_gg_host_icons=>icon( iv_name = `search-plus` ) &&
+      '</button><span class="wb-command-separator" aria-hidden="true"></span><button class="wb-command-button wb-command-button--page" type="button" aria-label="First page" title="First page">' &&
+      zcl_gg_host_icons=>icon( iv_name = `arrow-bar-to-up` ) &&
+      '</button><button class="wb-command-button wb-command-button--page" type="button" aria-label="Previous page" title="Previous page">' &&
+      zcl_gg_host_icons=>icon( iv_name = `file-arrow-up` ) &&
+      '</button><button class="wb-command-button wb-command-button--page" type="button" aria-label="Next page" title="Next page">' &&
+      zcl_gg_host_icons=>icon( iv_name = `file-arrow-down` ) &&
+      '</button><button class="wb-command-button wb-command-button--page" type="button" aria-label="Last page" title="Last page">' &&
+      zcl_gg_host_icons=>icon( iv_name = `arrow-bar-to-down` ) &&
       '</button></section>'.
     rv_html = rv_html && '<header class="wb-appbar"><span class="wb-app-title">Workbench</span><span class="wb-app-context">open-abap GUI</span></header><div class="wb-toolbar" aria-label="Application toolbar"><button class="wb-toolbar-button" type="button" title="Create">' &&
       zcl_gg_host_icons=>icon( iv_name = `plus` ) &&
