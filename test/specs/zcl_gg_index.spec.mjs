@@ -83,6 +83,12 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(commandButtons.nth(1)).toHaveClass(/wb-command-button--back/);
   await expect(commandButtons.nth(2)).toHaveClass(/wb-command-button--exit/);
   await expect(commandButtons.nth(3)).toHaveClass(/wb-command-button--cancel/);
+  const statusFeedback = page.locator(".wb-status-feedback");
+  await expect(statusFeedback).toHaveText("");
+  await commandButtons.nth(0).click();
+  await expect(statusFeedback).toHaveText("Save pressed");
+  await page.locator(".wb-toolbar-button").nth(0).click();
+  await expect(statusFeedback).toHaveText("Create pressed");
   await expect(page.getByRole("navigation", {name: "Application tree"})).toBeVisible();
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);

@@ -756,6 +756,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       '.wb-command-input:focus{outline:2px solid #8db5df;outline-offset:0}' &&
       '.wb-command-button{height:30px;min-width:28px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-command-button:hover,.wb-command-button:focus{border-color:#86a9cc;background:#d9e8f7;outline:0}' &&
+      '.wb-command-button:active,.wb-toolbar-button:active{transform:translateY(1px);border-color:#5e8fbd;background:#c7dced;box-shadow:inset 0 1px 3px rgba(29,63,96,.28)}' &&
       '.wb-command-button:disabled,.wb-command-button:disabled:hover{border-color:transparent;background:transparent;color:#a8afb6;cursor:default}' &&
       '.wb-command-button--back{color:#3b9348}' &&
       '.wb-command-button--exit{color:#e2a100}' &&
@@ -801,6 +802,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       '.wb-welcome-copy h2{margin:4px 0 8px;color:#1b4e80;font-size:18px}.wb-welcome-copy p{max-width:560px;margin:0 0 16px;line-height:1.5;color:#526b82}' &&
       '.wb-hint{padding:10px 12px;border-left:4px solid #4d93c8;border-radius:0 4px 4px 0;background:#e4f0fa;color:#315a7f}' &&
       '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
+      '.wb-status-feedback{min-height:1em;color:#315a7f;font-weight:600}' &&
       '.wb-status-context{margin-left:auto;display:flex;align-items:center;gap:18px}.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
       '@media(max-width:760px){.wb-tree-panel{width:220px;flex-basis:220px}.wb-workspace,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-welcome{flex-direction:column}.wb-welcome-art{flex-basis:auto}.wb-command-input{width:130px}}' &&
       '</style></head><body><div class="wb-shell">' &&
@@ -880,13 +882,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     rv_html = rv_html && '<main class="wb-content" id="main-content"><header class="wb-content-header"><span class="wb-content-icon">' &&
       zcl_gg_host_icons=>icon( iv_name = `device-desktop` iv_label = `Application` ) &&
       '</span><div><h1>ABAP examples and integration classes</h1><p>Select an application from the tree to start it.</p></div></header><section class="wb-welcome" aria-label="Welcome"><div class="wb-welcome-art" aria-hidden="true"><span class="wb-wordmark">open-abap</span></div><div class="wb-welcome-copy"><h2>Welcome to open-abap GUI</h2><p>This launchpad exposes the executable ABAP examples, dynpro applications, and integration fixtures through the HTML host.</p><p class="wb-hint">Use the application tree on the left, or enter a command above, to open a page.</p></div></section></main></div>'.
-    rv_html = rv_html && '<footer class="wb-statusbar"><div class="wb-status-context"><span>System:&nbsp;' &&
+    rv_html = rv_html && '<footer class="wb-statusbar"><span class="wb-status-feedback" aria-live="polite"></span><div class="wb-status-context"><span>System:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-sysid ) ) &&
       '</span><span>Client:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
       '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
-      '</span></div></footer></div></body></html>'.
+      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){feedback.textContent=(button.getAttribute("aria-label")||button.getAttribute("title")||"Command")+" pressed";});});}());</script></body></html>'.
   ENDMETHOD.
 
   METHOD helper_html.
