@@ -20,8 +20,9 @@ ENDCLASS.
 CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
   METHOD render_styles.
-    rv_html = 'html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,Tahoma,Arial,sans-serif;font-size:13px;color:#1d2d3e;background:#e9f0f8}' &&
-      '.wb-shell{min-height:100vh;display:flex;flex-direction:column;background:#e9f0f8}' &&
+    rv_html = 'html,body{margin:0;height:100%;min-height:100%;overflow:hidden;font-family:Inter,Segoe UI,Tahoma,Arial,sans-serif;font-size:13px;color:#1d2d3e;background:#e9f0f8}' &&
+      '.wb-shell{height:100vh;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#e9f0f8}' &&
+      '.wb-menubar,.wb-commandbar,.wb-appbar,.wb-toolbar,.wb-statusbar{flex:0 0 auto}' &&
       '.wb-menubar{height:40px;display:flex;align-items:center;gap:8px;padding:0 18px;background:linear-gradient(#fff,#e7eef7);border-bottom:1px solid #b8c9dc;box-sizing:border-box}' &&
       '.wb-brand{font-weight:700;font-size:14px;color:#174a80;margin-right:12px;letter-spacing:-.2px}' &&
       '.wb-menu-items{display:flex;align-self:stretch;align-items:center;gap:2px}' &&
@@ -48,7 +49,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-toolbar{margin:0;padding:7px 18px;display:flex;gap:5px;background:#dce8f3;border:0;border-bottom:1px solid #a8bfd6;border-radius:0}' &&
       '.wb-toolbar-button{height:28px;min-width:32px;border:1px solid #91adca;border-radius:3px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-toolbar-button:hover,.wb-toolbar-button:focus{background:#fff;border-color:#5e8fbd;outline:0}' &&
-      '.wb-runtime-content{flex:1;min-height:430px;margin:16px 28px 0;padding:22px 26px;box-sizing:border-box;overflow:auto;background:#fff;border:1px solid #aebfd2;border-radius:5px;box-shadow:0 2px 8px rgba(34,67,102,.12)}' &&
+      '.wb-runtime-content{flex:1 1 auto;min-height:0;margin:16px 28px 0;padding:22px 26px;box-sizing:border-box;overflow:auto;background:#fff;border:1px solid #aebfd2;border-radius:5px;box-shadow:0 2px 8px rgba(34,67,102,.12)}' &&
       '.wb-runtime-content main{max-width:100%;overflow:auto}' &&
       '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
       '.wb-status-feedback{min-height:1em;color:#315a7f;font-weight:600}' &&
