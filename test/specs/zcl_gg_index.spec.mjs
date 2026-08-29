@@ -10,6 +10,27 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Close"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Go"})).toHaveCount(0);
   await expect(page.getByRole("textbox", {name: "Command"})).toBeVisible();
+  await expect(page.locator(".wb-appbar")).toHaveCSS("margin-top", "0px");
+  await expect(page.locator(".wb-commandbar")).toHaveCSS("padding-left", "18px");
+  await expect(page.locator(".wb-commandbar")).toHaveCSS("padding-right", "0px");
+  await expect(page.locator(".wb-appbar")).toHaveCSS("margin-left", "0px");
+  await expect(page.locator(".wb-appbar")).toHaveCSS("margin-right", "0px");
+  await expect(page.locator(".wb-toolbar")).toHaveCSS("margin-left", "0px");
+  await expect(page.locator(".wb-toolbar")).toHaveCSS("margin-right", "0px");
+  await expect(page.locator(".wb-appbar")).toHaveCSS("border-top-width", "0px");
+  const statusContext = page.locator(".wb-status-context");
+  await expect(statusContext).toContainText("System:");
+  await expect(statusContext).toContainText("Client:");
+  await expect(statusContext).toContainText("User:");
+  const statusBarBox = await page.locator(".wb-statusbar").boundingBox();
+  const statusContextBox = await statusContext.boundingBox();
+  expect(statusBarBox).not.toBeNull();
+  expect(statusContextBox).not.toBeNull();
+  expect(statusContextBox.x + statusContextBox.width).toBeCloseTo(
+    statusBarBox.x + statusBarBox.width - 11,
+    0,
+  );
+  await expect(page.getByText("Ready", {exact: true})).toHaveCount(0);
   const commandButtons = page.locator(".wb-commandbar").getByRole("button");
   await expect(commandButtons).toHaveCount(11);
   const commandButtonNames = [
@@ -52,6 +73,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(commandButtons.nth(3)).toHaveClass(/wb-command-button--cancel/);
   await expect(page.getByRole("navigation", {name: "Application tree"})).toBeVisible();
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
+  await expect(page.locator(".wb-app-context")).toHaveCount(0);
   await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(1);
   await expect(page.locator('a[href="/ZCL_GG_DB_HELPER"] svg use[href="#wb-icon-database"]')).toHaveCount(1);
   await expect(page.locator('.wb-content-icon svg use[href="#wb-icon-device-desktop"]')).toHaveCount(1);
