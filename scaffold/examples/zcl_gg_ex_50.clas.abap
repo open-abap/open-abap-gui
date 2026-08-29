@@ -11,6 +11,7 @@ ENDCLASS.
 CLASS zcl_gg_ex_50 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_50' ).
     DATA(lo_list) = io_session->get_list( ).
 
     lo_list->enter_list_processing( ).

@@ -12,6 +12,7 @@ ENDCLASS.
 CLASS zcl_gg_ex_55 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_55' ).
     io_session->get_navigation( )->submit_and_return(
       is_submit       = VALUE #(
         program        = 'ZGG_EX_01'

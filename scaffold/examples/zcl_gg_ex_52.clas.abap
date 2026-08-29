@@ -13,6 +13,7 @@ ENDCLASS.
 CLASS zcl_gg_ex_52 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_52' ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #(
         screen = '0100'

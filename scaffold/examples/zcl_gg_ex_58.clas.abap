@@ -15,9 +15,9 @@ CLASS zcl_gg_ex_58 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_screens.
-    io_builder->begin_screen( VALUE #( number = '0100' ) ).
+    io_builder->begin_screen( VALUE #( number = '0100' title = 'ZCL_GG_EX_58' ) ).
     io_builder->end_screen( ).
-    io_builder->begin_screen( VALUE #( number = '0200' ) ).
+    io_builder->begin_screen( VALUE #( number = '0200' title = 'ZCL_GG_EX_58' ) ).
     io_builder->end_screen( ).
   ENDMETHOD.
 

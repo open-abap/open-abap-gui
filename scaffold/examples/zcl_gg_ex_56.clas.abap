@@ -13,6 +13,7 @@ ENDCLASS.
 CLASS zcl_gg_ex_56 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_56' ).
     io_session->get_navigation( )->call_transaction(
       is_call         = VALUE #( tcode = 'SE38' skip_first_screen = abap_true )
       is_continuation = VALUE #( id = 'AFTER_TCODE' ) ).

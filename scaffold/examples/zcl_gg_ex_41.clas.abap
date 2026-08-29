@@ -11,6 +11,7 @@ ENDCLASS.
 CLASS zcl_gg_ex_41 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_41' ).
     io_session->message( VALUE #(
       type = zif_gg_session_types_v1=>message_type_abort
       text = 'giving up' ) ).

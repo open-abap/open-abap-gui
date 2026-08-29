@@ -25,6 +25,7 @@ CLASS zcl_gg_ex_51 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_51' ).
     io_session->get_dialog( )->call_selection_screen(
       is_call         = VALUE #(
         screen = '0500'

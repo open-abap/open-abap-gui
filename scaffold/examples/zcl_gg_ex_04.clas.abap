@@ -12,6 +12,7 @@ ENDCLASS.
 CLASS zcl_gg_ex_04 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_04' ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
       text         = |1234.5|
       write_format = VALUE #(

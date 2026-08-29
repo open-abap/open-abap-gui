@@ -97,6 +97,7 @@ CLASS zcl_gg_ex_34 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'ZCL_GG_EX_34' ).
     RETURN.
   ENDMETHOD.
 
