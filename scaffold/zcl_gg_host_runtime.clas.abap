@@ -78,6 +78,12 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_session         TYPE ty_session
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+    CLASS-METHODS report_for_submit
+      IMPORTING
+        iv_program       TYPE zif_gg_session_types_v1=>ty_program
+      RETURNING
+        VALUE(ro_report) TYPE REF TO zif_gg_report_v1.
 ENDCLASS.
 
 CLASS zcl_gg_host_runtime IMPLEMENTATION.
@@ -265,7 +271,13 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     lv_ucomm = CONV zif_gg_session_types_v1=>ty_ucomm( is_request-ucomm ).
     IF lv_ucomm IS INITIAL.
-      lv_ucomm = 'ONLI'.
+      lv_ucomm = COND #( WHEN is_request-action = zif_gg_host_html_v1=>action_exit
+                         THEN 'ECAN'
+                         ELSE 'ONLI' ).
+    ENDIF.
+    IF ls_session-submit_report IS NOT BOUND
+        AND ls_session-pending_navigation-kind = zcx_gg_control_flow=>kind_submit_return.
+      ls_session-submit_report = report_for_submit( ls_session-pending_submit-program ).
     ENDIF.
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
 
@@ -423,6 +435,19 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
 
   METHOD close.
     DELETE mt_sessions WHERE session_id = iv_session_id.
+  ENDMETHOD.
+
+  METHOD report_for_submit.
+    DATA lv_class_name TYPE string.
+
+    lv_class_name = iv_program.
+    TRANSLATE lv_class_name TO UPPER CASE.
+    REPLACE FIRST OCCURRENCE OF 'ZGG_' IN lv_class_name WITH 'ZCL_GG_'.
+    TRY.
+        CREATE OBJECT ro_report TYPE (lv_class_name).
+      CATCH cx_root.
+        CLEAR ro_report.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD clear.

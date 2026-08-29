@@ -22,6 +22,9 @@ CLASS ltcl_ex_40 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-messages[ 1 ]-v2
       exp = 'beta' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-messages[ 1 ]-text
+      exp = 'alpha beta' ).
   ENDMETHOD.
 
 ENDCLASS.

@@ -68,6 +68,26 @@ export async function submit(page, buttonName = "Continue") {
   await page.waitForLoadState("networkidle");
 }
 
+export async function dispatch(page, request) {
+  const sessionId = await page.locator('[name="session_id"]').inputValue();
+  const pageId = await page.locator('[name="page_id"]').inputValue();
+  const response = await page.evaluate(async ({sessionId, pageId, request}) => {
+    const result = await fetch("/dispatch", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({session_id: sessionId, page_id: pageId, ...request}),
+    });
+    return {status: result.status, html: await result.text()};
+  }, {sessionId, pageId, request});
+  expect(response.status, response.html).toBe(200);
+  await page.evaluate((html) => {
+    document.open();
+    document.write(html);
+    document.close();
+  }, response.html);
+  await expect(page.locator("[data-page-kind]")).toHaveCount(1);
+}
+
 export function expectPageKind(page, kind) {
   return expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", kind);
 }

@@ -663,7 +663,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_submit
                         ucomm = 'ONLI' ) TO ls_page-actions.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_exit
-                        ucomm = 'CANC' ) TO ls_page-actions.
+                        ucomm = 'ECAN' ) TO ls_page-actions.
       WHEN zif_gg_host_html_v1=>page_list.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_line ) TO ls_page-actions.
         IF iv_can_back = abap_true.

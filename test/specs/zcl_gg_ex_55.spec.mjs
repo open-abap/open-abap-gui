@@ -5,4 +5,7 @@ test(`ZCL_GG_EX_55 — exposes list-to-memory submission`, async ({page, host}) 
   await expectPageKind(page, "NAVIGATION");
   await expect(page.locator("[data-navigation-kind]")).toHaveAttribute("data-navigation-kind", "SUBMIT_RETURN");
   await expect(page.getByText("Continue to ZGG_EX_01.")).toBeVisible();
+  await submit(page);
+  await expectPageKind(page, "LIST");
+  await expect(page.locator(".gg-list-line")).toHaveText("hello world");
 });

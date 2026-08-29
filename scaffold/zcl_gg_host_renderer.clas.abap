@@ -363,7 +363,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_body = lv_body && |</fieldset>|.
       lv_open_block = lv_open_block - 1.
     ENDWHILE.
-    lv_body = lv_body && |<div class="gg-field"><button type="submit" name="gg_ucomm" value="ONLI">Continue</button><button type="submit" name="gg_ucomm" value="CANC">Cancel</button></div></form></section>|.
+    lv_body = lv_body && |<div class="gg-field"><button type="submit" name="gg_ucomm" value="ONLI">Continue</button><button type="submit" name="gg_action" value="EXIT">Cancel</button></div></form></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id

@@ -7,5 +7,5 @@ test(`ZCL_GG_EX_52 — resumes after CALL SCREEN`, async ({page, host}) => {
   await expect(page.getByText("Continue to 0100.")).toBeVisible();
   await submit(page);
   await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list")).toContainText("back");
+  await expect(page.locator(".gg-list-line")).toHaveText("back");
 });

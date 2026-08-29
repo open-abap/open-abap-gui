@@ -224,14 +224,25 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_session_v1~message.
-    APPEND is_message TO mt_messages.
-    IF is_message-type = zif_gg_session_types_v1=>message_type_info
-        OR is_message-type = zif_gg_session_types_v1=>message_type_success.
+    DATA ls_message LIKE is_message.
+    DATA lv_text TYPE string.
+
+    ls_message = is_message.
+    IF ls_message-id IS NOT INITIAL AND ls_message-number IS NOT INITIAL.
+      MESSAGE ID ls_message-id TYPE ls_message-type NUMBER ls_message-number
+        WITH ls_message-v1 ls_message-v2 ls_message-v3 ls_message-v4 INTO lv_text.
+      IF lv_text IS NOT INITIAL.
+        ls_message-text = lv_text.
+      ENDIF.
+    ENDIF.
+    APPEND ls_message TO mt_messages.
+    IF ls_message-type = zif_gg_session_types_v1=>message_type_info
+        OR ls_message-type = zif_gg_session_types_v1=>message_type_success.
       RETURN.
     ENDIF.
     RAISE EXCEPTION NEW zcx_gg_control_flow(
       iv_kind      = zcx_gg_control_flow=>kind_message
-      iv_operation = is_message-text ).
+      iv_operation = ls_message-text ).
   ENDMETHOD.
 
   METHOD zif_gg_session_v1~stop.
