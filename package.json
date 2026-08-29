@@ -11,12 +11,12 @@
     "install:html-browser": "playwright install chromium",
     "test:html-e2e": "npm run transpile && npm run test:html-browser",
     "start": "npm run transpile && node test/start-server.mjs",
-    "test": "npm run lint && npm run unit",
+    "test": "npm run lint && npm run unit && npm run test:html-browser",
     "regression": "node .github/regression/run.js"
   },
   "license": "",
   "dependencies": {
-    "@abaplint/cli": "^2.120.38",
+    "@abaplint/cli": "^2.120.39",
     "@abaplint/database-sqlite": "^2.13.40",
     "@abaplint/runtime": "^2.13.64",
     "@abaplint/transpiler-cli": "^2.13.64",
