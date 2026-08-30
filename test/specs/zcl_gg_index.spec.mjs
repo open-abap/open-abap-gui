@@ -80,10 +80,20 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   for (const index of commandButtonNames.keys()) {
     await expect(commandButtons.nth(index)).toBeDisabled();
   }
+  const saveBox = await commandButtons.nth(0).boundingBox();
+  expect(saveBox).not.toBeNull();
+  await page.mouse.move(saveBox.x + saveBox.width / 2, saveBox.y + saveBox.height / 2);
+  await page.mouse.down();
+  await expect(commandButtons.nth(0)).toHaveCSS("transform", "none");
+  await expect(commandButtons.nth(0)).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(commandButtons.nth(0)).toHaveCSS("box-shadow", "none");
+  await page.mouse.up();
   await expect(commandButtons.nth(1)).toHaveClass(/wb-command-button--back/);
   await expect(commandButtons.nth(2)).toHaveClass(/wb-command-button--exit/);
   await expect(commandButtons.nth(3)).toHaveClass(/wb-command-button--cancel/);
   const statusFeedback = page.locator(".wb-status-feedback");
+  await expect(statusFeedback).toHaveText("");
+  await commandButtons.nth(0).dispatchEvent("click");
   await expect(statusFeedback).toHaveText("");
   await page.locator(".wb-toolbar-button").nth(0).click();
   await expect(statusFeedback).toHaveText("Create pressed");

@@ -75,8 +75,8 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-command-input:focus{outline:2px solid #8db5df;outline-offset:0}' &&
       '.wb-command-button{height:30px;min-width:28px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-command-button:hover,.wb-command-button:focus{border-color:#86a9cc;background:#d9e8f7;outline:0}' &&
-      '.wb-command-button:active,.wb-toolbar-button:active{transform:translateY(1px);border-color:#5e8fbd;background:#c7dced;box-shadow:inset 0 1px 3px rgba(29,63,96,.28)}' &&
-      '.wb-command-button:disabled,.wb-command-button:disabled:hover{border-color:transparent;background:transparent;color:#a8afb6;cursor:default}' &&
+      '.wb-command-button:not(:disabled):active,.wb-toolbar-button:not(:disabled):active{transform:translateY(1px);border-color:#5e8fbd;background:#c7dced;box-shadow:inset 0 1px 3px rgba(29,63,96,.28)}' &&
+      '.wb-command-button:disabled,.wb-command-button:disabled:hover,.wb-command-button:disabled:active{transform:none;border-color:transparent;background:transparent;box-shadow:none;color:#a8afb6;cursor:default}' &&
       '.wb-command-button--back{color:#3b9348}' &&
       '.wb-command-button--exit{color:#e2a100}' &&
       '.wb-command-button--cancel{color:#d63b3b}' &&
@@ -247,7 +247,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
       '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
-      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){feedback.textContent=(button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed";});});}());</script></body></html>'.
+      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}feedback.textContent=(button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed";});});}());</script></body></html>'.
   ENDMETHOD.
 
 ENDCLASS.
