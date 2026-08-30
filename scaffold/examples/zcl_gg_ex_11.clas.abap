@@ -5,10 +5,15 @@ CLASS zcl_gg_ex_11 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
+    INTERFACES zif_gg_transaction_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_ex_11 IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_EX_11' description = 'LOAD-OF-PROGRAM' ).
+  ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'loaded' ) ).

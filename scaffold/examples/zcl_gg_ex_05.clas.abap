@@ -5,10 +5,15 @@ CLASS zcl_gg_ex_05 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
+    INTERFACES zif_gg_transaction_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_ex_05 IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_EX_05' description = 'FORMAT color and attributes' ).
+  ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_GG_EX_05' ).

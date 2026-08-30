@@ -12,6 +12,8 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_runtime     TYPE abap_bool DEFAULT abap_false
         iv_title       TYPE string DEFAULT `Workbench`
+        iv_command     TYPE string OPTIONAL
+        iv_error       TYPE string OPTIONAL
         iv_session_id  TYPE string OPTIONAL
         iv_page_id     TYPE string OPTIONAL
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
@@ -20,12 +22,15 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_html) TYPE string.
 
     CLASS-METHODS render_bottom
+      IMPORTING
+        iv_message     TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
   PRIVATE SECTION.
     CONSTANTS form_workbench TYPE string VALUE 'wb-command-workbench'.
     CONSTANTS form_dispatch  TYPE string VALUE 'wb-command-dispatch'.
+    CONSTANTS form_transaction TYPE string VALUE 'wb-command-transaction'.
 
 * separator marks the group boundary rendered in front of a command.
     TYPES: BEGIN OF ty_command,
@@ -44,6 +49,8 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS render_commandbar
       IMPORTING
         iv_runtime     TYPE abap_bool
+        iv_command     TYPE string
+        iv_error       TYPE string
         iv_session_id  TYPE string
         iv_page_id     TYPE string
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
@@ -82,6 +89,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-commandbar{height:48px;display:flex;align-items:center;gap:2px;padding:0 0 0 18px;background:linear-gradient(#f7faff,#e4edf7);border-bottom:1px solid #afc2d8;box-sizing:border-box}' &&
       '.wb-command-input{width:190px;height:30px;padding:3px 9px;border:1px solid #829fbe;border-radius:2px;background:#fff;box-sizing:border-box;color:#1d2d3e;font:inherit;box-shadow:inset 0 1px 2px #d6e0eb}' &&
       '.wb-command-input:focus{outline:2px solid #8db5df;outline-offset:0}' &&
+      '.wb-command-error{color:#a32121;font-weight:600;margin-left:12px;max-width:48vw}' &&
       '.wb-command-button{height:30px;min-width:28px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-command-button:hover,.wb-command-button:focus{border-color:#86a9cc;background:#d9e8f7;outline:0}' &&
       '.wb-command-button:not(:disabled):active,.wb-toolbar-button:not(:disabled):active{transform:translateY(1px);border-color:#5e8fbd;background:#c7dced;box-shadow:inset 0 1px 3px rgba(29,63,96,.28)}' &&
@@ -104,6 +112,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-runtime-content main{max-width:100%;overflow:auto}' &&
       '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
       '.wb-status-feedback{min-height:1em;color:#315a7f;font-weight:600}' &&
+      '.wb-status-error{color:#a32121}' &&
       '.wb-status-context{margin-left:auto;display:flex;align-items:center;gap:18px}' &&
       '.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
       '@media(max-width:760px){.wb-runtime-content,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-command-input{width:130px}}'.
@@ -122,6 +131,8 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '<button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
       iv_runtime    = iv_runtime
+      iv_command    = iv_command
+      iv_error      = iv_error
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
       is_status     = is_status ).
@@ -270,7 +281,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         '</button>'.
     ENDLOOP.
 
-    IF iv_runtime = abap_true.
+    IF iv_runtime = abap_true OR iv_session_id IS NOT INITIAL OR iv_page_id IS NOT INITIAL.
       lv_forms = |<form id="{ form_workbench }" method="get" action="/" hidden></form>|.
       IF lv_dispatch = abap_true.
         lv_forms = lv_forms &&
@@ -280,19 +291,34 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    rv_html = '<section class="wb-commandbar" aria-label="Command bar"><label class="wb-sr-only" for="wb-command">Command</label>' &&
-      '<input class="wb-command-input" id="wb-command" type="text" placeholder="Command" autocomplete="off">' &&
+    rv_html = '<section class="wb-commandbar" aria-label="Command bar"><form id="' &&
+      form_transaction && '" method="post" action="/transaction">' &&
+      '<label class="wb-sr-only" for="wb-command">Command</label>' &&
+      |<input class="wb-command-input" id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value="{ zcl_gg_host_html=>escape_attribute( iv_command ) }">|.
+    IF iv_session_id IS NOT INITIAL OR iv_page_id IS NOT INITIAL.
+      rv_html = rv_html &&
+        |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }">|.
+    ENDIF.
+    rv_html = rv_html && '</form>' &&
+      COND string( WHEN iv_error IS INITIAL THEN `` ELSE |<div id="wb-command-error" class="wb-command-error" role="alert" aria-live="assertive">{ zcl_gg_host_html=>escape_text( iv_error ) }</div>| ) &&
       lv_buttons && lv_forms && '</section>'.
   ENDMETHOD.
 
   METHOD render_bottom.
-    rv_html = '<footer class="wb-statusbar"><span class="wb-status-feedback" aria-live="polite"></span><div class="wb-status-context"><span>System:&nbsp;' &&
+    DATA lv_feedback TYPE string.
+
+    IF iv_message IS INITIAL.
+      lv_feedback = '<span class="wb-status-feedback" aria-live="polite"></span>'.
+    ELSE.
+      lv_feedback = |<span class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive">{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span>|.
+    ENDIF.
+    rv_html = '<footer class="wb-statusbar">' && lv_feedback && '<div class="wb-status-context"><span>System:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-sysid ) ) &&
       '</span><span>Client:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
       '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
-      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}feedback.textContent=(button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed";});});}());</script></body></html>'.
+      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}feedback.textContent=(button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed";});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});}());</script></body></html>'.
   ENDMETHOD.
 
 ENDCLASS.

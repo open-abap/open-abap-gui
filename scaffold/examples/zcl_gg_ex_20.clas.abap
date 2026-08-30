@@ -6,10 +6,15 @@ CLASS zcl_gg_ex_20 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
+    INTERFACES zif_gg_transaction_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_ex_20 IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_EX_20' description = 'SELECT-OPTIONS' ).
+  ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_select_option( VALUE #(

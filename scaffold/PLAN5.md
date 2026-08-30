@@ -16,27 +16,27 @@ check a box until its focused test passes.
 
 ## Non-negotiable constraints
 
-- [ ] Keep transaction metadata in the implementing ABAP class. Do not add a
+- [x] Keep transaction metadata in the implementing ABAP class. Do not add a
   parallel hard-coded tcode-to-class map in the workbench, HTTP handler,
   JavaScript server, or browser tests.
-- [ ] Use one ABAP registry for discovery, normalization, uniqueness checks,
+- [x] Use one ABAP registry for discovery, normalization, uniqueness checks,
   lookup, list rendering, and launch authorization.
-- [ ] A transaction implementation must also implement exactly one supported
+- [x] A transaction implementation must also implement exactly one supported
   executable contract: `zif_gg_report_v1` or `zif_gg_dynpro_v1`.
-- [ ] Treat tcodes case-insensitively and expose their canonical form in upper
+- [x] Treat tcodes case-insensitively and expose their canonical form in upper
   case. Trim surrounding spaces before lookup.
-- [ ] Reject initial, over-length, malformed, or duplicate tcodes and initial
+- [x] Reject initial, over-length, malformed, or duplicate tcodes and initial
   descriptions deterministically; never let discovery order choose a winner.
-- [ ] Resolve a tcode to a discovered class on the server. Never accept a class
+- [x] Resolve a tcode to a discovered class on the server. Never accept a class
   name supplied by the command field.
-- [ ] Escape transaction codes, descriptions, class names, and error text at
+- [x] Escape transaction codes, descriptions, class names, and error text at
   their HTML text/attribute boundary.
-- [ ] Preserve the existing direct class routes during this change so current
+- [x] Preserve the existing direct class routes during this change so current
   links and tests remain compatible; make tcode routes the workbench-facing
   path.
-- [ ] Keep command parsing and lifecycle behavior in ABAP. JavaScript remains
+- [x] Keep command parsing and lifecycle behavior in ABAP. JavaScript remains
   only the Express/ICF transport adapter.
-- [ ] `/n<tcode>` closes the current host session before starting the target;
+- [x] `/n<tcode>` closes the current host session before starting the target;
   an invalid command or unknown tcode must not silently run another class.
 
 ## Current state and gaps
@@ -80,17 +80,17 @@ callers can render or launch the same validated catalog entry.
 
 ## 1. Define the transaction metadata contract
 
-- [ ] Add `scaffold/zif_gg_transaction_v1.intf.abap` as a public, versioned
+- [x] Add `scaffold/zif_gg_transaction_v1.intf.abap` as a public, versioned
   interface.
-- [ ] Define `ty_tcode` from
+- [x] Define `ty_tcode` from
   `zif_gg_session_types_v1=>ty_tcode`, a string description, and
   `ty_transaction` containing only `tcode` and `description`.
-- [ ] Add a parameterless `get_transaction` method returning
+- [x] Add a parameterless `get_transaction` method returning
   `ty_transaction`. Metadata retrieval must be side-effect free and must not
   require a host session.
-- [ ] Document that the returned tcode is the stable, case-insensitive public
+- [x] Document that the returned tcode is the stable, case-insensitive public
   identifier and that the description is user-facing text.
-- [ ] Add an ABAP Unit contract fixture proving one class can implement both
+- [x] Add an ABAP Unit contract fixture proving one class can implement both
   `zif_gg_transaction_v1` and a runnable report/dynpro interface without
   coupling their callbacks.
 
@@ -112,26 +112,26 @@ ENDINTERFACE.
 
 ## 2. Build one validated transaction registry
 
-- [ ] Add `zcl_gg_transaction_registry` with a public catalog row containing
+- [x] Add `zcl_gg_transaction_registry` with a public catalog row containing
   canonical tcode, description, implementation class name, and executable
   kind (`REPORT` or `DYNPRO`).
-- [ ] Move the XCO, `SEO_INTERFACE_IMPLEM_GET_ALL`, and `reposrc` fallback
+- [x] Move the XCO, `SEO_INTERFACE_IMPLEM_GET_ALL`, and `reposrc` fallback
   discovery needed for transactions behind this registry. Keep the fallbacks
   compatible with both SAP ABAP and the transpiled runtime.
-- [ ] Instantiate each discovered transaction implementation, call
+- [x] Instantiate each discovered transaction implementation, call
   `get_transaction`, determine its executable interface, normalize the tcode,
   and build the catalog once per process.
-- [ ] Validate allowed tcodes as non-initial, no longer than the existing
+- [x] Validate allowed tcodes as non-initial, no longer than the existing
   `ty_tcode`, and composed of uppercase letters, digits, `_`, and namespace
   `/` separators. Reject whitespace or command prefixes inside metadata.
-- [ ] Require a non-initial description after trimming.
-- [ ] Reject a transaction class that implements neither or both executable
+- [x] Require a non-initial description after trimming.
+- [x] Reject a transaction class that implements neither or both executable
   interfaces, and report its class name in the diagnostic.
-- [ ] Sort catalog output by canonical tcode and detect duplicates after
+- [x] Sort catalog output by canonical tcode and detect duplicates after
   normalization. Report both conflicting class names.
-- [ ] Expose exact lookup by normalized tcode and catalog enumeration; callers
+- [x] Expose exact lookup by normalized tcode and catalog enumeration; callers
   must not repeat normalization or inspect repository sources themselves.
-- [ ] Expose a test-only cache reset, following the existing workbench/runtime
+- [x] Expose a test-only cache reset, following the existing workbench/runtime
   reset pattern, so unit tests never depend on execution order.
 - [ ] Add ABAP Unit tests for XCO/fallback-independent catalog construction,
   stable sorting, lowercase lookup, surrounding whitespace, every validation
@@ -139,14 +139,14 @@ ENDINTERFACE.
 
 ## 3. Add metadata to every example
 
-- [ ] Make `zcl_gg_ex_01` through `zcl_gg_ex_58` implement
+- [x] Make `zcl_gg_ex_01` through `zcl_gg_ex_58` implement
   `zif_gg_transaction_v1` and return the mappings below.
-- [ ] Keep every mapping beside its example implementation; do not derive the
+- [x] Keep every mapping beside its example implementation; do not derive the
   tcode from the class name or parse the source comment at runtime.
-- [ ] Add one shared inventory test that asserts exactly 58 example tcodes,
+- [x] Add one shared inventory test that asserts exactly 58 example tcodes,
   verifies every expected tcode resolves to its class and description, and
   proves no example is omitted. Avoid 58 duplicated browser tests.
-- [ ] Retain the current report/dynpro behavior and existing direct routes;
+- [x] Retain the current report/dynpro behavior and existing direct routes;
   adding metadata must not change example execution.
 
 | Tcode range | Implementing classes | Description source |
@@ -219,61 +219,61 @@ Use these exact descriptions for the inventory:
 
 ## 4. Render the registry in the workbench
 
-- [ ] Replace the report/dynpro implementation lists in `zcl_gg_workbench`
+- [x] Replace the report/dynpro implementation lists in `zcl_gg_workbench`
   with the validated transaction catalog.
-- [ ] Render one transaction list sorted by tcode. Each item must show both
+- [x] Render one transaction list sorted by tcode. Each item must show both
   canonical tcode and description, with the tcode as the primary accessible
   link name.
-- [ ] Link each item to the canonical launch route
+- [x] Link each item to the canonical launch route
   `/transaction?tcode=<encoded-tcode>`; do not expose the implementation class
   as the destination.
-- [ ] Optionally group report and dynpro entries visually using the registry's
+- [x] Optionally group report and dynpro entries visually using the registry's
   executable kind, while retaining global tcode ordering within each group.
-- [ ] Keep `ZCL_GG_DB_HELPER` in a separate Utilities group because it is not a
+- [x] Keep `ZCL_GG_DB_HELPER` in a separate Utilities group because it is not a
   transaction and must not implement the metadata interface.
-- [ ] Remove transaction-list ownership and report/dynpro caches from
+- [x] Remove transaction-list ownership and report/dynpro caches from
   `zcl_gg_workbench`; the registry is the sole catalog cache.
-- [ ] Render a visible, accessible workbench error when a launch link or
+- [x] Render a visible, accessible workbench error when a launch link or
   command names an unknown tcode. Preserve the submitted command so it can be
   corrected.
-- [ ] Update ABAP Unit workbench tests to assert tcode, description, canonical
+- [x] Update ABAP Unit workbench tests to assert tcode, description, canonical
   route, ordering, escaping, and the absence of class-name launch links.
 
 ## 5. Make `/n<tcode>` executable from the command field
 
-- [ ] Give the command input a stable form field name and place it in a real
+- [x] Give the command input a stable form field name and place it in a real
   `POST /transaction` form. Pressing Enter must submit without requiring a new
   Go button.
-- [ ] Include the active `session_id` and `page_id` as hidden fields when the
+- [x] Include the active `session_id` and `page_id` as hidden fields when the
   command bar is rendered for a running report or dynpro; omit both on the
   workbench.
-- [ ] Add a small ABAP command parser that accepts `/n` case-insensitively,
+- [x] Add a small ABAP command parser that accepts `/n` case-insensitively,
   permits surrounding whitespace, requires a non-empty tcode immediately
   after `/n`, normalizes it through the registry, and rejects trailing tokens.
-- [ ] Keep unsupported commands explicit. Plain `ZGG_EX_01`, `/o...`, `/n`,
+- [x] Keep unsupported commands explicit. Plain `ZGG_EX_01`, `/o...`, `/n`,
   and `/nUNKNOWN` must produce an accessible error rather than navigating.
-- [ ] Extend `zcl_gg_http_handler=>handle_post` with the exact
+- [x] Extend `zcl_gg_http_handler=>handle_post` with the exact
   `/transaction` route. Parse the form in ABAP, resolve the registry entry,
   and construct only the resolved class.
-- [ ] Add `GET /transaction?tcode=...` for workbench links. It uses the same
+- [x] Add `GET /transaction?tcode=...` for workbench links. It uses the same
   registry lookup and start helper as POST but does not parse the `/n` prefix.
-- [ ] Factor report/dynpro startup out of the direct-class GET branch so direct
+- [x] Factor report/dynpro startup out of the direct-class GET branch so direct
   routes and both transaction routes share one typed launch implementation.
-- [ ] Add a runtime operation that validates the submitted session/page pair
+- [x] Add a runtime operation that validates the submitted session/page pair
   against the current page and closes that session atomically. Do not expose
   the runtime's private session table to the HTTP handler.
-- [ ] For a valid POST from a running application, use that operation to close
+- [x] For a valid POST from a running application, use that operation to close
   the supplied current host session, then start the resolved report or dynpro
   and return its initial HTML response.
-- [ ] Reject an unknown session or stale page without closing any session. Do
+- [x] Reject an unknown session or stale page without closing any session. Do
   not call the existing unconditional `close( session_id )` directly from the
   command route.
-- [ ] Define failure ordering explicitly: parse and resolve the new tcode
+- [x] Define failure ordering explicitly: parse and resolve the new tcode
   first; only close the old session once the target is known to be valid and
   runnable. Thus a typo leaves the current application recoverable.
-- [ ] Ensure successful `/n` replacement makes the old session reject later
+- [x] Ensure successful `/n` replacement makes the old session reject later
   dispatch while the new response contains a fresh session and page id.
-- [ ] Return an appropriate client error for malformed/unknown commands and a
+- [x] Return an appropriate client error for malformed/unknown commands and a
   server error for invalid registry configuration; render both through the
   workbench shell with an `aria-live` or alert message.
 - [ ] Add ABAP Unit tests for parsing, canonicalization, report start, dynpro
@@ -304,44 +304,44 @@ Use these exact descriptions for the inventory:
 
 ## 7. Documentation and compatibility cleanup
 
-- [ ] Update `README.md` to make tcodes the documented way to discover and
+- [x] Update `README.md` to make tcodes the documented way to discover and
   start applications, including `/nZGG_EX_01` and `/nZGG_EX_58` examples.
-- [ ] Document how a new report or dynpro opts into the workbench by
+- [x] Document how a new report or dynpro opts into the workbench by
   implementing `zif_gg_transaction_v1` and returning unique metadata.
-- [ ] Document that direct `/<class_name>` routes are compatibility/debug
+- [x] Document that direct `/<class_name>` routes are compatibility/debug
   routes and are not the public transaction identity.
-- [ ] Update `GUI_HTML_CAPABILITIES.md` with command-field syntax, supported
+- [x] Update `GUI_HTML_CAPABILITIES.md` with command-field syntax, supported
   navigation semantics, unknown-command behavior, and session replacement.
-- [ ] Remove obsolete workbench report/dynpro discovery code only after the
+- [x] Remove obsolete workbench report/dynpro discovery code only after the
   registry-backed list and compatibility routes pass.
 
 ## Verification checklist
 
 - [ ] Run `git diff --check`.
-- [ ] Run `npm run lint`.
-- [ ] Run `npm run unit`.
+- [x] Run `npm run lint`.
+- [x] Run `npm run unit`.
 - [ ] Run `npm run test:html-e2e` with Chromium installed.
-- [ ] Confirm the registry contains exactly 58 `ZGG_EX_*` transactions and
+- [x] Confirm the registry contains exactly 58 `ZGG_EX_*` transactions and
   each class implements exactly one executable interface.
-- [ ] Confirm tcodes and descriptions appear only in their implementing
+- [x] Confirm tcodes and descriptions appear only in their implementing
   classes plus the test inventory/plan, not in a production central map.
-- [ ] Confirm an unknown tcode cannot instantiate an arbitrary ABAP class.
-- [ ] Confirm `/n` replacement closes the old session only after successful
+- [x] Confirm an unknown tcode cannot instantiate an arbitrary ABAP class.
+- [x] Confirm `/n` replacement closes the old session only after successful
   parse and lookup.
-- [ ] Confirm all dynamic transaction text is escaped and every failure is
+- [x] Confirm all dynamic transaction text is escaped and every failure is
   keyboard- and screen-reader-accessible.
 
 ## Definition of done
 
-- [ ] Every example publishes the specified tcode and description through
+- [x] Every example publishes the specified tcode and description through
   `zif_gg_transaction_v1`.
-- [ ] The workbench lists the validated transaction catalog using tcode and
+- [x] The workbench lists the validated transaction catalog using tcode and
   description and launches entries through a tcode route.
-- [ ] `/n<tcode>` entered on either the workbench or a running application
+- [x] `/n<tcode>` entered on either the workbench or a running application
   starts the matching report or dynpro.
-- [ ] Starting a valid `/n` transaction replaces and closes the prior host
+- [x] Starting a valid `/n` transaction replaces and closes the prior host
   session without leaking state.
-- [ ] Invalid, unknown, duplicate, or unsafe metadata and commands fail
+- [x] Invalid, unknown, duplicate, or unsafe metadata and commands fail
   deterministically without arbitrary class creation.
 - [ ] ABAP Unit owns registry, parser, resolution, and lifecycle behavior;
   Playwright proves the real command field and HTTP boundary end to end.

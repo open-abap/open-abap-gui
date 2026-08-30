@@ -91,6 +91,26 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS ensure_database.
 
+    CLASS-METHODS start_program
+      IMPORTING
+        io_report          TYPE REF TO zif_gg_report_v1 OPTIONAL
+        io_dynpro          TYPE REF TO zif_gg_dynpro_v1 OPTIONAL
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+    CLASS-METHODS create_transaction
+      IMPORTING
+        is_transaction   TYPE zcl_gg_transaction_registry=>ty_transaction
+      RETURNING
+        VALUE(ro_object) TYPE REF TO object.
+
+    CLASS-METHODS launch_transaction
+      IMPORTING
+        is_transaction     TYPE zcl_gg_transaction_registry=>ty_transaction
+        io_object          TYPE REF TO object OPTIONAL
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
     CLASS-METHODS helper_html
       RETURNING
         VALUE(rv_html) TYPE string.
@@ -111,6 +131,15 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         server    TYPE REF TO if_http_server
         iv_error  TYPE string
         iv_status TYPE i DEFAULT 400.
+
+    CLASS-METHODS send_workbench_error
+      IMPORTING
+        server        TYPE REF TO if_http_server
+        iv_command    TYPE string
+        iv_error      TYPE string
+        iv_session_id TYPE string OPTIONAL
+        iv_page_id    TYPE string OPTIONAL
+        iv_status     TYPE i DEFAULT 400.
 
     CLASS-METHODS send_empty
       IMPORTING
@@ -145,6 +174,12 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           WHEN OTHERS.
             send_method_not_allowed( server ).
         ENDCASE.
+      CATCH zcx_gg_transaction_error INTO DATA(lx_transaction_error).
+        send_workbench_error(
+          server     = server
+          iv_command = ``
+          iv_error   = lx_transaction_error->mv_message
+          iv_status  = 500 ).
       CATCH cx_root INTO DATA(lx_error).
         send_error(
           server   = server
@@ -154,17 +189,52 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
   METHOD handle_get.
     DATA lv_path   TYPE string.
+    DATA lv_tcode  TYPE string.
+    DATA lt_fields TYPE tihttpnvp.
     DATA lo_report TYPE REF TO zif_gg_report_v1.
     DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
     DATA lo_object TYPE REF TO object.
     DATA ls_response TYPE zif_gg_host_html_v1=>ty_response.
     DATA lo_workbench TYPE REF TO zif_gg_raw_html_v1.
     DATA lv_class_name TYPE string.
+    DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
 
     lv_path = server->request->get_header_field( '~path' ).
     IF lv_path = '/'.
       lo_workbench = NEW zcl_gg_workbench( ).
       send_html( server = server iv_html = lo_workbench->get_html( ) ).
+      RETURN.
+    ENDIF.
+    IF lv_path = '/transaction'.
+      server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
+      lv_tcode = form_value( it_fields = lt_fields iv_name = 'tcode' ).
+      ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = lv_tcode ).
+      IF ls_transaction-tcode IS INITIAL.
+        send_workbench_error(
+          server     = server
+          iv_command = lv_tcode
+          iv_error   = |Unknown transaction code: { lv_tcode }| ).
+        RETURN.
+      ENDIF.
+      TRY.
+          ls_response = launch_transaction( is_transaction = ls_transaction ).
+        CATCH zcx_gg_transaction_error INTO DATA(lx_launch_error).
+          send_workbench_error(
+            server     = server
+            iv_command = lv_tcode
+            iv_error   = lx_launch_error->mv_message
+            iv_status  = 500 ).
+          RETURN.
+      ENDTRY.
+      IF ls_response-valid = abap_false.
+        send_workbench_error(
+          server     = server
+          iv_command = lv_tcode
+          iv_error   = ls_response-error
+          iv_status  = 500 ).
+        RETURN.
+      ENDIF.
+      send_runtime_response( server = server is_response = ls_response ).
       RETURN.
     ENDIF.
     IF lv_path = '/ZCL_GG_DB_HELPER'.
@@ -186,8 +256,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         CLEAR lo_dynpro.
     ENDTRY.
     IF lo_dynpro IS BOUND.
-      ensure_database( ).
-      ls_response = zcl_gg_host_runtime=>start( io_dynpro_program = lo_dynpro ).
+      ls_response = start_program( io_dynpro = lo_dynpro ).
       send_runtime_response( server = server is_response = ls_response ).
       RETURN.
     ENDIF.
@@ -198,8 +267,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         CLEAR lo_report.
     ENDTRY.
     IF lo_report IS BOUND.
-      ensure_database( ).
-      ls_response = zcl_gg_host_runtime=>start( io_report = lo_report ).
+      ls_response = start_program( io_report = lo_report ).
       send_runtime_response( server = server is_response = ls_response ).
       RETURN.
     ENDIF.
@@ -209,9 +277,117 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
   METHOD handle_post.
     DATA lv_path TYPE string.
+    DATA lv_content_type TYPE string.
+    DATA lv_cdata TYPE string.
+    DATA lv_command TYPE string.
+    DATA lv_session_id TYPE string.
+    DATA lv_page_id TYPE string.
+    DATA lv_close_error TYPE string.
+    DATA lt_fields TYPE tihttpnvp.
+    DATA lt_body_fields TYPE tihttpnvp.
+    DATA ls_command TYPE zcl_gg_transaction_command=>ty_result.
+    DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
+    DATA lo_transaction TYPE REF TO object.
     DATA ls_response TYPE zif_gg_host_html_v1=>ty_response.
 
     lv_path = server->request->get_header_field( '~path' ).
+    IF lv_path = '/transaction'.
+      lv_content_type = server->request->get_header_field( 'content-type' ).
+      IF lv_content_type IS NOT INITIAL AND lv_content_type NP 'application/x-www-form-urlencoded*'.
+        send_workbench_error(
+          server     = server
+          iv_command = ``
+          iv_error   = 'The transaction command requires form content.'
+          iv_status  = 415 ).
+        RETURN.
+      ENDIF.
+      server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
+      IF lv_content_type CS 'application/x-www-form-urlencoded'.
+        lv_cdata = server->request->get_cdata( ).
+        lt_body_fields = cl_http_utility=>string_to_fields( lv_cdata ).
+        APPEND LINES OF lt_body_fields TO lt_fields.
+      ENDIF.
+      lv_command = form_value( it_fields = lt_fields iv_name = 'command' ).
+      lv_session_id = form_value( it_fields = lt_fields iv_name = 'session_id' ).
+      lv_page_id = form_value( it_fields = lt_fields iv_name = 'page_id' ).
+      ls_command = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
+      IF ls_command-valid = abap_false.
+        send_workbench_error(
+          server     = server
+          iv_command = lv_command
+          iv_session_id = lv_session_id
+          iv_page_id = lv_page_id
+          iv_error   = ls_command-error ).
+        RETURN.
+      ENDIF.
+      ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = CONV string( ls_command-tcode ) ).
+      IF ls_transaction-tcode IS INITIAL.
+        send_workbench_error(
+          server     = server
+          iv_command = lv_command
+          iv_session_id = lv_session_id
+          iv_page_id = lv_page_id
+          iv_error   = |Unknown transaction code: { ls_command-tcode }| ).
+        RETURN.
+      ENDIF.
+      TRY.
+          lo_transaction = create_transaction( is_transaction = ls_transaction ).
+        CATCH zcx_gg_transaction_error INTO DATA(lx_target_error).
+          send_workbench_error(
+            server        = server
+            iv_command    = lv_command
+            iv_session_id = lv_session_id
+            iv_page_id    = lv_page_id
+            iv_error      = lx_target_error->mv_message
+            iv_status     = 500 ).
+          RETURN.
+      ENDTRY.
+      IF lv_session_id IS INITIAL AND lv_page_id IS INITIAL.
+        CLEAR lv_close_error.
+      ELSEIF lv_session_id IS INITIAL OR lv_page_id IS INITIAL.
+        lv_close_error = 'Both the current host session and page are required.'.
+      ELSE.
+        lv_close_error = zcl_gg_host_runtime=>close_current(
+          iv_session_id = lv_session_id
+          iv_page_id    = lv_page_id ).
+      ENDIF.
+      IF lv_close_error IS NOT INITIAL.
+        send_workbench_error(
+          server        = server
+          iv_command    = lv_command
+          iv_session_id = lv_session_id
+          iv_page_id    = lv_page_id
+          iv_error      = lv_close_error
+          iv_status     = 409 ).
+        RETURN.
+      ENDIF.
+      TRY.
+          ls_response = launch_transaction(
+            is_transaction = ls_transaction
+            io_object      = lo_transaction ).
+        CATCH zcx_gg_transaction_error INTO DATA(lx_launch_error).
+          send_workbench_error(
+            server        = server
+            iv_command    = lv_command
+            iv_session_id = lv_session_id
+            iv_page_id    = lv_page_id
+            iv_error      = lx_launch_error->mv_message
+            iv_status     = 500 ).
+          RETURN.
+      ENDTRY.
+      IF ls_response-valid = abap_false.
+        send_workbench_error(
+          server        = server
+          iv_command    = lv_command
+          iv_session_id = lv_session_id
+          iv_page_id    = lv_page_id
+          iv_error      = ls_response-error
+          iv_status     = 500 ).
+        RETURN.
+      ENDIF.
+      send_runtime_response( server = server is_response = ls_response ).
+      RETURN.
+    ENDIF.
     IF lv_path <> '/dispatch'.
       send_method_not_allowed( server ).
       RETURN.
@@ -579,6 +755,84 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD start_program.
+    ensure_database( ).
+    IF io_dynpro IS BOUND.
+      rs_response = zcl_gg_host_runtime=>start( io_dynpro_program = io_dynpro ).
+    ELSEIF io_report IS BOUND.
+      rs_response = zcl_gg_host_runtime=>start( io_report = io_report ).
+    ELSE.
+      rs_response-valid = abap_false.
+      rs_response-error = 'A report or dynpro program is required'.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD create_transaction.
+    DATA lo_report TYPE REF TO zif_gg_report_v1.
+    DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
+
+    TRY.
+        CREATE OBJECT ro_object TYPE (is_transaction-class_name).
+      CATCH cx_root INTO DATA(lx_create_error).
+        RAISE EXCEPTION NEW zcx_gg_transaction_error(
+          iv_message = |Unable to start transaction { is_transaction-tcode } ({ is_transaction-class_name }): { lx_create_error->get_text( ) }| ).
+    ENDTRY.
+
+    CASE is_transaction-kind.
+      WHEN zcl_gg_transaction_registry=>kind_report.
+        TRY.
+            lo_report ?= ro_object.
+          CATCH cx_root.
+            RAISE EXCEPTION NEW zcx_gg_transaction_error(
+              iv_message = |Transaction { is_transaction-tcode } is not a report implementation| ).
+        ENDTRY.
+      WHEN zcl_gg_transaction_registry=>kind_dynpro.
+        TRY.
+            lo_dynpro ?= ro_object.
+          CATCH cx_root.
+            RAISE EXCEPTION NEW zcx_gg_transaction_error(
+              iv_message = |Transaction { is_transaction-tcode } is not a dynpro implementation| ).
+        ENDTRY.
+      WHEN OTHERS.
+        RAISE EXCEPTION NEW zcx_gg_transaction_error(
+          iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind| ).
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD launch_transaction.
+    DATA lo_object TYPE REF TO object.
+    DATA lo_report TYPE REF TO zif_gg_report_v1.
+    DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
+
+    IF io_object IS BOUND.
+      lo_object = io_object.
+    ELSE.
+      lo_object = create_transaction( is_transaction = is_transaction ).
+    ENDIF.
+
+    CASE is_transaction-kind.
+      WHEN zcl_gg_transaction_registry=>kind_report.
+        TRY.
+            lo_report ?= lo_object.
+          CATCH cx_root.
+            RAISE EXCEPTION NEW zcx_gg_transaction_error(
+              iv_message = |Transaction { is_transaction-tcode } is not a report implementation| ).
+        ENDTRY.
+        rs_response = start_program( io_report = lo_report ).
+      WHEN zcl_gg_transaction_registry=>kind_dynpro.
+        TRY.
+            lo_dynpro ?= lo_object.
+          CATCH cx_root.
+            RAISE EXCEPTION NEW zcx_gg_transaction_error(
+              iv_message = |Transaction { is_transaction-tcode } is not a dynpro implementation| ).
+        ENDTRY.
+        rs_response = start_program( io_dynpro = lo_dynpro ).
+      WHEN OTHERS.
+        RAISE EXCEPTION NEW zcx_gg_transaction_error(
+          iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind| ).
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD shutdown.
     zcl_gg_host_runtime=>clear( ).
     IF mv_database_ready = abap_true.
@@ -614,6 +868,17 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         server = server
         iv_error = is_response-error ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD send_workbench_error.
+    send_html(
+      server    = server
+      iv_html   = zcl_gg_workbench=>render_error(
+                    iv_command    = iv_command
+                    iv_error      = iv_error
+                    iv_session_id = iv_session_id
+                    iv_page_id    = iv_page_id )
+      iv_status = iv_status ).
   ENDMETHOD.
 
   METHOD send_html.

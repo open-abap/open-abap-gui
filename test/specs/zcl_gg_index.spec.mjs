@@ -97,10 +97,12 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(statusFeedback).toHaveText("");
   await page.locator(".wb-toolbar-button").nth(0).click();
   await expect(statusFeedback).toHaveText("Create pressed");
-  await expect(page.getByRole("navigation", {name: "Application tree"})).toBeVisible();
+  await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
+  await expect(page.locator(".wb-app-list > li")).toHaveCount(59);
+  await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
-  await expect(page.locator(".wb-tree").getByText("Favorites", {exact: true})).toHaveCount(0);
+  await expect(page.locator(".wb-app-list").getByText("Favorites", {exact: true})).toHaveCount(0);
   await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(1);
   await expect(page.locator('a[href="/ZCL_GG_DB_HELPER"] svg use[href="#wb-icon-database"]')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveCount(1);
@@ -122,10 +124,17 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
     "href",
     "/ZCL_GG_DB_HELPER",
   );
-  await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"}).first()).toHaveAttribute(
+  await expect(page.getByRole("link", {name: "ZGG_EX_01"})).toHaveAttribute(
     "href",
-    "/ZCL_GG_INTEGRATION_HTML_REPORT",
+    "/transaction?tcode=ZGG_EX_01",
   );
+  await expect(page.getByRole("link", {name: "ZGG_EX_01"})).toContainText("WRITE literal");
+  await expect(page.getByRole("link", {name: "ZGG_EX_58"})).toHaveAttribute(
+    "href",
+    "/transaction?tcode=ZGG_EX_58",
+  );
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(58);
+  await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 
 test("index keeps the workbench chrome visible in a short viewport", async ({page, host}) => {
@@ -135,14 +144,14 @@ test("index keeps the workbench chrome visible in a short viewport", async ({pag
   const viewport = await page.evaluate(() => ({height: window.innerHeight, scrollHeight: document.documentElement.scrollHeight}));
   const topBox = await page.locator(".wb-menubar").boundingBox();
   const workspaceBox = await page.locator(".wb-workspace").boundingBox();
-  const treeBox = await page.locator(".wb-tree-panel").boundingBox();
+  const appPanelBox = await page.locator(".wb-app-panel").boundingBox();
   const bottomBox = await page.locator(".wb-statusbar").boundingBox();
 
   expect(viewport.scrollHeight).toBeLessThanOrEqual(viewport.height);
   expect(topBox?.y).toBe(0);
   expect(workspaceBox).not.toBeNull();
-  expect(treeBox).not.toBeNull();
+  expect(appPanelBox).not.toBeNull();
   expect(bottomBox).not.toBeNull();
-  expect(treeBox.height).toBeCloseTo(workspaceBox.height - 2, 0);
+  expect(appPanelBox.height).toBeCloseTo(workspaceBox.height - 2, 0);
   expect(bottomBox.y + bottomBox.height).toBeLessThanOrEqual(viewport.height);
 });

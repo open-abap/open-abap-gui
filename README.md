@@ -12,7 +12,8 @@ payload conversion, and response status/content type in ABAP.
 The existing structured and text result fields remain available during the
 migration. HTML output escapes dynamic text and attributes, keeps list `HIDE`
 values server-side, and rejects unsafe picture URLs. See
-[scaffold/PLAN3.md](scaffold/PLAN3.md) for the implementation ledger and
+[scaffold/PLAN5.md](scaffold/PLAN5.md) for the transaction-code
+implementation ledger and [scaffold/PLAN3.md](scaffold/PLAN3.md) for the
 remaining GUI-control coverage.
 The source-control registry and its intentional fallbacks are tracked in
 [scaffold/GUI_HTML_CAPABILITIES.md](scaffold/GUI_HTML_CAPABILITIES.md).
@@ -29,14 +30,24 @@ npm start
 This transpiles the ABAP scaffold and starts `test/start-server.mjs` on
 `http://127.0.0.1:8080`. The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT` and
 `/ZCL_GG_INTEGRATION_DYNPRO` routes construct allow-listed integration
-fixtures. The `/ZCL_GG_EX_01` through
-`/ZCL_GG_EX_58` routes expose all of the ABAP examples through their
-transpiled class counterparts; examples 01-57 are reports and example 58 is
-a dynpro.
-The index also lists all `ZCL_GG_INTEGRATION_*` classes. The executable
-integration classes are available through the same ABAP-backed HTTP host;
-`ZCL_GG_DB_HELPER` is listed as the database-fixture utility it is and
-does not start an executable page.
+fixtures. The workbench uses transaction codes as the public application
+identity. The index lists all 58 examples with their descriptions and
+launches them through `/transaction?tcode=ZGG_EX_01`-style links. The command
+field accepts `/nZGG_EX_01` for a report and `/nZGG_EX_58` for the dynpro
+example; `/n` is case-insensitive and surrounding whitespace is allowed.
+Unknown or malformed commands are reported in the accessible workbench shell
+and never replace the current session.
+
+The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT`, `/ZCL_GG_INTEGRATION_DYNPRO`,
+and `/ZCL_GG_EX_01` through `/ZCL_GG_EX_58` routes remain available as
+compatibility/debug routes. They are not the public transaction identity.
+`ZCL_GG_DB_HELPER` remains a separate database-fixture utility and does not
+start an executable page.
+
+To add a workbench application, implement `zif_gg_transaction_v1` alongside
+exactly one of `zif_gg_report_v1` or `zif_gg_dynpro_v1`. Return a unique tcode
+and user-facing description from `get_transaction`; the registry validates and
+discovers the class automatically.
 Node only provides Express, request-body buffering, and the ICF-compatible
 request/response shim:
 

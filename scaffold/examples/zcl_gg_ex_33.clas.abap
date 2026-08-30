@@ -5,10 +5,15 @@ CLASS zcl_gg_ex_33 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
+    INTERFACES zif_gg_transaction_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_ex_33 IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_EX_33' description = 'AT SELECTION-SCREEN ON BLOCK' ).
+  ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->begin_block( VALUE #(

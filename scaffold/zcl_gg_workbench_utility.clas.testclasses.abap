@@ -43,6 +43,8 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-statusbar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-status-feedback' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F3"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-command-button--back:not(:disabled)' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<script>' ) ).
   ENDMETHOD.
 

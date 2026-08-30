@@ -5,10 +5,15 @@ CLASS zcl_gg_ex_58 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_dynpro_v1.
+    INTERFACES zif_gg_transaction_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_ex_58 IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_EX_58' description = 'SET SCREEN, LEAVE SCREEN and LEAVE TO SCREEN' ).
+  ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.
     rv_screen = '0100'.

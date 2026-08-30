@@ -26,6 +26,13 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_session_id TYPE string.
 
+    CLASS-METHODS close_current
+      IMPORTING
+        iv_session_id   TYPE string
+        iv_page_id      TYPE string
+      RETURNING
+        VALUE(rv_error) TYPE string.
+
     CLASS-METHODS clear.
 
   PRIVATE SECTION.
@@ -434,6 +441,25 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD close.
+    DELETE mt_sessions WHERE session_id = iv_session_id.
+  ENDMETHOD.
+
+  METHOD close_current.
+    READ TABLE mt_sessions INTO DATA(ls_session)
+      WITH KEY session_id = iv_session_id.
+    IF sy-subrc <> 0.
+      rv_error = 'Unknown host session'.
+      RETURN.
+    ENDIF.
+    IF ls_session-dynpro_program IS BOUND.
+      IF iv_page_id <> ls_session-last_dynpro-page_id.
+        rv_error = 'Stale host page'.
+        RETURN.
+      ENDIF.
+    ELSEIF iv_page_id <> ls_session-last_result-page_id.
+      rv_error = 'Stale host page'.
+      RETURN.
+    ENDIF.
     DELETE mt_sessions WHERE session_id = iv_session_id.
   ENDMETHOD.
 

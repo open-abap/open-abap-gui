@@ -6,10 +6,15 @@ CLASS zcl_gg_ex_27 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
+    INTERFACES zif_gg_transaction_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_ex_27 IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_EX_27' description = 'Selection-screen BEGIN OF SCREEN' ).
+  ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->begin_screen( VALUE #( number = '0500' as_window = abap_true ) ).

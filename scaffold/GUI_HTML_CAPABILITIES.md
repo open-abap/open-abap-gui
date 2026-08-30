@@ -24,6 +24,25 @@ function code; function-code entries submit `COMMAND:<function code>` and use
 the status' active/excluded lists for their enabled state. The workbench index
 supplies its launchpad icons explicitly.
 
+## Transaction commands and navigation
+
+Runnable workbench applications publish a stable transaction code through
+`zif_gg_transaction_v1` and exactly one executable contract,
+`zif_gg_report_v1` or `zif_gg_dynpro_v1`. `zcl_gg_transaction_registry` is the
+single discovery, validation, normalization, lookup, and launch-authorization
+catalog. Codes are case-insensitive, rendered canonically in upper case, and
+must contain only letters, digits, underscores, or valid namespace separators.
+
+The command field is a real `POST /transaction` form. Its supported syntax is
+`/n<tcode>`; `/n` is case-insensitive and surrounding whitespace is accepted.
+Plain tcodes, `/o...`, missing tcodes, trailing tokens, and unknown tcodes
+produce an accessible error and do not start a program. A command entered from
+a running report or dynpro validates the target first, then atomically closes
+the submitted current session/page pair before starting the new transaction.
+An invalid or stale pair leaves the old session open. Workbench links use
+`GET /transaction?tcode=...`; direct `/<class_name>` URLs remain compatibility
+routes only.
+
 | Family | Model state | HTML representation | Events/actions | Fallback |
 | --- | --- | --- | --- | --- |
 | Containers and splitters | identity, parent, geometry, visibility, child order | semantic `section` layout region | child containment is preserved | region remains usable when exact docking/sash behavior is unavailable |
