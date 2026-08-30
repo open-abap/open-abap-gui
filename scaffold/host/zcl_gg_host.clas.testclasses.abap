@@ -275,6 +275,8 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS list_model_coverage FOR TESTING.
     METHODS selection_output_snapshot FOR TESTING.
     METHODS html_status_action FOR TESTING.
+    METHODS runtime_authorizes_commands FOR TESTING.
+    METHODS runtime_authorizes_pf_keys FOR TESTING.
     METHODS runtime_history_back FOR TESTING.
     METHODS dynpro_runtime FOR TESTING.
     METHODS navigation_metadata FOR TESTING.
@@ -500,6 +502,69 @@ CLASS ltcl_host IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL" disabled' ) ).
+  ENDMETHOD.
+
+  METHOD runtime_authorizes_commands.
+    zcl_gg_host_runtime=>clear( ).
+    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_44( ) ).
+
+    DATA(ls_inactive) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = zif_gg_session_types_v1=>command_save ) ).
+    cl_abap_unit_assert=>assert_false( ls_inactive-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_inactive-error
+      exp = 'Command is not active for the current host page' ).
+
+    DATA(ls_excluded) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'DEL' ) ).
+    cl_abap_unit_assert=>assert_false( ls_excluded-valid ).
+
+    DATA(ls_allowed) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'REFR' ) ).
+    cl_abap_unit_assert=>assert_true( ls_allowed-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_allowed-compatibility-lines
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `body` )
+        ( `refreshed` ) ) ).
+    zcl_gg_host_runtime=>clear( ).
+  ENDMETHOD.
+
+  METHOD runtime_authorizes_pf_keys.
+    zcl_gg_host_runtime=>clear( ).
+    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_49( ) ).
+
+    DATA(ls_disabled) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_pf
+      pf_key     = 6 ) ).
+    cl_abap_unit_assert=>assert_false( ls_disabled-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_disabled-error
+      exp = 'PF key is not active for the current host page' ).
+
+    DATA(ls_allowed) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_pf
+      pf_key     = 5 ) ).
+    cl_abap_unit_assert=>assert_true( ls_allowed-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_allowed-compatibility-lines
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `body` )
+        ( `pf5` ) ) ).
+    zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD runtime_history_back.

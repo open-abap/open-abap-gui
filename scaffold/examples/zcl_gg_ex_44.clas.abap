@@ -21,7 +21,8 @@ CLASS zcl_gg_ex_44 IMPLEMENTATION.
     DATA(ls_status) = VALUE zif_gg_session_types_v1=>ty_gui_status(
       status         = 'LIST'
       active_ucomm   = VALUE #( ( zif_gg_session_types_v1=>command_print )
-                                ( 'REFR' ) )
+                                ( 'REFR' )
+                                ( 'DEL' ) )
       excluded_ucomm = VALUE #( ( 'DEL' ) )
       icon_bar       = VALUE #( ( ucomm = 'REFR'
                                   label = 'Refresh'

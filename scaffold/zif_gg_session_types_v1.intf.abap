@@ -165,15 +165,18 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            separator TYPE abap_bool,
          END OF ty_icon_bar_item.
   TYPES ty_icon_bar TYPE STANDARD TABLE OF ty_icon_bar_item WITH DEFAULT KEY.
+  TYPES ty_pf_keys TYPE SORTED TABLE OF i WITH UNIQUE KEY table_line.
 
 * status names the CUA status, active_ucomm lists the function codes it
-* activates, and excluded_ucomm removes function codes again, as EXCLUDING
-* does. A command that is not active is rendered, but disabled. icon_bar is
-* the application-owned icon bar for the same status.
+* activates, excluded_ucomm removes function codes again, as EXCLUDING does,
+* and active_pf_keys declares the AT PFnn events accepted by the HTML runtime.
+* A command that is not active is rendered disabled and rejected server-side.
+* icon_bar is the application-owned icon bar for the same status.
   TYPES: BEGIN OF ty_gui_status,
            status         TYPE ty_name,
            active_ucomm   TYPE ty_ucomms,
            excluded_ucomm TYPE ty_ucomms,
+           active_pf_keys TYPE ty_pf_keys,
            icon_bar       TYPE ty_icon_bar,
          END OF ty_gui_status.
 

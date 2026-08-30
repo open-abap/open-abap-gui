@@ -17,6 +17,8 @@ CLASS ltcl_ex_49 IMPLEMENTATION.
       exp = VALUE zcl_gg_host_list=>ty_text_lines(
         ( `body` )
         ( `pf5` ) ) ).
+    cl_abap_unit_assert=>assert_true(
+      act = line_exists( ls_result-status-active_pf_keys[ table_line = 5 ] ) ).
   ENDMETHOD.
 
 ENDCLASS.

@@ -15,8 +15,11 @@ activates a function code through its CUA status, so
 `ty_gui_status-active_ucomm` decides which commands a page offers and
 `excluded_ucomm` removes them again. An active command submits
 `COMMAND:<function code>`, and the program receives it like any other user
-command. Back is the one command the program does not own: it is always
-enabled and leaves the program for the workbench.
+command. The runtime repeats the active/excluded check server-side before it
+dispatches a callback. `active_pf_keys` similarly declares the AT PFnn events
+that the runtime accepts; undeclared PF keys are rejected. Back is the one
+command the program does not own: it is always enabled and leaves the program
+for the workbench.
 
 The application icon bar is owned by the same status. Each
 `ty_gui_status-icon_bar` entry supplies the visible label, icon, and optional

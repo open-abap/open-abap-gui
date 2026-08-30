@@ -72,6 +72,13 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 
+    CLASS-METHODS action_error
+      IMPORTING
+        is_request      TYPE zif_gg_host_html_v1=>ty_request
+        is_page         TYPE zif_gg_host_html_v1=>ty_page
+      RETURNING
+        VALUE(rv_error) TYPE string.
+
     CLASS-METHODS dispatch_dynpro
       IMPORTING
         is_request         TYPE zif_gg_host_html_v1=>ty_request
@@ -151,6 +158,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   METHOD dispatch.
     DATA ls_session TYPE ty_session.
     DATA lv_current_page_id TYPE string.
+    DATA ls_current_page TYPE zif_gg_host_html_v1=>ty_page.
+    DATA lv_action_error TYPE string.
 
     READ TABLE mt_sessions INTO ls_session
       WITH KEY session_id = is_request-session_id.
@@ -160,8 +169,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     IF ls_session-dynpro_program IS BOUND.
       lv_current_page_id = ls_session-last_dynpro-page_id.
+      ls_current_page = ls_session-last_dynpro-page.
     ELSE.
       lv_current_page_id = ls_session-last_result-page_id.
+      ls_current_page = ls_session-last_result-page.
     ENDIF.
     IF is_request-page_id <> lv_current_page_id.
       rs_response = invalid_response( 'Stale host page' ).
@@ -186,6 +197,13 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         AND is_request-action <> zif_gg_host_html_v1=>action_value_help
         AND is_request-action <> zif_gg_host_html_v1=>action_exit ).
       rs_response = invalid_response( 'Missing or unknown host action' ).
+      RETURN.
+    ENDIF.
+    lv_action_error = action_error(
+      is_request = is_request
+      is_page    = ls_current_page ).
+    IF lv_action_error IS NOT INITIAL.
+      rs_response = invalid_response( lv_action_error ).
       RETURN.
     ENDIF.
     IF is_request-action = zif_gg_host_html_v1=>action_screen
@@ -515,6 +533,27 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   METHOD invalid_response.
     rs_response-valid = abap_false.
     rs_response-error = iv_error.
+  ENDMETHOD.
+
+  METHOD action_error.
+    DATA lv_ucomm TYPE zif_gg_session_types_v1=>ty_ucomm.
+
+    IF is_request-action = zif_gg_host_html_v1=>action_command.
+      lv_ucomm = CONV #( is_request-ucomm ).
+      IF lv_ucomm IS INITIAL
+          OR NOT line_exists( is_page-status-active_ucomm[ table_line = lv_ucomm ] )
+          OR line_exists( is_page-status-excluded_ucomm[ table_line = lv_ucomm ] ).
+        rv_error = 'Command is not active for the current host page'.
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    IF is_request-action = zif_gg_host_html_v1=>action_pf
+        AND ( is_page-kind <> zif_gg_host_html_v1=>page_list
+          OR is_request-pf_key < 1
+          OR NOT line_exists( is_page-status-active_pf_keys[ table_line = is_request-pf_key ] ) ).
+      rv_error = 'PF key is not active for the current host page'.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
