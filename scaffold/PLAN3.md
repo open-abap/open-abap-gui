@@ -77,8 +77,8 @@ explicitly documents a different host or scaffold blocker.
 - [x] Add a session lifecycle object with start, dispatch, render, and close
   operations; keep it separate from static variant storage.
 - [x] Add a deterministic session id and page id generator suitable for ABAP Unit.
-- [x] Add expiry/clear operations for host sessions so state cannot leak between
-  repeated executions or tests.
+- [ ] Add expiry operations for host sessions so abandoned state cannot leak;
+  explicit close and deterministic clear operations already exist.
 - [x] Add focused tests for request validation, unknown session, stale page id,
   unknown action, and terminal response behavior.
 
@@ -352,7 +352,8 @@ registry/adapter boundary instead.
   dynpro state and preserves all supported control definitions.
 - [x] Every dynamic value is escaped and every interactive action has a typed,
   validated request mapping.
-- [x] Multi-request state is explicit, isolated, expirable, and covered by tests.
+- [ ] Multi-request state is explicit, isolated, and covered by tests; automatic
+  expiry remains to be implemented.
 - [x] Existing structured and text compatibility tests remain green.
 - [x] The supported `src/` GUI controls either render through the registry or
   have a documented, tested HTML fallback.

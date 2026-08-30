@@ -41,18 +41,17 @@ check a box until its focused test passes.
 
 ## Current state and gaps
 
-- `zcl_gg_workbench` independently discovers `zif_gg_report_v1` and
-  `zif_gg_dynpro_v1` implementations and renders their class names.
-- Its application tree links directly to `/<class_name>` and therefore has no
-  user-facing application name or description.
-- `zcl_gg_workbench_utility=>render_commandbar` renders an unnamed, inert text
-  input. Enter does not submit it and the HTTP handler has no command route.
-- `zcl_gg_http_handler` starts a dynamically created class from a direct path,
-  then verifies whether it is a report or dynpro.
-- Host sessions can be closed explicitly, but command navigation currently has
-  no lifecycle operation that closes one session and starts another.
-- Examples 01-57 implement the report contract and example 58 implements the
-  dynpro contract; none currently publishes transaction metadata.
+- `zcl_gg_workbench` renders the validated transaction registry using tcodes
+  and descriptions, and its links launch through `/transaction`.
+- `zcl_gg_workbench_utility=>render_commandbar` submits `/n<tcode>` commands to
+  the ABAP HTTP handler and includes the active session/page pair.
+- `zcl_gg_http_handler` authorizes direct example paths through the transaction
+  registry and explicitly allow-lists the two integration fixtures before any
+  program is constructed.
+- Host sessions support validated replacement after command parsing and target
+  resolution; automatic expiry remains tracked in `PLAN3.md`.
+- Examples 01-58 publish transaction metadata; example 58 is the dynpro entry
+  and the others implement the report contract.
 
 ## Target architecture
 
@@ -282,15 +281,15 @@ Use these exact descriptions for the inventory:
 
 ## 6. Browser and HTTP coverage
 
-- [ ] Update `test/specs/zcl_gg_index.spec.mjs` to verify the workbench lists
+- [x] Update `test/specs/zcl_gg_index.spec.mjs` to verify the workbench lists
   all 58 example tcodes with descriptions and no longer uses class routes for
   transaction entries.
-- [ ] Click `ZGG_EX_01` in the list and prove the response is the real ABAP
+- [x] Click `ZGG_EX_01` in the list and prove the response is the real ABAP
   report example through the canonical transaction route.
 - [ ] Enter `/nZGG_EX_01` on the workbench, press Enter, and prove the report
   starts through the real ABAP HTTP handler.
-- [ ] Enter lowercase `/nzgg_ex_58` and prove normalization plus dynpro startup.
-- [ ] From one running example, enter `/nZGG_EX_02`; assert a fresh session is
+- [x] Enter lowercase `/nzgg_ex_58` and prove normalization plus dynpro startup.
+- [x] From one running example, enter `/nZGG_EX_02`; assert a fresh session is
   displayed and an HTTP dispatch using the prior session id is rejected.
 - [ ] Enter an unknown and a malformed command; assert the accessible error,
   retained input, absence of unintended transaction startup, and that the
@@ -298,7 +297,7 @@ Use these exact descriptions for the inventory:
 - [ ] Add focused raw HTTP assertions for GET launch, POST command launch,
   unsupported methods/content, and status codes only where Playwright cannot
   express the transport contract clearly.
-- [ ] Keep expected application behavior in existing ABAP Unit/example tests;
+- [x] Keep expected application behavior in existing ABAP Unit/example tests;
   browser tests verify routing, form serialization, focus, accessibility, and
   lifecycle boundaries only.
 
@@ -314,6 +313,9 @@ Use these exact descriptions for the inventory:
   navigation semantics, unknown-command behavior, and session replacement.
 - [x] Remove obsolete workbench report/dynpro discovery code only after the
   registry-backed list and compatibility routes pass.
+- [x] Authorize direct example routes through the transaction registry,
+  explicitly allow-list integration fixtures, and reject every other
+  class-like path before construction.
 
 ## Verification checklist
 

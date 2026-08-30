@@ -204,7 +204,8 @@ in ABAP.
 
 - [x] Use a reproducible Playwright browser installation instead of searching
   Windows-specific Chrome paths.
-- [x] Put Playwright and other test-only packages in `devDependencies`.
+- [ ] Put Playwright and other test-only packages in `devDependencies`; they
+  currently remain in `dependencies`.
 - [x] Add a browser installation step to CI, including Linux system
   dependencies required by Chromium.
 - [x] Add a focused `test:html-e2e` npm script that transpiles ABAP before

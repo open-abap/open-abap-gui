@@ -41,7 +41,9 @@ a running report or dynpro validates the target first, then atomically closes
 the submitted current session/page pair before starting the new transaction.
 An invalid or stale pair leaves the old session open. Workbench links use
 `GET /transaction?tcode=...`; direct `/<class_name>` URLs remain compatibility
-routes only.
+routes only. Those routes resolve example classes through the transaction
+registry and explicitly allow-list the integration fixtures; an arbitrary URL
+class name is never passed to dynamic construction.
 
 | Family | Model state | HTML representation | Events/actions | Fallback |
 | --- | --- | --- | --- | --- |

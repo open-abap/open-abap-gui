@@ -39,3 +39,10 @@ for (const route of [
     await expect(page.locator("[data-page-kind]")).toHaveCount(0);
   });
 }
+
+test("direct compatibility routes reject classes outside the allow-list", async ({request, host}) => {
+  const response = await request.get(`${host.baseUrl}/ZCL_GG_TRANSACTION_REGISTRY`);
+
+  expect(response.status()).toBe(404);
+  expect(await response.json()).toEqual({valid: false, error: "Not found"});
+});

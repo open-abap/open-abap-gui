@@ -40,7 +40,10 @@ and never replace the current session.
 
 The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT`, `/ZCL_GG_INTEGRATION_DYNPRO`,
 and `/ZCL_GG_EX_01` through `/ZCL_GG_EX_58` routes remain available as
-compatibility/debug routes. They are not the public transaction identity.
+compatibility/debug routes. Example class routes are authorized by the
+transaction registry, the two integration fixtures are explicitly allow-listed,
+and every other class-like path returns `404` without constructing a class.
+They are not the public transaction identity.
 `ZCL_GG_DB_HELPER` remains a separate database-fixture utility and does not
 start an executable page.
 

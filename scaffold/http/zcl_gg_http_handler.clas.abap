@@ -149,6 +149,10 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS send_method_not_allowed
       IMPORTING
         server TYPE REF TO if_http_server.
+
+    CLASS-METHODS send_not_found
+      IMPORTING
+        server TYPE REF TO if_http_server.
 ENDCLASS.
 
 CLASS zcl_gg_http_handler IMPLEMENTATION.
@@ -191,9 +195,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lv_path   TYPE string.
     DATA lv_tcode  TYPE string.
     DATA lt_fields TYPE tihttpnvp.
-    DATA lo_report TYPE REF TO zif_gg_report_v1.
-    DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
-    DATA lo_object TYPE REF TO object.
+    DATA lt_transactions TYPE zcl_gg_transaction_registry=>ty_transactions.
     DATA ls_response TYPE zif_gg_host_html_v1=>ty_response.
     DATA lo_workbench TYPE REF TO zif_gg_raw_html_v1.
     DATA lv_class_name TYPE string.
@@ -243,36 +245,23 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDIF.
 
     lv_class_name = substring( val = lv_path off = 1 ).
-    TRY.
-        CREATE OBJECT lo_object TYPE (lv_class_name).
-      CATCH cx_root.
-        send_method_not_allowed( server ).
-        RETURN.
-    ENDTRY.
-
-    TRY.
-        lo_dynpro ?= lo_object.
-      CATCH cx_root.
-        CLEAR lo_dynpro.
-    ENDTRY.
-    IF lo_dynpro IS BOUND.
-      ls_response = start_program( io_dynpro = lo_dynpro ).
-      send_runtime_response( server = server is_response = ls_response ).
-      RETURN.
-    ENDIF.
-
-    TRY.
-        lo_report ?= lo_object.
-      CATCH cx_root.
-        CLEAR lo_report.
-    ENDTRY.
-    IF lo_report IS BOUND.
-      ls_response = start_program( io_report = lo_report ).
-      send_runtime_response( server = server is_response = ls_response ).
-      RETURN.
-    ENDIF.
-
-    send_method_not_allowed( server ).
+    TRANSLATE lv_class_name TO UPPER CASE.
+    CASE lv_class_name.
+      WHEN 'ZCL_GG_INTEGRATION_HTML_REPORT'.
+        ls_response = start_program( io_report = NEW zcl_gg_integration_html_report( ) ).
+      WHEN 'ZCL_GG_INTEGRATION_DYNPRO'.
+        ls_response = start_program( io_dynpro = NEW zcl_gg_integration_dynpro( ) ).
+      WHEN OTHERS.
+        lt_transactions = zcl_gg_transaction_registry=>get_all( ).
+        READ TABLE lt_transactions INTO ls_transaction
+          WITH KEY class_name = lv_class_name.
+        IF sy-subrc <> 0.
+          send_not_found( server ).
+          RETURN.
+        ENDIF.
+        ls_response = launch_transaction( is_transaction = ls_transaction ).
+    ENDCASE.
+    send_runtime_response( server = server is_response = ls_response ).
   ENDMETHOD.
 
   METHOD handle_post.
@@ -928,6 +917,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       server = server
       iv_error = 'Method not allowed'
       iv_status = 405 ).
+  ENDMETHOD.
+
+  METHOD send_not_found.
+    send_error(
+      server   = server
+      iv_error = 'Not found'
+      iv_status = 404 ).
   ENDMETHOD.
 
 ENDCLASS.
