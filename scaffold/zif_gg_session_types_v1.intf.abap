@@ -142,8 +142,26 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            row          TYPE i,
          END OF ty_message.
 
+* Function codes of the standard toolbar. A CUA status activates the commands
+* it lists in active_ucomm, every other standard command stays greyed out.
+  CONSTANTS command_save          TYPE ty_ucomm VALUE 'SAVE'.
+  CONSTANTS command_back          TYPE ty_ucomm VALUE 'BACK'.
+  CONSTANTS command_exit          TYPE ty_ucomm VALUE '%EX'.
+  CONSTANTS command_cancel        TYPE ty_ucomm VALUE 'RW'.
+  CONSTANTS command_print         TYPE ty_ucomm VALUE 'PRI'.
+  CONSTANTS command_find          TYPE ty_ucomm VALUE '%SC'.
+  CONSTANTS command_find_next     TYPE ty_ucomm VALUE '%SC+'.
+  CONSTANTS command_first_page    TYPE ty_ucomm VALUE 'P--'.
+  CONSTANTS command_previous_page TYPE ty_ucomm VALUE 'P-'.
+  CONSTANTS command_next_page     TYPE ty_ucomm VALUE 'P+'.
+  CONSTANTS command_last_page     TYPE ty_ucomm VALUE 'P++'.
+
+* status names the CUA status, active_ucomm lists the function codes it
+* activates, and excluded_ucomm removes function codes again, as EXCLUDING
+* does. A command that is not active is rendered, but disabled.
   TYPES: BEGIN OF ty_gui_status,
            status         TYPE ty_name,
+           active_ucomm   TYPE ty_ucomms,
            excluded_ucomm TYPE ty_ucomms,
          END OF ty_gui_status.
 

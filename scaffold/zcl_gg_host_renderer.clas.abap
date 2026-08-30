@@ -238,7 +238,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_kind       = zif_gg_host_html_v1=>page_list
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
-       iv_body       = |<header><p class="gg-list-status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header>{ render_messages( it_messages ) }<nav aria-label="List actions">{ lv_nav }</nav><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }">{ lv_body }</form>| ).
+      is_status     = is_status
+      iv_body       = |<header><p class="gg-list-status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header>{ render_messages( it_messages ) }<nav aria-label="List actions">{ lv_nav }</nav><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }">{ lv_body }</form>| ).
   ENDMETHOD.
 
   METHOD render_selection.
@@ -521,6 +522,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_kind       = zif_gg_host_html_v1=>page_dynpro
       iv_title      = lv_title
       iv_csp_nonce  = is_context-csp_nonce
+      is_status     = is_status
       iv_body       = lv_body ).
   ENDMETHOD.
 

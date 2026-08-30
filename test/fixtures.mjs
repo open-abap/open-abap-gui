@@ -69,8 +69,8 @@ export async function submit(page, buttonName = "Continue") {
 }
 
 export async function dispatch(page, request) {
-  const sessionId = await page.locator('[name="session_id"]').inputValue();
-  const pageId = await page.locator('[name="page_id"]').inputValue();
+  const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
+  const pageId = await page.locator("[data-page-kind]").getAttribute("data-page-id");
   const response = await page.evaluate(async ({sessionId, pageId, request}) => {
     const result = await fetch("/dispatch", {
       method: "POST",

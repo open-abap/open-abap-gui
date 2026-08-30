@@ -15,6 +15,7 @@ CLASS zcl_gg_ex_44 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'ZCL_GG_EX_44' ).
     DATA(ls_status) = VALUE zif_gg_session_types_v1=>ty_gui_status(
       status         = 'LIST'
+      active_ucomm   = VALUE #( ( zif_gg_session_types_v1=>command_print ) )
       excluded_ucomm = VALUE #( ( 'DEL' ) ) ).
     io_session->get_list( )->set_status( ls_status ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'body' ) ).
@@ -28,6 +29,13 @@ CLASS zcl_gg_ex_44 IMPLEMENTATION.
     IF iv_ucomm = 'REFR'.
       io_session->get_list( )->get_writer( )->write_field( VALUE #(
         text      = 'refreshed'
+        placement = VALUE #( new_line = abap_true ) ) ).
+    ENDIF.
+* The status activates PRI, so the standard toolbar sends it like any other
+* function code.
+    IF iv_ucomm = zif_gg_session_types_v1=>command_print.
+      io_session->get_list( )->get_writer( )->write_field( VALUE #(
+        text      = 'printed'
         placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.
   ENDMETHOD.

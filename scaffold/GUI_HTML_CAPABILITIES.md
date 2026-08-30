@@ -10,6 +10,14 @@ renderer embeds the registry's fragment output in the same HTML document. The
 standalone `cl_gui_control=>render_html( )` form remains available for direct
 control-host consumers; `iv_document = abap_false` is the embedding form.
 
+The standard toolbar of the shell is disabled unless the running program
+activates a function code through its CUA status, so
+`ty_gui_status-active_ucomm` decides which commands a page offers and
+`excluded_ucomm` removes them again. An active command submits
+`COMMAND:<function code>`, and the program receives it like any other user
+command. Back is the one command the program does not own: it is always
+enabled and leaves the program for the workbench.
+
 | Family | Model state | HTML representation | Events/actions | Fallback |
 | --- | --- | --- | --- | --- |
 | Containers and splitters | identity, parent, geometry, visibility, child order | semantic `section` layout region | child containment is preserved | region remains usable when exact docking/sash behavior is unavailable |

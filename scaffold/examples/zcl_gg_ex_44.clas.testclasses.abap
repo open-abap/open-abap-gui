@@ -21,6 +21,9 @@ CLASS ltcl_ex_44 IMPLEMENTATION.
       act = ls_result-status-status
       exp = 'LIST' ).
     cl_abap_unit_assert=>assert_equals(
+      act = ls_result-status-active_ucomm[ 1 ]
+      exp = 'PRI' ).
+    cl_abap_unit_assert=>assert_equals(
       act = ls_result-status-excluded_ucomm[ 1 ]
       exp = 'DEL' ).
   ENDMETHOD.

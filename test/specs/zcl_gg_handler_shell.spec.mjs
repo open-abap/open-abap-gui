@@ -21,4 +21,21 @@ for (const route of [
     }[route];
     await expect(page.locator(".wb-app-title")).toHaveText(expectedTitle);
   });
+
+  test(`Standard toolbar is disabled apart from back for ${route}`, async ({page, host}) => {
+    await page.goto(`${host.baseUrl}${route}`);
+
+    const commandButtons = page.locator(".wb-commandbar").getByRole("button");
+    await expect(commandButtons).toHaveCount(11);
+    for (const index of [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+      await expect(commandButtons.nth(index)).toBeDisabled();
+    }
+    const back = page.getByRole("button", {name: "Return to workbench"});
+    await expect(back).toBeEnabled();
+
+    await back.click();
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("navigation", {name: "Application tree"})).toBeVisible();
+    await expect(page.locator("[data-page-kind]")).toHaveCount(0);
+  });
 }

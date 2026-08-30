@@ -77,16 +77,14 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   for (const [index, iconRef] of commandIconRefs.entries()) {
     await expect(commandButtons.nth(index).locator("use")).toHaveAttribute("href", `#wb-icon-${iconRef}`);
   }
-  await expect(commandButtons.nth(0)).toBeEnabled();
-  await expect(commandButtons.nth(1)).toBeEnabled();
-  await expect(commandButtons.nth(3)).toBeEnabled();
+  for (const index of commandButtonNames.keys()) {
+    await expect(commandButtons.nth(index)).toBeDisabled();
+  }
   await expect(commandButtons.nth(1)).toHaveClass(/wb-command-button--back/);
   await expect(commandButtons.nth(2)).toHaveClass(/wb-command-button--exit/);
   await expect(commandButtons.nth(3)).toHaveClass(/wb-command-button--cancel/);
   const statusFeedback = page.locator(".wb-status-feedback");
   await expect(statusFeedback).toHaveText("");
-  await commandButtons.nth(0).click();
-  await expect(statusFeedback).toHaveText("Save pressed");
   await page.locator(".wb-toolbar-button").nth(0).click();
   await expect(statusFeedback).toHaveText("Create pressed");
   await expect(page.getByRole("navigation", {name: "Application tree"})).toBeVisible();

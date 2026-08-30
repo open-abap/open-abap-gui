@@ -27,7 +27,7 @@ test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", a
   await page.getByRole("button", {name: "Exit"}).click();
   await page.waitForLoadState("networkidle");
   assert.equal(await page.locator("[data-page-kind]").getAttribute("data-page-kind"), "TERMINAL");
-  assert.equal(await page.locator("form").count(), 0);
+  assert.equal(await page.locator(".wb-runtime-content form").count(), 0);
   const terminalSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const terminalPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
   assert.equal(await page.evaluate(async (sessionId) => {

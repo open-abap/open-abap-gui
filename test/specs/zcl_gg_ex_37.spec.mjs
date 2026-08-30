@@ -7,5 +7,5 @@ test(`ZCL_GG_EX_37 — executes selection exit handling`, async ({page, host}) =
   await dispatch(page, {action: "EXIT", ucomm: "ECAN"});
   await expectPageKind(page, "TERMINAL");
   await expect(page.locator(".gg-terminal")).toHaveText("LEAVE PROGRAM");
-  await expect(page.locator("form")).toHaveCount(0);
+  await expect(page.locator(".wb-runtime-content form")).toHaveCount(0);
 });

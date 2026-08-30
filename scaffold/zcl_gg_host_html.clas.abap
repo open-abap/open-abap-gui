@@ -80,6 +80,7 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_title       TYPE string
         iv_body        TYPE string
         iv_csp_nonce   TYPE string OPTIONAL
+        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -220,8 +221,11 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |</style></head><body><div class="wb-shell">|.
     rv_html = rv_html && zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
-      iv_runtime = abap_true
-      iv_title   = iv_title ).
+      iv_runtime    = abap_true
+      iv_title      = iv_title
+      iv_session_id = iv_session_id
+      iv_page_id    = iv_page_id
+      is_status     = is_status ).
     rv_html = rv_html && |<div class="wb-runtime-content" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main>{ iv_body }</main></div>|.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( ).

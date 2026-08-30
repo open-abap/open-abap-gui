@@ -8,6 +8,8 @@ AT USER-COMMAND.
   CASE sy-ucomm.
     WHEN 'REFR'.
       WRITE / 'refreshed'.
+    WHEN 'PRI'.
+      WRITE / 'printed'.
     WHEN OTHERS.
       RETURN.
   ENDCASE.

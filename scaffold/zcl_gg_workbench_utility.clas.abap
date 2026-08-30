@@ -5,16 +5,57 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+* The standard toolbar is disabled unless the running program activates a
+* command through its CUA status. Back is the exception: it always leaves the
+* running program and returns to the workbench.
     CLASS-METHODS render_top
       IMPORTING
         iv_runtime     TYPE abap_bool DEFAULT abap_false
         iv_title       TYPE string DEFAULT `Workbench`
+        iv_session_id  TYPE string OPTIONAL
+        iv_page_id     TYPE string OPTIONAL
+        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
     CLASS-METHODS render_bottom
       RETURNING
         VALUE(rv_html) TYPE string.
+
+  PRIVATE SECTION.
+    CONSTANTS form_workbench TYPE string VALUE 'wb-command-workbench'.
+    CONSTANTS form_dispatch  TYPE string VALUE 'wb-command-dispatch'.
+
+* separator marks the group boundary rendered in front of a command.
+    TYPES: BEGIN OF ty_command,
+             ucomm     TYPE zif_gg_session_types_v1=>ty_ucomm,
+             label     TYPE string,
+             icon      TYPE string,
+             modifier  TYPE string,
+             separator TYPE abap_bool,
+           END OF ty_command.
+    TYPES ty_commands TYPE STANDARD TABLE OF ty_command WITH DEFAULT KEY.
+
+    CLASS-METHODS standard_commands
+      RETURNING
+        VALUE(rt_commands) TYPE ty_commands.
+
+    CLASS-METHODS render_commandbar
+      IMPORTING
+        iv_runtime     TYPE abap_bool
+        iv_session_id  TYPE string
+        iv_page_id     TYPE string
+        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS is_command_enabled
+      IMPORTING
+        iv_ucomm          TYPE zif_gg_session_types_v1=>ty_ucomm
+        iv_runtime        TYPE abap_bool
+        is_status         TYPE zif_gg_session_types_v1=>ty_gui_status
+      RETURNING
+        VALUE(rv_enabled) TYPE abap_bool.
 
 ENDCLASS.
 
@@ -60,36 +101,16 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_top.
-    DATA lv_navigation_aria TYPE string.
-    DATA lv_title            TYPE string.
+    DATA lv_title TYPE string.
 
-    lv_navigation_aria = COND #( WHEN iv_runtime = abap_true THEN `Global command` ELSE `Back` ).
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items">' &&
       '<button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
-    rv_html = rv_html && '<section class="wb-commandbar" aria-label="Command bar"><label class="wb-sr-only" for="wb-command">Command</label><input class="wb-command-input" id="wb-command" type="text" placeholder="Command" autocomplete="off"><button class="wb-command-button" type="button" aria-label="Save" title="Save">' &&
-      zcl_gg_host_icons=>icon( iv_name = `device-floppy` ) &&
-      '</button><span class="wb-command-separator" aria-hidden="true"></span><button class="wb-command-button wb-command-button--back" type="button" aria-label="' && lv_navigation_aria && '" title="Back">' &&
-      zcl_gg_host_icons=>icon( iv_name = `arrow-back-up` ) &&
-      '</button><button class="wb-command-button wb-command-button--exit" type="button" aria-label="' && COND string( WHEN iv_runtime = abap_true THEN `Global command` ELSE `Exit` ) && '" title="Exit">' &&
-      zcl_gg_host_icons=>icon( iv_name = `logout` ) &&
-      '</button><button class="wb-command-button wb-command-button--cancel" type="button" aria-label="Cancel" title="Cancel">' &&
-      zcl_gg_host_icons=>icon( iv_name = `circle-x` ) &&
-      '</button><span class="wb-command-separator" aria-hidden="true"></span><button class="wb-command-button" type="button" aria-label="Print" title="Print">' &&
-      zcl_gg_host_icons=>icon( iv_name = `printer` ) &&
-      '</button><button class="wb-command-button" type="button" aria-label="Find" title="Find">' &&
-      zcl_gg_host_icons=>icon( iv_name = `search` ) &&
-      '</button><button class="wb-command-button" type="button" aria-label="Find next" title="Find next">' &&
-      zcl_gg_host_icons=>icon( iv_name = `search-plus` ) &&
-      '</button><span class="wb-command-separator" aria-hidden="true"></span><button class="wb-command-button wb-command-button--page" type="button" aria-label="First page" title="First page">' &&
-      zcl_gg_host_icons=>icon( iv_name = `arrow-bar-to-up` ) &&
-      '</button><button class="wb-command-button wb-command-button--page" type="button" aria-label="Previous page" title="Previous page">' &&
-      zcl_gg_host_icons=>icon( iv_name = `file-arrow-up` ) &&
-      '</button><button class="wb-command-button wb-command-button--page" type="button" aria-label="Next page" title="Next page">' &&
-      zcl_gg_host_icons=>icon( iv_name = `file-arrow-down` ) &&
-      '</button><button class="wb-command-button wb-command-button--page" type="button" aria-label="Last page" title="Last page">' &&
-      zcl_gg_host_icons=>icon( iv_name = `arrow-bar-to-down` ) &&
-      '</button></section>'.
+    rv_html = rv_html && render_commandbar(
+      iv_runtime    = iv_runtime
+      iv_session_id = iv_session_id
+      iv_page_id    = iv_page_id
+      is_status     = is_status ).
     rv_html = rv_html && '<header class="wb-appbar"><span class="wb-app-title">' &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       '</span></header><div class="wb-toolbar" aria-label="Application toolbar"><button class="wb-toolbar-button" type="button" title="Create">' &&
@@ -103,17 +124,120 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '</button><button class="wb-toolbar-button" type="button" title="Refresh">' &&
       zcl_gg_host_icons=>icon( iv_name = `refresh` ) &&
       '</button></div>'.
-    IF iv_runtime = abap_true.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Save"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Cancel"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Print"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Find"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Find next"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="First page"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Previous page"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Next page"' IN rv_html WITH 'aria-label="Global command"'.
-      REPLACE ALL OCCURRENCES OF 'aria-label="Last page"' IN rv_html WITH 'aria-label="Global command"'.
+  ENDMETHOD.
+
+  METHOD standard_commands.
+    rt_commands = VALUE #(
+      ( ucomm = zif_gg_session_types_v1=>command_save
+        label = `Save`
+        icon  = `device-floppy` )
+      ( ucomm     = zif_gg_session_types_v1=>command_back
+        label     = `Back`
+        icon      = `arrow-back-up`
+        modifier  = ` wb-command-button--back`
+        separator = abap_true )
+      ( ucomm    = zif_gg_session_types_v1=>command_exit
+        label    = `Exit`
+        icon     = `logout`
+        modifier = ` wb-command-button--exit` )
+      ( ucomm    = zif_gg_session_types_v1=>command_cancel
+        label    = `Cancel`
+        icon     = `circle-x`
+        modifier = ` wb-command-button--cancel` )
+      ( ucomm     = zif_gg_session_types_v1=>command_print
+        label     = `Print`
+        icon      = `printer`
+        separator = abap_true )
+      ( ucomm = zif_gg_session_types_v1=>command_find
+        label = `Find`
+        icon  = `search` )
+      ( ucomm = zif_gg_session_types_v1=>command_find_next
+        label = `Find next`
+        icon  = `search-plus` )
+      ( ucomm     = zif_gg_session_types_v1=>command_first_page
+        label     = `First page`
+        icon      = `arrow-bar-to-up`
+        modifier  = ` wb-command-button--page`
+        separator = abap_true )
+      ( ucomm    = zif_gg_session_types_v1=>command_previous_page
+        label    = `Previous page`
+        icon     = `file-arrow-up`
+        modifier = ` wb-command-button--page` )
+      ( ucomm    = zif_gg_session_types_v1=>command_next_page
+        label    = `Next page`
+        icon     = `file-arrow-down`
+        modifier = ` wb-command-button--page` )
+      ( ucomm    = zif_gg_session_types_v1=>command_last_page
+        label    = `Last page`
+        icon     = `arrow-bar-to-down`
+        modifier = ` wb-command-button--page` ) ).
+  ENDMETHOD.
+
+  METHOD is_command_enabled.
+* Back always leaves the running program, everything else needs a CUA status
+* that activates the function code and does not exclude it again.
+    IF iv_ucomm = zif_gg_session_types_v1=>command_back.
+      rv_enabled = iv_runtime.
+      RETURN.
     ENDIF.
+    IF iv_runtime = abap_false
+        OR line_exists( is_status-excluded_ucomm[ table_line = iv_ucomm ] ).
+      RETURN.
+    ENDIF.
+    rv_enabled = xsdbool( line_exists( is_status-active_ucomm[ table_line = iv_ucomm ] ) ).
+  ENDMETHOD.
+
+  METHOD render_commandbar.
+    DATA lt_commands TYPE ty_commands.
+    DATA lv_buttons  TYPE string.
+    DATA lv_forms    TYPE string.
+    DATA lv_label    TYPE string.
+    DATA lv_command  TYPE string.
+    DATA lv_state    TYPE string.
+    DATA lv_enabled  TYPE abap_bool.
+    DATA lv_dispatch TYPE abap_bool.
+
+    lt_commands = standard_commands( ).
+    LOOP AT lt_commands INTO DATA(ls_command).
+      IF ls_command-separator = abap_true.
+        lv_buttons = lv_buttons && '<span class="wb-command-separator" aria-hidden="true"></span>'.
+      ENDIF.
+      lv_enabled = is_command_enabled( iv_ucomm   = ls_command-ucomm
+                                       iv_runtime = iv_runtime
+                                       is_status  = is_status ).
+      lv_state = COND #( WHEN lv_enabled = abap_true THEN `` ELSE ` disabled` ).
+      CLEAR lv_command.
+      IF ls_command-ucomm = zif_gg_session_types_v1=>command_back.
+        lv_label = COND #( WHEN iv_runtime = abap_true THEN `Return to workbench` ELSE ls_command-label ).
+        IF lv_enabled = abap_true.
+          lv_command = | form="{ form_workbench }"|.
+        ENDIF.
+      ELSE.
+        lv_label = COND #( WHEN iv_runtime = abap_true THEN `Global command` ELSE ls_command-label ).
+        IF lv_enabled = abap_true.
+          lv_command = | form="{ form_dispatch }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_command-ucomm ) ) }"|.
+          lv_dispatch = abap_true.
+        ENDIF.
+      ENDIF.
+      lv_buttons = lv_buttons &&
+        |<button class="wb-command-button{ ls_command-modifier }" type="submit"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" title="{ zcl_gg_host_html=>escape_attribute( ls_command-label ) }"{ lv_state }>| &&
+        zcl_gg_host_icons=>icon( iv_name = ls_command-icon ) &&
+        '</button>'.
+    ENDLOOP.
+
+    IF iv_runtime = abap_true.
+      lv_forms = |<form id="{ form_workbench }" method="get" action="/" hidden></form>|.
+      IF lv_dispatch = abap_true.
+        lv_forms = lv_forms &&
+          |<form id="{ form_dispatch }" method="post" action="/dispatch" hidden>| &&
+          |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }">| &&
+          |<input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"></form>|.
+      ENDIF.
+    ENDIF.
+
+    rv_html = '<section class="wb-commandbar" aria-label="Command bar"><label class="wb-sr-only" for="wb-command">Command</label>' &&
+      '<input class="wb-command-input" id="wb-command" type="text" placeholder="Command" autocomplete="off">' &&
+      lv_buttons && lv_forms && '</section>'.
   ENDMETHOD.
 
   METHOD render_bottom.
