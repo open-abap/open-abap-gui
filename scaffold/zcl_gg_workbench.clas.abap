@@ -128,13 +128,14 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
 
   METHOD render_logo.
     rv_html = '<div class="wb-welcome-art" role="img" aria-label="open-abap"><svg class="wb-logo-mark" viewBox="0 0 108 108" aria-hidden="true" focusable="false">' &&
-      '<g stroke="#6f8faa" stroke-width="1.5" stroke-linejoin="round">' &&
-      '<path fill="#6d98bf" d="M7.63 52.06 79.82 11.12v55.36L7.63 77.42Z" />' &&
-      '<path fill="#a9c0d7" d="m7.63 77.42 72.19-10.94L101 95.99 28.1 91.59Z" />' &&
-      '<path fill="#c6d8e9" d="m79.82 11.12 21.18 43v41.87L79.82 66.48Z" />' &&
-      '<path fill="#174a80" d="m7.63 52.06 20.47 17.43v22.1L7.63 77.42Z" />' &&
-      '<path fill="#f4f8fc" d="m28.1 69.49 72.9-15.37v41.87l-72.9-4.4Z" />' &&
-      '<path fill="#4d82b6" d="M7.63 52.06 79.82 11.12 101 54.12 28.1 69.49Z" />' &&
+      '<defs><linearGradient id="wb-logo-edge-base"><stop stop-color="#174a80" offset="0" /><stop stop-color="#174a80" stop-opacity="0" offset="1" /></linearGradient><linearGradient id="wb-logo-edge" href="#wb-logo-edge-base" x1="56.318806" y1="114.51591" x2="162.49908" y2="114.51591" gradientUnits="userSpaceOnUse" gradientTransform="matrix(.98451947,0,0,.97446173,-52.524478,127.5605)" /></defs>' &&
+      '<g transform="translate(-56.318804,-55.73065)" fill-rule="evenodd" stroke="url(#wb-logo-edge)" stroke-width="11.10588932" stroke-linejoin="round">' &&
+      '<path fill="#24466f" d="m 63.950965,107.79279 v 25.35781 l 20.46392,14.16915 v -22.09656 z" />' &&
+      '<path fill="#f7fbff" d="m 84.414885,125.22319 72.909565,-15.3697 v 41.86591 l -72.909565,-4.39965 z" />' &&
+      '<path fill="#3d6fa5" d="M 63.950965,107.79279 136.1432,66.852396 157.32445,109.85349 84.414885,125.22319 Z" />' &&
+      '<path fill="#96b4d1" d="M 63.950965,133.1506 136.1432,122.20665 157.32445,151.7194 84.414885,147.31975 Z" />' &&
+      '<path fill="#d7e7f5" d="m 136.1432,66.852396 v 55.354254 l 21.18125,29.51275 v -41.86591 z" />' &&
+      '<path fill="#6f98bf" d="M 63.950965,107.79279 136.1432,66.852396 V 122.20665 L 63.950965,133.1506 Z" />' &&
       '</g></svg><span class="wb-wordmark">open-abap</span></div>'.
   ENDMETHOD.
 
