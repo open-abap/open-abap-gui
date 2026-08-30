@@ -105,6 +105,9 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.locator('a[href="/ZCL_GG_DB_HELPER"] svg use[href="#wb-icon-database"]')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveAttribute("aria-label", "open-abap");
+  await expect(page.locator('.wb-logo-mark')).toHaveAttribute("viewBox", "0 0 108 108");
+  await expect(page.locator('.wb-logo-mark path')).toHaveCount(6);
+  await expect(page.locator('.wb-logo-mark path[fill="#174a80"]')).toHaveCount(1);
   const contentBox = await page.locator(".wb-content").boundingBox();
   const logoBox = await page.locator(".wb-logo-only .wb-welcome-art").boundingBox();
   expect(contentBox).not.toBeNull();

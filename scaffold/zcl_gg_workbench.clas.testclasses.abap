@@ -17,6 +17,8 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'ZCL_GG_EX_01' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'ZCL_GG_INTEGRATION_DYNPRO' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-commandbar"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-logo-mark" viewBox="0 0 108 108"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'fill="#174a80"' ) ).
   ENDMETHOD.
 
 ENDCLASS.

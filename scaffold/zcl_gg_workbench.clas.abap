@@ -12,6 +12,10 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_interface  TYPE string
       RETURNING
         VALUE(result) TYPE string_table.
+
+    CLASS-METHODS render_logo
+      RETURNING
+        VALUE(rv_html) TYPE string.
 ENDCLASS.
 
 CLASS zcl_gg_workbench IMPLEMENTATION.
@@ -73,10 +77,9 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '.wb-tree-link:hover,.wb-tree-link:focus{background:#dce9f6;color:#073b78;text-decoration:underline;outline:0}' &&
       '.wb-content{flex:1;min-width:0;min-height:0;padding:0;background:#fff;overflow:hidden}' &&
       '.wb-logo-only{height:100%;min-height:0;display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden}' &&
-      '.wb-welcome-art{flex:1 1 auto;width:100%;height:100%;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border-radius:0;background:radial-gradient(ellipse at 50% 40%,#d8f1ff 0,#78c3ed 28%,#2e82bd 63%,#175181 100%);border:0}' &&
-      '.wb-welcome-art:before,.wb-welcome-art:after{content:"";position:absolute;width:70%;height:24%;border:8px solid rgba(239,255,255,.36);border-radius:50%;transform:rotate(-17deg)}' &&
-      '.wb-welcome-art:after{width:60%;height:15%;border-width:4px;transform:rotate(18deg)}' &&
-      '.wb-wordmark{position:relative;z-index:1;padding:8px 12px;color:#fff;font:bold clamp(24px,4vw,48px) Arial;text-shadow:0 1px 2px #175181;border-bottom:clamp(3px,.4vw,6px) solid #fff}' &&
+      '.wb-welcome-art{flex:1 1 auto;width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;position:relative;overflow:hidden;border-radius:0;background:linear-gradient(135deg,#f6f9fc 0%,#e1ebf6 58%,#c6d8e9 100%);border:0}' &&
+      '.wb-logo-mark{display:block;width:min(42vw,280px);max-width:72%;max-height:64%;height:auto;filter:drop-shadow(0 8px 8px rgba(23,74,128,.18))}' &&
+      '.wb-wordmark{position:relative;z-index:1;padding:8px 12px;color:#174a80;font:bold clamp(24px,4vw,48px) Arial;text-shadow:0 1px 1px #fff;border-bottom:clamp(3px,.4vw,6px) solid #4d82b6}' &&
       '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
       '.wb-status-feedback{min-height:1em;color:#315a7f;font-weight:600}' &&
       '.wb-status-context{margin-left:auto;display:flex;align-items:center;gap:18px}.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
@@ -117,8 +120,22 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       'Utilities</summary><ul role="group"><li role="treeitem"><a class="wb-tree-link" href="/ZCL_GG_DB_HELPER">' &&
       zcl_gg_host_icons=>icon( iv_name = `database` ) &&
       'ZCL_GG_DB_HELPER</a></li></ul></details></li></ul></details></li></ul></nav></aside>'.
-    rv_html = rv_html && '<main class="wb-content" id="main-content"><section class="wb-logo-only" aria-label="open-abap"><div class="wb-welcome-art" role="img" aria-label="open-abap"><span class="wb-wordmark">open-abap</span></div></section></main></div>'.
+    rv_html = rv_html && '<main class="wb-content" id="main-content"><section class="wb-logo-only" aria-label="open-abap">' &&
+      render_logo( ) &&
+      '</section></main></div>'.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( ).
+  ENDMETHOD.
+
+  METHOD render_logo.
+    rv_html = '<div class="wb-welcome-art" role="img" aria-label="open-abap"><svg class="wb-logo-mark" viewBox="0 0 108 108" aria-hidden="true" focusable="false">' &&
+      '<g stroke="#6f8faa" stroke-width="1.5" stroke-linejoin="round">' &&
+      '<path fill="#6d98bf" d="M7.63 52.06 79.82 11.12v55.36L7.63 77.42Z" />' &&
+      '<path fill="#a9c0d7" d="m7.63 77.42 72.19-10.94L101 95.99 28.1 91.59Z" />' &&
+      '<path fill="#c6d8e9" d="m79.82 11.12 21.18 43v41.87L79.82 66.48Z" />' &&
+      '<path fill="#174a80" d="m7.63 52.06 20.47 17.43v22.1L7.63 77.42Z" />' &&
+      '<path fill="#f4f8fc" d="m28.1 69.49 72.9-15.37v41.87l-72.9-4.4Z" />' &&
+      '<path fill="#4d82b6" d="M7.63 52.06 79.82 11.12 101 54.12 28.1 69.49Z" />' &&
+      '</g></svg><span class="wb-wordmark">open-abap</span></div>'.
   ENDMETHOD.
 
   METHOD get_implementations.
