@@ -3,6 +3,8 @@
 The HTML host implementation and its remaining verification ledger are in
 [PLAN3.md](PLAN3.md). Keep this historical scaffold plan focused on the
 transpiler/runtime milestones; do not duplicate the HTML checklist here.
+The expanded post-parity demonstration catalog is planned in
+[PLAN7.md](PLAN7.md).
 
 Goal: prove that `zif_gg_report_v1` and its neighbours can carry every feature of a
 classic ABAP report. The method is one *atomic feature* at a time — a minimal

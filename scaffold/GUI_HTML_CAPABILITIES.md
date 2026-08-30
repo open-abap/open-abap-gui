@@ -25,7 +25,9 @@ The application icon bar is owned by the same status. Each
 `ty_gui_status-icon_bar` entry supplies the visible label, icon, and optional
 function code; function-code entries submit `COMMAND:<function code>` and use
 the status' active/excluded lists for their enabled state. The workbench index
-supplies its launchpad icons explicitly.
+currently supplies its launchpad icons explicitly; removing that second owner
+and making executable examples the sole source is tracked in
+[`PLAN6.md`](PLAN6.md).
 
 ## Transaction commands and navigation
 
