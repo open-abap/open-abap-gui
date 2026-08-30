@@ -15,6 +15,7 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_session_id  TYPE string OPTIONAL
         iv_page_id     TYPE string OPTIONAL
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
+        it_icon_bar    TYPE zif_gg_session_types_v1=>ty_icon_bar OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -45,6 +46,14 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_runtime     TYPE abap_bool
         iv_session_id  TYPE string
         iv_page_id     TYPE string
+        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS render_iconbar
+      IMPORTING
+        iv_runtime     TYPE abap_bool
+        it_icon_bar    TYPE zif_gg_session_types_v1=>ty_icon_bar
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
       RETURNING
         VALUE(rv_html) TYPE string.
@@ -102,8 +111,13 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
   METHOD render_top.
     DATA lv_title TYPE string.
+    DATA lt_icon_bar TYPE zif_gg_session_types_v1=>ty_icon_bar.
 
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
+    lt_icon_bar = it_icon_bar.
+    IF lt_icon_bar IS INITIAL.
+      lt_icon_bar = is_status-icon_bar.
+    ENDIF.
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items">' &&
       '<button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
@@ -113,17 +127,47 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       is_status     = is_status ).
     rv_html = rv_html && '<header class="wb-appbar"><span class="wb-app-title">' &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
-      '</span></header><div class="wb-toolbar" aria-label="Application toolbar"><button class="wb-toolbar-button" type="button" title="Create">' &&
-      zcl_gg_host_icons=>icon( iv_name = `plus` ) &&
-      '</button><button class="wb-toolbar-button" type="button" title="Open">' &&
-      zcl_gg_host_icons=>icon( iv_name = `folder-open` ) &&
-      '</button><button class="wb-toolbar-button" type="button" title="Add to favorites">' &&
-      zcl_gg_host_icons=>icon( iv_name = `star` ) &&
-      '</button><button class="wb-toolbar-button" type="button" title="Edit">' &&
-      zcl_gg_host_icons=>icon( iv_name = `edit` ) &&
-      '</button><button class="wb-toolbar-button" type="button" title="Refresh">' &&
-      zcl_gg_host_icons=>icon( iv_name = `refresh` ) &&
-      '</button></div>'.
+      '</span></header>' &&
+      render_iconbar(
+        iv_runtime  = iv_runtime
+        it_icon_bar = lt_icon_bar
+        is_status   = is_status ).
+  ENDMETHOD.
+
+  METHOD render_iconbar.
+    DATA lv_buttons  TYPE string.
+    DATA lv_label    TYPE string.
+    DATA lv_type     TYPE string.
+    DATA lv_command  TYPE string.
+    DATA lv_state    TYPE string.
+    DATA lv_enabled  TYPE abap_bool.
+
+    LOOP AT it_icon_bar INTO DATA(ls_icon).
+      IF ls_icon-separator = abap_true.
+        lv_buttons = lv_buttons && '<span class="wb-toolbar-separator" aria-hidden="true"></span>'.
+      ENDIF.
+      lv_label = COND #( WHEN ls_icon-label IS INITIAL THEN CONV string( ls_icon-ucomm ) ELSE ls_icon-label ).
+      lv_enabled = abap_true.
+      IF iv_runtime = abap_true AND ls_icon-ucomm IS NOT INITIAL.
+        lv_enabled = is_command_enabled(
+          iv_ucomm   = ls_icon-ucomm
+          iv_runtime = iv_runtime
+          is_status  = is_status ).
+      ENDIF.
+      lv_state = COND #( WHEN lv_enabled = abap_true THEN `` ELSE ` disabled` ).
+      lv_type = COND #( WHEN iv_runtime = abap_true AND ls_icon-ucomm IS NOT INITIAL THEN `submit` ELSE `button` ).
+      CLEAR lv_command.
+      IF iv_runtime = abap_true AND lv_enabled = abap_true AND ls_icon-ucomm IS NOT INITIAL.
+        lv_command = | form="{ form_dispatch }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"|.
+      ENDIF.
+      lv_buttons = lv_buttons &&
+        |<button class="wb-toolbar-button" type="{ lv_type }"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" title="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" data-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"{ lv_state }>| &&
+        zcl_gg_host_icons=>icon( iv_name = ls_icon-icon ) &&
+        '</button>'.
+    ENDLOOP.
+
+    rv_html = '<div class="wb-toolbar" role="toolbar" aria-label="Application icon bar">' &&
+      lv_buttons && '</div>'.
   ENDMETHOD.
 
   METHOD standard_commands.
@@ -197,6 +241,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     DATA lv_enabled  TYPE abap_bool.
     DATA lv_dispatch TYPE abap_bool.
 
+    lv_dispatch = iv_runtime.
     lt_commands = standard_commands( ).
     LOOP AT lt_commands INTO DATA(ls_command).
       IF ls_command-separator = abap_true.

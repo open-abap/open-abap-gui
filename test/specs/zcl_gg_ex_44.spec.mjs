@@ -6,6 +6,11 @@ test(`ZCL_GG_EX_44 — renders PF-STATUS and excluded commands`, async ({page, h
   await expect(page.locator(".gg-list-status")).toContainText("LIST");
   await expect(page.getByRole("button", {name: "DEL"})).toBeDisabled();
   await expect(page.locator(".gg-list")).toContainText("body");
+  const iconBar = page.locator(".wb-toolbar");
+  await expect(iconBar.getByRole("button")).toHaveCount(2);
+  await expect(iconBar.getByRole("button", {name: "Refresh"})).toHaveAttribute("data-ucomm", "REFR");
+  await expect(iconBar.getByRole("button", {name: "Refresh"}).locator("use")).toHaveAttribute("href", "#wb-icon-refresh");
+  await expect(iconBar.getByRole("button", {name: "Print"}).locator("use")).toHaveAttribute("href", "#wb-icon-printer");
   await dispatch(page, {action: "COMMAND", ucomm: "REFR"});
   await expect(page.locator(".gg-list-line")).toHaveText(["body", "refreshed"]);
 });

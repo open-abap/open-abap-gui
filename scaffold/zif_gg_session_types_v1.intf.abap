@@ -156,13 +156,25 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
   CONSTANTS command_next_page     TYPE ty_ucomm VALUE 'P+'.
   CONSTANTS command_last_page     TYPE ty_ucomm VALUE 'P++'.
 
+* Application icon-bar entries. The owning example supplies the visible
+* buttons, including the function code and icon used for each entry.
+  TYPES: BEGIN OF ty_icon_bar_item,
+           ucomm     TYPE ty_ucomm,
+           label     TYPE string,
+           icon      TYPE string,
+           separator TYPE abap_bool,
+         END OF ty_icon_bar_item.
+  TYPES ty_icon_bar TYPE STANDARD TABLE OF ty_icon_bar_item WITH DEFAULT KEY.
+
 * status names the CUA status, active_ucomm lists the function codes it
 * activates, and excluded_ucomm removes function codes again, as EXCLUDING
-* does. A command that is not active is rendered, but disabled.
+* does. A command that is not active is rendered, but disabled. icon_bar is
+* the application-owned icon bar for the same status.
   TYPES: BEGIN OF ty_gui_status,
            status         TYPE ty_name,
            active_ucomm   TYPE ty_ucomms,
            excluded_ucomm TYPE ty_ucomms,
+           icon_bar       TYPE ty_icon_bar,
          END OF ty_gui_status.
 
   TYPES: BEGIN OF ty_dialog_cursor,

@@ -83,7 +83,13 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '@media(max-width:760px){.wb-tree-panel{width:220px;flex-basis:220px}.wb-workspace,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-command-input{width:130px}}' &&
       '</style></head><body><div class="wb-shell">' &&
       zcl_gg_host_icons=>sprite( ).
-    rv_html = rv_html && zcl_gg_workbench_utility=>render_top( ).
+    rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
+      it_icon_bar = VALUE #(
+        ( label = `Create`           icon = `plus` )
+        ( label = `Open`             icon = `folder-open` )
+        ( label = `Add to favorites` icon = `star` )
+        ( label = `Edit`             icon = `edit` )
+        ( label = `Refresh`          icon = `refresh` ) ) ).
     rv_html = rv_html && '<div class="wb-workspace"><aside class="wb-tree-panel"><div class="wb-tree-heading">Applications</div><nav class="wb-tree" aria-label="Application tree"><ul role="tree"><li role="treeitem"><details open><summary><span class="wb-twist" aria-hidden="true"></span>' &&
       zcl_gg_host_icons=>icon( iv_name = `folder-open` ) &&
       'Application Menu</summary><ul role="group"><li role="treeitem"><details open><summary><span class="wb-twist" aria-hidden="true"></span>' &&

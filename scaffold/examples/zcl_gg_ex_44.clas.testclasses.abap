@@ -26,6 +26,12 @@ CLASS ltcl_ex_44 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-status-excluded_ucomm[ 1 ]
       exp = 'DEL' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-status-icon_bar[ 1 ]-ucomm
+      exp = 'REFR' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-status-icon_bar[ 2 ]-icon
+      exp = 'printer' ).
   ENDMETHOD.
 
 ENDCLASS.

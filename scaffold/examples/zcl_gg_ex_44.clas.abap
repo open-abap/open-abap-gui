@@ -15,8 +15,16 @@ CLASS zcl_gg_ex_44 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'ZCL_GG_EX_44' ).
     DATA(ls_status) = VALUE zif_gg_session_types_v1=>ty_gui_status(
       status         = 'LIST'
-      active_ucomm   = VALUE #( ( zif_gg_session_types_v1=>command_print ) )
-      excluded_ucomm = VALUE #( ( 'DEL' ) ) ).
+      active_ucomm   = VALUE #( ( zif_gg_session_types_v1=>command_print )
+                                ( 'REFR' ) )
+      excluded_ucomm = VALUE #( ( 'DEL' ) )
+      icon_bar       = VALUE #( ( ucomm = 'REFR'
+                                  label = 'Refresh'
+                                  icon  = 'refresh' )
+                                ( ucomm = zif_gg_session_types_v1=>command_print
+                                  label = 'Print'
+                                  icon  = 'printer'
+                                  separator = abap_true ) ) ).
     io_session->get_list( )->set_status( ls_status ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'body' ) ).
   ENDMETHOD.

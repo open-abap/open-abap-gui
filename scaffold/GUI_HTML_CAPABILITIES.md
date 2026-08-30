@@ -18,6 +18,12 @@ activates a function code through its CUA status, so
 command. Back is the one command the program does not own: it is always
 enabled and leaves the program for the workbench.
 
+The application icon bar is owned by the same status. Each
+`ty_gui_status-icon_bar` entry supplies the visible label, icon, and optional
+function code; function-code entries submit `COMMAND:<function code>` and use
+the status' active/excluded lists for their enabled state. The workbench index
+supplies its launchpad icons explicitly.
+
 | Family | Model state | HTML representation | Events/actions | Fallback |
 | --- | --- | --- | --- | --- |
 | Containers and splitters | identity, parent, geometry, visibility, child order | semantic `section` layout region | child containment is preserved | region remains usable when exact docking/sash behavior is unavailable |
