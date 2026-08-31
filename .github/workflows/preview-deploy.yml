@@ -1,0 +1,70 @@
+name: preview deployment
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-deployment-${{ github.event.pull_request.number || github.ref_name || 'manual' }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # Do not make the deployment key available to pull requests from forks.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PREVIEW_BRANCH: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'preview' }}
+      PREVIEW_LABEL: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'manual preview' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run web:build
+
+      # Create the PREVIEW_DEPLOY_KEY repository secret after adding the deploy key.
+      - name: Check out deployment repository
+        uses: actions/checkout@v6
+        with:
+          repository: open-abap/open-abap-gui-preview-deployments
+          ref: main
+          path: deployment
+          ssh-key: ${{ secrets.PREVIEW_DEPLOY_KEY }}
+
+      - name: Push preview deployment
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/deployment"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin "$PREVIEW_BRANCH" >/dev/null 2>&1; then
+            git fetch origin "refs/heads/$PREVIEW_BRANCH:refs/remotes/origin/$PREVIEW_BRANCH"
+            git checkout -B "$PREVIEW_BRANCH" "origin/$PREVIEW_BRANCH"
+          else
+            git checkout --orphan "$PREVIEW_BRANCH"
+          fi
+
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -R "$GITHUB_WORKSPACE/build/." .
+          git add --all
+
+          if git diff --cached --quiet; then
+            echo "Preview is unchanged"
+          else
+            git commit -m "Deploy $PREVIEW_LABEL"
+            git push --force origin "HEAD:$PREVIEW_BRANCH"
+          fi
