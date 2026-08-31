@@ -593,14 +593,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       ELSE |<div class="gg-field" style="position:absolute;left:18px;top:{ lv_footer_top }px"><button type="submit" formnovalidate name="gg_ucomm" value="BACK">Back</button></div>| ).
     lv_body = lv_body && |{ lv_footer }</form></section>|.
     rv_html = zcl_gg_host_html=>document(
-      iv_session_id  = iv_session_id
-      iv_page_id     = iv_page_id
-      iv_kind        = zif_gg_host_html_v1=>page_dynpro
-      iv_title       = lv_title
-      iv_csp_nonce   = is_context-csp_nonce
-      iv_hide_appbar = is_screen-hide_appbar
-      is_status      = is_status
-      iv_body        = lv_body ).
+      iv_session_id = iv_session_id
+      iv_page_id    = iv_page_id
+      iv_kind       = zif_gg_host_html_v1=>page_dynpro
+      iv_title      = lv_title
+      iv_csp_nonce  = is_context-csp_nonce
+      is_status     = is_status
+      iv_body       = lv_body ).
   ENDMETHOD.
 
   METHOD dynpro_geometry.

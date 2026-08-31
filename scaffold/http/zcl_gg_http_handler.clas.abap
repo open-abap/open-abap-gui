@@ -139,7 +139,7 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_error      TYPE string
         iv_session_id TYPE string OPTIONAL
         iv_page_id    TYPE string OPTIONAL
-        iv_status     TYPE i DEFAULT 400.
+        iv_status     TYPE i DEFAULT 200.
 
     CLASS-METHODS send_empty
       IMPORTING

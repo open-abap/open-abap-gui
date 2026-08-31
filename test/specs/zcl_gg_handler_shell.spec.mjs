@@ -46,3 +46,17 @@ test("direct compatibility routes reject classes outside the allow-list", async 
   expect(response.status()).toBe(404);
   expect(await response.json()).toEqual({valid: false, error: "Not found"});
 });
+
+for (const tcode of ["SE01", "SE09", "SE11", "SE16", "SE38"]) {
+  test(`${tcode} uses the shared transaction chrome`, async ({page, host}) => {
+    const response = await page.goto(`${host.baseUrl}/transaction?tcode=${tcode}`);
+
+    expect(response?.status()).toBe(200);
+    await expect(page.locator(".wb-brand")).toHaveText("open-abap");
+    await expect(page.getByRole("menuitem", {name: "Applications"})).toBeVisible();
+    await expect(page.locator(".wb-appbar")).toBeVisible();
+    await expect(page.locator(".wb-appbar--dynpro")).toHaveCount(0);
+    await expect(page.locator(".wb-app-title")).toHaveAttribute("class", "wb-app-title");
+    await expect(page.locator(".wb-app-title")).not.toHaveAttribute("style", /.+/);
+  });
+}

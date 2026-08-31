@@ -58,7 +58,11 @@ test("invalid commands retain input and leave the old session open", async ({pag
 
   const command = page.getByRole("textbox", {name: "Command"});
   await command.fill("/nUNKNOWN");
+  const responsePromise = page.waitForResponse((response) =>
+    response.url().endsWith("/transaction") && response.request().method() === "POST");
   await command.press("Enter");
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
   await expect(page.locator(".wb-status-error[role=alert]")).toContainText("Unknown transaction code");
   await expect(command).toHaveValue("/nUNKNOWN");
 
@@ -71,4 +75,20 @@ test("invalid commands retain input and leave the old session open", async ({pag
     return response.status;
   }, {sessionId: oldSession, pageId: oldPage});
   expect(stillOpen).toBe(200);
+});
+
+test("invalid workbench commands render in the bottom message bar", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/`);
+
+  const command = page.getByRole("textbox", {name: "Command"});
+  await command.fill("NOT_A_TRANSACTION");
+  const responsePromise = page.waitForResponse((response) =>
+    response.url().endsWith("/transaction") && response.request().method() === "POST");
+  await command.press("Enter");
+  const response = await responsePromise;
+
+  expect(response.status()).toBe(200);
+  await expect(page.locator(".wb-status-error[role=alert]")).toContainText("Unsupported command");
+  await expect(page.locator("#wb-command-error")).toHaveCount(0);
+  await expect(command).toHaveValue("NOT_A_TRANSACTION");
 });

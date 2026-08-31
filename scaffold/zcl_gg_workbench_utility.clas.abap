@@ -8,6 +8,8 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * The standard toolbar is disabled unless the running program activates a
 * command through its CUA status. Back is the exception: it always leaves the
 * running program and returns to the workbench.
+* Programs supply plain title text; this renderer exclusively owns its markup
+* and presentation.
     CLASS-METHODS render_top
       IMPORTING
         iv_runtime      TYPE abap_bool DEFAULT abap_false
@@ -18,7 +20,6 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_page_id      TYPE string OPTIONAL
         is_status       TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
         it_breadcrumbs  TYPE zif_gg_session_types_v1=>ty_breadcrumbs OPTIONAL
-        iv_hide_appbar  TYPE abap_bool OPTIONAL
         iv_content_form TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html)  TYPE string.
@@ -113,11 +114,9 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-command-button .wb-icon{width:17px;height:17px}' &&
       '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
       '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
-      '.wb-appbar--hidden{display:none}' &&
-      '.wb-appbar--dynpro{min-height:38px;padding:5px 22px;background:linear-gradient(#d8e6f0,#bfd3e2);color:#102f4d}' &&
-      '.wb-appbar--dynpro .wb-app-title{margin:0;font-size:22px;font-weight:700;font-style:italic;letter-spacing:-.3px}' &&
-      '.wb-appbar--dynpro .gg-dynpro-status{margin:0 0 0 auto;color:#315a7f;font-size:11px}' &&
       '.wb-app-title{font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
+      '.wb-appbar .gg-dynpro-status{margin:0 0 0 auto;color:#315a7f;font-size:11px}' &&
+      '.wb-appbar .gg-dynpro-status:empty{display:none}' &&
       '.wb-breadcrumbs{padding:5px 18px;background:#eef4fa;border-bottom:1px solid #c5d5e5;color:#4d667f}' &&
       '.wb-breadcrumbs ol{display:flex;gap:0;margin:0;padding:0;list-style:none}' &&
       '.wb-breadcrumbs li+li:before{content:"/";padding:0 8px;color:#8ba1b6}' &&
@@ -142,29 +141,15 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
   METHOD render_top.
     DATA lv_title TYPE string.
     DATA lv_content_form TYPE string.
-    DATA lv_appbar_class TYPE string.
-    DATA lv_menu TYPE string.
     DATA lv_status TYPE string.
-    DATA lv_title_open TYPE string.
-    DATA lv_title_close TYPE string.
 
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
     lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
-    lv_appbar_class = COND #( WHEN iv_content_form = `gg-dynpro-form` THEN ` wb-appbar--dynpro` ELSE `` ).
-    IF iv_hide_appbar = abap_true.
-      lv_appbar_class = lv_appbar_class && ` wb-appbar--hidden`.
-    ENDIF.
     lv_status = COND string(
       WHEN iv_content_form = `gg-dynpro-form` AND is_status-status IS NOT INITIAL
       THEN |<span class="gg-dynpro-status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</span>|
       ELSE `` ).
-    lv_title_open = COND string( WHEN iv_content_form = `gg-dynpro-form` THEN `<h1 class="wb-app-title">` ELSE `<span class="wb-app-title">` ).
-    lv_title_close = COND string( WHEN iv_content_form = `gg-dynpro-form` THEN `</h1>` ELSE `</span>` ).
-    lv_menu = COND string(
-      WHEN iv_content_form = `gg-dynpro-form`
-      THEN '<span class="wb-brand wb-brand--dynpro" aria-hidden="true">&#9665;</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Request</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Goto</button><button class="wb-menu" type="button" role="menuitem">Settings</button><button class="wb-menu" type="button" role="menuitem">Environment</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div>'
-      ELSE '<span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div>' ).
-    rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu">' && lv_menu && '</nav>'.
+    rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
       iv_runtime    = iv_runtime
       iv_command    = iv_command
@@ -172,9 +157,9 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
       is_status     = is_status ).
-    rv_html = rv_html && |<header class="wb-appbar{ lv_appbar_class }">{ lv_title_open }| &&
+    rv_html = rv_html && |<header class="wb-appbar"><span class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
-      |{ lv_title_close }{ lv_status }</header>| &&
+      |</span>{ lv_status }</header>| &&
       render_breadcrumbs( it_breadcrumbs ) &&
       render_iconbar(
         iv_runtime      = iv_runtime
