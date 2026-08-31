@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: preview-deployment-${{ github.event.pull_request.number || github.ref_name || 'manual' }}
+  group: preview-deployment-main
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      PREVIEW_BRANCH: "${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'preview' }}"
+      PREVIEW_DIRECTORY: "${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'preview' }}"
       PREVIEW_LABEL: "${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'manual preview' }}"
     steps:
       - uses: actions/checkout@v6
@@ -51,20 +51,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git ls-remote --exit-code --heads origin "$PREVIEW_BRANCH" >/dev/null 2>&1; then
-            git fetch origin "refs/heads/$PREVIEW_BRANCH:refs/remotes/origin/$PREVIEW_BRANCH"
-            git checkout -B "$PREVIEW_BRANCH" "origin/$PREVIEW_BRANCH"
-          else
-            git checkout --orphan "$PREVIEW_BRANCH"
-          fi
-
-          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
-          cp -R "$GITHUB_WORKSPACE/build/." .
+          rm -rf -- "$PREVIEW_DIRECTORY"
+          mkdir -p -- "$PREVIEW_DIRECTORY"
+          cp -R "$GITHUB_WORKSPACE/build/." "$PREVIEW_DIRECTORY/"
           git add --all
 
           if git diff --cached --quiet; then
             echo "Preview is unchanged"
           else
             git commit -m "Deploy $PREVIEW_LABEL"
-            git push --force origin "HEAD:$PREVIEW_BRANCH"
+            git push origin HEAD:main
           fi
