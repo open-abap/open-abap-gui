@@ -114,7 +114,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-command-button .wb-icon{width:17px;height:17px}' &&
       '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
       '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
-      '.wb-app-title{font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
+      '.wb-app-title{margin:0;font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
       '.wb-appbar .gg-dynpro-status{margin:0 0 0 auto;color:#315a7f;font-size:11px}' &&
       '.wb-appbar .gg-dynpro-status:empty{display:none}' &&
       '.wb-breadcrumbs{padding:5px 18px;background:#eef4fa;border-bottom:1px solid #c5d5e5;color:#4d667f}' &&
@@ -157,9 +157,9 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
       is_status     = is_status ).
-    rv_html = rv_html && |<header class="wb-appbar"><span class="wb-app-title">| &&
+    rv_html = rv_html && |<header class="wb-appbar"><h1 class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
-      |</span>{ lv_status }</header>| &&
+      |</h1>{ lv_status }</header>| &&
       render_breadcrumbs( it_breadcrumbs ) &&
       render_iconbar(
         iv_runtime      = iv_runtime
