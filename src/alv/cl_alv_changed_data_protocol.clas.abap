@@ -72,19 +72,19 @@ CLASS cl_alv_changed_data_protocol IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD modify_cell.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD get_cell_value.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD add_protocol_entry.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD display_protocol.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

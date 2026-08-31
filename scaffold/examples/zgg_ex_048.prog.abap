@@ -1,0 +1,10 @@
+REPORT zgg_ex_048.
+
+TOP-OF-PAGE DURING LINE-SELECTION.
+  WRITE 'detail header'.
+
+START-OF-SELECTION.
+  WRITE / 'row'.
+
+AT LINE-SELECTION.
+  WRITE / 'detail'.

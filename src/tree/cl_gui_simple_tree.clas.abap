@@ -49,15 +49,32 @@ ENDCLASS.
 CLASS cl_gui_simple_tree IMPLEMENTATION.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'SIMPLE_TREE' ).
+    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD add_nodes.
-    RETURN. " todo, implement method
+    clear_html_nodes( ).
+    add_html_node(
+      node_key = 'TREE-ROOT'
+      text     = |Tree nodes: { lines( node_table ) }| ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |Tree nodes: { lines( node_table ) }| ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD node_set_text.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( node_key ).
+    IF sy-subrc = 0.
+      ls_node-text = CONV string( text ).
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      refresh_tree_html( ).
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

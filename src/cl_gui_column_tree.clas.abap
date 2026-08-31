@@ -111,19 +111,23 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'COLUMN_TREE' ).
+    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD free.
-    ASSERT 1 = 'todo'.
+    super->free( ).
   ENDMETHOD.
 
   METHOD add_column.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_registered_events.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

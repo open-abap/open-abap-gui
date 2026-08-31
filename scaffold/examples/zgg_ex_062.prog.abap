@@ -1,0 +1,11 @@
+REPORT zgg_ex_062.
+
+START-OF-SELECTION.
+  SET PF-STATUS 'SHELL62'.
+  WRITE 'initial'.
+
+AT USER-COMMAND.
+  IF sy-ucomm = 'NEXT'.
+    SET PF-STATUS 'SHELL62-DONE'.
+    WRITE / 'advanced'.
+  ENDIF.

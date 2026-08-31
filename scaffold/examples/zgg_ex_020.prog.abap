@@ -1,0 +1,6 @@
+REPORT zgg_ex_020.
+
+TABLES zsflight.
+
+SELECT-OPTIONS s_carr FOR zsflight-carrid
+  DEFAULT 'AA' TO 'LH' NO-EXTENSION NO INTERVALS.

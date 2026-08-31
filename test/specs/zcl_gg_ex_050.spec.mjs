@@ -1,0 +1,7 @@
+import {test, expect, openExample, submit, expectPageKind} from "../fixtures.mjs";
+
+test(`ZCL_GG_EX_050 — renders list-processing output`, async ({page, host}) => {
+  await openExample(page, host, 50);
+  await expectPageKind(page, "LIST");
+  await expect(page.locator(".gg-list-line")).toHaveText("inside the list processor");
+});

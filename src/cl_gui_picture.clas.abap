@@ -54,23 +54,31 @@ CLASS cl_gui_picture IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD load_picture_from_url.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = CONV string( url ) ).
+    result = 0.
   ENDMETHOD.
 
   METHOD load_picture_from_url_async.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = CONV string( url ) ).
   ENDMETHOD.
 
   METHOD clear_picture.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = `` ).
   ENDMETHOD.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'PICTURE' ).
+    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD set_display_mode.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

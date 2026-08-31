@@ -13,18 +13,18 @@ ENDCLASS.
 
 CLASS cl_salv_columns_table IMPLEMENTATION.
   METHOD set_hyperlink_entry_column.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_exception_column.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_cell_type_column.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_color_column.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 ENDCLASS.

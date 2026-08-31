@@ -1,0 +1,4 @@
+REPORT zgg_ex_039.
+
+START-OF-SELECTION.
+  MESSAGE 'free text' TYPE 'I'.

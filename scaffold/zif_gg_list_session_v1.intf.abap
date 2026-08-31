@@ -17,6 +17,10 @@ INTERFACE zif_gg_list_session_v1 PUBLIC.
     RETURNING
       VALUE(rs_cursor) TYPE zif_gg_session_types_v1=>ty_list_cursor.
 
+  METHODS get_context
+    RETURNING
+      VALUE(rs_context) TYPE zif_gg_session_types_v1=>ty_list_context.
+
   METHODS read_line
     IMPORTING
       iv_level       TYPE i OPTIONAL
@@ -35,5 +39,13 @@ INTERFACE zif_gg_list_session_v1 PUBLIC.
   METHODS set_status
     IMPORTING
       is_status TYPE zif_gg_session_types_v1=>ty_gui_status.
+
+  METHODS set_breadcrumbs
+    IMPORTING
+      it_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
+
+  METHODS get_breadcrumbs
+    RETURNING
+      VALUE(rt_breadcrumbs) TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
 
 ENDINTERFACE.

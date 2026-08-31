@@ -27,15 +27,29 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'CHART_ENGINE' ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_data.
-    RETURN. " todo, implement method
+    IF data IS SUPPLIED.
+      cl_gui_control=>set_payload( control = me
+                                   payload = data ).
+    ENDIF.
+    IF xdata IS SUPPLIED.
+      cl_gui_control=>set_payload( control = me
+                                   payload = |binary chart data ({ size })| ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD render.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_html( control = me
+                              html    = |<div role="img" aria-label="Chart">Chart data</div>| ).
   ENDMETHOD.
 
 ENDCLASS.

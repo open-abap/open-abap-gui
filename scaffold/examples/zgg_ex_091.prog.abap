@@ -1,0 +1,9 @@
+REPORT zgg_ex_091 LINE-COUNT 4(1).
+END-OF-PAGE.
+WRITE 'footer'.
+TOP-OF-PAGE.
+  WRITE / 'header'.
+START-OF-SELECTION.
+  DO 8 TIMES.
+    WRITE / sy-index.
+  ENDDO.

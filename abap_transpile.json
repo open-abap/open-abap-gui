@@ -1,20 +1,28 @@
 {
-  "input_folder": "src",
+  "input_folder": ["src", "scaffold"],
   "input_filter": [],
+  "exclude_filter": [],
   "output_folder": "output",
   "write_unit_tests": true,
   "write_source_map": true,
+  "options": {
+    "setup": {
+      "filename": "../setup.mjs",
+      "preFunction": "setupDatabase"
+    },
+    "ignoreSyntaxCheck": false,
+    "addFilenames": true,
+    "addCommonJS": true
+  },
   "libs": [
     {
       "url": "https://github.com/open-abap/open-abap-core"
     },
     {
+      "url": "https://github.com/open-abap/express-icf-shim"
+    },
+    {
       "url": "https://github.com/open-abap/open-abap-bal"
     }
-  ],
-  "options": {
-    "ignoreSyntaxCheck": false,
-    "addFilenames": true,
-    "addCommonJS": true
-  }
+  ]
 }

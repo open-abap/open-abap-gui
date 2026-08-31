@@ -32,6 +32,16 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS key_f1 TYPE i VALUE 1.
     CONSTANTS key_enter TYPE i VALUE 5.
 
+    TYPES: BEGIN OF ty_html_node,
+             node_key   TYPE string,
+             parent_key TYPE string,
+             text       TYPE string,
+             expanded   TYPE abap_bool,
+             selected   TYPE abap_bool,
+             hidden     TYPE abap_bool,
+           END OF ty_html_node.
+    TYPES ty_html_nodes TYPE STANDARD TABLE OF ty_html_node WITH DEFAULT KEY.
+
     METHODS add_key_stroke
       IMPORTING
         key TYPE i
@@ -261,6 +271,30 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         failed
         cntl_system_error.
+
+  PROTECTED SECTION.
+    DATA mt_html_nodes TYPE ty_html_nodes.
+    DATA mv_html_top_node TYPE string.
+
+    METHODS add_html_node
+      IMPORTING
+        node_key   TYPE string
+        parent_key TYPE string OPTIONAL
+        text       TYPE string OPTIONAL.
+
+    METHODS set_html_node_state
+      IMPORTING
+        node_key TYPE string
+        expanded TYPE abap_bool OPTIONAL
+        selected TYPE abap_bool OPTIONAL.
+
+    METHODS clear_html_nodes.
+
+    METHODS refresh_tree_html.
+
+    METHODS tree_html
+      RETURNING
+        VALUE(result) TYPE string.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
@@ -274,19 +308,33 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD unselect_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      IF line_exists( node_key_table[ table_line = ls_node-node_key ] ).
+        ls_node-selected = abap_false.
+        MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      ENDIF.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD set_top_node.
-    RETURN. " todo, implement method
+    mv_html_top_node = CONV string( node_key ).
   ENDMETHOD.
 
   METHOD set_selected_node.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      ls_node-selected = xsdbool( ls_node-node_key = CONV string( node_key ) ).
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD select_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      ls_node-selected = xsdbool( line_exists( node_key_table[ table_line = ls_node-node_key ] ) ).
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_selected_nodes.
@@ -298,11 +346,20 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD collapse_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      IF line_exists( node_key_table[ table_line = ls_node-node_key ] ).
+        ls_node-expanded = abap_false.
+        MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      ENDIF.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD delete_nodes.
-    RETURN. " todo, implement method
+    LOOP AT node_key_table INTO DATA(lv_node_key).
+      DELETE mt_html_nodes WHERE node_key = CONV string( lv_node_key ).
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD move_node.
@@ -310,47 +367,77 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_expanded_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE expanded = abap_true.
+      IF no_hidden_nodes = abap_false OR ls_node-hidden = abap_false.
+        APPEND CONV tv_nodekey( ls_node-node_key ) TO node_key_table.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_selected_node.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node) WITH KEY selected = abap_true.
+    IF sy-subrc = 0.
+      node_key = CONV tv_nodekey( ls_node-node_key ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD collapse_all_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      ls_node-expanded = abap_false.
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD expand_root_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE parent_key IS INITIAL.
+      ls_node-expanded = abap_true.
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD expand_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      IF line_exists( node_key_table[ table_line = ls_node-node_key ] ).
+        ls_node-expanded = abap_true.
+        MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      ENDIF.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD collapse_subtree.
-    RETURN. " todo, implement method
+    set_html_node_state( node_key = CONV string( node_key )
+                         expanded = abap_false ).
   ENDMETHOD.
 
   METHOD delete_all_nodes.
-    RETURN. " todo, implement method
+    clear_html_nodes( ).
   ENDMETHOD.
 
   METHOD delete_node.
-    RETURN. " todo, implement method
+    DELETE mt_html_nodes WHERE node_key = CONV string( node_key ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD expand_node.
-    RETURN. " todo, implement method
+    set_html_node_state( node_key = CONV string( node_key )
+                         expanded = abap_true ).
   ENDMETHOD.
 
   METHOD get_top_node.
-    RETURN. " todo, implement method
+    node_key = CONV tv_nodekey( mv_html_top_node ).
   ENDMETHOD.
 
   METHOD node_set_hidden.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( node_key ).
+    IF sy-subrc = 0.
+      ls_node-hidden = hidden.
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      refresh_tree_html( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD node_set_n_image.
@@ -358,7 +445,78 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD unselect_all.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      ls_node-selected = abap_false.
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    ENDLOOP.
+    refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD add_html_node.
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = node_key.
+    IF sy-subrc = 0.
+      RETURN.
+    ENDIF.
+    APPEND VALUE #( node_key   = node_key
+                    parent_key = parent_key
+                    text       = text
+                    expanded   = abap_true ) TO mt_html_nodes.
+    refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD set_html_node_state.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    IF expanded IS SUPPLIED.
+      ls_node-expanded = expanded.
+    ENDIF.
+    IF selected IS SUPPLIED.
+      ls_node-selected = selected.
+    ENDIF.
+    MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD clear_html_nodes.
+    CLEAR mt_html_nodes.
+    refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD refresh_tree_html.
+    cl_gui_control=>set_html(
+      control = me
+      html    = tree_html( ) ).
+  ENDMETHOD.
+
+  METHOD tree_html.
+    DATA lv_depth TYPE i.
+    DATA lv_parent TYPE string.
+    result = |<ul role="tree" aria-label="Tree">|.
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      lv_depth = 1.
+      lv_parent = ls_node-parent_key.
+      DO 32 TIMES.
+        IF lv_parent IS INITIAL.
+          EXIT.
+        ENDIF.
+        READ TABLE mt_html_nodes INTO DATA(ls_parent)
+          WITH KEY node_key = lv_parent.
+        IF sy-subrc <> 0.
+          EXIT.
+        ENDIF.
+        lv_depth = lv_depth + 1.
+        lv_parent = ls_parent-parent_key.
+      ENDDO.
+      DATA(lv_selected) = COND string( WHEN ls_node-selected = abap_true THEN ' aria-current="true"' ELSE '' ).
+      DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
+      DATA(lv_hidden) = COND string( WHEN ls_node-hidden = abap_true THEN ' hidden' ELSE '' ).
+      result = result && |<li role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }{ lv_hidden }>{ escape_html( ls_node-text ) }</li>|.
+    ENDLOOP.
+    result = result && |</ul>|.
   ENDMETHOD.
 
 ENDCLASS.

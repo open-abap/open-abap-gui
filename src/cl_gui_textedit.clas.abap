@@ -93,6 +93,13 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
       IMPORTING
         text TYPE string OPTIONAL.
 
+  PRIVATE SECTION.
+    DATA mv_text TYPE string.
+    DATA mv_modified TYPE i.
+    DATA mv_readonly TYPE i.
+    DATA mv_cursor_line TYPE i.
+    DATA mv_cursor_pos TYPE i.
+
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
@@ -101,15 +108,29 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_text_as_r3table.
-    RETURN. " todo, implement method
+    CLEAR table.
+    APPEND mv_text TO table.
+    is_modified = mv_modified.
   ENDMETHOD.
 
   METHOD set_text_as_r3table.
-    RETURN. " todo, implement method
+    CLEAR mv_text.
+    LOOP AT table ASSIGNING FIELD-SYMBOL(<line>).
+      IF mv_text IS NOT INITIAL.
+        mv_text = mv_text && cl_abap_char_utilities=>newline.
+      ENDIF.
+      mv_text = mv_text && CONV string( <line> ).
+    ENDLOOP.
+    mv_modified = 1.
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_text ).
   ENDMETHOD.
 
   METHOD set_textstream.
-    RETURN. " todo, implement method
+    mv_text = text.
+    mv_modified = 1.
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_text ).
   ENDMETHOD.
 
   METHOD set_font_fixed.
@@ -117,15 +138,21 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_text_as_stream.
-    RETURN. " todo, implement method
+    set_text_as_r3table( text ).
   ENDMETHOD.
 
   METHOD delete_text.
-    RETURN. " todo, implement method
+    CLEAR mv_text.
+    mv_modified = 1.
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_text ).
   ENDMETHOD.
 
   METHOD get_selection_pos.
-    RETURN. " todo, implement method
+    from_line = mv_cursor_line.
+    to_line = mv_cursor_line.
+    from_pos = mv_cursor_pos.
+    to_pos = mv_cursor_pos.
   ENDMETHOD.
 
   METHOD protect_lines.
@@ -133,15 +160,20 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD go_to_line.
-    RETURN. " todo, implement method
+    mv_cursor_line = line.
   ENDMETHOD.
 
   METHOD set_readonly_mode.
-    RETURN. " todo, implement method
+    mv_readonly = readonly_mode.
+    set_enable( COND #( WHEN readonly_mode = true THEN ' ' ELSE 'X' ) ).
   ENDMETHOD.
 
   METHOD constructor.
-    ASSERT 1 = 2.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'TEXTEDIT' ).
+    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD set_toolbar_mode.
@@ -153,7 +185,8 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_textstream.
-    ASSERT 1 = 2.
+    text = mv_text.
+    is_modified = mv_modified.
   ENDMETHOD.
 
 ENDCLASS.

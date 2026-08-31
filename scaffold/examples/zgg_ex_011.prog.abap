@@ -1,0 +1,7 @@
+REPORT zgg_ex_011.
+
+LOAD-OF-PROGRAM.
+  WRITE 'loaded'.
+
+START-OF-SELECTION.
+  WRITE 'started'.

@@ -65,6 +65,10 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cnht_error_not_allowed
         cnht_error_parameter
         dp_error_general.
+
+  PRIVATE SECTION.
+    DATA mv_document TYPE string.
+    DATA mv_current_url TYPE string.
 ENDCLASS.
 
 CLASS cl_gui_html_viewer IMPLEMENTATION.
@@ -73,23 +77,35 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD show_data.
-    RETURN. " todo, implement method
+    mv_current_url = url.
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_document ).
   ENDMETHOD.
 
   METHOD show_url.
-    RETURN. " todo, implement method
+    mv_current_url = url.
+    cl_gui_control=>set_payload( control = me
+                                 payload = CONV string( url ) ).
   ENDMETHOD.
 
   METHOD load_data.
-    RETURN. " todo, implement method
+    LOOP AT data_table ASSIGNING FIELD-SYMBOL(<line>).
+      mv_document = mv_document && CONV string( <line> ).
+    ENDLOOP.
+    assigned_url = url.
+    mv_current_url = url.
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_document ).
   ENDMETHOD.
 
   METHOD get_current_url.
-    RETURN. " todo, implement method
+    url = mv_current_url.
   ENDMETHOD.
 
   METHOD close_document.
-    RETURN. " todo, implement method
+    CLEAR mv_document.
+    cl_gui_control=>set_payload( control = me
+                                 payload = `` ).
   ENDMETHOD.
 
   METHOD go_back.
@@ -105,7 +121,11 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
-    RETURN. " todo, implement method
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'HTML_VIEWER' ).
+    parent->add_child( me ).
   ENDMETHOD.
 
 ENDCLASS.

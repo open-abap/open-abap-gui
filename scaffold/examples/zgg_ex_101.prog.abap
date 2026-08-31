@@ -1,0 +1,6 @@
+REPORT zgg_ex_101.
+PARAMETERS p_bad TYPE c LENGTH 20 OBLIGATORY.
+AT SELECTION-SCREEN.
+  IF p_bad = 'bad'.
+    MESSAGE 'invalid' TYPE 'E'.
+  ENDIF.

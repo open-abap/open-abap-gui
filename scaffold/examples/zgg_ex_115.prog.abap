@@ -1,0 +1,3 @@
+REPORT zgg_ex_115.
+START-OF-SELECTION.
+  WRITE / 'status 0100'.

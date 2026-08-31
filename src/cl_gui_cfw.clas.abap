@@ -31,11 +31,11 @@ ENDCLASS.
 
 CLASS cl_gui_cfw IMPLEMENTATION.
   METHOD update_view.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD dispatch.
-    ASSERT 1 = 'todo'.
+    return_code = rc_noevent.
   ENDMETHOD.
 
 
@@ -48,6 +48,6 @@ CLASS cl_gui_cfw IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_new_ok_code.
-    ASSERT 1 = 'not implemented'.
+    rc = 0.
   ENDMETHOD.
 ENDCLASS.

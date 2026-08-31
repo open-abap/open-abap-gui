@@ -83,25 +83,53 @@ CLASS cl_gui_calendar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         cntl_error.
 
+  PRIVATE SECTION.
+    DATA mv_focus_date TYPE cnca_utc_date.
+    DATA mv_date_begin TYPE cnca_utc_date.
+    DATA mv_date_end TYPE cnca_utc_date.
+    DATA mt_selection TYPE cnca_itab_selection.
+
+    METHODS refresh_html.
+
 ENDCLASS.
 
 CLASS cl_gui_calendar IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'CALENDAR' ).
+    mv_focus_date = focus_date.
+    refresh_html( ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD go_to_date.
-    RETURN. " todo, implement method
+    mv_focus_date = focus_date.
+    refresh_html( ).
   ENDMETHOD.
 
   METHOD set_selection.
-    RETURN. " todo, implement method
+    IF date_begin IS SUPPLIED.
+      mv_date_begin = date_begin.
+    ENDIF.
+    IF date_end IS SUPPLIED.
+      mv_date_end = date_end.
+    ENDIF.
+    IF selection_table IS SUPPLIED.
+      mt_selection = selection_table.
+    ENDIF.
+    refresh_html( ).
   ENDMETHOD.
 
   METHOD get_selection.
-    RETURN. " todo, implement method
+    date_begin = mv_date_begin.
+    date_end = mv_date_end.
+    selection_table = mt_selection.
   ENDMETHOD.
 
   METHOD set_day_info.
@@ -109,11 +137,35 @@ CLASS cl_gui_calendar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD reset_day_info.
-    RETURN. " todo, implement method
+    RETURN.
   ENDMETHOD.
 
   METHOD reset_selection.
-    RETURN. " todo, implement method
+    CLEAR mv_date_begin.
+    CLEAR mv_date_end.
+    CLEAR mt_selection.
+    refresh_html( ).
+  ENDMETHOD.
+
+  METHOD refresh_html.
+    DATA lv_focus_date TYPE string.
+
+    lv_focus_date = CONV string( mv_focus_date ).
+    IF strlen( lv_focus_date ) = 8.
+      lv_focus_date = |{ substring( val = lv_focus_date
+                                    off = 0
+                                    len = 4 ) }-{ substring( val = lv_focus_date
+                                                             off = 4
+                                                             len = 2 ) }-{ substring( val = lv_focus_date
+                                                                                      off = 6
+                                                                                      len = 2 ) }|.
+    ENDIF.
+    cl_gui_control=>set_html(
+      control = me
+      html    = |<label for="{ control_id }-date">Focus date</label><input type="date" id="{ control_id }-date" name="{ control_id }-date" value="{ escape_html( lv_focus_date ) }">| ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |{ CONV string( mv_date_begin ) }/{ CONV string( mv_date_end ) }| ).
   ENDMETHOD.
 
 ENDCLASS.

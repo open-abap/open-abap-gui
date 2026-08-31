@@ -257,43 +257,72 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'ALV_TREE' ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_top_node.
-    ASSERT 1 = 'todo'.
+    mv_html_top_node = CONV string( i_node_key ).
   ENDMETHOD.
 
   METHOD get_children.
-    ASSERT 1 = 'todo'.
+    LOOP AT mt_html_nodes INTO DATA(ls_node)
+        WHERE parent_key = CONV string( i_node_key ).
+      APPEND CONV lvc_nkey( ls_node-node_key ) TO et_children.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD change_node.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_selected_nodes.
-    ASSERT 1 = 'todo'.
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      set_html_node_state( node_key = ls_node-node_key
+                           selected = abap_false ).
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD expand_nodes.
-    ASSERT 1 = 'todo'.
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      set_html_node_state( node_key = ls_node-node_key
+                           expanded = abap_true ).
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_selected_item.
-    ASSERT 1 = 'todo'.
+    READ TABLE mt_html_nodes INTO DATA(ls_node) WITH KEY selected = abap_true.
+    IF sy-subrc = 0.
+      e_selected_node = ls_node-node_key.
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_selected_nodes.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD expand_node.
-    ASSERT 1 = 'todo'.
+    set_html_node_state( node_key = CONV string( i_node_key )
+                         expanded = abap_true ).
   ENDMETHOD.
 
   METHOD add_node.
-    ASSERT 1 = 'todo'.
+    DATA(lv_key) = |TREE-{ lines( mt_html_nodes ) + 1 }|.
+    IF i_node_text IS NOT INITIAL.
+      add_html_node( node_key   = lv_key
+                     parent_key = CONV string( i_relat_node_key )
+                     text       = CONV string( i_node_text ) ).
+    ELSE.
+      add_html_node( node_key   = lv_key
+                     parent_key = CONV string( i_relat_node_key )
+                     text       = lv_key ).
+    ENDIF.
+    e_new_node_key = lv_key.
   ENDMETHOD.
 
   METHOD delete_subtree.
@@ -301,15 +330,17 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD delete_all_nodes.
-    ASSERT 1 = 'todo'.
+    clear_html_nodes( ).
   ENDMETHOD.
 
   METHOD set_table_for_first_display.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Tree rows: { lines( it_outtab ) }| ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_outtab_line.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

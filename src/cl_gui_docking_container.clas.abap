@@ -76,7 +76,13 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'DOCKING_CONTAINER' ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD dock_at.

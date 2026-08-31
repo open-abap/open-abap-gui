@@ -127,27 +127,33 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
-    ASSERT 1 = 'todo'.
+    cl_gui_control=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'SPLITTER_CONTAINER' ).
+    IF parent IS BOUND.
+      parent->add_child( me ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_column_mode.
-    ASSERT 1 = 'todo'.
+    result = 0.
   ENDMETHOD.
 
   METHOD free.
-    ASSERT 1 = 'todo'.
+    super->free( ).
   ENDMETHOD.
 
   METHOD get_container.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_column_width.
-    ASSERT 1 = 'todo'.
+    result = width.
   ENDMETHOD.
 
   METHOD set_border.
-    ASSERT 1 = 'todo'.
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

@@ -1,0 +1,7 @@
+REPORT zgg_ex_104.
+PARAMETERS p_left TYPE c LENGTH 10.
+PARAMETERS p_right TYPE c LENGTH 10.
+AT SELECTION-SCREEN.
+  IF p_left <> p_right.
+    MESSAGE 'CHAIN mismatch' TYPE 'E'.
+  ENDIF.
