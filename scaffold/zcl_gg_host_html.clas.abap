@@ -80,7 +80,6 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_title       TYPE string
         iv_body        TYPE string
         iv_csp_nonce   TYPE string OPTIONAL
-        iv_hide_appbar TYPE abap_bool OPTIONAL
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
         it_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs OPTIONAL
       RETURNING
@@ -223,8 +222,6 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-field\{display:flex;gap:.5rem;align-items:center;margin:.35rem 0;\}|.
     rv_html = rv_html && |.gg-field label\{min-width:12rem;\}|.
     rv_html = rv_html && |.gg-dynpro\{position:relative;min-height:12rem;overflow:hidden;background:linear-gradient(#e3eff8,#d5e6f3);border:1px solid #9ab3c8;box-sizing:border-box;color:#123b64;\}|.
-    rv_html = rv_html && |.gg-dynpro-status\{margin:0 0 0 auto;color:#315a7f;font-size:11px;\}|.
-    rv_html = rv_html && |.gg-dynpro-status:empty\{display:none;\}|.
     rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;color:#123b64;font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input,.gg-dynpro select,.gg-dynpro button\{font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text],.gg-dynpro input[type=password],.gg-dynpro select\{height:26px;padding:2px 6px;border:1px solid #819db8;border-radius:1px;background:#fff;color:#123b64;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
@@ -260,7 +257,6 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
       iv_page_id      = iv_page_id
       is_status       = is_status
       it_breadcrumbs  = it_breadcrumbs
-      iv_hide_appbar  = iv_hide_appbar
       iv_content_form = COND string( WHEN iv_kind = zif_gg_host_html_v1=>page_dynpro THEN `gg-dynpro-form` ELSE `` ) ).
     rv_html = rv_html && |<div class="wb-runtime-content{ lv_content_class }" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main>{ iv_body }</main></div>|.

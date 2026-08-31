@@ -46,8 +46,13 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
   METHOD renders_top.
     DATA(lv_html) = zcl_gg_workbench_utility=>render_top( ).
     DATA(lv_custom_html) = zcl_gg_workbench_utility=>render_top( iv_title = `<Example & title>` ).
+    DATA(lv_untrusted_html) = zcl_gg_workbench_utility=>render_top( iv_title = `</h1><style>.wb-appbar{display:none}</style>` ).
     DATA(lv_icon_html) = zcl_gg_workbench_utility=>render_top(
       is_status = VALUE #( icon_bar = VALUE #( ( label = `Refresh` icon = `refresh` ) ) ) ).
+    DATA(lv_dynpro_html) = zcl_gg_workbench_utility=>render_top(
+      iv_title        = `Dynpro`
+      iv_content_form = `gg-dynpro-form`
+      is_status       = VALUE #( status = `STATUS` ) ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-menubar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-commandbar' ) ).
@@ -59,8 +64,15 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'title="Refresh"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'title="Refresh"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'wb-icon-refresh' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Workbench</span>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_custom_html CS '&lt;Example &amp; title&gt;</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Workbench</h1>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_custom_html CS '&lt;Example &amp; title&gt;</h1>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_untrusted_html CS '&lt;/h1&gt;&lt;style&gt;.wb-appbar{display:none}&lt;/style&gt;' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_untrusted_html CS '</h1><style>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '<span class="wb-brand">open-abap</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Applications</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>STATUS</span>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_dynpro_html CS 'wb-appbar--dynpro' ) ).
   ENDMETHOD.
 
   METHOD renders_bottom.

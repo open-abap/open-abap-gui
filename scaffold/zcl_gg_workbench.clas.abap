@@ -57,36 +57,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     ENDIF.
 
     rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>open-abap GUI</title><style>' &&
-      'html,body{margin:0;height:100%;min-height:100%;overflow:hidden;font-family:Inter,Segoe UI,Tahoma,Arial,sans-serif;font-size:13px;color:#1d2d3e;background:#e9f0f8}' &&
-      '.wb-shell{height:100vh;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#e9f0f8}' &&
-      '.wb-menubar,.wb-commandbar,.wb-appbar,.wb-toolbar,.wb-statusbar{flex:0 0 auto}' &&
-      '.wb-menubar{height:40px;display:flex;align-items:center;gap:8px;padding:0 18px;background:linear-gradient(#fff,#e7eef7);border-bottom:1px solid #b8c9dc;box-sizing:border-box}' &&
-      '.wb-brand{font-weight:700;font-size:14px;color:#174a80;margin-right:12px;letter-spacing:-.2px}' &&
-      '.wb-menu-items{display:flex;align-self:stretch;align-items:center;gap:2px}' &&
-      '.wb-menu{border:0;border-radius:3px;background:transparent;height:30px;padding:0 10px;color:#163e6b;font:inherit;cursor:pointer}' &&
-      '.wb-menu:hover,.wb-menu:focus{background:#d7e5f4;color:#092f5b;outline:0}' &&
-      '.wb-commandbar{height:48px;display:flex;align-items:center;gap:2px;padding:0 0 0 18px;background:linear-gradient(#f7faff,#e4edf7);border-bottom:1px solid #afc2d8;box-sizing:border-box}' &&
-      '.wb-command-input{width:190px;height:30px;padding:3px 9px;border:1px solid #829fbe;border-radius:2px;background:#fff;box-sizing:border-box;color:#1d2d3e;font:inherit;box-shadow:inset 0 1px 2px #d6e0eb}' &&
-      '.wb-command-input:focus{outline:2px solid #8db5df;outline-offset:0}' &&
-      '.wb-command-error{color:#a32121;font-weight:600;margin-left:12px;max-width:48vw}' &&
-      '.wb-command-button{height:30px;min-width:28px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;color:#15589a;font-weight:600;cursor:pointer}' &&
-      '.wb-command-button:hover,.wb-command-button:focus{border-color:#86a9cc;background:#d9e8f7;outline:0}' &&
-      '.wb-command-button:not(:disabled):active,.wb-toolbar-button:not(:disabled):active{transform:translateY(1px);border-color:#5e8fbd;background:#c7dced;box-shadow:inset 0 1px 3px rgba(29,63,96,.28)}' &&
-      '.wb-command-button:disabled,.wb-command-button:disabled:hover,.wb-command-button:disabled:active{transform:none;border-color:transparent;background:transparent;box-shadow:none;color:#a8afb6;cursor:default}' &&
-      '.wb-command-button--back{color:#3b9348}' &&
-      '.wb-command-button--exit{color:#e2a100}' &&
-      '.wb-command-button--cancel{color:#d63b3b}' &&
-      '.wb-command-button--page{color:#15589a}' &&
-      '.wb-command-separator{height:24px;border-left:1px solid #b8c9dc;margin:0 4px}' &&
-      '.wb-icon-sprite{position:absolute;width:0;height:0;overflow:hidden}' &&
-      '.wb-icon{display:inline-block;width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}' &&
-      '.wb-command-button .wb-icon{width:17px;height:17px}' &&
-      '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
-      '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
-      '.wb-app-title{font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
-      '.wb-toolbar{margin:0;padding:7px 18px;display:flex;gap:5px;background:#dce8f3;border:0;border-bottom:1px solid #a8bfd6;border-radius:0}' &&
-      '.wb-toolbar-button{height:28px;min-width:32px;border:1px solid #91adca;border-radius:3px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
-      '.wb-toolbar-button:hover,.wb-toolbar-button:focus{background:#fff;border-color:#5e8fbd;outline:0}' &&
+      zcl_gg_workbench_utility=>render_styles( ) &&
       '.wb-workspace{display:flex;flex:1 1 auto;min-height:0;margin:16px 28px 0;border:1px solid #aebfd2;border-radius:5px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(34,67,102,.12)}' &&
       '.wb-app-panel{width:305px;flex:0 0 305px;min-height:0;border-right:1px solid #aebfd2;background:#f4f8fc;overflow:auto}' &&
       '.wb-app-heading{padding:11px 14px;color:#164b80;font-weight:700;background:#e1ebf6;border-bottom:1px solid #b8c9dc}' &&
@@ -100,11 +71,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '.wb-welcome-art{flex:1 1 auto;width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;position:relative;overflow:hidden;border-radius:0;background:linear-gradient(135deg,#f6f9fc 0%,#e1ebf6 58%,#c6d8e9 100%);border:0}' &&
       '.wb-logo-mark{display:block;width:min(42vw,280px);max-width:72%;max-height:64%;height:auto;filter:drop-shadow(0 8px 8px rgba(23,74,128,.18))}' &&
       '.wb-wordmark{position:relative;z-index:1;padding:8px 12px;color:#174a80;font:bold clamp(24px,4vw,48px) Arial;text-shadow:0 1px 1px #fff;border-bottom:clamp(3px,.4vw,6px) solid #4d82b6}' &&
-      '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
-      '.wb-status-feedback{min-height:1em;color:#315a7f;font-weight:600}' &&
-      '.wb-status-error{color:#a32121}' &&
-      '.wb-status-context{margin-left:auto;display:flex;align-items:center;gap:18px}.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
-      '@media(max-width:760px){.wb-app-panel{width:220px;flex-basis:220px}.wb-workspace,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-command-input{width:130px}}' &&
+      '@media(max-width:760px){.wb-app-panel{width:220px;flex-basis:220px}.wb-workspace{margin-left:10px;margin-right:10px}}' &&
       '</style></head><body><div class="wb-shell">' &&
       zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(

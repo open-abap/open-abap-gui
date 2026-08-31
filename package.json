@@ -12,7 +12,8 @@
     "test:html-e2e": "npm run transpile && npm run test:html-browser",
     "start": "npm run transpile && node test/start-server.mjs",
     "web:screenshots": "node test/capture-web-screenshots.mjs",
-    "web:build": "npm run transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots",
+    "web:diff": "node test/generate-screenshot-diffs.mjs deployment/main/screenshots build/screenshots build/visual-diffs",
+    "web:build": "npm run transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots && npm run web:diff",
     "test": "npm run lint && npm run unit && npm run test:html-browser",
     "regression": "node .github/regression/run.js"
   },
