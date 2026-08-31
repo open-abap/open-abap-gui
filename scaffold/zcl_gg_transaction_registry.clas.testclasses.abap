@@ -32,6 +32,11 @@ CLASS ltcl_gg_transaction_registry IMPLEMENTATION.
     ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = `  zgg_ex_001  ` ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode exp = 'ZGG_EX_001' ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-class_name exp = 'ZCL_GG_EX_001' ).
+    LOOP AT VALUE string_table( ( `se01` ) ( `SE09` ) ( `Se11` ) ( `se16` ) ( `Se38` ) ) INTO DATA(lv_system_tcode).
+      cl_abap_unit_assert=>assert_equals(
+        act = zcl_gg_transaction_registry=>lookup( iv_tcode = lv_system_tcode )-tcode
+        exp = to_upper( lv_system_tcode ) ).
+    ENDLOOP.
     cl_abap_unit_assert=>assert_initial(
       act = zcl_gg_transaction_registry=>lookup( iv_tcode = `ZGG_EX_UNKNOWN` )-tcode ).
     cl_abap_unit_assert=>assert_equals(

@@ -5,16 +5,7 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * owns the server-side state needed between browser requests.
 
   PUBLIC SECTION.
-    CLASS-METHODS start
-      IMPORTING
-        io_report          TYPE REF TO zif_gg_report_v1 OPTIONAL
-        io_dynpro_program  TYPE REF TO zif_gg_dynpro_v1 OPTIONAL
-        io_submit_report   TYPE REF TO zif_gg_report_v1 OPTIONAL
-        iv_program         TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
-        iv_batch           TYPE abap_bool DEFAULT abap_false
-        it_input           TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
-      RETURNING
-        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+    CLASS-METHODS start IMPORTING io_report TYPE REF TO zif_gg_report_v1 OPTIONAL io_dynpro_program TYPE REF TO zif_gg_dynpro_v1 OPTIONAL io_submit_report TYPE REF TO zif_gg_report_v1 OPTIONAL iv_program TYPE zif_gg_session_types_v1=>ty_program OPTIONAL iv_batch TYPE abap_bool DEFAULT abap_false iv_selection_screen_only TYPE abap_bool DEFAULT abap_false it_input TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL RETURNING VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 
     CLASS-METHODS dispatch
       IMPORTING
@@ -122,6 +113,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         iv_program       = iv_program
         iv_batch         = iv_batch
         it_input         = it_input
+        iv_stop_before_start = iv_selection_screen_only
         iv_session_id    = lv_session_id
         iv_page_id       = |{ lv_session_id }-1|
         iv_pause_at_navigation = abap_true ).
@@ -241,6 +233,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lt_dynpro_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     DATA lv_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm.
     DATA lv_page_id TYPE string.
+    DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
+    DATA lo_object TYPE REF TO object.
+    DATA lo_report TYPE REF TO zif_gg_report_v1.
+    DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
 
     ls_session = is_session.
     lt_dynpro_values = is_request-dynpro_values.
@@ -270,6 +266,45 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       iv_screen        = ls_session-last_dynpro-screen
       iv_session_id    = ls_session-session_id
       iv_page_id       = lv_page_id ).
+    IF ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
+        OR ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction.
+      ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = ls_dynpro-navigation-target ).
+      IF ls_transaction-tcode IS INITIAL.
+        rs_response = invalid_response( 'Transaction target is unknown or not authorized.' ).
+        RETURN.
+      ENDIF.
+      TRY.
+          CREATE OBJECT lo_object TYPE (ls_transaction-class_name).
+          CASE ls_transaction-kind.
+            WHEN zcl_gg_transaction_registry=>kind_report.
+              lo_report ?= lo_object.
+              close( ls_session-session_id ).
+              rs_response = start( io_report = lo_report ).
+            WHEN zcl_gg_transaction_registry=>kind_dynpro.
+              lo_dynpro ?= lo_object.
+              close( ls_session-session_id ).
+              rs_response = start( io_dynpro_program = lo_dynpro ).
+            WHEN OTHERS.
+              rs_response = invalid_response( 'Transaction target has an unsupported executable kind.' ).
+          ENDCASE.
+        CATCH cx_root INTO DATA(lx_transaction).
+          rs_response = invalid_response( |Unable to launch transaction target: { lx_transaction->get_text( ) }| ).
+      ENDTRY.
+      RETURN.
+    ENDIF.
+    IF ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_submit_return.
+      lo_report = report_for_submit( CONV #( ls_dynpro-navigation-target ) ).
+      IF lo_report IS NOT BOUND.
+        rs_response = invalid_response( 'Submitted report is unknown or not executable.' ).
+        RETURN.
+      ENDIF.
+      close( ls_session-session_id ).
+      rs_response = start(
+        io_report = lo_report
+        it_input  = ls_dynpro-submit-values
+        iv_selection_screen_only = ls_dynpro-submit-via_selection_screen ).
+      RETURN.
+    ENDIF.
     ls_session-next_page = ls_session-next_page + 1.
     ls_session-last_dynpro = ls_dynpro.
     APPEND ls_dynpro-page TO ls_session-pages.

@@ -31,12 +31,15 @@ This transpiles the ABAP scaffold and starts `test/start-server.mjs` on
 `http://127.0.0.1:8080`. The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT` and
 `/ZCL_GG_INTEGRATION_DYNPRO` routes construct allow-listed integration
 fixtures. The workbench uses transaction codes as the public application
-identity. The index lists all 150 examples with their descriptions and
+identity. The index lists all 150 examples and the five read-only system
+transactions with their descriptions and
 launches them through `/transaction?tcode=ZGG_EX_001`-style links. The command
 field accepts `/nZGG_EX_001` for a report and `/nZGG_EX_058` for the dynpro
 example; `/n` is case-insensitive and surrounding whitespace is allowed.
 Unknown or malformed commands are reported in the accessible workbench shell
 and never replace the current session.
+The read-only system transaction scope and its deliberate backend capability
+limits are tracked in [scaffold/PLAN8.md](scaffold/PLAN8.md).
 
 The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT`, `/ZCL_GG_INTEGRATION_DYNPRO`,
 and `/ZCL_GG_EX_001` through `/ZCL_GG_EX_150` routes remain available as

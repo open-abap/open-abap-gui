@@ -63,6 +63,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_page_id             TYPE string OPTIONAL
         iv_can_back            TYPE abap_bool DEFAULT abap_false
         iv_pause_at_navigation TYPE abap_bool DEFAULT abap_false
+        iv_stop_before_start   TYPE abap_bool DEFAULT abap_false
         is_resume_navigation   TYPE zif_gg_host_html_v1=>ty_navigation OPTIONAL
         is_resume_submit       TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
       RETURNING
@@ -177,6 +178,8 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         ct_values            TYPE zif_gg_selection_screen_types=>ty_values
         ct_states            TYPE zif_gg_selection_screen_types=>ty_states
         cv_ended             TYPE abap_bool.
+
+    CLASS-METHODS start_or_stop IMPORTING io_report TYPE REF TO zif_gg_report_v1 io_submit_report TYPE REF TO zif_gg_report_v1 OPTIONAL io_session TYPE REF TO zcl_gg_host_session is_resume_navigation TYPE zif_gg_host_html_v1=>ty_navigation is_resume_submit TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL it_input TYPE zif_gg_selection_screen_types=>ty_values iv_stop_before_start TYPE abap_bool CHANGING ct_values TYPE zif_gg_selection_screen_types=>ty_values ct_states TYPE zif_gg_selection_screen_types=>ty_states cv_ended TYPE abap_bool cv_selection_screen_active TYPE abap_bool.
 
     CLASS-METHODS validate_required
       IMPORTING
@@ -433,7 +436,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
           it_values  = lt_values
           io_session = lo_session ).
 
-        start_or_resume(
+        start_or_stop(
           EXPORTING
             io_report            = io_report
             io_submit_report     = io_submit_report
@@ -441,10 +444,12 @@ CLASS zcl_gg_host IMPLEMENTATION.
             is_resume_navigation = is_resume_navigation
             is_resume_submit     = is_resume_submit
             it_input             = it_input
+            iv_stop_before_start = iv_stop_before_start
           CHANGING
-            ct_values            = lt_values
-            ct_states            = lt_states
-            cv_ended             = lv_ended ).
+            ct_values                  = lt_values
+            ct_states                  = lt_states
+            cv_ended                   = lv_ended
+            cv_selection_screen_active = lv_selection_screen_active ).
       CATCH zcx_gg_control_flow INTO lx_flow.
         DATA(ls_flow_result) = interpret_flow( lx_flow ).
         lv_ended = ls_flow_result-ended.
@@ -1002,6 +1007,26 @@ CLASS zcl_gg_host IMPLEMENTATION.
           io_session           = io_session
           is_navigation        = is_resume_navigation
           is_submit            = is_resume_submit
+          it_input             = it_input
+        CHANGING
+          ct_values            = ct_values
+          ct_states            = ct_states
+          cv_ended             = cv_ended ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD start_or_stop.
+    IF iv_stop_before_start = abap_true.
+      cv_ended = abap_true.
+      cv_selection_screen_active = abap_true.
+    ELSE.
+      start_or_resume(
+        EXPORTING
+          io_report            = io_report
+          io_submit_report     = io_submit_report
+          io_session           = io_session
+          is_resume_navigation = is_resume_navigation
+          is_resume_submit     = is_resume_submit
           it_input             = it_input
         CHANGING
           ct_values            = ct_values

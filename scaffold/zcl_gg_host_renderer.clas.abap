@@ -532,7 +532,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_body = lv_body && |<div class="gg-dynpro-control" style="{ lv_style }">{ zcl_gg_host_html=>escape_text( ls_control-text ) }</div>|.
       ENDCASE.
     ENDLOOP.
-    lv_body = lv_body && |<div class="gg-field"><button type="submit" formnovalidate name="gg_ucomm" value="BACK">Back</button></div></form></section>|.
+    lv_body = lv_body && |<div class="gg-field" style="position:absolute;left:18px;top:{ COND i( WHEN lv_height > 42 THEN lv_height - 42 ELSE 0 ) }px"><button type="submit" formnovalidate name="gg_ucomm" value="BACK">Back</button></div></form></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id

@@ -3,7 +3,7 @@
 This folder owns first-class SAP-style workbench and system transactions. They
 are registered by their real transaction codes and are not numbered examples.
 
-Planned transactions:
+Implemented read-only transactions:
 
 - `SE01` — Transport Organizer (Extended View)
 - `SE09` — Transport Organizer

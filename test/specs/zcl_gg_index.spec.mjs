@@ -97,7 +97,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Edit"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Refresh"})).toHaveCount(0);
   await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
-  await expect(page.locator(".wb-app-list > li")).toHaveCount(151);
+  await expect(page.locator(".wb-app-list > li")).toHaveCount(156);
   await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);

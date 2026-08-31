@@ -9,16 +9,25 @@ executable class and one Playwright spec per transaction. Reuse small named
 fixture objects in focused tests; do not duplicate the complete repository,
 transport, or transaction catalog as an expected-value fixture.
 
+## Delivery status
+
+The current delivery completes the read-only transaction foundation and the
+five server-owned transaction flows against the scaffold fixtures. Mutation,
+authorization, persistence, activation, release/export, and debugging remain
+explicitly unavailable until the corresponding real backend contracts exist.
+Unchecked items below are either backend-dependent or broader object/type
+coverage beyond this first read-only slice.
+
 ## Shared workbench foundation
 
 - [x] Create `scaffold/system/` and document ownership, naming, test placement,
   fixture limits, and the ban on fake backend success for this transaction
   family.
-- [ ] Register exact, case-insensitive `SE01`, `SE09`, `SE11`, `SE16`, and
+- [x] Register exact, case-insensitive `SE01`, `SE09`, `SE11`, `SE16`, and
   `SE38` tcodes as separate `zif_gg_transaction_v1` applications. Model each
   transaction as a server-owned dynpro flow; SE38 hands executable reports to
   the existing report runtime instead of interpreting ABAP in JavaScript.
-- [ ] Add typed transport, Dictionary, table-data, and program-repository
+- [x] Add typed transport, Dictionary, table-data, and program-repository
   service boundaries behind the transactions. Keep lookup, authorization,
   persistence, activation, release/export, and execution out of renderers and
   browser code.
@@ -30,7 +39,7 @@ transport, or transaction catalog as an expected-value fixture.
   object, table, field, program, variant, and row from server-owned metadata.
   Reject unknown, unauthorized, stale, and cross-session identifiers while
   leaving the current screen usable.
-- [ ] Expose capabilities explicitly. Display-only deployments disable
+- [x] Expose capabilities explicitly. Display-only deployments disable
   Change/Create/Save/Activate/Release/Export/Debug with an honest visible
   explanation; they never report a successful repository, database, or
   transport mutation that did not occur.
@@ -45,19 +54,19 @@ transport, or transaction catalog as an expected-value fixture.
   attributes, object list, documentation, and logs.
 - [ ] Implement direct individual-request display and navigation from SE09's
   Extended View action without trusting a browser-supplied request identity.
-- [ ] Keep special request creation, object-list changes, release, export, and
+- [x] Keep special request creation, object-list changes, release, export, and
   transport actions disabled until a real CTS-compatible backend provides
   naming, route, lock, authorization, logging, and failure semantics.
 
 ## `SE09` — Transport Organizer
 
-- [ ] Build the initial owner/request/task selection screen with request types,
+- [x] Build the initial owner/request/task selection screen with request types,
   request and task statuses, Display, Create, and navigation to SE01 Extended
   View. Retain criteria after empty results or validation errors.
-- [ ] Render a hierarchical request → task overview from server-owned transport
+- [x] Render a hierarchical request → task overview from server-owned transport
   metadata. Include type, owner, short text, status, target, and task assignment
   without inferring hierarchy from request-number text.
-- [ ] Open a request/task editor with distinct Properties, Objects,
+- [x] Open a request/task editor with distinct Properties, Objects,
   Documentation, and Logs views. Resolve object links through repository
   services and escape all descriptions, documentation, and log text.
 - [ ] Add Create/Change/Check/Release only through a real transport backend that
@@ -67,14 +76,14 @@ transport, or transaction catalog as an expected-value fixture.
 
 ## `SE11` — ABAP Dictionary
 
-- [ ] Build the initial object chooser with independent name/value-help input
+- [x] Build the initial object chooser with independent name/value-help input
   per supported Dictionary object type and Display, Change, and Create actions.
   Preserve the selected object type and value after lookup errors.
 - [ ] Implement read-only detail screens from actual Dictionary metadata. Start
   with database tables, structures, data elements, domains, and views, then add
   search helps, lock objects, table types, and type groups without flattening
   unlike object kinds into one generic property dump.
-- [ ] For tables and views, render stable tabs for attributes, fields, keys,
+- [x] For tables and views, render stable tabs for attributes, fields, keys,
   data types, lengths/decimals, descriptions, checks/entry help, and technical
   settings. Link Table Contents to `SE16` with validated server-owned context.
 - [ ] Add Change/Create only through a real repository write, validation,
@@ -83,16 +92,16 @@ transport, or transaction catalog as an expected-value fixture.
 
 ## `SE16` — Data Browser
 
-- [ ] Build the Table Name initial screen with F4 help and Table Contents.
+- [x] Build the Table Name initial screen with F4 help and Table Contents.
   Resolve only Dictionary tables/views allowed by the data-access policy and
   report unknown or forbidden objects without leaking metadata.
 - [ ] Generate the selection screen from actual field metadata, including
   typed single/range criteria, include/exclude operators, output-field choice,
   maximum-hit limit, and retained criteria after Back or validation errors.
-- [ ] Execute a parameterized, server-built query. Never accept SQL, arbitrary
+- [x] Execute a parameterized, server-built query. Never accept SQL, arbitrary
   field names, an unbounded row count, or browser-owned sort/filter expressions;
   enforce authorization and a hard maximum before reading data.
-- [ ] Render a deterministic typed result table with field labels, formatted
+- [x] Render a deterministic typed result table with field labels, formatted
   values, row count/truncation feedback, empty results, and navigation back to
   the same criteria. Keep the first delivery read-only; mutation requires a
   separate explicit plan and authorization model.
@@ -103,14 +112,14 @@ transport, or transaction catalog as an expected-value fixture.
   Display/Change/Create. Preserve the selected program and subobject across
   errors and distinguish missing, inactive, non-executable, and unauthorized
   programs.
-- [ ] Implement read-only Source Code, Attributes, Documentation, Text Elements,
+- [x] Implement read-only Source Code, Attributes, Documentation, Text Elements,
   and Variants views from the repository service. Source display preserves
   line numbers and text while escaping every repository value at the HTML
   boundary.
-- [ ] Route Execute/F8 through the existing report runtime. Show the program's
+- [x] Route Execute/F8 through the existing report runtime. Show the program's
   selection screen when present, support direct execution when absent, and
   return list/navigation/messages through the normal host session.
-- [ ] Implement With Variant as program → variant selection → populated
+- [x] Implement With Variant as program → variant selection → populated
   selection screen → execution. Unknown or incompatible variants are rejected
   without losing the initial program context.
 - [ ] Add Change/Create, syntax check, Save, and Activate only when edits persist
@@ -124,7 +133,7 @@ transport, or transaction catalog as an expected-value fixture.
   using one small Dictionary table/data fixture and one executable report with
   a selection screen and variant, plus one request with one task, object, and
   log fixture. Avoid a hand-maintained full inventory.
-- [ ] Keep one browser spec per transaction:
+- [x] Keep one browser spec per transaction:
   `zcl_gg_se01.spec.mjs`, `zcl_gg_se09.spec.mjs`,
   `zcl_gg_se11.spec.mjs`, `zcl_gg_se16.spec.mjs`, and
   `zcl_gg_se38.spec.mjs`. Add only narrowly scoped cross-transaction coverage
@@ -133,7 +142,7 @@ transport, or transaction catalog as an expected-value fixture.
   HTTP handler, and host runtime: valid display/execute, unknown request/object,
   unauthorized access/release, malformed criteria, row cap, stale action,
   unsafe source/log text, and disabled mutation/export/debugging.
-- [ ] Update the workbench inventory and capability documentation once after
+- [x] Update the workbench inventory and capability documentation once after
   all five tcodes are registered, then pass `npm run lint`, `npm run unit`, and
   `npm run test:html-e2e`.
 
@@ -157,6 +166,6 @@ runnable.
 - [ ] `SE01`, `SE09`, `SE11`, `SE16`, and `SE38` match the researched SAP screen
   flows for every enabled capability and visibly reject every unsupported
   capability.
-- [ ] Every system transaction has one executable class, focused ABAP Unit
+- [x] Every system transaction has one executable class, focused ABAP Unit
   coverage, and one Playwright spec.
 - [ ] The complete clean-checkout CI suite passes on Linux.

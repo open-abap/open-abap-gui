@@ -17,6 +17,8 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              screens        TYPE zcl_gg_host_dynpro_builder=>ty_screens,
              controls       TYPE zcl_gg_host_dynpro_builder=>ty_controls,
              flow           TYPE zcl_gg_host_dynpro_flow=>ty_steps,
+             navigation     TYPE zif_gg_host_html_v1=>ty_navigation,
+             submit         TYPE zif_gg_session_types_v1=>ty_submit,
              session_id     TYPE string,
              page_id        TYPE string,
              page_kind      TYPE string,
@@ -72,6 +74,17 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         cs_result     TYPE ty_result.
 
+    CLASS-METHODS capture_navigation
+      IMPORTING
+        io_session TYPE REF TO zcl_gg_host_session
+        ix_flow    TYPE REF TO zcx_gg_control_flow
+      CHANGING
+        cs_result  TYPE ty_result.
+
+    CLASS-METHODS process_modules IMPORTING io_program TYPE REF TO zif_gg_dynpro_v1 io_flow TYPE REF TO zcl_gg_host_dynpro_flow io_session TYPE REF TO zcl_gg_host_session iv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number iv_submitted TYPE abap_bool iv_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name iv_help_request TYPE zif_gg_dynpro_types_v1=>ty_name it_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls CHANGING cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context ct_values TYPE zif_gg_dynpro_types_v1=>ty_values ct_states TYPE zif_gg_dynpro_types_v1=>ty_states cv_help_text TYPE string ct_help_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+
+    CLASS-METHODS destination_pbo IMPORTING io_program TYPE REF TO zif_gg_dynpro_v1 io_flow TYPE REF TO zcl_gg_host_dynpro_flow io_session TYPE REF TO zcl_gg_host_session iv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number CHANGING cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context ct_values TYPE zif_gg_dynpro_types_v1=>ty_values ct_states TYPE zif_gg_dynpro_types_v1=>ty_states.
+
 ENDCLASS.
 
 CLASS zcl_gg_host_dynpro IMPLEMENTATION.
@@ -93,8 +106,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lv_page_id TYPE string.
     DATA ls_context TYPE zif_gg_dynpro_types_v1=>ty_module_context.
     DATA ls_input_value TYPE zif_gg_dynpro_types_v1=>ty_value.
+    FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
     DATA lv_loop_lines TYPE i.
-    DATA lv_submit_allowed TYPE abap_bool.
 
     lo_builder = NEW zcl_gg_host_dynpro_builder( ).
     lo_flow = NEW zcl_gg_host_dynpro_flow( ).
@@ -108,7 +121,38 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lt_screens = lo_builder->get_screens( ).
     lt_controls = lo_builder->get_controls( ).
     lt_steps = lo_flow->get_steps( ).
-    lt_values = it_values.
+    LOOP AT lt_controls INTO DATA(ls_control).
+      INSERT VALUE #(
+        container = COND #( WHEN ls_control-kind = 'TABLE_COLUMN'
+                            THEN ls_control-parent ELSE `` )
+        name      = ls_control-name
+        row       = 0
+        text      = ls_control-text
+        fixed_values = ls_control-fixed_values
+        visible   = ls_control-visible
+        enabled   = ls_control-enabled
+        required  = ls_control-required
+        password  = ls_control-password
+        value_help = ls_control-value_help ) INTO TABLE lt_states.
+    ENDLOOP.
+    io_program->initialization(
+      EXPORTING
+        io_session = lo_session
+      CHANGING
+        ct_values  = lt_values ).
+
+    LOOP AT it_values INTO ls_input_value.
+      READ TABLE lt_values ASSIGNING <ls_value>
+        WITH KEY container = ls_input_value-container
+                 name = ls_input_value-name
+                 row = ls_input_value-row.
+      IF sy-subrc = 0.
+        <ls_value>-value = ls_input_value-value.
+      ELSE.
+        INSERT ls_input_value INTO TABLE lt_values.
+      ENDIF.
+    ENDLOOP.
+
     ls_context-field = iv_field.
     ls_context-row = iv_row.
     ls_context-loop_index = iv_row.
@@ -135,25 +179,6 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       ENDLOOP.
       ls_context-loop_lines = lv_loop_lines.
     ENDIF.
-    LOOP AT lt_controls INTO DATA(ls_control).
-      INSERT VALUE #(
-        container = COND #( WHEN ls_control-kind = 'TABLE_COLUMN'
-                            THEN ls_control-parent ELSE `` )
-        name      = ls_control-name
-        row       = 0
-        text      = ls_control-text
-        fixed_values = ls_control-fixed_values
-        visible   = ls_control-visible
-        enabled   = ls_control-enabled
-        required  = ls_control-required
-        password  = ls_control-password
-        value_help = ls_control-value_help ) INTO TABLE lt_states.
-    ENDLOOP.
-    io_program->initialization(
-      EXPORTING
-        io_session = lo_session
-      CHANGING
-        ct_values  = lt_values ).
 
     lv_screen = COND #(
       WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
@@ -161,73 +186,24 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lo_session->set_processor(
       iv_processor = zif_gg_session_types_v1=>processor_dynpro
       iv_screen    = lv_screen ).
-    lv_submit_allowed = abap_true.
     TRY.
-        LOOP AT lo_flow->get_modules( ) INTO DATA(ls_module)
-            WHERE screen = lv_screen AND phase = 'PBO'.
-          lo_session->set_event( 'PROCESS BEFORE OUTPUT' ).
-          ls_context-screen = lv_screen.
-          ls_context-module = ls_module-module-name.
-          CLEAR ls_context-ucomm.
-          io_program->process_output_module(
-            EXPORTING
-              is_context = ls_context
-              io_session = lo_session
-            CHANGING
-              ct_values  = lt_values
-              ct_states  = lt_states ).
-        ENDLOOP.
-
-        lv_submit_allowed = validate_submission(
-          io_session   = lo_session
-          it_controls  = lt_controls
-          iv_screen    = lv_screen
-          iv_ucomm     = iv_ucomm
-          iv_submitted = iv_submitted ).
-
-        IF iv_submitted = abap_true AND lv_submit_allowed = abap_true.
-          LOOP AT lo_flow->get_modules( ) INTO ls_module
-              WHERE screen = lv_screen AND phase = 'PAI'.
-            lo_session->set_event( 'PROCESS AFTER INPUT' ).
-            ls_context-screen = lv_screen.
-            ls_context-module = ls_module-module-name.
-            ls_context-ucomm = iv_ucomm.
-            io_program->process_input_module(
-              EXPORTING
-                is_context = ls_context
-              io_session = lo_session
-              CHANGING
-                ct_values = lt_values ).
-          ENDLOOP.
-        ENDIF.
-
-        IF iv_value_request IS NOT INITIAL.
-          ls_context-screen = lv_screen.
-          ls_context-field = iv_value_request.
-          LOOP AT lo_flow->get_modules( ) INTO ls_module
-              WHERE screen = lv_screen AND phase = 'POV'.
-            lo_session->set_event( 'PROCESS ON VALUE-REQUEST' ).
-            ls_context-module = ls_module-module-name.
-            rs_result-help_values = io_program->process_on_value_request(
-              is_context = ls_context
-              it_values  = lt_values
-              io_session = lo_session ).
-          ENDLOOP.
-        ENDIF.
-
-        IF iv_help_request IS NOT INITIAL.
-          ls_context-screen = lv_screen.
-          ls_context-field = iv_help_request.
-          LOOP AT lo_flow->get_modules( ) INTO ls_module
-              WHERE screen = lv_screen AND phase = 'POH'.
-            lo_session->set_event( 'PROCESS ON HELP-REQUEST' ).
-            ls_context-module = ls_module-module-name.
-            rs_result-help_text = io_program->process_on_help_request(
-              is_context = ls_context
-              it_values  = lt_values
-              io_session = lo_session ).
-          ENDLOOP.
-        ENDIF.
+        process_modules(
+          EXPORTING
+            io_program       = io_program
+            io_flow          = lo_flow
+            io_session       = lo_session
+            iv_screen        = lv_screen
+            iv_submitted     = iv_submitted
+            iv_ucomm         = iv_ucomm
+            iv_value_request = iv_value_request
+            iv_help_request  = iv_help_request
+            it_controls      = lt_controls
+          CHANGING
+            cs_context       = ls_context
+            ct_values        = lt_values
+            ct_states        = lt_states
+            cv_help_text     = rs_result-help_text
+            ct_help_values   = rs_result-help_values ).
       CATCH zcx_gg_control_flow INTO lx_flow.
         rs_result-terminal = lx_flow->mv_operation.
         rs_result-terminal_state = xsdbool(
@@ -249,24 +225,27 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           iv_screen    = lv_screen ).
     ENDTRY.
 
+    capture_navigation(
+      EXPORTING
+        io_session = lo_session
+        ix_flow    = lx_flow
+      CHANGING
+        cs_result  = rs_result ).
+
     IF lx_flow IS BOUND
         AND ( lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_screen
         OR lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_screen )
         AND lv_screen IS NOT INITIAL.
-      LOOP AT lo_flow->get_modules( ) INTO ls_module
-          WHERE screen = lv_screen AND phase = 'PBO'.
-        lo_session->set_event( 'PROCESS BEFORE OUTPUT' ).
-        ls_context-screen = lv_screen.
-        ls_context-module = ls_module-module-name.
-        CLEAR ls_context-ucomm.
-        io_program->process_output_module(
-          EXPORTING
-            is_context = ls_context
-            io_session = lo_session
-          CHANGING
-            ct_values  = lt_values
-            ct_states  = lt_states ).
-      ENDLOOP.
+      destination_pbo(
+        EXPORTING
+          io_program = io_program
+          io_flow    = lo_flow
+          io_session = lo_session
+          iv_screen  = lv_screen
+        CHANGING
+          cs_context = ls_context
+          ct_values  = lt_values
+          ct_states  = lt_states ).
     ENDIF.
 
     rs_result-screen = lv_screen.
@@ -325,6 +304,93 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         ct_actions = rs_result-page-actions ).
   ENDMETHOD.
 
+  METHOD process_modules.
+    DATA lv_submit_allowed TYPE abap_bool.
+
+    LOOP AT io_flow->get_modules( ) INTO DATA(ls_module)
+        WHERE screen = iv_screen AND phase = 'PBO'.
+      io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
+      cs_context-screen = iv_screen.
+      cs_context-module = ls_module-module-name.
+      CLEAR cs_context-ucomm.
+      io_program->process_output_module(
+        EXPORTING
+          is_context = cs_context
+          io_session = io_session
+        CHANGING
+          ct_values  = ct_values
+          ct_states  = ct_states ).
+    ENDLOOP.
+
+    lv_submit_allowed = validate_submission(
+      io_session   = io_session
+      it_controls  = it_controls
+      iv_screen    = iv_screen
+      iv_ucomm     = iv_ucomm
+      iv_submitted = iv_submitted ).
+
+    IF iv_submitted = abap_true AND lv_submit_allowed = abap_true.
+      LOOP AT io_flow->get_modules( ) INTO ls_module
+          WHERE screen = iv_screen AND phase = 'PAI'.
+        io_session->set_event( 'PROCESS AFTER INPUT' ).
+        cs_context-screen = iv_screen.
+        cs_context-module = ls_module-module-name.
+        cs_context-ucomm = iv_ucomm.
+        io_program->process_input_module(
+          EXPORTING
+            is_context = cs_context
+            io_session = io_session
+          CHANGING
+            ct_values = ct_values ).
+      ENDLOOP.
+    ENDIF.
+
+    IF iv_value_request IS NOT INITIAL.
+      cs_context-screen = iv_screen.
+      cs_context-field = iv_value_request.
+      LOOP AT io_flow->get_modules( ) INTO ls_module
+          WHERE screen = iv_screen AND phase = 'POV'.
+        io_session->set_event( 'PROCESS ON VALUE-REQUEST' ).
+        cs_context-module = ls_module-module-name.
+        ct_help_values = io_program->process_on_value_request(
+          is_context = cs_context
+          it_values  = ct_values
+          io_session = io_session ).
+      ENDLOOP.
+    ENDIF.
+
+    IF iv_help_request IS NOT INITIAL.
+      cs_context-screen = iv_screen.
+      cs_context-field = iv_help_request.
+      LOOP AT io_flow->get_modules( ) INTO ls_module
+          WHERE screen = iv_screen AND phase = 'POH'.
+        io_session->set_event( 'PROCESS ON HELP-REQUEST' ).
+        cs_context-module = ls_module-module-name.
+        cv_help_text = io_program->process_on_help_request(
+          is_context = cs_context
+          it_values  = ct_values
+          io_session = io_session ).
+      ENDLOOP.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD destination_pbo.
+    LOOP AT io_flow->get_modules( ) INTO DATA(ls_module)
+        WHERE screen = iv_screen AND phase = 'PBO'.
+      io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
+      cs_context-screen = iv_screen.
+      cs_context-module = ls_module-module-name.
+      CLEAR cs_context-ucomm.
+      io_program->process_output_module(
+        EXPORTING
+          is_context = cs_context
+          io_session = io_session
+        CHANGING
+          ct_values  = ct_values
+          ct_states  = ct_states ).
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD validate_submission.
     DATA(ls_status) = io_session->get_status( ).
     rv_allowed = abap_true.
@@ -363,6 +429,33 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   METHOD next_run_id.
     mv_run_id = mv_run_id + 1.
     rv_id = |DYNPRO-{ mv_run_id }|.
+  ENDMETHOD.
+
+  METHOD capture_navigation.
+    DATA ls_continuation TYPE zif_gg_session_types_v1=>ty_continuation.
+    DATA ls_transaction_call TYPE zif_gg_session_types_v1=>ty_transaction_call.
+    DATA ls_submit_call TYPE zif_gg_session_types_v1=>ty_submit.
+
+    IF ix_flow IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ls_continuation = io_session->get_continuation( ).
+    CASE ix_flow->mv_kind.
+      WHEN zcx_gg_control_flow=>kind_call_transaction
+          OR zcx_gg_control_flow=>kind_leave_to_transaction.
+        ls_transaction_call = io_session->get_transaction_call( ).
+        cs_result-navigation = VALUE #(
+          kind = ix_flow->mv_kind
+          target = CONV string( ls_transaction_call-tcode )
+          continuation = ls_continuation-id ).
+      WHEN zcx_gg_control_flow=>kind_submit_return.
+        ls_submit_call = io_session->get_submit_call( ).
+        cs_result-navigation = VALUE #(
+          kind = ix_flow->mv_kind
+          target = CONV string( ls_submit_call-program )
+          continuation = ls_continuation-id ).
+        cs_result-submit = ls_submit_call.
+    ENDCASE.
   ENDMETHOD.
 
 ENDCLASS.
