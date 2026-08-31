@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: preview-deployment-main
@@ -61,4 +62,41 @@ jobs:
           else
             git commit -m "Deploy $PREVIEW_LABEL"
             git push origin HEAD:main
+          fi
+
+      - name: Add or update preview comment
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PREVIEW_URL: https://open-abap.github.io/open-abap-gui-preview-deployments/pr-${{ github.event.pull_request.number }}/
+        run: |
+          set -euo pipefail
+
+          marker='<!-- open-abap-gui-preview-deployment -->'
+          short_sha="${GITHUB_SHA:0:7}"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          body=$(printf '%s\n\nPreview deployment: [Open preview](%s)\n\nBuilt from [`%s`](%s) · [Workflow run](%s)' \
+            "$marker" \
+            "$PREVIEW_URL" \
+            "$short_sha" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA" \
+            "$run_url")
+
+          comments=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100")
+          comment_id=$(jq -r --arg marker "$marker" \
+            '[.[][] | select(.user.login == "github-actions[bot]" and (.body | contains($marker)))][0].id // empty' \
+            <<<"$comments")
+
+          if [[ -n "$comment_id" ]]; then
+            gh api --method PATCH \
+              "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" \
+              -f body="$body" >/dev/null
+            echo "Updated preview comment $comment_id"
+          else
+            gh api --method POST \
+              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+              -f body="$body" >/dev/null
+            echo "Created preview comment"
           fi
