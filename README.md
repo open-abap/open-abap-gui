@@ -41,6 +41,20 @@ and never replace the current session.
 The read-only system transaction scope and its deliberate backend capability
 limits are tracked in [scaffold/PLAN8.md](scaffold/PLAN8.md).
 
+Build the complete browser preview as one serverless HTML file:
+
+```sh
+npm run web:build
+```
+
+This transpiles all `src` and `scaffold` ABAP, bundles the runtime and its
+in-memory SQLite fixture, and writes `build/index.html`. The generated file can
+be opened directly with `file://` or published as a static artifact; its hash
+routes keep workbench navigation and form dispatch inside the same document.
+Webpack generates the HTML from `web/index.html` and inlines the bundle with
+`html-inline-script-webpack-plugin`, so `build/index.html` is the only emitted
+artifact.
+
 The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT`, `/ZCL_GG_INTEGRATION_DYNPRO`,
 and `/ZCL_GG_EX_001` through `/ZCL_GG_EX_150` routes remain available as
 compatibility/debug routes. Example class routes are authorized by the
