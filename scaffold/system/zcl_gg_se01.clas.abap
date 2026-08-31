@@ -30,23 +30,18 @@ CLASS zcl_gg_se01 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_screens.
-    io_builder->begin_screen( VALUE #( number = '0100' title = 'Transport Organizer - Extended View' height = 350 ) ).
-    io_builder->add_tabstrip( VALUE #( control = VALUE #( name = 'TAB_ORGANIZER' position = VALUE #( row = 10 column = 18 width = 560 height = 34 ) ) ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_STANDARD' position = VALUE #( row = 10 column = 18 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Standard requests' subscreen = '0100' ucomm = 'STANDARD' ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_PIECE' position = VALUE #( row = 10 column = 125 width = 92 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Piece lists' subscreen = '0100' ucomm = 'PIECE' ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_CLIENT' position = VALUE #( row = 10 column = 227 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Client transports' subscreen = '0100' ucomm = 'CLIENT' ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_DELIVERY' position = VALUE #( row = 10 column = 344 width = 112 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Delivery transports' subscreen = '0100' ucomm = 'DELIVERY' ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_INDIVIDUAL' position = VALUE #( row = 10 column = 468 width = 110 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Individual display' subscreen = '0100' ucomm = 'INDIVIDUAL' ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SELECTION' position = VALUE #( row = 62 column = 18 width = 540 ) ) text = 'Choose one request or task. Criteria are resolved by the server transport service.' ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_REQUEST' position = VALUE #( row = 102 column = 18 width = 140 ) ) text = 'Request / task' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_REQUEST' position = VALUE #( row = 96 column = 165 width = 190 ) ) data_type = VALUE #( typ = 'C' length = 20 ) value_help = abap_true required = abap_true ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_OWNER' position = VALUE #( row = 140 column = 18 width = 140 ) ) text = 'Owner' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_OWNER' position = VALUE #( row = 134 column = 165 width = 190 ) ) data_type = VALUE #( typ = 'C' length = 12 ) value_help = abap_true ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_REQUEST_TYPE' position = VALUE #( row = 178 column = 18 width = 140 ) ) text = 'Transport type' ) ).
-    io_builder->add_listbox( VALUE #( control = VALUE #( name = 'P_REQUEST_TYPE' position = VALUE #( row = 172 column = 165 width = 190 ) ) data_type = VALUE #( typ = 'C' length = 12 ) fixed_values = VALUE #( ( key = 'STANDARD' text = 'Standard request' ) ( key = 'PIECE' text = 'Piece list' ) ( key = 'CLIENT' text = 'Client transport' ) ( key = 'DELIVERY' text = 'Delivery transport' ) ( key = 'INDIVIDUAL' text = 'Individual display' ) ) ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_CAPABILITY' position = VALUE #( row = 216 column = 18 width = 540 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DISPLAY' position = VALUE #( row = 260 column = 18 width = 96 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CREATE' position = VALUE #( row = 260 column = 124 width = 96 ) ) text = 'Create' ucomm = 'CREATE' ) ).
+    io_builder->begin_screen( VALUE #( number = '0100' title = 'Transport Organizer (Extended View)' height = 300 hide_back = abap_true ) ).
+    io_builder->add_tabstrip( VALUE #( control = VALUE #( name = 'TAB_ORGANIZER' position = VALUE #( row = 4 column = 4 width = 560 height = 32 ) ) ) ).
+    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_DISPLAY' position = VALUE #( row = 4 column = 4 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Display' subscreen = '0100' ucomm = 'INDIVIDUAL' ) ).
+    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_TRANSPORTS' position = VALUE #( row = 4 column = 113 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Transports' subscreen = '0100' ucomm = 'STANDARD' ) ).
+    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_PIECE' position = VALUE #( row = 4 column = 222 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Piece Lists' subscreen = '0100' ucomm = 'PIECE' ) ).
+    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_CLIENT' position = VALUE #( row = 4 column = 331 width = 85 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Client' subscreen = '0100' ucomm = 'CLIENT' ) ).
+    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_DELIVERIES' position = VALUE #( row = 4 column = 420 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Deliveries' subscreen = '0100' ucomm = 'DELIVERY' ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_REQUEST' position = VALUE #( row = 116 column = 12 width = 150 ) ) text = 'Request/Task' ) ).
+    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_REQUEST' position = VALUE #( row = 110 column = 200 width = 210 ) ) data_type = VALUE #( typ = 'C' length = 20 ) value_help = abap_true required = abap_true ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DISPLAY' position = VALUE #( row = 166 column = 12 width = 200 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_LOGS' position = VALUE #( row = 166 column = 212 width = 200 ) ) text = 'Logs' ucomm = 'LOGS' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_ACTION_LOG' position = VALUE #( row = 166 column = 412 width = 200 ) ) text = 'Action Log' ucomm = 'ACTION_LOG' ) ).
     io_builder->end_screen( ).
 
     io_builder->begin_screen( VALUE #( number = '0200' title = 'Extended Request Display' height = 340 ) ).
@@ -97,10 +92,10 @@ CLASS zcl_gg_se01 IMPLEMENTATION.
     DATA(ls_capabilities) = lo_service->zif_gg_transport_service_v1~get_capabilities( ).
 
     io_session->get_dialog( )->set_status( VALUE #(
-      status = 'SE01'
-      active_ucomm = VALUE #( ( 'DISPLAY' ) ( 'CREATE' ) ( 'RELEASE' ) ( 'EXPORT' ) ( 'SE09' ) ) ) ).
+      status = ''
+      active_ucomm = VALUE #( ( 'DISPLAY' ) ( 'LOGS' ) ( 'ACTION_LOG' ) ( 'CREATE' ) ( 'RELEASE' ) ( 'EXPORT' ) ( 'SE09' ) ( 'NEW' ) ( 'UTILITIES' ) ( 'INFO' ) )
+      icon_bar = VALUE #( ( ucomm = 'NEW' label = 'New' icon = 'file-code' ) ( ucomm = 'UTILITIES' label = 'Utilities' icon = 'edit' ) ( ucomm = 'INFO' label = 'Information' icon = 'info-circle' ) ) ) ).
     put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
-    ct_states[ name = 'PB_CREATE' ]-enabled = abap_false.
     ct_states[ name = 'PB_RELEASE' ]-enabled = abap_false.
     ct_states[ name = 'PB_EXPORT' ]-enabled = abap_false.
   ENDMETHOD.

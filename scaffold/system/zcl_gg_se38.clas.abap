@@ -28,20 +28,15 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_screens.
-    io_builder->begin_screen( VALUE #( number = '0100' title = 'ABAP Editor' height = 350 ) ).
+    io_builder->begin_screen( VALUE #( number = '0100' title = 'ABAP Editor' height = 350 hide_back = abap_true ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_PROGRAM' position = VALUE #( row = 18 column = 18 width = 145 ) ) text = 'Program' ) ).
     io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_PROGRAM' position = VALUE #( row = 12 column = 175 width = 260 ) ) data_type = VALUE #( typ = 'C' length = 40 ) search_help = 'ABAP_PROGRAM' value_help = abap_true required = abap_true uppercase = abap_true ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SUBOBJECT' position = VALUE #( row = 58 column = 18 width = 145 ) ) text = 'Subobject' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_SUBOBJECT' position = VALUE #( row = 52 column = 175 width = 260 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_VARIANT' position = VALUE #( row = 98 column = 18 width = 145 ) ) text = 'Variant' ) ).
-    io_builder->add_listbox( VALUE #( control = VALUE #( name = 'P_VARIANT' position = VALUE #( row = 92 column = 175 width = 260 ) ) data_type = VALUE #( typ = 'C' length = 14 ) fixed_values = VALUE #( ( key = 'DEFAULT' text = 'DEFAULT - Demo carrier LH' ) ) ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_EDITOR_INFO' position = VALUE #( row = 138 column = 18 width = 540 ) ) text = 'Display source and metadata from the server repository. Execute uses the normal report runtime.' ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_CAPABILITY' position = VALUE #( row = 178 column = 18 width = 540 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DISPLAY' position = VALUE #( row = 230 column = 18 width = 96 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_EXECUTE' position = VALUE #( row = 230 column = 124 width = 96 ) ) text = 'Execute (F8)' ucomm = 'EXECUTE' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_WITH_VARIANT' position = VALUE #( row = 230 column = 230 width = 130 ) ) text = 'With Variant' ucomm = 'WITH_VARIANT' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CHANGE' position = VALUE #( row = 274 column = 18 width = 96 ) ) text = 'Change' ucomm = 'CHANGE' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CREATE' position = VALUE #( row = 274 column = 124 width = 96 ) ) text = 'Create' ucomm = 'CREATE' ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_EDITOR_INFO' position = VALUE #( row = 58 column = 18 width = 540 ) ) text = 'Display source and metadata from the server repository. Execute uses the normal report runtime.' ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_CAPABILITY' position = VALUE #( row = 98 column = 18 width = 540 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DISPLAY' position = VALUE #( row = 150 column = 18 width = 96 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_EXECUTE' position = VALUE #( row = 150 column = 124 width = 96 ) ) text = 'Execute (F8)' ucomm = 'EXECUTE' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CHANGE' position = VALUE #( row = 194 column = 18 width = 96 ) ) text = 'Change' ucomm = 'CHANGE' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CREATE' position = VALUE #( row = 194 column = 124 width = 96 ) ) text = 'Create' ucomm = 'CREATE' ) ).
     io_builder->end_screen( ).
 
     io_builder->begin_screen( VALUE #( number = '0200' title = 'ABAP Source Code' height = 390 ) ).
@@ -56,7 +51,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_ATTRIBUTES' position = VALUE #( row = 304 column = 18 width = 100 ) ) text = 'Attributes' ucomm = 'ATTRIBUTES' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DOCUMENTATION' position = VALUE #( row = 304 column = 128 width = 125 ) ) text = 'Documentation' ucomm = 'DOCUMENTATION' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_TEXT_ELEMENTS' position = VALUE #( row = 304 column = 263 width = 120 ) ) text = 'Text Elements' ucomm = 'TEXT_ELEMENTS' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_VARIANTS' position = VALUE #( row = 304 column = 393 width = 95 ) ) text = 'Variants' ucomm = 'VARIANTS' ) ).
     io_builder->end_screen( ).
 
     io_builder->begin_screen( VALUE #( number = '0210' title = 'Program Attributes' height = 270 ) ).
@@ -80,13 +74,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_TEXT_ELEMENTS' position = VALUE #( row = 56 column = 18 width = 520 height = 120 ) ) data_type = VALUE #( typ = 'C' length = 255 ) ) ).
     io_builder->end_screen( ).
 
-    io_builder->begin_screen( VALUE #( number = '0240' title = 'Program Variants' height = 270 ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_VARIANTS' position = VALUE #( row = 20 column = 18 width = 540 height = 100 ) ) visible_rows = 3 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_VARIANTS' name = 'VARIANT_NAME' title = 'Variant' data_type = VALUE #( typ = 'C' length = 14 ) width = 130 ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_VARIANTS' name = 'VARIANT_TEXT' title = 'Description' data_type = VALUE #( typ = 'C' length = 60 ) width = 350 ) ).
-    io_builder->end_table_control( ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_SELECT_VARIANT' position = VALUE #( row = 156 column = 18 width = 120 ) ) text = 'Use DEFAULT' ucomm = 'USE_DEFAULT' ) ).
-    io_builder->end_screen( ).
   ENDMETHOD.
 
   METHOD add_flow.
@@ -106,7 +93,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     add_flow( io_builder = io_builder iv_screen = '0210' ).
     add_flow( io_builder = io_builder iv_screen = '0220' ).
     add_flow( io_builder = io_builder iv_screen = '0230' ).
-    add_flow( io_builder = io_builder iv_screen = '0240' ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~initialization.
@@ -119,18 +105,15 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
 
     io_session->get_dialog( )->set_status( VALUE #(
       status = 'SE38'
-      active_ucomm = VALUE #( ( 'DISPLAY' ) ( 'EXECUTE' ) ( 'WITH_VARIANT' ) ( 'CHANGE' ) ( 'CREATE' ) ( 'SYNTAX' ) ( 'SAVE' ) ( 'ACTIVATE' ) ( 'DEBUG' ) ( 'ATTRIBUTES' ) ( 'DOCUMENTATION' ) ( 'TEXT_ELEMENTS' ) ( 'VARIANTS' ) ( 'USE_DEFAULT' ) ) ) ).
+      active_ucomm = VALUE #( ( 'DISPLAY' ) ( 'EXECUTE' ) ( 'CHANGE' ) ( 'CREATE' ) ( 'SYNTAX' ) ( 'SAVE' ) ( 'ACTIVATE' ) ( 'DEBUG' ) ( 'ATTRIBUTES' ) ( 'DOCUMENTATION' ) ( 'TEXT_ELEMENTS' ) ) ) ).
     put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
     ct_states[ name = 'PB_CHANGE' ]-enabled = abap_false.
     ct_states[ name = 'PB_CREATE' ]-enabled = abap_false.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_input_module.
-    DATA(lo_service) = NEW zcl_gg_system_repository( ).
     DATA lv_program TYPE string.
-    DATA lv_variant TYPE string.
     DATA ls_program TYPE zif_gg_system_types_v1=>ty_program.
-    DATA lt_variants TYPE zif_gg_system_types_v1=>ty_variants.
 
     IF is_context-ucomm = 'BACK'.
       IF is_context-screen = '0100'.
@@ -162,18 +145,9 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
         io_session->get_dialog( )->set_next_screen( '0230' ).
         io_session->get_dialog( )->leave_screen( ).
         RETURN.
-      WHEN 'VARIANTS'.
-        io_session->get_dialog( )->set_next_screen( '0240' ).
-        io_session->get_dialog( )->leave_screen( ).
-        RETURN.
-      WHEN 'USE_DEFAULT'.
-        put_value( EXPORTING iv_name = 'P_VARIANT' iv_value = 'DEFAULT' CHANGING ct_values = ct_values ).
-        io_session->get_dialog( )->set_next_screen( '0100' ).
-        io_session->get_dialog( )->leave_screen( ).
-        RETURN.
     ENDCASE.
     lv_program = value_of( it_values = ct_values iv_name = 'P_PROGRAM' ).
-    IF is_context-ucomm = 'DISPLAY' OR is_context-ucomm = 'EXECUTE' OR is_context-ucomm = 'WITH_VARIANT'.
+    IF is_context-ucomm = 'DISPLAY' OR is_context-ucomm = 'EXECUTE'.
       ls_program = load_program( lv_program ).
       IF ls_program-error IS NOT INITIAL.
         io_session->message( VALUE #(
@@ -202,65 +176,32 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
           put_value( EXPORTING iv_name = 'O_TEXT_ELEMENTS' iv_value = |{ value_of( it_values = ct_values iv_name = 'O_TEXT_ELEMENTS' ) }; { lv_text }| CHANGING ct_values = ct_values ).
         ENDIF.
       ENDLOOP.
-      lt_variants = lo_service->zif_gg_program_repository_v1~get_variants( lv_program ).
-      LOOP AT lt_variants INTO DATA(ls_variant).
-        put_value( EXPORTING iv_name = 'P_VARIANT' iv_value = ls_variant-name CHANGING ct_values = ct_values ).
-      ENDLOOP.
       io_session->get_dialog( )->set_next_screen( '0200' ).
       io_session->get_dialog( )->leave_screen( ).
       RETURN.
     ENDIF.
-    IF is_context-ucomm = 'EXECUTE' OR is_context-ucomm = 'WITH_VARIANT'.
-      lv_variant = value_of( it_values = ct_values iv_name = 'P_VARIANT' ).
-      IF is_context-ucomm = 'WITH_VARIANT' AND lv_variant IS INITIAL.
-        io_session->message( VALUE #(
-          type = zif_gg_session_types_v1=>message_type_error
-          text = 'Select a compatible program variant before execution.'
-          field = 'P_VARIANT' ) ).
-        RETURN.
-      ENDIF.
-      IF lv_variant IS NOT INITIAL.
-        lt_variants = lo_service->zif_gg_program_repository_v1~get_variants( lv_program ).
-        IF NOT line_exists( lt_variants[ name = lv_variant ] ).
-          io_session->message( VALUE #(
-            type = zif_gg_session_types_v1=>message_type_error
-            text = 'Variant is unknown or incompatible with the selected program.'
-            field = 'P_VARIANT' ) ).
-          RETURN.
-        ENDIF.
-      ENDIF.
+    IF is_context-ucomm = 'EXECUTE'.
       io_session->get_navigation( )->submit_and_return(
         is_submit = VALUE #(
           program = 'ZGG_EX_015'
-          variant = CONV #( lv_variant )
-          via_selection_screen = abap_true
-          values = COND #( WHEN lv_variant = 'DEFAULT'
-                           THEN VALUE #( ( name = 'P_CARR' value = 'LH' ) ) ) )
+          via_selection_screen = abap_true )
         is_continuation = VALUE #( id = 'SE38_EXECUTION' state = lv_program ) ).
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_on_value_request.
     DATA(lo_service) = NEW zcl_gg_system_repository( ).
-    CASE is_context-field.
-      WHEN 'P_PROGRAM'.
-        LOOP AT lo_service->zif_gg_program_repository_v1~get_program_names( ) INTO DATA(lv_program).
-          APPEND VALUE #( name = 'P_PROGRAM' value = lv_program ) TO rt_values.
-        ENDLOOP.
-      WHEN 'P_VARIANT'.
-        LOOP AT lo_service->zif_gg_program_repository_v1~get_variants( value_of( it_values = it_values iv_name = 'P_PROGRAM' ) ) INTO DATA(ls_variant).
-          APPEND VALUE #( name = 'P_VARIANT' value = ls_variant-name ) TO rt_values.
-        ENDLOOP.
-    ENDCASE.
+    IF is_context-field = 'P_PROGRAM'.
+      LOOP AT lo_service->zif_gg_program_repository_v1~get_program_names( ) INTO DATA(lv_program).
+        APPEND VALUE #( name = 'P_PROGRAM' value = lv_program ) TO rt_values.
+      ENDLOOP.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_on_help_request.
-    CASE is_context-field.
-      WHEN 'P_PROGRAM'.
-        rv_text = 'Only executable programs resolved by the repository adapter can be displayed or executed.'.
-      WHEN 'P_VARIANT'.
-        rv_text = 'Variants are checked against the selected program on the server before execution.'.
-    ENDCASE.
+    IF is_context-field = 'P_PROGRAM'.
+      rv_text = 'Only executable programs resolved by the repository adapter can be displayed or executed.'.
+    ENDIF.
   ENDMETHOD.
 
   METHOD load_program.

@@ -16,15 +16,16 @@ CLASS ltcl_gg_se01 IMPLEMENTATION.
 
   METHOD has_five_selection_tabs.
     DATA(ls_result) = zcl_gg_host_dynpro=>run( io_program = NEW zcl_gg_se01( ) iv_submitted = abap_false ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'Individual display' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'Piece lists' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'Delivery transports' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Display</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Transports</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Piece Lists</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Deliveries</button>' ) ).
   ENDMETHOD.
 
   METHOD keeps_mutation_disabled.
     DATA(ls_result) = zcl_gg_host_dynpro=>run( io_program = NEW zcl_gg_se01( ) iv_submitted = abap_false ).
-    cl_abap_unit_assert=>assert_false( act = ls_result-states[ name = 'PB_CREATE' ]-enabled ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'CTS persistence' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-status-active_ucomm[ table_line = 'CREATE' ] ) ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-values[ name = 'P_CAPABILITY' ]-value CS 'CTS persistence' ) ).
   ENDMETHOD.
 
 ENDCLASS.

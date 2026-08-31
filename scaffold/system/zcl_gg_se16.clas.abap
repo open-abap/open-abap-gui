@@ -49,18 +49,18 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
 
     io_builder->begin_screen( VALUE #( number = '0200' title = 'Table Contents' height = 440 ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_RESULT_TABLE' position = VALUE #( row = 12 column = 18 width = 90 ) ) text = 'Table' ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_RESULT_TABLE' position = VALUE #( row = 8 column = 115 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_RESULT_COUNT' position = VALUE #( row = 46 column = 18 width = 90 ) ) text = 'Rows' ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_RESULT_COUNT' position = VALUE #( row = 42 column = 115 width = 180 ) ) data_type = VALUE #( typ = 'N' length = 20 ) ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_RESULT_FEEDBACK' position = VALUE #( row = 80 column = 18 width = 540 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_RESULT' position = VALUE #( row = 116 column = 18 width = 560 height = 240 ) ) visible_rows = 8 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_true ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_RESULT_TABLE' position = VALUE #( row = 12 column = 115 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_RESULT_COUNT' position = VALUE #( row = 48 column = 18 width = 90 ) ) text = 'Rows' ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_RESULT_COUNT' position = VALUE #( row = 48 column = 115 width = 180 ) ) data_type = VALUE #( typ = 'N' length = 20 ) ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_RESULT_FEEDBACK' position = VALUE #( row = 82 column = 18 width = 540 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
+    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_RESULT' position = VALUE #( row = 116 column = 18 width = 760 height = 240 ) ) visible_rows = 8 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_true ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CARRID' title = 'Carrier' data_type = VALUE #( typ = 'C' length = 3 ) width = 80 ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CONNID' title = 'Connection' data_type = VALUE #( typ = 'N' length = 4 ) width = 100 ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'FLDATE' title = 'Flight date' data_type = VALUE #( typ = 'D' length = 8 ) width = 110 ) ).
+    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CONNID' title = 'Connection' data_type = VALUE #( typ = 'N' length = 4 ) width = 105 ) ).
+    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'FLDATE' title = 'Flight date' data_type = VALUE #( typ = 'D' length = 8 ) width = 105 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'PRICE' title = 'Price' data_type = VALUE #( typ = 'P' length = 15 decimals = 2 ) width = 110 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CURRENCY' title = 'Currency' data_type = VALUE #( typ = 'C' length = 5 ) width = 90 ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CITYFROM' title = 'From' data_type = VALUE #( typ = 'C' length = 20 ) width = 120 ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CITYTO' title = 'To' data_type = VALUE #( typ = 'C' length = 20 ) width = 120 ) ).
+    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CITYFROM' title = 'From' data_type = VALUE #( typ = 'C' length = 20 ) width = 125 ) ).
+    io_builder->add_table_column( VALUE #( table_control = 'TC_RESULT' name = 'CITYTO' title = 'To' data_type = VALUE #( typ = 'C' length = 20 ) width = 125 ) ).
     io_builder->end_table_control( ).
     io_builder->end_screen( ).
   ENDMETHOD.

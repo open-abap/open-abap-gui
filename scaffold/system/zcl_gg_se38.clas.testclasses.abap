@@ -42,7 +42,7 @@ CLASS ltcl_gg_se38 IMPLEMENTATION.
       page_id = ls_start-page_id
       action = zif_gg_host_html_v1=>action_submit
       ucomm = 'EXECUTE'
-      dynpro_values = VALUE #( ( name = 'P_PROGRAM' value = 'ZGG_EX_015' ) ( name = 'P_VARIANT' value = 'DEFAULT' ) ) ) ).
+      dynpro_values = VALUE #( ( name = 'P_PROGRAM' value = 'ZGG_EX_015' ) ) ) ).
     cl_abap_unit_assert=>assert_true( act = ls_result-valid ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-page_kind exp = zif_gg_host_html_v1=>page_selection ).
     zcl_gg_host_runtime=>clear( ).

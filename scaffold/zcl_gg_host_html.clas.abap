@@ -80,6 +80,7 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_title       TYPE string
         iv_body        TYPE string
         iv_csp_nonce   TYPE string OPTIONAL
+        iv_hide_appbar TYPE abap_bool OPTIONAL
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
         it_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs OPTIONAL
       RETURNING
@@ -193,13 +194,16 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD document.
+    DATA lv_content_class TYPE string.
+
+    lv_content_class = COND string( WHEN iv_kind = zif_gg_host_html_v1=>page_dynpro THEN ` wb-runtime-content--dynpro` ELSE `` ).
     rv_html = |<!doctype html><html lang="en"><head>|.
     rv_html = rv_html && |<meta charset="utf-8">|.
     rv_html = rv_html && |<meta name="viewport" content="width=device-width,initial-scale=1">|.
     rv_html = rv_html && |<title>{ escape_text( iv_title ) }</title>|.
     rv_html = rv_html && |<style{ attribute( iv_name = `nonce` iv_value = iv_csp_nonce iv_optional = abap_true ) }>|.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_styles( ).
-    rv_html = rv_html && |:root\{font-family:system-ui,sans-serif;color-scheme:light dark;\}|.
+    rv_html = rv_html && |:root\{font-family:system-ui,sans-serif;color-scheme:light;\}|.
     rv_html = rv_html && |body\{line-height:1.4;\}|.
     rv_html = rv_html && |main\{max-width:100%;overflow:auto;\}|.
     rv_html = rv_html && |.gg-message\{padding:.5rem;margin:.5rem 0;border:1px solid;\}|.
@@ -216,8 +220,34 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection fieldset\{margin:.75rem 0;padding:.75rem;\}|.
     rv_html = rv_html && |.gg-field\{display:flex;gap:.5rem;align-items:center;margin:.35rem 0;\}|.
     rv_html = rv_html && |.gg-field label\{min-width:12rem;\}|.
-    rv_html = rv_html && |.gg-dynpro\{position:relative;min-height:12rem;\}|.
-    rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dynpro\{position:relative;min-height:12rem;overflow:hidden;background:linear-gradient(#e3eff8,#d5e6f3);border:1px solid #9ab3c8;box-sizing:border-box;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-dynpro-status\{margin:0 0 0 auto;color:#315a7f;font-size:11px;\}|.
+    rv_html = rv_html && |.gg-dynpro-status:empty\{display:none;\}|.
+    rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;color:#123b64;font:inherit;\}|.
+    rv_html = rv_html && |.gg-dynpro input,.gg-dynpro select,.gg-dynpro button\{font:inherit;\}|.
+    rv_html = rv_html && |.gg-dynpro input[type=text],.gg-dynpro input[type=password],.gg-dynpro select\{height:26px;padding:2px 6px;border:1px solid #819db8;border-radius:1px;background:#fff;color:#123b64;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
+    rv_html = rv_html && |.gg-dynpro-control>input[type=text],.gg-dynpro-control>input[type=password]\{width:100%;\}|.
+    rv_html = rv_html && |.gg-dynpro input[required]\{background:#fff1a6;border-color:#d4a000;\}|.
+    rv_html = rv_html && |.gg-dynpro button\{min-height:26px;padding:2px 12px;border:1px solid #8c8c8c;border-radius:2px;background:linear-gradient(#fefefe,#d9d9d9);color:#163e6b;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-dynpro button:hover,.gg-dynpro button:focus\{background:linear-gradient(#fff,#c7dced);border-color:#5e8fbd;outline:0;\}|.
+    rv_html = rv_html && |.gg-dynpro button:disabled\{background:#d1d1d1;color:#808080;cursor:default;\}|.
+    rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control\{background:linear-gradient(#fffbd2,#f4e68d);border-color:#b9aa55;color:#111;\}|.
+    rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control\{display:flex;align-items:center;justify-content:center;gap:8px;\}|.
+    rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control .wb-icon\{width:16px;height:16px;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-help\{min-width:24px;width:24px;height:24px;padding:0;border-color:#879eb3;background:linear-gradient(#f7fafc,#c4d1dc);font-weight:700;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control]\{overflow:auto;background:#e4eff8;border:1px solid #8daac4;box-sizing:border-box;scrollbar-color:#9eb5c8 #d6e5f0;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control] table\{border-collapse:collapse;table-layout:fixed;min-width:100%;width:max-content;background:#fff;color:#123b64;font-size:13px;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control] caption\{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control] th\{height:28px;padding:4px 8px;text-align:left;white-space:nowrap;background:linear-gradient(#e9f3fa,#c7dae9);border:1px solid #8daac4;color:#123b64;font-weight:700;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control] td\{height:28px;padding:3px 8px;white-space:nowrap;background:#fff;border:1px solid #c1d2e0;color:#123b64;box-sizing:border-box;vertical-align:middle;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control] tbody tr:nth-child(even) td\{background:#f3f8fc;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control] td output\{display:block;white-space:nowrap;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control] td input\{width:100%;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dynpro [role=tablist]\{display:flex;align-items:flex-end;gap:2px;padding:0 4px;border-bottom:2px solid #6f9ac1;background:#d0e1ef;\}|.
+    rv_html = rv_html && |.gg-dynpro [role=tab]\{min-height:28px;margin:0;padding:3px 15px;border:1px solid #8eacc8;border-bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(#e8f2fa,#bfd5e8);color:#163e6b;white-space:nowrap;\}|.
+    rv_html = rv_html && |.gg-dynpro [role=tab][aria-selected=true]\{background:#e3eff8;color:#102f4d;font-weight:600;position:relative;top:2px;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-field\{margin:0;\}|.
+    rv_html = rv_html && |.gg-dynpro>form> .gg-field\{position:absolute;\}|.
     rv_html = rv_html && |.gg-visually-hidden\{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);\}|.
     rv_html = rv_html && |</style></head><body><div class="wb-shell">|.
     rv_html = rv_html && zcl_gg_host_icons=>sprite( ).
@@ -228,8 +258,9 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
       iv_page_id    = iv_page_id
       is_status     = is_status
       it_breadcrumbs = it_breadcrumbs
+      iv_hide_appbar = iv_hide_appbar
       iv_content_form = COND string( WHEN iv_kind = zif_gg_host_html_v1=>page_dynpro THEN `gg-dynpro-form` ELSE `` ) ).
-    rv_html = rv_html && |<div class="wb-runtime-content" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
+    rv_html = rv_html && |<div class="wb-runtime-content{ lv_content_class }" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main>{ iv_body }</main></div>|.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( ).
   ENDMETHOD.

@@ -8,5 +8,7 @@ test("SE16 executes a bounded typed table query", async ({page, host}) => {
   await expect(page.locator('[data-screen="0200"]')).toHaveCount(1);
   await expect(page.getByText("2 of 5 rows returned; hard maximum reached.", {exact: true})).toBeVisible();
   await expect(page.locator("tbody tr")).toHaveCount(8);
+  await expect(page.locator('[data-table-control] > .gg-dynpro-control')).toHaveCount(0);
+  await expect(page.getByRole("columnheader", {name: "Carrier", exact: true})).toBeVisible();
   await expect(page.getByText("New York", {exact: true})).toBeVisible();
 });
