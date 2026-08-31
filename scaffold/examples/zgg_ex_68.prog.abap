@@ -1,0 +1,17 @@
+REPORT zgg_ex_68.
+
+PARAMETERS p_show AS CHECKBOX USER-COMMAND toggle.
+PARAMETERS p_detail TYPE c LENGTH 20.
+PARAMETERS p_req TYPE c LENGTH 20 OBLIGATORY.
+
+AT SELECTION-SCREEN OUTPUT.
+  LOOP AT SCREEN.
+    IF screen-name = 'P_DETAIL'.
+      screen-active = COND #( WHEN p_show = 'X' THEN 1 ELSE 0 ).
+      MODIFY SCREEN.
+    ENDIF.
+  ENDLOOP.
+
+START-OF-SELECTION.
+  WRITE p_req.
+  WRITE / p_detail.

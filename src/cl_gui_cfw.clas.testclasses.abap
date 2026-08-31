@@ -5,6 +5,7 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
     METHODS html_alv_structured_rows FOR TESTING.
+    METHODS html_typed_surface FOR TESTING.
 
 ENDCLASS.
 
@@ -112,6 +113,84 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CARRIER">AA</td>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CONNECTION">17</td>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="NOTE">&lt;unsafe&gt;</td>' ) ).
+  ENDMETHOD.
+
+  METHOD html_typed_surface.
+    cl_gui_control=>clear( ).
+    zcl_gg_host_surface=>clear( ).
+    zcl_gg_host_surface=>set_surface( VALUE #(
+      kind        = zcl_gg_host_surface=>surface_document
+      aria_label  = `Typed <surface>`
+      title       = `"><script>alert(1)</script>`
+      text        = `A & B`
+      link_label  = 'Unsafe link'
+      link_href   = `javascript:alert(1)`
+      actions     = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm
+                               value = `SAVE" onclick="alert(1)`
+                               label = `Save & go` ) ) ) ).
+    zcl_gg_host_surface=>set_surface( VALUE #(
+      kind          = zcl_gg_host_surface=>surface_table
+      aria_label    = `<typed-table>`
+      table_caption = `<typed-caption>`
+      columns       = VALUE #( ( `<typed-column>` ) )
+      rows          = VALUE #( ( cell1 = `<typed-cell>` cell2 = `&typed-value`
+                                 cell3 = `"` row_header = abap_true ) )
+      text          = `<typed-text>`
+      criteria      = `<typed-criteria>`
+      input_label   = `<typed-input-label>`
+      input_name    = `"><typed-input-name`
+      input_value   = `<typed-input-value>`
+      token_label   = `<typed-token-label>`
+      token_value   = `"><typed-token`
+      data_value    = `<typed-aggregate>`
+      actions       = VALUE #( ( value = `"><script>alert(1)</script>`
+                                 label = `<typed-action>` ) ) ) ).
+    zcl_gg_host_surface=>set_surface( VALUE #(
+      kind       = zcl_gg_host_surface=>surface_tree
+      aria_label = `<typed-tree>`
+      nodes      = VALUE #( ( text = `<typed-node>` node_key = `"><typed-key>`
+                              level = 1 expanded = abap_true ) )
+      token_label = `<typed-tree-token-label>`
+      token_value = `<typed-tree-token>` ) ).
+    zcl_gg_host_surface=>set_surface( VALUE #(
+      kind       = zcl_gg_host_surface=>surface_chart
+      aria_label = `<typed-chart>`
+      title      = `<typed-chart-title>`
+      columns    = VALUE #( ( `<typed-chart-column>` ) )
+      rows       = VALUE #( ( cell1 = `<typed-chart-cell>` ) )
+      payload    = `<typed-chart-payload>` ) ).
+    zcl_gg_host_surface=>set_surface( VALUE #(
+      kind       = zcl_gg_host_surface=>surface_alert
+      control_id = `"><typed-control`
+      text       = `<typed-alert>` ) ).
+    zcl_gg_host_surface=>set_surface( VALUE #(
+      kind       = zcl_gg_host_surface=>surface_caption
+      text       = `<typed-caption-text>` ) ).
+    zcl_gg_host_surface=>set_surface( VALUE #(
+      kind       = zcl_gg_host_surface=>surface_cockpit
+      aria_label = `<typed-cockpit>`
+      title      = `<typed-cockpit-title>`
+      text       = `<typed-cockpit-text>`
+      data_value = `<typed-cockpit-filter>`
+      payload    = `<typed-cockpit-payload>` ) ).
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;script&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'A &amp; B' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Save &amp; go' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-table&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-column&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-cell&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-node&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-key&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-chart-payload&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-control' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'javascript:alert' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'onclick="' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'onerror=' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<script>alert(1)</script>' ) ).
+    cl_gui_control=>clear( ).
+    zcl_gg_host_surface=>clear( ).
   ENDMETHOD.
 
 ENDCLASS.

@@ -81,9 +81,15 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
       WHEN '0100'.
         ct_values[ name = 'PBO_0100' ]-value = 'X'.
         ct_values[ name = 'P_STATE' ]-value = 'SCREEN_0100'.
+        io_session->get_dialog( )->set_status( VALUE #(
+          status = 'FLIGHT INPUT'
+          active_ucomm = VALUE #( ( 'NEXT' ) ( 'LIST' ) ( 'CONTEXT' ) ( 'EXIT' ) ) ) ).
       WHEN '0200'.
         ct_values[ name = 'PBO_0200' ]-value = 'X'.
         ct_values[ name = 'P_STATE' ]-value = 'SCREEN_0200'.
+        io_session->get_dialog( )->set_status( VALUE #(
+          status = 'FLIGHT RESULT'
+          active_ucomm = VALUE #( ( 'EXIT' ) ) ) ).
         io_session->get_list( )->get_writer( )->write_field(
           VALUE #( text = 'Dynpro list after navigation'
                    placement = VALUE #( new_line = abap_true ) ) ).

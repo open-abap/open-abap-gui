@@ -9,7 +9,7 @@ INTERFACE zif_gg_report_v1 PUBLIC.
 * and SELECT-OPTIONS. Changes made in at_selection_screen_output are
 * transported to the screen and displayed; changes made in the PAI events stay
 * in the program and reach the screen only if it is displayed again. The PAI
-* events run in the order on_field, on_end_of, on_block, on_radio and finally
+* events run in the order on_field, on_block, on_radio, on_end_of and finally
 * at_selection_screen, each seeing the changes made by the previous ones.
 
   TYPES ty_logical_database TYPE c LENGTH 30.

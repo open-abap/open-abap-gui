@@ -62,19 +62,20 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
          END OF ty_compatibility.
 
   TYPES: BEGIN OF ty_page,
-           session_id TYPE string,
-           page_id    TYPE string,
-           kind       TYPE string,
-           processor  TYPE zif_gg_session_types_v1=>ty_processor,
-           screen     TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
-           list_level TYPE i,
-           title      TYPE string,
-           status     TYPE zif_gg_session_types_v1=>ty_gui_status,
-           terminal   TYPE abap_bool,
-           navigation TYPE ty_navigation,
-           messages   TYPE ty_messages,
-           html       TYPE string,
-           actions    TYPE ty_actions,
+           session_id  TYPE string,
+           page_id     TYPE string,
+           kind        TYPE string,
+           processor   TYPE zif_gg_session_types_v1=>ty_processor,
+           screen      TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+           list_level  TYPE i,
+           title       TYPE string,
+           status      TYPE zif_gg_session_types_v1=>ty_gui_status,
+           breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs,
+           terminal    TYPE abap_bool,
+           navigation  TYPE ty_navigation,
+           messages    TYPE ty_messages,
+           html        TYPE string,
+           actions     TYPE ty_actions,
          END OF ty_page.
   TYPES ty_pages TYPE STANDARD TABLE OF ty_page WITH DEFAULT KEY.
 

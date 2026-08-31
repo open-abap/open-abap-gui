@@ -28,6 +28,9 @@ CLASS zcl_gg_ex_58 IMPLEMENTATION.
 
   METHOD zif_gg_dynpro_v1~build_flow_logic.
     io_builder->begin_screen( '0100' ).
+    io_builder->begin_pbo( ).
+    io_builder->add_module( VALUE #( name = 'STATUS_0100' ) ).
+    io_builder->end_processing( ).
     io_builder->begin_pai( ).
     io_builder->add_module( VALUE #( name = 'USER_COMMAND_0100' on_input = abap_true ) ).
     io_builder->end_processing( ).
@@ -53,7 +56,11 @@ CLASS zcl_gg_ex_58 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
-    RETURN.
+    IF is_context-screen = '0100'.
+      io_session->get_dialog( )->set_status( VALUE #(
+        status = 'SCREEN FLOW'
+        active_ucomm = VALUE #( ( 'NEXT' ) ) ) ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_on_value_request.

@@ -31,7 +31,7 @@ This transpiles the ABAP scaffold and starts `test/start-server.mjs` on
 `http://127.0.0.1:8080`. The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT` and
 `/ZCL_GG_INTEGRATION_DYNPRO` routes construct allow-listed integration
 fixtures. The workbench uses transaction codes as the public application
-identity. The index lists all 58 examples with their descriptions and
+identity. The index lists all 150 examples with their descriptions and
 launches them through `/transaction?tcode=ZGG_EX_01`-style links. The command
 field accepts `/nZGG_EX_01` for a report and `/nZGG_EX_58` for the dynpro
 example; `/n` is case-insensitive and surrounding whitespace is allowed.
@@ -39,7 +39,7 @@ Unknown or malformed commands are reported in the accessible workbench shell
 and never replace the current session.
 
 The fixed `/ZCL_GG_INTEGRATION_HTML_REPORT`, `/ZCL_GG_INTEGRATION_DYNPRO`,
-and `/ZCL_GG_EX_01` through `/ZCL_GG_EX_58` routes remain available as
+and `/ZCL_GG_EX_01` through `/ZCL_GG_EX_150` routes remain available as
 compatibility/debug routes. Example class routes are authorized by the
 transaction registry, the two integration fixtures are explicitly allow-listed,
 and every other class-like path returns `404` without constructing a class.
@@ -50,7 +50,17 @@ start an executable page.
 To add a workbench application, implement `zif_gg_transaction_v1` alongside
 exactly one of `zif_gg_report_v1` or `zif_gg_dynpro_v1`. Return a unique tcode
 and user-facing description from `get_transaction`; the registry validates and
-discovers the class automatically.
+discovers the class automatically. Runtime application buttons belong to the
+status supplied by the executable, not to the workbench shell:
+
+```abap
+io_session->get_list( )->set_status( VALUE #(
+  active_ucomm = VALUE #( ( 'REFR' ) )
+  icon_bar = VALUE #( ( ucomm = 'REFR' label = 'Refresh' icon = 'refresh' ) ) ) ).
+```
+
+The matching `AT USER-COMMAND` callback receives `REFR`; an initial `icon_bar`
+renders no application buttons.
 Node only provides Express, request-body buffering, and the ICF-compatible
 request/response shim:
 

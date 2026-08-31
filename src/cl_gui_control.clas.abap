@@ -253,7 +253,8 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD has_content.
-    result = xsdbool( mt_snapshots IS NOT INITIAL OR mv_external_html IS NOT INITIAL ).
+    result = xsdbool( mt_snapshots IS NOT INITIAL
+      OR mv_external_html IS NOT INITIAL ).
   ENDMETHOD.
 
   METHOD clear.
@@ -270,7 +271,7 @@ CLASS cl_gui_control IMPLEMENTATION.
 
   METHOD render_html.
     IF iv_document = abap_true.
-      result = |<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GUI controls</title><style>.gg-control\{position:absolute;box-sizing:border-box\}.gg-controls\{position:relative;min-height:240px\}.gg-control[hidden]\{display:none\}</style></head><body><main class="gg-controls" aria-label="GUI controls">|.
+      result = |<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GUI controls</title><style>.gg-control\{position:absolute;box-sizing:border-box\}.gg-controls\{position:relative;min-height:240px\}.gg-control[hidden]\{display:none\}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible\{outline:2px solid #2668a3;outline-offset:2px\}</style></head><body><main class="gg-controls" aria-label="GUI controls">|.
     ELSE.
       result = |<section class="gg-controls" aria-label="GUI controls">|.
     ENDIF.
@@ -293,22 +294,22 @@ CLASS cl_gui_control IMPLEMENTATION.
         WHEN 'TOOLBAR'.
           result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" role="toolbar"{ lv_hidden }>|.
           LOOP AT ls_snapshot-buttons INTO DATA(ls_button).
-            result = result && |<button type="submit" name="gg_ucomm" value="{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
+            result = result && |<button type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
           ENDLOOP.
           result = result && |</div>|.
         WHEN 'TEXTEDIT'.
-          result = result && |<textarea class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }"{ lv_hidden }{ lv_disabled }>{ escape( ls_snapshot-payload ) }</textarea>|.
+          result = result && |<textarea class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_hidden }{ lv_disabled }>{ escape( ls_snapshot-payload ) }</textarea>|.
         WHEN 'PICTURE'.
           DATA(lv_url) = COND string( WHEN safe_url( ls_snapshot-payload ) = abap_true THEN escape( ls_snapshot-payload ) ELSE '' ).
-          result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }"{ lv_hidden }><img src="{ lv_url }" alt="Picture"></div>|.
+          result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="PICTURE" role="img" aria-label="Picture"{ lv_hidden }><img src="{ lv_url }" alt="Picture"></div>|.
         WHEN 'HTML_VIEWER'.
           result = result && |<iframe class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" title="HTML viewer" sandbox=""{ lv_hidden } srcdoc="{ escape( ls_snapshot-payload ) }"></iframe>|.
         WHEN 'CALENDAR'.
-          result = result && |<section class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" role="group" aria-label="Calendar"{ lv_hidden }>{ ls_snapshot-html }{ escape( ls_snapshot-payload ) }</section>|.
+          result = result && |<section class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="CALENDAR" role="group" aria-label="Calendar"{ lv_hidden }>{ ls_snapshot-html }{ escape( ls_snapshot-payload ) }</section>|.
         WHEN 'SELECTOR'.
-          result = result && |<select class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" aria-label="Selector"{ lv_hidden }{ lv_disabled }><option>{ escape( ls_snapshot-payload ) }</option></select>|.
+          result = result && |<select class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" data-control-kind="SELECTOR" aria-label="Selector"{ lv_hidden }{ lv_disabled }>{ COND string( WHEN ls_snapshot-html IS INITIAL THEN |<option>{ escape( ls_snapshot-payload ) }</option>| ELSE ls_snapshot-html ) }</select>|.
         WHEN 'BARCHART' OR 'CHART_ENGINE' OR 'GP_PRES'.
-          result = result && |<figure class="gg-control gg-graphic" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" role="img" aria-label="{ escape( ls_snapshot-kind ) }"{ lv_hidden }>{ ls_snapshot-html }<figcaption>{ escape( ls_snapshot-payload ) }</figcaption></figure>|.
+          result = result && |<figure class="gg-control gg-graphic" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="{ escape( ls_snapshot-kind ) }" role="img" aria-label="{ escape( ls_snapshot-kind ) }"{ lv_hidden }>{ ls_snapshot-html }<figcaption>{ escape( ls_snapshot-payload ) }</figcaption></figure>|.
         WHEN OTHERS.
           result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="{ escape( ls_snapshot-kind ) }"{ lv_hidden }{ lv_disabled }>{ escape( ls_snapshot-payload ) }</div>|.
       ENDCASE.

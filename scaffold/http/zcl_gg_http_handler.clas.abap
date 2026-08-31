@@ -553,13 +553,18 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD values_from_fields.
     DATA lv_name       TYPE string.
     DATA lv_suffix     TYPE string.
+    DATA lv_value      TYPE string.
+    DATA lv_range_index TYPE i.
     DATA lv_typed_name TYPE zif_gg_selection_screen_types=>ty_name.
+    DATA lt_name_parts TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     FIELD-SYMBOLS <ls_value> TYPE zif_gg_selection_screen_types=>ty_value.
     FIELD-SYMBOLS <ls_range> TYPE zif_gg_selection_screen_types=>ty_range.
 
     LOOP AT it_fields INTO DATA(ls_field).
+      lv_value = ls_field-value.
+      REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
       IF ls_field-name CP 'gg-radio-*'.
-        lv_name = substring( val = ls_field-name off = 9 ).
+        lv_name = ls_field-value.
         INSERT VALUE #(
           name   = CONV zif_gg_selection_screen_types=>ty_name( lv_name )
           value  = 'X'
@@ -588,8 +593,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       ENDIF.
 
       lv_name = ls_field-name.
-      CLEAR lv_suffix.
-      IF ls_field-name CP '*-LOW'.
+      CLEAR: lv_suffix, lv_range_index, lt_name_parts.
+      SPLIT ls_field-name AT '-' INTO TABLE lt_name_parts.
+      IF lines( lt_name_parts ) = 3
+          AND lt_name_parts[ 2 ] CO '0123456789'.
+        lv_name = lt_name_parts[ 1 ].
+        lv_range_index = CONV i( lt_name_parts[ 2 ] ).
+        lv_suffix = lt_name_parts[ 3 ].
+      ELSEIF ls_field-name CP '*-LOW'.
         REPLACE FIRST OCCURRENCE OF '-LOW' IN lv_name WITH ''.
         lv_suffix = 'LOW'.
       ELSEIF ls_field-name CP '*-HIGH'.
@@ -613,23 +624,26 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         READ TABLE rt_values ASSIGNING <ls_value> WITH KEY name = lv_typed_name.
       ENDIF.
       IF lv_suffix IS INITIAL.
-        <ls_value>-value = ls_field-value.
+        <ls_value>-value = lv_value.
       ELSE.
-        IF <ls_value>-ranges IS INITIAL.
+        IF lv_range_index = 0.
+          lv_range_index = 1.
+        ENDIF.
+        WHILE lines( <ls_value>-ranges ) < lv_range_index.
           APPEND VALUE #(
             sign   = zif_gg_selection_screen_types=>sign_include
             option = zif_gg_selection_screen_types=>option_eq ) TO <ls_value>-ranges.
-        ENDIF.
-        READ TABLE <ls_value>-ranges ASSIGNING <ls_range> INDEX 1.
+        ENDWHILE.
+        READ TABLE <ls_value>-ranges ASSIGNING <ls_range> INDEX lv_range_index.
         CASE lv_suffix.
           WHEN 'LOW'.
-            <ls_range>-low = ls_field-value.
+            <ls_range>-low = lv_value.
           WHEN 'HIGH'.
-            <ls_range>-high = ls_field-value.
+            <ls_range>-high = lv_value.
           WHEN 'SIGN'.
-            <ls_range>-sign = ls_field-value.
+            <ls_range>-sign = lv_value.
           WHEN 'OPTION'.
-            <ls_range>-option = ls_field-value.
+            <ls_range>-option = lv_value.
         ENDCASE.
       ENDIF.
     ENDLOOP.
@@ -641,11 +655,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lv_container TYPE string.
     DATA lv_name      TYPE string.
     DATA lv_row_text  TYPE string.
+    DATA lv_value     TYPE string.
     DATA lv_row       TYPE i.
     DATA lv_last      TYPE i.
     DATA lt_parts     TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
     LOOP AT it_fields INTO DATA(ls_field).
+      lv_value = ls_field-value.
+      REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
       IF ls_field-name CP 'gg-radio-*'.
         add_dynpro_value(
           EXPORTING
@@ -682,7 +699,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
               iv_container = lv_container
               iv_name      = lv_name
               iv_row       = lv_row
-              iv_value     = ls_field-value
+              iv_value     = lv_value
             CHANGING
               ct_values = rt_values ).
         ENDIF.
@@ -710,7 +727,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_container = ``
           iv_name      = ls_field-name
           iv_row       = 0
-          iv_value     = ls_field-value
+          iv_value     = lv_value
         CHANGING
           ct_values = rt_values ).
     ENDLOOP.

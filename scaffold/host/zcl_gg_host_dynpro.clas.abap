@@ -36,6 +36,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_cursor_row    TYPE i OPTIONAL
         iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
         iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
         iv_session_id    TYPE string OPTIONAL
         iv_page_id       TYPE string OPTIONAL
       RETURNING
@@ -47,6 +48,16 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS next_run_id
       RETURNING
         VALUE(rv_id) TYPE string.
+
+    CLASS-METHODS validate_submission
+      IMPORTING
+        io_session        TYPE REF TO zcl_gg_host_session
+        it_controls       TYPE zcl_gg_host_dynpro_builder=>ty_controls
+        iv_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        iv_submitted      TYPE abap_bool
+      RETURNING
+        VALUE(rv_allowed) TYPE abap_bool.
 
     CLASS-METHODS add_page_actions
       IMPORTING
@@ -83,6 +94,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA ls_context TYPE zif_gg_dynpro_types_v1=>ty_module_context.
     DATA ls_input_value TYPE zif_gg_dynpro_types_v1=>ty_value.
     DATA lv_loop_lines TYPE i.
+    DATA lv_submit_allowed TYPE abap_bool.
 
     lo_builder = NEW zcl_gg_host_dynpro_builder( ).
     lo_flow = NEW zcl_gg_host_dynpro_flow( ).
@@ -143,10 +155,13 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       CHANGING
         ct_values  = lt_values ).
 
-    lv_screen = io_program->get_initial_screen( ).
+    lv_screen = COND #(
+      WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
+      ELSE iv_screen ).
     lo_session->set_processor(
       iv_processor = zif_gg_session_types_v1=>processor_dynpro
       iv_screen    = lv_screen ).
+    lv_submit_allowed = abap_true.
     TRY.
         LOOP AT lo_flow->get_modules( ) INTO DATA(ls_module)
             WHERE screen = lv_screen AND phase = 'PBO'.
@@ -163,7 +178,14 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
               ct_states  = lt_states ).
         ENDLOOP.
 
-        IF iv_submitted = abap_true.
+        lv_submit_allowed = validate_submission(
+          io_session   = lo_session
+          it_controls  = lt_controls
+          iv_screen    = lv_screen
+          iv_ucomm     = iv_ucomm
+          iv_submitted = iv_submitted ).
+
+        IF iv_submitted = abap_true AND lv_submit_allowed = abap_true.
           LOOP AT lo_flow->get_modules( ) INTO ls_module
               WHERE screen = lv_screen AND phase = 'PAI'.
             lo_session->set_event( 'PROCESS AFTER INPUT' ).
@@ -301,6 +323,20 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_terminal = rs_result-terminal_state
       CHANGING
         ct_actions = rs_result-page-actions ).
+  ENDMETHOD.
+
+  METHOD validate_submission.
+    DATA(ls_status) = io_session->get_status( ).
+    rv_allowed = abap_true.
+    IF iv_submitted = abap_true
+        AND iv_ucomm <> 'BACK'
+        AND NOT line_exists( it_controls[ screen = iv_screen ucomm = iv_ucomm ] )
+        AND NOT line_exists( ls_status-active_ucomm[ table_line = iv_ucomm ] ).
+      rv_allowed = abap_false.
+      io_session->zif_gg_session_v1~message( VALUE #(
+        type = zif_gg_session_types_v1=>message_type_error
+        text = |Command { iv_ucomm } is not available on dynpro screen { iv_screen }| ) ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD add_page_actions.

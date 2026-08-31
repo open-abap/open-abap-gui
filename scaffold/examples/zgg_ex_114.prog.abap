@@ -1,0 +1,3 @@
+REPORT zgg_ex_114.
+START-OF-SELECTION.
+  MESSAGE 'warning' TYPE 'W'.

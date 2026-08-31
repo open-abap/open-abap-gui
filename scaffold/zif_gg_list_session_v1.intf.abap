@@ -40,4 +40,12 @@ INTERFACE zif_gg_list_session_v1 PUBLIC.
     IMPORTING
       is_status TYPE zif_gg_session_types_v1=>ty_gui_status.
 
+  METHODS set_breadcrumbs
+    IMPORTING
+      it_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
+
+  METHODS get_breadcrumbs
+    RETURNING
+      VALUE(rt_breadcrumbs) TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
+
 ENDINTERFACE.

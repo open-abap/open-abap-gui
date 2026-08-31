@@ -21,6 +21,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              screen_snapshot     TYPE zcl_gg_host_screen=>ty_snapshot,
              memory_render_lines TYPE zcl_gg_host_list=>ty_render_lines,
              help_text           TYPE string,
+             help_name           TYPE string,
              terminal            TYPE string,
              dialog_suppressed   TYPE abap_bool,
              settings            TYPE zif_gg_list_processing_types_v1=>ty_settings,
@@ -69,6 +70,9 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     CLASS-DATA mv_run_id TYPE i.
+
+    TYPES ty_radio_groups TYPE STANDARD TABLE OF zif_gg_selection_screen_types=>ty_group
+      WITH DEFAULT KEY.
 
     TYPES: BEGIN OF ty_flow_result,
              ended            TYPE abap_bool,
@@ -180,6 +184,24 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_values  TYPE zif_gg_selection_screen_types=>ty_values
         io_session TYPE REF TO zcl_gg_host_session.
 
+    CLASS-METHODS run_selection_events
+      IMPORTING
+        io_report           TYPE REF TO zif_gg_report_v1
+        io_screen           TYPE REF TO zcl_gg_host_screen
+        io_session          TYPE REF TO zcl_gg_host_session
+        it_elements         TYPE zcl_gg_host_screen=>ty_elements
+        iv_selection_screen TYPE zif_gg_selection_screen_types=>ty_screen_number
+        iv_ucomm            TYPE zif_gg_session_types_v1=>ty_ucomm
+        iv_value_request    TYPE zif_gg_selection_screen_types=>ty_name
+        iv_help_name        TYPE zif_gg_selection_screen_types=>ty_name
+        iv_exit_ucomm       TYPE zif_gg_session_types_v1=>ty_ucomm
+        it_input            TYPE zif_gg_selection_screen_types=>ty_values
+      CHANGING
+        ct_values           TYPE zif_gg_selection_screen_types=>ty_values
+        ct_states           TYPE zif_gg_selection_screen_types=>ty_states
+        ct_radio_groups     TYPE ty_radio_groups
+        cs_result           TYPE ty_result.
+
     CLASS-METHODS next_run_id
       RETURNING
         VALUE(rv_id) TYPE string.
@@ -209,6 +231,130 @@ ENDCLASS.
 
 CLASS zcl_gg_host IMPLEMENTATION.
 
+  METHOD run_selection_events.
+    io_session->set_event( 'INITIALIZATION' ).
+    io_report->initialization(
+      EXPORTING
+        io_session = io_session
+      CHANGING
+        ct_values  = ct_values ).
+
+    IF iv_help_name IS NOT INITIAL.
+      cs_result-help_name = iv_help_name.
+      io_session->set_event( 'AT SELECTION-SCREEN ON HELP-REQUEST' ).
+      cs_result-help_text = io_report->at_selection_screen_help_req(
+         iv_screen  = iv_selection_screen
+        iv_name    = iv_help_name
+        it_values  = ct_values
+        io_session = io_session ).
+    ENDIF.
+
+    IF iv_exit_ucomm IS NOT INITIAL.
+      io_session->set_event( 'AT SELECTION-SCREEN ON EXIT-COMMAND' ).
+      io_report->at_selection_screen_on_exit(
+         iv_screen  = iv_selection_screen
+        iv_ucomm   = iv_exit_ucomm
+        it_values  = ct_values
+        io_session = io_session ).
+    ENDIF.
+
+    LOOP AT it_input INTO DATA(ls_input_before_output).
+      IF line_exists( ct_values[ name = ls_input_before_output-name ] ).
+        ct_values[ name = ls_input_before_output-name ] = ls_input_before_output.
+      ENDIF.
+    ENDLOOP.
+
+    io_session->set_processor(
+      iv_processor = zif_gg_session_types_v1=>processor_selection
+      iv_screen    = iv_selection_screen ).
+    io_session->set_event( 'AT SELECTION-SCREEN OUTPUT' ).
+    io_report->at_selection_screen_output(
+      EXPORTING
+         iv_screen  = iv_selection_screen
+        io_session = io_session
+      CHANGING
+        ct_values  = ct_values
+        ct_states  = ct_states ).
+
+    IF iv_ucomm <> 'ONLI'
+        AND iv_ucomm <> 'ECAN'
+        AND NOT line_exists( it_elements[ ucomm = iv_ucomm ] ).
+      io_session->zif_gg_session_v1~message( VALUE #(
+        type = zif_gg_session_types_v1=>message_type_error
+        text = |Undeclared selection command { iv_ucomm }| ) ).
+    ENDIF.
+
+    IF iv_value_request IS NOT INITIAL.
+      run_value_request(
+        EXPORTING
+        io_report  = io_report
+        io_session = io_session
+        iv_name    = iv_value_request
+        iv_screen  = iv_selection_screen
+        CHANGING
+          ct_values = ct_values ).
+    ENDIF.
+
+    LOOP AT ct_values INTO DATA(ls_value).
+      io_session->set_event( 'AT SELECTION-SCREEN ON FIELD' ).
+      io_report->at_selection_screen_on_field(
+        EXPORTING
+          iv_screen  = iv_selection_screen
+          iv_name    = ls_value-name
+          io_session = io_session
+        CHANGING
+          ct_values  = ct_values ).
+    ENDLOOP.
+
+    LOOP AT io_screen->get_blocks( ) INTO DATA(ls_block).
+      io_session->set_event( 'AT SELECTION-SCREEN ON BLOCK' ).
+      io_report->at_selection_screen_on_block(
+        EXPORTING
+          iv_screen  = iv_selection_screen
+          iv_block   = ls_block-block-name
+          io_session = io_session
+        CHANGING
+          ct_values  = ct_values ).
+    ENDLOOP.
+
+    LOOP AT ct_states INTO DATA(ls_state).
+      IF ls_state-group1 IS NOT INITIAL
+          AND NOT line_exists( ct_radio_groups[ table_line = ls_state-group1 ] ).
+        APPEND ls_state-group1 TO ct_radio_groups.
+        io_session->set_event( 'AT SELECTION-SCREEN ON RADIOBUTTON GROUP' ).
+        io_report->at_selection_screen_on_radio(
+          EXPORTING
+            iv_screen  = iv_selection_screen
+            iv_group   = ls_state-group1
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      ENDIF.
+    ENDLOOP.
+
+    LOOP AT ct_values INTO ls_value.
+      IF lines( ls_value-ranges ) > 0.
+        io_session->set_event( 'AT SELECTION-SCREEN ON END OF' ).
+        io_report->at_selection_screen_on_end_of(
+          EXPORTING
+            iv_screen  = iv_selection_screen
+            iv_name    = ls_value-name
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      ENDIF.
+    ENDLOOP.
+
+    io_session->set_event( 'AT SELECTION-SCREEN' ).
+    io_report->at_selection_screen(
+      EXPORTING
+        iv_screen  = iv_selection_screen
+        iv_ucomm   = iv_ucomm
+        io_session = io_session
+      CHANGING
+        ct_values  = ct_values ).
+  ENDMETHOD.
+
   METHOD run.
     DATA lt_values  TYPE zif_gg_selection_screen_types=>ty_values.
     DATA lt_states  TYPE zif_gg_selection_screen_types=>ty_states.
@@ -229,6 +375,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lv_session_id TYPE string.
     DATA lv_page_id TYPE string.
     DATA lv_display_screen TYPE zif_gg_selection_screen_types=>ty_screen_number.
+    DATA lt_elements TYPE zcl_gg_host_screen=>ty_elements.
 
     lv_session_id = COND #( WHEN iv_session_id IS INITIAL
       THEN next_run_id( ) ELSE iv_session_id ).
@@ -236,6 +383,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       THEN |{ lv_session_id }-1| ELSE iv_page_id ).
     lv_display_screen = iv_selection_screen.
     cl_gui_control=>clear( ).
+    zcl_gg_host_surface=>clear( ).
 
     lo_list   = NEW zcl_gg_host_list( ).
     lo_screen = NEW zcl_gg_host_screen( ).
@@ -252,6 +400,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         io_report->build_screen( lo_screen ).
         lt_values = lo_screen->get_values( ).
         lt_states = lo_screen->get_states( ).
+        lt_elements = lo_screen->get_elements( ).
 
         lo_handler = io_report->get_list_processing( lo_session ).
         lo_list->set_handler(
@@ -261,118 +410,23 @@ CLASS zcl_gg_host IMPLEMENTATION.
           lo_list->apply_settings( lo_handler->get_settings( lo_session ) ).
         ENDIF.
 
-        lo_session->set_event( 'INITIALIZATION' ).
-        io_report->initialization(
+        run_selection_events(
           EXPORTING
-            io_session = lo_session
+            io_report           = io_report
+            io_screen           = lo_screen
+            io_session          = lo_session
+            it_elements         = lt_elements
+            iv_selection_screen = iv_selection_screen
+            iv_ucomm            = iv_ucomm
+            iv_value_request    = iv_value_request
+            iv_help_name        = iv_help_name
+            iv_exit_ucomm       = iv_exit_ucomm
+            it_input            = it_input
           CHANGING
-            ct_values  = lt_values ).
-
-        IF iv_help_name IS NOT INITIAL.
-          lo_session->set_event( 'AT SELECTION-SCREEN ON HELP-REQUEST' ).
-          rs_result-help_text = io_report->at_selection_screen_help_req(
-             iv_screen  = iv_selection_screen
-            iv_name    = iv_help_name
-            it_values  = lt_values
-            io_session = lo_session ).
-        ENDIF.
-
-        IF iv_exit_ucomm IS NOT INITIAL.
-          lo_session->set_event( 'AT SELECTION-SCREEN ON EXIT-COMMAND' ).
-          io_report->at_selection_screen_on_exit(
-             iv_screen  = iv_selection_screen
-            iv_ucomm   = iv_exit_ucomm
-            it_values  = lt_values
-            io_session = lo_session ).
-        ENDIF.
-
-        lo_session->set_processor(
-          iv_processor = zif_gg_session_types_v1=>processor_selection
-          iv_screen    = iv_selection_screen ).
-        lo_session->set_event( 'AT SELECTION-SCREEN OUTPUT' ).
-        io_report->at_selection_screen_output(
-          EXPORTING
-             iv_screen  = iv_selection_screen
-            io_session = lo_session
-          CHANGING
-            ct_values  = lt_values
-            ct_states  = lt_states ).
-
-        LOOP AT it_input INTO DATA(ls_input).
-          IF line_exists( lt_values[ name = ls_input-name ] ).
-            lt_values[ name = ls_input-name ] = ls_input.
-          ENDIF.
-        ENDLOOP.
-
-        IF iv_value_request IS NOT INITIAL.
-          run_value_request(
-            EXPORTING
-            io_report  = io_report
-            io_session = lo_session
-            iv_name    = iv_value_request
-            iv_screen  = iv_selection_screen
-            CHANGING
-              ct_values = lt_values ).
-        ENDIF.
-
-        LOOP AT lt_values INTO DATA(ls_value).
-          lo_session->set_event( 'AT SELECTION-SCREEN ON FIELD' ).
-          io_report->at_selection_screen_on_field(
-            EXPORTING
-              iv_screen  = iv_selection_screen
-              iv_name    = ls_value-name
-              io_session = lo_session
-            CHANGING
-              ct_values  = lt_values ).
-        ENDLOOP.
-
-        LOOP AT lt_values INTO ls_value.
-          IF lines( ls_value-ranges ) > 0.
-            lo_session->set_event( 'AT SELECTION-SCREEN ON END OF' ).
-            io_report->at_selection_screen_on_end_of(
-              EXPORTING
-                iv_screen  = iv_selection_screen
-                iv_name    = ls_value-name
-                io_session = lo_session
-              CHANGING
-                ct_values  = lt_values ).
-          ENDIF.
-        ENDLOOP.
-
-        LOOP AT lo_screen->get_blocks( ) INTO DATA(ls_block).
-          lo_session->set_event( 'AT SELECTION-SCREEN ON BLOCK' ).
-          io_report->at_selection_screen_on_block(
-            EXPORTING
-              iv_screen  = iv_selection_screen
-              iv_block   = ls_block-block-name
-              io_session = lo_session
-            CHANGING
-              ct_values  = lt_values ).
-        ENDLOOP.
-
-        LOOP AT lt_states INTO DATA(ls_state).
-          IF ls_state-group1 IS NOT INITIAL
-              AND NOT line_exists( lt_radio_groups[ table_line = ls_state-group1 ] ).
-            APPEND ls_state-group1 TO lt_radio_groups.
-            lo_session->set_event( 'AT SELECTION-SCREEN ON RADIOBUTTON GROUP' ).
-            io_report->at_selection_screen_on_radio(
-              EXPORTING
-                iv_screen  = iv_selection_screen
-                iv_group   = ls_state-group1
-                io_session = lo_session
-              CHANGING
-                ct_values  = lt_values ).
-          ENDIF.
-        ENDLOOP.
-
-        lo_session->set_event( 'AT SELECTION-SCREEN' ).
-        io_report->at_selection_screen(
-          EXPORTING
-            iv_screen  = iv_selection_screen
-            iv_ucomm   = iv_ucomm
-            io_session = lo_session
-          CHANGING
-            ct_values  = lt_values ).
+            ct_values           = lt_values
+            ct_states           = lt_states
+            ct_radio_groups     = lt_radio_groups
+            cs_result           = rs_result ).
 
         validate_required(
           it_states  = lt_states
@@ -489,6 +543,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
         cv_ended       = lv_ended ).
 
     rs_result-lines    = lo_list->finish_output( ).
+    IF iv_ucomm <> 'ONLI'.
+      lo_screen->select_tab( iv_ucomm ).
+    ENDIF.
     rs_result-render_lines = lo_list->get_render_lines( ).
     rs_result-model_events = lo_list->get_model_events( ).
     rs_result-line_formats = lo_list->get_line_formats( ).
@@ -595,7 +652,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
         it_tabs       = cs_result-screen_snapshot-tabs
         is_context    = ls_context
         it_messages   = cs_result-messages
-        iv_help_text  = cs_result-help_text ).
+        iv_help_text  = cs_result-help_text
+        iv_help_name  = cs_result-help_name ).
     ELSEIF iv_pause_at_navigation = abap_true AND iv_navigation-kind IS NOT INITIAL.
       lv_page_kind = zif_gg_host_html_v1=>page_navigation.
       ls_context-processor = zif_gg_session_types_v1=>processor_report.
@@ -639,6 +697,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         it_actions    = lt_actions
         is_context    = ls_context
         it_messages   = cs_result-messages
+        it_breadcrumbs = io_list->get_breadcrumbs( )
         iv_controls_html = lv_controls_html ).
     ENDIF.
     IF lv_page_kind <> zif_gg_host_html_v1=>page_navigation.
@@ -653,6 +712,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       kind       = lv_page_kind
       processor  = ls_context-processor
       status     = cs_result-status
+      breadcrumbs = io_list->get_breadcrumbs( )
       terminal   = xsdbool( cs_result-terminal IS NOT INITIAL )
       navigation = cs_result-navigation
       messages   = cs_result-messages

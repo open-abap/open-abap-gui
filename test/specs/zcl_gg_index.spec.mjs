@@ -15,21 +15,15 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.locator(".wb-commandbar")).toHaveCSS("padding-right", "0px");
   await expect(page.locator(".wb-appbar")).toHaveCSS("margin-left", "0px");
   await expect(page.locator(".wb-appbar")).toHaveCSS("margin-right", "0px");
-  await expect(page.locator(".wb-toolbar")).toHaveCSS("margin-left", "0px");
-  await expect(page.locator(".wb-toolbar")).toHaveCSS("margin-right", "0px");
+  await expect(page.locator(".wb-toolbar")).toHaveCount(0);
   await expect(page.locator(".wb-appbar")).toHaveCSS("border-top-width", "0px");
   await expect(page.locator(".wb-appbar")).toHaveCSS("border-left-width", "0px");
   await expect(page.locator(".wb-appbar")).toHaveCSS("border-right-width", "0px");
-  await expect(page.locator(".wb-toolbar")).toHaveCSS("border-left-width", "0px");
-  await expect(page.locator(".wb-toolbar")).toHaveCSS("border-right-width", "0px");
   const commandInputBox = await page.locator(".wb-command-input").boundingBox();
   const appTitleBox = await page.locator(".wb-app-title").boundingBox();
-  const firstToolbarButtonBox = await page.locator(".wb-toolbar-button").first().boundingBox();
   expect(commandInputBox).not.toBeNull();
   expect(appTitleBox).not.toBeNull();
-  expect(firstToolbarButtonBox).not.toBeNull();
   expect(appTitleBox.x).toBeCloseTo(commandInputBox.x, 0);
-  expect(firstToolbarButtonBox.x).toBeCloseTo(commandInputBox.x, 0);
   const statusContext = page.locator(".wb-status-context");
   await expect(statusContext).toContainText("System:\u00a0");
   await expect(statusContext).toContainText("Client:\u00a0");
@@ -95,10 +89,15 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(statusFeedback).toHaveText("");
   await commandButtons.nth(0).dispatchEvent("click");
   await expect(statusFeedback).toHaveText("");
-  await page.locator(".wb-toolbar-button").nth(0).click();
-  await expect(statusFeedback).toHaveText("Create pressed");
+  await expect(statusFeedback).toHaveText("");
+  await expect(page.locator(".wb-toolbar-button")).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "Create"})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "Open"})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "Add to favorites"})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "Edit"})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "Refresh"})).toHaveCount(0);
   await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
-  await expect(page.locator(".wb-app-list > li")).toHaveCount(59);
+  await expect(page.locator(".wb-app-list > li")).toHaveCount(151);
   await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
@@ -133,7 +132,31 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
     "href",
     "/transaction?tcode=ZGG_EX_58",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(58);
+  await expect(page.getByRole("link", {name: "ZGG_EX_66"})).toContainText(
+    "Unicode and hostile shell text",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_82"})).toContainText(
+    "Variant manager selection screen",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_98"})).toContainText(
+    "Composite flight list workbench",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_116"})).toContainText(
+    "Two-screen flight editor",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_134"})).toContainText(
+    "Document viewer editor",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_147"})).toContainText(
+    "SALV selections and events",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_149"})).toContainText(
+    "Chart engine graphic fallback",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_150"})).toContainText(
+    "Analytics cockpit",
+  );
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(150);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 

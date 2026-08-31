@@ -254,6 +254,12 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~set_status.
+    DATA(lv_error) = zcl_gg_host_status=>validate( is_status ).
+    IF lv_error IS NOT INITIAL.
+      RAISE EXCEPTION NEW zcx_gg_control_flow(
+        iv_kind      = zcx_gg_control_flow=>kind_unsupported
+        iv_operation = lv_error ).
+    ENDIF.
     ms_status = is_status.
   ENDMETHOD.
 

@@ -10,16 +10,17 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * running program and returns to the workbench.
     CLASS-METHODS render_top
       IMPORTING
-        iv_runtime     TYPE abap_bool DEFAULT abap_false
-        iv_title       TYPE string DEFAULT `Workbench`
-        iv_command     TYPE string OPTIONAL
-        iv_error       TYPE string OPTIONAL
-        iv_session_id  TYPE string OPTIONAL
-        iv_page_id     TYPE string OPTIONAL
-        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
-        it_icon_bar    TYPE zif_gg_session_types_v1=>ty_icon_bar OPTIONAL
+        iv_runtime      TYPE abap_bool DEFAULT abap_false
+        iv_title        TYPE string DEFAULT `Workbench`
+        iv_command      TYPE string OPTIONAL
+        iv_error        TYPE string OPTIONAL
+        iv_session_id   TYPE string OPTIONAL
+        iv_page_id      TYPE string OPTIONAL
+        is_status       TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
+        it_breadcrumbs  TYPE zif_gg_session_types_v1=>ty_breadcrumbs OPTIONAL
+        iv_content_form TYPE string OPTIONAL
       RETURNING
-        VALUE(rv_html) TYPE string.
+        VALUE(rv_html)  TYPE string.
 
     CLASS-METHODS render_bottom
       IMPORTING
@@ -59,9 +60,16 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS render_iconbar
       IMPORTING
-        iv_runtime     TYPE abap_bool
-        it_icon_bar    TYPE zif_gg_session_types_v1=>ty_icon_bar
-        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
+        iv_runtime      TYPE abap_bool
+        iv_content_form TYPE string
+        it_entries      TYPE zif_gg_session_types_v1=>ty_icon_bar
+        is_status       TYPE zif_gg_session_types_v1=>ty_gui_status
+      RETURNING
+        VALUE(rv_html)  TYPE string.
+
+    CLASS-METHODS render_breadcrumbs
+      IMPORTING
+        it_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -105,9 +113,15 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
       '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
       '.wb-app-title{font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
+      '.wb-breadcrumbs{padding:5px 18px;background:#eef4fa;border-bottom:1px solid #c5d5e5;color:#4d667f}' &&
+      '.wb-breadcrumbs ol{display:flex;gap:0;margin:0;padding:0;list-style:none}' &&
+      '.wb-breadcrumbs li+li:before{content:"/";padding:0 8px;color:#8ba1b6}' &&
+      '.wb-breadcrumbs span{white-space:nowrap}' &&
       '.wb-toolbar{margin:0;padding:7px 18px;display:flex;gap:5px;background:#dce8f3;border:0;border-bottom:1px solid #a8bfd6;border-radius:0}' &&
+      '.wb-toolbar-separator{height:24px;border-left:1px solid #b8c9dc;margin:0 4px}' &&
       '.wb-toolbar-button{height:28px;min-width:32px;border:1px solid #91adca;border-radius:3px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-toolbar-button:hover,.wb-toolbar-button:focus{background:#fff;border-color:#5e8fbd;outline:0}' &&
+      'button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible{outline:2px solid #2668a3;outline-offset:2px}' &&
       '.wb-runtime-content{flex:1 1 auto;min-height:0;margin:16px 28px 0;padding:22px 26px;box-sizing:border-box;overflow:auto;background:#fff;border:1px solid #aebfd2;border-radius:5px;box-shadow:0 2px 8px rgba(34,67,102,.12)}' &&
       '.wb-runtime-content main{max-width:100%;overflow:auto}' &&
       '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
@@ -120,13 +134,10 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
   METHOD render_top.
     DATA lv_title TYPE string.
-    DATA lt_icon_bar TYPE zif_gg_session_types_v1=>ty_icon_bar.
+    DATA lv_content_form TYPE string.
 
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
-    lt_icon_bar = it_icon_bar.
-    IF lt_icon_bar IS INITIAL.
-      lt_icon_bar = is_status-icon_bar.
-    ENDIF.
+    lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items">' &&
       '<button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
@@ -139,10 +150,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && '<header class="wb-appbar"><span class="wb-app-title">' &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       '</span></header>' &&
+      render_breadcrumbs( it_breadcrumbs ) &&
       render_iconbar(
-        iv_runtime  = iv_runtime
-        it_icon_bar = lt_icon_bar
-        is_status   = is_status ).
+        iv_runtime      = iv_runtime
+        iv_content_form = lv_content_form
+        it_entries      = is_status-icon_bar
+        is_status       = is_status ).
   ENDMETHOD.
 
   METHOD render_iconbar.
@@ -153,7 +166,11 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     DATA lv_state    TYPE string.
     DATA lv_enabled  TYPE abap_bool.
 
-    LOOP AT it_icon_bar INTO DATA(ls_icon).
+    IF it_entries IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    LOOP AT it_entries INTO DATA(ls_icon).
       IF ls_icon-separator = abap_true.
         lv_buttons = lv_buttons && '<span class="wb-toolbar-separator" aria-hidden="true"></span>'.
       ENDIF.
@@ -169,7 +186,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       lv_type = COND #( WHEN iv_runtime = abap_true AND ls_icon-ucomm IS NOT INITIAL THEN `submit` ELSE `button` ).
       CLEAR lv_command.
       IF iv_runtime = abap_true AND lv_enabled = abap_true AND ls_icon-ucomm IS NOT INITIAL.
-        lv_command = | form="{ form_dispatch }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"|.
+        lv_command = | form="{ iv_content_form }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"|.
       ENDIF.
       lv_buttons = lv_buttons &&
         |<button class="wb-toolbar-button" type="{ lv_type }"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" title="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" data-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"{ lv_state }>| &&
@@ -302,6 +319,21 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && '</form>' &&
       COND string( WHEN iv_error IS INITIAL THEN `` ELSE |<div id="wb-command-error" class="wb-command-error" role="alert" aria-live="assertive">{ zcl_gg_host_html=>escape_text( iv_error ) }</div>| ) &&
       lv_buttons && lv_forms && '</section>'.
+  ENDMETHOD.
+
+  METHOD render_breadcrumbs.
+    IF it_breadcrumbs IS INITIAL.
+      RETURN.
+    ENDIF.
+    rv_html = '<nav class="wb-breadcrumbs" aria-label="Breadcrumb"><ol>'.
+    LOOP AT it_breadcrumbs INTO DATA(ls_breadcrumb).
+      IF ls_breadcrumb-current = abap_true.
+        rv_html = rv_html && |<li><span aria-current="page" data-breadcrumb-target="{ zcl_gg_host_html=>escape_attribute( ls_breadcrumb-target ) }">{ zcl_gg_host_html=>escape_text( ls_breadcrumb-label ) }</span></li>|.
+      ELSE.
+        rv_html = rv_html && |<li><span data-breadcrumb-target="{ zcl_gg_host_html=>escape_attribute( ls_breadcrumb-target ) }">{ zcl_gg_host_html=>escape_text( ls_breadcrumb-label ) }</span></li>|.
+      ENDIF.
+    ENDLOOP.
+    rv_html = rv_html && '</ol></nav>'.
   ENDMETHOD.
 
   METHOD render_bottom.

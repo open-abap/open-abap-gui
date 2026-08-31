@@ -84,6 +84,10 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_status) TYPE zif_gg_session_types_v1=>ty_gui_status.
 
+    METHODS get_breadcrumbs
+      RETURNING
+        VALUE(rt_breadcrumbs) TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
+
     METHODS get_settings
       RETURNING
         VALUE(rs_settings) TYPE zif_gg_list_processing_types_v1=>ty_settings.
@@ -120,6 +124,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA ms_settings  TYPE zif_gg_list_processing_types_v1=>ty_settings.
     DATA ms_format    TYPE zif_gg_list_processing_types_v1=>ty_format.
     DATA ms_status    TYPE zif_gg_session_types_v1=>ty_gui_status.
+    DATA mt_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
     DATA mt_lines     TYPE ty_text_lines.
     DATA mt_line_formats TYPE ty_line_formats.
     DATA mt_hidden_lines TYPE ty_hidden_lines.
@@ -681,13 +686,18 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     mt_lines[ is_line-index ] = is_line-text.
     IF is_line-index <= lines( mt_render_lines ).
       mt_render_lines[ is_line-index ]-text = is_line-text.
-      CLEAR mt_render_lines[ is_line-index ]-fragments.
-      APPEND VALUE #( kind     = 'TEXT'
-                      text     = is_line-text
-                      position = 1
-                      length   = strlen( is_line-text )
-                      format   = is_line-format )
-        TO mt_render_lines[ is_line-index ]-fragments.
+      IF mt_render_lines[ is_line-index ]-fragments IS INITIAL.
+        APPEND VALUE #( kind     = 'TEXT'
+                        text     = is_line-text
+                        position = 1
+                        length   = strlen( is_line-text )
+                        format   = is_line-format )
+          TO mt_render_lines[ is_line-index ]-fragments.
+      ELSE.
+        LOOP AT mt_render_lines[ is_line-index ]-fragments ASSIGNING FIELD-SYMBOL(<ls_fragment>).
+          <ls_fragment>-format = is_line-format.
+        ENDLOOP.
+      ENDIF.
     ENDIF.
     IF is_line-index <= lines( mt_line_formats ).
       mt_line_formats[ is_line-index ] = is_line-format.
@@ -699,7 +709,25 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~set_status.
+    DATA(lv_error) = zcl_gg_host_status=>validate( is_status ).
+    IF lv_error IS NOT INITIAL.
+      RAISE EXCEPTION NEW zcx_gg_control_flow(
+        iv_kind      = zcx_gg_control_flow=>kind_unsupported
+        iv_operation = lv_error ).
+    ENDIF.
     ms_status = is_status.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_session_v1~set_breadcrumbs.
+    mt_breadcrumbs = it_breadcrumbs.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_session_v1~get_breadcrumbs.
+    rt_breadcrumbs = mt_breadcrumbs.
+  ENDMETHOD.
+
+  METHOD get_breadcrumbs.
+    rt_breadcrumbs = mt_breadcrumbs.
   ENDMETHOD.
 
 ENDCLASS.

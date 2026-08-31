@@ -267,6 +267,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       iv_help_request  = CONV zif_gg_dynpro_types_v1=>ty_name(
                            COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_help
                                         THEN is_request-target ELSE `` ) )
+      iv_screen        = ls_session-last_dynpro-screen
       iv_session_id    = ls_session-session_id
       iv_page_id       = lv_page_id ).
     ls_session-next_page = ls_session-next_page + 1.
@@ -409,6 +410,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_batch         = ls_session-batch
           it_input         = lt_input
           iv_ucomm         = lv_ucomm
+          iv_user_command  = COND #(
+            WHEN is_request-ucomm IS NOT INITIAL
+            THEN CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm ) )
           iv_selection_screen = COND #(
             WHEN ls_session-pending_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
             THEN CONV #( ls_session-pending_navigation-target )
@@ -546,6 +550,16 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         rv_error = 'Command is not active for the current host page'.
       ENDIF.
       RETURN.
+    ENDIF.
+
+    IF is_page-kind = zif_gg_host_html_v1=>page_list
+        AND is_request-action = zif_gg_host_html_v1=>action_submit
+        AND is_request-ucomm IS NOT INITIAL.
+      lv_ucomm = CONV #( is_request-ucomm ).
+      IF NOT line_exists( is_page-status-active_ucomm[ table_line = lv_ucomm ] )
+          OR line_exists( is_page-status-excluded_ucomm[ table_line = lv_ucomm ] ).
+        rv_error = 'Command is not active for the current host page'.
+      ENDIF.
     ENDIF.
 
     IF is_request-action = zif_gg_host_html_v1=>action_pf

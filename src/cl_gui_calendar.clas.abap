@@ -148,9 +148,15 @@ CLASS cl_gui_calendar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD refresh_html.
+    DATA lv_focus_date TYPE string.
+
+    lv_focus_date = CONV string( mv_focus_date ).
+    IF strlen( lv_focus_date ) = 8.
+      lv_focus_date = |{ substring( val = lv_focus_date off = 0 len = 4 ) }-{ substring( val = lv_focus_date off = 4 len = 2 ) }-{ substring( val = lv_focus_date off = 6 len = 2 ) }|.
+    ENDIF.
     cl_gui_control=>set_html(
       control = me
-      html = |<label for="{ control_id }-date">Focus date</label><input type="date" id="{ control_id }-date" name="{ control_id }-date" value="{ escape_html( CONV string( mv_focus_date ) ) }">| ).
+      html = |<label for="{ control_id }-date">Focus date</label><input type="date" id="{ control_id }-date" name="{ control_id }-date" value="{ escape_html( lv_focus_date ) }">| ).
     cl_gui_control=>set_payload(
       control = me
       payload = |{ CONV string( mv_date_begin ) }/{ CONV string( mv_date_end ) }| ).

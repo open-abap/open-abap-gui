@@ -12,7 +12,7 @@ for (const route of [
     await expect(page.getByRole("menubar", {name: "Main menu"})).toBeVisible();
     await expect(page.locator(".wb-commandbar")).toBeVisible();
     await expect(page.locator(".wb-appbar")).toBeVisible();
-    await expect(page.locator(".wb-toolbar")).toBeVisible();
+    await expect(page.locator(".wb-toolbar")).toHaveCount(0);
     await expect(page.locator(".wb-statusbar")).toBeVisible();
     const expectedTitle = {
       "/ZCL_GG_INTEGRATION_HTML_REPORT": "Selection",

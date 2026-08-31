@@ -45,6 +45,7 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'DIALOGBOX_CONTAINER' ).
+    cl_gui_control=>set_payload( control = me payload = CONV string( caption ) ).
     set_position( height = height width = width left = left top = top ).
     IF parent IS BOUND.
       parent->add_child( me ).

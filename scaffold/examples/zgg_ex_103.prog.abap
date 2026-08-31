@@ -1,0 +1,9 @@
+REPORT zgg_ex_103.
+PARAMETERS p_enable AS CHECKBOX.
+PARAMETERS p_dep TYPE c LENGTH 20.
+AT SELECTION-SCREEN OUTPUT.
+  LOOP AT SCREEN.
+    IF screen-name = 'P_DEP' AND p_enable IS INITIAL.
+      screen-input = 0.
+    ENDIF.
+  ENDLOOP.

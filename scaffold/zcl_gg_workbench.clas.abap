@@ -110,13 +110,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
       iv_command    = iv_command
       iv_session_id = iv_session_id
-      iv_page_id    = iv_page_id
-      it_icon_bar = VALUE #(
-        ( label = `Create`           icon = `plus` )
-        ( label = `Open`             icon = `folder-open` )
-        ( label = `Add to favorites` icon = `star` )
-        ( label = `Edit`             icon = `edit` )
-        ( label = `Refresh`          icon = `refresh` ) ) ).
+      iv_page_id    = iv_page_id ).
     rv_html = rv_html && '<div class="wb-workspace"><aside class="wb-app-panel"><div class="wb-app-heading">Applications</div><nav aria-label="Applications"><ul class="wb-app-list">'.
     LOOP AT lt_transactions INTO ls_transaction.
       lv_tcode_url = cl_http_utility=>escape_url( CONV string( ls_transaction-tcode ) ).

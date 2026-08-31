@@ -792,7 +792,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     result = result && |</tr></thead><tbody>|.
     LOOP AT mt_html_rows INTO DATA(ls_row).
       DATA(lv_selected) = COND string( WHEN line_exists( mt_selected_rows[ index = ls_row-index ] ) THEN ` selected` ELSE `` ).
-      result = result && |<tr data-row-index="{ ls_row-index }"{ lv_selected }><td><input type="checkbox" name="gg-alv-row-{ ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected IS NOT INITIAL THEN ` checked` ELSE `` ) }></td>|.
+      result = result && |<tr data-row-index="{ ls_row-index }"{ lv_selected }><td><input type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected IS NOT INITIAL THEN ` checked` ELSE `` ) }></td>|.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
         result = result && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
       ENDLOOP.

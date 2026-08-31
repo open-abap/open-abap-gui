@@ -76,6 +76,10 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rt_tabs) TYPE ty_tabs.
 
+    METHODS select_tab
+      IMPORTING
+        iv_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
+
     METHODS get_snapshot
       IMPORTING
         iv_screen          TYPE zif_gg_selection_screen_types=>ty_screen_number OPTIONAL
@@ -137,16 +141,17 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS add_state
       IMPORTING
-        iv_name        TYPE zif_gg_selection_screen_types=>ty_name
-        iv_text        TYPE string OPTIONAL
-        iv_modif_id    TYPE zif_gg_selection_screen_types=>ty_modif_id OPTIONAL
-        iv_memory_id   TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
-        iv_search_help TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
-        iv_lower_case  TYPE abap_bool OPTIONAL
-        iv_no_display  TYPE abap_bool OPTIONAL
-        iv_value_help  TYPE abap_bool OPTIONAL
-        iv_group1      TYPE zif_gg_selection_screen_types=>ty_group OPTIONAL
-        iv_obligatory  TYPE abap_bool OPTIONAL.
+        iv_name         TYPE zif_gg_selection_screen_types=>ty_name
+        iv_text         TYPE string OPTIONAL
+        iv_modif_id     TYPE zif_gg_selection_screen_types=>ty_modif_id OPTIONAL
+        iv_memory_id    TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
+        iv_search_help  TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
+        iv_lower_case   TYPE abap_bool OPTIONAL
+        iv_no_display   TYPE abap_bool OPTIONAL
+        iv_value_help   TYPE abap_bool OPTIONAL
+        iv_group1       TYPE zif_gg_selection_screen_types=>ty_group OPTIONAL
+        it_fixed_values TYPE zif_gg_selection_screen_types=>ty_fixed_values OPTIONAL
+        iv_obligatory   TYPE abap_bool OPTIONAL.
 
 ENDCLASS.
 
@@ -166,6 +171,12 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
 
   METHOD get_tabs.
     rt_tabs = mt_tabs.
+  ENDMETHOD.
+
+  METHOD select_tab.
+    LOOP AT mt_tabs ASSIGNING FIELD-SYMBOL(<ls_tab>).
+      <ls_tab>-selected = xsdbool( <ls_tab>-ucomm = iv_ucomm ).
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_snapshot.
@@ -256,6 +267,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     ls_state-no_display = iv_no_display.
     ls_state-value_help = iv_value_help.
     ls_state-group1 = iv_group1.
+    ls_state-fixed_values = it_fixed_values.
     ls_state-visible = abap_true.
     ls_state-enabled = abap_true.
     ls_state-input = abap_true.
@@ -335,6 +347,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_name       = is_listbox-name
       iv_text       = is_listbox-text
       iv_modif_id   = is_listbox-modif_id
+      it_fixed_values = is_listbox-fixed_values
       iv_obligatory = is_listbox-obligatory ).
     add_element(
       iv_kind         = 'LISTBOX'
