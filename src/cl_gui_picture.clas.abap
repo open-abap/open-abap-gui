@@ -54,16 +54,19 @@ CLASS cl_gui_picture IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD load_picture_from_url.
-    cl_gui_control=>set_payload( control = me payload = CONV string( url ) ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = CONV string( url ) ).
     result = 0.
   ENDMETHOD.
 
   METHOD load_picture_from_url_async.
-    cl_gui_control=>set_payload( control = me payload = CONV string( url ) ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = CONV string( url ) ).
   ENDMETHOD.
 
   METHOD clear_picture.
-    cl_gui_control=>set_payload( control = me payload = `` ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = `` ).
   ENDMETHOD.
 
   METHOD constructor.

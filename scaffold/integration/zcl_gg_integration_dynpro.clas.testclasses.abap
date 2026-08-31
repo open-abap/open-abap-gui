@@ -26,7 +26,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD calls_next_screen.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'NEXT' ).
+      iv_ucomm   = 'NEXT' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-screen
@@ -36,7 +36,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD asserts_screen_sequence.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'NEXT' ).
+      iv_ucomm   = 'NEXT' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-terminal
@@ -49,7 +49,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD runs_pbo_on_entry.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'NEXT' ).
+      iv_ucomm   = 'NEXT' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'PBO_0200' ]-value
@@ -59,7 +59,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD runs_pai_on_leave.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'NEXT' ).
+      iv_ucomm   = 'NEXT' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'PAI_0100' ]-value
@@ -69,7 +69,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD handles_back_navigation.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'BACK' ).
+      iv_ucomm   = 'BACK' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-screen
@@ -82,7 +82,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD retains_back_state.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'BACK' ).
+      iv_ucomm   = 'BACK' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'P_STATE' ]-value
@@ -93,7 +93,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD combines_list_navigation.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'LIST' ).
+      iv_ucomm   = 'LIST' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
@@ -105,7 +105,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD isolates_list_state.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'BACK' ).
+      iv_ucomm   = 'BACK' ).
 
     cl_abap_unit_assert=>assert_initial( ls_result-lines ).
   ENDMETHOD.
@@ -113,7 +113,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD returns_html_page.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'BACK' ).
+      iv_ucomm   = 'BACK' ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-page_kind
@@ -127,7 +127,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
 
   METHOD skips_pai_when_not_submitted.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
-      io_program = NEW zcl_gg_integration_dynpro( )
+      io_program   = NEW zcl_gg_integration_dynpro( )
       iv_submitted = abap_false ).
 
     cl_abap_unit_assert=>assert_initial( ls_result-values[ name = 'PAI_0100' ]-value ).
@@ -158,12 +158,12 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     INSERT VALUE #( name = 'IN' value = 'value' ) INTO TABLE lt_values.
     DATA(lv_html) = zcl_gg_host_renderer=>render_dynpro(
       iv_session_id = 'S'
-      iv_page_id = 'P'
-      is_screen = ls_screen
-      it_controls = lt_controls
-      it_values = lt_values
-      it_states = lt_states
-      is_cursor = VALUE #( field = 'IN' row = 0 ) ).
+      iv_page_id    = 'P'
+      is_screen     = ls_screen
+      it_controls   = lt_controls
+      it_values     = lt_values
+      it_states     = lt_states
+      is_cursor     = VALUE #( field = 'IN' row = 0 ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'type="checkbox"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'name="gg-radio-G"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-table-control="gg-dynpro-control-n-TC"' ) ).
@@ -177,13 +177,13 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
 
   METHOD maps_module_context.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
-      io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'CONTEXT'
-      iv_field = 'COL'
-      iv_row = 2
+      io_program      = NEW zcl_gg_integration_dynpro( )
+      iv_ucomm        = 'CONTEXT'
+      iv_field        = 'COL'
+      iv_row          = 2
       iv_cursor_field = 'COL'
-      iv_cursor_row = 2
-      it_values = VALUE #( ( container = 'TC' name = 'COL' row = 2 value = 'cell' ) ) ).
+      iv_cursor_row   = 2
+      it_values       = VALUE #( ( container = 'TC' name = 'COL' row = 2 value = 'cell' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'PAI_FIELD' ]-value
@@ -207,8 +207,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
 
   METHOD drives_pov_and_poh.
     DATA(ls_value_result) = zcl_gg_host_dynpro=>run(
-      io_program = NEW zcl_gg_integration_dynpro( )
-      iv_submitted = abap_false
+      io_program       = NEW zcl_gg_integration_dynpro( )
+      iv_submitted     = abap_false
       iv_value_request = 'P_INPUT' ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_value_result-help_values[ name = 'POV_VALUE' ]-value
@@ -216,8 +216,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_value_result-html CS 'gg-value-help' ) ).
 
     DATA(ls_help_result) = zcl_gg_host_dynpro=>run(
-      io_program = NEW zcl_gg_integration_dynpro( )
-      iv_submitted = abap_false
+      io_program      = NEW zcl_gg_integration_dynpro( )
+      iv_submitted    = abap_false
       iv_help_request = 'P_INPUT' ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_help_result-help_text
@@ -244,7 +244,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     lo_builder->zif_gg_dynpro_builder_v1~add_table_column( VALUE #( table_control = 'TC' name = 'COL' ) ).
     lo_builder->zif_gg_dynpro_builder_v1~end_table_control( ).
     lo_builder->zif_gg_dynpro_builder_v1~end_screen( ).
-    cl_abap_unit_assert=>assert_equals( act = lines( lo_builder->get_controls( ) ) exp = 14 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lo_builder->get_controls( ) )
+                                        exp = 14 ).
 
     DATA(lo_flow) = NEW zcl_gg_host_dynpro_flow( ).
     lo_flow->zif_gg_dynpro_flow_builder_v1~begin_screen( '0100' ).
@@ -269,12 +270,13 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     lo_flow->zif_gg_dynpro_flow_builder_v1~call_subscreen( VALUE #( area = 'S' screen = '0200' ) ).
     lo_flow->zif_gg_dynpro_flow_builder_v1~end_screen( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lines( lo_flow->get_steps( ) ) >= 18 ) ).
-    cl_abap_unit_assert=>assert_equals( act = lines( lo_flow->get_modules( ) ) exp = 4 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lo_flow->get_modules( ) )
+                                        exp = 4 ).
   ENDMETHOD.
 
   METHOD renders_editable_input.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
-      io_program = NEW zcl_gg_integration_dynpro( )
+      io_program   = NEW zcl_gg_integration_dynpro( )
       iv_submitted = abap_false ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'name="P_INPUT"' ) ).
@@ -285,19 +287,20 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD retains_entered_input.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'NEXT'
-      it_values = VALUE #( ( name = 'P_INPUT' value = 'entered flight' ) ) ).
+      iv_ucomm   = 'NEXT'
+      it_values  = VALUE #( ( name = 'P_INPUT' value = 'entered flight' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'P_INPUT' ]-value
       exp = 'entered flight' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-screen exp = '0200' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-screen
+                                        exp = '0200' ).
   ENDMETHOD.
 
   METHOD reaches_terminal_state.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm = 'EXIT' ).
+      iv_ucomm   = 'EXIT' ).
 
     cl_abap_unit_assert=>assert_true( ls_result-terminal_state ).
   ENDMETHOD.

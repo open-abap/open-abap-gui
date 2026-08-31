@@ -30,7 +30,7 @@ CLASS zcl_gg_integration_selection IMPLEMENTATION.
 
     LOOP AT it_flights INTO DATA(ls_flight).
       lo_writer->write_field( VALUE #(
-        text = |{ ls_flight-carrid }/{ ls_flight-connid }|
+        text      = |{ ls_flight-carrid }/{ ls_flight-connid }|
         placement = VALUE #( new_line = abap_true ) ) ).
     ENDLOOP.
 
@@ -49,9 +49,9 @@ CLASS zcl_gg_integration_selection IMPLEMENTATION.
           default   = 'LH' ) ).
       WHEN 'REQUIRED'.
         io_builder->add_parameter( VALUE #(
-          name      = 'P_CARR'
-          text      = 'Carrier'
-          data_type = VALUE #( typ = 'C' length = 3 )
+          name       = 'P_CARR'
+          text       = 'Carrier'
+          data_type  = VALUE #( typ = 'C' length = 3 )
           obligatory = abap_true ) ).
       WHEN 'INVALID'.
         io_builder->add_parameter( VALUE #(
@@ -60,19 +60,19 @@ CLASS zcl_gg_integration_selection IMPLEMENTATION.
           data_type = VALUE #( typ = 'C' length = 3 ) ) ).
       WHEN 'RANGE' OR 'MULTI' OR 'VALUE_REQUEST' OR 'CANCEL_VALUE'.
         io_builder->add_select_option( VALUE #(
-          name      = 'S_CARR'
-          text      = 'Carrier'
-          data_type = VALUE #( typ = 'C' length = 3 )
-          default = VALUE #(
-            sign = zif_gg_selection_screen_types=>sign_include
+          name       = 'S_CARR'
+          text       = 'Carrier'
+          data_type  = VALUE #( typ = 'C' length = 3 )
+          default    = VALUE #(
+            sign   = zif_gg_selection_screen_types=>sign_include
             option = zif_gg_selection_screen_types=>option_eq
-            low = 'AA' )
+            low    = 'AA' )
           value_help = xsdbool( mv_mode = 'VALUE_REQUEST' OR mv_mode = 'CANCEL_VALUE' ) ) ).
       WHEN 'DATE_REQUEST'.
         io_builder->add_select_option( VALUE #(
-          name      = 'S_DATE'
-          text      = 'Flight date'
-          data_type = VALUE #( typ = 'D' length = 8 )
+          name       = 'S_DATE'
+          text       = 'Flight date'
+          data_type  = VALUE #( typ = 'D' length = 8 )
           value_help = abap_true ) ).
       WHEN OTHERS.
         RETURN.
@@ -83,8 +83,8 @@ CLASS zcl_gg_integration_selection IMPLEMENTATION.
     IF mv_mode = 'INVALID'
         AND ct_values[ name = 'P_CARR' ]-value = 'ZZZ'.
       io_session->message( VALUE #(
-        type = zif_gg_session_types_v1=>message_type_error
-        text = 'Unknown carrier'
+        type  = zif_gg_session_types_v1=>message_type_error
+        text  = 'Unknown carrier'
         field = 'P_CARR' ) ).
     ENDIF.
   ENDMETHOD.

@@ -9,8 +9,8 @@ CLASS ltcl_ex_47 IMPLEMENTATION.
 
   METHOD returns_cursor_context.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report      = NEW zcl_gg_ex_047( )
-      iv_line_index  = 1
+      io_report       = NEW zcl_gg_ex_047( )
+      iv_line_index   = 1
       iv_cursor_field = 'GV_FIELD' ).
 
     cl_abap_unit_assert=>assert_equals(

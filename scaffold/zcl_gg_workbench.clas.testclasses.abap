@@ -27,7 +27,7 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
 
     DATA(lv_error_html) = zcl_gg_workbench=>render_error(
       iv_command = `/nzgg_ex_999`
-      iv_error = `Unknown <transaction> & code` ).
+      iv_error   = `Unknown <transaction> & code` ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'wb-status-error' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'Unknown &lt;transaction&gt; &amp; code' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'aria-live="assertive"' ) ).

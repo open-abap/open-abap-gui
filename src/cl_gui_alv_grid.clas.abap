@@ -744,7 +744,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       ls_row = VALUE #( index = sy-tabix ).
       IF mt_fieldcatalog IS INITIAL.
         APPEND VALUE #( fieldname = `VALUE`
-                        text = |{ <row> }| ) TO ls_row-cells.
+                        text      = |{ <row> }| ) TO ls_row-cells.
       ELSE.
         lv_has_component = abap_false.
         LOOP AT mt_fieldcatalog INTO ls_fieldcat.
@@ -752,7 +752,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
             ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO <component>.
             IF sy-subrc = 0.
               APPEND VALUE #( fieldname = ls_fieldcat-fieldname
-                              text = |{ <component> }| ) TO ls_row-cells.
+                              text      = |{ <component> }| ) TO ls_row-cells.
               lv_has_component = abap_true.
             ENDIF.
           ENDIF.
@@ -761,7 +761,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           READ TABLE mt_fieldcatalog INTO ls_fieldcat INDEX 1.
           IF sy-subrc = 0.
             APPEND VALUE #( fieldname = ls_fieldcat-fieldname
-                            text = |{ <row> }| ) TO ls_row-cells.
+                            text      = |{ <row> }| ) TO ls_row-cells.
           ENDIF.
         ENDIF.
       ENDIF.

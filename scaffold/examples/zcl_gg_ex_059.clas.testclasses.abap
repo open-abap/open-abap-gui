@@ -6,9 +6,12 @@ ENDCLASS.
 CLASS ltcl_ex_59 IMPLEMENTATION.
   METHOD owns_refresh_and_print.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_059( ) ).
-    cl_abap_unit_assert=>assert_equals( act = lines( ls_result-status-icon_bar ) exp = 2 ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-status-icon_bar[ 1 ]-label exp = 'Refresh' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-status-icon_bar[ 2 ]-ucomm exp = 'PRI' ).
+    cl_abap_unit_assert=>assert_equals( act = lines( ls_result-status-icon_bar )
+                                        exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-status-icon_bar[ 1 ]-label
+                                        exp = 'Refresh' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-status-icon_bar[ 2 ]-ucomm
+                                        exp = 'PRI' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="wb-toolbar-button' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS 'Create' ) ).
   ENDMETHOD.

@@ -19,8 +19,8 @@ CLASS cl_gui_selector IMPLEMENTATION.
     super->constructor( ).
     cl_gui_control=>initialize(
       control = me
-      parent = parent
-      kind = 'SELECTOR' ).
+      parent  = parent
+      kind    = 'SELECTOR' ).
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.

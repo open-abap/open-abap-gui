@@ -10,7 +10,7 @@ CLASS ltcl_ex_32 IMPLEMENTATION.
   METHOD rejects_too_many_ranges.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_ex_032( )
-      it_input  = VALUE #( ( name = 'S_CARR'
+      it_input  = VALUE #( ( name   = 'S_CARR'
                              ranges = VALUE #(
                                ( sign = 'I' option = 'EQ' low = 'AA' )
                                ( sign = 'I' option = 'EQ' low = 'BB' )

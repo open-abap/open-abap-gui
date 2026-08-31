@@ -92,7 +92,7 @@ CLASS lcl_report IMPLEMENTATION.
       WHEN 'GUI'.
         lo_gui_container = NEW cl_gui_custom_container( container_name = 'HOST_GUI' ).
         lo_gui_textedit = NEW cl_gui_textedit(
-          parent = lo_gui_container
+          parent                     = lo_gui_container
           wordwrap_to_linebreak_mode = 0 ).
         lo_gui_textedit->set_textstream( '<report text>' ).
         lo_gui_tree = NEW cl_gui_alv_tree( parent = lo_gui_container ).
@@ -188,8 +188,8 @@ CLASS lcl_report IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen.
     IF mv_mode = 'OUTPUT'.
       io_session->message( VALUE #(
-        type  = zif_gg_session_types_v1=>message_type_error
-        text  = 'Output mutation test' ) ).
+        type = zif_gg_session_types_v1=>message_type_error
+        text = 'Output mutation test' ) ).
     ENDIF.
   ENDMETHOD.
 
@@ -416,8 +416,8 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( ls_duplicate-valid ).
     DATA(ls_missing) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = 'missing'
-      page_id = 'missing'
-      action = zif_gg_host_html_v1=>action_submit ) ).
+      page_id    = 'missing'
+      action     = zif_gg_host_html_v1=>action_submit ) ).
     cl_abap_unit_assert=>assert_false( ls_missing-valid ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
@@ -583,8 +583,10 @@ CLASS ltcl_host IMPLEMENTATION.
       page_id    = ls_detail-page_id
       action     = zif_gg_host_html_v1=>action_back ) ).
     cl_abap_unit_assert=>assert_true( ls_back-valid ).
-    cl_abap_unit_assert=>assert_equals( act = ls_back-page_id exp = ls_start-page_id ).
-    cl_abap_unit_assert=>assert_equals( act = lines( ls_back-pages ) exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = ls_back-page_id
+                                        exp = ls_start-page_id ).
+    cl_abap_unit_assert=>assert_equals( act = lines( ls_back-pages )
+                                        exp = 2 ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 
@@ -599,11 +601,12 @@ CLASS ltcl_host IMPLEMENTATION.
 
     DATA(ls_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_start-session_id
-      page_id = ls_start-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      ucomm = 'NEXT' ) ).
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      ucomm      = 'NEXT' ) ).
     cl_abap_unit_assert=>assert_true( ls_next-valid ).
-    cl_abap_unit_assert=>assert_equals( act = ls_next-current_page-screen exp = '0200' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_next-current_page-screen
+                                        exp = '0200' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_next-html CS 'data-screen="0200"' ) ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
@@ -613,27 +616,32 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_selection-navigation-kind
       exp = zcx_gg_control_flow=>kind_call_selection_screen ).
-    cl_abap_unit_assert=>assert_equals( act = ls_selection-navigation-target exp = '0500' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_selection-navigation-continuation exp = 'AFTER_0500' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_selection-navigation-target
+                                        exp = '0500' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_selection-navigation-continuation
+                                        exp = 'AFTER_0500' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'gg-navigation' ) ).
 
     DATA(ls_screen) = zcl_gg_host=>run( NEW zcl_gg_ex_052( ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_screen-navigation-kind
       exp = zcx_gg_control_flow=>kind_call_screen ).
-    cl_abap_unit_assert=>assert_equals( act = ls_screen-navigation-target exp = '0100' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_screen-navigation-target
+                                        exp = '0100' ).
 
     DATA(ls_submit) = zcl_gg_host=>run( NEW zcl_gg_ex_054( ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_submit-navigation-kind
       exp = zcx_gg_control_flow=>kind_submit_return ).
-    cl_abap_unit_assert=>assert_equals( act = ls_submit-navigation-target exp = 'ZGG_EX_020' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_submit-navigation-target
+                                        exp = 'ZGG_EX_020' ).
 
     DATA(ls_transaction) = zcl_gg_host=>run( NEW zcl_gg_ex_056( ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_transaction-navigation-kind
       exp = zcx_gg_control_flow=>kind_call_transaction ).
-    cl_abap_unit_assert=>assert_equals( act = ls_transaction-navigation-target exp = 'SE38' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_transaction-navigation-target
+                                        exp = 'SE38' ).
   ENDMETHOD.
 
   METHOD runtime_navigation_roundtrips.
@@ -694,7 +702,7 @@ CLASS ltcl_host IMPLEMENTATION.
 
   METHOD structured_memory_list.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_ex_055( )
+      io_report        = NEW zcl_gg_ex_055( )
       io_submit_report = NEW lcl_report( 'HELLO' ) ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -725,13 +733,13 @@ CLASS ltcl_host IMPLEMENTATION.
     lo_screen->zif_gg_selection_screen_builder_v1~end_tabbed_block( ).
     DATA(lv_html) = zcl_gg_host_renderer=>render_selection(
       iv_session_id = 'S'
-      iv_page_id = 'P'
-      iv_title = 'Selection'
-      it_values = lo_screen->get_values( )
-      it_states = lo_screen->get_states( )
-      it_blocks = lo_screen->get_blocks( )
-      it_elements = lo_screen->get_elements( )
-      it_tabs = lo_screen->get_tabs( ) ).
+      iv_page_id    = 'P'
+      iv_title      = 'Selection'
+      it_values     = lo_screen->get_values( )
+      it_states     = lo_screen->get_states( )
+      it_blocks     = lo_screen->get_blocks( )
+      it_elements   = lo_screen->get_elements( )
+      it_tabs       = lo_screen->get_tabs( ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'type="checkbox"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-radio-GRP' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;A&gt;' ) ).

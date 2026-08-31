@@ -21,14 +21,14 @@ CLASS zcl_gg_integration_variants IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_parameter( VALUE #(
-      name = 'P_CARR'
-      text = 'Carrier'
-      default = 'AA'
+      name      = 'P_CARR'
+      text      = 'Carrier'
+      default   = 'AA'
       data_type = VALUE #( typ = 'C' length = 3 ) ) ).
     io_builder->add_parameter( VALUE #(
-      name = 'P_DATE'
-      text = 'Date'
-      default = '20260101'
+      name      = 'P_DATE'
+      text      = 'Date'
+      default   = '20260101'
       data_type = VALUE #( typ = 'D' length = 8 ) ) ).
   ENDMETHOD.
 
@@ -55,13 +55,13 @@ CLASS zcl_gg_integration_variants IMPLEMENTATION.
     CASE mv_mode.
       WHEN 'MEMORY'.
         io_session->get_navigation( )->submit_and_return(
-          is_submit = VALUE #(
-            program = 'ZGG_EX_001'
+          is_submit       = VALUE #(
+            program        = 'ZGG_EX_001'
             list_to_memory = abap_true )
           is_continuation = VALUE #( id = 'AFTER_MEMORY' ) ).
       WHEN 'SAVE' OR 'OVERWRITE'.
         zcl_gg_host_variant=>save(
-          iv_name = 'FLIGHT_VARIANT'
+          iv_name   = 'FLIGHT_VARIANT'
           it_values = it_values ).
         lo_writer->write_field( VALUE #( text = |Saved { lv_carrid }/{ lv_date }| ) ).
       WHEN 'DELETE'.
@@ -85,17 +85,17 @@ CLASS zcl_gg_integration_variants IMPLEMENTATION.
       lo_list->enter_list_processing( ).
       DATA(ls_context) = lo_list->get_context( ).
       lo_list->get_writer( )->write_field( VALUE #(
-        text = |Memory level: { ls_context-level }|
+        text      = |Memory level: { ls_context-level }|
         placement = VALUE #( new_line = abap_true ) ) ).
       LOOP AT lt_lines INTO DATA(lv_line).
         lo_list->get_writer( )->write_field( VALUE #(
-          text = |Memory: { lv_line }|
+          text      = |Memory: { lv_line }|
           placement = VALUE #( new_line = abap_true ) ) ).
       ENDLOOP.
       lo_list->leave_list_processing( ).
       ls_context = lo_list->get_context( ).
       lo_list->get_writer( )->write_field( VALUE #(
-        text = |Restored memory level: { ls_context-level }|
+        text      = |Restored memory level: { ls_context-level }|
         placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.
   ENDMETHOD.

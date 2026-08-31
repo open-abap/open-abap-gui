@@ -179,7 +179,20 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         ct_states            TYPE zif_gg_selection_screen_types=>ty_states
         cv_ended             TYPE abap_bool.
 
-    CLASS-METHODS start_or_stop IMPORTING io_report TYPE REF TO zif_gg_report_v1 io_submit_report TYPE REF TO zif_gg_report_v1 OPTIONAL io_session TYPE REF TO zcl_gg_host_session is_resume_navigation TYPE zif_gg_host_html_v1=>ty_navigation is_resume_submit TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL it_input TYPE zif_gg_selection_screen_types=>ty_values iv_stop_before_start TYPE abap_bool CHANGING ct_values TYPE zif_gg_selection_screen_types=>ty_values ct_states TYPE zif_gg_selection_screen_types=>ty_states cv_ended TYPE abap_bool cv_selection_screen_active TYPE abap_bool.
+    CLASS-METHODS start_or_stop
+      IMPORTING
+        io_report                  TYPE REF TO zif_gg_report_v1
+        io_submit_report           TYPE REF TO zif_gg_report_v1 OPTIONAL
+        io_session                 TYPE REF TO zcl_gg_host_session
+        is_resume_navigation       TYPE zif_gg_host_html_v1=>ty_navigation
+        is_resume_submit           TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
+        it_input                   TYPE zif_gg_selection_screen_types=>ty_values
+        iv_stop_before_start       TYPE abap_bool
+      CHANGING
+        ct_values                  TYPE zif_gg_selection_screen_types=>ty_values
+        ct_states                  TYPE zif_gg_selection_screen_types=>ty_states
+        cv_ended                   TYPE abap_bool
+        cv_selection_screen_active TYPE abap_bool.
 
     CLASS-METHODS validate_required
       IMPORTING
@@ -246,7 +259,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       cs_result-help_name = iv_help_name.
       io_session->set_event( 'AT SELECTION-SCREEN ON HELP-REQUEST' ).
       cs_result-help_text = io_report->at_selection_screen_help_req(
-         iv_screen  = iv_selection_screen
+         iv_screen = iv_selection_screen
         iv_name    = iv_help_name
         it_values  = ct_values
         io_session = io_session ).
@@ -255,7 +268,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     IF iv_exit_ucomm IS NOT INITIAL.
       io_session->set_event( 'AT SELECTION-SCREEN ON EXIT-COMMAND' ).
       io_report->at_selection_screen_on_exit(
-         iv_screen  = iv_selection_screen
+         iv_screen = iv_selection_screen
         iv_ucomm   = iv_exit_ucomm
         it_values  = ct_values
         io_session = io_session ).
@@ -273,7 +286,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     io_session->set_event( 'AT SELECTION-SCREEN OUTPUT' ).
     io_report->at_selection_screen_output(
       EXPORTING
-         iv_screen  = iv_selection_screen
+         iv_screen = iv_selection_screen
         io_session = io_session
       CHANGING
         ct_values  = ct_values
@@ -290,10 +303,10 @@ CLASS zcl_gg_host IMPLEMENTATION.
     IF iv_value_request IS NOT INITIAL.
       run_value_request(
         EXPORTING
-        io_report  = io_report
-        io_session = io_session
-        iv_name    = iv_value_request
-        iv_screen  = iv_selection_screen
+        io_report   = io_report
+        io_session  = io_session
+        iv_name     = iv_value_request
+        iv_screen   = iv_selection_screen
         CHANGING
           ct_values = ct_values ).
     ENDIF.
@@ -438,13 +451,13 @@ CLASS zcl_gg_host IMPLEMENTATION.
 
         start_or_stop(
           EXPORTING
-            io_report            = io_report
-            io_submit_report     = io_submit_report
-            io_session           = lo_session
-            is_resume_navigation = is_resume_navigation
-            is_resume_submit     = is_resume_submit
-            it_input             = it_input
-            iv_stop_before_start = iv_stop_before_start
+            io_report                  = io_report
+            io_submit_report           = io_submit_report
+            io_session                 = lo_session
+            is_resume_navigation       = is_resume_navigation
+            is_resume_submit           = is_resume_submit
+            it_input                   = it_input
+            iv_stop_before_start       = iv_stop_before_start
           CHANGING
             ct_values                  = lt_values
             ct_states                  = lt_states
@@ -461,7 +474,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         rs_result-terminal = ls_flow_result-terminal.
         rs_result-transaction_call = lo_session->get_transaction_call( ).
         rs_result-navigation = navigation_for(
-          ix_flow = lx_flow
+          ix_flow    = lx_flow
           io_session = lo_session ).
         lv_selection_screen_active = xsdbool(
           lx_flow->mv_kind = zcx_gg_control_flow=>kind_message ).
@@ -491,15 +504,15 @@ CLASS zcl_gg_host IMPLEMENTATION.
           it_input   = it_retry_input
           it_states  = lt_states
         CHANGING
-          ct_values = lt_values
-          cv_ended  = lv_ended ).
+          ct_values  = lt_values
+          cv_ended   = lv_ended ).
 
       IF lv_call_selection = abap_true.
         resume_selection_call(
           EXPORTING
-          io_report  = io_report
-          io_session = lo_session
-          it_input   = it_input
+          io_report   = io_report
+          io_session  = lo_session
+          it_input    = it_input
           CHANGING
             ct_values = lt_values
             cv_ended  = lv_ended ).
@@ -513,9 +526,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
 
       IF lv_submit_return = abap_true AND io_submit_report IS BOUND.
         lv_ended = resume_submit_return(
-          io_report         = io_report
-          io_submit_report  = io_submit_report
-          io_session        = lo_session ).
+          io_report        = io_report
+          io_submit_report = io_submit_report
+          io_session       = lo_session ).
       ENDIF.
     ENDIF.
 
@@ -545,7 +558,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       iv_cursor_value = iv_cursor_value
       iv_pf_key       = iv_pf_key
       CHANGING
-        cv_ended       = lv_ended ).
+        cv_ended      = lv_ended ).
 
     rs_result-lines    = lo_list->finish_output( ).
     IF iv_ucomm <> 'ONLI'.
@@ -574,17 +587,17 @@ CLASS zcl_gg_host IMPLEMENTATION.
     rs_result-page_id = lv_page_id.
     render_result(
       EXPORTING
-        iv_session_id       = lv_session_id
-        iv_page_id          = lv_page_id
-        iv_program          = iv_program
-        iv_selection_screen = lv_display_screen
-        iv_selection_active = lv_selection_screen_active
-        iv_can_back         = iv_can_back
+        iv_session_id          = lv_session_id
+        iv_page_id             = lv_page_id
+        iv_program             = iv_program
+        iv_selection_screen    = lv_display_screen
+        iv_selection_active    = lv_selection_screen_active
+        iv_can_back            = iv_can_back
         iv_pause_at_navigation = iv_pause_at_navigation
-        iv_navigation       = rs_result-navigation
-        io_list             = lo_list
+        iv_navigation          = rs_result-navigation
+        io_list                = lo_list
       CHANGING
-        cs_result           = rs_result ).
+        cs_result              = rs_result ).
   ENDMETHOD.
 
   METHOD next_run_id.
@@ -639,7 +652,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         iv_page_id    = iv_page_id
         iv_title      = lv_title
         iv_text       = cs_result-terminal
-        is_context   = ls_context
+        is_context    = ls_context
         it_messages   = cs_result-messages ).
     ELSEIF iv_selection_active = abap_true.
       lv_page_kind = zif_gg_host_html_v1=>page_selection.
@@ -678,7 +691,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         iv_page_id    = iv_page_id
         iv_title      = lv_title
         iv_text       = cs_result-messages[ 1 ]-text
-        is_context   = ls_context
+        is_context    = ls_context
         it_messages   = cs_result-messages ).
     ELSE.
       lv_page_kind = zif_gg_host_html_v1=>page_list.
@@ -694,40 +707,40 @@ CLASS zcl_gg_host IMPLEMENTATION.
         lv_controls_html = cl_gui_control=>render_html( iv_document = abap_false ).
       ENDIF.
       cs_result-html = zcl_gg_host_renderer=>render_list(
-        iv_session_id = iv_session_id
-        iv_page_id    = iv_page_id
-        iv_title      = lv_title
-        it_lines      = io_list->get_render_lines( )
-        is_status     = cs_result-status
-        it_actions    = lt_actions
-        is_context    = ls_context
-        it_messages   = cs_result-messages
-        it_breadcrumbs = io_list->get_breadcrumbs( )
+        iv_session_id    = iv_session_id
+        iv_page_id       = iv_page_id
+        iv_title         = lv_title
+        it_lines         = io_list->get_render_lines( )
+        is_status        = cs_result-status
+        it_actions       = lt_actions
+        is_context       = ls_context
+        it_messages      = cs_result-messages
+        it_breadcrumbs   = io_list->get_breadcrumbs( )
         iv_controls_html = lv_controls_html ).
     ENDIF.
     IF lv_page_kind <> zif_gg_host_html_v1=>page_navigation.
       cs_result-html = zcl_gg_host_renderer=>with_navigation(
-        iv_html = cs_result-html
+        iv_html       = cs_result-html
         is_navigation = cs_result-navigation ).
     ENDIF.
     cs_result-page_kind = lv_page_kind.
     ls_page = VALUE #(
-      session_id = iv_session_id
-      page_id    = iv_page_id
-      kind       = lv_page_kind
-      processor  = ls_context-processor
-      status     = cs_result-status
+      session_id  = iv_session_id
+      page_id     = iv_page_id
+      kind        = lv_page_kind
+      processor   = ls_context-processor
+      status      = cs_result-status
       breadcrumbs = io_list->get_breadcrumbs( )
-      terminal   = xsdbool( cs_result-terminal IS NOT INITIAL )
-      navigation = cs_result-navigation
-      messages   = cs_result-messages
-      title      = lv_title
-      html       = cs_result-html ).
+      terminal    = xsdbool( cs_result-terminal IS NOT INITIAL )
+      navigation  = cs_result-navigation
+      messages    = cs_result-messages
+      title       = lv_title
+      html        = cs_result-html ).
     CASE lv_page_kind.
       WHEN zif_gg_host_html_v1=>page_selection.
-        APPEND VALUE #( kind = zif_gg_host_html_v1=>action_submit
+        APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_submit
                         ucomm = 'ONLI' ) TO ls_page-actions.
-        APPEND VALUE #( kind = zif_gg_host_html_v1=>action_exit
+        APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_exit
                         ucomm = 'ECAN' ) TO ls_page-actions.
       WHEN zif_gg_host_html_v1=>page_list.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_line ) TO ls_page-actions.
@@ -735,10 +748,10 @@ CLASS zcl_gg_host IMPLEMENTATION.
           APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO ls_page-actions.
         ENDIF.
       WHEN zif_gg_host_html_v1=>page_dynpro.
-        APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back
+        APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_back
                         ucomm = 'BACK' ) TO ls_page-actions.
       WHEN zif_gg_host_html_v1=>page_navigation.
-        APPEND VALUE #( kind = zif_gg_host_html_v1=>action_submit
+        APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_submit
                         ucomm = 'CONTINUE' ) TO ls_page-actions.
       WHEN OTHERS.
         CLEAR ls_page-actions.
@@ -812,7 +825,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         lo_resumable ?= io_report.
         IF lo_resumable IS BOUND.
           lo_resumable->resume(
-            is_resume = VALUE #( continuation = ls_continuation subrc = 0 )
+            is_resume  = VALUE #( continuation = ls_continuation subrc = 0 )
             io_session = io_session ).
         ENDIF.
       CATCH zcx_gg_control_flow.
@@ -910,7 +923,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         lo_resumable ?= io_report.
         IF lo_resumable IS BOUND.
           lo_resumable->resume(
-            is_resume = VALUE #( continuation = ls_continuation subrc = 0 )
+            is_resume  = VALUE #( continuation = ls_continuation subrc = 0 )
             io_session = io_session ).
         ENDIF.
       CATCH zcx_gg_control_flow.
@@ -974,8 +987,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
     IF is_navigation-kind = zcx_gg_control_flow=>kind_submit_return
         AND io_submit_report IS BOUND.
       ls_submit_result = run(
-        io_report = io_submit_report
-          it_input  = is_submit-values ).
+        io_report  = io_submit_report
+          it_input = is_submit-values ).
       io_session->set_list_from_memory(
         it_lines        = ls_submit_result-lines
         it_render_lines = ls_submit_result-render_lines ).
@@ -985,7 +998,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     lo_resumable ?= io_report.
     IF lo_resumable IS BOUND.
       lo_resumable->resume(
-        is_resume = VALUE #(
+        is_resume  = VALUE #(
           continuation = VALUE #( id = is_navigation-continuation )
           subrc        = 0 )
         io_session = io_session ).
@@ -1002,16 +1015,16 @@ CLASS zcl_gg_host IMPLEMENTATION.
     ELSE.
       resume_navigation(
         EXPORTING
-          io_report            = io_report
-          io_submit_report     = io_submit_report
-          io_session           = io_session
-          is_navigation        = is_resume_navigation
-          is_submit            = is_resume_submit
-          it_input             = it_input
+          io_report        = io_report
+          io_submit_report = io_submit_report
+          io_session       = io_session
+          is_navigation    = is_resume_navigation
+          is_submit        = is_resume_submit
+          it_input         = it_input
         CHANGING
-          ct_values            = ct_values
-          ct_states            = ct_states
-          cv_ended             = cv_ended ).
+          ct_values        = ct_values
+          ct_states        = ct_states
+          cv_ended         = cv_ended ).
     ENDIF.
   ENDMETHOD.
 

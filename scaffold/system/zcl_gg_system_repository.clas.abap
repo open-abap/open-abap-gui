@@ -32,11 +32,11 @@ CLASS zcl_gg_system_repository IMPLEMENTATION.
       RETURN.
     ENDIF.
     rs_program = VALUE #(
-      program     = 'ZGG_EX_015'
-      status      = 'ACTIVE'
-      executable  = abap_true
-      description = 'PARAMETERS with DEFAULT'
-      source_lines = VALUE string_table(
+      program       = 'ZGG_EX_015'
+      status        = 'ACTIVE'
+      executable    = abap_true
+      description   = 'PARAMETERS with DEFAULT'
+      source_lines  = VALUE string_table(
         ( `REPORT zgg_ex_015.` )
         ( `` )
         ( `PARAMETERS p_carr TYPE c LENGTH 3 DEFAULT 'LH'.` )
@@ -54,10 +54,10 @@ CLASS zcl_gg_system_repository IMPLEMENTATION.
     TRANSLATE lv_program TO UPPER CASE.
     IF lv_program = 'ZGG_EX_015'.
       rt_variants = VALUE #(
-        ( program = 'ZGG_EX_015'
-          name = 'DEFAULT'
+        ( program     = 'ZGG_EX_015'
+          name        = 'DEFAULT'
           description = 'Demo carrier LH'
-          values = VALUE #( ( name = 'P_CARR' value = 'LH' ) ) ) ).
+          values      = VALUE #( ( name = 'P_CARR' value = 'LH' ) ) ) ).
     ENDIF.
   ENDMETHOD.
 

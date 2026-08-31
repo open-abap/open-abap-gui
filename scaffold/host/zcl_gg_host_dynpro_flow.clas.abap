@@ -88,25 +88,30 @@ CLASS zcl_gg_host_dynpro_flow IMPLEMENTATION.
 
   METHOD zif_gg_dynpro_flow_builder_v1~begin_value_request.
     mv_phase = 'POV'.
-    add_step( iv_kind = 'VALUE_REQUEST' iv_field = iv_field ).
+    add_step( iv_kind  = 'VALUE_REQUEST'
+              iv_field = iv_field ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_flow_builder_v1~begin_help_request.
     mv_phase = 'POH'.
-    add_step( iv_kind = 'HELP_REQUEST' iv_field = iv_field ).
+    add_step( iv_kind  = 'HELP_REQUEST'
+              iv_field = iv_field ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_flow_builder_v1~add_field.
-    add_step( iv_kind = 'FIELD' iv_field = iv_field ).
+    add_step( iv_kind  = 'FIELD'
+              iv_field = iv_field ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_flow_builder_v1~add_module.
     APPEND VALUE #( screen = mv_screen phase = mv_phase module = is_module ) TO mt_modules.
-    add_step( iv_kind = 'MODULE' is_module = is_module ).
+    add_step( iv_kind   = 'MODULE'
+              is_module = is_module ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_flow_builder_v1~call_subscreen.
-    add_step( iv_kind = 'SUBSCREEN' is_subscreen = is_subscreen ).
+    add_step( iv_kind      = 'SUBSCREEN'
+              is_subscreen = is_subscreen ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_flow_builder_v1~begin_chain.
@@ -123,7 +128,8 @@ CLASS zcl_gg_host_dynpro_flow IMPLEMENTATION.
 
   METHOD zif_gg_dynpro_flow_builder_v1~begin_table_loop.
     mv_table_control = is_table_loop-table_control.
-    add_step( iv_kind = 'BEGIN_TABLE_LOOP' is_table_loop = is_table_loop ).
+    add_step( iv_kind       = 'BEGIN_TABLE_LOOP'
+              is_table_loop = is_table_loop ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_flow_builder_v1~end_table_loop.

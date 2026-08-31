@@ -16,7 +16,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lv_xpixel TYPE i.
 
     lv_xpixel = cl_gui_cfw=>compute_pixel_from_metric( x_or_y = 'X'
-                                                       in = 1 ).
+                                                       in     = 1 ).
 
     cl_abap_unit_assert=>assert_equals(
       act = lv_xpixel
@@ -27,10 +27,13 @@ CLASS ltcl_test IMPLEMENTATION.
   METHOD html_control_snapshot.
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ROOT' ).
     DATA(lo_textedit) = NEW cl_gui_textedit(
-      parent = lo_container
+      parent                     = lo_container
       wordwrap_to_linebreak_mode = 0 ).
     lo_textedit->set_textstream( '<unsafe>' ).
-    lo_textedit->set_position( left = 4 top = 5 width = 120 height = 30 ).
+    lo_textedit->set_position( left   = 4
+                               top    = 5
+                               width  = 120
+                               height = 30 ).
     DATA(lv_html) = cl_gui_control=>render_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<textarea' ) ).
@@ -46,8 +49,10 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lt_salv_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA lo_salv TYPE REF TO cl_salv_table.
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'REGISTRY' ).
-    DATA(lo_calendar) = NEW cl_gui_calendar( parent = lo_container focus_date = '20260828' ).
-    lo_calendar->set_selection( date_begin = '20260828' date_end = '20260829' ).
+    DATA(lo_calendar) = NEW cl_gui_calendar( parent     = lo_container
+                                             focus_date = '20260828' ).
+    lo_calendar->set_selection( date_begin = '20260828'
+                                date_end   = '20260829' ).
     DATA(lo_tree) = NEW cl_gui_alv_tree( parent = lo_container ).
     lo_tree->add_node(
       EXPORTING
@@ -63,7 +68,7 @@ CLASS ltcl_test IMPLEMENTATION.
     APPEND VALUE #( fieldname = 'VALUE' coltext = 'Value' ) TO lt_fcat.
     lo_grid->set_table_for_first_display(
       CHANGING
-        it_outtab = lt_rows
+        it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat ).
     APPEND '<script>alert(1)</script>' TO lt_html.
     lo_viewer->load_data( CHANGING data_table = lt_html ).
@@ -73,7 +78,7 @@ CLASS ltcl_test IMPLEMENTATION.
       IMPORTING
         r_salv_table = lo_salv
       CHANGING
-        t_table = lt_salv_rows ).
+        t_table      = lt_salv_rows ).
     lo_salv->set_list_header( 'SALV & table' ).
     lo_salv->display( ).
     DATA(lv_html) = cl_gui_control=>render_html( ).
@@ -119,15 +124,15 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_gui_control=>clear( ).
     zcl_gg_host_surface=>clear( ).
     zcl_gg_host_surface=>set_surface( VALUE #(
-      kind        = zcl_gg_host_surface=>surface_document
-      aria_label  = `Typed <surface>`
-      title       = `"><script>alert(1)</script>`
-      text        = `A & B`
-      link_label  = 'Unsafe link'
-      link_href   = `javascript:alert(1)`
-      actions     = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm
-                               value = `SAVE" onclick="alert(1)`
-                               label = `Save & go` ) ) ) ).
+      kind       = zcl_gg_host_surface=>surface_document
+      aria_label = `Typed <surface>`
+      title      = `"><script>alert(1)</script>`
+      text       = `A & B`
+      link_label = 'Unsafe link'
+      link_href  = `javascript:alert(1)`
+      actions    = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm
+                               value    = `SAVE" onclick="alert(1)`
+                               label    = `Save & go` ) ) ) ).
     zcl_gg_host_surface=>set_surface( VALUE #(
       kind          = zcl_gg_host_surface=>surface_table
       aria_label    = `<typed-table>`
@@ -146,9 +151,9 @@ CLASS ltcl_test IMPLEMENTATION.
       actions       = VALUE #( ( value = `"><script>alert(1)</script>`
                                  label = `<typed-action>` ) ) ) ).
     zcl_gg_host_surface=>set_surface( VALUE #(
-      kind       = zcl_gg_host_surface=>surface_tree
-      aria_label = `<typed-tree>`
-      nodes      = VALUE #( ( text = `<typed-node>` node_key = `"><typed-key>`
+      kind        = zcl_gg_host_surface=>surface_tree
+      aria_label  = `<typed-tree>`
+      nodes       = VALUE #( ( text = `<typed-node>` node_key = `"><typed-key>`
                               level = 1 expanded = abap_true ) )
       token_label = `<typed-tree-token-label>`
       token_value = `<typed-tree-token>` ) ).
@@ -164,8 +169,8 @@ CLASS ltcl_test IMPLEMENTATION.
       control_id = `"><typed-control`
       text       = `<typed-alert>` ) ).
     zcl_gg_host_surface=>set_surface( VALUE #(
-      kind       = zcl_gg_host_surface=>surface_caption
-      text       = `<typed-caption-text>` ) ).
+      kind = zcl_gg_host_surface=>surface_caption
+      text = `<typed-caption-text>` ) ).
     zcl_gg_host_surface=>set_surface( VALUE #(
       kind       = zcl_gg_host_surface=>surface_cockpit
       aria_label = `<typed-cockpit>`

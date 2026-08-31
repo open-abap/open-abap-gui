@@ -19,8 +19,8 @@ CLASS cl_gui_barchart IMPLEMENTATION.
     super->constructor( ).
     cl_gui_control=>initialize(
       control = me
-      parent = parent
-      kind = 'BARCHART' ).
+      parent  = parent
+      kind    = 'BARCHART' ).
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.

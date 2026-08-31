@@ -19,7 +19,7 @@ CLASS zcl_gg_ex_064 IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Feedback 64' height = 180 ) ).
     io_builder->add_input_field( VALUE #(
-      control = VALUE #( name = 'P_ACTION' position = VALUE #( row = 2 column = 2 width = 30 height = 1 ) )
+      control   = VALUE #( name = 'P_ACTION' position = VALUE #( row = 2 column = 2 width = 30 height = 1 ) )
       data_type = VALUE #( typ = 'C' length = 30 ) ) ).
     io_builder->end_screen( ).
   ENDMETHOD.
@@ -39,9 +39,9 @@ CLASS zcl_gg_ex_064 IMPLEMENTATION.
     IF is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_title( 'Feedback 64 - next action' ).
       io_session->get_dialog( )->set_status( VALUE #(
-        status = 'SHELL64'
+        status       = 'SHELL64'
         active_ucomm = VALUE #( ( 'NEXT64' ) )
-        icon_bar = VALUE #( ( ucomm = 'NEXT64' label = 'Next action' icon = 'arrow-right' ) ) ) ).
+        icon_bar     = VALUE #( ( ucomm = 'NEXT64' label = 'Next action' icon = 'arrow-right' ) ) ) ).
       io_session->get_dialog( )->set_cursor( VALUE #( field = 'P_ACTION' ) ).
     ENDIF.
   ENDMETHOD.

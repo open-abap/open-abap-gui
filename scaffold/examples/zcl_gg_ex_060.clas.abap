@@ -16,9 +16,9 @@ CLASS zcl_gg_ex_060 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_GG_EX_060' ).
     io_session->get_list( )->set_status( VALUE #(
-      status = 'SHELL60'
+      status       = 'SHELL60'
       active_ucomm = VALUE #( ( 'FIRST' ) ( 'SECOND' ) ( 'PRI' ) )
-      icon_bar = VALUE #( ( ucomm = 'FIRST' label = 'First action' icon = 'plus' )
+      icon_bar     = VALUE #( ( ucomm = 'FIRST' label = 'First action' icon = 'plus' )
                           ( ucomm = 'SECOND' label = 'Second action' icon = 'edit' separator = abap_true )
                           ( ucomm = 'PRI' label = 'Print' icon = 'printer' separator = abap_true ) ) ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'body' ) ).

@@ -283,13 +283,15 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD set_selected_nodes.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      set_html_node_state( node_key = ls_node-node_key selected = abap_false ).
+      set_html_node_state( node_key = ls_node-node_key
+                           selected = abap_false ).
     ENDLOOP.
   ENDMETHOD.
 
   METHOD expand_nodes.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      set_html_node_state( node_key = ls_node-node_key expanded = abap_true ).
+      set_html_node_state( node_key = ls_node-node_key
+                           expanded = abap_true ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -305,19 +307,20 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD expand_node.
-    set_html_node_state( node_key = CONV string( i_node_key ) expanded = abap_true ).
+    set_html_node_state( node_key = CONV string( i_node_key )
+                         expanded = abap_true ).
   ENDMETHOD.
 
   METHOD add_node.
     DATA(lv_key) = |TREE-{ lines( mt_html_nodes ) + 1 }|.
     IF i_node_text IS NOT INITIAL.
-      add_html_node( node_key = lv_key
+      add_html_node( node_key   = lv_key
                      parent_key = CONV string( i_relat_node_key )
-                     text = CONV string( i_node_text ) ).
+                     text       = CONV string( i_node_text ) ).
     ELSE.
-      add_html_node( node_key = lv_key
+      add_html_node( node_key   = lv_key
                      parent_key = CONV string( i_relat_node_key )
-                     text = lv_key ).
+                     text       = lv_key ).
     ENDIF.
     e_new_node_key = lv_key.
   ENDMETHOD.
@@ -331,7 +334,8 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_table_for_first_display.
-    cl_gui_control=>set_payload( control = me payload = |Tree rows: { lines( it_outtab ) }| ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Tree rows: { lines( it_outtab ) }| ).
     refresh_tree_html( ).
   ENDMETHOD.
 

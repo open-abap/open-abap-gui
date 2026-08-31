@@ -23,7 +23,8 @@ CLASS ltcl_ex_66 IMPLEMENTATION.
 
   METHOD unicode_text.
     DATA(lv_utf8) = CONV xstring( iv_hex ).
-    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input = lv_utf8 encoding = 'UTF-8' ).
+    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input    = lv_utf8
+                                                     encoding = 'UTF-8' ).
     lo_converter->read( IMPORTING data = rv_text ).
   ENDMETHOD.
 ENDCLASS.

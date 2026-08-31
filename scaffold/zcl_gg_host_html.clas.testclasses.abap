@@ -12,7 +12,8 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
   METHOD escapes_text.
     DATA lv_unicode TYPE string.
     DATA(lv_utf8) = CONV xstring( '4772C3BCC39F6520E697A5E69CACE8AA9E' ).
-    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input = lv_utf8 encoding = 'UTF-8' ).
+    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input    = lv_utf8
+                                                     encoding = 'UTF-8' ).
     lo_converter->read( IMPORTING data = lv_unicode ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -48,15 +49,15 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
   METHOD builds_attributes.
     cl_abap_unit_assert=>assert_equals(
       act = zcl_gg_host_html=>identifier(
-        iv_scope = 'field'
+        iv_scope   = 'field'
         iv_program = 'Z/UNICODE'
-        iv_name = 'A B'
-        iv_index = 2 )
+        iv_name    = 'A B'
+        iv_index   = 2 )
       exp = 'gg-field-p-Z-UNICODE-n-A-B-r-2' ).
     cl_abap_unit_assert=>assert_equals(
       act = zcl_gg_host_html=>attribute(
-        iv_name = 'title'
-        iv_value = ``
+        iv_name     = 'title'
+        iv_value    = ``
         iv_optional = abap_true )
       exp = `` ).
     cl_abap_unit_assert=>assert_equals(
@@ -69,11 +70,11 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
   METHOD builds_document.
     DATA(lv_document) = zcl_gg_host_html=>document(
       iv_session_id = 'S'
-      iv_page_id = 'P'
-      iv_kind = 'LIST'
-      iv_title = '<title>'
-      iv_body = '<main>body</main>'
-      iv_csp_nonce = 'nonce' ).
+      iv_page_id    = 'P'
+      iv_kind       = 'LIST'
+      iv_title      = '<title>'
+      iv_body       = '<main>body</main>'
+      iv_csp_nonce  = 'nonce' ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '<!doctype html>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '<meta charset="utf-8">' ) ).

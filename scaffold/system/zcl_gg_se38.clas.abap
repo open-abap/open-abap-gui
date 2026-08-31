@@ -6,13 +6,21 @@ CLASS zcl_gg_se38 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     METHODS put_value
-      IMPORTING iv_name TYPE zif_gg_dynpro_types_v1=>ty_name iv_value TYPE string
-      CHANGING ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+      IMPORTING
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_value  TYPE string
+      CHANGING
+        ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS value_of
-      IMPORTING it_values TYPE zif_gg_dynpro_types_v1=>ty_values iv_name TYPE zif_gg_dynpro_types_v1=>ty_name
-      RETURNING VALUE(rv_value) TYPE string.
+      IMPORTING
+        it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+      RETURNING
+        VALUE(rv_value) TYPE string.
     METHODS add_flow
-      IMPORTING io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1 iv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+      IMPORTING
+        io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
     METHODS load_program IMPORTING iv_program TYPE string RETURNING VALUE(rs_program) TYPE zif_gg_system_types_v1=>ty_program.
 
 ENDCLASS.
@@ -88,15 +96,21 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_flow_logic.
-    add_flow( io_builder = io_builder iv_screen = '0100' ).
-    add_flow( io_builder = io_builder iv_screen = '0200' ).
-    add_flow( io_builder = io_builder iv_screen = '0210' ).
-    add_flow( io_builder = io_builder iv_screen = '0220' ).
-    add_flow( io_builder = io_builder iv_screen = '0230' ).
+    add_flow( io_builder = io_builder
+              iv_screen  = '0100' ).
+    add_flow( io_builder = io_builder
+              iv_screen  = '0200' ).
+    add_flow( io_builder = io_builder
+              iv_screen  = '0210' ).
+    add_flow( io_builder = io_builder
+              iv_screen  = '0220' ).
+    add_flow( io_builder = io_builder
+              iv_screen  = '0230' ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~initialization.
-    put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = 'Display-only deployment: source edits, activation, and debugging require a real repository backend.' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_CAPABILITY'
+                         iv_value = 'Display-only deployment: source edits, activation, and debugging require a real repository backend.' CHANGING ct_values = ct_values ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
@@ -104,9 +118,10 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     DATA(ls_capabilities) = lo_service->zif_gg_program_repository_v1~get_capabilities( ).
 
     io_session->get_dialog( )->set_status( VALUE #(
-      status = 'SE38'
+      status       = 'SE38'
       active_ucomm = VALUE #( ( 'DISPLAY' ) ( 'EXECUTE' ) ( 'CHANGE' ) ( 'CREATE' ) ( 'SYNTAX' ) ( 'SAVE' ) ( 'ACTIVATE' ) ( 'DEBUG' ) ( 'ATTRIBUTES' ) ( 'DOCUMENTATION' ) ( 'TEXT_ELEMENTS' ) ) ) ).
-    put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_CAPABILITY'
+                         iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
     ct_states[ name = 'PB_CHANGE' ]-enabled = abap_false.
     ct_states[ name = 'PB_CREATE' ]-enabled = abap_false.
   ENDMETHOD.
@@ -146,13 +161,14 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
         io_session->get_dialog( )->leave_screen( ).
         RETURN.
     ENDCASE.
-    lv_program = value_of( it_values = ct_values iv_name = 'P_PROGRAM' ).
+    lv_program = value_of( it_values = ct_values
+                           iv_name   = 'P_PROGRAM' ).
     IF is_context-ucomm = 'DISPLAY' OR is_context-ucomm = 'EXECUTE'.
       ls_program = load_program( lv_program ).
       IF ls_program-error IS NOT INITIAL.
         io_session->message( VALUE #(
-          type = zif_gg_session_types_v1=>message_type_error
-          text = ls_program-error
+          type  = zif_gg_session_types_v1=>message_type_error
+          text  = ls_program-error
           field = 'P_PROGRAM' ) ).
         RETURN.
       ENDIF.
@@ -162,18 +178,26 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
         IF sy-tabix > 6.
           EXIT.
         ENDIF.
-        put_value( EXPORTING iv_name = CONV #( |O_LINE_{ sy-tabix WIDTH = 3 ALIGN = RIGHT PAD = '0' }| ) iv_value = |{ sy-tabix WIDTH = 3 ALIGN = RIGHT PAD = '0' } { lv_line }| CHANGING ct_values = ct_values ).
+        put_value( EXPORTING iv_name = CONV #( |O_LINE_{ sy-tabix WIDTH = 3 ALIGN = RIGHT PAD = '0' }| )
+                             iv_value = |{ sy-tabix WIDTH = 3 ALIGN = RIGHT PAD = '0' } { lv_line }| CHANGING ct_values = ct_values ).
       ENDLOOP.
-      put_value( EXPORTING iv_name = 'O_ATTR_PROGRAM' iv_value = ls_program-program CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_ATTR_STATUS' iv_value = ls_program-status CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_ATTR_EXECUTABLE' iv_value = COND string( WHEN ls_program-executable = abap_true THEN 'Yes' ELSE 'No' ) CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_ATTR_DESCRIPTION' iv_value = ls_program-description CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_DOCUMENTATION' iv_value = ls_program-documentation CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_ATTR_PROGRAM'
+                           iv_value = ls_program-program CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_ATTR_STATUS'
+                           iv_value = ls_program-status CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_ATTR_EXECUTABLE'
+                           iv_value = COND string( WHEN ls_program-executable = abap_true THEN 'Yes' ELSE 'No' ) CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_ATTR_DESCRIPTION'
+                           iv_value = ls_program-description CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_DOCUMENTATION'
+                           iv_value = ls_program-documentation CHANGING ct_values = ct_values ).
       LOOP AT ls_program-text_elements INTO DATA(lv_text).
         IF sy-tabix = 1.
-          put_value( EXPORTING iv_name = 'O_TEXT_ELEMENTS' iv_value = lv_text CHANGING ct_values = ct_values ).
+          put_value( EXPORTING iv_name = 'O_TEXT_ELEMENTS'
+                               iv_value = lv_text CHANGING ct_values = ct_values ).
         ELSE.
-          put_value( EXPORTING iv_name = 'O_TEXT_ELEMENTS' iv_value = |{ value_of( it_values = ct_values iv_name = 'O_TEXT_ELEMENTS' ) }; { lv_text }| CHANGING ct_values = ct_values ).
+          put_value( EXPORTING iv_name = 'O_TEXT_ELEMENTS'
+                               iv_value = |{ value_of( it_values = ct_values iv_name = 'O_TEXT_ELEMENTS' ) }; { lv_text }| CHANGING ct_values = ct_values ).
         ENDIF.
       ENDLOOP.
       io_session->get_dialog( )->set_next_screen( '0200' ).
@@ -182,8 +206,8 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     ENDIF.
     IF is_context-ucomm = 'EXECUTE'.
       io_session->get_navigation( )->submit_and_return(
-        is_submit = VALUE #(
-          program = 'ZGG_EX_015'
+        is_submit       = VALUE #(
+          program              = 'ZGG_EX_015'
           via_selection_screen = abap_true )
         is_continuation = VALUE #( id = 'SE38_EXECUTION' state = lv_program ) ).
     ENDIF.

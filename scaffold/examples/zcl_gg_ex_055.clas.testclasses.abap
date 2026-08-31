@@ -9,8 +9,8 @@ CLASS ltcl_ex_55 IMPLEMENTATION.
 
   METHOD returns_submitted_list.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report         = NEW zcl_gg_ex_055( )
-      io_submit_report  = NEW zcl_gg_ex_001( ) ).
+      io_report        = NEW zcl_gg_ex_055( )
+      io_submit_report = NEW zcl_gg_ex_001( ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines

@@ -34,15 +34,15 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_parameter( VALUE #(
-      name = 'P_CARR'
-      text = 'Carrier filter'
+      name      = 'P_CARR'
+      text      = 'Carrier filter'
       data_type = VALUE #( typ = 'C' length = 20 )
-      default = 'Lufthansa' ) ).
+      default   = 'Lufthansa' ) ).
     io_builder->add_parameter( VALUE #(
-      name = 'P_DATE'
-      text = 'As-of date'
+      name      = 'P_DATE'
+      text      = 'As-of date'
       data_type = VALUE #( typ = 'D' length = 8 )
-      default = '20260830' ) ).
+      default   = '20260830' ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.
@@ -120,7 +120,7 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
     IF mv_selection_opened = abap_false.
       mv_selection_opened = abap_true.
       io_session->get_dialog( )->call_selection_screen(
-        is_call = VALUE #( screen = '1000' )
+        is_call         = VALUE #( screen = '1000' )
         is_continuation = VALUE #( id = 'AFTER_FILTERS' ) ).
     ENDIF.
     render_cockpit( io_session ).
@@ -134,9 +134,9 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
 
     io_session->get_list( )->set_title( 'ZCL_GG_EX_150 Analytics cockpit' ).
     io_session->get_list( )->set_status( VALUE #(
-      status = COND #( WHEN mv_saved = abap_true THEN 'FILTERS SAVED' ELSE 'COCKPIT READY' )
+      status       = COND #( WHEN mv_saved = abap_true THEN 'FILTERS SAVED' ELSE 'COCKPIT READY' )
       active_ucomm = VALUE #( ( 'SAVE_FILTERS' ) ( 'OPEN_DETAIL' ) )
-      icon_bar = VALUE #(
+      icon_bar     = VALUE #(
         ( ucomm = 'SAVE_FILTERS' label = 'Save filters' icon = 'save' )
         ( ucomm = 'OPEN_DETAIL' label = 'Open detail' icon = 'display' ) ) ) ).
 
@@ -148,20 +148,25 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
     lo_grid->set_gridtitle( 'Filtered flight summary' ).
     lo_grid->set_table_for_first_display(
       CHANGING
-        it_outtab = lt_rows
+        it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat ).
 
     DATA(lo_tree) = NEW cl_gui_simple_tree( parent = lo_root ).
     lt_nodes = VALUE #( ( `Summary` ) ( `Capacity` ) ( `Details` ) ).
-    lo_tree->add_nodes( table_structure_name = 'TREEV_NODE' node_table = lt_nodes ).
+    lo_tree->add_nodes( table_structure_name = 'TREEV_NODE'
+                        node_table           = lt_nodes ).
 
     DATA(lo_chart) = NEW cl_gui_chart_engine( parent = lo_root ).
     lo_chart->set_data( data = |carrier={ mv_carrier };date={ mv_date };load=82| ).
     lo_chart->render( ).
 
-    DATA(lo_detail) = NEW cl_gui_textedit( parent = lo_root wordwrap_to_linebreak_mode = 0 ).
+    DATA(lo_detail) = NEW cl_gui_textedit( parent                     = lo_root
+                                           wordwrap_to_linebreak_mode = 0 ).
     lo_detail->set_textstream( |Detail dynpro pane{ cl_abap_char_utilities=>newline }{ mv_carrier } / { mv_date }| ).
-    lo_detail->set_position( left = 20 top = 220 width = 420 height = 80 ).
+    lo_detail->set_position( left   = 20
+                             top    = 220
+                             width  = 420
+                             height = 80 ).
 
     zcl_gg_host_surface=>set_surface( VALUE #(
       kind       = zcl_gg_host_surface=>surface_cockpit
@@ -173,13 +178,15 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
       actions    = VALUE #(
         ( transport = zcl_gg_host_surface=>surface_action_command value = 'SAVE_FILTERS' label = 'Save filters' )
         ( transport = zcl_gg_host_surface=>surface_action_command value = 'OPEN_DETAIL' label = 'Open detail dynpro' ) ) ) ).
-    write_line( io_session = io_session iv_text = |Cockpit filters: { mv_carrier } / { mv_date }| ).
+    write_line( io_session = io_session
+                iv_text    = |Cockpit filters: { mv_carrier } / { mv_date }| ).
   ENDMETHOD.
 
   METHOD zif_gg_resumable_v1~resume.
     IF is_resume-continuation-id = 'AFTER_FILTERS'.
       render_cockpit( io_session ).
-      write_line( io_session = io_session iv_text = |Cockpit filters: { mv_carrier } / { mv_date }| ).
+      write_line( io_session = io_session
+                  iv_text    = |Cockpit filters: { mv_carrier } / { mv_date }| ).
     ENDIF.
   ENDMETHOD.
 
@@ -208,14 +215,16 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
       WHEN 'SAVE_FILTERS'.
         mv_saved = abap_true.
         io_session->get_list( )->set_status( VALUE #(
-          status = 'FILTERS SAVED'
+          status       = 'FILTERS SAVED'
           active_ucomm = VALUE #( ( 'SAVE_FILTERS' ) ( 'OPEN_DETAIL' ) )
-          icon_bar = VALUE #(
+          icon_bar     = VALUE #(
             ( ucomm = 'SAVE_FILTERS' label = 'Save filters' icon = 'save' )
             ( ucomm = 'OPEN_DETAIL' label = 'Open detail' icon = 'display' ) ) ) ).
-        write_line( io_session = io_session iv_text = 'Cockpit filters saved on the server' ).
+        write_line( io_session = io_session
+                    iv_text    = 'Cockpit filters saved on the server' ).
       WHEN 'OPEN_DETAIL'.
-        write_line( io_session = io_session iv_text = 'Detail dynpro opened from cockpit' ).
+        write_line( io_session = io_session
+                    iv_text    = 'Detail dynpro opened from cockpit' ).
     ENDCASE.
   ENDMETHOD.
 

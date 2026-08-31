@@ -43,7 +43,7 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
 
   METHOD requests_carrier_values.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_html_report( )
+      io_report        = NEW zcl_gg_integration_html_report( )
       iv_value_request = 'P_CARR' ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -56,7 +56,7 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
 
   METHOD returns_carrier_help.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_html_report( )
+      io_report    = NEW zcl_gg_integration_html_report( )
       iv_help_name = 'P_CARR' ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -67,7 +67,7 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
   METHOD rejects_unknown_carrier.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_html_report( )
-      it_input = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) ) ).
+      it_input  = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-messages[ 1 ]-text
@@ -78,7 +78,7 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
   METHOD renders_selected_flights.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_html_report( )
-      it_input = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ).
+      it_input  = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
@@ -90,8 +90,8 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
 
   METHOD recovers_hidden_flight.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_html_report( )
-      it_input = VALUE #( ( name = 'P_CARR' value = 'AA' ) )
+      io_report     = NEW zcl_gg_integration_html_report( )
+      it_input      = VALUE #( ( name = 'P_CARR' value = 'AA' ) )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -112,25 +112,25 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
 
     DATA(ls_values) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_start-session_id
-      page_id = ls_start-page_id
-      action = zif_gg_host_html_v1=>action_value_help
-      target = 'P_CARR' ) ).
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_value_help
+      target     = 'P_CARR' ) ).
     cl_abap_unit_assert=>assert_equals(
       act = lines( ls_values-compatibility-values[ name = 'P_CARR' ]-ranges )
       exp = 3 ).
 
     DATA(ls_help) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_values-session_id
-      page_id = ls_values-page_id
-      action = zif_gg_host_html_v1=>action_help
-      target = 'P_CARR' ) ).
+      page_id    = ls_values-page_id
+      action     = zif_gg_host_html_v1=>action_help
+      target     = 'P_CARR' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_help-html CS 'Enter a carrier from the integration fixture.' ) ).
 
     DATA(ls_invalid) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_help-session_id
-      page_id = ls_help-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      values = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) ) ) ).
+      page_id    = ls_help-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      values     = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) ) ) ).
     cl_abap_unit_assert=>assert_true( ls_invalid-valid ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_invalid-messages[ 1 ]-text
@@ -138,9 +138,9 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
 
     DATA(ls_list) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_invalid-session_id
-      page_id = ls_invalid-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      values = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ) ).
+      page_id    = ls_invalid-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      values     = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_list-page_kind
       exp = zif_gg_host_html_v1=>page_list ).
@@ -148,10 +148,10 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
 
     DATA(ls_detail) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_list-session_id
-      page_id = ls_list-page_id
-      action = zif_gg_host_html_v1=>action_line
-      row = 2
-      token = 'H-1-2' ) ).
+      page_id    = ls_list-page_id
+      action     = zif_gg_host_html_v1=>action_line
+      row        = 2
+      token      = 'H-1-2' ) ).
     cl_abap_unit_assert=>assert_true( ls_detail-valid ).
     DATA(lv_detail_found) = xsdbool( line_exists( ls_detail-compatibility-lines[
       table_line = 'Selected flight: AA/0018 20260115' ] ) ).
@@ -163,19 +163,21 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
     zcl_gg_host_runtime=>clear( ).
     DATA(ls_first) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_integration_html_report( ) ).
     DATA(ls_second) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_integration_html_report( ) ).
-    cl_abap_unit_assert=>assert_equals( act = ls_first-session_id exp = 'HOST-1' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_second-session_id exp = 'HOST-2' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_first-session_id
+                                        exp = 'HOST-1' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_second-session_id
+                                        exp = 'HOST-2' ).
 
     DATA(ls_first_list) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_first-session_id
-      page_id = ls_first-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      values = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ) ).
+      page_id    = ls_first-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      values     = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ) ).
     DATA(ls_second_list) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_second-session_id
-      page_id = ls_second-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      values = VALUE #( ( name = 'P_CARR' value = 'LH' ) ) ) ).
+      page_id    = ls_second-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      values     = VALUE #( ( name = 'P_CARR' value = 'LH' ) ) ) ).
     DATA(lv_first_aa) = xsdbool( ls_first_list-html CS 'AA/0017 20260101' ).
     DATA(lv_second_lh) = xsdbool( ls_second_list-html CS 'LH/0400 20260228' ).
     DATA(lv_first_lh) = xsdbool( ls_first_list-html CS 'LH/0400 20260228' ).
@@ -188,22 +190,23 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
     zcl_gg_host_runtime=>close( ls_first-session_id ).
     DATA(ls_closed) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_first_list-session_id
-      page_id = ls_first_list-page_id
-      action = zif_gg_host_html_v1=>action_line
-      row = 1
-      token = 'H-1-1' ) ).
+      page_id    = ls_first_list-page_id
+      action     = zif_gg_host_html_v1=>action_line
+      row        = 1
+      token      = 'H-1-1' ) ).
     cl_abap_unit_assert=>assert_false( ls_closed-valid ).
     DATA(ls_second_again) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_second_list-session_id
-      page_id = ls_second_list-page_id
-      action = zif_gg_host_html_v1=>action_line
-      row = 1
-      token = 'H-1-1' ) ).
+      page_id    = ls_second_list-page_id
+      action     = zif_gg_host_html_v1=>action_line
+      row        = 1
+      token      = 'H-1-1' ) ).
     cl_abap_unit_assert=>assert_true( ls_second_again-valid ).
 
     zcl_gg_host_runtime=>clear( ).
     DATA(ls_reset) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_integration_html_report( ) ).
-    cl_abap_unit_assert=>assert_equals( act = ls_reset-session_id exp = 'HOST-1' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_reset-session_id
+                                        exp = 'HOST-1' ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 

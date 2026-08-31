@@ -60,7 +60,7 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
     clear_html_nodes( ).
     add_html_node(
       node_key = 'TREE-ROOT'
-      text = |Tree nodes: { lines( node_table ) }| ).
+      text     = |Tree nodes: { lines( node_table ) }| ).
     cl_gui_control=>set_payload(
       control = me
       payload = |Tree nodes: { lines( node_table ) }| ).

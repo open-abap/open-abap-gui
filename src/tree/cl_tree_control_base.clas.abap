@@ -408,7 +408,8 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD collapse_subtree.
-    set_html_node_state( node_key = CONV string( node_key ) expanded = abap_false ).
+    set_html_node_state( node_key = CONV string( node_key )
+                         expanded = abap_false ).
   ENDMETHOD.
 
   METHOD delete_all_nodes.
@@ -421,7 +422,8 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD expand_node.
-    set_html_node_state( node_key = CONV string( node_key ) expanded = abap_true ).
+    set_html_node_state( node_key = CONV string( node_key )
+                         expanded = abap_true ).
   ENDMETHOD.
 
   METHOD get_top_node.
@@ -456,10 +458,10 @@ CLASS cl_tree_control_base IMPLEMENTATION.
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
-    APPEND VALUE #( node_key = node_key
+    APPEND VALUE #( node_key   = node_key
                     parent_key = parent_key
-                    text = text
-                    expanded = abap_true ) TO mt_html_nodes.
+                    text       = text
+                    expanded   = abap_true ) TO mt_html_nodes.
     refresh_tree_html( ).
   ENDMETHOD.
 
@@ -487,7 +489,7 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   METHOD refresh_tree_html.
     cl_gui_control=>set_html(
       control = me
-      html = tree_html( ) ).
+      html    = tree_html( ) ).
   ENDMETHOD.
 
   METHOD tree_html.

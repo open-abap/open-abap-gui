@@ -16,10 +16,10 @@ CLASS zcl_gg_ex_061 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_GG_EX_061' ).
     io_session->get_list( )->set_status( VALUE #(
-      status = 'SHELL61'
-      active_ucomm = VALUE #( ( 'ENABLE' ) ( 'EXCLUDED' ) )
+      status         = 'SHELL61'
+      active_ucomm   = VALUE #( ( 'ENABLE' ) ( 'EXCLUDED' ) )
       excluded_ucomm = VALUE #( ( 'EXCLUDED' ) )
-      icon_bar = VALUE #( ( ucomm = 'ENABLE' label = 'Enabled' icon = 'circle-check' )
+      icon_bar       = VALUE #( ( ucomm = 'ENABLE' label = 'Enabled' icon = 'circle-check' )
                           ( ucomm = 'INACTIVE' label = 'Inactive' icon = 'circle-x' )
                           ( ucomm = 'EXCLUDED' label = 'Excluded' icon = 'trash' separator = abap_true ) ) ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'body' ) ).

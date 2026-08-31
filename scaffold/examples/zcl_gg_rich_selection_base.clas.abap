@@ -78,21 +78,21 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
             ( key = 'AA-1' text = 'AA-1' )
             ( key = 'AA-2' text = 'AA-2' ) ) ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '72'.
         io_builder->add_select_option( VALUE #(
-          name      = 'S_CARRIER'
-          text      = 'Carrier range'
-          data_type = VALUE #( typ = 'C' length = 3 )
+          name         = 'S_CARRIER'
+          text         = 'Carrier range'
+          data_type    = VALUE #( typ = 'C' length = 3 )
           no_extension = abap_true ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '73'.
         io_builder->add_select_option( VALUE #(
           name      = 'S_MULTI'
@@ -106,10 +106,10 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
         io_builder->add_pushbutton( VALUE #(
           name = 'PB_UP' text = 'Move first up' ucomm = 'RANGE_UP' ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '74'.
         io_builder->add_select_option( VALUE #(
           name         = 'S_MULTI'
@@ -118,10 +118,10 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
           value_help   = abap_true
           no_extension = abap_true ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '75'.
         io_builder->begin_tabbed_block( VALUE #( name = 'TB' lines = 5 ) ).
         io_builder->add_tab( VALUE #(
@@ -138,10 +138,10 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
           text      = 'Detail value'
           data_type = VALUE #( typ = 'C' length = 20 ) ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '76'.
         io_builder->add_parameter( VALUE #(
           name      = 'P_DERIVED'
@@ -150,10 +150,10 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
         io_builder->add_pushbutton( VALUE #(
           name = 'PB_DERIVE' text = 'Derive' ucomm = 'DERIVE' ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '77'.
         io_builder->add_function_key( VALUE #( number = 1 text = 'Alpha action' ucomm = 'FC01' ) ).
         io_builder->add_function_key( VALUE #( number = 2 text = 'Beta action' ucomm = 'FC02' ) ).
@@ -162,26 +162,26 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
           text      = 'Action'
           data_type = VALUE #( typ = 'C' length = 20 ) ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '78'.
         io_builder->add_parameter( VALUE #(
           name       = 'P_CARRIER'
           text       = 'Carrier'
           value_help = abap_true
-          data_type = VALUE #( typ = 'C' length = 2 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 2 ) ) ).
         io_builder->add_select_option( VALUE #(
           name       = 'S_RANGE'
           text       = 'Range'
           value_help = abap_true
           data_type  = VALUE #( typ = 'C' length = 3 ) ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '79'.
         io_builder->add_parameter( VALUE #(
           name        = 'P_HELP'
@@ -189,10 +189,10 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
           search_help = 'ZGG_HELP'
           data_type   = VALUE #( typ = 'C' length = 30 ) ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '80'.
         io_builder->add_parameter( VALUE #(
           name      = 'P_FIELD'
@@ -208,26 +208,26 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
           data_type = VALUE #( typ = 'C' length = 5 )
           default   = VALUE #( sign = 'I' option = 'EQ' low = 'ok' ) ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_REQUIRED'
-          text      = 'Required'
+          name       = 'P_REQUIRED'
+          text       = 'Required'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '81'.
         io_builder->add_parameter( VALUE #(
           name      = 'P_GOOD'
           text      = 'Good value'
           data_type = VALUE #( typ = 'C' length = 20 ) ) ).
         io_builder->add_parameter( VALUE #(
-          name      = 'P_BAD'
-          text      = 'Failing value'
+          name       = 'P_BAD'
+          text       = 'Failing value'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '82'.
         io_builder->add_parameter( VALUE #(
-          name      = 'P_NAME'
-          text      = 'Variant name'
+          name       = 'P_NAME'
+          text       = 'Variant name'
           obligatory = abap_true
-          data_type = VALUE #( typ = 'C' length = 14 ) ) ).
+          data_type  = VALUE #( typ = 'C' length = 14 ) ) ).
         io_builder->add_parameter( VALUE #(
           name      = 'P_VALUE'
           text      = 'Variant value'
@@ -270,60 +270,71 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
         CASE iv_ucomm.
           WHEN 'RANGE_ADD'.
             APPEND VALUE #( sign = 'I' option = 'EQ' ) TO ct_values[ name = 'S_MULTI' ]-ranges.
-            stop_with_message( iv_text = 'Range row added' io_session = io_session ).
+            stop_with_message( iv_text    = 'Range row added'
+                               io_session = io_session ).
           WHEN 'RANGE_REMOVE'.
             IF lines( ct_values[ name = 'S_MULTI' ]-ranges ) > 1.
               DELETE ct_values[ name = 'S_MULTI' ]-ranges INDEX lines( ct_values[ name = 'S_MULTI' ]-ranges ).
             ENDIF.
-            stop_with_message( iv_text = 'Range row removed' io_session = io_session ).
+            stop_with_message( iv_text    = 'Range row removed'
+                               io_session = io_session ).
           WHEN 'RANGE_UP'.
             IF lines( ct_values[ name = 'S_MULTI' ]-ranges ) > 1.
               DATA(ls_first_range) = ct_values[ name = 'S_MULTI' ]-ranges[ 1 ].
               ct_values[ name = 'S_MULTI' ]-ranges[ 1 ] = ct_values[ name = 'S_MULTI' ]-ranges[ 2 ].
               ct_values[ name = 'S_MULTI' ]-ranges[ 2 ] = ls_first_range.
             ENDIF.
-            stop_with_message( iv_text = 'Range rows reordered' io_session = io_session ).
+            stop_with_message( iv_text    = 'Range rows reordered'
+                               io_session = io_session ).
         ENDCASE.
       WHEN '75'.
         IF iv_ucomm = 'UT1' OR iv_ucomm = 'UT2'.
-          stop_with_message( iv_text = |Tab { iv_ucomm } selected| io_session = io_session ).
+          stop_with_message( iv_text    = |Tab { iv_ucomm } selected|
+                             io_session = io_session ).
         ENDIF.
       WHEN '76'.
         IF iv_ucomm = 'DERIVE'.
           ct_values[ name = 'P_DERIVED' ]-value = 'derived by pushbutton'.
-          stop_with_message( iv_text = 'Derived value updated' io_session = io_session ).
+          stop_with_message( iv_text    = 'Derived value updated'
+                             io_session = io_session ).
         ENDIF.
       WHEN '77'.
         CASE iv_ucomm.
           WHEN 'FC01'.
             ct_values[ name = 'P_ACTION' ]-value = 'alpha'.
-            stop_with_message( iv_text = 'Alpha action selected' io_session = io_session ).
+            stop_with_message( iv_text    = 'Alpha action selected'
+                               io_session = io_session ).
           WHEN 'FC02'.
             ct_values[ name = 'P_ACTION' ]-value = 'beta'.
-            stop_with_message( iv_text = 'Beta action selected' io_session = io_session ).
+            stop_with_message( iv_text    = 'Beta action selected'
+                               io_session = io_session ).
         ENDCASE.
       WHEN '82'.
         lv_variant_name = CONV #( ct_values[ name = 'P_NAME' ]-value ).
         CASE iv_ucomm.
           WHEN 'VAR_SAVE'.
             zcl_gg_host_variant=>save(
-              iv_name = lv_variant_name
+              iv_name   = lv_variant_name
               it_values = ct_values ).
-            stop_with_message( iv_text = 'Variant saved' io_session = io_session ).
+            stop_with_message( iv_text    = 'Variant saved'
+                               io_session = io_session ).
           WHEN 'VAR_LOAD'.
             DATA(lt_loaded) = zcl_gg_host_variant=>load( lv_variant_name ).
             IF lt_loaded IS INITIAL.
-              stop_with_message( iv_text = 'Variant not found' io_session = io_session ).
+              stop_with_message( iv_text    = 'Variant not found'
+                                 io_session = io_session ).
             ENDIF.
             LOOP AT lt_loaded INTO DATA(ls_loaded).
               IF line_exists( ct_values[ name = ls_loaded-name ] ).
                 ct_values[ name = ls_loaded-name ] = ls_loaded.
               ENDIF.
             ENDLOOP.
-            stop_with_message( iv_text = 'Variant loaded' io_session = io_session ).
+            stop_with_message( iv_text    = 'Variant loaded'
+                               io_session = io_session ).
           WHEN 'VAR_DELETE'.
             zcl_gg_host_variant=>delete( lv_variant_name ).
-            stop_with_message( iv_text = 'Variant deleted' io_session = io_session ).
+            stop_with_message( iv_text    = 'Variant deleted'
+                               io_session = io_session ).
         ENDCASE.
     ENDCASE.
   ENDMETHOD.

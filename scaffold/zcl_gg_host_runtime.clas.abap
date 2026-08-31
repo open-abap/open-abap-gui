@@ -5,7 +5,17 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * owns the server-side state needed between browser requests.
 
   PUBLIC SECTION.
-    CLASS-METHODS start IMPORTING io_report TYPE REF TO zif_gg_report_v1 OPTIONAL io_dynpro_program TYPE REF TO zif_gg_dynpro_v1 OPTIONAL io_submit_report TYPE REF TO zif_gg_report_v1 OPTIONAL iv_program TYPE zif_gg_session_types_v1=>ty_program OPTIONAL iv_batch TYPE abap_bool DEFAULT abap_false iv_selection_screen_only TYPE abap_bool DEFAULT abap_false it_input TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL RETURNING VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+    CLASS-METHODS start
+      IMPORTING
+        io_report                TYPE REF TO zif_gg_report_v1 OPTIONAL
+        io_dynpro_program        TYPE REF TO zif_gg_dynpro_v1 OPTIONAL
+        io_submit_report         TYPE REF TO zif_gg_report_v1 OPTIONAL
+        iv_program               TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
+        iv_batch                 TYPE abap_bool DEFAULT abap_false
+        iv_selection_screen_only TYPE abap_bool DEFAULT abap_false
+        it_input                 TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
+      RETURNING
+        VALUE(rs_response)       TYPE zif_gg_host_html_v1=>ty_response.
 
     CLASS-METHODS dispatch
       IMPORTING
@@ -108,14 +118,14 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         iv_page_id    = |{ lv_session_id }-1| ).
     ELSEIF io_report IS BOUND.
       ls_result = zcl_gg_host=>run(
-        io_report        = io_report
-        io_submit_report = io_submit_report
-        iv_program       = iv_program
-        iv_batch         = iv_batch
-        it_input         = it_input
-        iv_stop_before_start = iv_selection_screen_only
-        iv_session_id    = lv_session_id
-        iv_page_id       = |{ lv_session_id }-1|
+        io_report              = io_report
+        io_submit_report       = io_submit_report
+        iv_program             = iv_program
+        iv_batch               = iv_batch
+        it_input               = it_input
+        iv_stop_before_start   = iv_selection_screen_only
+        iv_session_id          = lv_session_id
+        iv_page_id             = |{ lv_session_id }-1|
         iv_pause_at_navigation = abap_true ).
     ELSE.
       rs_response = invalid_response( 'A report or dynpro program is required' ).
@@ -300,8 +310,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       ENDIF.
       close( ls_session-session_id ).
       rs_response = start(
-        io_report = lo_report
-        it_input  = ls_dynpro-submit-values
+        io_report                = lo_report
+        it_input                 = ls_dynpro-submit-values
         iv_selection_screen_only = ls_dynpro-submit-via_selection_screen ).
       RETURN.
     ENDIF.
@@ -366,110 +376,110 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       WHEN zif_gg_host_html_v1=>action_line.
         lv_index = is_request-row.
         ls_result = zcl_gg_host=>run(
-          io_report        = ls_session-report
-          io_submit_report = ls_session-submit_report
-          iv_program       = ls_session-program
-          iv_batch         = ls_session-batch
-          it_input         = lt_input
-          iv_line_index    = lv_index
-          iv_line_level    = 1
-          iv_cursor_field  = CONV zif_gg_session_types_v1=>ty_name( is_request-cursor_field )
-          iv_cursor_value  = is_request-cursor_value
-          iv_session_id    = ls_session-session_id
-          iv_page_id       = lv_page_id
-          iv_can_back      = xsdbool( lines( ls_session-results ) > 0 )
+          io_report              = ls_session-report
+          io_submit_report       = ls_session-submit_report
+          iv_program             = ls_session-program
+          iv_batch               = ls_session-batch
+          it_input               = lt_input
+          iv_line_index          = lv_index
+          iv_line_level          = 1
+          iv_cursor_field        = CONV zif_gg_session_types_v1=>ty_name( is_request-cursor_field )
+          iv_cursor_value        = is_request-cursor_value
+          iv_session_id          = ls_session-session_id
+          iv_page_id             = lv_page_id
+          iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_command.
         ls_result = zcl_gg_host=>run(
-          io_report        = ls_session-report
-          io_submit_report = ls_session-submit_report
-          iv_program       = ls_session-program
-          iv_batch         = ls_session-batch
-          it_input         = lt_input
-          iv_user_command  = CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm )
-          iv_session_id    = ls_session-session_id
-          iv_page_id       = lv_page_id
-          iv_can_back      = xsdbool( lines( ls_session-results ) > 0 )
+          io_report              = ls_session-report
+          io_submit_report       = ls_session-submit_report
+          iv_program             = ls_session-program
+          iv_batch               = ls_session-batch
+          it_input               = lt_input
+          iv_user_command        = CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm )
+          iv_session_id          = ls_session-session_id
+          iv_page_id             = lv_page_id
+          iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_pf.
         ls_result = zcl_gg_host=>run(
-          io_report        = ls_session-report
-          iv_program       = ls_session-program
-          iv_batch         = ls_session-batch
-          it_input         = lt_input
-          iv_pf_key        = is_request-pf_key
-          iv_session_id    = ls_session-session_id
-          iv_page_id       = lv_page_id
-          iv_can_back      = xsdbool( lines( ls_session-results ) > 0 )
+          io_report              = ls_session-report
+          iv_program             = ls_session-program
+          iv_batch               = ls_session-batch
+          it_input               = lt_input
+          iv_pf_key              = is_request-pf_key
+          iv_session_id          = ls_session-session_id
+          iv_page_id             = lv_page_id
+          iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_help.
         ls_result = zcl_gg_host=>run(
-          io_report        = ls_session-report
-          iv_program       = ls_session-program
-          iv_batch         = ls_session-batch
-          it_input         = lt_input
-          iv_help_name     = CONV zif_gg_session_types_v1=>ty_name( is_request-target )
-          iv_session_id    = ls_session-session_id
-          iv_page_id       = lv_page_id
-          iv_can_back      = xsdbool( lines( ls_session-results ) > 0 )
+          io_report              = ls_session-report
+          iv_program             = ls_session-program
+          iv_batch               = ls_session-batch
+          it_input               = lt_input
+          iv_help_name           = CONV zif_gg_session_types_v1=>ty_name( is_request-target )
+          iv_session_id          = ls_session-session_id
+          iv_page_id             = lv_page_id
+          iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_value_help.
         ls_result = zcl_gg_host=>run(
-          io_report        = ls_session-report
-          iv_program       = ls_session-program
-          iv_batch         = ls_session-batch
-          it_input         = lt_input
-          iv_value_request = CONV zif_gg_session_types_v1=>ty_name( is_request-target )
-          iv_session_id    = ls_session-session_id
-          iv_page_id       = lv_page_id
-          iv_can_back      = xsdbool( lines( ls_session-results ) > 0 )
+          io_report              = ls_session-report
+          iv_program             = ls_session-program
+          iv_batch               = ls_session-batch
+          it_input               = lt_input
+          iv_value_request       = CONV zif_gg_session_types_v1=>ty_name( is_request-target )
+          iv_session_id          = ls_session-session_id
+          iv_page_id             = lv_page_id
+          iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_exit.
         ls_result = zcl_gg_host=>run(
-          io_report       = ls_session-report
-          iv_program      = ls_session-program
-          iv_batch        = ls_session-batch
-          it_input        = lt_input
-          iv_exit_ucomm   = lv_ucomm
-          iv_ucomm        = lv_ucomm
-          iv_session_id   = ls_session-session_id
-          iv_page_id      = lv_page_id
-          iv_can_back     = xsdbool( lines( ls_session-results ) > 0 ) ).
+          io_report     = ls_session-report
+          iv_program    = ls_session-program
+          iv_batch      = ls_session-batch
+          it_input      = lt_input
+          iv_exit_ucomm = lv_ucomm
+          iv_ucomm      = lv_ucomm
+          iv_session_id = ls_session-session_id
+          iv_page_id    = lv_page_id
+          iv_can_back   = xsdbool( lines( ls_session-results ) > 0 ) ).
       WHEN zif_gg_host_html_v1=>action_submit
           OR zif_gg_host_html_v1=>action_tab
           OR zif_gg_host_html_v1=>action_back.
         ls_result = zcl_gg_host=>run(
-          io_report        = ls_session-report
-          io_submit_report = ls_session-submit_report
-          iv_program       = ls_session-program
-          iv_batch         = ls_session-batch
-          it_input         = lt_input
-          iv_ucomm         = lv_ucomm
-          iv_user_command  = COND #(
+          io_report              = ls_session-report
+          io_submit_report       = ls_session-submit_report
+          iv_program             = ls_session-program
+          iv_batch               = ls_session-batch
+          it_input               = lt_input
+          iv_ucomm               = lv_ucomm
+          iv_user_command        = COND #(
             WHEN is_request-ucomm IS NOT INITIAL
             THEN CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm ) )
-          iv_selection_screen = COND #(
+          iv_selection_screen    = COND #(
             WHEN ls_session-pending_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
             THEN CONV #( ls_session-pending_navigation-target )
             ELSE '1000' )
-          is_resume_navigation = ls_session-pending_navigation
-          is_resume_submit     = ls_session-pending_submit
-          iv_session_id    = ls_session-session_id
-          iv_page_id       = lv_page_id
-          iv_can_back      = xsdbool( lines( ls_session-results ) > 0 )
+          is_resume_navigation   = ls_session-pending_navigation
+          is_resume_submit       = ls_session-pending_submit
+          iv_session_id          = ls_session-session_id
+          iv_page_id             = lv_page_id
+          iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_screen.
         ls_result = zcl_gg_host=>run(
-          io_report        = ls_session-report
-          io_submit_report = ls_session-submit_report
-          iv_program       = ls_session-program
-          iv_batch         = ls_session-batch
-          it_input         = lt_input
-          iv_ucomm         = lv_ucomm
-          iv_selection_screen = CONV zif_gg_selection_screen_types=>ty_screen_number( is_request-target )
-          iv_session_id    = ls_session-session_id
-          iv_page_id       = lv_page_id
-          iv_can_back      = xsdbool( lines( ls_session-results ) > 0 )
+          io_report              = ls_session-report
+          io_submit_report       = ls_session-submit_report
+          iv_program             = ls_session-program
+          iv_batch               = ls_session-batch
+          it_input               = lt_input
+          iv_ucomm               = lv_ucomm
+          iv_selection_screen    = CONV zif_gg_selection_screen_types=>ty_screen_number( is_request-target )
+          iv_session_id          = ls_session-session_id
+          iv_page_id             = lv_page_id
+          iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
           iv_pause_at_navigation = abap_true ).
       WHEN OTHERS.
         rs_response = invalid_response( 'Unknown host action' ).

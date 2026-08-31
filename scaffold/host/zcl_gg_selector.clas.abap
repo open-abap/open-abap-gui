@@ -19,7 +19,8 @@ CLASS zcl_gg_selector IMPLEMENTATION.
     LOOP AT options INTO DATA(ls_option).
       lv_html = lv_html && |<option value="{ escape_html( CONV string( ls_option-key ) ) }">{ escape_html( CONV string( ls_option-text ) ) }</option>|.
     ENDLOOP.
-    cl_gui_control=>set_html( control = me html = lv_html ).
+    cl_gui_control=>set_html( control = me
+                              html    = lv_html ).
   ENDMETHOD.
 
 ENDCLASS.

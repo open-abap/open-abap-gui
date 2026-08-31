@@ -10,7 +10,7 @@ CLASS ltcl_ex_43 IMPLEMENTATION.
 
   METHOD selects_hidden_line.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report    = NEW zcl_gg_ex_043( )
+      io_report     = NEW zcl_gg_ex_043( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(

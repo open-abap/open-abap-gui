@@ -29,8 +29,8 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
     super->constructor( ).
     cl_gui_control=>initialize(
       control = me
-      parent = parent
-      kind = 'CHART_ENGINE' ).
+      parent  = parent
+      kind    = 'CHART_ENGINE' ).
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.
@@ -38,15 +38,18 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
 
   METHOD set_data.
     IF data IS SUPPLIED.
-      cl_gui_control=>set_payload( control = me payload = data ).
+      cl_gui_control=>set_payload( control = me
+                                   payload = data ).
     ENDIF.
     IF xdata IS SUPPLIED.
-      cl_gui_control=>set_payload( control = me payload = |binary chart data ({ size })| ).
+      cl_gui_control=>set_payload( control = me
+                                   payload = |binary chart data ({ size })| ).
     ENDIF.
   ENDMETHOD.
 
   METHOD render.
-    cl_gui_control=>set_html( control = me html = |<div role="img" aria-label="Chart">Chart data</div>| ).
+    cl_gui_control=>set_html( control = me
+                              html    = |<div role="img" aria-label="Chart">Chart data</div>| ).
   ENDMETHOD.
 
 ENDCLASS.

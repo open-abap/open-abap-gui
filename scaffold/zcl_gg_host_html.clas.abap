@@ -171,8 +171,8 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     SORT lt_attributes BY name.
     LOOP AT lt_attributes INTO DATA(ls_attribute).
       rv_attrs = rv_attrs && attribute(
-        iv_name = ls_attribute-name
-        iv_value = ls_attribute-value
+        iv_name     = ls_attribute-name
+        iv_value    = ls_attribute-value
         iv_optional = ls_attribute-optional ).
     ENDLOOP.
   ENDMETHOD.
@@ -201,7 +201,9 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |<meta charset="utf-8">|.
     rv_html = rv_html && |<meta name="viewport" content="width=device-width,initial-scale=1">|.
     rv_html = rv_html && |<title>{ escape_text( iv_title ) }</title>|.
-    rv_html = rv_html && |<style{ attribute( iv_name = `nonce` iv_value = iv_csp_nonce iv_optional = abap_true ) }>|.
+    rv_html = rv_html && |<style{ attribute( iv_name     = `nonce`
+                                             iv_value    = iv_csp_nonce
+                                             iv_optional = abap_true ) }>|.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_styles( ).
     rv_html = rv_html && |:root\{font-family:system-ui,sans-serif;color-scheme:light;\}|.
     rv_html = rv_html && |body\{line-height:1.4;\}|.
@@ -252,13 +254,13 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |</style></head><body><div class="wb-shell">|.
     rv_html = rv_html && zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
-      iv_runtime    = abap_true
-      iv_title      = iv_title
-      iv_session_id = iv_session_id
-      iv_page_id    = iv_page_id
-      is_status     = is_status
-      it_breadcrumbs = it_breadcrumbs
-      iv_hide_appbar = iv_hide_appbar
+      iv_runtime      = abap_true
+      iv_title        = iv_title
+      iv_session_id   = iv_session_id
+      iv_page_id      = iv_page_id
+      is_status       = is_status
+      it_breadcrumbs  = it_breadcrumbs
+      iv_hide_appbar  = iv_hide_appbar
       iv_content_form = COND string( WHEN iv_kind = zif_gg_host_html_v1=>page_dynpro THEN `gg-dynpro-form` ELSE `` ) ).
     rv_html = rv_html && |<div class="wb-runtime-content{ lv_content_class }" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main>{ iv_body }</main></div>|.

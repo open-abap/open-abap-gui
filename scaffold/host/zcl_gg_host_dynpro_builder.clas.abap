@@ -69,164 +69,164 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_input_field.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'INPUT'
-                    name = is_input_field-control-name
-                    position = is_input_field-control-position
-                    data_type = is_input_field-data_type
-                    modif_id = is_input_field-control-modif_id
+    APPEND VALUE #( screen      = mv_screen
+                    kind        = 'INPUT'
+                    name        = is_input_field-control-name
+                    position    = is_input_field-control-position
+                    data_type   = is_input_field-data_type
+                    modif_id    = is_input_field-control-modif_id
                     search_help = is_input_field-search_help
-                    value_help = is_input_field-value_help
-                    uppercase = is_input_field-uppercase
-                    required = is_input_field-required
-                    enabled = abap_true
-                    visible = abap_true
-                    input = abap_true
-                    password = is_input_field-password ) TO mt_controls.
+                    value_help  = is_input_field-value_help
+                    uppercase   = is_input_field-uppercase
+                    required    = is_input_field-required
+                    enabled     = abap_true
+                    visible     = abap_true
+                    input       = abap_true
+                    password    = is_input_field-password ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_output_field.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'OUTPUT'
-                    name = is_output_field-control-name
-                    position = is_output_field-control-position
+    APPEND VALUE #( screen    = mv_screen
+                    kind      = 'OUTPUT'
+                    name      = is_output_field-control-name
+                    position  = is_output_field-control-position
                     data_type = is_output_field-data_type
-                    modif_id = is_output_field-control-modif_id
-                    enabled = abap_false
-                    visible = abap_true
-                    input = abap_false ) TO mt_controls.
+                    modif_id  = is_output_field-control-modif_id
+                    enabled   = abap_false
+                    visible   = abap_true
+                    input     = abap_false ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_text.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'TEXT'
-                    name = is_text-control-name
-                    text = is_text-text
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'TEXT'
+                    name     = is_text-control-name
+                    text     = is_text-text
                     position = is_text-control-position
-                    visible = abap_true
-                    input = abap_false ) TO mt_controls.
+                    visible  = abap_true
+                    input    = abap_false ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_pushbutton.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'PUSHBUTTON'
-                    name = is_pushbutton-control-name
-                    text = is_pushbutton-text
-                    ucomm = is_pushbutton-ucomm
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'PUSHBUTTON'
+                    name     = is_pushbutton-control-name
+                    text     = is_pushbutton-text
+                    ucomm    = is_pushbutton-ucomm
                     position = is_pushbutton-control-position
-                    enabled = abap_true
-                    visible = abap_true ) TO mt_controls.
+                    enabled  = abap_true
+                    visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_checkbox.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'CHECKBOX'
-                    name = is_checkbox-control-name
-                    text = is_checkbox-text
-                    ucomm = is_checkbox-ucomm
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'CHECKBOX'
+                    name     = is_checkbox-control-name
+                    text     = is_checkbox-text
+                    ucomm    = is_checkbox-ucomm
                     position = is_checkbox-control-position
-                    enabled = abap_true
-                    visible = abap_true ) TO mt_controls.
+                    enabled  = abap_true
+                    visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_radiobutton.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'RADIOBUTTON'
-                    name = is_radiobutton-control-name
-                    text = is_radiobutton-text
-                    ucomm = is_radiobutton-ucomm
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'RADIOBUTTON'
+                    name     = is_radiobutton-control-name
+                    text     = is_radiobutton-text
+                    ucomm    = is_radiobutton-ucomm
                     position = is_radiobutton-control-position
-                    group = is_radiobutton-group
-                    enabled = abap_true
-                    visible = abap_true ) TO mt_controls.
+                    group    = is_radiobutton-group
+                    enabled  = abap_true
+                    visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_listbox.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'LISTBOX'
-                    name = is_listbox-control-name
-                    position = is_listbox-control-position
-                    data_type = is_listbox-data_type
+    APPEND VALUE #( screen       = mv_screen
+                    kind         = 'LISTBOX'
+                    name         = is_listbox-control-name
+                    position     = is_listbox-control-position
+                    data_type    = is_listbox-data_type
                     fixed_values = is_listbox-fixed_values
-                    ucomm = is_listbox-ucomm
-                    enabled = abap_true
-                    visible = abap_true ) TO mt_controls.
+                    ucomm        = is_listbox-ucomm
+                    enabled      = abap_true
+                    visible      = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_box.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'BOX'
-                    name = is_box-control-name
-                    text = is_box-text
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'BOX'
+                    name     = is_box-control-name
+                    text     = is_box-text
                     position = is_box-control-position
-                    visible = abap_true ) TO mt_controls.
+                    visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_subscreen_area.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'SUBSCREEN_AREA'
-                    name = is_subscreen_area-control-name
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'SUBSCREEN_AREA'
+                    name     = is_subscreen_area-control-name
                     position = is_subscreen_area-control-position
-                    visible = abap_true ) TO mt_controls.
+                    visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_custom_control.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'CUSTOM_CONTROL'
-                    name = is_custom_control-control-name
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'CUSTOM_CONTROL'
+                    name     = is_custom_control-control-name
                     position = is_custom_control-control-position
-                    visible = abap_true ) TO mt_controls.
+                    visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_tabstrip.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'TABSTRIP'
-                    name = is_tabstrip-control-name
+    APPEND VALUE #( screen   = mv_screen
+                    kind     = 'TABSTRIP'
+                    name     = is_tabstrip-control-name
                     position = is_tabstrip-control-position
-                    ucomm = is_tabstrip-ucomm
-                    enabled = abap_true
-                    visible = abap_true ) TO mt_controls.
+                    ucomm    = is_tabstrip-ucomm
+                    enabled  = abap_true
+                    visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_tab.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'TAB'
-                    name = is_tab-control-name
-                    parent = is_tab-tabstrip
-                    text = is_tab-text
-                    ucomm = is_tab-ucomm
-                    position = is_tab-control-position
+    APPEND VALUE #( screen    = mv_screen
+                    kind      = 'TAB'
+                    name      = is_tab-control-name
+                    parent    = is_tab-tabstrip
+                    text      = is_tab-text
+                    ucomm     = is_tab-ucomm
+                    position  = is_tab-control-position
                     subscreen = is_tab-subscreen
-                    enabled = abap_true
-                    visible = abap_true ) TO mt_controls.
+                    enabled   = abap_true
+                    visible   = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~begin_table_control.
     mv_table_control = is_table_control-control-name.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'TABLE_CONTROL'
-                    name = is_table_control-control-name
-                    position = is_table_control-control-position
-                    visible_rows = is_table_control-visible_rows
+    APPEND VALUE #( screen         = mv_screen
+                    kind           = 'TABLE_CONTROL'
+                    name           = is_table_control-control-name
+                    position       = is_table_control-control-position
+                    visible_rows   = is_table_control-visible_rows
                     selection_mode = is_table_control-selection_mode
-                    with_hscroll = is_table_control-with_hscroll
-                    with_vscroll = is_table_control-with_vscroll
-                    enabled = abap_true
-                    visible = abap_true ) TO mt_controls.
+                    with_hscroll   = is_table_control-with_hscroll
+                    with_vscroll   = is_table_control-with_vscroll
+                    enabled        = abap_true
+                    visible        = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_table_column.
-    APPEND VALUE #( screen = mv_screen
-                    kind = 'TABLE_COLUMN'
-                    name = is_table_column-name
-                    parent = mv_table_control
-                    text = is_table_column-title
-                    data_type = is_table_column-data_type
+    APPEND VALUE #( screen       = mv_screen
+                    kind         = 'TABLE_COLUMN'
+                    name         = is_table_column-name
+                    parent       = mv_table_control
+                    text         = is_table_column-title
+                    data_type    = is_table_column-data_type
                     column_title = is_table_column-title
                     column_width = is_table_column-width
-                    required = is_table_column-required
-                    input = is_table_column-input
-                    visible = abap_true ) TO mt_controls.
+                    required     = is_table_column-required
+                    input        = is_table_column-input
+                    visible      = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~end_table_control.

@@ -41,7 +41,7 @@ CLASS ltcl_gg_integration_fail IMPLEMENTATION.
   METHOD handles_invalid_carrier.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_selection( 'INVALID' )
-      it_input = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) ) ).
+      it_input  = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-messages[ 1 ]-text

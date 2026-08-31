@@ -9,7 +9,7 @@ CLASS ltcl_ex_44 IMPLEMENTATION.
 
   METHOD dispatches_user_command.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report      = NEW zcl_gg_ex_044( )
+      io_report       = NEW zcl_gg_ex_044( )
       iv_user_command = 'REFR' ).
 
     cl_abap_unit_assert=>assert_equals(

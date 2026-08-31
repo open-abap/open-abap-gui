@@ -22,9 +22,9 @@ CLASS zcl_gg_integration_interactive IMPLEMENTATION.
 
     LOOP AT lt_flights INTO DATA(ls_flight).
       lo_writer->write_field( VALUE #(
-        text = |{ ls_flight-carrid }/{ ls_flight-connid } { ls_flight-fldate }|
+        text      = |{ ls_flight-carrid }/{ ls_flight-connid } { ls_flight-fldate }|
         placement = VALUE #( new_line = abap_true )
-        hide = VALUE #(
+        hide      = VALUE #(
           ( name = 'CARRID' value = ls_flight-carrid )
           ( name = 'CONNID' value = ls_flight-connid )
           ( name = 'FLDATE' value = ls_flight-fldate ) ) ) ).
@@ -37,7 +37,7 @@ CLASS zcl_gg_integration_interactive IMPLEMENTATION.
 
   METHOD zif_gg_list_processing_v1~top_of_page_during_line_sel.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = |DETAIL HEADER { iv_level }|
+      text      = |DETAIL HEADER { iv_level }|
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
@@ -51,36 +51,36 @@ CLASS zcl_gg_integration_interactive IMPLEMENTATION.
     io_session->get_list( )->enter_list_processing( ).
     DATA(ls_context) = io_session->get_list( )->get_context( ).
     lo_writer->write_field( VALUE #(
-      text = |Selected line: { is_line-text }|
+      text      = |Selected line: { is_line-text }|
       placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #(
-      text = |Hidden: { lv_carrid }/{ lv_connid } { lv_fldate }|
+      text      = |Hidden: { lv_carrid }/{ lv_connid } { lv_fldate }|
       placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #(
-      text = |Cursor: { ls_cursor-field }={ ls_cursor-value } line={ ls_cursor-line }|
+      text      = |Cursor: { ls_cursor-field }={ ls_cursor-value } line={ ls_cursor-line }|
       placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #(
-      text = |Detail flight: { lv_carrid }/{ lv_connid } { lv_fldate }|
+      text      = |Detail flight: { lv_carrid }/{ lv_connid } { lv_fldate }|
       placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #(
-      text = |List level: { ls_context-level }|
+      text      = |List level: { ls_context-level }|
       placement = VALUE #( new_line = abap_true ) ) ).
     io_session->get_list( )->leave_list_processing( ).
     ls_context = io_session->get_list( )->get_context( ).
     lo_writer->write_field( VALUE #(
-      text = |Restored level: { ls_context-level }|
+      text      = |Restored level: { ls_context-level }|
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~at_user_command.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = |Function code: { iv_ucomm }|
+      text      = |Function code: { iv_ucomm }|
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~at_pf.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = |PF key: { iv_key }|
+      text      = |PF key: { iv_key }|
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

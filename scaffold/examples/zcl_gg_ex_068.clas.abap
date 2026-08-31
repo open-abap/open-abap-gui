@@ -11,23 +11,23 @@ CLASS zcl_gg_ex_068 IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
     rs_transaction = VALUE #(
-      tcode = 'ZGG_EX_068'
+      tcode       = 'ZGG_EX_068'
       description = 'Dynamic visible input and required state' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_checkbox( VALUE #(
-      name    = 'P_SHOW'
-      text    = 'Show detail'
-      ucomm   = 'TOGGLE' ) ).
+      name  = 'P_SHOW'
+      text  = 'Show detail'
+      ucomm = 'TOGGLE' ) ).
     io_builder->add_parameter( VALUE #(
       name      = 'P_DETAIL'
       text      = 'Detail'
       data_type = VALUE #( typ = 'C' length = 20 ) ) ).
     io_builder->add_parameter( VALUE #(
-      name      = 'P_REQUIRED'
-      text      = 'Required value'
-      data_type = VALUE #( typ = 'C' length = 20 )
+      name       = 'P_REQUIRED'
+      text       = 'Required value'
+      data_type  = VALUE #( typ = 'C' length = 20 )
       obligatory = abap_true ) ).
   ENDMETHOD.
 
@@ -43,7 +43,7 @@ CLASS zcl_gg_ex_068 IMPLEMENTATION.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
       text = it_values[ name = 'P_REQUIRED' ]-value ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = it_values[ name = 'P_DETAIL' ]-value
+      text      = it_values[ name = 'P_DETAIL' ]-value
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

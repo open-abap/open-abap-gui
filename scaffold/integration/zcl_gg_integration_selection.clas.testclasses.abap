@@ -98,8 +98,8 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
 
   METHOD restarts_after_error.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_selection( 'INVALID' )
-      it_input  = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) )
+      io_report      = NEW zcl_gg_integration_selection( 'INVALID' )
+      it_input       = VALUE #( ( name = 'P_CARR' value = 'ZZZ' ) )
       it_retry_input = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -113,7 +113,7 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
   METHOD filters_by_range.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_selection( 'RANGE' )
-      it_input  = VALUE #( ( name = 'S_CARR'
+      it_input  = VALUE #( ( name   = 'S_CARR'
                              ranges = VALUE #( (
                                sign = 'I' option = 'BT' low = 'AA' high = 'LH' ) ) ) ) ).
 
@@ -125,7 +125,7 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
   METHOD filters_by_multiple_selection.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_selection( 'MULTI' )
-      it_input  = VALUE #( ( name = 'S_CARR'
+      it_input  = VALUE #( ( name   = 'S_CARR'
                              ranges = VALUE #(
                                ( sign = 'I' option = 'EQ' low = 'AA' )
                                ( sign = 'I' option = 'EQ' low = 'SQ' ) ) ) ) ).
@@ -150,7 +150,7 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
 
   METHOD requests_carrier_values.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report       = NEW zcl_gg_integration_selection( 'VALUE_REQUEST' )
+      io_report        = NEW zcl_gg_integration_selection( 'VALUE_REQUEST' )
       iv_value_request = 'S_CARR' ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -163,7 +163,7 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
 
   METHOD applies_value_selection.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report       = NEW zcl_gg_integration_selection( 'VALUE_REQUEST' )
+      io_report        = NEW zcl_gg_integration_selection( 'VALUE_REQUEST' )
       iv_value_request = 'S_CARR' ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -173,7 +173,7 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
 
   METHOD requests_date_values.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report       = NEW zcl_gg_integration_selection( 'DATE_REQUEST' )
+      io_report        = NEW zcl_gg_integration_selection( 'DATE_REQUEST' )
       iv_value_request = 'S_DATE' ).
 
     cl_abap_unit_assert=>assert_initial( ls_result-values[ name = 'S_DATE' ]-ranges ).
@@ -181,7 +181,7 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
 
   METHOD cancelled_request_keeps_value.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_selection( 'CANCEL_VALUE' )
+      io_report        = NEW zcl_gg_integration_selection( 'CANCEL_VALUE' )
       iv_value_request = 'S_CARR' ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -191,7 +191,7 @@ CLASS ltcl_gg_integration_selection IMPLEMENTATION.
 
   METHOD handles_unknown_request.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report       = NEW zcl_gg_integration_selection( 'VALUE_REQUEST' )
+      io_report        = NEW zcl_gg_integration_selection( 'VALUE_REQUEST' )
       iv_value_request = 'UNKNOWN' ).
 
     cl_abap_unit_assert=>assert_initial( ls_result-messages ).

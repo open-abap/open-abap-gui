@@ -9,7 +9,7 @@ CLASS ltcl_ex_37 IMPLEMENTATION.
 
   METHOD leaves_on_cancel.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report    = NEW zcl_gg_ex_037( )
+      io_report     = NEW zcl_gg_ex_037( )
       iv_exit_ucomm = 'ECAN' ).
 
     cl_abap_unit_assert=>assert_equals(

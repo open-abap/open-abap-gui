@@ -14,7 +14,7 @@ CLASS zcl_gg_ex_069 IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
     rs_transaction = VALUE #(
-      tcode = 'ZGG_EX_069'
+      tcode       = 'ZGG_EX_069'
       description = 'Checkbox-controlled field group' ).
   ENDMETHOD.
 
@@ -32,9 +32,9 @@ CLASS zcl_gg_ex_069 IMPLEMENTATION.
       text      = 'Group B'
       data_type = VALUE #( typ = 'C' length = 20 ) ) ).
     io_builder->add_parameter( VALUE #(
-      name      = 'P_REQUIRED'
-      text      = 'Required value'
-      data_type = VALUE #( typ = 'C' length = 20 )
+      name       = 'P_REQUIRED'
+      text       = 'Required value'
+      data_type  = VALUE #( typ = 'C' length = 20 )
       obligatory = abap_true ) ).
   ENDMETHOD.
 
@@ -74,7 +74,7 @@ CLASS zcl_gg_ex_069 IMPLEMENTATION.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
       text = it_values[ name = 'P_GROUP_A' ]-value ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = it_values[ name = 'P_GROUP_B' ]-value
+      text      = it_values[ name = 'P_GROUP_B' ]-value
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

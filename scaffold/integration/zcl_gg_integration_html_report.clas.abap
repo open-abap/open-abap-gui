@@ -10,11 +10,11 @@ CLASS zcl_gg_integration_html_report IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_parameter( VALUE #(
-      name       = 'P_CARR'
-      text       = 'Carrier'
-      data_type  = VALUE #( typ = 'C' length = 3 )
+      name        = 'P_CARR'
+      text        = 'Carrier'
+      data_type   = VALUE #( typ = 'C' length = 3 )
       search_help = 'P_CARR'
-      value_help = abap_true ) ).
+      value_help  = abap_true ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
@@ -44,9 +44,9 @@ CLASS zcl_gg_integration_html_report IMPLEMENTATION.
 
     LOOP AT lt_flights INTO DATA(ls_flight).
       lo_writer->write_field( VALUE #(
-        text = |{ ls_flight-carrid }/{ ls_flight-connid } { ls_flight-fldate }|
+        text      = |{ ls_flight-carrid }/{ ls_flight-connid } { ls_flight-fldate }|
         placement = VALUE #( new_line = abap_true )
-        hide = VALUE #(
+        hide      = VALUE #(
           ( name = 'CARRID' value = ls_flight-carrid )
           ( name = 'CONNID' value = ls_flight-connid )
           ( name = 'FLDATE' value = ls_flight-fldate ) ) ) ).
@@ -80,10 +80,10 @@ CLASS zcl_gg_integration_html_report IMPLEMENTATION.
     DATA(lo_detail) = io_session->get_list( )->get_writer( ).
 
     lo_detail->write_field( VALUE #(
-      text = |Selected flight: { lv_carrid }/{ lv_connid } { lv_fldate }|
+      text      = |Selected flight: { lv_carrid }/{ lv_connid } { lv_fldate }|
       placement = VALUE #( new_line = abap_true ) ) ).
     lo_detail->write_field( VALUE #(
-      text = |Cursor: { ls_cursor-field }={ ls_cursor-value } line={ ls_cursor-line }|
+      text      = |Cursor: { ls_cursor-field }={ ls_cursor-value } line={ ls_cursor-line }|
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

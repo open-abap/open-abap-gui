@@ -27,9 +27,9 @@ CLASS zcl_gg_ex_044 IMPLEMENTATION.
       icon_bar       = VALUE #( ( ucomm = 'REFR'
                                   label = 'Refresh'
                                   icon  = 'refresh' )
-                                ( ucomm = zif_gg_session_types_v1=>command_print
-                                  label = 'Print'
-                                  icon  = 'printer'
+                                ( ucomm     = zif_gg_session_types_v1=>command_print
+                                  label     = 'Print'
+                                  icon      = 'printer'
                                   separator = abap_true ) ) ).
     io_session->get_list( )->set_status( ls_status ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'body' ) ).

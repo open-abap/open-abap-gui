@@ -9,8 +9,8 @@ CLASS ltcl_ex_46 IMPLEMENTATION.
 
   METHOD modifies_line_format.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report      = NEW zcl_gg_ex_046( )
-      iv_line_index  = 1 ).
+      io_report     = NEW zcl_gg_ex_046( )
+      iv_line_index = 1 ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines

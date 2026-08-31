@@ -25,9 +25,9 @@ CLASS zcl_gg_ex_066 IMPLEMENTATION.
     DATA(lv_body) = unicode_text( `D985D8B1D8ADD8A8D8A72065CC8120F09F9A80203C7368656C6C3E2026202271756F74657322` ).
     io_session->get_list( )->set_title( lv_title ).
     io_session->get_list( )->set_status( VALUE #(
-      status = 'SHELL66'
+      status       = 'SHELL66'
       active_ucomm = VALUE #( ( 'RUN66' ) )
-      icon_bar = VALUE #( ( ucomm = 'RUN66' label = lv_label icon = 'execute' ) ) ) ).
+      icon_bar     = VALUE #( ( ucomm = 'RUN66' label = lv_label icon = 'execute' ) ) ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = lv_body ) ).
   ENDMETHOD.
 
@@ -131,7 +131,8 @@ CLASS zcl_gg_ex_066 IMPLEMENTATION.
 
   METHOD unicode_text.
     DATA(lv_utf8) = CONV xstring( iv_hex ).
-    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input = lv_utf8 encoding = 'UTF-8' ).
+    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input    = lv_utf8
+                                                     encoding = 'UTF-8' ).
     lo_converter->read( IMPORTING data = rv_text ).
   ENDMETHOD.
 ENDCLASS.

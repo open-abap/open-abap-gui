@@ -60,7 +60,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD selects_line.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_true( xsdbool( ls_result-lines[ 7 ] CS `Selected line:` ) ).
@@ -68,7 +68,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD reports_selected_line_text.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -78,7 +78,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD reports_cursor_position.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -88,7 +88,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD reports_hidden_values.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -98,7 +98,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD reports_detail_list_index.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -108,7 +108,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD renders_detail_list.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -121,7 +121,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD detail_has_flight.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -131,7 +131,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD runs_function_code.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report       = NEW zcl_gg_integration_interactive( )
       iv_user_command = 'REFRESH' ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -141,7 +141,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD reports_function_code.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report       = NEW zcl_gg_integration_interactive( )
       iv_user_command = 'REFRESH' ).
 
     cl_abap_unit_assert=>assert_true( xsdbool( ls_result-lines[ 6 ] CS `REFRESH` ) ).
@@ -149,7 +149,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD retrieves_line_hidden_values.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 1 ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -159,10 +159,10 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD scopes_hidden_values_to_line.
     DATA(ls_first) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 1 ).
     DATA(ls_second) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_true( xsdbool( ls_first-lines[ 8 ] <> ls_second-lines[ 8 ] ) ).
@@ -189,7 +189,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
   METHOD restores_list_level.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_interactive( )
+      io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(

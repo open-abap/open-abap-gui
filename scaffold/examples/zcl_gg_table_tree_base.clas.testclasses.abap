@@ -30,68 +30,101 @@ ENDCLASS.
 CLASS ltcl_gg_table_tree_base IMPLEMENTATION.
 
   METHOD alv_grid.
-    check_html( io_report = NEW zcl_gg_ex_135( ) iv_text = 'data-control-kind="ALV_GRID"' ).
-    check_html( io_report = NEW zcl_gg_ex_135( ) iv_text = 'Lufthansa' ).
+    check_html( io_report = NEW zcl_gg_ex_135( )
+                iv_text   = 'data-control-kind="ALV_GRID"' ).
+    check_html( io_report = NEW zcl_gg_ex_135( )
+                iv_text   = 'Lufthansa' ).
   ENDMETHOD.
 
   METHOD alv_edit.
-    check_html( io_report = NEW zcl_gg_ex_136( ) iv_text = 'Editable ALV grid' ).
-    check_command( io_report = NEW zcl_gg_ex_136( ) iv_ucomm = 'SAVE_GRID' iv_text = 'changed data accepted' ).
+    check_html( io_report = NEW zcl_gg_ex_136( )
+                iv_text   = 'Editable ALV grid' ).
+    check_command( io_report = NEW zcl_gg_ex_136( )
+                   iv_ucomm  = 'SAVE_GRID'
+                   iv_text   = 'changed data accepted' ).
   ENDMETHOD.
 
   METHOD alv_criteria.
-    check_html( io_report = NEW zcl_gg_ex_137( ) iv_text = 'data-criteria="server-owned"' ).
-    check_command( io_report = NEW zcl_gg_ex_137( ) iv_ucomm = 'APPLY_CRITERIA' iv_text = 'criteria applied server-side' ).
+    check_html( io_report = NEW zcl_gg_ex_137( )
+                iv_text   = 'data-criteria="server-owned"' ).
+    check_command( io_report = NEW zcl_gg_ex_137( )
+                   iv_ucomm  = 'APPLY_CRITERIA'
+                   iv_text   = 'criteria applied server-side' ).
   ENDMETHOD.
 
   METHOD alv_selection.
-    check_html( io_report = NEW zcl_gg_ex_138( ) iv_text = 'FLIGHT-2' ).
-    check_command( io_report = NEW zcl_gg_ex_138( ) iv_ucomm = 'SELECT_ROW' iv_text = 'opaque row' ).
+    check_html( io_report = NEW zcl_gg_ex_138( )
+                iv_text   = 'FLIGHT-2' ).
+    check_command( io_report = NEW zcl_gg_ex_138( )
+                   iv_ucomm  = 'SELECT_ROW'
+                   iv_text   = 'opaque row' ).
   ENDMETHOD.
 
   METHOD alv_events.
-    check_html( io_report = NEW zcl_gg_ex_139( ) iv_text = 'ALV toolbar event' ).
-    check_command( io_report = NEW zcl_gg_ex_139( ) iv_ucomm = 'ALV_EVENT' iv_text = 'event delivered' ).
+    check_html( io_report = NEW zcl_gg_ex_139( )
+                iv_text   = 'ALV toolbar event' ).
+    check_command( io_report = NEW zcl_gg_ex_139( )
+                   iv_ucomm  = 'ALV_EVENT'
+                   iv_text   = 'event delivered' ).
   ENDMETHOD.
 
   METHOD simple_tree.
-    check_html( io_report = NEW zcl_gg_ex_140( ) iv_text = 'Simple tree' ).
-    check_html( io_report = NEW zcl_gg_ex_140( ) iv_text = 'Hidden audit node' ).
+    check_html( io_report = NEW zcl_gg_ex_140( )
+                iv_text   = 'Simple tree' ).
+    check_html( io_report = NEW zcl_gg_ex_140( )
+                iv_text   = 'Hidden audit node' ).
   ENDMETHOD.
 
   METHOD column_trees.
-    check_html( io_report = NEW zcl_gg_ex_141( ) iv_text = 'Column tree' ).
-    check_html( io_report = NEW zcl_gg_ex_141( ) iv_text = 'On time' ).
+    check_html( io_report = NEW zcl_gg_ex_141( )
+                iv_text   = 'Column tree' ).
+    check_html( io_report = NEW zcl_gg_ex_141( )
+                iv_text   = 'On time' ).
   ENDMETHOD.
 
   METHOD tree_events.
-    check_html( io_report = NEW zcl_gg_ex_142( ) iv_text = 'NODE-LH400' ).
-    check_command( io_report = NEW zcl_gg_ex_142( ) iv_ucomm = 'TREE_SELECT' iv_text = 'node NODE-LH400' ).
+    check_html( io_report = NEW zcl_gg_ex_142( )
+                iv_text   = 'NODE-LH400' ).
+    check_command( io_report = NEW zcl_gg_ex_142( )
+                   iv_ucomm  = 'TREE_SELECT'
+                   iv_text   = 'node NODE-LH400' ).
   ENDMETHOD.
 
   METHOD alv_tree.
-    check_html( io_report = NEW zcl_gg_ex_143( ) iv_text = 'data-control-kind="ALV_TREE"' ).
-    check_html( io_report = NEW zcl_gg_ex_143( ) iv_text = 'LH400' ).
+    check_html( io_report = NEW zcl_gg_ex_143( )
+                iv_text   = 'data-control-kind="ALV_TREE"' ).
+    check_html( io_report = NEW zcl_gg_ex_143( )
+                iv_text   = 'LH400' ).
   ENDMETHOD.
 
   METHOD salv_basics.
-    check_html( io_report = NEW zcl_gg_ex_144( ) iv_text = 'SALV table basics' ).
-    check_html( io_report = NEW zcl_gg_ex_144( ) iv_text = 'Functions: sort, filter, export' ).
+    check_html( io_report = NEW zcl_gg_ex_144( )
+                iv_text   = 'SALV table basics' ).
+    check_html( io_report = NEW zcl_gg_ex_144( )
+                iv_text   = 'Functions: sort, filter, export' ).
   ENDMETHOD.
 
   METHOD salv_aggregation.
-    check_html( io_report = NEW zcl_gg_ex_145( ) iv_text = 'data-aggregation="total"' ).
-    check_command( io_report = NEW zcl_gg_ex_145( ) iv_ucomm = 'SALV_FILTER' iv_text = 'SALV filter applied' ).
+    check_html( io_report = NEW zcl_gg_ex_145( )
+                iv_text   = 'data-aggregation="total"' ).
+    check_command( io_report = NEW zcl_gg_ex_145( )
+                   iv_ucomm  = 'SALV_FILTER'
+                   iv_text   = 'SALV filter applied' ).
   ENDMETHOD.
 
   METHOD salv_layout.
-    check_html( io_report = NEW zcl_gg_ex_146( ) iv_text = 'SALV header and layout' ).
-    check_html( io_report = NEW zcl_gg_ex_146( ) iv_text = 'Prepared by the analytics team' ).
+    check_html( io_report = NEW zcl_gg_ex_146( )
+                iv_text   = 'SALV header and layout' ).
+    check_html( io_report = NEW zcl_gg_ex_146( )
+                iv_text   = 'Prepared by the analytics team' ).
   ENDMETHOD.
 
   METHOD salv_events.
-    check_html( io_report = NEW zcl_gg_ex_147( ) iv_text = 'ROW-2' ).
-    check_command( io_report = NEW zcl_gg_ex_147( ) iv_ucomm = 'SALV_LINK' iv_text = 'SALV link event' ).
+    check_html( io_report = NEW zcl_gg_ex_147( )
+                iv_text   = 'ROW-2' ).
+    check_command( io_report = NEW zcl_gg_ex_147( )
+                   iv_ucomm  = 'SALV_LINK'
+                   iv_text   = 'SALV link event' ).
   ENDMETHOD.
 
   METHOD bar_chart.
@@ -138,8 +171,8 @@ CLASS ltcl_gg_table_tree_base IMPLEMENTATION.
 
   METHOD check_command.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report        = io_report
-      iv_user_command  = CONV #( iv_ucomm ) ).
+      io_report       = io_report
+      iv_user_command = CONV #( iv_ucomm ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS iv_text ) ).
   ENDMETHOD.
 

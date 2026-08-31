@@ -11,7 +11,7 @@ CLASS zcl_gg_ex_070 IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
     rs_transaction = VALUE #(
-      tcode = 'ZGG_EX_070'
+      tcode       = 'ZGG_EX_070'
       description = 'Radio-driven blocks and validation' ).
   ENDMETHOD.
 
@@ -38,9 +38,9 @@ CLASS zcl_gg_ex_070 IMPLEMENTATION.
       data_type = VALUE #( typ = 'C' length = 20 ) ) ).
     io_builder->end_block( ).
     io_builder->add_parameter( VALUE #(
-      name      = 'P_REQUIRED'
-      text      = 'Required value'
-      data_type = VALUE #( typ = 'C' length = 20 )
+      name       = 'P_REQUIRED'
+      text       = 'Required value'
+      data_type  = VALUE #( typ = 'C' length = 20 )
       obligatory = abap_true ) ).
   ENDMETHOD.
 

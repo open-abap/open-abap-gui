@@ -8,9 +8,12 @@ CLASS ltcl_ex_64 IMPLEMENTATION.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program   = NEW zcl_gg_ex_064( )
       iv_submitted = abap_false ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-title exp = 'Feedback 64 - next action' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-status-status exp = 'SHELL64' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-cursor-field exp = 'P_ACTION' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-title
+                                        exp = 'Feedback 64 - next action' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-status-status
+                                        exp = 'SHELL64' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-cursor-field
+                                        exp = 'P_ACTION' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-cursor-field="P_ACTION"' ) ).
     DATA(ls_submitted) = zcl_gg_host_dynpro=>run(
       io_program   = NEW zcl_gg_ex_064( )

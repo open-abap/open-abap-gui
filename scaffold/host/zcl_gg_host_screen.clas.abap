@@ -281,24 +281,24 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_name  = is_parameter-name
       iv_value = is_parameter-default ).
     add_state(
+      iv_name        = is_parameter-name
+      iv_text        = is_parameter-text
+      iv_modif_id    = is_parameter-modif_id
+      iv_memory_id   = is_parameter-memory_id
+      iv_search_help = is_parameter-search_help
+      iv_lower_case  = is_parameter-lower_case
+      iv_no_display  = is_parameter-no_display
+      iv_value_help  = is_parameter-value_help
+      iv_obligatory  = is_parameter-obligatory ).
+    add_element(
+      iv_kind       = 'PARAMETER'
       iv_name       = is_parameter-name
       iv_text       = is_parameter-text
-      iv_modif_id   = is_parameter-modif_id
-      iv_memory_id  = is_parameter-memory_id
-      iv_search_help = is_parameter-search_help
-      iv_lower_case = is_parameter-lower_case
-      iv_no_display = is_parameter-no_display
+      iv_position   = mv_position
+      iv_length     = is_parameter-data_type-length
       iv_value_help = is_parameter-value_help
-      iv_obligatory = is_parameter-obligatory ).
-    add_element(
-      iv_kind     = 'PARAMETER'
-      iv_name     = is_parameter-name
-      iv_text     = is_parameter-text
-      iv_position = mv_position
-      iv_length   = is_parameter-data_type-length
-      iv_value_help = is_parameter-value_help
-      is_data_type = is_parameter-data_type
-      iv_modif_id = is_parameter-modif_id ).
+      is_data_type  = is_parameter-data_type
+      iv_modif_id   = is_parameter-modif_id ).
     IF mv_in_line = abap_true.
       mv_position = mv_position + is_parameter-data_type-length.
     ENDIF.
@@ -344,21 +344,21 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_name  = is_listbox-name
       iv_value = is_listbox-default ).
     add_state(
-      iv_name       = is_listbox-name
-      iv_text       = is_listbox-text
-      iv_modif_id   = is_listbox-modif_id
-      it_fixed_values = is_listbox-fixed_values
-      iv_obligatory = is_listbox-obligatory ).
-    add_element(
-      iv_kind         = 'LISTBOX'
       iv_name         = is_listbox-name
       iv_text         = is_listbox-text
-      iv_ucomm        = is_listbox-ucomm
-      iv_length       = is_listbox-data_type-length
-      iv_visible_length = is_listbox-data_type-visible_length
       iv_modif_id     = is_listbox-modif_id
-      is_data_type    = is_listbox-data_type
-      it_fixed_values = is_listbox-fixed_values ).
+      it_fixed_values = is_listbox-fixed_values
+      iv_obligatory   = is_listbox-obligatory ).
+    add_element(
+      iv_kind           = 'LISTBOX'
+      iv_name           = is_listbox-name
+      iv_text           = is_listbox-text
+      iv_ucomm          = is_listbox-ucomm
+      iv_length         = is_listbox-data_type-length
+      iv_visible_length = is_listbox-data_type-visible_length
+      iv_modif_id       = is_listbox-modif_id
+      is_data_type      = is_listbox-data_type
+      it_fixed_values   = is_listbox-fixed_values ).
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_select_option.
@@ -371,15 +371,15 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_modif_id   = is_select_option-modif_id
       iv_obligatory = is_select_option-obligatory ).
     add_element(
-      iv_kind     = 'SELECT_OPTION'
-      iv_name     = is_select_option-name
-      iv_text     = is_select_option-text
-      iv_length   = is_select_option-data_type-length
-      iv_value_help = is_select_option-value_help
+      iv_kind         = 'SELECT_OPTION'
+      iv_name         = is_select_option-name
+      iv_text         = is_select_option-text
+      iv_length       = is_select_option-data_type-length
+      iv_value_help   = is_select_option-value_help
       iv_no_extension = is_select_option-no_extension
       iv_no_intervals = is_select_option-no_intervals
-      is_data_type = is_select_option-data_type
-      iv_modif_id = is_select_option-modif_id ).
+      is_data_type    = is_select_option-data_type
+      iv_modif_id     = is_select_option-modif_id ).
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_pushbutton.
@@ -395,14 +395,14 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
 
   METHOD zif_gg_selection_screen_builder_v1~add_comment.
     add_element(
-      iv_kind     = 'COMMENT'
-      iv_name     = is_comment-name
-      iv_text     = is_comment-text
-      iv_position = is_comment-position
-      iv_length   = is_comment-visible_length
+      iv_kind           = 'COMMENT'
+      iv_name           = is_comment-name
+      iv_text           = is_comment-text
+      iv_position       = is_comment-position
+      iv_length         = is_comment-visible_length
       iv_visible_length = is_comment-visible_length
-      iv_for_field = is_comment-for_field
-      iv_modif_id = is_comment-modif_id ).
+      iv_for_field      = is_comment-for_field
+      iv_modif_id       = is_comment-modif_id ).
     IF mv_in_line = abap_true AND is_comment-position > 0.
       mv_position = is_comment-position + is_comment-visible_length.
     ENDIF.
@@ -417,7 +417,8 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_skip.
-    add_element( iv_kind = 'SKIP' iv_length = iv_lines ).
+    add_element( iv_kind   = 'SKIP'
+                 iv_length = iv_lines ).
     mv_line = mv_line + iv_lines.
   ENDMETHOD.
 
@@ -476,12 +477,12 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_text      = is_tab-text
       iv_ucomm     = is_tab-ucomm
       iv_subscreen = is_tab-subscreen ).
-    APPEND VALUE #( block = mv_tabbed_block
-                    name = is_tab-name
-                    text = is_tab-text
+    APPEND VALUE #( block     = mv_tabbed_block
+                    name      = is_tab-name
+                    text      = is_tab-text
                     subscreen = is_tab-subscreen
-                    ucomm = is_tab-ucomm
-                    selected = xsdbool( lines( mt_tabs ) = 0 ) ) TO mt_tabs.
+                    ucomm     = is_tab-ucomm
+                    selected  = xsdbool( lines( mt_tabs ) = 0 ) ) TO mt_tabs.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~end_tabbed_block.
@@ -492,9 +493,9 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     APPEND is_screen TO mt_screens.
     mv_screen = is_screen-number.
     add_element(
-      iv_kind        = 'SCREEN'
-      iv_screen      = is_screen-number
-      iv_as_window   = is_screen-as_window
+      iv_kind         = 'SCREEN'
+      iv_screen       = is_screen-number
+      iv_as_window    = is_screen-as_window
       iv_as_subscreen = is_screen-as_subscreen ).
   ENDMETHOD.
 

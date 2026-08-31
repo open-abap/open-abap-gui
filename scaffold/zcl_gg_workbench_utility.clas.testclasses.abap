@@ -27,7 +27,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
       iv_runtime = abap_true
       is_status  = VALUE #( active_ucomm   = VALUE #( ( 'RUN' ) ( 'EXCLUDED' ) )
                             excluded_ucomm = VALUE #( ( 'EXCLUDED' ) )
-                            icon_bar = VALUE #(
+                            icon_bar       = VALUE #(
                               ( ucomm = 'RUN'      label = `A & <Run>` icon = `not-a-real-icon` )
                               ( ucomm = 'INACTIVE' label = `Inactive` icon = `refresh` )
                               ( ucomm = 'EXCLUDED' label = `Excluded` icon = `refresh` separator = abap_true ) ) ) ).

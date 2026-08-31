@@ -481,15 +481,16 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
-    APPEND VALUE #( node_key = node_key
+    APPEND VALUE #( node_key   = node_key
                     parent_key = parent_key
-                    text = text
-                    expanded = abap_true ) TO mt_html_nodes.
+                    text       = text
+                    expanded   = abap_true ) TO mt_html_nodes.
     refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD refresh_tree_html.
-    cl_gui_control=>set_html( control = me html = tree_html( ) ).
+    cl_gui_control=>set_html( control = me
+                              html    = tree_html( ) ).
   ENDMETHOD.
 
   METHOD tree_html.

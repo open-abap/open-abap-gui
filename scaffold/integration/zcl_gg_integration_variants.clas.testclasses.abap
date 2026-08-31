@@ -18,7 +18,7 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
     zcl_gg_host_variant=>clear( ).
     zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_variants( 'SAVE' )
-      it_input = VALUE #(
+      it_input  = VALUE #(
         ( name = 'P_CARR' value = 'LH' )
         ( name = 'P_DATE' value = '20260228' ) ) ).
 
@@ -34,7 +34,7 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
   METHOD loads_values_before_run.
     zcl_gg_host_variant=>clear( ).
     zcl_gg_host_variant=>save(
-      iv_name = 'FLIGHT_VARIANT'
+      iv_name   = 'FLIGHT_VARIANT'
       it_values = VALUE #(
         ( name = 'P_CARR' value = 'LH' )
         ( name = 'P_DATE' value = '20260228' ) ) ).
@@ -48,10 +48,10 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
   METHOD overwrites_values.
     zcl_gg_host_variant=>clear( ).
     zcl_gg_host_variant=>save(
-      iv_name = 'FLIGHT_VARIANT'
+      iv_name   = 'FLIGHT_VARIANT'
       it_values = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ).
     zcl_gg_host_variant=>save(
-      iv_name = 'FLIGHT_VARIANT'
+      iv_name   = 'FLIGHT_VARIANT'
       it_values = VALUE #( ( name = 'P_CARR' value = 'SQ' ) ) ).
 
     DATA(lt_values) = zcl_gg_host_variant=>load( 'FLIGHT_VARIANT' ).
@@ -63,7 +63,7 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
   METHOD deletes_values.
     zcl_gg_host_variant=>clear( ).
     zcl_gg_host_variant=>save(
-      iv_name = 'FLIGHT_VARIANT'
+      iv_name   = 'FLIGHT_VARIANT'
       it_values = VALUE #( ( name = 'P_CARR' value = 'AA' ) ) ).
     zcl_gg_host_variant=>delete( 'FLIGHT_VARIANT' ).
 
@@ -82,7 +82,7 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
   METHOD repeats_without_leak.
     zcl_gg_host_variant=>clear( ).
     zcl_gg_host_variant=>save(
-      iv_name = 'FLIGHT_VARIANT'
+      iv_name   = 'FLIGHT_VARIANT'
       it_values = VALUE #( ( name = 'P_CARR' value = 'LH' ) ) ).
     DATA(ls_loaded) = zcl_gg_host=>run( NEW zcl_gg_integration_variants( 'LOAD' ) ).
     DATA(ls_plain) = zcl_gg_host=>run( NEW zcl_gg_integration_variants( 'PLAIN' ) ).
@@ -97,10 +97,10 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
 
   METHOD isolates_memory_list.
     DATA(ls_first) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_variants( 'MEMORY' )
+      io_report        = NEW zcl_gg_integration_variants( 'MEMORY' )
       io_submit_report = NEW zcl_gg_ex_001( ) ).
     DATA(ls_second) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_variants( 'MEMORY' )
+      io_report        = NEW zcl_gg_integration_variants( 'MEMORY' )
       io_submit_report = NEW zcl_gg_ex_001( ) ).
 
     cl_abap_unit_assert=>assert_equals(
@@ -109,12 +109,13 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
         ( `Memory level: 1` )
         ( `Memory: hello world` )
         ( `Restored memory level: 0` ) ) ).
-    cl_abap_unit_assert=>assert_equals( act = ls_first-lines exp = ls_second-lines ).
+    cl_abap_unit_assert=>assert_equals( act = ls_first-lines
+                                        exp = ls_second-lines ).
   ENDMETHOD.
 
   METHOD restores_memory_level.
     DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_integration_variants( 'MEMORY' )
+      io_report        = NEW zcl_gg_integration_variants( 'MEMORY' )
       io_submit_report = NEW zcl_gg_ex_001( ) ).
 
     cl_abap_unit_assert=>assert_equals(

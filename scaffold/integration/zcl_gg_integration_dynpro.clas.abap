@@ -14,24 +14,24 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Flight input' ) ).
     io_builder->add_input_field( VALUE #(
-      control = VALUE #( name = 'P_INPUT' position = VALUE #( row = 1 column = 1 width = 20 ) )
-      data_type = VALUE #( typ = 'C' length = 20 )
+      control     = VALUE #( name = 'P_INPUT' position = VALUE #( row = 1 column = 1 width = 20 ) )
+      data_type   = VALUE #( typ = 'C' length = 20 )
       search_help = 'P_INPUT'
-      value_help = abap_true
-      required = abap_true ) ).
+      value_help  = abap_true
+      required    = abap_true ) ).
     io_builder->add_pushbutton( VALUE #(
       control = VALUE #( name = 'NEXT_BUTTON' position = VALUE #( row = 2 column = 1 width = 10 ) )
-      text = 'Next'
-      ucomm = 'NEXT' ) ).
+      text    = 'Next'
+      ucomm   = 'NEXT' ) ).
     io_builder->end_screen( ).
     io_builder->begin_screen( VALUE #( number = '0200' title = 'Flight result' ) ).
     io_builder->add_output_field( VALUE #(
-      control = VALUE #( name = 'P_INPUT' position = VALUE #( row = 1 column = 1 width = 20 ) )
+      control   = VALUE #( name = 'P_INPUT' position = VALUE #( row = 1 column = 1 width = 20 ) )
       data_type = VALUE #( typ = 'C' length = 20 ) ) ).
     io_builder->add_pushbutton( VALUE #(
       control = VALUE #( name = 'EXIT_BUTTON' position = VALUE #( row = 2 column = 1 width = 10 ) )
-      text = 'Exit'
-      ucomm = 'EXIT' ) ).
+      text    = 'Exit'
+      ucomm   = 'EXIT' ) ).
     io_builder->end_screen( ).
   ENDMETHOD.
 
@@ -82,16 +82,16 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
         ct_values[ name = 'PBO_0100' ]-value = 'X'.
         ct_values[ name = 'P_STATE' ]-value = 'SCREEN_0100'.
         io_session->get_dialog( )->set_status( VALUE #(
-          status = 'FLIGHT INPUT'
+          status       = 'FLIGHT INPUT'
           active_ucomm = VALUE #( ( 'NEXT' ) ( 'LIST' ) ( 'CONTEXT' ) ( 'EXIT' ) ) ) ).
       WHEN '0200'.
         ct_values[ name = 'PBO_0200' ]-value = 'X'.
         ct_values[ name = 'P_STATE' ]-value = 'SCREEN_0200'.
         io_session->get_dialog( )->set_status( VALUE #(
-          status = 'FLIGHT RESULT'
+          status       = 'FLIGHT RESULT'
           active_ucomm = VALUE #( ( 'EXIT' ) ) ) ).
         io_session->get_list( )->get_writer( )->write_field(
-          VALUE #( text = 'Dynpro list after navigation'
+          VALUE #( text      = 'Dynpro list after navigation'
                    placement = VALUE #( new_line = abap_true ) ) ).
     ENDCASE.
   ENDMETHOD.
@@ -119,7 +119,7 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
         io_session->get_dialog( )->set_next_screen( '0200' ).
         IF is_context-ucomm = 'LIST'.
           io_session->get_list( )->get_writer( )->write_field(
-            VALUE #( text = 'Dynpro list before navigation'
+            VALUE #( text      = 'Dynpro list before navigation'
                      placement = VALUE #( new_line = abap_true ) ) ).
         ENDIF.
         io_session->get_dialog( )->leave_screen( ).

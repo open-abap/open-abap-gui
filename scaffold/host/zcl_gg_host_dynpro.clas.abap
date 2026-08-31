@@ -81,9 +81,34 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         cs_result  TYPE ty_result.
 
-    CLASS-METHODS process_modules IMPORTING io_program TYPE REF TO zif_gg_dynpro_v1 io_flow TYPE REF TO zcl_gg_host_dynpro_flow io_session TYPE REF TO zcl_gg_host_session iv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number iv_submitted TYPE abap_bool iv_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name iv_help_request TYPE zif_gg_dynpro_types_v1=>ty_name it_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls CHANGING cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context ct_values TYPE zif_gg_dynpro_types_v1=>ty_values ct_states TYPE zif_gg_dynpro_types_v1=>ty_states cv_help_text TYPE string ct_help_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    CLASS-METHODS process_modules
+      IMPORTING
+        io_program       TYPE REF TO zif_gg_dynpro_v1
+        io_flow          TYPE REF TO zcl_gg_host_dynpro_flow
+        io_session       TYPE REF TO zcl_gg_host_session
+        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        iv_submitted     TYPE abap_bool
+        iv_ucomm         TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name
+        it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
+      CHANGING
+        cs_context       TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_values        TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states        TYPE zif_gg_dynpro_types_v1=>ty_states
+        cv_help_text     TYPE string
+        ct_help_values   TYPE zif_gg_dynpro_types_v1=>ty_values.
 
-    CLASS-METHODS destination_pbo IMPORTING io_program TYPE REF TO zif_gg_dynpro_v1 io_flow TYPE REF TO zcl_gg_host_dynpro_flow io_session TYPE REF TO zcl_gg_host_session iv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number CHANGING cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context ct_values TYPE zif_gg_dynpro_types_v1=>ty_values ct_states TYPE zif_gg_dynpro_types_v1=>ty_states.
+    CLASS-METHODS destination_pbo
+      IMPORTING
+        io_program TYPE REF TO zif_gg_dynpro_v1
+        io_flow    TYPE REF TO zcl_gg_host_dynpro_flow
+        io_session TYPE REF TO zcl_gg_host_session
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+      CHANGING
+        cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
 
 ENDCLASS.
 
@@ -123,17 +148,17 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lt_steps = lo_flow->get_steps( ).
     LOOP AT lt_controls INTO DATA(ls_control).
       INSERT VALUE #(
-        container = COND #( WHEN ls_control-kind = 'TABLE_COLUMN'
+        container    = COND #( WHEN ls_control-kind = 'TABLE_COLUMN'
                             THEN ls_control-parent ELSE `` )
-        name      = ls_control-name
-        row       = 0
-        text      = ls_control-text
+        name         = ls_control-name
+        row          = 0
+        text         = ls_control-text
         fixed_values = ls_control-fixed_values
-        visible   = ls_control-visible
-        enabled   = ls_control-enabled
-        required  = ls_control-required
-        password  = ls_control-password
-        value_help = ls_control-value_help ) INTO TABLE lt_states.
+        visible      = ls_control-visible
+        enabled      = ls_control-enabled
+        required     = ls_control-required
+        password     = ls_control-password
+        value_help   = ls_control-value_help ) INTO TABLE lt_states.
     ENDLOOP.
     io_program->initialization(
       EXPORTING
@@ -268,18 +293,18 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     rs_result-page_id = lv_page_id.
     rs_result-page_kind = zif_gg_host_html_v1=>page_dynpro.
     rs_result-html = zcl_gg_host_renderer=>render_dynpro(
-      iv_session_id = lv_session_id
-      iv_page_id    = lv_page_id
-      is_screen     = ls_screen
-      iv_title      = rs_result-title
-      is_status     = rs_result-status
-      is_cursor     = rs_result-cursor
-      it_controls   = lt_controls
-      it_values     = lt_values
-      it_states     = lt_states
+      iv_session_id  = lv_session_id
+      iv_page_id     = lv_page_id
+      is_screen      = ls_screen
+      iv_title       = rs_result-title
+      is_status      = rs_result-status
+      is_cursor      = rs_result-cursor
+      it_controls    = lt_controls
+      it_values      = lt_values
+      it_states      = lt_states
       iv_help_text   = rs_result-help_text
       it_help_values = rs_result-help_values
-      it_messages   = rs_result-messages ).
+      it_messages    = rs_result-messages ).
     render_terminal_page(
       EXPORTING
         iv_session_id = lv_session_id
@@ -301,7 +326,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       EXPORTING
         iv_terminal = rs_result-terminal_state
       CHANGING
-        ct_actions = rs_result-page-actions ).
+        ct_actions  = rs_result-page-actions ).
   ENDMETHOD.
 
   METHOD process_modules.
@@ -341,7 +366,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             is_context = cs_context
             io_session = io_session
           CHANGING
-            ct_values = ct_values ).
+            ct_values  = ct_values ).
       ENDLOOP.
     ENDIF.
 
@@ -408,7 +433,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   METHOD add_page_actions.
     IF iv_terminal = abap_false.
       APPEND VALUE #( kind = zif_gg_host_html_v1=>action_submit ) TO ct_actions.
-      APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back
+      APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_back
                       ucomm = 'BACK' ) TO ct_actions.
     ENDIF.
   ENDMETHOD.
@@ -422,7 +447,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_page_id    = iv_page_id
         iv_title      = 'Terminal'
         iv_text       = cs_result-terminal
-        it_messages    = cs_result-messages ).
+        it_messages   = cs_result-messages ).
     ENDIF.
   ENDMETHOD.
 
@@ -445,14 +470,14 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           OR zcx_gg_control_flow=>kind_leave_to_transaction.
         ls_transaction_call = io_session->get_transaction_call( ).
         cs_result-navigation = VALUE #(
-          kind = ix_flow->mv_kind
-          target = CONV string( ls_transaction_call-tcode )
+          kind         = ix_flow->mv_kind
+          target       = CONV string( ls_transaction_call-tcode )
           continuation = ls_continuation-id ).
       WHEN zcx_gg_control_flow=>kind_submit_return.
         ls_submit_call = io_session->get_submit_call( ).
         cs_result-navigation = VALUE #(
-          kind = ix_flow->mv_kind
-          target = CONV string( ls_submit_call-program )
+          kind         = ix_flow->mv_kind
+          target       = CONV string( ls_submit_call-program )
           continuation = ls_continuation-id ).
         cs_result-submit = ls_submit_call.
     ENDCASE.

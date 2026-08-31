@@ -6,16 +6,29 @@ CLASS zcl_gg_se16 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     METHODS put_value
-      IMPORTING iv_name TYPE zif_gg_dynpro_types_v1=>ty_name iv_value TYPE string
-      CHANGING ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+      IMPORTING
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_value  TYPE string
+      CHANGING
+        ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS value_of
-      IMPORTING it_values TYPE zif_gg_dynpro_types_v1=>ty_values iv_name TYPE zif_gg_dynpro_types_v1=>ty_name
-      RETURNING VALUE(rv_value) TYPE string.
+      IMPORTING
+        it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+      RETURNING
+        VALUE(rv_value) TYPE string.
     METHODS put_cell
-      IMPORTING iv_container TYPE zif_gg_dynpro_types_v1=>ty_name iv_name TYPE zif_gg_dynpro_types_v1=>ty_name iv_row TYPE i iv_value TYPE string
-      CHANGING ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+      IMPORTING
+        iv_container TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_row       TYPE i
+        iv_value     TYPE string
+      CHANGING
+        ct_values    TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS add_flow
-      IMPORTING io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1 iv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+      IMPORTING
+        io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
 
 ENDCLASS.
 
@@ -77,15 +90,21 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_flow_logic.
-    add_flow( io_builder = io_builder iv_screen = '0100' ).
-    add_flow( io_builder = io_builder iv_screen = '0200' ).
+    add_flow( io_builder = io_builder
+              iv_screen  = '0100' ).
+    add_flow( io_builder = io_builder
+              iv_screen  = '0200' ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~initialization.
-    put_value( EXPORTING iv_name = 'P_TABLE' iv_value = 'ZSFLIGHT' CHANGING ct_values = ct_values ).
-    put_value( EXPORTING iv_name = 'P_MAX_ROWS' iv_value = '100' CHANGING ct_values = ct_values ).
-    put_value( EXPORTING iv_name = 'P_FIELDS' iv_value = 'ALL' CHANGING ct_values = ct_values ).
-    put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = 'Read-only Data Browser: table mutation and arbitrary SQL are unavailable.' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_TABLE'
+                         iv_value = 'ZSFLIGHT' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_MAX_ROWS'
+                         iv_value = '100' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_FIELDS'
+                         iv_value = 'ALL' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_CAPABILITY'
+                         iv_value = 'Read-only Data Browser: table mutation and arbitrary SQL are unavailable.' CHANGING ct_values = ct_values ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
@@ -93,9 +112,10 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
     DATA(ls_capabilities) = lo_service->zif_gg_table_data_service_v1~get_capabilities( ).
 
     io_session->get_dialog( )->set_status( VALUE #(
-      status = 'SE16'
+      status       = 'SE16'
       active_ucomm = VALUE #( ( 'EXECUTE' ) ( 'CHANGE' ) ) ) ).
-    put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_CAPABILITY'
+                         iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
     ct_states[ name = 'PB_CHANGE' ]-enabled = abap_false.
   ENDMETHOD.
 
@@ -123,11 +143,12 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF is_context-screen = '0100' AND is_context-ucomm = 'EXECUTE'.
-      lv_max_text = value_of( it_values = ct_values iv_name = 'P_MAX_ROWS' ).
+      lv_max_text = value_of( it_values = ct_values
+                              iv_name   = 'P_MAX_ROWS' ).
       IF lv_max_text IS NOT INITIAL AND lv_max_text CN '0123456789'.
         io_session->message( VALUE #(
-          type = zif_gg_session_types_v1=>message_type_error
-          text = 'Maximum hits must be a positive numeric value.'
+          type  = zif_gg_session_types_v1=>message_type_error
+          text  = 'Maximum hits must be a positive numeric value.'
           field = 'P_MAX_ROWS' ) ).
         RETURN.
       ENDIF.
@@ -138,40 +159,69 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
       ENDIF.
       IF lv_max <= 0.
         io_session->message( VALUE #(
-          type = zif_gg_session_types_v1=>message_type_error
-          text = 'Maximum hits must be greater than zero.'
+          type  = zif_gg_session_types_v1=>message_type_error
+          text  = 'Maximum hits must be greater than zero.'
           field = 'P_MAX_ROWS' ) ).
         RETURN.
       ENDIF.
-      ls_criteria-table_name = value_of( it_values = ct_values iv_name = 'P_TABLE' ).
-      ls_criteria-carrid_low = value_of( it_values = ct_values iv_name = 'P_CARRID_LOW' ).
-      ls_criteria-carrid_high = value_of( it_values = ct_values iv_name = 'P_CARRID_HIGH' ).
-      ls_criteria-exclude_carrid = xsdbool( value_of( it_values = ct_values iv_name = 'P_EXCLUDE' ) = 'X' ).
+      ls_criteria-table_name = value_of( it_values = ct_values
+                                         iv_name   = 'P_TABLE' ).
+      ls_criteria-carrid_low = value_of( it_values = ct_values
+                                         iv_name   = 'P_CARRID_LOW' ).
+      ls_criteria-carrid_high = value_of( it_values = ct_values
+                                          iv_name   = 'P_CARRID_HIGH' ).
+      ls_criteria-exclude_carrid = xsdbool( value_of( it_values = ct_values
+                                                      iv_name   = 'P_EXCLUDE' ) = 'X' ).
       ls_criteria-max_rows = lv_max.
       ls_result = lo_service->zif_gg_table_data_service_v1~read( ls_criteria ).
       IF ls_result-error IS NOT INITIAL.
         io_session->message( VALUE #(
-          type = zif_gg_session_types_v1=>message_type_error
-          text = ls_result-error
+          type  = zif_gg_session_types_v1=>message_type_error
+          text  = ls_result-error
           field = 'P_TABLE' ) ).
         RETURN.
       ENDIF.
-      put_value( EXPORTING iv_name = 'O_RESULT_TABLE' iv_value = ls_result-table_name CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_RESULT_COUNT' iv_value = |{ ls_result-returned_rows }| CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_RESULT_TABLE'
+                           iv_value = ls_result-table_name CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_RESULT_COUNT'
+                           iv_value = |{ ls_result-returned_rows }| CHANGING ct_values = ct_values ).
       IF ls_result-truncated = abap_true.
-        put_value( EXPORTING iv_name = 'O_RESULT_FEEDBACK' iv_value = |{ ls_result-returned_rows } of { ls_result-total_rows } rows returned; hard maximum reached.| CHANGING ct_values = ct_values ).
+        put_value( EXPORTING iv_name = 'O_RESULT_FEEDBACK'
+                             iv_value = |{ ls_result-returned_rows } of { ls_result-total_rows } rows returned; hard maximum reached.| CHANGING ct_values = ct_values ).
       ELSE.
-        put_value( EXPORTING iv_name = 'O_RESULT_FEEDBACK' iv_value = |{ ls_result-returned_rows } rows returned.| CHANGING ct_values = ct_values ).
+        put_value( EXPORTING iv_name = 'O_RESULT_FEEDBACK'
+                             iv_value = |{ ls_result-returned_rows } rows returned.| CHANGING ct_values = ct_values ).
       ENDIF.
       LOOP AT ls_result-rows INTO DATA(ls_row).
         lv_row = sy-tabix.
-        put_cell( EXPORTING iv_container = 'TC_RESULT' iv_name = 'CARRID' iv_row = lv_row iv_value = CONV string( ls_row-carrid ) CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_RESULT' iv_name = 'CONNID' iv_row = lv_row iv_value = CONV string( ls_row-connid ) CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_RESULT' iv_name = 'FLDATE' iv_row = lv_row iv_value = CONV string( ls_row-fldate ) CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_RESULT' iv_name = 'PRICE' iv_row = lv_row iv_value = |{ ls_row-price DECIMALS = 2 }| CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_RESULT' iv_name = 'CURRENCY' iv_row = lv_row iv_value = CONV string( ls_row-currency ) CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_RESULT' iv_name = 'CITYFROM' iv_row = lv_row iv_value = CONV string( ls_row-cityfrom ) CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_RESULT' iv_name = 'CITYTO' iv_row = lv_row iv_value = CONV string( ls_row-cityto ) CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_RESULT'
+                            iv_name = 'CARRID'
+                            iv_row = lv_row
+                            iv_value = CONV string( ls_row-carrid ) CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_RESULT'
+                            iv_name = 'CONNID'
+                            iv_row = lv_row
+                            iv_value = CONV string( ls_row-connid ) CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_RESULT'
+                            iv_name = 'FLDATE'
+                            iv_row = lv_row
+                            iv_value = CONV string( ls_row-fldate ) CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_RESULT'
+                            iv_name = 'PRICE'
+                            iv_row = lv_row
+                            iv_value = |{ ls_row-price DECIMALS = 2 }| CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_RESULT'
+                            iv_name = 'CURRENCY'
+                            iv_row = lv_row
+                            iv_value = CONV string( ls_row-currency ) CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_RESULT'
+                            iv_name = 'CITYFROM'
+                            iv_row = lv_row
+                            iv_value = CONV string( ls_row-cityfrom ) CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_RESULT'
+                            iv_name = 'CITYTO'
+                            iv_row = lv_row
+                            iv_value = CONV string( ls_row-cityto ) CHANGING ct_values = ct_values ).
       ENDLOOP.
       io_session->get_dialog( )->set_next_screen( '0200' ).
       io_session->get_dialog( )->leave_screen( ).

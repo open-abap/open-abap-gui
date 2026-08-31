@@ -13,7 +13,8 @@ CLASS ltcl_gg_analytics_cockpit_base IMPLEMENTATION.
   METHOD selection_screen.
     zcl_gg_host_runtime=>clear( ).
     DATA(ls_response) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_150( ) ).
-    cl_abap_unit_assert=>assert_equals( act = ls_response-page_kind exp = 'SELECTION' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_response-page_kind
+                                        exp = 'SELECTION' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_response-html CS 'P_CARR' ) ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
@@ -23,12 +24,13 @@ CLASS ltcl_gg_analytics_cockpit_base IMPLEMENTATION.
     DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_150( ) ).
     DATA(ls_response) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_start-session_id
-      page_id = ls_start-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      ucomm = 'ONLI'
-      values = VALUE #( ( name = 'P_CARR' value = 'Lufthansa' )
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      ucomm      = 'ONLI'
+      values     = VALUE #( ( name = 'P_CARR' value = 'Lufthansa' )
                         ( name = 'P_DATE' value = '20260830' ) ) ) ).
-    cl_abap_unit_assert=>assert_equals( act = ls_response-page_kind exp = 'LIST' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_response-page_kind
+                                        exp = 'LIST' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_response-html CS 'Analytics cockpit' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_response-html CS 'data-control-kind="ALV_GRID"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_response-html CS 'data-control-kind="SIMPLE_TREE"' ) ).
@@ -42,16 +44,16 @@ CLASS ltcl_gg_analytics_cockpit_base IMPLEMENTATION.
     DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_150( ) ).
     DATA(ls_list) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_start-session_id
-      page_id = ls_start-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      ucomm = 'ONLI'
-      values = VALUE #( ( name = 'P_CARR' value = 'Lufthansa' )
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      ucomm      = 'ONLI'
+      values     = VALUE #( ( name = 'P_CARR' value = 'Lufthansa' )
                         ( name = 'P_DATE' value = '20260830' ) ) ) ).
     DATA(ls_response) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_list-session_id
-      page_id = ls_list-page_id
-      action = zif_gg_host_html_v1=>action_command
-      ucomm = 'SAVE_FILTERS' ) ).
+      page_id    = ls_list-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'SAVE_FILTERS' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_response-html CS 'filters saved' ) ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
@@ -61,16 +63,16 @@ CLASS ltcl_gg_analytics_cockpit_base IMPLEMENTATION.
     DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_150( ) ).
     DATA(ls_list) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_start-session_id
-      page_id = ls_start-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      ucomm = 'ONLI'
-      values = VALUE #( ( name = 'P_CARR' value = 'United' )
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      ucomm      = 'ONLI'
+      values     = VALUE #( ( name = 'P_CARR' value = 'United' )
                         ( name = 'P_DATE' value = '20260830' ) ) ) ).
     DATA(ls_response) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_list-session_id
-      page_id = ls_list-page_id
-      action = zif_gg_host_html_v1=>action_command
-      ucomm = 'OPEN_DETAIL' ) ).
+      page_id    = ls_list-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'OPEN_DETAIL' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_response-html CS 'Detail dynpro opened' ) ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
@@ -80,10 +82,10 @@ CLASS ltcl_gg_analytics_cockpit_base IMPLEMENTATION.
     DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_150( ) ).
     DATA(ls_response) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_start-session_id
-      page_id = ls_start-page_id
-      action = zif_gg_host_html_v1=>action_submit
-      ucomm = 'ONLI'
-      values = VALUE #( ( name = 'P_CARR' value = `"><script>alert(1)</script>` )
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_submit
+      ucomm      = 'ONLI'
+      values     = VALUE #( ( name = 'P_CARR' value = `"><script>alert(1)</script>` )
                         ( name = 'P_DATE' value = '20260830' ) ) ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_response-html CS '&lt;script&gt;' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_response-html CS '<script>alert(1)</script>' ) ).

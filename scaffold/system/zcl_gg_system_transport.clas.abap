@@ -28,14 +28,14 @@ CLASS zcl_gg_system_transport IMPLEMENTATION.
     TRANSLATE lv_request_id TO UPPER CASE.
     IF lv_request_id = 'DEVK900001'.
       rs_request = VALUE #(
-        request_id     = 'DEVK900001'
-        request_type   = 'Workbench request'
-        owner          = 'DEVELOPER'
-        short_text     = 'Flight dictionary display'
-        status         = 'Modifiable'
-        source_system  = 'DEV'
-        target_system  = 'QAS'
-        attributes     = 'Standard request; package ZGUI'
+        request_id    = 'DEVK900001'
+        request_type  = 'Workbench request'
+        owner         = 'DEVELOPER'
+        short_text    = 'Flight dictionary display'
+        status        = 'Modifiable'
+        source_system = 'DEV'
+        target_system = 'QAS'
+        attributes    = 'Standard request; package ZGUI'
         documentation = 'Read-only transport fixture for the system transaction examples.' ).
     ELSE.
       rs_request-error = 'Request is unknown or not authorized for display.'.

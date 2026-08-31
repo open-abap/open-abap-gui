@@ -223,46 +223,86 @@ CLASS zcl_gg_rich_dynpro_base IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~initialization.
     CASE mv_mode.
       WHEN '99'.
-        add_value( EXPORTING iv_name = 'P_INPUT' iv_value = 'input' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_OUTPUT' iv_value = 'output' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_CHECK' iv_value = 'X' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_RADIO_A' iv_value = 'X' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_LIST' iv_value = 'A' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_INPUT'
+                             iv_value = 'input' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_OUTPUT'
+                             iv_value = 'output' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_CHECK'
+                             iv_value = 'X' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_RADIO_A'
+                             iv_value = 'X' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_LIST'
+                             iv_value = 'A' CHANGING ct_values = ct_values ).
       WHEN '100'.
-        add_value( EXPORTING iv_name = 'P_INPUT' iv_value = 'initial' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_OUTPUT' iv_value = 'derived: initial' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_INPUT'
+                             iv_value = 'initial' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_OUTPUT'
+                             iv_value = 'derived: initial' CHANGING ct_values = ct_values ).
       WHEN '101'.
-        add_value( EXPORTING iv_name = 'P_GOOD' iv_value = 'valid sibling' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_BAD' iv_value = `` CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_GOOD'
+                             iv_value = 'valid sibling' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_BAD'
+                             iv_value = `` CHANGING ct_values = ct_values ).
       WHEN '102'.
-        add_value( EXPORTING iv_name = 'P_VALUE' iv_value = `` CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_VALUE'
+                             iv_value = `` CHANGING ct_values = ct_values ).
       WHEN '103'.
-        add_value( EXPORTING iv_name = 'P_ENABLE' iv_value = `` CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_DEP' iv_value = 'retained' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_ENABLE'
+                             iv_value = `` CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_DEP'
+                             iv_value = 'retained' CHANGING ct_values = ct_values ).
       WHEN '104'.
-        add_value( EXPORTING iv_name = 'P_LEFT' iv_value = 'left' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_RIGHT' iv_value = 'right' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_LEFT'
+                             iv_value = 'left' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_RIGHT'
+                             iv_value = 'right' CHANGING ct_values = ct_values ).
       WHEN '105' OR '106' OR '107'.
-        add_cell( EXPORTING iv_container = 'TC_FLIGHTS' iv_name = 'CARRID' iv_row = 1 iv_value = 'AA' CHANGING ct_values = ct_values ).
-        add_cell( EXPORTING iv_container = 'TC_FLIGHTS' iv_name = 'CITY' iv_row = 1 iv_value = 'Frankfurt' CHANGING ct_values = ct_values ).
-        add_cell( EXPORTING iv_container = 'TC_FLIGHTS' iv_name = 'CARRID' iv_row = 2 iv_value = 'LH' CHANGING ct_values = ct_values ).
-        add_cell( EXPORTING iv_container = 'TC_FLIGHTS' iv_name = 'CITY' iv_row = 2 iv_value = 'Berlin' CHANGING ct_values = ct_values ).
+        add_cell( EXPORTING iv_container = 'TC_FLIGHTS'
+                            iv_name = 'CARRID'
+                            iv_row = 1
+                            iv_value = 'AA' CHANGING ct_values = ct_values ).
+        add_cell( EXPORTING iv_container = 'TC_FLIGHTS'
+                            iv_name = 'CITY'
+                            iv_row = 1
+                            iv_value = 'Frankfurt' CHANGING ct_values = ct_values ).
+        add_cell( EXPORTING iv_container = 'TC_FLIGHTS'
+                            iv_name = 'CARRID'
+                            iv_row = 2
+                            iv_value = 'LH' CHANGING ct_values = ct_values ).
+        add_cell( EXPORTING iv_container = 'TC_FLIGHTS'
+                            iv_name = 'CITY'
+                            iv_row = 2
+                            iv_value = 'Berlin' CHANGING ct_values = ct_values ).
       WHEN '108'.
-        add_value( EXPORTING iv_name = 'P_PARENT' iv_value = 'parent' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_CHILD' iv_value = 'child' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_PARENT'
+                             iv_value = 'parent' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_CHILD'
+                             iv_value = 'child' CHANGING ct_values = ct_values ).
       WHEN '109'.
-        add_value( EXPORTING iv_name = 'P_TAB_ONE' iv_value = 'one' CHANGING ct_values = ct_values ).
-        add_value( EXPORTING iv_name = 'P_TAB_TWO' iv_value = 'two' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_TAB_ONE'
+                             iv_value = 'one' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_TAB_TWO'
+                             iv_value = 'two' CHANGING ct_values = ct_values ).
       WHEN '110'.
-        add_value( EXPORTING iv_name = 'P_DIALOG' iv_value = 'modal value' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_DIALOG'
+                             iv_value = 'modal value' CHANGING ct_values = ct_values ).
       WHEN '111'.
-        add_value( EXPORTING iv_name = 'P_NESTED' iv_value = 'nested value' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_NESTED'
+                             iv_value = 'nested value' CHANGING ct_values = ct_values ).
       WHEN '113' OR '114' OR '115'.
-        add_value( EXPORTING iv_name = 'P_MESSAGE' iv_value = `` CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_MESSAGE'
+                             iv_value = `` CHANGING ct_values = ct_values ).
       WHEN '116'.
-        add_value( EXPORTING iv_name = 'P_CARRIER' iv_value = 'AA' CHANGING ct_values = ct_values ).
-        add_cell( EXPORTING iv_container = 'TC_ROWS' iv_name = 'CONN' iv_row = 1 iv_value = '001' CHANGING ct_values = ct_values ).
-        add_cell( EXPORTING iv_container = 'TC_ROWS' iv_name = 'CITY' iv_row = 1 iv_value = 'Frankfurt' CHANGING ct_values = ct_values ).
+        add_value( EXPORTING iv_name = 'P_CARRIER'
+                             iv_value = 'AA' CHANGING ct_values = ct_values ).
+        add_cell( EXPORTING iv_container = 'TC_ROWS'
+                            iv_name = 'CONN'
+                            iv_row = 1
+                            iv_value = '001' CHANGING ct_values = ct_values ).
+        add_cell( EXPORTING iv_container = 'TC_ROWS'
+                            iv_name = 'CITY'
+                            iv_row = 1
+                            iv_value = 'Frankfurt' CHANGING ct_values = ct_values ).
     ENDCASE.
   ENDMETHOD.
 
@@ -298,7 +338,8 @@ CLASS zcl_gg_rich_dynpro_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
-    status_for( io_session = io_session iv_screen = is_context-screen ).
+    status_for( io_session = io_session
+                iv_screen  = is_context-screen ).
     CASE mv_mode.
       WHEN '100'.
         IF line_exists( ct_values[ name = 'P_INPUT' ] ) AND line_exists( ct_values[ name = 'P_OUTPUT' ] ).

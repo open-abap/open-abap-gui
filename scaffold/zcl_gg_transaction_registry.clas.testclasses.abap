@@ -19,7 +19,8 @@ CLASS ltcl_gg_transaction_registry IMPLEMENTATION.
     lo_metadata ?= lo_example.
     lo_report ?= lo_example.
     DATA(ls_transaction) = lo_metadata->get_transaction( ).
-    cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode exp = 'ZGG_EX_001' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
+                                        exp = 'ZGG_EX_001' ).
     cl_abap_unit_assert=>assert_bound( act = lo_report ).
   ENDMETHOD.
 
@@ -30,8 +31,10 @@ CLASS ltcl_gg_transaction_registry IMPLEMENTATION.
 
     zcl_gg_transaction_registry=>clear( ).
     ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = `  zgg_ex_001  ` ).
-    cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode exp = 'ZGG_EX_001' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_transaction-class_name exp = 'ZCL_GG_EX_001' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
+                                        exp = 'ZGG_EX_001' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_transaction-class_name
+                                        exp = 'ZCL_GG_EX_001' ).
     LOOP AT VALUE string_table( ( `se01` ) ( `SE09` ) ( `Se11` ) ( `se16` ) ( `Se38` ) ) INTO DATA(lv_system_tcode).
       cl_abap_unit_assert=>assert_equals(
         act = zcl_gg_transaction_registry=>lookup( iv_tcode = lv_system_tcode )-tcode
@@ -62,7 +65,8 @@ CLASS ltcl_gg_transaction_registry IMPLEMENTATION.
     zcl_gg_transaction_registry=>clear( ).
     ls_result = zcl_gg_transaction_command=>parse( iv_command = ` /nzgg_ex_058 ` ).
     cl_abap_unit_assert=>assert_true( act = ls_result-valid ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-tcode exp = 'ZGG_EX_058' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-tcode
+                                        exp = 'ZGG_EX_058' ).
     ls_result = zcl_gg_transaction_command=>parse( iv_command = `/nzgg_ex_999` ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-error

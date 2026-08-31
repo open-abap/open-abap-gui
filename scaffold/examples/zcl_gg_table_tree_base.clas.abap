@@ -65,7 +65,8 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
 
   METHOD unicode_text.
     DATA(lv_utf8) = CONV xstring( iv_hex ).
-    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input = lv_utf8 encoding = 'UTF-8' ).
+    DATA(lo_converter) = cl_abap_conv_in_ce=>create( input    = lv_utf8
+                                                     encoding = 'UTF-8' ).
     lo_converter->read( IMPORTING data = rv_text ).
   ENDMETHOD.
 
@@ -73,41 +74,41 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
     CASE mv_mode.
       WHEN '136'.
         io_session->get_list( )->set_status( VALUE #(
-          status = 'EDITABLE ALV'
+          status       = 'EDITABLE ALV'
           active_ucomm = VALUE #( ( 'SAVE_GRID' ) )
-          icon_bar = VALUE #( ( ucomm = 'SAVE_GRID' label = 'Save grid' icon = 'save' ) ) ) ).
+          icon_bar     = VALUE #( ( ucomm = 'SAVE_GRID' label = 'Save grid' icon = 'save' ) ) ) ).
       WHEN '137'.
         io_session->get_list( )->set_status( VALUE #(
-          status = COND #( WHEN mv_filtered = abap_true THEN 'FILTERED'
+          status       = COND #( WHEN mv_filtered = abap_true THEN 'FILTERED'
                            WHEN mv_sorted = abap_true THEN 'SORTED'
                            ELSE 'ALV CRITERIA' )
           active_ucomm = VALUE #( ( 'APPLY_CRITERIA' ) )
-          icon_bar = VALUE #( ( ucomm = 'APPLY_CRITERIA' label = 'Apply criteria' icon = 'filter' ) ) ) ).
+          icon_bar     = VALUE #( ( ucomm = 'APPLY_CRITERIA' label = 'Apply criteria' icon = 'filter' ) ) ) ).
       WHEN '138'.
         io_session->get_list( )->set_status( VALUE #(
-          status = 'ALV SELECTION'
+          status       = 'ALV SELECTION'
           active_ucomm = VALUE #( ( 'SELECT_ROW' ) )
-          icon_bar = VALUE #( ( ucomm = 'SELECT_ROW' label = 'Select row' icon = 'select-all' ) ) ) ).
+          icon_bar     = VALUE #( ( ucomm = 'SELECT_ROW' label = 'Select row' icon = 'select-all' ) ) ) ).
       WHEN '139'.
         io_session->get_list( )->set_status( VALUE #(
-          status = 'ALV EVENTS'
+          status       = 'ALV EVENTS'
           active_ucomm = VALUE #( ( 'ALV_EVENT' ) )
-          icon_bar = VALUE #( ( ucomm = 'ALV_EVENT' label = 'Run event' icon = 'event' ) ) ) ).
+          icon_bar     = VALUE #( ( ucomm = 'ALV_EVENT' label = 'Run event' icon = 'event' ) ) ) ).
       WHEN '142'.
         io_session->get_list( )->set_status( VALUE #(
-          status = 'TREE EVENTS'
+          status       = 'TREE EVENTS'
           active_ucomm = VALUE #( ( 'TREE_SELECT' ) )
-          icon_bar = VALUE #( ( ucomm = 'TREE_SELECT' label = 'Select node' icon = 'select-all' ) ) ) ).
+          icon_bar     = VALUE #( ( ucomm = 'TREE_SELECT' label = 'Select node' icon = 'select-all' ) ) ) ).
       WHEN '145'.
         io_session->get_list( )->set_status( VALUE #(
-          status = COND #( WHEN mv_filtered = abap_true THEN 'SALV FILTERED' ELSE 'SALV TOTALS' )
+          status       = COND #( WHEN mv_filtered = abap_true THEN 'SALV FILTERED' ELSE 'SALV TOTALS' )
           active_ucomm = VALUE #( ( 'SALV_FILTER' ) )
-          icon_bar = VALUE #( ( ucomm = 'SALV_FILTER' label = 'Filter SALV' icon = 'filter' ) ) ) ).
+          icon_bar     = VALUE #( ( ucomm = 'SALV_FILTER' label = 'Filter SALV' icon = 'filter' ) ) ) ).
       WHEN '147'.
         io_session->get_list( )->set_status( VALUE #(
-          status = 'SALV EVENTS'
+          status       = 'SALV EVENTS'
           active_ucomm = VALUE #( ( 'SALV_LINK' ) )
-          icon_bar = VALUE #( ( ucomm = 'SALV_LINK' label = 'Open row' icon = 'link' ) ) ) ).
+          icon_bar     = VALUE #( ( ucomm = 'SALV_LINK' label = 'Open row' icon = 'link' ) ) ) ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -151,7 +152,7 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
         lo_grid->set_gridtitle( i_gridtitle = COND #( WHEN mv_mode = '138' THEN 'Selectable flights' ELSE 'Flight capacity' ) ).
         lo_grid->set_table_for_first_display(
           CHANGING
-            it_outtab      = lt_rows
+            it_outtab       = lt_rows
             it_fieldcatalog = lt_fcat ).
         CASE mv_mode.
           WHEN '138'.
@@ -186,7 +187,8 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
       WHEN '140'.
         lo_root = NEW cl_gui_custom_container( container_name = 'ROOT140' ).
         DATA(lo_simple_tree) = NEW cl_gui_simple_tree( parent = lo_root ).
-        lo_simple_tree->add_nodes( table_structure_name = 'TREEV_NODE' node_table = VALUE string_table( ( `Root` ) ( `Editor` ) ( `Viewer` ) ) ).
+        lo_simple_tree->add_nodes( table_structure_name = 'TREEV_NODE'
+                                   node_table           = VALUE string_table( ( `Root` ) ( `Editor` ) ( `Viewer` ) ) ).
         ls_surface = VALUE #(
           kind       = zcl_gg_host_surface=>surface_tree
           aria_label = 'Simple tree'
@@ -197,15 +199,18 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
         zcl_gg_host_surface=>set_surface( ls_surface ).
       WHEN '141'.
         lo_root = NEW cl_gui_custom_container( container_name = 'ROOT141' ).
-        DATA(lo_list_tree) = NEW cl_gui_list_tree( parent = lo_root with_headers = abap_true ).
+        DATA(lo_list_tree) = NEW cl_gui_list_tree( parent       = lo_root
+                                                   with_headers = abap_true ).
         lo_list_tree->hierarchy_header_set_text( 'Flight hierarchy' ).
         DATA(lo_column_tree) = NEW cl_gui_column_tree(
-          parent = lo_root
-          node_selection_mode = cl_tree_control_base=>node_sel_mode_single
-          item_selection = abap_true
+          parent                = lo_root
+          node_selection_mode   = cl_tree_control_base=>node_sel_mode_single
+          item_selection        = abap_true
           hierarchy_column_name = 'NAME'
-          hierarchy_header = ls_header ).
-        lo_column_tree->add_column( name = 'STATUS' width = 12 header_text = 'Status' ).
+          hierarchy_header      = ls_header ).
+        lo_column_tree->add_column( name        = 'STATUS'
+                                    width       = 12
+                                    header_text = 'Status' ).
         ls_surface = VALUE #(
           kind          = zcl_gg_host_surface=>surface_table
           aria_label    = 'List and column trees'
@@ -218,7 +223,8 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
       WHEN '142'.
         lo_root = NEW cl_gui_custom_container( container_name = 'ROOT142' ).
         DATA(lo_event_tree) = NEW cl_gui_simple_tree( parent = lo_root ).
-        lo_event_tree->add_nodes( table_structure_name = 'TREEV_NODE' node_table = VALUE string_table( ( `Flights` ) ( `LH400` ) ) ).
+        lo_event_tree->add_nodes( table_structure_name = 'TREEV_NODE'
+                                  node_table           = VALUE string_table( ( `Flights` ) ( `LH400` ) ) ).
         ls_surface = VALUE #(
           kind        = zcl_gg_host_surface=>surface_tree
           aria_label  = 'Interactive flight tree'
@@ -269,7 +275,8 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
           WHEN '146'.
             DATA(lo_header) = NEW cl_salv_form_header_info( text = 'Flight capacity report' ).
             DATA(lo_layout) = NEW cl_salv_form_layout_grid( columns = 2 ).
-            lo_layout->set_column_label_for( label_column = 1 text_column = 2 ).
+            lo_layout->set_column_label_for( label_column = 1
+                                             text_column  = 2 ).
             ls_surface = table_surface( 'SALV header and layout' ).
             ls_surface-kind = zcl_gg_host_surface=>surface_salv_layout.
             ls_surface-title = 'Flight capacity report'.
@@ -286,7 +293,10 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
       WHEN '148'.
         lo_root_graphic = NEW cl_gui_custom_container( container_name = 'ROOT148' ).
         DATA(lo_bar148) = NEW cl_gui_barchart( parent = lo_root_graphic ).
-        lo_bar148->set_position( left = 20 top = 20 width = 420 height = 180 ).
+        lo_bar148->set_position( left   = 20
+                                 top    = 20
+                                 width  = 420
+                                 height = 180 ).
         zcl_gg_host_surface=>set_surface( VALUE #(
           kind       = zcl_gg_host_surface=>surface_chart
           aria_label = 'Bar chart'
@@ -382,7 +392,8 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
     io_session->get_list( )->set_title( |ZCL_GG_EX_{ mv_mode }| ).
     set_status( io_session ).
     build_view( io_session ).
-    write_line( io_session = io_session iv_text = |Structured table/tree example { mv_mode }| ).
+    write_line( io_session = io_session
+                iv_text    = |Structured table/tree example { mv_mode }| ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.
@@ -410,36 +421,43 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
       WHEN '136'.
         IF iv_ucomm = 'SAVE_GRID'.
           mv_action_count = mv_action_count + 1.
-          write_line( io_session = io_session iv_text = |ALV changed data accepted ({ mv_action_count })| ).
+          write_line( io_session = io_session
+                      iv_text    = |ALV changed data accepted ({ mv_action_count })| ).
         ENDIF.
       WHEN '137'.
         IF iv_ucomm = 'APPLY_CRITERIA'.
           mv_filtered = abap_true.
           mv_sorted = abap_true.
           set_status( io_session ).
-          write_line( io_session = io_session iv_text = 'ALV criteria applied server-side' ).
+          write_line( io_session = io_session
+                      iv_text    = 'ALV criteria applied server-side' ).
         ENDIF.
       WHEN '138'.
         IF iv_ucomm = 'SELECT_ROW'.
-          write_line( io_session = io_session iv_text = 'Selected opaque row FLIGHT-2' ).
+          write_line( io_session = io_session
+                      iv_text    = 'Selected opaque row FLIGHT-2' ).
         ENDIF.
       WHEN '139'.
         IF iv_ucomm = 'ALV_EVENT'.
-          write_line( io_session = io_session iv_text = 'ALV toolbar event delivered' ).
+          write_line( io_session = io_session
+                      iv_text    = 'ALV toolbar event delivered' ).
         ENDIF.
       WHEN '142'.
         IF iv_ucomm = 'TREE_SELECT'.
-          write_line( io_session = io_session iv_text = 'Tree node NODE-LH400 selected' ).
+          write_line( io_session = io_session
+                      iv_text    = 'Tree node NODE-LH400 selected' ).
         ENDIF.
       WHEN '145'.
         IF iv_ucomm = 'SALV_FILTER'.
           mv_filtered = abap_true.
           set_status( io_session ).
-          write_line( io_session = io_session iv_text = 'SALV filter applied; total remains server-owned' ).
+          write_line( io_session = io_session
+                      iv_text    = 'SALV filter applied; total remains server-owned' ).
         ENDIF.
       WHEN '147'.
         IF iv_ucomm = 'SALV_LINK'.
-          write_line( io_session = io_session iv_text = 'SALV link event for ROW-2' ).
+          write_line( io_session = io_session
+                      iv_text    = 'SALV link event for ROW-2' ).
         ENDIF.
     ENDCASE.
   ENDMETHOD.

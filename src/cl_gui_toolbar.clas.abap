@@ -142,7 +142,8 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
 
   METHOD add_button_group.
     APPEND LINES OF data_table TO m_table_button.
-    cl_gui_control=>set_buttons( control = me buttons = m_table_button ).
+    cl_gui_control=>set_buttons( control = me
+                                 buttons = m_table_button ).
   ENDMETHOD.
 
   METHOD set_button_info.
@@ -180,7 +181,8 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
     cl_gui_control=>set_payload(
       control = me
       payload = |{ fcode } { text }| ).
-    cl_gui_control=>set_buttons( control = me buttons = m_table_button ).
+    cl_gui_control=>set_buttons( control = me
+                                 buttons = m_table_button ).
   ENDMETHOD.
 
 ENDCLASS.

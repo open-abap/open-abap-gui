@@ -122,13 +122,15 @@ CLASS cl_gui_textedit IMPLEMENTATION.
       mv_text = mv_text && CONV string( <line> ).
     ENDLOOP.
     mv_modified = 1.
-    cl_gui_control=>set_payload( control = me payload = mv_text ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_text ).
   ENDMETHOD.
 
   METHOD set_textstream.
     mv_text = text.
     mv_modified = 1.
-    cl_gui_control=>set_payload( control = me payload = mv_text ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_text ).
   ENDMETHOD.
 
   METHOD set_font_fixed.
@@ -142,7 +144,8 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   METHOD delete_text.
     CLEAR mv_text.
     mv_modified = 1.
-    cl_gui_control=>set_payload( control = me payload = mv_text ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_text ).
   ENDMETHOD.
 
   METHOD get_selection_pos.

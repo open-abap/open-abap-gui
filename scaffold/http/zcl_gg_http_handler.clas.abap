@@ -174,7 +174,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
             server->response->set_header_field(
               name  = 'allow'
               value = 'GET, POST, DELETE, OPTIONS' ).
-            send_empty( server = server iv_status = 204 ).
+            send_empty( server    = server
+                        iv_status = 204 ).
           WHEN OTHERS.
             send_method_not_allowed( server ).
         ENDCASE.
@@ -204,12 +205,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     lv_path = server->request->get_header_field( '~path' ).
     IF lv_path = '/'.
       lo_workbench = NEW zcl_gg_workbench( ).
-      send_html( server = server iv_html = lo_workbench->get_html( ) ).
+      send_html( server  = server
+                 iv_html = lo_workbench->get_html( ) ).
       RETURN.
     ENDIF.
     IF lv_path = '/transaction'.
       server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
-      lv_tcode = form_value( it_fields = lt_fields iv_name = 'tcode' ).
+      lv_tcode = form_value( it_fields = lt_fields
+                             iv_name   = 'tcode' ).
       ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = lv_tcode ).
       IF ls_transaction-tcode IS INITIAL.
         send_workbench_error(
@@ -236,15 +239,18 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_status  = 500 ).
         RETURN.
       ENDIF.
-      send_runtime_response( server = server is_response = ls_response ).
+      send_runtime_response( server      = server
+                             is_response = ls_response ).
       RETURN.
     ENDIF.
     IF lv_path = '/ZCL_GG_DB_HELPER'.
-      send_html( server = server iv_html = helper_html( ) ).
+      send_html( server  = server
+                 iv_html = helper_html( ) ).
       RETURN.
     ENDIF.
 
-    lv_class_name = substring( val = lv_path off = 1 ).
+    lv_class_name = substring( val = lv_path
+                               off = 1 ).
     TRANSLATE lv_class_name TO UPPER CASE.
     CASE lv_class_name.
       WHEN 'ZCL_GG_INTEGRATION_HTML_REPORT'.
@@ -261,7 +267,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         ENDIF.
         ls_response = launch_transaction( is_transaction = ls_transaction ).
     ENDCASE.
-    send_runtime_response( server = server is_response = ls_response ).
+    send_runtime_response( server      = server
+                           is_response = ls_response ).
   ENDMETHOD.
 
   METHOD handle_post.
@@ -296,27 +303,30 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         lt_body_fields = cl_http_utility=>string_to_fields( lv_cdata ).
         APPEND LINES OF lt_body_fields TO lt_fields.
       ENDIF.
-      lv_command = form_value( it_fields = lt_fields iv_name = 'command' ).
-      lv_session_id = form_value( it_fields = lt_fields iv_name = 'session_id' ).
-      lv_page_id = form_value( it_fields = lt_fields iv_name = 'page_id' ).
+      lv_command = form_value( it_fields = lt_fields
+                               iv_name   = 'command' ).
+      lv_session_id = form_value( it_fields = lt_fields
+                                  iv_name   = 'session_id' ).
+      lv_page_id = form_value( it_fields = lt_fields
+                               iv_name   = 'page_id' ).
       ls_command = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
       IF ls_command-valid = abap_false.
         send_workbench_error(
-          server     = server
-          iv_command = lv_command
+          server        = server
+          iv_command    = lv_command
           iv_session_id = lv_session_id
-          iv_page_id = lv_page_id
-          iv_error   = ls_command-error ).
+          iv_page_id    = lv_page_id
+          iv_error      = ls_command-error ).
         RETURN.
       ENDIF.
       ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = CONV string( ls_command-tcode ) ).
       IF ls_transaction-tcode IS INITIAL.
         send_workbench_error(
-          server     = server
-          iv_command = lv_command
+          server        = server
+          iv_command    = lv_command
           iv_session_id = lv_session_id
-          iv_page_id = lv_page_id
-          iv_error   = |Unknown transaction code: { ls_command-tcode }| ).
+          iv_page_id    = lv_page_id
+          iv_error      = |Unknown transaction code: { ls_command-tcode }| ).
         RETURN.
       ENDIF.
       TRY.
@@ -374,7 +384,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_status     = 500 ).
         RETURN.
       ENDIF.
-      send_runtime_response( server = server is_response = ls_response ).
+      send_runtime_response( server      = server
+                             is_response = ls_response ).
       RETURN.
     ENDIF.
     IF lv_path <> '/dispatch'.
@@ -383,7 +394,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDIF.
 
     ls_response = zcl_gg_host_runtime=>dispatch( is_request = request_from_http( server ) ).
-    send_runtime_response( server = server is_response = ls_response ).
+    send_runtime_response( server      = server
+                           is_response = ls_response ).
   ENDMETHOD.
 
   METHOD handle_delete.
@@ -396,14 +408,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    lv_session_id = substring( val = lv_path off = 9 ).
+    lv_session_id = substring( val = lv_path
+                               off = 9 ).
     IF lv_session_id IS INITIAL OR lv_session_id CS '/'.
       send_method_not_allowed( server ).
       RETURN.
     ENDIF.
     lv_session_id = cl_http_utility=>unescape_url( lv_session_id ).
     zcl_gg_host_runtime=>close( lv_session_id ).
-    send_empty( server = server iv_status = 204 ).
+    send_empty( server    = server
+                iv_status = 204 ).
   ENDMETHOD.
 
   METHOD request_from_http.
@@ -439,20 +453,34 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       lt_body_fields = cl_http_utility=>string_to_fields( lv_cdata ).
       APPEND LINES OF lt_body_fields TO lt_fields.
     ENDIF.
-    ls_payload-session_id = form_value( it_fields = lt_fields iv_name = 'session_id' ).
-    ls_payload-page_id = form_value( it_fields = lt_fields iv_name = 'page_id' ).
-    ls_payload-action = form_value( it_fields = lt_fields iv_name = 'action' ).
-    ls_payload-gg_action = form_value( it_fields = lt_fields iv_name = 'gg_action' ).
-    ls_payload-ucomm = form_value( it_fields = lt_fields iv_name = 'ucomm' ).
-    ls_payload-gg_ucomm = form_value( it_fields = lt_fields iv_name = 'gg_ucomm' ).
-    ls_payload-target = form_value( it_fields = lt_fields iv_name = 'target' ).
-    ls_payload-value = form_value( it_fields = lt_fields iv_name = 'value' ).
-    ls_payload-row = CONV i( form_value( it_fields = lt_fields iv_name = 'row' ) ).
-    ls_payload-pf_key = CONV i( form_value( it_fields = lt_fields iv_name = 'pf_key' ) ).
-    ls_payload-token = form_value( it_fields = lt_fields iv_name = 'token' ).
-    ls_payload-gg_token = form_value( it_fields = lt_fields iv_name = 'gg_token' ).
-    ls_payload-cursor_field = form_value( it_fields = lt_fields iv_name = 'cursor_field' ).
-    ls_payload-cursor_value = form_value( it_fields = lt_fields iv_name = 'cursor_value' ).
+    ls_payload-session_id = form_value( it_fields = lt_fields
+                                        iv_name   = 'session_id' ).
+    ls_payload-page_id = form_value( it_fields = lt_fields
+                                     iv_name   = 'page_id' ).
+    ls_payload-action = form_value( it_fields = lt_fields
+                                    iv_name   = 'action' ).
+    ls_payload-gg_action = form_value( it_fields = lt_fields
+                                       iv_name   = 'gg_action' ).
+    ls_payload-ucomm = form_value( it_fields = lt_fields
+                                   iv_name   = 'ucomm' ).
+    ls_payload-gg_ucomm = form_value( it_fields = lt_fields
+                                      iv_name   = 'gg_ucomm' ).
+    ls_payload-target = form_value( it_fields = lt_fields
+                                    iv_name   = 'target' ).
+    ls_payload-value = form_value( it_fields = lt_fields
+                                   iv_name   = 'value' ).
+    ls_payload-row = CONV i( form_value( it_fields = lt_fields
+                                         iv_name   = 'row' ) ).
+    ls_payload-pf_key = CONV i( form_value( it_fields = lt_fields
+                                            iv_name   = 'pf_key' ) ).
+    ls_payload-token = form_value( it_fields = lt_fields
+                                   iv_name   = 'token' ).
+    ls_payload-gg_token = form_value( it_fields = lt_fields
+                                      iv_name   = 'gg_token' ).
+    ls_payload-cursor_field = form_value( it_fields = lt_fields
+                                          iv_name   = 'cursor_field' ).
+    ls_payload-cursor_value = form_value( it_fields = lt_fields
+                                          iv_name   = 'cursor_value' ).
     ls_payload-values = values_from_fields( lt_fields ).
     ls_payload-dynpro_values = dynpro_from_fields( lt_fields ).
     rs_request = request_from_payload( ls_payload ).
@@ -489,7 +517,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
     IF lv_action_value CP 'LINE:*'.
       rs_request-action = zif_gg_host_html_v1=>action_line.
-      lv_remainder = substring( val = lv_action_value off = 5 ).
+      lv_remainder = substring( val = lv_action_value
+                                off = 5 ).
       SPLIT lv_remainder AT '|' INTO lv_first lv_second.
       rs_request-row = CONV i( lv_first ).
       IF lv_second IS NOT INITIAL.
@@ -497,13 +526,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       ENDIF.
     ELSEIF lv_action_value CP 'VALUE_HELP:*'.
       rs_request-action = zif_gg_host_html_v1=>action_value_help.
-      rs_request-target = substring( val = lv_action_value off = 11 ).
+      rs_request-target = substring( val = lv_action_value
+                                     off = 11 ).
     ELSEIF lv_action_value CP 'HELP:*'.
       rs_request-action = zif_gg_host_html_v1=>action_help.
-      rs_request-target = substring( val = lv_action_value off = 5 ).
+      rs_request-target = substring( val = lv_action_value
+                                     off = 5 ).
     ELSEIF lv_action_value CP 'TAB:*'.
       rs_request-action = zif_gg_host_html_v1=>action_tab.
-      lv_remainder = substring( val = lv_action_value off = 4 ).
+      lv_remainder = substring( val = lv_action_value
+                                off = 4 ).
       SPLIT lv_remainder AT '|' INTO lv_target lv_second.
       rs_request-target = lv_target.
       IF lv_second IS NOT INITIAL.
@@ -511,7 +543,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       ENDIF.
     ELSEIF lv_action_value CP 'SCREEN:*'.
       rs_request-action = zif_gg_host_html_v1=>action_screen.
-      lv_remainder = substring( val = lv_action_value off = 7 ).
+      lv_remainder = substring( val = lv_action_value
+                                off = 7 ).
       SPLIT lv_remainder AT '|' INTO lv_target lv_second.
       rs_request-target = lv_target.
       IF lv_second IS NOT INITIAL.
@@ -520,7 +553,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ELSEIF lv_action_value CP 'COMMAND:*'.
       rs_request-action = zif_gg_host_html_v1=>action_command.
       IF is_payload-gg_ucomm IS INITIAL.
-        rs_request-ucomm = substring( val = lv_action_value off = 8 ).
+        rs_request-ucomm = substring( val = lv_action_value
+                                      off = 8 ).
       ENDIF.
     ELSEIF lv_action_value IS NOT INITIAL AND rs_request-action IS INITIAL.
       rs_request-action = lv_action_value.
@@ -618,8 +652,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       READ TABLE rt_values ASSIGNING <ls_value> WITH KEY name = lv_typed_name.
       IF sy-subrc <> 0.
         INSERT VALUE #(
-          name  = lv_typed_name
-          value = ``
+          name   = lv_typed_name
+          value  = ``
           ranges = VALUE #( ) ) INTO TABLE rt_values.
         READ TABLE rt_values ASSIGNING <ls_value> WITH KEY name = lv_typed_name.
       ENDIF.
@@ -671,11 +705,12 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
             iv_row       = 0
             iv_value     = 'X'
           CHANGING
-            ct_values = rt_values ).
+            ct_values    = rt_values ).
         CONTINUE.
       ENDIF.
       IF ls_field-name CP 'gg-cell-*'.
-        lv_cell = substring( val = ls_field-name off = 8 ).
+        lv_cell = substring( val = ls_field-name
+                             off = 8 ).
         CLEAR lt_parts.
         SPLIT lv_cell AT '-' INTO TABLE lt_parts.
         lv_last = lines( lt_parts ).
@@ -701,7 +736,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
               iv_row       = lv_row
               iv_value     = lv_value
             CHANGING
-              ct_values = rt_values ).
+              ct_values    = rt_values ).
         ENDIF.
         CONTINUE.
       ENDIF.
@@ -729,7 +764,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_row       = 0
           iv_value     = lv_value
         CHANGING
-          ct_values = rt_values ).
+          ct_values    = rt_values ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -862,16 +897,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD send_runtime_response.
     IF is_response-valid = abap_true.
       send_html(
-        server = server
+        server  = server
         iv_html = is_response-html ).
     ELSEIF is_response-error CS 'Stale'.
       send_error(
-        server = server
-        iv_error = is_response-error
+        server    = server
+        iv_error  = is_response-error
         iv_status = 409 ).
     ELSE.
       send_error(
-        server = server
+        server   = server
         iv_error = is_response-error ).
     ENDIF.
   ENDMETHOD.
@@ -905,7 +940,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ls_error-valid = abap_false.
     ls_error-error = iv_error.
     lv_json = /ui2/cl_json=>serialize(
-      data = ls_error
+      data        = ls_error
       pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
     server->response->set_header_field(
       name  = 'cache-control'
@@ -931,15 +966,15 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       name  = 'allow'
       value = 'GET, POST, DELETE, OPTIONS' ).
     send_error(
-      server = server
-      iv_error = 'Method not allowed'
+      server    = server
+      iv_error  = 'Method not allowed'
       iv_status = 405 ).
   ENDMETHOD.
 
   METHOD send_not_found.
     send_error(
-      server   = server
-      iv_error = 'Not found'
+      server    = server
+      iv_error  = 'Not found'
       iv_status = 404 ).
   ENDMETHOD.
 

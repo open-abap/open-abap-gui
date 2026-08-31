@@ -10,13 +10,13 @@ CLASS ltcl_ex_69 IMPLEMENTATION.
     DATA(lo_report) = NEW zcl_gg_ex_069( ).
     DATA(ls_saved) = zcl_gg_host=>run(
       io_report = lo_report
-      it_input = VALUE #( ( name = 'P_ENABLE' value = 'X' )
+      it_input  = VALUE #( ( name = 'P_ENABLE' value = 'X' )
                           ( name = 'P_GROUP_A' value = 'a' )
                           ( name = 'P_GROUP_B' value = 'b' ) ) ).
     cl_abap_unit_assert=>assert_true( ls_saved-selection_active ).
     DATA(ls_disabled) = zcl_gg_host=>run(
       io_report = lo_report
-      it_input = VALUE #( ( name = 'P_ENABLE' value = '' )
+      it_input  = VALUE #( ( name = 'P_ENABLE' value = '' )
                           ( name = 'P_GROUP_A' value = '' )
                           ( name = 'P_GROUP_B' value = '' ) ) ).
     cl_abap_unit_assert=>assert_false( ls_disabled-states[ name = 'P_GROUP_A' ]-enabled ).

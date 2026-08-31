@@ -11,7 +11,7 @@ CLASS zcl_gg_ex_067 IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
     rs_transaction = VALUE #(
-      tcode = 'ZGG_EX_067'
+      tcode       = 'ZGG_EX_067'
       description = 'Typed date time integer decimal and character parameters' ).
   ENDMETHOD.
 
@@ -37,9 +37,9 @@ CLASS zcl_gg_ex_067 IMPLEMENTATION.
       data_type = VALUE #( typ = 'P' decimals = 2 )
       default   = '123.45' ) ).
     io_builder->add_parameter( VALUE #(
-      name      = 'P_CHAR'
-      text      = 'Character'
-      data_type = VALUE #( typ = 'C' length = 12 )
+      name       = 'P_CHAR'
+      text       = 'Character'
+      data_type  = VALUE #( typ = 'C' length = 12 )
       obligatory = abap_true ) ).
   ENDMETHOD.
 
@@ -48,17 +48,17 @@ CLASS zcl_gg_ex_067 IMPLEMENTATION.
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
       text = it_values[ name = 'P_DATE' ]-value ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = it_values[ name = 'P_TIME' ]-value
+      text      = it_values[ name = 'P_TIME' ]-value
       placement = VALUE #( new_line = abap_true ) ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = it_values[ name = 'P_INT' ]-value
+      text      = it_values[ name = 'P_INT' ]-value
       placement = VALUE #( new_line = abap_true ) ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = it_values[ name = 'P_DEC' ]-value
+      text         = it_values[ name = 'P_DEC' ]-value
       write_format = VALUE #( decimals = 2 )
-      placement = VALUE #( new_line = abap_true ) ) ).
+      placement    = VALUE #( new_line = abap_true ) ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #(
-      text = it_values[ name = 'P_CHAR' ]-value
+      text      = it_values[ name = 'P_CHAR' ]-value
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

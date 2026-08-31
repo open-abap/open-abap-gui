@@ -5,10 +5,30 @@ CLASS zcl_gg_se09 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     INTERFACES zif_gg_transaction_v1.
 
   PRIVATE SECTION.
-    METHODS put_value IMPORTING iv_name TYPE zif_gg_dynpro_types_v1=>ty_name iv_value TYPE string CHANGING ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    METHODS value_of IMPORTING it_values TYPE zif_gg_dynpro_types_v1=>ty_values iv_name TYPE zif_gg_dynpro_types_v1=>ty_name RETURNING VALUE(rv_value) TYPE string.
-    METHODS put_cell IMPORTING iv_container TYPE zif_gg_dynpro_types_v1=>ty_name iv_name TYPE zif_gg_dynpro_types_v1=>ty_name iv_row TYPE i iv_value TYPE string CHANGING ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    METHODS build_flow_screen IMPORTING io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1 iv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+    METHODS put_value
+      IMPORTING
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_value  TYPE string
+      CHANGING
+        ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    METHODS value_of
+      IMPORTING
+        it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+      RETURNING
+        VALUE(rv_value) TYPE string.
+    METHODS put_cell
+      IMPORTING
+        iv_container TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_row       TYPE i
+        iv_value     TYPE string
+      CHANGING
+        ct_values    TYPE zif_gg_dynpro_types_v1=>ty_values.
+    METHODS build_flow_screen
+      IMPORTING
+        io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
 
 ENDCLASS.
 
@@ -106,19 +126,29 @@ CLASS zcl_gg_se09 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_flow_logic.
-    build_flow_screen( io_builder = io_builder iv_screen = '0100' ).
-    build_flow_screen( io_builder = io_builder iv_screen = '0200' ).
-    build_flow_screen( io_builder = io_builder iv_screen = '0210' ).
-    build_flow_screen( io_builder = io_builder iv_screen = '0220' ).
-    build_flow_screen( io_builder = io_builder iv_screen = '0230' ).
-    build_flow_screen( io_builder = io_builder iv_screen = '0240' ).
+    build_flow_screen( io_builder = io_builder
+                       iv_screen  = '0100' ).
+    build_flow_screen( io_builder = io_builder
+                       iv_screen  = '0200' ).
+    build_flow_screen( io_builder = io_builder
+                       iv_screen  = '0210' ).
+    build_flow_screen( io_builder = io_builder
+                       iv_screen  = '0220' ).
+    build_flow_screen( io_builder = io_builder
+                       iv_screen  = '0230' ).
+    build_flow_screen( io_builder = io_builder
+                       iv_screen  = '0240' ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~initialization.
-    put_value( EXPORTING iv_name = 'P_OWNER' iv_value = 'DEVELOPER' CHANGING ct_values = ct_values ).
-    put_value( EXPORTING iv_name = 'P_TYPE' iv_value = 'WORKBENCH' CHANGING ct_values = ct_values ).
-    put_value( EXPORTING iv_name = 'P_STATUS' iv_value = 'ALL' CHANGING ct_values = ct_values ).
-    put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = 'Display-only deployment: CTS persistence, release, and export are unavailable.' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_OWNER'
+                         iv_value = 'DEVELOPER' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_TYPE'
+                         iv_value = 'WORKBENCH' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_STATUS'
+                         iv_value = 'ALL' CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_CAPABILITY'
+                         iv_value = 'Display-only deployment: CTS persistence, release, and export are unavailable.' CHANGING ct_values = ct_values ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
@@ -126,9 +156,10 @@ CLASS zcl_gg_se09 IMPLEMENTATION.
     DATA(ls_capabilities) = lo_service->zif_gg_transport_service_v1~get_capabilities( ).
 
     io_session->get_dialog( )->set_status( VALUE #(
-      status = 'SE09'
+      status       = 'SE09'
       active_ucomm = VALUE #( ( 'DISPLAY' ) ( 'CREATE' ) ( 'SE01' ) ( 'PROPERTIES' ) ( 'OBJECTS' ) ( 'DOCUMENTATION' ) ( 'LOGS' ) ( 'RELEASE' ) ) ) ).
-    put_value( EXPORTING iv_name = 'P_CAPABILITY' iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name = 'P_CAPABILITY'
+                         iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
     ct_states[ name = 'PB_CREATE' ]-enabled = abap_false.
     ct_states[ name = 'PB_CREATE_OVERVIEW' ]-enabled = abap_false.
     IF is_context-screen <> '0100'.
@@ -165,44 +196,81 @@ CLASS zcl_gg_se09 IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF is_context-screen = '0100' AND is_context-ucomm = 'DISPLAY'.
-      lv_request_id = value_of( it_values = ct_values iv_name = 'P_REQUEST' ).
+      lv_request_id = value_of( it_values = ct_values
+                                iv_name   = 'P_REQUEST' ).
       ls_request = lo_service->zif_gg_transport_service_v1~get_request( lv_request_id ).
       IF ls_request-error IS NOT INITIAL.
         io_session->message( VALUE #(
-          type = zif_gg_session_types_v1=>message_type_error
-          text = ls_request-error
+          type  = zif_gg_session_types_v1=>message_type_error
+          text  = ls_request-error
           field = 'P_REQUEST' ) ).
         RETURN.
       ENDIF.
-      put_value( EXPORTING iv_name = 'O_REQ_ID' iv_value = ls_request-request_id CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_REQ_TYPE' iv_value = ls_request-request_type CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_REQ_OWNER' iv_value = ls_request-owner CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_REQ_TEXT' iv_value = ls_request-short_text CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_REQ_STATUS' iv_value = ls_request-status CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_SOURCE' iv_value = ls_request-source_system CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_TARGET' iv_value = ls_request-target_system CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_ATTRIBUTES' iv_value = ls_request-attributes CHANGING ct_values = ct_values ).
-      put_value( EXPORTING iv_name = 'O_DOCUMENTATION' iv_value = ls_request-documentation CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_REQ_ID'
+                           iv_value = ls_request-request_id CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_REQ_TYPE'
+                           iv_value = ls_request-request_type CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_REQ_OWNER'
+                           iv_value = ls_request-owner CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_REQ_TEXT'
+                           iv_value = ls_request-short_text CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_REQ_STATUS'
+                           iv_value = ls_request-status CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_SOURCE'
+                           iv_value = ls_request-source_system CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_TARGET'
+                           iv_value = ls_request-target_system CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_ATTRIBUTES'
+                           iv_value = ls_request-attributes CHANGING ct_values = ct_values ).
+      put_value( EXPORTING iv_name = 'O_DOCUMENTATION'
+                           iv_value = ls_request-documentation CHANGING ct_values = ct_values ).
       lt_tasks = lo_service->zif_gg_transport_service_v1~get_tasks( lv_request_id ).
       LOOP AT lt_tasks INTO DATA(ls_task).
         lv_row = sy-tabix.
-        put_cell( EXPORTING iv_container = 'TC_TASKS' iv_name = 'TASK_ID' iv_row = lv_row iv_value = ls_task-task_id CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_TASKS' iv_name = 'TASK_OWNER' iv_row = lv_row iv_value = ls_task-owner CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_TASKS' iv_name = 'TASK_STATUS' iv_row = lv_row iv_value = ls_task-status CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_TASKS' iv_name = 'TASK_TEXT' iv_row = lv_row iv_value = ls_task-short_text CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_TASKS'
+                            iv_name = 'TASK_ID'
+                            iv_row = lv_row
+                            iv_value = ls_task-task_id CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_TASKS'
+                            iv_name = 'TASK_OWNER'
+                            iv_row = lv_row
+                            iv_value = ls_task-owner CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_TASKS'
+                            iv_name = 'TASK_STATUS'
+                            iv_row = lv_row
+                            iv_value = ls_task-status CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_TASKS'
+                            iv_name = 'TASK_TEXT'
+                            iv_row = lv_row
+                            iv_value = ls_task-short_text CHANGING ct_values = ct_values ).
       ENDLOOP.
       lt_objects = lo_service->zif_gg_transport_service_v1~get_objects( lv_request_id ).
       LOOP AT lt_objects INTO DATA(ls_object).
         lv_row = sy-tabix.
-        put_cell( EXPORTING iv_container = 'TC_OBJECTS' iv_name = 'OBJECT_TYPE' iv_row = lv_row iv_value = ls_object-object_type CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_OBJECTS' iv_name = 'OBJECT_NAME' iv_row = lv_row iv_value = ls_object-object_name CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_OBJECTS' iv_name = 'OBJECT_TEXT' iv_row = lv_row iv_value = ls_object-description CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_OBJECTS'
+                            iv_name = 'OBJECT_TYPE'
+                            iv_row = lv_row
+                            iv_value = ls_object-object_type CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_OBJECTS'
+                            iv_name = 'OBJECT_NAME'
+                            iv_row = lv_row
+                            iv_value = ls_object-object_name CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_OBJECTS'
+                            iv_name = 'OBJECT_TEXT'
+                            iv_row = lv_row
+                            iv_value = ls_object-description CHANGING ct_values = ct_values ).
       ENDLOOP.
       lt_logs = lo_service->zif_gg_transport_service_v1~get_logs( lv_request_id ).
       LOOP AT lt_logs INTO DATA(ls_log).
         lv_row = sy-tabix.
-        put_cell( EXPORTING iv_container = 'TC_LOGS' iv_name = 'LOG_SEVERITY' iv_row = lv_row iv_value = ls_log-severity CHANGING ct_values = ct_values ).
-        put_cell( EXPORTING iv_container = 'TC_LOGS' iv_name = 'LOG_TEXT' iv_row = lv_row iv_value = ls_log-text CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_LOGS'
+                            iv_name = 'LOG_SEVERITY'
+                            iv_row = lv_row
+                            iv_value = ls_log-severity CHANGING ct_values = ct_values ).
+        put_cell( EXPORTING iv_container = 'TC_LOGS'
+                            iv_name = 'LOG_TEXT'
+                            iv_row = lv_row
+                            iv_value = ls_log-text CHANGING ct_values = ct_values ).
       ENDLOOP.
       io_session->get_dialog( )->set_next_screen( '0200' ).
       io_session->get_dialog( )->leave_screen( ).

@@ -14,7 +14,8 @@ CLASS ltcl_ex_63 IMPLEMENTATION.
       session_id = ls_start-session_id page_id = ls_start-page_id
       action = zif_gg_host_html_v1=>action_pf pf_key = 5 ) ).
     cl_abap_unit_assert=>assert_true( ls_good-valid ).
-    cl_abap_unit_assert=>assert_equals( act = ls_good-compatibility-lines[ 2 ] exp = 'pf5' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_good-compatibility-lines[ 2 ]
+                                        exp = 'pf5' ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 ENDCLASS.

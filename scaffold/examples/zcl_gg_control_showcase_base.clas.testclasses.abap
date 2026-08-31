@@ -33,85 +33,108 @@ ENDCLASS.
 CLASS ltcl_gg_control_showcase_base IMPLEMENTATION.
 
   METHOD custom_container.
-    check_html( io_report = NEW zcl_gg_ex_117( ) iv_text = 'CUSTOM_CONTAINER' ).
+    check_html( io_report = NEW zcl_gg_ex_117( )
+                iv_text   = 'CUSTOM_CONTAINER' ).
   ENDMETHOD.
 
   METHOD splitter.
-    check_html( io_report = NEW zcl_gg_ex_118( ) iv_text = 'SPLITTER_CONTAINER' ).
+    check_html( io_report = NEW zcl_gg_ex_118( )
+                iv_text   = 'SPLITTER_CONTAINER' ).
   ENDMETHOD.
 
   METHOD easy_splitter.
-    check_html( io_report = NEW zcl_gg_ex_119( ) iv_text = 'EASY_SPLITTER' ).
+    check_html( io_report = NEW zcl_gg_ex_119( )
+                iv_text   = 'EASY_SPLITTER' ).
   ENDMETHOD.
 
   METHOD docking.
-    check_html( io_report = NEW zcl_gg_ex_120( ) iv_text = 'DOCKING_CONTAINER' ).
+    check_html( io_report = NEW zcl_gg_ex_120( )
+                iv_text   = 'DOCKING_CONTAINER' ).
   ENDMETHOD.
 
   METHOD dialogbox.
-    check_html( io_report = NEW zcl_gg_ex_121( ) iv_text = 'DIALOGBOX_CONTAINER' ).
+    check_html( io_report = NEW zcl_gg_ex_121( )
+                iv_text   = 'DIALOGBOX_CONTAINER' ).
   ENDMETHOD.
 
   METHOD textedit.
-    check_html( io_report = NEW zcl_gg_ex_122( ) iv_text = '<textarea' ).
+    check_html( io_report = NEW zcl_gg_ex_122( )
+                iv_text   = '<textarea' ).
   ENDMETHOD.
 
   METHOD readonly_textedit.
-    check_html( io_report = NEW zcl_gg_ex_123( ) iv_text = '<textarea' ).
+    check_html( io_report = NEW zcl_gg_ex_123( )
+                iv_text   = '<textarea' ).
   ENDMETHOD.
 
   METHOD picture.
-    check_html( io_report = NEW zcl_gg_ex_124( ) iv_text = 'PICTURE' ).
+    check_html( io_report = NEW zcl_gg_ex_124( )
+                iv_text   = 'PICTURE' ).
   ENDMETHOD.
 
   METHOD toolbar.
-    check_html( io_report = NEW zcl_gg_ex_125( ) iv_text = 'role="toolbar"' ).
-    check_command( io_report = NEW zcl_gg_ex_125( ) iv_ucomm = 'RUN'
-      iv_text = 'toolbar RUN dispatched by the server' ).
+    check_html( io_report = NEW zcl_gg_ex_125( )
+                iv_text   = 'role="toolbar"' ).
+    check_command( io_report = NEW zcl_gg_ex_125( )
+                   iv_ucomm  = 'RUN'
+      iv_text                = 'toolbar RUN dispatched by the server' ).
   ENDMETHOD.
 
   METHOD calendar.
-    check_html( io_report = NEW zcl_gg_ex_126( ) iv_text = 'aria-label="Calendar"' ).
+    check_html( io_report = NEW zcl_gg_ex_126( )
+                iv_text   = 'aria-label="Calendar"' ).
   ENDMETHOD.
 
   METHOD selector.
-    check_html( io_report = NEW zcl_gg_ex_127( ) iv_text = 'aria-label="Selector"' ).
+    check_html( io_report = NEW zcl_gg_ex_127( )
+                iv_text   = 'aria-label="Selector"' ).
   ENDMETHOD.
 
   METHOD html_viewer.
-    check_html( io_report = NEW zcl_gg_ex_128( ) iv_text = 'title="HTML viewer"' ).
+    check_html( io_report = NEW zcl_gg_ex_128( )
+                iv_text   = 'title="HTML viewer"' ).
   ENDMETHOD.
 
   METHOD dynamic_document.
-    check_html( io_report = NEW zcl_gg_ex_129( ) iv_text = 'Dynamic document' ).
-    check_command( io_report = NEW zcl_gg_ex_129( ) iv_ucomm = 'SAVE_DOC'
-      iv_text = 'document saved by the server' ).
+    check_html( io_report = NEW zcl_gg_ex_129( )
+                iv_text   = 'Dynamic document' ).
+    check_command( io_report = NEW zcl_gg_ex_129( )
+                   iv_ucomm  = 'SAVE_DOC'
+      iv_text                = 'document saved by the server' ).
   ENDMETHOD.
 
   METHOD document_events.
-    check_html( io_report = NEW zcl_gg_ex_130( ) iv_text = 'Typed event dispatch' ).
-    check_command( io_report = NEW zcl_gg_ex_130( ) iv_ucomm = 'OPEN_DOC'
-      iv_text = 'event OPEN_DOC dispatched by the server' ).
+    check_html( io_report = NEW zcl_gg_ex_130( )
+                iv_text   = 'Typed event dispatch' ).
+    check_command( io_report = NEW zcl_gg_ex_130( )
+                   iv_ucomm  = 'OPEN_DOC'
+      iv_text                = 'event OPEN_DOC dispatched by the server' ).
   ENDMETHOD.
 
   METHOD nested_registry.
-    check_html( io_report = NEW zcl_gg_ex_131( ) iv_text = 'CUSTOM_CONTAINER' ).
-    check_command( io_report = NEW zcl_gg_ex_131( ) iv_ucomm = 'APPLY'
-      iv_text = 'nested control action applied by the server' ).
+    check_html( io_report = NEW zcl_gg_ex_131( )
+                iv_text   = 'CUSTOM_CONTAINER' ).
+    check_command( io_report = NEW zcl_gg_ex_131( )
+                   iv_ucomm  = 'APPLY'
+      iv_text                = 'nested control action applied by the server' ).
   ENDMETHOD.
 
   METHOD refresh.
-    check_html( io_report = NEW zcl_gg_ex_132( ) iv_text = 'CUSTOM_CONTAINER' ).
-    check_command( io_report = NEW zcl_gg_ex_132( ) iv_ucomm = 'REFRESH'
-      iv_text = 'control refresh 1' ).
+    check_html( io_report = NEW zcl_gg_ex_132( )
+                iv_text   = 'CUSTOM_CONTAINER' ).
+    check_command( io_report = NEW zcl_gg_ex_132( )
+                   iv_ucomm  = 'REFRESH'
+      iv_text                = 'control refresh 1' ).
   ENDMETHOD.
 
   METHOD validation.
-    check_html( io_report = NEW zcl_gg_ex_133( ) iv_text = 'data-control-id' ).
+    check_html( io_report = NEW zcl_gg_ex_133( )
+                iv_text   = 'data-control-id' ).
   ENDMETHOD.
 
   METHOD document_editor.
-    check_html( io_report = NEW zcl_gg_ex_134( ) iv_text = 'CUSTOM_CONTAINER' ).
+    check_html( io_report = NEW zcl_gg_ex_134( )
+                iv_text   = 'CUSTOM_CONTAINER' ).
   ENDMETHOD.
 
   METHOD check_html.

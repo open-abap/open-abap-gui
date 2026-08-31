@@ -78,12 +78,14 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
 
   METHOD show_data.
     mv_current_url = url.
-    cl_gui_control=>set_payload( control = me payload = mv_document ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_document ).
   ENDMETHOD.
 
   METHOD show_url.
     mv_current_url = url.
-    cl_gui_control=>set_payload( control = me payload = CONV string( url ) ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = CONV string( url ) ).
   ENDMETHOD.
 
   METHOD load_data.
@@ -92,7 +94,8 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
     ENDLOOP.
     assigned_url = url.
     mv_current_url = url.
-    cl_gui_control=>set_payload( control = me payload = mv_document ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_document ).
   ENDMETHOD.
 
   METHOD get_current_url.
@@ -101,7 +104,8 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
 
   METHOD close_document.
     CLEAR mv_document.
-    cl_gui_control=>set_payload( control = me payload = `` ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = `` ).
   ENDMETHOD.
 
   METHOD go_back.

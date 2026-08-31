@@ -25,8 +25,8 @@ CLASS zcl_gg_integration_navigation IMPLEMENTATION.
     CASE mv_mode.
       WHEN 'CALL'.
         lo_navigation->call_transaction(
-          is_call = VALUE #(
-            tcode = 'SE38'
+          is_call         = VALUE #(
+            tcode             = 'SE38'
             skip_first_screen = abap_true )
           is_continuation = VALUE #( id = 'AFTER_TRANSACTION' ) ).
       WHEN 'LEAVE'.

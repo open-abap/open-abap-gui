@@ -108,7 +108,9 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       lv_length = lv_length - 1.
     ENDWHILE.
     IF lv_length < strlen( lv_tcode ).
-      lv_tcode = substring( val = lv_tcode off = 0 len = lv_length ).
+      lv_tcode = substring( val = lv_tcode
+                            off = 0
+                            len = lv_length ).
     ENDIF.
     TRANSLATE lv_tcode TO UPPER CASE.
     lv_error = validate_tcode( iv_tcode = lv_tcode ).
@@ -188,7 +190,9 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
         lv_tcode_length = lv_tcode_length - 1.
       ENDWHILE.
       IF lv_tcode_length < strlen( lv_tcode ).
-        lv_tcode = substring( val = lv_tcode off = 0 len = lv_tcode_length ).
+        lv_tcode = substring( val = lv_tcode
+                              off = 0
+                              len = lv_tcode_length ).
       ENDIF.
       TRANSLATE lv_tcode TO UPPER CASE.
       lv_error = validate_tcode( iv_tcode = lv_tcode ).
@@ -208,7 +212,9 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
         lv_description_length = lv_description_length - 1.
       ENDWHILE.
       IF lv_description_length < strlen( lv_description ).
-        lv_description = substring( val = lv_description off = 0 len = lv_description_length ).
+        lv_description = substring( val = lv_description
+                                    off = 0
+                                    len = lv_description_length ).
       ENDIF.
       lv_error = validate_description( iv_description = lv_description ).
       IF lv_error IS NOT INITIAL.

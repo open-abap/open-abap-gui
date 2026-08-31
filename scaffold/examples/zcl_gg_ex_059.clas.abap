@@ -16,9 +16,9 @@ CLASS zcl_gg_ex_059 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_GG_EX_059' ).
     io_session->get_list( )->set_status( VALUE #(
-      status = 'SHELL59'
+      status       = 'SHELL59'
       active_ucomm = VALUE #( ( 'REFR' ) ( 'PRI' ) )
-      icon_bar = VALUE #( ( ucomm = 'REFR' label = 'Refresh' icon = 'refresh' )
+      icon_bar     = VALUE #( ( ucomm = 'REFR' label = 'Refresh' icon = 'refresh' )
                           ( ucomm = 'PRI' label = 'Print' icon = 'printer' separator = abap_true ) ) ) ).
     io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'body' ) ).
   ENDMETHOD.

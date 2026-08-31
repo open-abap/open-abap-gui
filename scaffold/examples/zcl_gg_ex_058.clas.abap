@@ -58,7 +58,7 @@ CLASS zcl_gg_ex_058 IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~process_output_module.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_status( VALUE #(
-        status = 'SCREEN FLOW'
+        status       = 'SCREEN FLOW'
         active_ucomm = VALUE #( ( 'NEXT' ) ) ) ).
     ENDIF.
   ENDMETHOD.

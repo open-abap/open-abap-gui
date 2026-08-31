@@ -113,8 +113,8 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
   METHOD constructor.
     cl_gui_control=>initialize(
       control = me
-      parent = parent
-      kind = 'COLUMN_TREE' ).
+      parent  = parent
+      kind    = 'COLUMN_TREE' ).
     parent->add_child( me ).
   ENDMETHOD.
 

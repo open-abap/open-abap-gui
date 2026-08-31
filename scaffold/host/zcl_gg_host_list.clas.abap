@@ -281,8 +281,8 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     IF mo_handler IS BOUND.
       mv_in_event = abap_true.
       mo_handler->top_of_page_during_line_sel(
-        iv_level = iv_level
-        iv_page  = mv_page
+        iv_level   = iv_level
+        iv_page    = mv_page
         io_session = mo_session ).
       mv_in_event = abap_false.
       end_line( ).
@@ -298,9 +298,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   METHOD begin_page.
     mv_page = mv_page + 1.
     mv_line = 0.
-    APPEND VALUE #( kind = 'PAGE_BEGIN'
+    APPEND VALUE #( kind  = 'PAGE_BEGIN'
                     level = mv_list_level
-                    page = mv_page ) TO mt_model_events.
+                    page  = mv_page ) TO mt_model_events.
     IF iv_no_heading = abap_true OR mo_handler IS NOT BOUND.
       RETURN.
     ENDIF.
@@ -321,10 +321,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     lv_page = mv_page.
     lv_line = mv_line.
     flush( ).
-    APPEND VALUE #( kind = 'LINE_BREAK'
+    APPEND VALUE #( kind  = 'LINE_BREAK'
                     level = mv_list_level
-                    page = lv_page
-                    line = lv_line ) TO mt_model_events.
+                    page  = lv_page
+                    line  = lv_line ) TO mt_model_events.
   ENDMETHOD.
 
   METHOD flush.
@@ -381,10 +381,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       RETURN.
     ENDIF.
     mv_breaking = abap_true.
-    APPEND VALUE #( kind = 'PAGE_END'
+    APPEND VALUE #( kind  = 'PAGE_END'
                     level = mv_list_level
-                    page = mv_page
-                    line = mv_line ) TO mt_model_events.
+                    page  = mv_page
+                    line  = mv_line ) TO mt_model_events.
     IF mo_handler IS BOUND.
       mv_in_event = abap_true.
       mo_handler->end_of_page(
@@ -470,8 +470,11 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     IF is_format-decimals > 0 AND rv_text CO '0123456789.-+'.
       FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
       IF sy-subrc = 0.
-        lv_integer = substring( val = rv_text off = 0 len = lv_offset ).
-        lv_fraction = substring( val = rv_text off = lv_offset + 1 ).
+        lv_integer = substring( val = rv_text
+                                off = 0
+                                len = lv_offset ).
+        lv_fraction = substring( val = rv_text
+                                 off = lv_offset + 1 ).
       ELSE.
         lv_integer = rv_text.
       ENDIF.
@@ -487,7 +490,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ELSEIF is_format-decimals = 0 AND rv_text CO '0123456789.-+'.
       FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
       IF sy-subrc = 0.
-        rv_text = substring( val = rv_text off = 0 len = lv_offset ).
+        rv_text = substring( val = rv_text
+                             off = 0
+                             len = lv_offset ).
       ENDIF.
     ENDIF.
 
@@ -564,9 +569,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ensure_page( ).
     end_line( ).
     DO iv_lines TIMES.
-      APPEND VALUE #( kind = 'SKIP'
-                      level = mv_list_level
-                      page = mv_page
+      APPEND VALUE #( kind       = 'SKIP'
+                      level      = mv_list_level
+                      page       = mv_page
                       line_count = 1 ) TO mt_model_events.
       flush( ).
     ENDDO.
@@ -576,10 +581,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     DATA lv_length TYPE i.
 
     ensure_page( ).
-    APPEND VALUE #( kind = 'ULINE'
-                    level = mv_list_level
-                    page = mv_page
-                    position = is_uline-position
+    APPEND VALUE #( kind       = 'ULINE'
+                    level      = mv_list_level
+                    page       = mv_page
+                    position   = is_uline-position
                     line_count = is_uline-length ) TO mt_model_events.
     end_line( ).
     lv_length = is_uline-length.

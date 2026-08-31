@@ -19,17 +19,17 @@ CLASS zcl_gg_ex_062 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'ZCL_GG_EX_062' ).
     IF mv_advanced = abap_true.
       io_session->get_list( )->set_status( VALUE #(
-        status = 'SHELL62-DONE'
-        active_ucomm = VALUE #( ( 'DONE' ) )
+        status         = 'SHELL62-DONE'
+        active_ucomm   = VALUE #( ( 'DONE' ) )
         excluded_ucomm = VALUE #( ( 'NEXT' ) )
-        icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Next' icon = 'arrow-right' )
+        icon_bar       = VALUE #( ( ucomm = 'NEXT' label = 'Next' icon = 'arrow-right' )
                             ( ucomm = 'DONE' label = 'Done' icon = 'circle-check' separator = abap_true ) ) ) ).
       io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'ready' ) ).
     ELSE.
       io_session->get_list( )->set_status( VALUE #(
-        status = 'SHELL62'
+        status       = 'SHELL62'
         active_ucomm = VALUE #( ( 'NEXT' ) )
-        icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Next' icon = 'arrow-right' )
+        icon_bar     = VALUE #( ( ucomm = 'NEXT' label = 'Next' icon = 'arrow-right' )
                             ( ucomm = 'DONE' label = 'Done' icon = 'circle-check' separator = abap_true ) ) ) ).
       io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'initial' ) ).
     ENDIF.
@@ -44,10 +44,10 @@ CLASS zcl_gg_ex_062 IMPLEMENTATION.
       WHEN 'NEXT'.
         mv_advanced = abap_true.
         io_session->get_list( )->set_status( VALUE #(
-          status = 'SHELL62-DONE'
-          active_ucomm = VALUE #( ( 'DONE' ) )
+          status         = 'SHELL62-DONE'
+          active_ucomm   = VALUE #( ( 'DONE' ) )
           excluded_ucomm = VALUE #( ( 'NEXT' ) )
-          icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Next' icon = 'arrow-right' )
+          icon_bar       = VALUE #( ( ucomm = 'NEXT' label = 'Next' icon = 'arrow-right' )
                               ( ucomm = 'DONE' label = 'Done' icon = 'circle-check' separator = abap_true ) ) ) ).
         io_session->get_list( )->get_writer( )->write_field( VALUE #( text = 'advanced' placement = VALUE #( new_line = abap_true ) ) ).
       WHEN 'DONE'.
