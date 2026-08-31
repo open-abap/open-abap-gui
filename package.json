@@ -11,7 +11,8 @@
     "install:html-browser": "playwright install chromium",
     "test:html-e2e": "npm run transpile && npm run test:html-browser",
     "start": "npm run transpile && node test/start-server.mjs",
-    "web:build": "npm run transpile && webpack --config webpack.config.cjs --mode production",
+    "web:screenshots": "node test/capture-web-screenshots.mjs",
+    "web:build": "npm run transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots",
     "test": "npm run lint && npm run unit && npm run test:html-browser",
     "regression": "node .github/regression/run.js"
   },
