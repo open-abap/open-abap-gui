@@ -25,8 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      PREVIEW_BRANCH: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'preview' }}
-      PREVIEW_LABEL: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'manual preview' }}
+      PREVIEW_BRANCH: "${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'preview' }}"
+      PREVIEW_LABEL: "${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || 'manual preview' }}"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
