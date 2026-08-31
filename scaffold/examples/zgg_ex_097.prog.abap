@@ -1,0 +1,4 @@
+REPORT zgg_ex_097.
+START-OF-SELECTION.
+  SUBMIT zgg_ex_001 AND RETURN EXPORTING LIST TO MEMORY.
+  WRITE / 'nested submit memory'.

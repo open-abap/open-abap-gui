@@ -311,7 +311,7 @@ CLASS zcl_gg_rich_list_base IMPLEMENTATION.
         io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_warning text = 'Review the selection' ) ).
       WHEN '97'.
         io_session->get_navigation( )->submit_and_return(
-          is_submit = VALUE #( program = 'ZGG_EX_01' list_to_memory = abap_true )
+          is_submit = VALUE #( program = 'ZGG_EX_001' list_to_memory = abap_true )
           is_continuation = VALUE #( id = 'AFTER_LIST_MEMORY' ) ).
       WHEN '98'.
         write_page_rows( lo_writer ).

@@ -17,8 +17,8 @@ group is one atom.
 
 ## Conventions
 
-Report `scaffold/examples/zgg_ex_<nn>.prog.abap`, class
-`scaffold/examples/zcl_gg_ex_<nn>.clas.abap`.
+Report `scaffold/examples/zgg_ex_<nnn>.prog.abap`, class
+`scaffold/examples/zcl_gg_ex_<nnn>.clas.abap`.
 
 Each example class is self contained. It implements `zif_gg_report_v1`
 directly, with no superclass and no shared helper, so one file shows the whole
@@ -58,8 +58,8 @@ terms. An example that calls a nested screen states
 
 Shorthand used throughout: `lo_writer = io_session->get_list( )->get_writer( )`.
 
-The test for item 3 lives in `zcl_gg_ex_<nn>.clas.testclasses.abap`, one
-`ltcl_ex_<nn>` per example.
+The test for item 3 lives in `zcl_gg_ex_<nnn>.clas.testclasses.abap`, one
+`ltcl_ex_<nnn>` per example.
 
 Two things that bite and are not caught where you would expect:
 
@@ -79,8 +79,8 @@ explicitly documents a different host or scaffold blocker.
 
 A feature's box is ticked when all four hold:
 
-1. `zgg_ex_<nn>.prog.abap` exists and states the feature in one construct.
-2. `zcl_gg_ex_<nn>.clas.abap` exists and expresses the same thing.
+1. `zgg_ex_<nnn>.prog.abap` exists and states the feature in one construct.
+2. `zcl_gg_ex_<nnn>.clas.abap` exists and expresses the same thing.
 3. A unit test runs the class through `zcl_gg_host` and asserts the output.
    There is no classic list renderer here to diff against, so the report is the
    specification for what that output should be, not a second thing to execute.
@@ -212,12 +212,12 @@ above is authoritative; there are currently no blocked items.
 
 ## Phase 1 — Basic list, no selection screen
 
-### 01 — `WRITE` literal
+### 001 — `WRITE` literal
 
 Exercises `zif_gg_list_writer_v1~write_field`.
 
 ```abap
-REPORT zgg_ex_01.
+REPORT zgg_ex_001.
 
 START-OF-SELECTION.
   WRITE 'hello world'.
@@ -229,12 +229,12 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 02 — `WRITE AT <pos>(<len>)`, `NO-GAP`
+### 002 — `WRITE AT <pos>(<len>)`, `NO-GAP`
 
 Exercises `ty_write_field-placement`.
 
 ```abap
-REPORT zgg_ex_02.
+REPORT zgg_ex_002.
 
 START-OF-SELECTION.
   WRITE AT 10(5) 'abcdefgh'.
@@ -256,12 +256,12 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 03 — `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
+### 003 — `SKIP` / `ULINE` / `NEW-LINE` / `SET LEFT COLUMN`
 
 Exercises `skip`, `uline`, `new_line`, `set_position`.
 
 ```abap
-REPORT zgg_ex_03.
+REPORT zgg_ex_003.
 
 START-OF-SELECTION.
   WRITE 'first'.
@@ -286,7 +286,7 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 04 — `WRITE` numeric and mask additions
+### 004 — `WRITE` numeric and mask additions
 
 Exercises `ty_write_format`. **Blocked on #7** — the amount arrives as a
 `string`, so who applies `DECIMALS` and the currency shift is undefined.
@@ -295,7 +295,7 @@ The report and class specimens are present, but this checkbox stays open until
 gap #7 defines numeric conversion for writer text.
 
 ```abap
-REPORT zgg_ex_04.
+REPORT zgg_ex_004.
 
 DATA gv_amount TYPE p LENGTH 8 DECIMALS 2 VALUE '1234.5'.
 
@@ -314,7 +314,7 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 05 — `FORMAT` colour and attributes
+### 005 — `FORMAT` colour and attributes
 
 Exercises `set_format` and `reset_format`.
 
@@ -322,7 +322,7 @@ The report and class specimens are present, and the report runs through the
 runtime transpile and host test.
 
 ```abap
-REPORT zgg_ex_05.
+REPORT zgg_ex_005.
 
 START-OF-SELECTION.
   FORMAT COLOR 4 INTENSIFIED ON.
@@ -344,7 +344,7 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 06 — `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
+### 006 — `WRITE ... AS CHECKBOX` / `AS ICON` / `AS SYMBOL`
 
 Exercises `write_checkbox`, `write_icon`, `write_symbol`.
 
@@ -352,7 +352,7 @@ The report and class specimens are present, and the report runs through the
 runtime transpile and host test.
 
 ```abap
-REPORT zgg_ex_06.
+REPORT zgg_ex_006.
 
 START-OF-SELECTION.
   WRITE abap_true AS CHECKBOX.
@@ -370,13 +370,13 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 07 — `REPORT ... LINE-SIZE / LINE-COUNT / NO STANDARD PAGE HEADING`
+### 007 — `REPORT ... LINE-SIZE / LINE-COUNT / NO STANDARD PAGE HEADING`
 
 Exercises `zif_gg_list_processing_v1~get_settings`. **Blocked on #6** for the
 print half of the same statement group.
 
 ```abap
-REPORT zgg_ex_07 LINE-SIZE 120 LINE-COUNT 65(3) NO STANDARD PAGE HEADING.
+REPORT zgg_ex_007 LINE-SIZE 120 LINE-COUNT 65(3) NO STANDARD PAGE HEADING.
 
 START-OF-SELECTION.
   WRITE 'body'.
@@ -396,7 +396,7 @@ METHOD zif_gg_list_processing_v1~get_settings.
 ENDMETHOD.
 ```
 
-### 08 — `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
+### 008 — `NEW-PAGE` / `RESERVE` / `SET BLANK LINES`
 
 Exercises `new_page`, `reserve`, `set_blank_lines`.
 
@@ -404,7 +404,7 @@ The report and class specimens are present, and the report runs through the
 runtime transpile and host test.
 
 ```abap
-REPORT zgg_ex_08.
+REPORT zgg_ex_008.
 
 START-OF-SELECTION.
   SET BLANK LINES ON.
@@ -426,7 +426,7 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 09 — `TOP-OF-PAGE`
+### 009 — `TOP-OF-PAGE`
 
 Exercises `zif_gg_list_processing_v1~top_of_page`.
 
@@ -434,7 +434,7 @@ The report and class specimens are present, and the report runs through the
 runtime transpile and host test.
 
 ```abap
-REPORT zgg_ex_09.
+REPORT zgg_ex_009.
 
 TOP-OF-PAGE.
   WRITE 'header'.
@@ -459,7 +459,7 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 10 — `END-OF-PAGE`
+### 010 — `END-OF-PAGE`
 
 Exercises `end_of_page`, together with the `footer_lines` from feature 07.
 
@@ -467,7 +467,7 @@ The report and class specimens are present, and the report runs through the
 runtime transpile and host test.
 
 ```abap
-REPORT zgg_ex_10 LINE-COUNT 10(2).
+REPORT zgg_ex_010 LINE-COUNT 10(2).
 
 END-OF-PAGE.
   WRITE 'footer'.
@@ -493,12 +493,12 @@ ENDMETHOD.
 
 ## Phase 2 — Program events
 
-### 11 — `LOAD-OF-PROGRAM`
+### 011 — `LOAD-OF-PROGRAM`
 
 Exercises `load_of_program`, and pins that it runs before `initialization`.
 
 ```abap
-REPORT zgg_ex_11.
+REPORT zgg_ex_011.
 
 LOAD-OF-PROGRAM.
   WRITE 'loaded'.
@@ -514,12 +514,12 @@ METHOD zif_gg_report_v1~load_of_program.
 ENDMETHOD.
 ```
 
-### 12 — `INITIALIZATION`
+### 012 — `INITIALIZATION`
 
 Exercises `initialization` and its `ct_values`.
 
 ```abap
-REPORT zgg_ex_12.
+REPORT zgg_ex_012.
 
 PARAMETERS p_date TYPE d.
 
@@ -540,12 +540,12 @@ METHOD zif_gg_report_v1~initialization.
 ENDMETHOD.
 ```
 
-### 13 — `START-OF-SELECTION` / `END-OF-SELECTION`
+### 013 — `START-OF-SELECTION` / `END-OF-SELECTION`
 
 Exercises both, and pins that `END-OF-SELECTION` continues the same basic list.
 
 ```abap
-REPORT zgg_ex_13.
+REPORT zgg_ex_013.
 
 START-OF-SELECTION.
   WRITE 'select'.
@@ -567,13 +567,13 @@ METHOD zif_gg_report_v1~end_of_selection.
 ENDMETHOD.
 ```
 
-### 14 — `STOP`
+### 014 — `STOP`
 
 Exercises `zif_gg_session_v1~stop`, and pins that the call does not return but
 `END-OF-SELECTION` still runs.
 
 ```abap
-REPORT zgg_ex_14.
+REPORT zgg_ex_014.
 
 START-OF-SELECTION.
   WRITE 'before'.
@@ -597,13 +597,13 @@ ENDMETHOD.
 
 ## Phase 3 — Selection screen definition
 
-### 15 — `PARAMETERS` with `DEFAULT`
+### 015 — `PARAMETERS` with `DEFAULT`
 
 Exercises `add_parameter` and `ty_parameter-default`. **Blocked on #7** for
 anything but character types.
 
 ```abap
-REPORT zgg_ex_15.
+REPORT zgg_ex_015.
 
 PARAMETERS p_carr TYPE c LENGTH 3 DEFAULT 'LH'.
 
@@ -626,13 +626,13 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 16 — `PARAMETERS` attribute additions
+### 016 — `PARAMETERS` attribute additions
 
 Exercises the flag block of `ty_parameter`. **Blocked on #8** for the
 `modif_id`/`group1..group4` half.
 
 ```abap
-REPORT zgg_ex_16.
+REPORT zgg_ex_016.
 
 PARAMETERS p_name TYPE c LENGTH 20 OBLIGATORY LOWER CASE
                   MEMORY ID zgg MATCHCODE OBJECT zgg_sh MODIF ID abc.
@@ -652,12 +652,12 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 17 — `PARAMETERS ... AS CHECKBOX`
+### 017 — `PARAMETERS ... AS CHECKBOX`
 
 Exercises `add_checkbox`.
 
 ```abap
-REPORT zgg_ex_17.
+REPORT zgg_ex_017.
 
 PARAMETERS p_test AS CHECKBOX DEFAULT 'X' USER-COMMAND flip.
 ```
@@ -672,13 +672,13 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 18 — `PARAMETERS ... RADIOBUTTON GROUP`
+### 018 — `PARAMETERS ... RADIOBUTTON GROUP`
 
 Exercises `add_radiobutton`, and pins that exactly one member carries the
 default.
 
 ```abap
-REPORT zgg_ex_18.
+REPORT zgg_ex_018.
 
 PARAMETERS p_all RADIOBUTTON GROUP g1 DEFAULT 'X'.
 PARAMETERS p_one RADIOBUTTON GROUP g1.
@@ -698,13 +698,13 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 19 — `PARAMETERS ... AS LISTBOX`
+### 019 — `PARAMETERS ... AS LISTBOX`
 
 Exercises `add_listbox` and `ty_fixed_values`. **Blocked on #7** for values
 derived from a DDIC domain rather than listed inline.
 
 ```abap
-REPORT zgg_ex_19.
+REPORT zgg_ex_019.
 
 PARAMETERS p_mode TYPE c LENGTH 1 AS LISTBOX VISIBLE LENGTH 10 DEFAULT 'A'.
 ```
@@ -722,7 +722,7 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 20 — `SELECT-OPTIONS`
+### 020 — `SELECT-OPTIONS`
 
 Exercises `add_select_option` and `ty_select_option-default`.
 
@@ -730,7 +730,7 @@ The default range is implemented and tested; the checkbox stays open because
 the general value conversion contract remains gap #7.
 
 ```abap
-REPORT zgg_ex_20.
+REPORT zgg_ex_020.
 
 TABLES zsflight.
 
@@ -754,13 +754,13 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 21 — `SELECTION-SCREEN COMMENT` / `ULINE` / `SKIP`
+### 021 — `SELECTION-SCREEN COMMENT` / `ULINE` / `SKIP`
 
 Exercises `add_comment`, `add_uline`, `add_skip`. **Blocked on #5** — the report
 form uses `TEXT-001`, which has no counterpart in the scaffold.
 
 ```abap
-REPORT zgg_ex_21.
+REPORT zgg_ex_021.
 
 SELECTION-SCREEN COMMENT /1(30) TEXT-001.
 SELECTION-SCREEN SKIP 1.
@@ -784,7 +784,7 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 22 — `SELECTION-SCREEN BEGIN OF BLOCK ... WITH FRAME TITLE`
+### 022 — `SELECTION-SCREEN BEGIN OF BLOCK ... WITH FRAME TITLE`
 
 Exercises `begin_block` / `end_block`, and pins that nesting is by call order.
 
@@ -792,7 +792,7 @@ The host records each block definition and its nesting depth, so the class test
 can verify the frame, title and block structure.
 
 ```abap
-REPORT zgg_ex_22.
+REPORT zgg_ex_022.
 
 SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-b01.
   PARAMETERS p_a TYPE c LENGTH 1.
@@ -813,12 +813,12 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 23 — `SELECTION-SCREEN BEGIN OF LINE` and `POSITION`
+### 023 — `SELECTION-SCREEN BEGIN OF LINE` and `POSITION`
 
 Exercises `begin_line` / `end_line` / `set_position`.
 
 ```abap
-REPORT zgg_ex_23.
+REPORT zgg_ex_023.
 
 SELECTION-SCREEN BEGIN OF LINE.
   SELECTION-SCREEN COMMENT 1(10) TEXT-c01.
@@ -847,12 +847,12 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 24 — `SELECTION-SCREEN PUSHBUTTON ... USER-COMMAND`
+### 024 — `SELECTION-SCREEN PUSHBUTTON ... USER-COMMAND`
 
 Exercises `add_pushbutton`, and feeds feature 30 with the `ucomm`.
 
 ```abap
-REPORT zgg_ex_24.
+REPORT zgg_ex_024.
 
 SELECTION-SCREEN PUSHBUTTON /1(20) TEXT-p01 USER-COMMAND load.
 ```
@@ -868,12 +868,12 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 25 — `SELECTION-SCREEN FUNCTION KEY`
+### 025 — `SELECTION-SCREEN FUNCTION KEY`
 
 Exercises `add_function_key`.
 
 ```abap
-REPORT zgg_ex_25.
+REPORT zgg_ex_025.
 
 SELECTION-SCREEN FUNCTION KEY 1.
 
@@ -890,13 +890,13 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 26 — `SELECTION-SCREEN BEGIN OF TABBED BLOCK` and `TAB`
+### 026 — `SELECTION-SCREEN BEGIN OF TABBED BLOCK` and `TAB`
 
 Exercises `begin_tabbed_block` / `add_tab` / `end_tabbed_block`, and depends on
 feature 27 for the subscreens.
 
 ```abap
-REPORT zgg_ex_26.
+REPORT zgg_ex_026.
 
 SELECTION-SCREEN BEGIN OF TABBED BLOCK tb FOR 10 LINES.
   SELECTION-SCREEN TAB (20) tab1 USER-COMMAND ut1 DEFAULT SCREEN 0100.
@@ -921,12 +921,12 @@ METHOD zif_gg_report_v1~build_screen.
 ENDMETHOD.
 ```
 
-### 27 — `SELECTION-SCREEN BEGIN OF SCREEN nnn`
+### 027 — `SELECTION-SCREEN BEGIN OF SCREEN nnn`
 
 Exercises `begin_screen` / `end_screen`, both `AS WINDOW` and `AS SUBSCREEN`.
 
 ```abap
-REPORT zgg_ex_27.
+REPORT zgg_ex_027.
 
 SELECTION-SCREEN BEGIN OF SCREEN 0500 AS WINDOW TITLE TEXT-t01.
   PARAMETERS p_b TYPE c LENGTH 1.
@@ -948,13 +948,13 @@ ENDMETHOD.
 
 ## Phase 4 — Selection screen events
 
-### 28 — `AT SELECTION-SCREEN OUTPUT` with `LOOP AT SCREEN`
+### 028 — `AT SELECTION-SCREEN OUTPUT` with `LOOP AT SCREEN`
 
 Exercises `at_selection_screen_output` and `ct_states`. The host drives one
 output pass and retains separate input/output flags plus modification groups.
 
 ```abap
-REPORT zgg_ex_28.
+REPORT zgg_ex_028.
 
 PARAMETERS p_a TYPE c LENGTH 1.
 PARAMETERS p_b TYPE c LENGTH 1 MODIF ID hid.
@@ -976,13 +976,13 @@ METHOD zif_gg_report_v1~at_selection_screen_output.
 ENDMETHOD.
 ```
 
-### 29 — `AT SELECTION-SCREEN OUTPUT` writing a parameter
+### 029 — `AT SELECTION-SCREEN OUTPUT` writing a parameter
 
 Exercises `ct_values` being CHANGING on the output event, and pins that the new
 value reaches the screen.
 
 ```abap
-REPORT zgg_ex_29.
+REPORT zgg_ex_029.
 
 PARAMETERS p_cnt TYPE i.
 
@@ -996,13 +996,13 @@ METHOD zif_gg_report_v1~at_selection_screen_output.
 ENDMETHOD.
 ```
 
-### 30 — `AT SELECTION-SCREEN`
+### 030 — `AT SELECTION-SCREEN`
 
 Exercises `at_selection_screen`, its `iv_ucomm`, and that an error message
 redisplays the screen.
 
 ```abap
-REPORT zgg_ex_30.
+REPORT zgg_ex_030.
 
 PARAMETERS p_n TYPE i.
 
@@ -1022,13 +1022,13 @@ METHOD zif_gg_report_v1~at_selection_screen.
 ENDMETHOD.
 ```
 
-### 31 — `AT SELECTION-SCREEN ON <field>`
+### 031 — `AT SELECTION-SCREEN ON <field>`
 
 Exercises `at_selection_screen_on_field`, and pins that it runs before
 feature 30's event and that its `ct_values` edits are visible there.
 
 ```abap
-REPORT zgg_ex_31.
+REPORT zgg_ex_031.
 
 PARAMETERS p_carr TYPE c LENGTH 3.
 
@@ -1045,13 +1045,13 @@ METHOD zif_gg_report_v1~at_selection_screen_on_field.
 ENDMETHOD.
 ```
 
-### 32 — `AT SELECTION-SCREEN ON END OF <selopt>`
+### 032 — `AT SELECTION-SCREEN ON END OF <selopt>`
 
 Exercises `at_selection_screen_on_end_of`, and that the whole range table is
 available.
 
 ```abap
-REPORT zgg_ex_32.
+REPORT zgg_ex_032.
 
 TABLES zsflight.
 SELECT-OPTIONS s_carr FOR zsflight-carrid.
@@ -1072,12 +1072,12 @@ METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
 ENDMETHOD.
 ```
 
-### 33 — `AT SELECTION-SCREEN ON BLOCK`
+### 033 — `AT SELECTION-SCREEN ON BLOCK`
 
 Exercises `at_selection_screen_on_block`, using the block from feature 22.
 
 ```abap
-REPORT zgg_ex_33.
+REPORT zgg_ex_033.
 
 SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
   PARAMETERS p_a TYPE c LENGTH 1.
@@ -1102,12 +1102,12 @@ METHOD zif_gg_report_v1~at_selection_screen_on_block.
 ENDMETHOD.
 ```
 
-### 34 — `AT SELECTION-SCREEN ON RADIOBUTTON GROUP`
+### 034 — `AT SELECTION-SCREEN ON RADIOBUTTON GROUP`
 
 Exercises `at_selection_screen_on_radio`, using the group from feature 18.
 
 ```abap
-REPORT zgg_ex_34.
+REPORT zgg_ex_034.
 
 PARAMETERS p_all RADIOBUTTON GROUP g1 DEFAULT 'X'.
 PARAMETERS p_one RADIOBUTTON GROUP g1.
@@ -1131,13 +1131,13 @@ METHOD zif_gg_report_v1~at_selection_screen_on_radio.
 ENDMETHOD.
 ```
 
-### 35 — `AT SELECTION-SCREEN ON VALUE-REQUEST`
+### 035 — `AT SELECTION-SCREEN ON VALUE-REQUEST`
 
 Exercises `at_selection_screen_value_req`. **Blocked on #18** — the report form
 routinely writes back to other fields too.
 
 ```abap
-REPORT zgg_ex_35.
+REPORT zgg_ex_035.
 
 PARAMETERS p_carr TYPE c LENGTH 3.
 
@@ -1156,12 +1156,12 @@ METHOD zif_gg_report_v1~at_selection_screen_value_req.
 ENDMETHOD.
 ```
 
-### 36 — `AT SELECTION-SCREEN ON HELP-REQUEST`
+### 036 — `AT SELECTION-SCREEN ON HELP-REQUEST`
 
 Exercises `at_selection_screen_help_req`.
 
 ```abap
-REPORT zgg_ex_36.
+REPORT zgg_ex_036.
 
 PARAMETERS p_carr TYPE c LENGTH 3.
 
@@ -1177,13 +1177,13 @@ METHOD zif_gg_report_v1~at_selection_screen_help_req.
 ENDMETHOD.
 ```
 
-### 37 — `AT SELECTION-SCREEN ON EXIT-COMMAND`
+### 037 — `AT SELECTION-SCREEN ON EXIT-COMMAND`
 
 Exercises `at_selection_screen_on_exit`, and pins that the values are the
 pre-transport snapshot, hence IMPORTING.
 
 ```abap
-REPORT zgg_ex_37.
+REPORT zgg_ex_037.
 
 PARAMETERS p_a TYPE c LENGTH 1.
 
@@ -1201,12 +1201,12 @@ METHOD zif_gg_report_v1~at_selection_screen_on_exit.
 ENDMETHOD.
 ```
 
-### 38 — `sscrfields-ucomm` driven suppression
+### 038 — `sscrfields-ucomm` driven suppression
 
 Exercises `suppress_dialog`, the background path through a selection screen.
 
 ```abap
-REPORT zgg_ex_38.
+REPORT zgg_ex_038.
 
 PARAMETERS p_a TYPE c LENGTH 1 DEFAULT 'X'.
 
@@ -1231,12 +1231,12 @@ ENDMETHOD.
 
 ## Phase 5 — Messages
 
-### 39 — `MESSAGE <text> TYPE`
+### 039 — `MESSAGE <text> TYPE`
 
 Exercises `ty_message-text` with an initial `id`.
 
 ```abap
-REPORT zgg_ex_39.
+REPORT zgg_ex_039.
 
 START-OF-SELECTION.
   MESSAGE 'free text' TYPE 'I'.
@@ -1250,7 +1250,7 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 40 — `MESSAGE nnn(id) WITH`
+### 040 — `MESSAGE nnn(id) WITH`
 
 Exercises `id`, `number` and `v1..v4`. The message class ships in this same
 change, as `zgg_ex.msag.xml` next to the report — this is the exact shape
@@ -1281,7 +1281,7 @@ cannot be split.
 ```
 
 ```abap
-REPORT zgg_ex_40.
+REPORT zgg_ex_040.
 
 START-OF-SELECTION.
   MESSAGE i001(zgg_ex) WITH 'alpha' 'beta'.
@@ -1298,12 +1298,12 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 41 — `MESSAGE ... TYPE 'A'` and `'X'`
+### 041 — `MESSAGE ... TYPE 'A'` and `'X'`
 
 Exercises the terminal message types, and pins that neither returns.
 
 ```abap
-REPORT zgg_ex_41.
+REPORT zgg_ex_041.
 
 START-OF-SELECTION.
   MESSAGE 'giving up' TYPE 'A'.
@@ -1319,13 +1319,13 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 42 — `MESSAGE ... DISPLAY LIKE`
+### 042 — `MESSAGE ... DISPLAY LIKE`
 
 Exercises `display_like`, and pins that behaviour follows `type` while
 rendering follows `display_like`.
 
 ```abap
-REPORT zgg_ex_42.
+REPORT zgg_ex_042.
 
 START-OF-SELECTION.
   MESSAGE 'looks like an error' TYPE 'S' DISPLAY LIKE 'E'.
@@ -1344,13 +1344,13 @@ ENDMETHOD.
 
 ## Phase 6 — Interactive lists
 
-### 43 — `HIDE` and `AT LINE-SELECTION`
+### 043 — `HIDE` and `AT LINE-SELECTION`
 
 Exercises `ty_write_field-hide` and `at_line_selection`, the core of the
 interactive list.
 
 ```abap
-REPORT zgg_ex_43.
+REPORT zgg_ex_043.
 
 DATA gv_id TYPE i.
 
@@ -1386,13 +1386,13 @@ ENDMETHOD.
 The host drives a requested line-selection event after the initial list and
 retains HIDE fields on rendered lines.
 
-### 44 — `SET PF-STATUS` and `AT USER-COMMAND`
+### 044 — `SET PF-STATUS` and `AT USER-COMMAND`
 
 Exercises `zif_gg_list_session_v1~set_status` and `at_user_command`, including
 the excluded function codes.
 
 ```abap
-REPORT zgg_ex_44.
+REPORT zgg_ex_044.
 
 START-OF-SELECTION.
   SET PF-STATUS 'LIST' EXCLUDING 'DEL'.
@@ -1426,13 +1426,13 @@ ENDMETHOD.
 The host drives a requested user-command event and exposes the recorded
 PF-STATUS to the test.
 
-### 45 — `SET TITLEBAR`
+### 045 — `SET TITLEBAR`
 
 Exercises `zif_gg_list_session_v1~set_title`, and its static counterpart in
 `ty_settings-title`.
 
 ```abap
-REPORT zgg_ex_45.
+REPORT zgg_ex_045.
 
 START-OF-SELECTION.
   SET TITLEBAR 'MAIN'.
@@ -1447,14 +1447,14 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 46 — `READ LINE` / `MODIFY LINE`
+### 046 — `READ LINE` / `MODIFY LINE`
 
 Exercises `read_line` and `modify_line`. **Blocked on #10** — `ty_line` carries
 hidden fields and text, so an editable list field cannot be read back and a
 per-field format cannot be rewritten.
 
 ```abap
-REPORT zgg_ex_46.
+REPORT zgg_ex_046.
 
 START-OF-SELECTION.
   WRITE / 'row one'.
@@ -1475,12 +1475,12 @@ The report and counterpart are present, but the checkbox stays open because
 the host does not drive line selection and `ty_line` lacks editable field
 values; see scaffold gap #10.
 
-### 47 — `GET CURSOR`
+### 047 — `GET CURSOR`
 
 Exercises `zif_gg_list_session_v1~get_cursor`.
 
 ```abap
-REPORT zgg_ex_47.
+REPORT zgg_ex_047.
 
 DATA gv_field TYPE c LENGTH 30.
 DATA gv_line  TYPE i.
@@ -1504,13 +1504,13 @@ ENDMETHOD.
 
 The host drives a line-selection event with supplied cursor context.
 
-### 48 — `TOP-OF-PAGE DURING LINE-SELECTION`
+### 048 — `TOP-OF-PAGE DURING LINE-SELECTION`
 
 Exercises `top_of_page_during_line_sel`, and pins that it replaces
 `top_of_page` once `level` is above zero.
 
 ```abap
-REPORT zgg_ex_48.
+REPORT zgg_ex_048.
 
 TOP-OF-PAGE DURING LINE-SELECTION.
   WRITE 'detail header'.
@@ -1532,12 +1532,12 @@ ENDMETHOD.
 The host drives nested line selection with the corresponding page-header
 event.
 
-### 49 — `AT PFnn`
+### 049 — `AT PFnn`
 
 Exercises `at_pf`.
 
 ```abap
-REPORT zgg_ex_49.
+REPORT zgg_ex_049.
 
 START-OF-SELECTION.
   WRITE 'body'.
@@ -1558,13 +1558,13 @@ ENDMETHOD.
 
 The host drives the requested PF event.
 
-### 50 — `LEAVE TO LIST-PROCESSING` / `LEAVE LIST-PROCESSING`
+### 050 — `LEAVE TO LIST-PROCESSING` / `LEAVE LIST-PROCESSING`
 
 Exercises `enter_list_processing` and `leave_list_processing`. **Blocked on
 #10** — the usual pairing with `sy-lsind` has no counterpart.
 
 ```abap
-REPORT zgg_ex_50.
+REPORT zgg_ex_050.
 
 START-OF-SELECTION.
   LEAVE TO LIST-PROCESSING AND RETURN TO SCREEN 0.
@@ -1591,14 +1591,14 @@ does not model `sy-lsind` or list depth; see scaffold gap #10.
 
 ## Phase 7 — Navigation and nesting
 
-### 51 — `CALL SELECTION-SCREEN`
+### 051 — `CALL SELECTION-SCREEN`
 
 Exercises `call_selection_screen` and `zif_gg_resumable_v1~resume`. This is the
 first example where the class shape genuinely differs from the report: the code
 after the call becomes a continuation branch.
 
 ```abap
-REPORT zgg_ex_51.
+REPORT zgg_ex_051.
 
 SELECTION-SCREEN BEGIN OF SCREEN 0500 AS WINDOW.
   PARAMETERS p_b TYPE c LENGTH 1.
@@ -1636,13 +1636,13 @@ ENDMETHOD.
 
 The host drives the nested selection screen and its resumable continuation.
 
-### 52 — `CALL SCREEN`
+### 052 — `CALL SCREEN`
 
 Exercises `call_screen` against a `zif_gg_dynpro_v1` program, and the modal
 position.
 
 ```abap
-REPORT zgg_ex_52.
+REPORT zgg_ex_052.
 
 START-OF-SELECTION.
   CALL SCREEN 0100 STARTING AT 5 5 ENDING AT 60 15.
@@ -1670,37 +1670,37 @@ METHOD zif_gg_resumable_v1~resume.
 ENDMETHOD.
 ```
 
-### 53 — `SUBMIT`
+### 053 — `SUBMIT`
 
 Exercises `zif_gg_navigation_v1~submit`, and pins that it is terminal.
 
 ```abap
-REPORT zgg_ex_53.
+REPORT zgg_ex_053.
 
 START-OF-SELECTION.
-  SUBMIT zgg_ex_01.
+  SUBMIT zgg_ex_001.
   WRITE 'never reached'.
 ```
 
 ```abap
 METHOD zif_gg_report_v1~start_of_selection.
-  io_session->get_navigation( )->submit( VALUE #( program = 'ZGG_EX_01' ) ).
+  io_session->get_navigation( )->submit( VALUE #( program = 'ZGG_EX_001' ) ).
   " unreachable, the current program ends
 ENDMETHOD.
 ```
 
 The host records terminal SUBMIT navigation and stops the current program.
 
-### 54 — `SUBMIT ... AND RETURN` with `WITH` and `USING SELECTION-SET`
+### 054 — `SUBMIT ... AND RETURN` with `WITH` and `USING SELECTION-SET`
 
 Exercises `submit_and_return` and `ty_submit`. **Blocked on #3** for the variant
 half — the name is carried but nothing manages variants.
 
 ```abap
-REPORT zgg_ex_54.
+REPORT zgg_ex_054.
 
 START-OF-SELECTION.
-  SUBMIT zgg_ex_20
+  SUBMIT zgg_ex_020
     USING SELECTION-SET 'STANDARD'
     WITH s_carr IN VALUE #( ( sign = 'I' option = 'EQ' low = 'LH' ) )
     AND RETURN.
@@ -1711,7 +1711,7 @@ START-OF-SELECTION.
 METHOD zif_gg_report_v1~start_of_selection.
   io_session->get_navigation( )->submit_and_return(
     is_submit       = VALUE #(
-      program = 'ZGG_EX_20'
+      program = 'ZGG_EX_020'
       variant = 'STANDARD'
       values  = VALUE #( ( name   = 'S_CARR'
                            ranges = VALUE #( (
@@ -1729,17 +1729,17 @@ METHOD zif_gg_resumable_v1~resume.
 ENDMETHOD.
 ```
 
-### 55 — `SUBMIT ... EXPORTING LIST TO MEMORY`
+### 055 — `SUBMIT ... EXPORTING LIST TO MEMORY`
 
 Exercises `list_to_memory` and `get_list_from_memory`.
 
 ```abap
-REPORT zgg_ex_55.
+REPORT zgg_ex_055.
 
 DATA gt_list TYPE TABLE OF abaplist.
 
 START-OF-SELECTION.
-  SUBMIT zgg_ex_01 EXPORTING LIST TO MEMORY AND RETURN.
+  SUBMIT zgg_ex_001 EXPORTING LIST TO MEMORY AND RETURN.
   CALL FUNCTION 'LIST_FROM_MEMORY'
     TABLES
       listobject = gt_list.
@@ -1749,7 +1749,7 @@ START-OF-SELECTION.
 METHOD zif_gg_report_v1~start_of_selection.
   io_session->get_navigation( )->submit_and_return(
     is_submit       = VALUE #(
-      program        = 'ZGG_EX_01'
+      program        = 'ZGG_EX_001'
       list_to_memory = abap_true )
     is_continuation = VALUE #( id = 'AFTER_SUBMIT' ) ).
 ENDMETHOD.
@@ -1769,12 +1769,12 @@ ENDMETHOD.
 The host executes the supplied submitted report and exposes its rendered list
 through `get_list_from_memory` during the continuation.
 
-### 56 — `CALL TRANSACTION`
+### 056 — `CALL TRANSACTION`
 
 Exercises `call_transaction` and its continuation.
 
 ```abap
-REPORT zgg_ex_56.
+REPORT zgg_ex_056.
 
 START-OF-SELECTION.
   CALL TRANSACTION 'SE38' AND SKIP FIRST SCREEN.
@@ -1799,12 +1799,12 @@ ENDMETHOD.
 The report and counterpart are present, but the checkbox stays open until the
 host executes the transaction and invokes its resumable continuation.
 
-### 57 — `LEAVE TO TRANSACTION` / `LEAVE PROGRAM`
+### 057 — `LEAVE TO TRANSACTION` / `LEAVE PROGRAM`
 
 Exercises the two terminal navigation methods.
 
 ```abap
-REPORT zgg_ex_57.
+REPORT zgg_ex_057.
 
 PARAMETERS p_go AS CHECKBOX.
 
@@ -1828,14 +1828,14 @@ METHOD zif_gg_report_v1~start_of_selection.
 ENDMETHOD.
 ```
 
-### 58 — `SET SCREEN` / `LEAVE SCREEN` / `LEAVE TO SCREEN`
+### 058 — `SET SCREEN` / `LEAVE SCREEN` / `LEAVE TO SCREEN`
 
 Exercises `set_next_screen`, `leave_screen` and `leave_to_screen`, and pins the
 difference between the three. Belongs to a `zif_gg_dynpro_v1` program rather
 than a report, so the report side is a dialog program.
 
 ```abap
-PROGRAM zgg_ex_58.
+PROGRAM zgg_ex_058.
 
 MODULE user_command_0100 INPUT.
   CASE sy-ucomm.

@@ -46,7 +46,7 @@ check a box until its focused test passes.
 - `render_top` currently has two possible icon-bar owners: explicit
   `it_icon_bar`, then `is_status-icon_bar` as a fallback. This precedence rule
   permits host code to replace application state.
-- `zcl_gg_ex_44` already demonstrates the desired runtime mechanism by setting
+- `zcl_gg_ex_044` already demonstrates the desired runtime mechanism by setting
   `status-icon_bar` to `Refresh` and `Print`, with the corresponding commands in
   `active_ucomm`.
 - Most examples intentionally define no icon bar. They should remain empty and
@@ -108,9 +108,9 @@ accepted only when the current server-owned page status authorizes it.
   fail before rendering, with the owning example named in diagnostics where
   available.
 
-## 3. Use `zcl_gg_ex_44` as the canonical example
+## 3. Use `zcl_gg_ex_044` as the canonical example
 
-- [x] Keep icon-bar definition beside `SET PF-STATUS` in `zcl_gg_ex_44`; do not
+- [x] Keep icon-bar definition beside `SET PF-STATUS` in `zcl_gg_ex_044`; do not
   move it to the workbench or a shared example helper.
 - [x] Retain the ordered `Refresh` and `Print` entries, including the separator
   before `Print`.
@@ -162,7 +162,7 @@ accepted only when the current server-owned page status authorizes it.
   buttons are absent.
 - [x] Open an example without an icon bar and assert that no application icon
   buttons appear.
-- [x] Open `ZGG_EX_44` and assert that exactly `Refresh` and `Print` appear in
+- [x] Open `ZGG_EX_044` and assert that exactly `Refresh` and `Print` appear in
   the declared order with the declared icons and separator.
 - [x] Click `Refresh` and prove the real ABAP `AT USER-COMMAND` callback renders
   `refreshed`.
@@ -189,7 +189,7 @@ accepted only when the current server-owned page status authorizes it.
 ## Verification checklist
 
 - [x] Run focused ABAP Unit tests for the status model, renderer, workbench
-  utility, runtime authorization, and example 44.
+  utility, runtime authorization, and example 044.
 - [x] Run `npm run lint`.
 - [x] Run `npm run unit`.
 - [x] Run `npm run test:html-e2e` with Chromium installed.

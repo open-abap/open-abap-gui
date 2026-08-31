@@ -98,10 +98,10 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
   METHOD isolates_memory_list.
     DATA(ls_first) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_variants( 'MEMORY' )
-      io_submit_report = NEW zcl_gg_ex_01( ) ).
+      io_submit_report = NEW zcl_gg_ex_001( ) ).
     DATA(ls_second) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_variants( 'MEMORY' )
-      io_submit_report = NEW zcl_gg_ex_01( ) ).
+      io_submit_report = NEW zcl_gg_ex_001( ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_first-lines
@@ -115,7 +115,7 @@ CLASS ltcl_gg_integration_var IMPLEMENTATION.
   METHOD restores_memory_level.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report = NEW zcl_gg_integration_variants( 'MEMORY' )
-      io_submit_report = NEW zcl_gg_ex_01( ) ).
+      io_submit_report = NEW zcl_gg_ex_001( ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines[ 3 ]

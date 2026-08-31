@@ -1,0 +1,9 @@
+REPORT zgg_ex_080.
+
+TABLES zsflight.
+PARAMETERS p_fld TYPE c LENGTH 20.
+SELECT-OPTIONS s_end FOR zsflight-carrid.
+PARAMETERS p_req TYPE c LENGTH 20 OBLIGATORY.
+
+START-OF-SELECTION.
+  WRITE p_fld.

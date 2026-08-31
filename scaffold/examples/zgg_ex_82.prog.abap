@@ -1,7 +1,0 @@
-REPORT zgg_ex_82.
-
-PARAMETERS p_name TYPE c LENGTH 14 OBLIGATORY.
-PARAMETERS p_value TYPE c LENGTH 30.
-
-START-OF-SELECTION.
-  WRITE: / p_name, p_value.

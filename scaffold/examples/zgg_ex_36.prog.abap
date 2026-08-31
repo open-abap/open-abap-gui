@@ -1,6 +1,0 @@
-REPORT zgg_ex_36.
-
-PARAMETERS p_carr TYPE c LENGTH 3.
-
-AT SELECTION-SCREEN ON HELP-REQUEST FOR p_carr.
-  WRITE 'Two character IATA code'.

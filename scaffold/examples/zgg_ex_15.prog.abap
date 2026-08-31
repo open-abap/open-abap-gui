@@ -1,6 +1,0 @@
-REPORT zgg_ex_15.
-
-PARAMETERS p_carr TYPE c LENGTH 3 DEFAULT 'LH'.
-
-START-OF-SELECTION.
-  WRITE p_carr.

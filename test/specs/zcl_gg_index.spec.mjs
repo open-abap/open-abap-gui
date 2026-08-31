@@ -123,22 +123,22 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
     "href",
     "/ZCL_GG_DB_HELPER",
   );
-  await expect(page.getByRole("link", {name: "ZGG_EX_01"})).toHaveAttribute(
+  await expect(page.getByRole("link", {name: "ZGG_EX_001"})).toHaveAttribute(
     "href",
-    "/transaction?tcode=ZGG_EX_01",
+    "/transaction?tcode=ZGG_EX_001",
   );
-  await expect(page.getByRole("link", {name: "ZGG_EX_01"})).toContainText("WRITE literal");
-  await expect(page.getByRole("link", {name: "ZGG_EX_58"})).toHaveAttribute(
+  await expect(page.getByRole("link", {name: "ZGG_EX_001"})).toContainText("WRITE literal");
+  await expect(page.getByRole("link", {name: "ZGG_EX_058"})).toHaveAttribute(
     "href",
-    "/transaction?tcode=ZGG_EX_58",
+    "/transaction?tcode=ZGG_EX_058",
   );
-  await expect(page.getByRole("link", {name: "ZGG_EX_66"})).toContainText(
+  await expect(page.getByRole("link", {name: "ZGG_EX_066"})).toContainText(
     "Unicode and hostile shell text",
   );
-  await expect(page.getByRole("link", {name: "ZGG_EX_82"})).toContainText(
+  await expect(page.getByRole("link", {name: "ZGG_EX_082"})).toContainText(
     "Variant manager selection screen",
   );
-  await expect(page.getByRole("link", {name: "ZGG_EX_98"})).toContainText(
+  await expect(page.getByRole("link", {name: "ZGG_EX_098"})).toContainText(
     "Composite flight list workbench",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_116"})).toContainText(

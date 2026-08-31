@@ -56,7 +56,7 @@ CLASS zcl_gg_integration_variants IMPLEMENTATION.
       WHEN 'MEMORY'.
         io_session->get_navigation( )->submit_and_return(
           is_submit = VALUE #(
-            program = 'ZGG_EX_01'
+            program = 'ZGG_EX_001'
             list_to_memory = abap_true )
           is_continuation = VALUE #( id = 'AFTER_MEMORY' ) ).
       WHEN 'SAVE' OR 'OVERWRITE'.

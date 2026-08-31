@@ -1,0 +1,10 @@
+REPORT zgg_ex_061.
+
+START-OF-SELECTION.
+  SET PF-STATUS 'SHELL61' EXCLUDING 'EXCLUDED'.
+  WRITE 'body'.
+
+AT USER-COMMAND.
+  IF sy-ucomm = 'ENABLE'.
+    WRITE / 'enabled'.
+  ENDIF.

@@ -57,7 +57,7 @@ export const test = base.extend({
 export {expect};
 
 export async function openExample(page, host, number) {
-  const id = String(number).padStart(2, "0");
+  const id = String(number).padStart(3, "0");
   const response = await page.goto(`${host.baseUrl}/ZCL_GG_EX_${id}`);
   expect(response?.status()).toBe(200);
   await expect(page.locator("[data-page-kind]")).toHaveCount(1);

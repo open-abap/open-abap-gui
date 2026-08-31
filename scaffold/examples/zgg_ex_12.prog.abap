@@ -1,9 +1,0 @@
-REPORT zgg_ex_12.
-
-PARAMETERS p_date TYPE d.
-
-INITIALIZATION.
-  p_date = '20260101'.
-
-START-OF-SELECTION.
-  WRITE p_date.

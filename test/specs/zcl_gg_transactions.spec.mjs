@@ -2,12 +2,12 @@ import {test, expect} from "../fixtures.mjs";
 
 test("transaction links start the real report and dynpro examples", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/`);
-  await page.getByRole("link", {name: "ZGG_EX_01"}).click();
+  await page.getByRole("link", {name: "ZGG_EX_001"}).click();
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "LIST");
   await expect(page.locator(".gg-list")).toContainText("hello world");
 
   await page.goto(`${host.baseUrl}/`);
-  await page.getByRole("link", {name: "ZGG_EX_58"}).click();
+  await page.getByRole("link", {name: "ZGG_EX_058"}).click();
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "DYNPRO");
 });
 
@@ -16,13 +16,13 @@ test("the command form accepts /n and normalizes the dynpro tcode", async ({page
   const command = page.getByRole("textbox", {name: "Command"});
   await expect(command).toHaveAttribute("name", "command");
   await expect(command.locator("xpath=ancestor::form")).toHaveAttribute("action", "/transaction");
-  await command.fill("/nzgg_ex_58");
+  await command.fill("/nzgg_ex_058");
   await command.press("Enter");
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "DYNPRO");
 });
 
 test("F3 activates the green Back button", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_01`);
+  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   await expect(page.getByRole("button", {name: "Return to workbench"})).toBeEnabled();
   await page.keyboard.press("F3");
   await expect(page.locator(".wb-workspace")).toBeVisible();
@@ -30,11 +30,11 @@ test("F3 activates the green Back button", async ({page, host}) => {
 });
 
 test("a valid command replaces the old host session", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_01`);
+  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   const oldSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const oldPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
 
-  await page.getByRole("textbox", {name: "Command"}).fill("/nZGG_EX_02");
+  await page.getByRole("textbox", {name: "Command"}).fill("/nZGG_EX_002");
   await page.getByRole("textbox", {name: "Command"}).press("Enter");
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "LIST");
   await expect(page.locator("[data-page-kind]")).not.toHaveAttribute("data-session-id", oldSession);
@@ -52,7 +52,7 @@ test("a valid command replaces the old host session", async ({page, host}) => {
 });
 
 test("invalid commands retain input and leave the old session open", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_01`);
+  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   const oldSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const oldPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
 

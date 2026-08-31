@@ -5,7 +5,7 @@ specimens. The next examples should demonstrate the framework as an application
 platform: browser-visible controls, stateful interaction, accessibility,
 navigation, error recovery, and realistic compositions.
 
-The reserved range is `59` through `150`. Numbers are stable once an example
+The reserved range is `059` through `150`. Numbers are stable once an example
 lands. Do not renumber later examples to fill an abandoned slot; document why a
 slot was retired instead.
 
@@ -28,21 +28,23 @@ below starts unchecked.
 ## Non-negotiable rules
 
 - [x] Every example implements `zif_gg_transaction_v1` and publishes
-  `ZGG_EX_<nn>` plus a concise, user-facing description beside its executable
+  `ZGG_EX_<nnn>` plus a concise, user-facing description beside its executable
   implementation.
 - [x] Use `zif_gg_report_v1` or `zif_gg_dynpro_v1`, never both, except in a
   local negative test that proves registry rejection.
 - [x] Keep one principal behavior per Ready/Extend example. Composite examples
   may combine only already-covered behaviors and must name their dependencies.
-- [x] Add `zgg_ex_<nn>.prog.abap` when a meaningful classic ABAP counterpart
+- [x] Add `zgg_ex_<nnn>.prog.abap` when a meaningful classic ABAP counterpart
   exists. For browser-only host behavior, document why no honest classic report
   counterpart exists instead of fabricating one.
-- [x] Add `zcl_gg_ex_<nn>.clas.testclasses.abap` for every example. ABAP Unit
+- [x] Add `zcl_gg_ex_<nnn>.clas.testclasses.abap` for every example. ABAP Unit
   owns application state and host semantics; Playwright owns the real browser
   and HTTP boundary.
 - [x] Keep one Playwright spec file per executable example class as
-  `zcl_gg_ex_<nn>.spec.mjs`; shared fixtures and cross-example audits remain
+  `zcl_gg_ex_<nnn>.spec.mjs`; shared fixtures and cross-example audits remain
   separate, but example specs are never bundled by number range.
+- [x] Use zero-padded three-digit suffixes consistently for example classes,
+  transaction codes, classic report programs, and their Playwright specs.
 - [x] Do not make JavaScript interpret ABAP controls, statuses, variants,
   navigation, or callbacks. JavaScript remains transport and browser testing.
 - [x] Never add renderer-specific HTML to an example. Examples define typed
@@ -72,113 +74,113 @@ A batch is complete only when:
 
 ---
 
-## Phase 8 — Application shell and status (`59`–`66`)
+## Phase 8 — Application shell and status (`059`–`066`)
 
-- [x] **59 — Ready after PLAN6: example-owned icon bar.** Define ordered
+- [x] **059 — Ready after PLAN6: example-owned icon bar.** Define ordered
   `Refresh` and `Print` actions in the example status and prove that no
   workbench fallback icons appear.
-- [x] **60 — Ready after PLAN6: icon separators and accessibility.** Mix normal
+- [x] **060 — Ready after PLAN6: icon separators and accessibility.** Mix normal
   entries and separators; assert source order, accessible names, tooltips,
   focus order, and absence of separator actions.
-- [x] **61 — Ready: active, inactive, and excluded commands.** Show enabled,
+- [x] **061 — Ready: active, inactive, and excluded commands.** Show enabled,
   disabled, and active-but-excluded function codes, then prove forged requests
   are rejected without advancing the page.
-- [x] **62 — Ready: status changes after a command.** Start with one active
+- [x] **062 — Ready: status changes after a command.** Start with one active
   action, handle it, and return a page whose status enables a different action
   and disables the first.
-- [x] **63 — Ready: declared PF keys.** Enable PF5 through `active_pf_keys`,
+- [x] **063 — Ready: declared PF keys.** Enable PF5 through `active_pf_keys`,
   handle it, reject PF6, and retain the original page after rejection.
-- [x] **64 — Ready: title, status, cursor, and command feedback.** Change the
+- [x] **064 — Ready: title, status, cursor, and command feedback.** Change the
   title and status text together and place focus on the control responsible for
   the next action.
-- [x] **65 — Extend: application breadcrumbs.** Add typed breadcrumb/navigation
+- [x] **065 — Extend: application breadcrumbs.** Add typed breadcrumb/navigation
   context to the page model; render it without deriving hierarchy from URLs.
-- [x] **66 — Ready: Unicode and hostile shell text.** Exercise RTL text,
+- [x] **066 — Ready: Unicode and hostile shell text.** Exercise RTL text,
   combining characters, emoji, quotes, ampersands, and angle brackets in title,
   status, labels, and messages.
 
-## Phase 9 — Rich selection screens (`67`–`82`)
+## Phase 9 — Rich selection screens (`067`–`082`)
 
-- [x] **67 — Ready: typed date, time, integer, decimal, and character
+- [x] **067 — Ready: typed date, time, integer, decimal, and character
   parameters.** Demonstrate external formatting and typed callback values.
-- [x] **68 — Ready: dynamic visible/input/required state.** Toggle a dependent
+- [x] **068 — Ready: dynamic visible/input/required state.** Toggle a dependent
   field during `AT SELECTION-SCREEN OUTPUT` and verify HTML attributes and
   server validation agree.
-- [x] **69 — Ready: checkbox-controlled field group.** A checkbox enables a
+- [x] **069 — Ready: checkbox-controlled field group.** A checkbox enables a
   group, retained values survive disabling, and disabled browser fields cannot
   forge an accepted update.
-- [x] **70 — Ready: radio-driven blocks.** Change visible blocks and validation
+- [x] **070 — Ready: radio-driven blocks.** Change visible blocks and validation
   rules from a radio group while retaining the selected option.
-- [x] **71 — Ready: dependent listboxes.** Selecting a carrier changes the
+- [x] **071 — Ready: dependent listboxes.** Selecting a carrier changes the
   connection choices on the next output cycle without accepting stale options.
-- [x] **72 — Ready: include/exclude select-option ranges.** Exercise `I/E` with
+- [x] **072 — Ready: include/exclude select-option ranges.** Exercise `I/E` with
   `EQ`, `BT`, and `CP` and show the resulting database selection.
-- [x] **73 — Extend: multiple select-option rows.** Add, remove, reorder, and
+- [x] **073 — Extend: multiple select-option rows.** Add, remove, reorder, and
   validate multiple range rows through typed actions rather than encoded field
   names alone.
-- [x] **74 — Extend: selection multiple-choice dialog.** Open the browser
+- [x] **074 — Extend: selection multiple-choice dialog.** Open the browser
   equivalent of the SAP multiple-selection dialog and round-trip several
   ranges without exposing private host state.
-- [x] **75 — Ready: tabbed selection state retention.** Switch tabs, modify
+- [x] **075 — Ready: tabbed selection state retention.** Switch tabs, modify
   values on both pages, and prove all values remain server-owned and consistent.
-- [x] **76 — Ready: selection-screen pushbutton workflow.** Use a pushbutton to
+- [x] **076 — Ready: selection-screen pushbutton workflow.** Use a pushbutton to
   derive values, return to the same screen, and reject an undeclared function
   code.
-- [x] **77 — Ready: selection function keys.** Define two function keys with
+- [x] **077 — Ready: selection function keys.** Define two function keys with
   distinct commands and verify their state changes before execution.
-- [x] **78 — Ready: field and range value help.** Return multiple typed choices,
+- [x] **078 — Ready: field and range value help.** Return multiple typed choices,
   select one, cancel another, and preserve the untouched field.
-- [x] **79 — Ready: contextual field help.** Render long help text, associate it
+- [x] **079 — Ready: contextual field help.** Render long help text, associate it
   with the correct field, and preserve focus and entered values.
-- [x] **80 — Ready: field, block, radio, and end-of-range validation order.**
+- [x] **080 — Ready: field, block, radio, and end-of-range validation order.**
   Record callback order and stop at the first error exactly once.
-- [x] **81 — Ready: error recovery and focus.** Reject input, retain all valid
+- [x] **081 — Ready: error recovery and focus.** Reject input, retain all valid
   sibling values, focus the failing field, correct it, and continue.
-- [x] **82 — Composite: variant manager selection screen.** Save, list, load,
+- [x] **082 — Composite: variant manager selection screen.** Save, list, load,
   overwrite, and delete variants from one screen using the existing variant
   store and explicit confirmation messages.
 
-## Phase 10 — Advanced classic-list interaction (`83`–`98`)
+## Phase 10 — Advanced classic-list interaction (`083`–`098`)
 
-- [x] **83 — Ready: multi-level drill-down.** Navigate basic list to detail to
+- [x] **083 — Ready: multi-level drill-down.** Navigate basic list to detail to
   subdetail, then Back twice while restoring each list level and its cursor.
-- [x] **84 — Ready: independent hidden values per row.** Use two hidden fields
+- [x] **084 — Ready: independent hidden values per row.** Use two hidden fields
   on repeated display text and prove the opaque row token restores the correct
   server values.
-- [x] **85 — Ready: command-driven refresh.** Change report state through an
+- [x] **085 — Ready: command-driven refresh.** Change report state through an
   active command and redraw the list without accepting a replay of the old
   page.
-- [x] **86 — Ready: multiple `MODIFY LINE` operations.** Change text and format
+- [x] **086 — Ready: multiple `MODIFY LINE` operations.** Change text and format
   on several rows while preserving fragment boundaries and hidden values.
-- [x] **87 — Ready: fragment-level colors and emphasis.** Mix colors,
+- [x] **087 — Ready: fragment-level colors and emphasis.** Mix colors,
   intensified, inverse, hotspots, and reset behavior within one line.
-- [x] **88 — Ready: icons, symbols, checkboxes, and quickinfo.** Render semantic
+- [x] **088 — Ready: icons, symbols, checkboxes, and quickinfo.** Render semantic
   fallbacks, accessible labels, and hostile quickinfo safely.
-- [x] **89 — Ready: fixed-width numeric/date columns.** Compare right/left/center
+- [x] **089 — Ready: fixed-width numeric/date columns.** Compare right/left/center
   justification, zero values, overflow, rounding, and locale-independent output.
-- [x] **90 — Ready: Unicode wide-list layout.** Exercise CJK, RTL, emoji, and
+- [x] **090 — Ready: Unicode wide-list layout.** Exercise CJK, RTL, emoji, and
   combining characters without corrupting logical columns or HTML escaping.
-- [x] **91 — Ready: automatic page breaks.** Combine line count, top-of-page,
+- [x] **091 — Ready: automatic page breaks.** Combine line count, top-of-page,
   end-of-page, reserve, and blank-line policy across several pages.
-- [x] **92 — Extend: browser list paging controls.** Map first/previous/next/last
+- [x] **092 — Extend: browser list paging controls.** Map first/previous/next/last
   commands to server-owned list pages and reject paging outside valid bounds.
-- [x] **93 — Extend: list search and find-next.** Store the search term in the
+- [x] **093 — Extend: list search and find-next.** Store the search term in the
   session, move the cursor deterministically, and announce no-match results.
-- [x] **94 — Extend: list print view.** Produce a dedicated print representation
+- [x] **094 — Extend: list print view.** Produce a dedicated print representation
   without mutating the interactive list session or trusting browser markup.
-- [x] **95 — Extend: list download.** Return a typed download response with safe
+- [x] **095 — Extend: list download.** Return a typed download response with safe
   filename, content type, and CSV escaping; do not route it through raw HTML.
-- [x] **96 — Ready: stacked success/warning/error messages on a list.** Preserve
+- [x] **096 — Ready: stacked success/warning/error messages on a list.** Preserve
   order, display-like semantics, roles, and field-independent announcements.
-- [x] **97 — Ready: submitted list memory isolation.** Run two nested submits,
+- [x] **097 — Ready: submitted list memory isolation.** Run two nested submits,
   retrieve each list, and prove neither overwrites the caller's visible list.
-- [x] **98 — Composite: flight list workbench.** Filter, sort, drill down,
+- [x] **098 — Composite: flight list workbench.** Filter, sort, drill down,
   refresh, return, and retain selection state using only previously completed
   list examples.
 
-## Phase 11 — Dynpro flow and controls (`99`–`116`)
+## Phase 11 — Dynpro flow and controls (`099`–`116`)
 
-- [x] **99 — Ready: complete basic dynpro controls.** Render input, output,
+- [x] **099 — Ready: complete basic dynpro controls.** Render input, output,
   text, pushbutton, checkbox, radio, listbox, and box controls on one screen.
 - [x] **100 — Ready: PBO/PAI field transport.** Derive output during PBO,
   edit input, process PAI, and display the accepted server value.
@@ -321,11 +323,11 @@ would encourage false behavior.
 
 ## Recommended implementation batches
 
-1. **Batch A — 59–66:** finish PLAN6 and establish shell/status ownership.
-2. **Batch B — 67–82:** deepen selection screens and variants.
-3. **Batch C — 83–98:** make classic lists feel like a complete application
+1. **Batch A — 059–066:** finish PLAN6 and establish shell/status ownership.
+2. **Batch B — 067–082:** deepen selection screens and variants.
+3. **Batch C — 083–098:** make classic lists feel like a complete application
    surface.
-4. **Batch D — 99–116:** complete dynpro flow before adding complex controls.
+4. **Batch D — 099–116:** complete dynpro flow before adding complex controls.
 5. **Batch E — 117–134:** exercise every existing GUI-control snapshot family.
 6. **Batch F — 135–149:** harden structured tables, trees, and graphics.
 7. **Batch G — 150:** build the analytics cockpit only after all dependencies

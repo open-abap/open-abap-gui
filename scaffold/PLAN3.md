@@ -142,7 +142,7 @@ explicitly documents a different host or scaffold blocker.
 - [x] Render page breaks as separate semantic sections with page metadata.
 - [x] Render informational, warning, error, abort, and exit messages in the
   correct accessible message region and severity style.
-- [x] Add HTML assertions for the existing examples 01–14 and 43–50.
+- [x] Add HTML assertions for the existing examples 001–014 and 043–050.
 - [x] Add an interactive integration test that dispatches a rendered line action
   and receives the same detail-list semantics as the current text host.
 
@@ -183,7 +183,7 @@ explicitly documents a different host or scaffold blocker.
   and ranges without changing ABAP field names.
 - [x] Add request-dispatch tests for submit, cancel/exit, pushbutton, tab,
   value-help, help, radio group, and range actions.
-- [x] Add HTML assertions for examples 15–38 and the selection integration suite.
+- [x] Add HTML assertions for examples 015–038 and the selection integration suite.
 
 ## 7. Capture and render dynpro definitions
 
@@ -224,7 +224,7 @@ explicitly documents a different host or scaffold blocker.
 - [x] Drive POV/POH actions and return their values/help as HTML page state.
 - [x] Implement repeated screen transitions, back, leave-screen, leave-to-screen,
   and terminal transitions in the session object.
-- [x] Add HTML assertions for dynpro integration scenarios and example 58.
+- [x] Add HTML assertions for dynpro integration scenarios and example 058.
 - [x] Add a browser-level round-trip test for input → PAI → returned screen.
 
 ## 9. Navigation, continuations, messages, and multi-page execution

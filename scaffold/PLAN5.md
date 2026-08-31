@@ -7,8 +7,8 @@ and validates those implementations; both the workbench list and HTTP command
 handling consume that registry.
 
 The target command syntax is `/n<tcode>`. For example, entering
-`/nZGG_EX_01` and pressing Enter starts `zcl_gg_ex_01`; entering
-`/nZGG_EX_58` starts the dynpro example. When entered from a running
+`/nZGG_EX_001` and pressing Enter starts `zcl_gg_ex_001`; entering
+`/nZGG_EX_058` starts the dynpro example. When entered from a running
 application, `/n` ends that host session before starting the new transaction.
 
 Every checkbox is one reviewable change with an observable result. Do not
@@ -50,7 +50,7 @@ check a box until its focused test passes.
   program is constructed.
 - Host sessions support validated replacement after command parsing and target
   resolution; automatic expiry remains tracked in `PLAN3.md`.
-- Examples 01-58 publish transaction metadata; example 58 is the dynpro entry
+- Examples 001-058 publish transaction metadata; example 058 is the dynpro entry
   and the others implement the report contract.
 
 ## Target architecture
@@ -138,7 +138,7 @@ ENDINTERFACE.
 
 ## 3. Add metadata to every example
 
-- [x] Make `zcl_gg_ex_01` through `zcl_gg_ex_58` implement
+- [x] Make `zcl_gg_ex_001` through `zcl_gg_ex_058` implement
   `zif_gg_transaction_v1` and return the mappings below.
 - [x] Keep every mapping beside its example implementation; do not derive the
   tcode from the class name or parse the source comment at runtime.
@@ -150,71 +150,71 @@ ENDINTERFACE.
 
 | Tcode range | Implementing classes | Description source |
 | --- | --- | --- |
-| `ZGG_EX_01` ... `ZGG_EX_57` | `ZCL_GG_EX_01` ... `ZCL_GG_EX_57` | The concise `Feature nn` phrase already documented at the top of each class |
-| `ZGG_EX_58` | `ZCL_GG_EX_58` | `SET SCREEN, LEAVE SCREEN and LEAVE TO SCREEN` |
+| `ZGG_EX_001` ... `ZGG_EX_057` | `ZCL_GG_EX_001` ... `ZCL_GG_EX_057` | The concise `Feature nn` phrase already documented at the top of each class |
+| `ZGG_EX_058` | `ZCL_GG_EX_058` | `SET SCREEN, LEAVE SCREEN and LEAVE TO SCREEN` |
 
 Use these exact descriptions for the inventory:
 
 | Tcode | Description |
 | --- | --- |
-| `ZGG_EX_01` | `WRITE literal` |
-| `ZGG_EX_02` | `WRITE AT position and NO-GAP` |
-| `ZGG_EX_03` | `SKIP, ULINE, NEW-LINE and SET LEFT COLUMN` |
-| `ZGG_EX_04` | `WRITE numeric and mask additions` |
-| `ZGG_EX_05` | `FORMAT color and attributes` |
-| `ZGG_EX_06` | `WRITE AS CHECKBOX, ICON and SYMBOL` |
-| `ZGG_EX_07` | `REPORT line settings` |
-| `ZGG_EX_08` | `NEW-PAGE, RESERVE and SET BLANK LINES` |
-| `ZGG_EX_09` | `TOP-OF-PAGE` |
-| `ZGG_EX_10` | `END-OF-PAGE` |
-| `ZGG_EX_11` | `LOAD-OF-PROGRAM` |
-| `ZGG_EX_12` | `INITIALIZATION` |
-| `ZGG_EX_13` | `START-OF-SELECTION and END-OF-SELECTION` |
-| `ZGG_EX_14` | `STOP` |
-| `ZGG_EX_15` | `PARAMETERS with DEFAULT` |
-| `ZGG_EX_16` | `PARAMETERS attribute additions` |
-| `ZGG_EX_17` | `PARAMETERS AS CHECKBOX` |
-| `ZGG_EX_18` | `PARAMETERS RADIOBUTTON GROUP` |
-| `ZGG_EX_19` | `PARAMETERS AS LISTBOX` |
-| `ZGG_EX_20` | `SELECT-OPTIONS` |
-| `ZGG_EX_21` | `SELECTION-SCREEN COMMENT, ULINE and SKIP` |
-| `ZGG_EX_22` | `Selection-screen block with frame and title` |
-| `ZGG_EX_23` | `Selection-screen line and position` |
-| `ZGG_EX_24` | `Selection-screen pushbutton and USER-COMMAND` |
-| `ZGG_EX_25` | `SELECTION-SCREEN FUNCTION KEY` |
-| `ZGG_EX_26` | `Selection-screen tabbed block and tabs` |
-| `ZGG_EX_27` | `Selection-screen BEGIN OF SCREEN` |
-| `ZGG_EX_28` | `AT SELECTION-SCREEN OUTPUT with LOOP AT SCREEN` |
-| `ZGG_EX_29` | `AT SELECTION-SCREEN OUTPUT writing a parameter` |
-| `ZGG_EX_30` | `AT SELECTION-SCREEN` |
-| `ZGG_EX_31` | `AT SELECTION-SCREEN ON field` |
-| `ZGG_EX_32` | `AT SELECTION-SCREEN ON END OF select-option` |
-| `ZGG_EX_33` | `AT SELECTION-SCREEN ON BLOCK` |
-| `ZGG_EX_34` | `AT SELECTION-SCREEN ON RADIOBUTTON GROUP` |
-| `ZGG_EX_35` | `AT SELECTION-SCREEN ON VALUE-REQUEST` |
-| `ZGG_EX_36` | `AT SELECTION-SCREEN ON HELP-REQUEST` |
-| `ZGG_EX_37` | `AT SELECTION-SCREEN ON EXIT-COMMAND` |
-| `ZGG_EX_38` | `SSCRFIELDS-UCOMM driven suppression` |
-| `ZGG_EX_39` | `MESSAGE free text TYPE` |
-| `ZGG_EX_40` | `MESSAGE number(id) WITH` |
-| `ZGG_EX_41` | `Terminal MESSAGE type A` |
-| `ZGG_EX_42` | `MESSAGE DISPLAY LIKE` |
-| `ZGG_EX_43` | `HIDE and AT LINE-SELECTION` |
-| `ZGG_EX_44` | `SET PF-STATUS and AT USER-COMMAND` |
-| `ZGG_EX_45` | `SET TITLEBAR` |
-| `ZGG_EX_46` | `READ LINE and MODIFY LINE` |
-| `ZGG_EX_47` | `GET CURSOR` |
-| `ZGG_EX_48` | `TOP-OF-PAGE DURING LINE-SELECTION` |
-| `ZGG_EX_49` | `AT PF5` |
-| `ZGG_EX_50` | `LEAVE TO/LIST-PROCESSING` |
-| `ZGG_EX_51` | `CALL SELECTION-SCREEN` |
-| `ZGG_EX_52` | `CALL SCREEN` |
-| `ZGG_EX_53` | `Terminal SUBMIT` |
-| `ZGG_EX_54` | `SUBMIT AND RETURN with selections and variant` |
-| `ZGG_EX_55` | `SUBMIT EXPORTING LIST TO MEMORY` |
-| `ZGG_EX_56` | `CALL TRANSACTION` |
-| `ZGG_EX_57` | `LEAVE TO TRANSACTION and LEAVE PROGRAM` |
-| `ZGG_EX_58` | `SET SCREEN, LEAVE SCREEN and LEAVE TO SCREEN` |
+| `ZGG_EX_001` | `WRITE literal` |
+| `ZGG_EX_002` | `WRITE AT position and NO-GAP` |
+| `ZGG_EX_003` | `SKIP, ULINE, NEW-LINE and SET LEFT COLUMN` |
+| `ZGG_EX_004` | `WRITE numeric and mask additions` |
+| `ZGG_EX_005` | `FORMAT color and attributes` |
+| `ZGG_EX_006` | `WRITE AS CHECKBOX, ICON and SYMBOL` |
+| `ZGG_EX_007` | `REPORT line settings` |
+| `ZGG_EX_008` | `NEW-PAGE, RESERVE and SET BLANK LINES` |
+| `ZGG_EX_009` | `TOP-OF-PAGE` |
+| `ZGG_EX_010` | `END-OF-PAGE` |
+| `ZGG_EX_011` | `LOAD-OF-PROGRAM` |
+| `ZGG_EX_012` | `INITIALIZATION` |
+| `ZGG_EX_013` | `START-OF-SELECTION and END-OF-SELECTION` |
+| `ZGG_EX_014` | `STOP` |
+| `ZGG_EX_015` | `PARAMETERS with DEFAULT` |
+| `ZGG_EX_016` | `PARAMETERS attribute additions` |
+| `ZGG_EX_017` | `PARAMETERS AS CHECKBOX` |
+| `ZGG_EX_018` | `PARAMETERS RADIOBUTTON GROUP` |
+| `ZGG_EX_019` | `PARAMETERS AS LISTBOX` |
+| `ZGG_EX_020` | `SELECT-OPTIONS` |
+| `ZGG_EX_021` | `SELECTION-SCREEN COMMENT, ULINE and SKIP` |
+| `ZGG_EX_022` | `Selection-screen block with frame and title` |
+| `ZGG_EX_023` | `Selection-screen line and position` |
+| `ZGG_EX_024` | `Selection-screen pushbutton and USER-COMMAND` |
+| `ZGG_EX_025` | `SELECTION-SCREEN FUNCTION KEY` |
+| `ZGG_EX_026` | `Selection-screen tabbed block and tabs` |
+| `ZGG_EX_027` | `Selection-screen BEGIN OF SCREEN` |
+| `ZGG_EX_028` | `AT SELECTION-SCREEN OUTPUT with LOOP AT SCREEN` |
+| `ZGG_EX_029` | `AT SELECTION-SCREEN OUTPUT writing a parameter` |
+| `ZGG_EX_030` | `AT SELECTION-SCREEN` |
+| `ZGG_EX_031` | `AT SELECTION-SCREEN ON field` |
+| `ZGG_EX_032` | `AT SELECTION-SCREEN ON END OF select-option` |
+| `ZGG_EX_033` | `AT SELECTION-SCREEN ON BLOCK` |
+| `ZGG_EX_034` | `AT SELECTION-SCREEN ON RADIOBUTTON GROUP` |
+| `ZGG_EX_035` | `AT SELECTION-SCREEN ON VALUE-REQUEST` |
+| `ZGG_EX_036` | `AT SELECTION-SCREEN ON HELP-REQUEST` |
+| `ZGG_EX_037` | `AT SELECTION-SCREEN ON EXIT-COMMAND` |
+| `ZGG_EX_038` | `SSCRFIELDS-UCOMM driven suppression` |
+| `ZGG_EX_039` | `MESSAGE free text TYPE` |
+| `ZGG_EX_040` | `MESSAGE number(id) WITH` |
+| `ZGG_EX_041` | `Terminal MESSAGE type A` |
+| `ZGG_EX_042` | `MESSAGE DISPLAY LIKE` |
+| `ZGG_EX_043` | `HIDE and AT LINE-SELECTION` |
+| `ZGG_EX_044` | `SET PF-STATUS and AT USER-COMMAND` |
+| `ZGG_EX_045` | `SET TITLEBAR` |
+| `ZGG_EX_046` | `READ LINE and MODIFY LINE` |
+| `ZGG_EX_047` | `GET CURSOR` |
+| `ZGG_EX_048` | `TOP-OF-PAGE DURING LINE-SELECTION` |
+| `ZGG_EX_049` | `AT PF5` |
+| `ZGG_EX_050` | `LEAVE TO/LIST-PROCESSING` |
+| `ZGG_EX_051` | `CALL SELECTION-SCREEN` |
+| `ZGG_EX_052` | `CALL SCREEN` |
+| `ZGG_EX_053` | `Terminal SUBMIT` |
+| `ZGG_EX_054` | `SUBMIT AND RETURN with selections and variant` |
+| `ZGG_EX_055` | `SUBMIT EXPORTING LIST TO MEMORY` |
+| `ZGG_EX_056` | `CALL TRANSACTION` |
+| `ZGG_EX_057` | `LEAVE TO TRANSACTION and LEAVE PROGRAM` |
+| `ZGG_EX_058` | `SET SCREEN, LEAVE SCREEN and LEAVE TO SCREEN` |
 
 ## 4. Render the registry in the workbench
 
@@ -249,7 +249,7 @@ Use these exact descriptions for the inventory:
 - [x] Add a small ABAP command parser that accepts `/n` case-insensitively,
   permits surrounding whitespace, requires a non-empty tcode immediately
   after `/n`, normalizes it through the registry, and rejects trailing tokens.
-- [x] Keep unsupported commands explicit. Plain `ZGG_EX_01`, `/o...`, `/n`,
+- [x] Keep unsupported commands explicit. Plain `ZGG_EX_001`, `/o...`, `/n`,
   and `/nUNKNOWN` must produce an accessible error rather than navigating.
 - [x] Extend `zcl_gg_http_handler=>handle_post` with the exact
   `/transaction` route. Parse the form in ABAP, resolve the registry entry,
@@ -284,12 +284,12 @@ Use these exact descriptions for the inventory:
 - [x] Update `test/specs/zcl_gg_index.spec.mjs` to verify the workbench lists
   all 58 example tcodes with descriptions and no longer uses class routes for
   transaction entries.
-- [x] Click `ZGG_EX_01` in the list and prove the response is the real ABAP
+- [x] Click `ZGG_EX_001` in the list and prove the response is the real ABAP
   report example through the canonical transaction route.
-- [ ] Enter `/nZGG_EX_01` on the workbench, press Enter, and prove the report
+- [ ] Enter `/nZGG_EX_001` on the workbench, press Enter, and prove the report
   starts through the real ABAP HTTP handler.
-- [x] Enter lowercase `/nzgg_ex_58` and prove normalization plus dynpro startup.
-- [x] From one running example, enter `/nZGG_EX_02`; assert a fresh session is
+- [x] Enter lowercase `/nzgg_ex_058` and prove normalization plus dynpro startup.
+- [x] From one running example, enter `/nZGG_EX_002`; assert a fresh session is
   displayed and an HTTP dispatch using the prior session id is rejected.
 - [ ] Enter an unknown and a malformed command; assert the accessible error,
   retained input, absence of unintended transaction startup, and that the
@@ -304,7 +304,7 @@ Use these exact descriptions for the inventory:
 ## 7. Documentation and compatibility cleanup
 
 - [x] Update `README.md` to make tcodes the documented way to discover and
-  start applications, including `/nZGG_EX_01` and `/nZGG_EX_58` examples.
+  start applications, including `/nZGG_EX_001` and `/nZGG_EX_058` examples.
 - [x] Document how a new report or dynpro opts into the workbench by
   implementing `zif_gg_transaction_v1` and returning unique metadata.
 - [x] Document that direct `/<class_name>` routes are compatibility/debug

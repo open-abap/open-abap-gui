@@ -1,9 +1,0 @@
-REPORT zgg_ex_10 LINE-COUNT 10(2).
-
-END-OF-PAGE.
-WRITE 'footer'.
-
-START-OF-SELECTION.
-  DO 30 TIMES.
-    WRITE / sy-index.
-  ENDDO.

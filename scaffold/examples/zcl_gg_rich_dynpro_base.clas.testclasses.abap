@@ -24,7 +24,7 @@ ENDCLASS.
 CLASS ltcl_gg_rich_dynpro_base IMPLEMENTATION.
 
   METHOD controls.
-    DATA(ls_result) = zcl_gg_host_dynpro=>run( io_program = NEW zcl_gg_ex_99( ) iv_submitted = abap_false ).
+    DATA(ls_result) = zcl_gg_host_dynpro=>run( io_program = NEW zcl_gg_ex_099( ) iv_submitted = abap_false ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-controls[ kind = 'INPUT' ] ) ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-controls[ kind = 'OUTPUT' ] ) ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-controls[ kind = 'CHECKBOX' ] ) ) ).
@@ -171,7 +171,7 @@ CLASS ltcl_gg_rich_dynpro_base IMPLEMENTATION.
 
   METHOD rejects_undeclared_command.
     DATA lt_programs TYPE STANDARD TABLE OF REF TO zif_gg_dynpro_v1 WITH DEFAULT KEY.
-    APPEND NEW zcl_gg_ex_99( ) TO lt_programs.
+    APPEND NEW zcl_gg_ex_099( ) TO lt_programs.
     APPEND NEW zcl_gg_ex_100( ) TO lt_programs.
     APPEND NEW zcl_gg_ex_101( ) TO lt_programs.
     APPEND NEW zcl_gg_ex_103( ) TO lt_programs.

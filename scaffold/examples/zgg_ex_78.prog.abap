@@ -1,9 +1,0 @@
-REPORT zgg_ex_78.
-
-TABLES zsflight.
-PARAMETERS p_car TYPE c LENGTH 2.
-SELECT-OPTIONS s_rng FOR zsflight-carrid.
-PARAMETERS p_req TYPE c LENGTH 20 OBLIGATORY.
-
-START-OF-SELECTION.
-  WRITE p_car.

@@ -41,7 +41,7 @@ the shared safe fallback icon through `zcl_gg_host_icons`.
 
 Example 65 is intentionally browser-only: typed application breadcrumb state is
 available through the list session API, while classic list processing has no
-equivalent typed state to claim as a parallel `zgg_ex_65` report. Its labels and
+equivalent typed state to claim as a parallel `zgg_ex_065` report. Its labels and
 targets remain server-owned page data; targets are metadata, never generated
 links.
 

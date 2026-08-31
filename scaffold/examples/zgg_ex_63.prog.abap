@@ -1,8 +1,0 @@
-REPORT zgg_ex_63.
-
-START-OF-SELECTION.
-  SET PF-STATUS 'SHELL63'.
-  WRITE 'body'.
-
-AT pf05.
-WRITE / 'pf5'.

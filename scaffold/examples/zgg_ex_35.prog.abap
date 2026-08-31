@@ -1,6 +1,0 @@
-REPORT zgg_ex_35.
-
-PARAMETERS p_carr TYPE c LENGTH 3.
-
-AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_carr.
-  p_carr = 'LH'.
