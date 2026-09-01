@@ -36,8 +36,39 @@ test("F1 reports that field help is still to be built", async ({page, host}) => 
   await expect(feedback).toBeEmpty();
   await page.keyboard.press("F1");
   await expect(feedback).toHaveText("F1: help todo");
-  await expect(feedback).not.toHaveClass(/wb-status-error/);
+  await expect(feedback).toHaveClass(/wb-status-success/);
+  await expect(feedback).toHaveAttribute("role", "status");
   await expect(page.locator("[data-page-kind]")).toHaveCount(1);
+});
+
+test("the status bar paints each message type in its own colour", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/`);
+  const feedback = page.locator(".wb-status-feedback");
+
+  // An error arrives from the server; the rest are announced by the shell.
+  const command = page.getByRole("textbox", {name: "Command"});
+  await command.fill("NOT_A_TRANSACTION");
+  await command.press("Enter");
+  await expect(feedback).toHaveClass(/wb-status-error/);
+
+  const paint = (type) => feedback.evaluate((element, messageType) => {
+    element.classList.remove("wb-status-error", "wb-status-warning", "wb-status-success", "wb-status-info");
+    element.classList.add(messageType);
+    element.textContent = messageType;
+    return getComputedStyle(element).color;
+  }, type);
+
+  const colors = {
+    "wb-status-error": await paint("wb-status-error"),
+    "wb-status-warning": await paint("wb-status-warning"),
+    "wb-status-success": await paint("wb-status-success"),
+    "wb-status-info": await paint("wb-status-info"),
+  };
+  expect(colors["wb-status-error"]).toBe("rgb(163, 33, 33)");
+  expect(colors["wb-status-warning"]).toBe("rgb(138, 87, 0)");
+  expect(colors["wb-status-success"]).toBe("rgb(20, 102, 58)");
+  expect(colors["wb-status-info"]).toBe("rgb(156, 31, 106)");
+  expect(new Set(Object.values(colors)).size).toBe(4);
 });
 
 test("a valid command replaces the old host session", async ({page, host}) => {

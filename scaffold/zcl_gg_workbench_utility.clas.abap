@@ -23,9 +23,13 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html)  TYPE string.
 
+* A message in the status bar carries its ABAP type: E, A and X are errors, W a
+* warning, S a success and I an information. Each type owns a colour, and the
+* two urgent types are announced assertively.
     CLASS-METHODS render_bottom
       IMPORTING
         iv_message     TYPE string OPTIONAL
+        iv_type        TYPE zif_gg_session_types_v1=>ty_message_type DEFAULT zif_gg_session_types_v1=>message_type_error
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -33,6 +37,12 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS form_workbench TYPE string VALUE 'wb-command-workbench'.
     CONSTANTS form_dispatch  TYPE string VALUE 'wb-command-dispatch'.
     CONSTANTS form_transaction TYPE string VALUE 'wb-command-transaction'.
+
+    CLASS-METHODS status_attrs
+      IMPORTING
+        iv_type         TYPE zif_gg_session_types_v1=>ty_message_type
+      RETURNING
+        VALUE(rv_attrs) TYPE string.
 
 * separator marks the group boundary rendered in front of a command.
     TYPES: BEGIN OF ty_command,
@@ -139,6 +149,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-status-feedback:not(:empty):before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;vertical-align:middle;border-radius:50%;background:currentColor}' &&
       '.wb-status-error{color:#a32121}' &&
       '.wb-status-error:not(:empty){border-color:#e0aaaa;background:#fdf1f1}' &&
+      '.wb-status-warning{color:#8a5700}' &&
+      '.wb-status-warning:not(:empty){border-color:#e3c589;background:#fdf7ea}' &&
+      '.wb-status-success{color:#14663a}' &&
+      '.wb-status-success:not(:empty){border-color:#9fcfb2;background:#eff9f3}' &&
+      '.wb-status-info{color:#9c1f6a}' &&
+      '.wb-status-info:not(:empty){border-color:#e5a8ca;background:#fdf0f7}' &&
       '@keyframes wb-status-pop{0%{opacity:0;transform:scale(.94) translateY(5px)}70%{transform:scale(1.02) translateY(0)}100%{opacity:1;transform:none}}' &&
       '@media(prefers-reduced-motion:reduce){.wb-status-feedback:not(:empty){animation:none}}' &&
       '.wb-status-context{margin-left:auto;display:flex;align-items:center;gap:18px}' &&
@@ -352,13 +368,26 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && '</ol></nav>'.
   ENDMETHOD.
 
+  METHOD status_attrs.
+    CASE iv_type.
+      WHEN zif_gg_session_types_v1=>message_type_warning.
+        rv_attrs = ` class="wb-status-feedback wb-status-warning" role="alert" aria-live="assertive"`.
+      WHEN zif_gg_session_types_v1=>message_type_success.
+        rv_attrs = ` class="wb-status-feedback wb-status-success" role="status" aria-live="polite"`.
+      WHEN zif_gg_session_types_v1=>message_type_info.
+        rv_attrs = ` class="wb-status-feedback wb-status-info" role="status" aria-live="polite"`.
+      WHEN OTHERS.
+        rv_attrs = ` class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive"`.
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD render_bottom.
     DATA lv_feedback TYPE string.
 
     IF iv_message IS INITIAL.
       lv_feedback = '<span class="wb-status-feedback" aria-live="polite"></span>'.
     ELSE.
-      lv_feedback = |<span class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive">{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span>|.
+      lv_feedback = |<span{ status_attrs( iv_type ) }>{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span>|.
     ENDIF.
     rv_html = '<footer class="wb-statusbar">' && lv_feedback && '<div class="wb-status-context"><span>System:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-sysid ) ) &&
@@ -366,7 +395,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
       '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
-      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");function announce(text){feedback.textContent=text;feedback.classList.remove("wb-status-error");feedback.style.animation="none";void feedback.offsetWidth;feedback.style.animation="";}document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});document.addEventListener("keydown",function(event){if(event.key!=="F4"&&event.code!=="F4"){return;}var field=document.activeElement;if(!field){return;}var group=field.closest(".gg-dynpro-field,.gg-field,.gg-range");if(!group){return;}var help=group.querySelector(".gg-help-button:not(:disabled)");if(!help){return;}event.preventDefault();help.click();});document.addEventListener("keydown",function(event){if(event.key!=="F1"&&event.code!=="F1"){return;}event.preventDefault();announce("F1: help todo");});}());</script></body></html>'.
+      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");var statusTypes={E:"wb-status-error",A:"wb-status-error",X:"wb-status-error",W:"wb-status-warning",S:"wb-status-success",I:"wb-status-info"};function announce(text,type){feedback.textContent=text;feedback.classList.remove("wb-status-error","wb-status-warning","wb-status-success","wb-status-info");if(statusTypes[type]){feedback.classList.add(statusTypes[type]);}var urgent=type==="E"||type==="A"||type==="X"||type==="W";feedback.setAttribute("role",urgent?"alert":"status");feedback.setAttribute("aria-live",urgent?"assertive":"polite");feedback.style.animation="none";void feedback.offsetWidth;feedback.style.animation="";}document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});document.addEventListener("keydown",function(event){if(event.key!=="F4"&&event.code!=="F4"){return;}var field=document.activeElement;if(!field){return;}var group=field.closest(".gg-dynpro-field,.gg-field,.gg-range");if(!group){return;}var help=group.querySelector(".gg-help-button:not(:disabled)");if(!help){return;}event.preventDefault();help.click();});document.addEventListener("keydown",function(event){if(event.key!=="F1"&&event.code!=="F1"){return;}event.preventDefault();announce("F1: help todo","S");});}());</script></body></html>'.
   ENDMETHOD.
 
 ENDCLASS.
