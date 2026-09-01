@@ -78,10 +78,25 @@ jobs:
           marker='<!-- open-abap-gui-preview-deployment -->'
           short_sha="${GITHUB_SHA:0:7}"
           run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          body=$(printf '%s\n\nPreview deployment: [Open preview](%s) · [Visual screenshot diffs](%s)\n\nBuilt from [`%s`](%s) · [Workflow run](%s)' \
+
+          diff_count=''
+          summary_file="$GITHUB_WORKSPACE/build/visual-diffs/summary.json"
+          if [[ -f "$summary_file" ]]; then
+            diff_count=$(jq -r '.differences // empty' "$summary_file")
+          fi
+
+          case "$diff_count" in
+            '') diff_label='count unavailable' ;;
+            0)  diff_label='no differences' ;;
+            1)  diff_label='1 difference' ;;
+            *)  diff_label="$diff_count differences" ;;
+          esac
+
+          body=$(printf '%s\n\nPreview deployment: [Open preview](%s) · [Visual screenshot diffs](%s) (%s)\n\nBuilt from [`%s`](%s) · [Workflow run](%s)' \
             "$marker" \
             "$PREVIEW_URL" \
             "$VISUAL_DIFF_URL" \
+            "$diff_label" \
             "$short_sha" \
             "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA" \
             "$run_url")

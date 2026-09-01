@@ -236,5 +236,11 @@ ${cards || '      <p class="empty">No visual differences detected.</p>'}
 `;
 
 await writeFile(resolve(outputDirectory, "index.html"), html, "utf8");
+
+// Keep this deterministic (no timestamps): the preview deployment only commits when
+// the generated files actually change.
+const summary = {compared: comparisons.length, differences: differences.length, ...counts};
+await writeFile(resolve(outputDirectory, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+
 console.log(`Compared ${comparisons.length} screenshots: ${differences.length} visual differences`);
 console.log(`Wrote ${resolve(outputDirectory, "index.html")}`);
