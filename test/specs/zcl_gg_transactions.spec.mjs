@@ -30,6 +30,16 @@ test("F3 activates the green Back button", async ({page, host}) => {
   await expect(page.locator("[data-page-kind]")).toHaveCount(0);
 });
 
+test("F1 reports that field help is still to be built", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
+  const feedback = page.locator(".wb-status-feedback");
+  await expect(feedback).toBeEmpty();
+  await page.keyboard.press("F1");
+  await expect(feedback).toHaveText("F1: help todo");
+  await expect(feedback).not.toHaveClass(/wb-status-error/);
+  await expect(page.locator("[data-page-kind]")).toHaveCount(1);
+});
+
 test("a valid command replaces the old host session", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   const oldSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
