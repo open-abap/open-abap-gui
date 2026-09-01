@@ -14,7 +14,6 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_runtime      TYPE abap_bool DEFAULT abap_false
         iv_title        TYPE string DEFAULT `Workbench`
-        iv_command      TYPE string OPTIONAL
         iv_error        TYPE string OPTIONAL
         iv_session_id   TYPE string OPTIONAL
         iv_page_id      TYPE string OPTIONAL
@@ -52,7 +51,6 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS render_commandbar
       IMPORTING
         iv_runtime     TYPE abap_bool
-        iv_command     TYPE string
         iv_error       TYPE string
         iv_session_id  TYPE string
         iv_page_id     TYPE string
@@ -147,7 +145,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
       iv_runtime    = iv_runtime
-      iv_command    = iv_command
       iv_error      = iv_error
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
@@ -316,7 +313,9 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = '<section class="wb-commandbar" aria-label="Command bar"><form id="' &&
       form_transaction && '" method="post" action="/transaction">' &&
       '<label class="wb-sr-only" for="wb-command">Command</label>' &&
-      |<input class="wb-command-input" id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value="{ zcl_gg_host_html=>escape_attribute( iv_command ) }">|.
+*     The command field is never pre-filled. A command is consumed when it is
+*     submitted, so a rejected one is not echoed back for accidental resend.
+      '<input class="wb-command-input" id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value="">'.
     IF iv_session_id IS NOT INITIAL OR iv_page_id IS NOT INITIAL.
       rv_html = rv_html &&
         |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }">|.

@@ -5,7 +5,6 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS render_error
       IMPORTING
-        iv_command     TYPE string
         iv_error       TYPE string
         iv_session_id  TYPE string OPTIONAL
         iv_page_id     TYPE string OPTIONAL
@@ -15,7 +14,6 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     CLASS-METHODS render_workbench
       IMPORTING
-        iv_command     TYPE string OPTIONAL
         iv_error       TYPE string OPTIONAL
         iv_session_id  TYPE string OPTIONAL
         iv_page_id     TYPE string OPTIONAL
@@ -35,7 +33,6 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
 
   METHOD render_error.
     rv_html = render_workbench(
-      iv_command    = iv_command
       iv_error      = iv_error
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id ).
@@ -75,7 +72,6 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '</style></head><body><div class="wb-shell">' &&
       zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
-      iv_command    = iv_command
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id ).
     rv_html = rv_html && '<div class="wb-workspace"><aside class="wb-app-panel"><div class="wb-app-heading">Applications</div><nav aria-label="Applications"><ul class="wb-app-list">'.

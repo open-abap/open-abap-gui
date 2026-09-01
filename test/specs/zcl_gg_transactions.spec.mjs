@@ -19,6 +19,7 @@ test("the command form accepts /n and normalizes the dynpro tcode", async ({page
   await command.fill("/nzgg_ex_058");
   await command.press("Enter");
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "DYNPRO");
+  await expect(page.getByRole("textbox", {name: "Command"})).toHaveValue("");
 });
 
 test("F3 activates the green Back button", async ({page, host}) => {
@@ -38,6 +39,7 @@ test("a valid command replaces the old host session", async ({page, host}) => {
   await page.getByRole("textbox", {name: "Command"}).press("Enter");
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "LIST");
   await expect(page.locator("[data-page-kind]")).not.toHaveAttribute("data-session-id", oldSession);
+  await expect(page.getByRole("textbox", {name: "Command"})).toHaveValue("");
 
   const stale = await page.evaluate(async ({sessionId, pageId}) => {
     const response = await fetch("/dispatch", {
@@ -51,7 +53,7 @@ test("a valid command replaces the old host session", async ({page, host}) => {
   expect(stale.body.error).toMatch(/Unknown host session/);
 });
 
-test("invalid commands retain input and leave the old session open", async ({page, host}) => {
+test("invalid commands clear the command field and leave the old session open", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   const oldSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const oldPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
@@ -64,7 +66,7 @@ test("invalid commands retain input and leave the old session open", async ({pag
   const response = await responsePromise;
   expect(response.status()).toBe(200);
   await expect(page.locator(".wb-status-error[role=alert]")).toContainText("Unknown transaction code");
-  await expect(command).toHaveValue("/nUNKNOWN");
+  await expect(command).toHaveValue("");
 
   const stillOpen = await page.evaluate(async ({sessionId, pageId}) => {
     const response = await fetch("/dispatch", {
@@ -90,5 +92,6 @@ test("invalid workbench commands render in the bottom message bar", async ({page
   expect(response.status()).toBe(200);
   await expect(page.locator(".wb-status-error[role=alert]")).toContainText("Unsupported command");
   await expect(page.locator("#wb-command-error")).toHaveCount(0);
-  await expect(command).toHaveValue("NOT_A_TRANSACTION");
+  await expect(command).toHaveValue("");
+  await expect(command).toBeEditable();
 });

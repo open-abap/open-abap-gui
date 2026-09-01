@@ -292,8 +292,9 @@ Use these exact descriptions for the inventory:
 - [x] From one running example, enter `/nZGG_EX_002`; assert a fresh session is
   displayed and an HTTP dispatch using the prior session id is rejected.
 - [ ] Enter an unknown and a malformed command; assert the accessible error,
-  retained input, absence of unintended transaction startup, and that the
-  prior session remains valid.
+  a cleared command field, absence of unintended transaction startup, and that
+  the prior session remains valid. A submitted command is consumed like in SAP
+  GUI: it is reported in the status bar, never echoed back into the field.
 - [ ] Add focused raw HTTP assertions for GET launch, POST command launch,
   unsupported methods/content, and status codes only where Playwright cannot
   express the transport contract clearly.

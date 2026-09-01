@@ -16,7 +16,6 @@ CLASS zcl_gg_se38 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS screen_attributes TYPE zif_gg_dynpro_types_v1=>ty_screen_number VALUE '0210'.
     CONSTANTS screen_documentation TYPE zif_gg_dynpro_types_v1=>ty_screen_number VALUE '0220'.
     CONSTANTS screen_text_elements TYPE zif_gg_dynpro_types_v1=>ty_screen_number VALUE '0230'.
-    CONSTANTS screen_variants TYPE zif_gg_dynpro_types_v1=>ty_screen_number VALUE '0240'.
 
     METHODS put_value
       IMPORTING
@@ -30,14 +29,6 @@ CLASS zcl_gg_se38 DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
       RETURNING
         VALUE(rv_value) TYPE string.
-    METHODS put_cell
-      IMPORTING
-        iv_container TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_row       TYPE i
-        iv_value     TYPE string
-      CHANGING
-        ct_values    TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS add_flow
       IMPORTING
         io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
@@ -140,14 +131,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_TEXT_ELEMENTS' position = VALUE #( row = 56 column = 18 width = 520 height = 120 ) ) data_type = VALUE #( typ = 'C' length = 255 ) ) ).
     io_builder->end_screen( ).
 
-    io_builder->begin_screen( VALUE #( number = screen_variants title = 'Program Variants' height = 300 ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_VARIANTS' position = VALUE #( row = 20 column = 18 width = 520 ) ) text = 'Variants of the selected program' ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_VARIANTS' position = VALUE #( row = 56 column = 18 width = 560 height = 130 ) ) visible_rows = 3 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_VARIANTS' name = 'VARIANT_NAME' title = 'Variant' data_type = VALUE #( typ = 'C' length = 30 ) width = 160 ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_VARIANTS' name = 'VARIANT_TEXT' title = 'Description' data_type = VALUE #( typ = 'C' length = 60 ) width = 320 ) ).
-    io_builder->end_table_control( ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_VARIANT_INFO' position = VALUE #( row = 206 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->end_screen( ).
   ENDMETHOD.
 
   METHOD add_flow.
@@ -181,8 +164,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
               iv_screen  = screen_documentation ).
     add_flow( io_builder = io_builder
               iv_screen  = screen_text_elements ).
-    add_flow( io_builder = io_builder
-              iv_screen  = screen_variants ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~initialization.
@@ -208,7 +189,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
   METHOD subobjects.
     rt_subobjects = VALUE #(
       ( control = 'R_SOURCE' text = 'Source Code' screen = screen_source )
-      ( control = 'R_VARIANTS' text = 'Variants' screen = screen_variants )
       ( control = 'R_ATTRIBUTES' text = 'Attributes' screen = screen_attributes )
       ( control = 'R_DOCUMENTATION' text = 'Documentation' screen = screen_documentation )
       ( control = 'R_TEXT_ELEMENTS' text = 'Text Elements' screen = screen_text_elements ) ).
@@ -280,13 +260,10 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_input_module.
-    DATA(lo_service) = NEW zcl_gg_system_repository( ).
     DATA lv_program TYPE string.
     DATA lv_error TYPE string.
     DATA lv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
     DATA ls_program TYPE zif_gg_system_types_v1=>ty_program.
-    DATA lt_variants TYPE zif_gg_system_types_v1=>ty_variants.
-    DATA lv_row TYPE i.
 
     IF is_context-ucomm = 'BACK'.
       IF is_context-screen = screen_initial.
@@ -338,22 +315,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
       put_program( EXPORTING is_program = ls_program
                    CHANGING  ct_values  = ct_values ).
       lv_screen = selected_subobject( ct_values ).
-      IF lv_screen = screen_variants.
-        lt_variants = lo_service->zif_gg_program_repository_v1~get_variants( ls_program-program ).
-        LOOP AT lt_variants INTO DATA(ls_variant).
-          lv_row = sy-tabix.
-          put_cell( EXPORTING iv_container = 'TC_VARIANTS'
-                              iv_name = 'VARIANT_NAME'
-                              iv_row = lv_row
-                              iv_value = ls_variant-name CHANGING ct_values = ct_values ).
-          put_cell( EXPORTING iv_container = 'TC_VARIANTS'
-                              iv_name = 'VARIANT_TEXT'
-                              iv_row = lv_row
-                              iv_value = ls_variant-description CHANGING ct_values = ct_values ).
-        ENDLOOP.
-        put_value( EXPORTING iv_name = 'O_VARIANT_INFO'
-                             iv_value = |{ lines( lt_variants ) } variant(s) for { ls_program-program }.| CHANGING ct_values = ct_values ).
-      ENDIF.
       io_session->get_dialog( )->set_next_screen( lv_screen ).
       io_session->get_dialog( )->leave_screen( ).
       RETURN.
@@ -408,16 +369,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     READ TABLE it_values INTO DATA(ls_value) WITH KEY container = `` name = iv_name row = 0.
     IF sy-subrc = 0.
       rv_value = ls_value-value.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD put_cell.
-    FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
-    READ TABLE ct_values ASSIGNING <ls_value> WITH KEY container = iv_container name = iv_name row = iv_row.
-    IF sy-subrc <> 0.
-      INSERT VALUE #( container = iv_container name = iv_name row = iv_row value = iv_value ) INTO TABLE ct_values.
-    ELSE.
-      <ls_value>-value = iv_value.
     ENDIF.
   ENDMETHOD.
 

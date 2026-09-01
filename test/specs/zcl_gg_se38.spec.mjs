@@ -5,6 +5,8 @@ test("SE38 displays source and executes through the report runtime", async ({pag
   expect(response?.status()).toBe(200);
   await expect(page.getByText("Subobjects", {exact: true})).toBeVisible();
   await expect(page.locator('[name="gg-radio-SUB"][value="R_SOURCE"]')).toBeChecked();
+  await expect(page.getByText("Variants", {exact: true})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "With Variant", exact: true})).toHaveCount(0);
   await page.locator('input[name="P_PROGRAM"]').fill("ZGG_EX_015");
   await page.getByRole("button", {name: "Display", exact: true}).click();
   await expect(page.locator('[data-screen="0200"]')).toHaveCount(1);
@@ -19,12 +21,12 @@ test("SE38 displays source and executes through the report runtime", async ({pag
 test("SE38 opens the subobject chosen on the initial screen", async ({page, host}) => {
   const response = await page.goto(`${host.baseUrl}/transaction?tcode=SE38`);
   expect(response?.status()).toBe(200);
+  await expect(page.locator('[name="gg-radio-SUB"][value="R_VARIANTS"]')).toHaveCount(0);
   await page.locator('input[name="P_PROGRAM"]').fill("ZGG_EX_015");
-  await page.locator('[name="gg-radio-SUB"][value="R_VARIANTS"]').check();
+  await page.locator('[name="gg-radio-SUB"][value="R_TEXT_ELEMENTS"]').check();
   await page.getByRole("button", {name: "Display", exact: true}).click();
-  await expect(page.locator('[data-screen="0240"]')).toHaveCount(1);
-  await expect(page.getByText("DEFAULT", {exact: true})).toBeVisible();
-  await expect(page.getByText("1 variant(s) for ZGG_EX_015.", {exact: true})).toBeVisible();
+  await expect(page.locator('[data-screen="0230"]')).toHaveCount(1);
+  await expect(page.getByText("Carrier; Execute", {exact: true})).toBeVisible();
 });
 
 test("SE38 distinguishes program states and keeps the entered selection", async ({page, host}) => {

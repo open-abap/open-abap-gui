@@ -4,7 +4,7 @@ CLASS ltcl_gg_se38 DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLE
     METHODS metadata FOR TESTING.
     METHODS displays_escaped_source FOR TESTING.
     METHODS displays_chosen_subobject FOR TESTING.
-    METHODS displays_variants FOR TESTING.
+    METHODS offers_no_variant_subobject FOR TESTING.
     METHODS keeps_subobject_after_error FOR TESTING.
     METHODS rejects_missing_program FOR TESTING.
     METHODS rejects_unauthorized_program FOR TESTING.
@@ -49,18 +49,11 @@ CLASS ltcl_gg_se38 IMPLEMENTATION.
                                         exp = `` ).
   ENDMETHOD.
 
-  METHOD displays_variants.
-    DATA(ls_result) = zcl_gg_host_dynpro=>run(
-      io_program = NEW zcl_gg_se38( )
-      iv_ucomm   = 'DISPLAY'
-      it_values  = VALUE #( ( name = 'P_PROGRAM' value = 'ZGG_EX_015' )
-                            ( name = 'R_VARIANTS' value = 'X' ) ) ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-screen
-                                        exp = '0240' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-values[ container = 'TC_VARIANTS' name = 'VARIANT_NAME' row = 1 ]-value
-                                        exp = 'DEFAULT' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-values[ name = 'O_VARIANT_INFO' ]-value
-                                        exp = '1 variant(s) for ZGG_EX_015.' ).
+  METHOD offers_no_variant_subobject.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run( io_program   = NEW zcl_gg_se38( )
+                                               iv_submitted = abap_false ).
+    cl_abap_unit_assert=>assert_false( act = line_exists( ls_result-controls[ name = 'R_VARIANTS' ] ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS 'Variant' ) ).
   ENDMETHOD.
 
   METHOD keeps_subobject_after_error.

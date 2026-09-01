@@ -135,7 +135,6 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS send_workbench_error
       IMPORTING
         server        TYPE REF TO if_http_server
-        iv_command    TYPE string
         iv_error      TYPE string
         iv_session_id TYPE string OPTIONAL
         iv_page_id    TYPE string OPTIONAL
@@ -181,10 +180,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         ENDCASE.
       CATCH zcx_gg_transaction_error INTO DATA(lx_transaction_error).
         send_workbench_error(
-          server     = server
-          iv_command = ``
-          iv_error   = lx_transaction_error->mv_message
-          iv_status  = 500 ).
+          server    = server
+          iv_error  = lx_transaction_error->mv_message
+          iv_status = 500 ).
       CATCH cx_root INTO DATA(lx_error).
         send_error(
           server   = server
@@ -216,27 +214,24 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = lv_tcode ).
       IF ls_transaction-tcode IS INITIAL.
         send_workbench_error(
-          server     = server
-          iv_command = lv_tcode
-          iv_error   = |Unknown transaction code: { lv_tcode }| ).
+          server   = server
+          iv_error = |Unknown transaction code: { lv_tcode }| ).
         RETURN.
       ENDIF.
       TRY.
           ls_response = launch_transaction( is_transaction = ls_transaction ).
         CATCH zcx_gg_transaction_error INTO DATA(lx_launch_error).
           send_workbench_error(
-            server     = server
-            iv_command = lv_tcode
-            iv_error   = lx_launch_error->mv_message
-            iv_status  = 500 ).
+            server    = server
+            iv_error  = lx_launch_error->mv_message
+            iv_status = 500 ).
           RETURN.
       ENDTRY.
       IF ls_response-valid = abap_false.
         send_workbench_error(
-          server     = server
-          iv_command = lv_tcode
-          iv_error   = ls_response-error
-          iv_status  = 500 ).
+          server    = server
+          iv_error  = ls_response-error
+          iv_status = 500 ).
         RETURN.
       ENDIF.
       send_runtime_response( server      = server
@@ -291,10 +286,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       lv_content_type = server->request->get_header_field( 'content-type' ).
       IF lv_content_type IS NOT INITIAL AND lv_content_type NP 'application/x-www-form-urlencoded*'.
         send_workbench_error(
-          server     = server
-          iv_command = ``
-          iv_error   = 'The transaction command requires form content.'
-          iv_status  = 415 ).
+          server    = server
+          iv_error  = 'The transaction command requires form content.'
+          iv_status = 415 ).
         RETURN.
       ENDIF.
       server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
@@ -313,7 +307,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       IF ls_command-valid = abap_false.
         send_workbench_error(
           server        = server
-          iv_command    = lv_command
           iv_session_id = lv_session_id
           iv_page_id    = lv_page_id
           iv_error      = ls_command-error ).
@@ -323,7 +316,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       IF ls_transaction-tcode IS INITIAL.
         send_workbench_error(
           server        = server
-          iv_command    = lv_command
           iv_session_id = lv_session_id
           iv_page_id    = lv_page_id
           iv_error      = |Unknown transaction code: { ls_command-tcode }| ).
@@ -334,7 +326,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         CATCH zcx_gg_transaction_error INTO DATA(lx_target_error).
           send_workbench_error(
             server        = server
-            iv_command    = lv_command
             iv_session_id = lv_session_id
             iv_page_id    = lv_page_id
             iv_error      = lx_target_error->mv_message
@@ -353,7 +344,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       IF lv_close_error IS NOT INITIAL.
         send_workbench_error(
           server        = server
-          iv_command    = lv_command
           iv_session_id = lv_session_id
           iv_page_id    = lv_page_id
           iv_error      = lv_close_error
@@ -367,7 +357,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         CATCH zcx_gg_transaction_error INTO DATA(lx_launch_error).
           send_workbench_error(
             server        = server
-            iv_command    = lv_command
             iv_session_id = lv_session_id
             iv_page_id    = lv_page_id
             iv_error      = lx_launch_error->mv_message
@@ -377,7 +366,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       IF ls_response-valid = abap_false.
         send_workbench_error(
           server        = server
-          iv_command    = lv_command
           iv_session_id = lv_session_id
           iv_page_id    = lv_page_id
           iv_error      = ls_response-error
@@ -917,7 +905,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     send_html(
       server    = server
       iv_html   = zcl_gg_workbench=>render_error(
-                    iv_command    = iv_command
                     iv_error      = iv_error
                     iv_session_id = iv_session_id
                     iv_page_id    = iv_page_id )
