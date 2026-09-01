@@ -319,6 +319,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       it_values      = lt_values
       it_states      = lt_states
       iv_help_text   = rs_result-help_text
+      iv_help_name   = CONV string( iv_value_request )
       it_help_values = rs_result-help_values
       it_messages    = rs_result-messages ).
     render_terminal_page(

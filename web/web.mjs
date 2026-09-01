@@ -162,6 +162,7 @@ async function writeResponse(result) {
   inlineEmbeddedAssets();
   // document.open() may clear listeners associated with the replaced
   // document. Reinstall the delegated handlers for the newly rendered page.
+  installValueHelpHandlers();
   installNavigationHandlers();
 }
 
@@ -175,6 +176,91 @@ function inlineEmbeddedAssets() {
       }
     }
   }
+}
+
+function valueHelpField(name) {
+  if (!name) {
+    return undefined;
+  }
+  const fields = document.querySelectorAll("[data-abap-name], [name]");
+  for (const field of fields) {
+    if (field.getAttribute("data-abap-name") === name || field.getAttribute("name") === name) {
+      return field;
+    }
+  }
+  if (!name.endsWith("-LOW")) {
+    return valueHelpField(name + "-LOW");
+  }
+  return undefined;
+}
+
+function closeValueHelp(modal, field) {
+  modal.hidden = true;
+  modal.setAttribute("aria-hidden", "true");
+  (field || valueHelpField(modal.getAttribute("data-help-field")))?.focus();
+}
+
+function handleValueHelpClick(event) {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+  const modal = event.target.closest(".gg-value-help-modal");
+  if (!modal || modal.hidden) {
+    return;
+  }
+  const close = event.target.closest("[data-value-help-close]");
+  if (close) {
+    event.preventDefault();
+    closeValueHelp(modal);
+    return;
+  }
+  if (event.target === modal) {
+    closeValueHelp(modal);
+  }
+}
+
+function handleValueHelpDoubleClick(event) {
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+  const row = event.target.closest(".gg-value-help li");
+  const modal = row?.closest(".gg-value-help-modal");
+  if (!row || !modal || modal.hidden) {
+    return;
+  }
+  const field = valueHelpField(row.getAttribute("data-name") || modal.getAttribute("data-help-field"));
+  if (!field) {
+    return;
+  }
+  field.value = row.getAttribute("data-value") ?? row.textContent.trim();
+  field.dispatchEvent(new Event("input", {bubbles: true}));
+  field.dispatchEvent(new Event("change", {bubbles: true}));
+  closeValueHelp(modal, field);
+}
+
+function handleValueHelpKeydown(event) {
+  if (event.key !== "Escape") {
+    return;
+  }
+  const modal = document.querySelector(".gg-value-help-modal:not([hidden])");
+  if (!modal) {
+    return;
+  }
+  event.preventDefault();
+  closeValueHelp(modal);
+}
+
+function installValueHelpHandlers() {
+  document.removeEventListener("click", handleValueHelpClick, true);
+  document.removeEventListener("dblclick", handleValueHelpDoubleClick);
+  document.removeEventListener("keydown", handleValueHelpKeydown);
+  if (!document.querySelector(".gg-value-help-modal")) {
+    return;
+  }
+  document.addEventListener("click", handleValueHelpClick, true);
+  document.addEventListener("dblclick", handleValueHelpDoubleClick);
+  document.addEventListener("keydown", handleValueHelpKeydown);
+  document.querySelector("[data-value-help-close]")?.focus();
 }
 
 async function renderRequest(value, init, updateRoute) {

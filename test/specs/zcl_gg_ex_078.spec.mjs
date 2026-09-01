@@ -20,6 +20,16 @@ test("ZCL_GG_EX_078 - preserves fields around value-help requests", async ({page
   await expect(page.locator(".gg-list-line")).toHaveText(["LH", "AA"]);
 });
 
+test("ZCL_GG_EX_078 - double-clicking a selection value fills the field", async ({page, host}) => {
+  await openExample(page, host, 78);
+  await clickHelp(page, "P_CARRIER", "Value help for Carrier");
+  await page.waitForLoadState("load");
+  const modal = page.getByRole("dialog", {name: "Value help"});
+  await modal.locator(".gg-value-help li").first().dblclick();
+  await expect(page.locator('[name="P_CARRIER"]')).toHaveValue("AA");
+  await expect(modal).toBeHidden();
+});
+
 test("ZCL_GG_EX_078 - F4 reaches the value help of a selection field and of a range row", async ({page, host}) => {
   await openExample(page, host, 78);
   await page.locator('[name="P_CARRIER"]').focus();

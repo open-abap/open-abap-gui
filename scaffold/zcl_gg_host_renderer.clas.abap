@@ -58,6 +58,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_context     TYPE zif_gg_host_html_v1=>ty_renderer_context OPTIONAL
         it_messages    TYPE zcl_gg_host_session=>ty_messages OPTIONAL
         iv_help_text   TYPE string OPTIONAL
+        iv_help_name   TYPE string OPTIONAL
         it_help_values TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
@@ -128,6 +129,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS render_selection_value_help
       IMPORTING
+        iv_name        TYPE string OPTIONAL
         it_ranges      TYPE zif_gg_selection_screen_types=>ty_ranges
       RETURNING
         VALUE(rv_html) TYPE string.
@@ -333,7 +335,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
                                                   iv_value_help = xsdbool( ls_element-value_help = abap_true OR ls_state-value_help = abap_true ) ).
           lv_body = lv_body && |</div>|.
           IF ls_value-ranges IS NOT INITIAL.
-            lv_body = lv_body && render_selection_value_help( ls_value-ranges ).
+            lv_body = lv_body && render_selection_value_help(
+              iv_name   = CONV string( ls_element-name )
+              it_ranges = ls_value-ranges ).
           ENDIF.
         WHEN 'CHECKBOX'.
           lv_element_id = zcl_gg_host_html=>identifier( iv_scope   = 'selection-field'
@@ -470,11 +474,11 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_body = lv_body && |<aside class="gg-message gg-info" role="status">{ zcl_gg_host_html=>escape_text( iv_help_text ) }</aside>|.
     ENDIF.
     IF it_help_values IS NOT INITIAL.
-      lv_body = lv_body && |<section class="gg-value-help" aria-label="Value help"><ul>|.
+      lv_body = lv_body && |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_help_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
       LOOP AT it_help_values INTO DATA(ls_help_value).
-        lv_body = lv_body && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }">{ zcl_gg_host_html=>escape_text( ls_help_value-value ) }</li>|.
+        lv_body = lv_body && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_help_value-value ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( ls_help_value-value ) }</li>|.
       ENDLOOP.
-      lv_body = lv_body && |</ul></section>|.
+      lv_body = lv_body && |</ul></section></div></div></div>|.
     ENDIF.
     lv_body = lv_body && |<form method="post" action="/dispatch" id="gg-dynpro-form"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">|.
     LOOP AT it_controls INTO DATA(ls_control)
@@ -678,15 +682,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_selection_value_help.
-    rv_html = |<aside class="gg-value-help" role="status" aria-label="Value help"><ul>|.
+    rv_html = |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
     LOOP AT it_ranges INTO DATA(ls_range).
       DATA(lv_value) = ls_range-low.
       IF ls_range-high IS NOT INITIAL.
         lv_value = lv_value && | - { ls_range-high }|.
       ENDIF.
-      rv_html = rv_html && |<li>{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
+      rv_html = rv_html && |<li data-name="{ zcl_gg_host_html=>escape_attribute( iv_name ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
     ENDLOOP.
-    rv_html = rv_html && `</ul></aside>`.
+    rv_html = rv_html && |</ul></section></div></div></div>|.
   ENDMETHOD.
 
   METHOD spaces.
