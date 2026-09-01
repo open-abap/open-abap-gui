@@ -9,6 +9,6 @@ test("ZCL_GG_EX_059 — renders only the example-owned icon bar", async ({page, 
   await expect(toolbar.getByRole("button").nth(1)).toHaveAccessibleName("Print");
   await expect(toolbar.locator(".wb-toolbar-separator")).toHaveCount(1);
   await toolbar.getByRole("button", {name: "Refresh"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.locator(".gg-list-line")).toHaveText(["body", "refreshed"]);
 });

@@ -6,7 +6,7 @@ test(`ZCL_GG_EX_051 — exposes CALL SELECTION-SCREEN`, async ({page, host}) => 
   await expect(page.locator("[data-navigation-kind]")).toHaveAttribute("data-navigation-kind", "CALL_SELECTION_SCREEN");
   await expect(page.getByText("Transition target: 0500")).toBeVisible();
   await page.getByRole("button", {name: "Screen 0500"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expectPageKind(page, "SELECTION");
   await expect(page.locator('[name="P_B"]')).toBeVisible();
   await page.locator('[name="P_B"]').fill("X");

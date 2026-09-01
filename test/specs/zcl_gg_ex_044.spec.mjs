@@ -15,7 +15,7 @@ test(`ZCL_GG_EX_044 — renders PF-STATUS and excluded commands`, async ({page, 
   await expect(iconBar.getByRole("button", {name: "Refresh"}).locator("use")).toHaveAttribute("href", "#wb-icon-refresh");
   await expect(iconBar.getByRole("button", {name: "Print"}).locator("use")).toHaveAttribute("href", "#wb-icon-printer");
   await iconBar.getByRole("button", {name: "Refresh"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.locator(".gg-list-line")).toHaveText(["body", "refreshed"]);
 });
 
@@ -28,7 +28,7 @@ test(`ZCL_GG_EX_044 — the status activates the standard print command`, async 
   await expect(commandBar.locator('[title="Find"]')).toBeDisabled();
 
   await commandBar.locator('[title="Print"]').click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expectPageKind(page, "LIST");
   await expect(page.locator(".gg-list-line")).toHaveText(["body", "printed"]);
 });

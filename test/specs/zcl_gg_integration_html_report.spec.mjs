@@ -13,13 +13,13 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
     assert.match(await pageA.getByRole("alert").textContent(), /Enter a carrier/);
 
     await pageA.getByRole("button", {name: "Field help for Carrier"}).click();
-    await pageA.waitForLoadState("networkidle");
+    await pageA.waitForLoadState("load");
     assert.match(await pageA.getByRole("status").textContent(), /Enter a carrier from the integration fixture/);
 
     await pageA.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_HTML_REPORT`);
     await pageA.locator('[name="P_CARR"]').fill("ZZZ");
     await pageA.getByRole("button", {name: "Continue"}).click();
-    await pageA.waitForLoadState("networkidle");
+    await pageA.waitForLoadState("load");
     assert.match(await pageA.getByRole("alert").textContent(), /Unknown carrier/);
     assert.equal(await pageA.locator('[name="P_CARR"]').inputValue(), "ZZZ");
     assert.equal(await pageA.locator('[name="P_CARR"]').getAttribute("aria-invalid"), "true");
@@ -27,19 +27,19 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
 
     await pageA.locator('[name="P_CARR"]').fill("LH");
     await pageA.getByRole("button", {name: "Continue"}).click();
-    await pageA.waitForLoadState("networkidle");
+    await pageA.waitForLoadState("load");
     assert.equal(await pageA.locator("[data-page-kind]").getAttribute("data-page-kind"), "LIST");
     assert.match(await pageA.getByText(/LH\/0400/).first().textContent(), /LH\/0400/);
     assert.equal(await pageA.locator('[data-abap-name="CARRID"]').count(), 0);
 
     await pageA.getByRole("button", {name: "Select line 2"}).click();
-    await pageA.waitForLoadState("networkidle");
+    await pageA.waitForLoadState("load");
     assert.match(await pageA.getByText(/Selected flight: LH\/0401/).textContent(), /LH\/0401/);
 
     await pageA.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_HTML_REPORT`);
     const valueHelpPage = await pageA.locator("[data-page-kind]").getAttribute("data-page-id");
     await pageA.getByRole("button", {name: "Value help for Carrier"}).click();
-    await pageA.waitForLoadState("networkidle");
+    await pageA.waitForLoadState("load");
     assert.equal(await pageA.locator("[data-page-kind]").getAttribute("data-page-kind"), "SELECTION");
     assert.notEqual(await pageA.locator("[data-page-kind]").getAttribute("data-page-id"), valueHelpPage);
     assert.match(await pageA.getByRole("status").textContent(), /AA/);
@@ -50,8 +50,8 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
     await pageB.locator('[name="P_CARR"]').fill("LH");
     await pageA.getByRole("button", {name: "Continue"}).click();
     await pageB.getByRole("button", {name: "Continue"}).click();
-    await pageA.waitForLoadState("networkidle");
-    await pageB.waitForLoadState("networkidle");
+    await pageA.waitForLoadState("load");
+    await pageB.waitForLoadState("load");
     assert.match(await pageA.getByText(/AA\/0017/).first().textContent(), /AA\/0017/);
     assert.doesNotMatch(await pageA.locator("main").textContent(), /LH\/0400/);
     assert.match(await pageB.getByText(/LH\/0400/).first().textContent(), /LH\/0400/);

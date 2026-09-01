@@ -9,6 +9,6 @@ test("ZCL_GG_EX_064 — exposes title, cursor, status, and action feedback", asy
   await expect(page.locator('.gg-dynpro[data-cursor-field="P_ACTION"]')).toHaveCount(1);
   await page.locator('[name="P_ACTION"]').fill("go");
   await page.locator(".wb-toolbar").getByRole("button", {name: "Next action"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.locator('[name="P_ACTION"]')).toHaveValue("accepted");
 });

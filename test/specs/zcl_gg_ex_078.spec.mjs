@@ -3,10 +3,10 @@ import {test, expect, openExample, dispatch, submit, expectPageKind} from "../fi
 test("ZCL_GG_EX_078 - preserves fields around value-help requests", async ({page, host}) => {
   await openExample(page, host, 78);
   await page.getByRole("button", {name: "Value help for Range"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.locator('[name="P_CARRIER"]')).toHaveValue("");
   await page.getByRole("button", {name: "Value help for Carrier"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.locator(".gg-value-help li")).toHaveCount(3);
   await dispatch(page, {
     action: "SUBMIT",

@@ -65,7 +65,7 @@ export async function openExample(page, host, number) {
 
 export async function submit(page, buttonName = "Continue") {
   await page.getByRole("button", {name: buttonName}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
 }
 
 export async function dispatch(page, request) {
