@@ -20,6 +20,12 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-command-button:not(:disabled):active' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '.wb-command-button:active' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-command-button:disabled:active' ) ).
+* A status message pops out; an empty feedback slot stays plain, and the
+* animation is dropped for readers who ask for reduced motion.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '@keyframes wb-status-pop' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-status-feedback:not(:empty){' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-status-error:not(:empty){' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '@media(prefers-reduced-motion:reduce)' ) ).
   ENDMETHOD.
 
   METHOD renders_status_owned_icon_bar.
@@ -85,6 +91,11 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F3"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-command-button--back:not(:disabled)' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<script>' ) ).
+* Feedback set while the page is open replays the entry animation and drops
+* the error colour, so a neutral message is never painted as a failure.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'function announce(text)' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'void feedback.offsetWidth' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'classList.remove("wb-status-error")' ) ).
   ENDMETHOD.
 
 ENDCLASS.

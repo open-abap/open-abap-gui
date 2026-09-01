@@ -126,9 +126,21 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-runtime-content--dynpro{margin:8px 26px 0;padding:0;background:#d5e6f3;border:1px solid #9ab3c8;border-radius:2px;box-shadow:0 1px 4px rgba(34,67,102,.18)}' &&
       '.wb-runtime-content--dynpro main{height:100%;overflow:scroll}' &&
       '.wb-runtime-content main{max-width:100%;overflow:auto}' &&
-      '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
+* The bar keeps one height whether or not it carries a message, so a message
+* never reflows the page. Its padding is horizontal only; the fixed height
+* leaves the message room to sit inside it.
+      '.wb-statusbar{height:29px;box-sizing:border-box;display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:0 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
       '.wb-status-feedback{min-height:1em;color:#315a7f;font-weight:600}' &&
+* A message earns the pill, the shadow and the entry animation; an empty
+* feedback slot keeps the status bar quiet.
+* Inline flow rather than flex, so an overlong message ellipsizes instead of
+* being cut mid-word. The full text stays in the DOM for the alert reader.
+      '.wb-status-feedback:not(:empty){display:inline-block;max-width:56vw;padding:3px 12px;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid #a8c6e2;border-radius:999px;background:#f1f7fd;box-shadow:0 1px 4px rgba(34,67,102,.16);transform-origin:left center;animation:wb-status-pop .26s ease-out both}' &&
+      '.wb-status-feedback:not(:empty):before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;vertical-align:middle;border-radius:50%;background:currentColor}' &&
       '.wb-status-error{color:#a32121}' &&
+      '.wb-status-error:not(:empty){border-color:#e0aaaa;background:#fdf1f1}' &&
+      '@keyframes wb-status-pop{0%{opacity:0;transform:scale(.94) translateY(5px)}70%{transform:scale(1.02) translateY(0)}100%{opacity:1;transform:none}}' &&
+      '@media(prefers-reduced-motion:reduce){.wb-status-feedback:not(:empty){animation:none}}' &&
       '.wb-status-context{margin-left:auto;display:flex;align-items:center;gap:18px}' &&
       '.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
       '@media(max-width:760px){.wb-runtime-content,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-command-input{width:130px}}'.
@@ -354,7 +366,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
       '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
-      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}feedback.textContent=(button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed";});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});}());</script></body></html>'.
+      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");function announce(text){feedback.textContent=text;feedback.classList.remove("wb-status-error");feedback.style.animation="none";void feedback.offsetWidth;feedback.style.animation="";}document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});}());</script></body></html>'.
   ENDMETHOD.
 
 ENDCLASS.
