@@ -36,7 +36,7 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_screens.
-    io_builder->begin_screen( VALUE #( number = '0100' title = 'ABAP Editor' height = 350 hide_back = abap_true ) ).
+    io_builder->begin_screen( VALUE #( number = '0100' title = 'ABAP Editor' height = 350 ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_PROGRAM' position = VALUE #( row = 18 column = 18 width = 145 ) ) text = 'Program' ) ).
     io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_PROGRAM' position = VALUE #( row = 12 column = 175 width = 260 ) ) data_type = VALUE #( typ = 'C' length = 40 ) search_help = 'ABAP_PROGRAM' value_help = abap_true required = abap_true uppercase = abap_true ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_EDITOR_INFO' position = VALUE #( row = 58 column = 18 width = 540 ) ) text = 'Display source and metadata from the server repository. Execute uses the normal report runtime.' ) ).

@@ -139,8 +139,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen
         it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
       CHANGING
-        cv_render_height TYPE i
-        cv_footer_top    TYPE i.
+        cv_render_height TYPE i.
 ENDCLASS.
 
 CLASS zcl_gg_host_renderer IMPLEMENTATION.
@@ -434,8 +433,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_help_left TYPE i.
     DATA lv_tab_index TYPE i.
     DATA lv_button_icon TYPE string.
-    DATA lv_footer TYPE string.
-    DATA lv_footer_top TYPE i.
 
     lv_title = is_screen-title.
     IF iv_title IS NOT INITIAL.
@@ -448,7 +445,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
     lv_header_height = 0.
     lv_render_height = lv_height + lv_header_height.
-    lv_footer_top = lv_render_height - 42.
     dynpro_geometry(
       EXPORTING
         iv_height        = lv_height
@@ -456,8 +452,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         is_screen        = is_screen
         it_controls      = it_controls
       CHANGING
-        cv_render_height = lv_render_height
-        cv_footer_top    = lv_footer_top ).
+        cv_render_height = lv_render_height ).
     lv_body = |<section class="gg-dynpro" aria-label="Dynpro { zcl_gg_host_html=>escape_text( lv_title ) }" data-screen="{ is_screen-number }" data-modal="{ COND string( WHEN is_screen-modal = abap_true THEN `true` ELSE `false` ) }" data-cursor-field="{ zcl_gg_host_html=>escape_attribute( CONV string( is_cursor-field ) ) }" data-cursor-row="{ is_cursor-row }" style="min-height:{ lv_render_height }px">|.
     lv_body = lv_body && |{ render_messages( it_messages ) }|.
     IF iv_help_text IS NOT INITIAL.
@@ -588,10 +583,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_body = lv_body && |<div class="gg-dynpro-control" style="{ lv_style }">{ zcl_gg_host_html=>escape_text( ls_control-text ) }</div>|.
       ENDCASE.
     ENDLOOP.
-    lv_footer = COND string(
-      WHEN is_screen-hide_back = abap_true THEN ``
-      ELSE |<div class="gg-field" style="position:absolute;left:18px;top:{ lv_footer_top }px"><button type="submit" formnovalidate name="gg_ucomm" value="BACK">Back</button></div>| ).
-    lv_body = lv_body && |{ lv_footer }</form></section>|.
+    lv_body = lv_body && |</form></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
@@ -606,17 +598,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_control_bottom TYPE i.
 
     cv_render_height = iv_height + iv_header_height.
-    cv_footer_top = cv_render_height - 42.
     LOOP AT it_controls INTO DATA(ls_control)
         WHERE screen = is_screen-number.
       lv_control_bottom = ls_control-position-row + iv_header_height + COND i( WHEN ls_control-position-height > 26 THEN ls_control-position-height ELSE 26 ).
-      IF lv_control_bottom + 8 > cv_footer_top.
-        cv_footer_top = lv_control_bottom + 8.
+      IF lv_control_bottom + 8 > cv_render_height.
+        cv_render_height = lv_control_bottom + 8.
       ENDIF.
     ENDLOOP.
-    IF cv_footer_top + 42 > cv_render_height.
-      cv_render_height = cv_footer_top + 42.
-    ENDIF.
   ENDMETHOD.
 
   METHOD render_message.

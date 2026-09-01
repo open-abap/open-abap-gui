@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {test} from "../fixtures.mjs";
+import {test, dispatch} from "../fixtures.mjs";
 
 test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
@@ -13,8 +13,7 @@ test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", a
   assert.match(await page.getByRole("region", {name: "Value help"}).textContent(), /Value from POV/);
 
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
-  await page.getByRole("button", {name: "Back"}).click();
-  await page.waitForLoadState("load");
+  await dispatch(page, {action: "SUBMIT", ucomm: "BACK"});
   assert.equal(await page.locator('[data-screen="0000"]').count(), 1);
 
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);

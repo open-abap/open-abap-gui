@@ -43,7 +43,7 @@ CLASS zcl_gg_se01 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~build_screens.
-    io_builder->begin_screen( VALUE #( number = '0100' title = 'Transport Organizer (Extended View)' height = 300 hide_back = abap_true ) ).
+    io_builder->begin_screen( VALUE #( number = '0100' title = 'Transport Organizer (Extended View)' height = 300 ) ).
     io_builder->add_tabstrip( VALUE #( control = VALUE #( name = 'TAB_ORGANIZER' position = VALUE #( row = 4 column = 4 width = 560 height = 32 ) ) ) ).
     io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_DISPLAY' position = VALUE #( row = 4 column = 4 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Display' subscreen = '0100' ucomm = 'INDIVIDUAL' ) ).
     io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_TRANSPORTS' position = VALUE #( row = 4 column = 113 width = 105 ) ) tabstrip = 'TAB_ORGANIZER' text = 'Transports' subscreen = '0100' ucomm = 'STANDARD' ) ).

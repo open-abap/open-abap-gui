@@ -42,7 +42,6 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            title       TYPE string,
            next_screen TYPE ty_screen_number,
            modal       TYPE abap_bool,
-           hide_back   TYPE abap_bool,
            width       TYPE i,
            height      TYPE i,
          END OF ty_screen.
