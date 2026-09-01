@@ -115,8 +115,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
       '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
       '.wb-app-title{margin:0;font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
-      '.wb-appbar .gg-dynpro-status{margin:0 0 0 auto;color:#315a7f;font-size:11px}' &&
-      '.wb-appbar .gg-dynpro-status:empty{display:none}' &&
       '.wb-breadcrumbs{padding:5px 18px;background:#eef4fa;border-bottom:1px solid #c5d5e5;color:#4d667f}' &&
       '.wb-breadcrumbs ol{display:flex;gap:0;margin:0;padding:0;list-style:none}' &&
       '.wb-breadcrumbs li+li:before{content:"/";padding:0 8px;color:#8ba1b6}' &&
@@ -139,16 +137,13 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_top.
+* The app bar carries the title and nothing else. The CUA status name stays
+* internal; it is only read to enable or disable commands.
     DATA lv_title TYPE string.
     DATA lv_content_form TYPE string.
-    DATA lv_status TYPE string.
 
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
     lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
-    lv_status = COND string(
-      WHEN iv_content_form = `gg-dynpro-form` AND is_status-status IS NOT INITIAL
-      THEN |<span class="gg-dynpro-status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</span>|
-      ELSE `` ).
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
       iv_runtime    = iv_runtime
@@ -159,7 +154,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       is_status     = is_status ).
     rv_html = rv_html && |<header class="wb-appbar"><h1 class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
-      |</h1>{ lv_status }</header>| &&
+      |</h1></header>| &&
       render_breadcrumbs( it_breadcrumbs ) &&
       render_iconbar(
         iv_runtime      = iv_runtime

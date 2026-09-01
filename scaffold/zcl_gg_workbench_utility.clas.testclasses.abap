@@ -71,7 +71,9 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '<span class="wb-brand">open-abap</span>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Applications</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>STATUS</span>' ) ).
+* The app bar shows the title only, so the CUA status name never reaches the page.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1></header>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_dynpro_html CS 'STATUS' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_dynpro_html CS 'wb-appbar--dynpro' ) ).
   ENDMETHOD.
 
