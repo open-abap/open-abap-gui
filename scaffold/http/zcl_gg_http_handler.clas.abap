@@ -698,10 +698,12 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       lv_value = ls_field-value.
       REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
       IF ls_field-name CP 'gg-radio-*'.
+*       A radio group posts the selected control name as its value; the field
+*       name only carries the group. Selecting the group would name no control.
         add_dynpro_value(
           EXPORTING
             iv_container = ``
-            iv_name      = substring( val = ls_field-name off = 9 )
+            iv_name      = lv_value
             iv_row       = 0
             iv_value     = 'X'
           CHANGING

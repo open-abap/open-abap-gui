@@ -67,6 +67,16 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         ct_actions  TYPE zif_gg_host_html_v1=>ty_actions.
 
+    "! A radio group holds one selection. A submitted radio therefore clears
+    "! the other members of its group, including a default set in
+    "! INITIALIZATION, so the program never sees two selected buttons.
+    CLASS-METHODS clear_radio_siblings
+      IMPORTING
+        it_input    TYPE zif_gg_dynpro_types_v1=>ty_values
+        it_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls
+      CHANGING
+        ct_values   TYPE zif_gg_dynpro_types_v1=>ty_values.
+
     CLASS-METHODS render_terminal_page
       IMPORTING
         iv_session_id TYPE string
@@ -177,6 +187,12 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         INSERT ls_input_value INTO TABLE lt_values.
       ENDIF.
     ENDLOOP.
+    clear_radio_siblings(
+      EXPORTING
+        it_input    = it_values
+        it_controls = lt_controls
+      CHANGING
+        ct_values   = lt_values ).
 
     ls_context-field = iv_field.
     ls_context-row = iv_row.
@@ -428,6 +444,30 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         type = zif_gg_session_types_v1=>message_type_error
         text = |Command { iv_ucomm } is not available on dynpro screen { iv_screen }| ) ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD clear_radio_siblings.
+    FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
+
+    LOOP AT it_input INTO DATA(ls_input)
+        WHERE container IS INITIAL AND value = 'X'.
+      READ TABLE it_controls INTO DATA(ls_selected)
+        WITH KEY kind = 'RADIOBUTTON' name = ls_input-name.
+      IF sy-subrc <> 0 OR ls_selected-group IS INITIAL.
+        CONTINUE.
+      ENDIF.
+      LOOP AT it_controls INTO DATA(ls_sibling)
+          WHERE kind = 'RADIOBUTTON'
+            AND screen = ls_selected-screen
+            AND group = ls_selected-group
+            AND name <> ls_selected-name.
+        READ TABLE ct_values ASSIGNING <ls_value>
+          WITH KEY container = `` name = ls_sibling-name row = 0.
+        IF sy-subrc = 0.
+          CLEAR <ls_value>-value.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD add_page_actions.
