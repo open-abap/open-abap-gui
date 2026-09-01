@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {test} from "../fixtures.mjs";
+import {test, dispatch, clickHelp} from "../fixtures.mjs";
 
 test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation", async ({page: pageA, browser, host}) => {
   const contextB = await browser.newContext();
@@ -12,8 +12,7 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
     const initialPage = await pageA.locator("[data-page-kind]").getAttribute("data-page-id");
     assert.match(await pageA.getByRole("alert").textContent(), /Enter a carrier/);
 
-    await pageA.getByRole("button", {name: "Field help for Carrier"}).click();
-    await pageA.waitForLoadState("load");
+    await dispatch(pageA, {action: "HELP", target: "P_CARR"});
     assert.match(await pageA.getByRole("status").textContent(), /Enter a carrier from the integration fixture/);
 
     await pageA.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_HTML_REPORT`);
@@ -38,7 +37,7 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
 
     await pageA.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_HTML_REPORT`);
     const valueHelpPage = await pageA.locator("[data-page-kind]").getAttribute("data-page-id");
-    await pageA.getByRole("button", {name: "Value help for Carrier"}).click();
+    await clickHelp(pageA, "P_CARR", "Value help for Carrier");
     await pageA.waitForLoadState("load");
     assert.equal(await pageA.locator("[data-page-kind]").getAttribute("data-page-kind"), "SELECTION");
     assert.notEqual(await pageA.locator("[data-page-kind]").getAttribute("data-page-id"), valueHelpPage);

@@ -1,4 +1,4 @@
-import {test, expect} from "../fixtures.mjs";
+import {test, expect, clickHelp} from "../fixtures.mjs";
 
 test("SE16 generates a typed selection screen and executes a bounded query", async ({page, host}) => {
   const response = await page.goto(`${host.baseUrl}/transaction?tcode=SE16`);
@@ -22,7 +22,7 @@ test("SE16 answers F4 on a criterion from the field's domain", async ({page, hos
   const response = await page.goto(`${host.baseUrl}/transaction?tcode=SE16`);
   expect(response?.status()).toBe(200);
   await page.getByRole("button", {name: "Table Contents", exact: true}).click();
-  await page.getByRole("button", {name: "Value help for P_T1_LOW1"}).click();
+  await clickHelp(page, "P_T1_LOW1", "Value help for P_T1_LOW1");
   const help = page.getByRole("region", {name: "Value help"});
   await expect(help.locator("li")).toHaveText(["AA", "LH", "SQ"]);
 });

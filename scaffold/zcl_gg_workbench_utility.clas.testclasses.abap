@@ -91,6 +91,10 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F3"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-command-button--back:not(:disabled)' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<script>' ) ).
+* F4 presses the value help of whichever field holds the cursor.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F4"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.gg-dynpro-field,.gg-field,.gg-range' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-help-button:not(:disabled)' ) ).
 * Feedback set while the page is open replays the entry animation and drops
 * the error colour, so a neutral message is never painted as a failure.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'function announce(text)' ) ).

@@ -233,7 +233,13 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control\{background:linear-gradient(#fffbd2,#f4e68d);border-color:#b9aa55;color:#111;\}|.
     rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control\{display:flex;align-items:center;justify-content:center;gap:8px;\}|.
     rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control .wb-icon\{width:16px;height:16px;\}|.
-    rv_html = rv_html && |.gg-dynpro .gg-dynpro-help\{min-width:24px;width:24px;height:24px;padding:0;border-color:#879eb3;background:linear-gradient(#f7fafc,#c4d1dc);font-weight:700;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>label\{display:block;width:100%;height:100%;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>label>input\{width:100%;\}|.
+    rv_html = rv_html && |button.gg-help-button\{display:inline-flex;align-items:center;justify-content:center;min-height:0;width:22px;height:22px;padding:0;border:1px solid #7f9bb5;border-radius:50%;background:#fff;color:#123b64;cursor:pointer;box-shadow:0 1px 3px rgba(18,59,100,.35);opacity:0;visibility:hidden;transition:opacity .08s linear;\}|.
+    rv_html = rv_html && |button.gg-help-button:hover,button.gg-help-button:focus\{background:#d9eaf9;border-color:#3c74a6;outline:0;\}|.
+    rv_html = rv_html && |button.gg-help-button .wb-icon\{width:14px;height:14px;\}|.
+    rv_html = rv_html && |.gg-field:focus-within .gg-help-button,.gg-range:focus-within .gg-help-button,.gg-dynpro-field:focus-within .gg-help-button\{opacity:1;visibility:visible;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>.gg-help-button\{position:absolute;left:100%;top:2px;margin-left:5px;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control]\{overflow:auto;background:#e4eff8;border:1px solid #8daac4;box-sizing:border-box;scrollbar-color:#9eb5c8 #d6e5f0;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] table\{border-collapse:collapse;table-layout:fixed;min-width:100%;width:max-content;background:#fff;color:#123b64;font-size:13px;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] caption\{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;\}|.

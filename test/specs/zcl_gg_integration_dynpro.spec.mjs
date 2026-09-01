@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
-import {test, dispatch} from "../fixtures.mjs";
+import {test, dispatch, clickHelp} from "../fixtures.mjs";
 
 test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
-  await page.getByRole("button", {name: "Field help for P_INPUT"}).click();
-  await page.waitForLoadState("load");
+  await dispatch(page, {action: "HELP", target: "P_INPUT"});
   assert.match(await page.getByRole("status").textContent(), /Help from POH/);
 
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
-  await page.getByRole("button", {name: "Value help for P_INPUT"}).click();
+  await clickHelp(page, "P_INPUT", "Value help for P_INPUT");
   await page.waitForLoadState("load");
   assert.match(await page.getByRole("region", {name: "Value help"}).textContent(), /Value from POV/);
 

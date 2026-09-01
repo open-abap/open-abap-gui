@@ -132,6 +132,17 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+* Renders the search help affordance for one input: a magnifier button that the
+* stylesheet reveals only while the surrounding field has focus, and that the
+* shell's F4 key presses for the focused field.
+    CLASS-METHODS value_help_button
+      IMPORTING
+        iv_name        TYPE string
+        iv_label       TYPE string
+        iv_value_help  TYPE abap_bool
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
     CLASS-METHODS dynpro_geometry
       IMPORTING
         iv_height        TYPE i
@@ -317,12 +328,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           ENDIF.
           lv_body = lv_body && |<div class="gg-field"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }"{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ state_attrs( ls_state ) }{ field_message_attrs( it_messages = it_messages
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    iv_name     = CONV string( ls_element-name ) ) }>|.
-          IF ls_element-value_help = abap_true OR ls_state-value_help = abap_true.
-            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
-          ENDIF.
-          IF ls_state-search_help IS NOT INITIAL.
-            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Field help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
-          ENDIF.
+          lv_body = lv_body && value_help_button( iv_name       = CONV string( ls_element-name )
+                                                  iv_label      = CONV string( ls_element-text )
+                                                  iv_value_help = xsdbool( ls_element-value_help = abap_true OR ls_state-value_help = abap_true ) ).
           lv_body = lv_body && |</div>|.
           IF ls_value-ranges IS NOT INITIAL.
             lv_body = lv_body && render_selection_value_help( ls_value-ranges ).
@@ -381,11 +389,14 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             IF ls_element-no_intervals = abap_false.
               lv_body = lv_body && |<label for="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }">To</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-high ) }"{ state_attrs( ls_state ) }>|.
             ENDIF.
-            lv_body = lv_body && |<select name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" aria-label="Sign"><option value="I"{ COND string( WHEN ls_range-sign = 'I' THEN ` selected` ELSE `` ) }>Include</option><option value="E"{ COND string( WHEN ls_range-sign = 'E' THEN ` selected` ELSE `` ) }>Exclude</option></select><select name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" aria-label="Option"><option value="EQ"{ COND string( WHEN ls_range-option = 'EQ' THEN ` selected` ELSE `` ) }>=</option><option value="BT"{ COND string( WHEN ls_range-option = 'BT' THEN ` selected` ELSE `` ) }>Between</option><option value="CP"{ COND string( WHEN ls_range-option = 'CP' THEN ` selected` ELSE `` ) }>Contains</option></select></div>|.
+            lv_body = lv_body && |<select name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" aria-label="Sign"><option value="I"{ COND string( WHEN ls_range-sign = 'I' THEN ` selected` ELSE `` ) }>Include</option><option value="E"{ COND string( WHEN ls_range-sign = 'E' THEN ` selected` ELSE `` ) }>Exclude</option></select><select name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" aria-label="Option"><option value="EQ"{ COND string( WHEN ls_range-option = 'EQ' THEN ` selected` ELSE `` ) }>=</option><option value="BT"{ COND string( WHEN ls_range-option = 'BT' THEN ` selected` ELSE `` ) }>Between</option><option value="CP"{ COND string( WHEN ls_range-option = 'CP' THEN ` selected` ELSE `` ) }>Contains</option></select>|.
+            IF sy-index = 1.
+              lv_body = lv_body && value_help_button( iv_name       = lv_range_name
+                                                      iv_label      = CONV string( ls_element-text )
+                                                      iv_value_help = ls_element-value_help ).
+            ENDIF.
+            lv_body = lv_body && |</div>|.
           ENDDO.
-          IF ls_element-value_help = abap_true.
-            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
-          ENDIF.
           lv_body = lv_body && `</fieldset>`.
         WHEN 'PUSHBUTTON' OR 'FUNCTION_KEY'.
           lv_body = lv_body && |<button type="submit" formnovalidate name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</button>|.
@@ -430,7 +441,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_cell_name TYPE string.
     DATA lv_cell_value TYPE string.
     DATA lv_top TYPE i.
-    DATA lv_help_left TYPE i.
+    DATA lv_help_html TYPE string.
     DATA lv_tab_index TYPE i.
     DATA lv_button_icon TYPE string.
 
@@ -491,15 +502,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       ENDIF.
       CASE ls_control-kind.
         WHEN 'INPUT'.
-          lv_body = lv_body && |<label class="gg-dynpro-control" style="{ lv_style }" for="{ zcl_gg_host_html=>escape_attribute( lv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_value-value ) }"{ COND string( WHEN ls_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_attrs }{ field_message_attrs( it_messages = it_messages
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   iv_name     = CONV string( ls_control-name ) ) }></label>|.
-          lv_help_left = ls_control-position-column + ls_control-position-width + 1.
-          IF ls_control-value_help = abap_true.
-            lv_body = lv_body && |<button class="gg-dynpro-control gg-dynpro-help" style="left:{ lv_help_left }px;top:{ lv_top }px" type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }">?</button>|.
-          ENDIF.
-          IF ls_control-search_help IS NOT INITIAL.
-            lv_body = lv_body && |<button class="gg-dynpro-control gg-dynpro-help" style="left:{ lv_help_left + COND i( WHEN ls_control-value_help = abap_true THEN 30 ELSE 0 ) }px;top:{ lv_top }px" type="submit" formnovalidate name="gg_action" value="HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" aria-label="Field help for { zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }">?</button>|.
-          ENDIF.
+          lv_help_html = value_help_button( iv_name       = CONV string( ls_control-name )
+                                            iv_label      = CONV string( ls_control-name )
+                                            iv_value_help = ls_control-value_help ).
+          DATA(lv_field_attrs) = field_message_attrs( it_messages = it_messages
+                                                      iv_name     = CONV string( ls_control-name ) ).
+          lv_body = lv_body && |<span class="gg-dynpro-control gg-dynpro-field" style="{ lv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( lv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_value-value ) }"{ COND string( WHEN ls_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
         WHEN 'OUTPUT'.
           lv_body = lv_body && |<output class="gg-dynpro-control" style="{ lv_style }" id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }">{ zcl_gg_host_html=>escape_text( ls_value-value ) }</output>|.
         WHEN 'TEXT'.
@@ -660,6 +668,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         iv_index = sy-tabix ).
       rv_attrs = | aria-describedby="{ zcl_gg_host_html=>escape_attribute( lv_message_id ) }" aria-invalid="true" autofocus|.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD value_help_button.
+    IF iv_value_help = abap_false.
+      RETURN.
+    ENDIF.
+    rv_html = |<button class="gg-help-button" type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( iv_name ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( iv_label ) }">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
   ENDMETHOD.
 
   METHOD render_selection_value_help.
