@@ -58,6 +58,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_context     TYPE zif_gg_host_html_v1=>ty_renderer_context OPTIONAL
         it_messages    TYPE zcl_gg_host_session=>ty_messages OPTIONAL
         iv_help_text   TYPE string OPTIONAL
+        iv_help_name   TYPE string OPTIONAL
         it_help_values TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
@@ -128,7 +129,19 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS render_selection_value_help
       IMPORTING
+        iv_name        TYPE string OPTIONAL
         it_ranges      TYPE zif_gg_selection_screen_types=>ty_ranges
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+* Renders the search help affordance for one input: a magnifier button that the
+* stylesheet reveals only while the surrounding field has focus, and that the
+* shell's F4 key presses for the focused field.
+    CLASS-METHODS value_help_button
+      IMPORTING
+        iv_name        TYPE string
+        iv_label       TYPE string
+        iv_value_help  TYPE abap_bool
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -139,8 +152,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen
         it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
       CHANGING
-        cv_render_height TYPE i
-        cv_footer_top    TYPE i.
+        cv_render_height TYPE i.
 ENDCLASS.
 
 CLASS zcl_gg_host_renderer IMPLEMENTATION.
@@ -316,17 +328,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF sy-subrc <> 0.
             CLEAR ls_state.
           ENDIF.
-          lv_body = lv_body && |<div class="gg-field"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }"{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ state_attrs( ls_state ) }{ field_message_attrs( it_messages = it_messages
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   iv_name     = CONV string( ls_element-name ) ) }>|.
-          IF ls_element-value_help = abap_true OR ls_state-value_help = abap_true.
-            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
-          ENDIF.
-          IF ls_state-search_help IS NOT INITIAL.
-            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" aria-label="Field help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
-          ENDIF.
+          lv_body = lv_body && |<div class="gg-field gg-parameter"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }"{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ state_attrs( ls_state ) }{ field_message_attrs( it_messages         = it_messages
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            iv_name = CONV string( ls_element-name ) ) }>|.
+          lv_body = lv_body && value_help_button( iv_name       = CONV string( ls_element-name )
+                                                  iv_label      = CONV string( ls_element-text )
+                                                  iv_value_help = xsdbool( ls_element-value_help = abap_true OR ls_state-value_help = abap_true ) ).
           lv_body = lv_body && |</div>|.
           IF ls_value-ranges IS NOT INITIAL.
-            lv_body = lv_body && render_selection_value_help( ls_value-ranges ).
+            lv_body = lv_body && render_selection_value_help(
+              iv_name   = CONV string( ls_element-name )
+              it_ranges = ls_value-ranges ).
           ENDIF.
         WHEN 'CHECKBOX'.
           lv_element_id = zcl_gg_host_html=>identifier( iv_scope   = 'selection-field'
@@ -335,8 +346,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           CLEAR: ls_value, ls_state.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
-          lv_body = lv_body && |<div class="gg-field"><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value=""><input type="checkbox" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="X"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ state_attrs( ls_state ) }{ field_message_attrs( it_messages = it_messages
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         iv_name     = CONV string( ls_element-name ) ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
+          lv_body = lv_body && |<div class="gg-field gg-choice"><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value=""><input type="checkbox" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="X"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ state_attrs( ls_state ) }{ field_message_attrs( it_messages         = it_messages
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               iv_name = CONV string( ls_element-name ) ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
         WHEN 'RADIOBUTTON'.
           lv_element_id = zcl_gg_host_html=>identifier( iv_scope   = 'selection-field'
                                                         iv_program = CONV string( is_context-program )
@@ -344,7 +355,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           CLEAR: ls_value, ls_state.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
-          lv_body = lv_body && |<div class="gg-field"><input type="radio" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_state-group1 ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ state_attrs( ls_state ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
+          lv_body = lv_body && |<div class="gg-field gg-choice"><input type="radio" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_state-group1 ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ state_attrs( ls_state ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
         WHEN 'LISTBOX'.
           lv_element_id = zcl_gg_host_html=>identifier( iv_scope   = 'selection-field'
                                                         iv_program = CONV string( is_context-program )
@@ -352,8 +363,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           CLEAR: ls_value, ls_state.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
-          lv_body = lv_body && |<div class="gg-field"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><select id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }"{ state_attrs( ls_state ) }{ field_message_attrs( it_messages = it_messages
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       iv_name     = CONV string( ls_element-name ) ) }>|.
+          lv_body = lv_body && |<div class="gg-field gg-parameter gg-listbox"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><select id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }"{ state_attrs( ls_state ) }{ field_message_attrs( it_messages         = it_messages
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           iv_name = CONV string( ls_element-name ) ) }>|.
           DATA(lt_fixed_values) = ls_state-fixed_values.
           IF lt_fixed_values IS INITIAL.
             lt_fixed_values = ls_element-fixed_values.
@@ -371,25 +382,28 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF lv_range_count = 0.
             lv_range_count = 1.
           ENDIF.
-          lv_body = lv_body && |<fieldset class="gg-range"><legend>{ zcl_gg_host_html=>escape_text( ls_element-text ) }</legend>|.
+          lv_body = lv_body && |<fieldset class="gg-range"><legend>{ zcl_gg_host_html=>escape_text( ls_element-text ) }</legend><div class="gg-range-list">|.
           DO lv_range_count TIMES.
             CLEAR ls_range.
             READ TABLE ls_value-ranges INTO ls_range INDEX sy-index.
             DATA(lv_row_suffix) = COND string( WHEN lv_range_count = 1 THEN `` ELSE |-{ sy-index }| ).
             DATA(lv_low_name) = |{ lv_range_name }{ lv_row_suffix }-LOW|.
             DATA(lv_high_name) = |{ lv_range_name }{ lv_row_suffix }-HIGH|.
-            lv_body = lv_body && |<div class="gg-range-row" data-range-index="{ sy-index }"><label for="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }">From</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }"{ state_attrs( ls_state ) }>|.
+            lv_body = lv_body && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }"><span class="gg-range-index" aria-hidden="true">{ sy-index }</span><label class="gg-range-label" for="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }">From</label><input class="gg-range-input" type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }"{ state_attrs( ls_state ) }>|.
             IF ls_element-no_intervals = abap_false.
-              lv_body = lv_body && |<label for="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }">To</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-high ) }"{ state_attrs( ls_state ) }>|.
+              lv_body = lv_body && |<label class="gg-range-label" for="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }">To</label><input class="gg-range-input" type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-high ) }"{ state_attrs( ls_state ) }>|.
             ENDIF.
-            lv_body = lv_body && |<select name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" aria-label="Sign"><option value="I"{ COND string( WHEN ls_range-sign = 'I' THEN ` selected` ELSE `` ) }>Include</option><option value="E"{ COND string( WHEN ls_range-sign = 'E' THEN ` selected` ELSE `` ) }>Exclude</option></select><select name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" aria-label="Option"><option value="EQ"{ COND string( WHEN ls_range-option = 'EQ' THEN ` selected` ELSE `` ) }>=</option><option value="BT"{ COND string( WHEN ls_range-option = 'BT' THEN ` selected` ELSE `` ) }>Between</option><option value="CP"{ COND string( WHEN ls_range-option = 'CP' THEN ` selected` ELSE `` ) }>Contains</option></select></div>|.
+            lv_body = lv_body && |<select class="gg-range-select gg-range-sign" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" aria-label="Sign"><option value="I"{ COND string( WHEN ls_range-sign = 'I' THEN ` selected` ELSE `` ) }>Include</option><option value="E"{ COND string( WHEN ls_range-sign = 'E' THEN ` selected` ELSE `` ) }>Exclude</option></select><select class="gg-range-select gg-range-option" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" aria-label="Option"><option value="EQ"{ COND string( WHEN ls_range-option = 'EQ' THEN ` selected` ELSE `` ) }>=</option><option value="BT"{ COND string( WHEN ls_range-option = 'BT' THEN ` selected` ELSE `` ) }>Between</option><option value="CP"{ COND string( WHEN ls_range-option = 'CP' THEN ` selected` ELSE `` ) }>Contains</option></select>|.
+            IF sy-index = 1.
+              lv_body = lv_body && value_help_button( iv_name       = lv_range_name
+                                                      iv_label      = CONV string( ls_element-text )
+                                                      iv_value_help = ls_element-value_help ).
+            ENDIF.
+            lv_body = lv_body && |</div>|.
           ENDDO.
-          IF ls_element-value_help = abap_true.
-            lv_body = lv_body && |<button type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( ls_element-text ) }">?</button>|.
-          ENDIF.
-          lv_body = lv_body && `</fieldset>`.
+          lv_body = lv_body && `</div></fieldset>`.
         WHEN 'PUSHBUTTON' OR 'FUNCTION_KEY'.
-          lv_body = lv_body && |<button type="submit" formnovalidate name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</button>|.
+          lv_body = lv_body && |<button class="gg-selection-button" type="submit" formnovalidate name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</button>|.
         WHEN 'COMMENT'.
           lv_body = lv_body && |<p>{ zcl_gg_host_html=>escape_text( ls_element-text ) }</p>|.
         WHEN 'ULINE'.
@@ -408,14 +422,14 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_body = lv_body && |</fieldset>|.
       lv_open_block = lv_open_block - 1.
     ENDWHILE.
-    lv_body = lv_body && |<div class="gg-field"><button type="submit" name="gg_ucomm" value="ONLI">Continue</button><button type="submit" name="gg_action" value="EXIT">Cancel</button></div></form></section>|.
+    lv_body = lv_body && |<div class="gg-field gg-actions"><button type="submit" name="gg_ucomm" value="ONLI">Continue</button><button type="submit" name="gg_action" value="EXIT">Cancel</button></div></form></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
       iv_kind       = zif_gg_host_html_v1=>page_selection
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
-      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>{ lv_body }| ).
+      iv_body       = |<header class="gg-selection-heading"><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>{ lv_body }| ).
   ENDMETHOD.
 
   METHOD render_dynpro.
@@ -431,11 +445,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_cell_name TYPE string.
     DATA lv_cell_value TYPE string.
     DATA lv_top TYPE i.
-    DATA lv_help_left TYPE i.
+    DATA lv_help_html TYPE string.
     DATA lv_tab_index TYPE i.
     DATA lv_button_icon TYPE string.
-    DATA lv_footer TYPE string.
-    DATA lv_footer_top TYPE i.
 
     lv_title = is_screen-title.
     IF iv_title IS NOT INITIAL.
@@ -448,7 +460,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
     lv_header_height = 0.
     lv_render_height = lv_height + lv_header_height.
-    lv_footer_top = lv_render_height - 42.
     dynpro_geometry(
       EXPORTING
         iv_height        = lv_height
@@ -456,19 +467,18 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         is_screen        = is_screen
         it_controls      = it_controls
       CHANGING
-        cv_render_height = lv_render_height
-        cv_footer_top    = lv_footer_top ).
+        cv_render_height = lv_render_height ).
     lv_body = |<section class="gg-dynpro" aria-label="Dynpro { zcl_gg_host_html=>escape_text( lv_title ) }" data-screen="{ is_screen-number }" data-modal="{ COND string( WHEN is_screen-modal = abap_true THEN `true` ELSE `false` ) }" data-cursor-field="{ zcl_gg_host_html=>escape_attribute( CONV string( is_cursor-field ) ) }" data-cursor-row="{ is_cursor-row }" style="min-height:{ lv_render_height }px">|.
     lv_body = lv_body && |{ render_messages( it_messages ) }|.
     IF iv_help_text IS NOT INITIAL.
       lv_body = lv_body && |<aside class="gg-message gg-info" role="status">{ zcl_gg_host_html=>escape_text( iv_help_text ) }</aside>|.
     ENDIF.
     IF it_help_values IS NOT INITIAL.
-      lv_body = lv_body && |<section class="gg-value-help" aria-label="Value help"><ul>|.
+      lv_body = lv_body && |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_help_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
       LOOP AT it_help_values INTO DATA(ls_help_value).
-        lv_body = lv_body && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }">{ zcl_gg_host_html=>escape_text( ls_help_value-value ) }</li>|.
+        lv_body = lv_body && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_help_value-value ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( ls_help_value-value ) }</li>|.
       ENDLOOP.
-      lv_body = lv_body && |</ul></section>|.
+      lv_body = lv_body && |</ul></section></div></div></div>|.
     ENDIF.
     lv_body = lv_body && |<form method="post" action="/dispatch" id="gg-dynpro-form"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">|.
     LOOP AT it_controls INTO DATA(ls_control)
@@ -496,15 +506,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       ENDIF.
       CASE ls_control-kind.
         WHEN 'INPUT'.
-          lv_body = lv_body && |<label class="gg-dynpro-control" style="{ lv_style }" for="{ zcl_gg_host_html=>escape_attribute( lv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_value-value ) }"{ COND string( WHEN ls_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_attrs }{ field_message_attrs( it_messages = it_messages
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   iv_name     = CONV string( ls_control-name ) ) }></label>|.
-          lv_help_left = ls_control-position-column + ls_control-position-width + 1.
-          IF ls_control-value_help = abap_true.
-            lv_body = lv_body && |<button class="gg-dynpro-control gg-dynpro-help" style="left:{ lv_help_left }px;top:{ lv_top }px" type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }">?</button>|.
-          ENDIF.
-          IF ls_control-search_help IS NOT INITIAL.
-            lv_body = lv_body && |<button class="gg-dynpro-control gg-dynpro-help" style="left:{ lv_help_left + COND i( WHEN ls_control-value_help = abap_true THEN 30 ELSE 0 ) }px;top:{ lv_top }px" type="submit" formnovalidate name="gg_action" value="HELP:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" aria-label="Field help for { zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }">?</button>|.
-          ENDIF.
+          lv_help_html = value_help_button( iv_name       = CONV string( ls_control-name )
+                                            iv_label      = CONV string( ls_control-name )
+                                            iv_value_help = ls_control-value_help ).
+          DATA(lv_field_attrs) = field_message_attrs( it_messages = it_messages
+                                                      iv_name     = CONV string( ls_control-name ) ).
+          lv_body = lv_body && |<span class="gg-dynpro-control gg-dynpro-field" style="{ lv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( lv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( CONV string( ls_control-name ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_value-value ) }"{ COND string( WHEN ls_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
         WHEN 'OUTPUT'.
           lv_body = lv_body && |<output class="gg-dynpro-control" style="{ lv_style }" id="{ zcl_gg_host_html=>escape_attribute( lv_id ) }">{ zcl_gg_host_html=>escape_text( ls_value-value ) }</output>|.
         WHEN 'TEXT'.
@@ -588,10 +595,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_body = lv_body && |<div class="gg-dynpro-control" style="{ lv_style }">{ zcl_gg_host_html=>escape_text( ls_control-text ) }</div>|.
       ENDCASE.
     ENDLOOP.
-    lv_footer = COND string(
-      WHEN is_screen-hide_back = abap_true THEN ``
-      ELSE |<div class="gg-field" style="position:absolute;left:18px;top:{ lv_footer_top }px"><button type="submit" formnovalidate name="gg_ucomm" value="BACK">Back</button></div>| ).
-    lv_body = lv_body && |{ lv_footer }</form></section>|.
+    lv_body = lv_body && |</form></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
@@ -606,17 +610,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_control_bottom TYPE i.
 
     cv_render_height = iv_height + iv_header_height.
-    cv_footer_top = cv_render_height - 42.
     LOOP AT it_controls INTO DATA(ls_control)
         WHERE screen = is_screen-number.
       lv_control_bottom = ls_control-position-row + iv_header_height + COND i( WHEN ls_control-position-height > 26 THEN ls_control-position-height ELSE 26 ).
-      IF lv_control_bottom + 8 > cv_footer_top.
-        cv_footer_top = lv_control_bottom + 8.
+      IF lv_control_bottom + 8 > cv_render_height.
+        cv_render_height = lv_control_bottom + 8.
       ENDIF.
     ENDLOOP.
-    IF cv_footer_top + 42 > cv_render_height.
-      cv_render_height = cv_footer_top + 42.
-    ENDIF.
   ENDMETHOD.
 
   METHOD render_message.
@@ -674,16 +674,23 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD value_help_button.
+    IF iv_value_help = abap_false.
+      RETURN.
+    ENDIF.
+    rv_html = |<button class="gg-help-button" type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( iv_name ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( iv_label ) }">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
+  ENDMETHOD.
+
   METHOD render_selection_value_help.
-    rv_html = |<aside class="gg-value-help" role="status" aria-label="Value help"><ul>|.
+    rv_html = |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
     LOOP AT it_ranges INTO DATA(ls_range).
       DATA(lv_value) = ls_range-low.
       IF ls_range-high IS NOT INITIAL.
         lv_value = lv_value && | - { ls_range-high }|.
       ENDIF.
-      rv_html = rv_html && |<li>{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
+      rv_html = rv_html && |<li data-name="{ zcl_gg_host_html=>escape_attribute( iv_name ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
     ENDLOOP.
-    rv_html = rv_html && `</ul></aside>`.
+    rv_html = rv_html && |</ul></section></div></div></div>|.
   ENDMETHOD.
 
   METHOD spaces.

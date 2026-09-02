@@ -34,7 +34,7 @@ for (const route of [
     await expect(back).toBeEnabled();
 
     await back.click();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
     await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
     await expect(page.locator("[data-page-kind]")).toHaveCount(0);
   });

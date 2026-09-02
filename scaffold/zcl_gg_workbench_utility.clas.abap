@@ -14,7 +14,6 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_runtime      TYPE abap_bool DEFAULT abap_false
         iv_title        TYPE string DEFAULT `Workbench`
-        iv_command      TYPE string OPTIONAL
         iv_error        TYPE string OPTIONAL
         iv_session_id   TYPE string OPTIONAL
         iv_page_id      TYPE string OPTIONAL
@@ -24,9 +23,13 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html)  TYPE string.
 
+* A message in the status bar carries its ABAP type: E, A and X are errors, W a
+* warning, S a success and I an information. Each type owns a colour, and the
+* two urgent types are announced assertively.
     CLASS-METHODS render_bottom
       IMPORTING
         iv_message     TYPE string OPTIONAL
+        iv_type        TYPE zif_gg_session_types_v1=>ty_message_type DEFAULT zif_gg_session_types_v1=>message_type_error
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -34,6 +37,12 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS form_workbench TYPE string VALUE 'wb-command-workbench'.
     CONSTANTS form_dispatch  TYPE string VALUE 'wb-command-dispatch'.
     CONSTANTS form_transaction TYPE string VALUE 'wb-command-transaction'.
+
+    CLASS-METHODS status_attrs
+      IMPORTING
+        iv_type         TYPE zif_gg_session_types_v1=>ty_message_type
+      RETURNING
+        VALUE(rv_attrs) TYPE string.
 
 * separator marks the group boundary rendered in front of a command.
     TYPES: BEGIN OF ty_command,
@@ -52,7 +61,6 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS render_commandbar
       IMPORTING
         iv_runtime     TYPE abap_bool
-        iv_command     TYPE string
         iv_error       TYPE string
         iv_session_id  TYPE string
         iv_page_id     TYPE string
@@ -115,8 +123,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
       '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
       '.wb-app-title{margin:0;font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
-      '.wb-appbar .gg-dynpro-status{margin:0 0 0 auto;color:#315a7f;font-size:11px}' &&
-      '.wb-appbar .gg-dynpro-status:empty{display:none}' &&
       '.wb-breadcrumbs{padding:5px 18px;background:#eef4fa;border-bottom:1px solid #c5d5e5;color:#4d667f}' &&
       '.wb-breadcrumbs ol{display:flex;gap:0;margin:0;padding:0;list-style:none}' &&
       '.wb-breadcrumbs li+li:before{content:"/";padding:0 8px;color:#8ba1b6}' &&
@@ -130,36 +136,50 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-runtime-content--dynpro{margin:8px 26px 0;padding:0;background:#d5e6f3;border:1px solid #9ab3c8;border-radius:2px;box-shadow:0 1px 4px rgba(34,67,102,.18)}' &&
       '.wb-runtime-content--dynpro main{height:100%;overflow:scroll}' &&
       '.wb-runtime-content main{max-width:100%;overflow:auto}' &&
-      '.wb-statusbar{display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:6px 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
+* The bar keeps one height whether or not it carries a message, so a message
+* never reflows the page. Its padding is horizontal only; the fixed height
+* leaves the message room to sit inside it.
+      '.wb-statusbar{height:29px;box-sizing:border-box;display:flex;align-items:center;gap:18px;margin:10px 28px 12px;padding:0 10px;color:#60758b;background:#dce8f3;border:1px solid #b8c9dc;border-radius:4px;font-size:11px}' &&
       '.wb-status-feedback{min-height:1em;color:#315a7f;font-weight:600}' &&
+* A message earns the pill, the shadow and the entry animation; an empty
+* feedback slot keeps the status bar quiet.
+* Inline flow rather than flex, so an overlong message ellipsizes instead of
+* being cut mid-word. The full text stays in the DOM for the alert reader.
+      '.wb-status-feedback:not(:empty){display:inline-block;max-width:56vw;padding:3px 12px;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid #a8c6e2;border-radius:999px;background:#f1f7fd;box-shadow:0 1px 4px rgba(34,67,102,.16);transform-origin:left center;animation:wb-status-pop .26s ease-out both}' &&
+      '.wb-status-feedback:not(:empty):before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;vertical-align:middle;border-radius:50%;background:currentColor}' &&
       '.wb-status-error{color:#a32121}' &&
+      '.wb-status-error:not(:empty){border-color:#e0aaaa;background:#fdf1f1}' &&
+      '.wb-status-warning{color:#8a5700}' &&
+      '.wb-status-warning:not(:empty){border-color:#e3c589;background:#fdf7ea}' &&
+      '.wb-status-success{color:#14663a}' &&
+      '.wb-status-success:not(:empty){border-color:#9fcfb2;background:#eff9f3}' &&
+      '.wb-status-info{color:#9c1f6a}' &&
+      '.wb-status-info:not(:empty){border-color:#e5a8ca;background:#fdf0f7}' &&
+      '@keyframes wb-status-pop{0%{opacity:0;transform:scale(.94) translateY(5px)}70%{transform:scale(1.02) translateY(0)}100%{opacity:1;transform:none}}' &&
+      '@media(prefers-reduced-motion:reduce){.wb-status-feedback:not(:empty){animation:none}}' &&
       '.wb-status-context{margin-left:auto;display:flex;align-items:center;gap:18px}' &&
       '.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
       '@media(max-width:760px){.wb-runtime-content,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-command-input{width:130px}}'.
   ENDMETHOD.
 
   METHOD render_top.
+* The app bar carries the title and nothing else. The CUA status name stays
+* internal; it is only read to enable or disable commands.
     DATA lv_title TYPE string.
     DATA lv_content_form TYPE string.
-    DATA lv_status TYPE string.
 
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
     lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
-    lv_status = COND string(
-      WHEN iv_content_form = `gg-dynpro-form` AND is_status-status IS NOT INITIAL
-      THEN |<span class="gg-dynpro-status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</span>|
-      ELSE `` ).
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><button class="wb-menu" type="button" role="menuitem">Tools</button><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
       iv_runtime    = iv_runtime
-      iv_command    = iv_command
       iv_error      = iv_error
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
       is_status     = is_status ).
     rv_html = rv_html && |<header class="wb-appbar"><h1 class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
-      |</h1>{ lv_status }</header>| &&
+      |</h1></header>| &&
       render_breadcrumbs( it_breadcrumbs ) &&
       render_iconbar(
         iv_runtime      = iv_runtime
@@ -321,7 +341,9 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = '<section class="wb-commandbar" aria-label="Command bar"><form id="' &&
       form_transaction && '" method="post" action="/transaction">' &&
       '<label class="wb-sr-only" for="wb-command">Command</label>' &&
-      |<input class="wb-command-input" id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value="{ zcl_gg_host_html=>escape_attribute( iv_command ) }">|.
+*     The command field is never pre-filled. A command is consumed when it is
+*     submitted, so a rejected one is not echoed back for accidental resend.
+      '<input class="wb-command-input" id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value="">'.
     IF iv_session_id IS NOT INITIAL OR iv_page_id IS NOT INITIAL.
       rv_html = rv_html &&
         |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }">|.
@@ -346,13 +368,26 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && '</ol></nav>'.
   ENDMETHOD.
 
+  METHOD status_attrs.
+    CASE iv_type.
+      WHEN zif_gg_session_types_v1=>message_type_warning.
+        rv_attrs = ` class="wb-status-feedback wb-status-warning" role="alert" aria-live="assertive"`.
+      WHEN zif_gg_session_types_v1=>message_type_success.
+        rv_attrs = ` class="wb-status-feedback wb-status-success" role="status" aria-live="polite"`.
+      WHEN zif_gg_session_types_v1=>message_type_info.
+        rv_attrs = ` class="wb-status-feedback wb-status-info" role="status" aria-live="polite"`.
+      WHEN OTHERS.
+        rv_attrs = ` class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive"`.
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD render_bottom.
     DATA lv_feedback TYPE string.
 
     IF iv_message IS INITIAL.
       lv_feedback = '<span class="wb-status-feedback" aria-live="polite"></span>'.
     ELSE.
-      lv_feedback = |<span class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive">{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span>|.
+      lv_feedback = |<span{ status_attrs( iv_type ) }>{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span>|.
     ENDIF.
     rv_html = '<footer class="wb-statusbar">' && lv_feedback && '<div class="wb-status-context"><span>System:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-sysid ) ) &&
@@ -360,7 +395,8 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
       '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
-      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}feedback.textContent=(button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed";});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});}());</script></body></html>'.
+      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");var statusTypes={E:"wb-status-error",A:"wb-status-error",X:"wb-status-error",W:"wb-status-warning",S:"wb-status-success",I:"wb-status-info"};function announce(text,type){feedback.textContent=text;feedback.classList.remove("wb-status-error","wb-status-warning","wb-status-success","wb-status-info");if(statusTypes[type]){feedback.classList.add(statusTypes[type]);}var urgent=type==="E"||type==="A"||type==="X"||type==="W";feedback.setAttribute("role",urgent?"alert":"status");feedback.setAttribute("aria-live",urgent?"assertive":"polite");feedback.style.animation="none";void feedback.offsetWidth;feedback.style.animation="";}document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});document.addEventListener("keydown",function(event){if(event.key!=="F4"&&event.code!=="F4"){return;}var field=document.activeElement;if(!field){return;}var group=field.closest(".gg-dynpro-field,.gg-field,.gg-range");if(!group){return;}var help=group.querySelector(".gg-help-button:not(:disabled)");if(!help){return;}event.preventDefault();help.click();});document.addEventListener("keydown",function(event){if(event.key!=="F1"&&event.code!=="F1"){return;}event.preventDefault();announce("F1: help todo","S");});}());</script></body></html>'.
+    REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var modal=document.querySelector(".gg-value-help-modal");if(!modal){return;}var fieldFor=function(name){if(!name){return null;}var fields=document.querySelectorAll("[data-abap-name],[name]");for(var i=0;i<fields.length;i++){if(fields[i].getAttribute("data-abap-name")===name||fields[i].getAttribute("name")===name){return fields[i];}}return null;};var dismiss=function(field){modal.hidden=true;modal.setAttribute("aria-hidden","true");if(field){field.focus();}};var close=modal.querySelector("[data-value-help-close]");if(close){close.focus();close.addEventListener("click",function(event){event.preventDefault();dismiss(fieldFor(modal.getAttribute("data-help-field")));});}modal.addEventListener("click",function(event){if(event.target===modal){dismiss(fieldFor(modal.getAttribute("data-help-field")));}});modal.addEventListener("dblclick",function(event){var target=event.target;if(!target||!target.closest){return;}var row=target.closest(".gg-value-help li");if(!row){return;}var field=fieldFor(row.getAttribute("data-name")||modal.getAttribute("data-help-field"));if(!field){return;}field.value=row.getAttribute("data-value")||row.textContent.trim();field.dispatchEvent(new Event("input",{bubbles:true}));field.dispatchEvent(new Event("change",{bubbles:true}));dismiss(field);});document.addEventListener("keydown",function(event){if(event.key==="Escape"){event.preventDefault();dismiss(fieldFor(modal.getAttribute("data-help-field")));}});}());</script></body></html>'.
   ENDMETHOD.
 
 ENDCLASS.

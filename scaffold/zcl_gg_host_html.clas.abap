@@ -218,10 +218,64 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-list-fragment\{white-space:pre;\}|.
     rv_html = rv_html && |.wb-icon-sprite\{position:absolute;width:0;height:0;overflow:hidden;\}|.
     rv_html = rv_html && |.wb-icon\{display:inline-block;width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;\}|.
-    rv_html = rv_html && |.gg-selection fieldset\{margin:.75rem 0;padding:.75rem;\}|.
+    rv_html = rv_html && |.gg-selection\{max-width:100%;padding:0 0 16px;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-selection-heading\{margin:0 0 10px;padding:0 0 8px;border-bottom:1px solid #8da9c5;\}|.
+    rv_html = rv_html && |.gg-selection-heading h1\{margin:0;color:#123b64;font-size:20px;font-weight:600;letter-spacing:-.2px;\}|.
+    rv_html = rv_html && |.gg-selection>form\{display:flex;flex-direction:column;gap:8px;\}|.
+    rv_html = rv_html && |.gg-selection fieldset\{min-width:0;margin:.75rem 0;padding:.75rem;border:1px solid #8daac4;border-radius:2px;background:linear-gradient(#e3eff8,#d5e6f3);box-shadow:0 1px 4px rgba(34,67,102,.12);\}|.
+    rv_html = rv_html && |.gg-selection fieldset>legend\{padding:0 7px;color:#123b64;font-size:13px;font-weight:600;\}|.
     rv_html = rv_html && |.gg-field\{display:flex;gap:.5rem;align-items:center;margin:.35rem 0;\}|.
-    rv_html = rv_html && |.gg-field label\{min-width:12rem;\}|.
-    rv_html = rv_html && |.gg-dynpro\{position:relative;min-height:12rem;overflow:hidden;background:linear-gradient(#e3eff8,#d5e6f3);border:1px solid #9ab3c8;box-sizing:border-box;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-selection .gg-field\{min-height:26px;padding:2px 0;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-selection .gg-field label\{min-width:12rem;color:#123b64;font-weight:400;\}|.
+    rv_html = rv_html && |.gg-selection .gg-parameter>input[type=text],.gg-selection .gg-parameter>select\{width:260px;max-width:100%;\}|.
+    rv_html = rv_html && |.gg-selection input[type=text],.gg-selection select\{height:26px;padding:2px 6px;border:1px solid #819db8;border-radius:1px;background:#fff;color:#123b64;box-sizing:border-box;font:inherit;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
+    rv_html = rv_html && |.gg-selection input[type=text]:focus,.gg-selection select:focus\{border-color:#5e8fbd;box-shadow:0 0 0 2px rgba(94,143,189,.25),inset 0 1px 2px rgba(54,87,116,.18);outline:0;\}|.
+    rv_html = rv_html && |.gg-selection input[required]\{background:#fff1a6;border-color:#d4a000;\}|.
+    rv_html = rv_html && |.gg-selection input:disabled,.gg-selection select:disabled\{background:#d1d1d1;color:#808080;cursor:default;\}|.
+    rv_html = rv_html && |.gg-selection .gg-choice\{gap:8px;min-height:26px;padding:2px 0;\}|.
+    rv_html = rv_html && |.gg-selection .gg-choice input[type=checkbox],.gg-selection .gg-choice input[type=radio]\{width:14px;height:14px;margin:0;accent-color:#28679e;\}|.
+    rv_html = rv_html && |.gg-selection .gg-choice label\{min-width:0;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-selection .gg-range\{padding:.6rem .75rem .7rem;background:linear-gradient(#e3eff8,#d5e6f3);border-color:#8daac4;box-shadow:0 1px 4px rgba(34,67,102,.12);\}|.
+    rv_html = rv_html && |.gg-selection .gg-range>legend\{font-size:13px;\}|.
+    rv_html = rv_html && |.gg-range-list\{display:grid;gap:2px;\}|.
+    rv_html = rv_html && |.gg-range-row\{display:grid;grid-template-columns:24px 3rem minmax(8rem,1fr) 3rem minmax(8rem,1fr) minmax(7.5rem,auto) minmax(8.5rem,auto) 22px;align-items:center;gap:5px;min-height:26px;padding:3px 4px;border:0;border-bottom:1px solid #b8ccdc;background:transparent;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-range-row:last-child\{border-bottom:0;\}|.
+    rv_html = rv_html && |.gg-range-index\{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #8daac4;border-radius:1px;background:#d5e6f3;color:#2c618d;font-size:11px;font-weight:700;\}|.
+    rv_html = rv_html && |.gg-range-label\{font-size:12px;color:#123b64!important;font-weight:400!important;text-transform:none;letter-spacing:0;\}|.
+    rv_html = rv_html && |.gg-range-input\{width:100%;min-width:0;\}|.
+    rv_html = rv_html && |.gg-range-select\{min-width:0;width:100%;padding:2px 6px!important;font-size:13px!important;\}|.
+    rv_html = rv_html && |.gg-range-sign\{min-width:7.5rem;\}|.
+    rv_html = rv_html && |.gg-range-option\{min-width:8.5rem;\}|.
+    rv_html = rv_html && |.gg-range-row--single\{grid-template-columns:24px 3rem minmax(10rem,1fr) minmax(7.5rem,auto) minmax(8.5rem,auto) 22px;\}|.
+    rv_html = rv_html && |.gg-selection .gg-actions\{display:flex;justify-content:flex-start;gap:8px;margin:.75rem 0 0;padding:.75rem 0 0;border:0;border-top:1px solid #8daac4;border-radius:0;background:transparent;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-selection .gg-actions:hover\{background:transparent;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-selection button:not(.gg-help-button)\{min-height:26px;padding:2px 12px;border:1px solid #8c8c8c;border-radius:2px;background:linear-gradient(#fefefe,#d9d9d9);color:#163e6b;font:inherit;cursor:pointer;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-selection button:not(.gg-help-button):hover,.gg-selection button:not(.gg-help-button):focus\{background:linear-gradient(#fff,#c7dced);border-color:#5e8fbd;outline:0;\}|.
+    rv_html = rv_html && |.gg-selection button:not(.gg-help-button):disabled\{background:#d1d1d1;color:#808080;cursor:default;\}|.
+    rv_html = rv_html && |.gg-selection>form>button.gg-selection-button\{align-self:flex-start;width:auto;\}|.
+    rv_html = rv_html && |.gg-selection nav[role=tablist]\{display:flex;align-items:flex-end;gap:2px;padding:0 4px;border-bottom:2px solid #6f9ac1;background:#d0e1ef;\}|.
+    rv_html = rv_html && |.gg-selection nav[role=tablist] button\{min-height:28px;margin:0;padding:3px 15px;border:1px solid #8eacc8;border-bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(#e8f2fa,#bfd5e8);color:#163e6b;white-space:nowrap;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-selection nav[role=tablist] button[aria-selected=true]\{background:#e3eff8;color:#102f4d;font-weight:600;position:relative;top:2px;\}|.
+    rv_html = rv_html && |.gg-selection .gg-message\{margin:0 0 8px;padding:8px 10px;border-radius:2px;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-selection>form>p\{margin:4px 0;color:#315a7f;\}|.
+    rv_html = rv_html && |.gg-selection>form>hr\{width:100%;margin:4px 0;border:0;border-top:1px solid #8daac4;\}|.
+    rv_html = rv_html && |.gg-selection [hidden]\{display:none!important;\}|.
+    rv_html = rv_html && |@media(max-width:720px)\{|.
+    rv_html = rv_html && |.gg-selection\{padding-bottom:12px;\}|.
+    rv_html = rv_html && |.gg-selection .gg-field\{display:grid;grid-template-columns:1fr;gap:4px;padding:4px 0;\}|.
+    rv_html = rv_html && |.gg-selection .gg-field>label\{grid-column:1;min-width:0;\}|.
+    rv_html = rv_html && |.gg-selection .gg-parameter>input[type=text],.gg-selection .gg-parameter>select\{width:100%;max-width:none;\}|.
+    rv_html = rv_html && |.gg-selection fieldset\{padding:.6rem .5rem .7rem;\}|.
+    rv_html = rv_html && |.gg-range-row,.gg-range-row--single\{grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:4px;\}|.
+    rv_html = rv_html && |.gg-range-index\{grid-column:1 / -1;justify-self:start;\}|.
+    rv_html = rv_html && |.gg-range-label\{grid-column:1;\}|.
+    rv_html = rv_html && |.gg-range-input\{grid-column:2;\}|.
+    rv_html = rv_html && |.gg-range-select\{grid-column:1 / -1;\}|.
+    rv_html = rv_html && |.gg-range-row .gg-help-button\{grid-column:1 / -1;justify-self:start;\}|.
+    rv_html = rv_html && |.gg-selection .gg-actions\{flex-wrap:wrap;\}|.
+    rv_html = rv_html && |.gg-selection .gg-actions button\{flex:1 1 9rem;\}|.
+    rv_html = rv_html && |\}|.
+    rv_html = rv_html && |.gg-dynpro\{position:relative;min-height:12rem;overflow:hidden;background:linear-gradient(#e3eff8,#d5e6f3);box-sizing:border-box;color:#123b64;\}|.
     rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;color:#123b64;font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input,.gg-dynpro select,.gg-dynpro button\{font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text],.gg-dynpro input[type=password],.gg-dynpro select\{height:26px;padding:2px 6px;border:1px solid #819db8;border-radius:1px;background:#fff;color:#123b64;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
@@ -233,7 +287,30 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control\{background:linear-gradient(#fffbd2,#f4e68d);border-color:#b9aa55;color:#111;\}|.
     rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control\{display:flex;align-items:center;justify-content:center;gap:8px;\}|.
     rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control .wb-icon\{width:16px;height:16px;\}|.
-    rv_html = rv_html && |.gg-dynpro .gg-dynpro-help\{min-width:24px;width:24px;height:24px;padding:0;border-color:#879eb3;background:linear-gradient(#f7fafc,#c4d1dc);font-weight:700;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>label\{display:block;width:100%;height:100%;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>label>input\{width:100%;\}|.
+    rv_html = rv_html && |button.gg-help-button\{display:inline-flex;align-items:center;justify-content:center;min-height:0;width:22px;height:22px;padding:0;border:1px solid #7f9bb5;border-radius:50%;background:#fff;color:#123b64;cursor:pointer;box-shadow:0 1px 3px rgba(18,59,100,.35);opacity:0;visibility:hidden;transition:opacity .08s linear;\}|.
+    rv_html = rv_html && |button.gg-help-button:hover,button.gg-help-button:focus\{background:#d9eaf9;border-color:#3c74a6;outline:0;\}|.
+    rv_html = rv_html && |button.gg-help-button .wb-icon\{width:14px;height:14px;\}|.
+    rv_html = rv_html && |.gg-field:focus-within .gg-help-button,.gg-range:focus-within .gg-help-button,.gg-dynpro-field:focus-within .gg-help-button\{opacity:1;visibility:visible;\}|.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>.gg-help-button\{position:absolute;left:100%;top:2px;margin-left:5px;\}|.
+    rv_html = rv_html && |.gg-value-help-modal\{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(19,45,72,.48);backdrop-filter:blur(2px);animation:gg-value-help-in .12s ease-out;\}|.
+    rv_html = rv_html && |.gg-value-help-modal[hidden]\{display:none;\}|.
+    rv_html = rv_html && |.gg-value-help-panel\{display:flex;flex-direction:column;width:min(430px,100%);max-height:min(560px,calc(100vh - 48px));overflow:hidden;background:#fff;border:1px solid #7594b2;border-radius:5px;box-shadow:0 18px 48px rgba(18,52,84,.34);color:#1d2d3e;\}|.
+    rv_html = rv_html && |.gg-value-help-header\{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;background:linear-gradient(#f8fbfe,#e2edf7);border-bottom:1px solid #b4c8db;\}|.
+    rv_html = rv_html && |.gg-value-help-header h2\{margin:0;color:#174a80;font-size:16px;font-weight:650;line-height:1.25;\}|.
+    rv_html = rv_html && |.gg-value-help-modal .gg-value-help-close\{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;min-height:28px;padding:0;border:1px solid transparent;border-radius:3px;background:transparent;color:#315a7f;cursor:pointer;flex:0 0 auto;\}|.
+    rv_html = rv_html && |.gg-value-help-modal .gg-value-help-close:hover,.gg-value-help-modal .gg-value-help-close:focus\{border-color:#86a9cc;background:#d9e8f7;color:#123b64;outline:0;\}|.
+    rv_html = rv_html && |.gg-value-help-modal .gg-value-help-close .wb-icon\{width:17px;height:17px;\}|.
+    rv_html = rv_html && |.gg-value-help-status\{display:flex;min-height:0;overflow:hidden;\}|.
+    rv_html = rv_html && |.gg-value-help\{margin:0;padding:12px 14px;overflow:auto;background:#f8fbfe;\}|.
+    rv_html = rv_html && |.gg-value-help ul\{display:grid;gap:6px;margin:0;padding:0;list-style:none;\}|.
+    rv_html = rv_html && |.gg-value-help li\{padding:9px 10px;border:1px solid #c6d6e5;border-radius:3px;background:#fff;color:#1d456c;line-height:1.3;box-shadow:0 1px 1px rgba(34,67,102,.06);overflow-wrap:anywhere;\}|.
+    rv_html = rv_html && |.gg-value-help li\{cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-value-help li:hover,.gg-value-help li:focus\{border-color:#6f9ac1;background:#eef6fd;outline:0;\}|.
+    rv_html = rv_html && |@keyframes gg-value-help-in\{from\{opacity:0\}to\{opacity:1\}\}|.
+    rv_html = rv_html && |@media(prefers-reduced-motion:reduce)\{.gg-value-help-modal\{animation:none\}\}|.
+    rv_html = rv_html && |@media(max-width:480px)\{.gg-value-help-modal\{padding:12px\}.gg-value-help-panel\{max-height:calc(100vh - 24px)\}\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control]\{overflow:auto;background:#e4eff8;border:1px solid #8daac4;box-sizing:border-box;scrollbar-color:#9eb5c8 #d6e5f0;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] table\{border-collapse:collapse;table-layout:fixed;min-width:100%;width:max-content;background:#fff;color:#123b64;font-size:13px;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] caption\{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;\}|.

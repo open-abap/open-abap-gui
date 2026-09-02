@@ -6,6 +6,6 @@ test("ZCL_GG_EX_066 — escapes hostile Unicode shell text", async ({page, host}
   await expect(page.locator(".wb-toolbar").getByRole("button", {name: 'Run "now" & <go> 🚀'})).toBeEnabled();
   await expect(page.locator(".gg-list-line")).toContainText('مرحبا é 🚀 <shell> & "quotes"');
   await page.locator(".wb-toolbar").getByRole("button", {name: 'Run "now" & <go> 🚀'}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.locator(".gg-list-line").last()).toContainText("accepted <command>");
 });

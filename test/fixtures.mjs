@@ -63,9 +63,16 @@ export async function openExample(page, host, number) {
   await expect(page.locator("[data-page-kind]")).toHaveCount(1);
 }
 
+// Search help bubbles are revealed only while their field has focus, so a test
+// has to put the cursor in the field before it can press the bubble.
+export async function clickHelp(page, fieldName, helpName) {
+  await page.locator(`[name="${fieldName}"]`).first().focus();
+  await page.getByRole("button", {name: helpName}).click();
+}
+
 export async function submit(page, buttonName = "Continue") {
   await page.getByRole("button", {name: buttonName}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
 }
 
 export async function dispatch(page, request) {

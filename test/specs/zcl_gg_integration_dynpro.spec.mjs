@@ -1,31 +1,29 @@
 import assert from "node:assert/strict";
-import {test} from "../fixtures.mjs";
+import {test, dispatch, clickHelp} from "../fixtures.mjs";
 
 test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
-  await page.getByRole("button", {name: "Field help for P_INPUT"}).click();
-  await page.waitForLoadState("networkidle");
+  await dispatch(page, {action: "HELP", target: "P_INPUT"});
   assert.match(await page.getByRole("status").textContent(), /Help from POH/);
 
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
-  await page.getByRole("button", {name: "Value help for P_INPUT"}).click();
-  await page.waitForLoadState("networkidle");
+  await clickHelp(page, "P_INPUT", "Value help for P_INPUT");
+  await page.waitForLoadState("load");
   assert.match(await page.getByRole("region", {name: "Value help"}).textContent(), /Value from POV/);
 
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
-  await page.getByRole("button", {name: "Back"}).click();
-  await page.waitForLoadState("networkidle");
+  await dispatch(page, {action: "SUBMIT", ucomm: "BACK"});
   assert.equal(await page.locator('[data-screen="0000"]').count(), 1);
 
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
   assert.equal(await page.locator("[data-page-kind]").getAttribute("data-page-kind"), "DYNPRO");
   await page.locator('[name="P_INPUT"]').fill("AA-0017");
   await page.getByRole("button", {name: "Next"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   assert.match(await page.getByRole("heading", {name: "Flight result"}).textContent(), /Flight result/);
   assert.equal(await page.locator("output").textContent(), "AA-0017");
   await page.getByRole("button", {name: "Exit"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   assert.equal(await page.locator("[data-page-kind]").getAttribute("data-page-kind"), "TERMINAL");
   assert.equal(await page.locator(".wb-runtime-content form").count(), 0);
   const terminalSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");

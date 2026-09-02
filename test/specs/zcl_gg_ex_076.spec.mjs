@@ -9,7 +9,7 @@ test("ZCL_GG_EX_076 - derives values and rejects undeclared commands", async ({p
   });
   await expect(page.getByRole("alert")).toContainText("Undeclared selection command");
   await page.getByRole("button", {name: "Derive"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.locator('[name="P_DERIVED"]')).toHaveValue("derived by pushbutton");
   await page.locator('[name="P_REQUIRED"]').fill("ok");
   await submit(page);

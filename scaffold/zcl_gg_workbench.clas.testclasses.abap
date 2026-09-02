@@ -25,12 +25,12 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-logo-mark" viewBox="0 0 108 108"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'stop-color="#174a80"' ) ).
 
-    DATA(lv_error_html) = zcl_gg_workbench=>render_error(
-      iv_command = `/nzgg_ex_999`
-      iv_error   = `Unknown <transaction> & code` ).
+    DATA(lv_error_html) = zcl_gg_workbench=>render_error( iv_error = `Unknown <transaction> & code` ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'wb-status-error' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'Unknown &lt;transaction&gt; &amp; code' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'aria-live="assertive"' ) ).
+*   The rejected command is reported, never echoed back into the command field.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value=""' ) ).
   ENDMETHOD.
 
 ENDCLASS.

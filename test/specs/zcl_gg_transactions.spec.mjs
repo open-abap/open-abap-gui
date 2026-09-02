@@ -19,6 +19,7 @@ test("the command form accepts /n and normalizes the dynpro tcode", async ({page
   await command.fill("/nzgg_ex_058");
   await command.press("Enter");
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "DYNPRO");
+  await expect(page.getByRole("textbox", {name: "Command"})).toHaveValue("");
 });
 
 test("F3 activates the green Back button", async ({page, host}) => {
@@ -27,6 +28,47 @@ test("F3 activates the green Back button", async ({page, host}) => {
   await page.keyboard.press("F3");
   await expect(page.locator(".wb-workspace")).toBeVisible();
   await expect(page.locator("[data-page-kind]")).toHaveCount(0);
+});
+
+test("F1 reports that field help is still to be built", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
+  const feedback = page.locator(".wb-status-feedback");
+  await expect(feedback).toBeEmpty();
+  await page.keyboard.press("F1");
+  await expect(feedback).toHaveText("F1: help todo");
+  await expect(feedback).toHaveClass(/wb-status-success/);
+  await expect(feedback).toHaveAttribute("role", "status");
+  await expect(page.locator("[data-page-kind]")).toHaveCount(1);
+});
+
+test("the status bar paints each message type in its own colour", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/`);
+  const feedback = page.locator(".wb-status-feedback");
+
+  // An error arrives from the server; the rest are announced by the shell.
+  const command = page.getByRole("textbox", {name: "Command"});
+  await command.fill("NOT_A_TRANSACTION");
+  await command.press("Enter");
+  await expect(feedback).toHaveClass(/wb-status-error/);
+
+  const paint = (type) => feedback.evaluate((element, messageType) => {
+    element.classList.remove("wb-status-error", "wb-status-warning", "wb-status-success", "wb-status-info");
+    element.classList.add(messageType);
+    element.textContent = messageType;
+    return getComputedStyle(element).color;
+  }, type);
+
+  const colors = {
+    "wb-status-error": await paint("wb-status-error"),
+    "wb-status-warning": await paint("wb-status-warning"),
+    "wb-status-success": await paint("wb-status-success"),
+    "wb-status-info": await paint("wb-status-info"),
+  };
+  expect(colors["wb-status-error"]).toBe("rgb(163, 33, 33)");
+  expect(colors["wb-status-warning"]).toBe("rgb(138, 87, 0)");
+  expect(colors["wb-status-success"]).toBe("rgb(20, 102, 58)");
+  expect(colors["wb-status-info"]).toBe("rgb(156, 31, 106)");
+  expect(new Set(Object.values(colors)).size).toBe(4);
 });
 
 test("a valid command replaces the old host session", async ({page, host}) => {
@@ -38,6 +80,7 @@ test("a valid command replaces the old host session", async ({page, host}) => {
   await page.getByRole("textbox", {name: "Command"}).press("Enter");
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "LIST");
   await expect(page.locator("[data-page-kind]")).not.toHaveAttribute("data-session-id", oldSession);
+  await expect(page.getByRole("textbox", {name: "Command"})).toHaveValue("");
 
   const stale = await page.evaluate(async ({sessionId, pageId}) => {
     const response = await fetch("/dispatch", {
@@ -51,7 +94,7 @@ test("a valid command replaces the old host session", async ({page, host}) => {
   expect(stale.body.error).toMatch(/Unknown host session/);
 });
 
-test("invalid commands retain input and leave the old session open", async ({page, host}) => {
+test("invalid commands clear the command field and leave the old session open", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   const oldSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const oldPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
@@ -64,7 +107,7 @@ test("invalid commands retain input and leave the old session open", async ({pag
   const response = await responsePromise;
   expect(response.status()).toBe(200);
   await expect(page.locator(".wb-status-error[role=alert]")).toContainText("Unknown transaction code");
-  await expect(command).toHaveValue("/nUNKNOWN");
+  await expect(command).toHaveValue("");
 
   const stillOpen = await page.evaluate(async ({sessionId, pageId}) => {
     const response = await fetch("/dispatch", {
@@ -90,5 +133,64 @@ test("invalid workbench commands render in the bottom message bar", async ({page
   expect(response.status()).toBe(200);
   await expect(page.locator(".wb-status-error[role=alert]")).toContainText("Unsupported command");
   await expect(page.locator("#wb-command-error")).toHaveCount(0);
-  await expect(command).toHaveValue("NOT_A_TRANSACTION");
+  await expect(command).toHaveValue("");
+  await expect(command).toBeEditable();
+
+  const message = await page.locator(".wb-status-error").evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {animation: style.animationName, duration: style.animationDuration, radius: style.borderTopLeftRadius};
+  });
+  expect(message.animation).toBe("wb-status-pop");
+  expect(message.duration).toBe("0.26s");
+  expect(message.radius).toBe("999px");
+});
+
+test("a status message never changes the height of the status bar", async ({page, host}) => {
+  const barHeight = () => page.locator(".wb-statusbar").evaluate((element) => element.getBoundingClientRect().height);
+
+  await page.goto(`${host.baseUrl}/`);
+  const idle = await barHeight();
+
+  const command = page.getByRole("textbox", {name: "Command"});
+  await command.fill("NOT_A_TRANSACTION");
+  await command.press("Enter");
+  await expect(page.locator(".wb-status-error[role=alert]")).toBeVisible();
+  expect(await barHeight()).toBe(idle);
+
+  // A message far wider than the bar is ellipsized, never wrapped onto a
+  // second line that would push the workspace up.
+  await page.locator(".wb-status-feedback").evaluate((element) => {
+    element.textContent = `Unknown transaction code: ${"VERY_LONG_TRANSACTION_NAME_".repeat(12)}`;
+  });
+  expect(await barHeight()).toBe(idle);
+  const overflow = await page.locator(".wb-status-feedback").evaluate((element) => ({
+    clipped: element.scrollWidth > element.clientWidth,
+    ellipsis: getComputedStyle(element).textOverflow,
+    wrap: getComputedStyle(element).whiteSpace,
+  }));
+  expect(overflow.clipped).toBe(true);
+  expect(overflow.ellipsis).toBe("ellipsis");
+  expect(overflow.wrap).toBe("nowrap");
+});
+
+test("a status message stays prominent without motion", async ({browser, host}) => {
+  const context = await browser.newContext({reducedMotion: "reduce"});
+  const page = await context.newPage();
+  try {
+    await page.goto(`${host.baseUrl}/`);
+    const command = page.getByRole("textbox", {name: "Command"});
+    await command.fill("NOT_A_TRANSACTION");
+    await command.press("Enter");
+    await expect(page.locator(".wb-status-error[role=alert]")).toBeVisible();
+
+    const message = await page.locator(".wb-status-error").evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {display: style.display, animation: style.animationName, radius: style.borderTopLeftRadius};
+    });
+    expect(message.display).toBe("block"); // inline-block blockifies as a flex item
+    expect(message.animation).toBe("none");
+    expect(message.radius).toBe("999px");
+  } finally {
+    await context.close();
+  }
 });

@@ -12,11 +12,14 @@ transport, or transaction catalog as an expected-value fixture.
 ## Delivery status
 
 The current delivery completes the read-only transaction foundation and the
-five server-owned transaction flows against the scaffold fixtures. Mutation,
+five server-owned transaction flows against the scaffold fixtures, including
+the metadata-generated Data Browser selection screen, one Dictionary detail
+screen per object kind, the five SE01 selection tabs with per-type request
+number validation, and the SE38 Program/subobject initial screen. Mutation,
 authorization, persistence, activation, release/export, and debugging remain
 explicitly unavailable until the corresponding real backend contracts exist.
-Unchecked items below are either backend-dependent or broader object/type
-coverage beyond this first read-only slice.
+Unchecked items below are either backend-dependent, blocked on a named host
+gap, or verification work beyond this slice.
 
 ## Shared workbench foundation
 
@@ -35,10 +38,11 @@ coverage beyond this first read-only slice.
   Enter/F4/F8 behavior, status actions, Back/Exit/Cancel semantics, messages,
   keyboard focus, and responsive browser fallback without copying SAP GUI
   bitmap assets.
-- [ ] Resolve every submitted request, task, transport object, Dictionary
+- [x] Resolve every submitted request, task, transport object, Dictionary
   object, table, field, program, variant, and row from server-owned metadata.
   Reject unknown, unauthorized, stale, and cross-session identifiers while
-  leaving the current screen usable.
+  leaving the current screen usable. Data Browser criteria address a field by
+  its Dictionary position, so a browser cannot name a field at all.
 - [x] Expose capabilities explicitly. Display-only deployments disable
   Change/Create/Save/Activate/Release/Export/Debug with an honest visible
   explanation; they never report a successful repository, database, or
@@ -46,14 +50,26 @@ coverage beyond this first read-only slice.
 
 ## `SE01` — Transport Organizer (Extended View)
 
-- [ ] Build five separate selection tabs for standard requests, piece lists,
+- [x] Build five separate selection tabs for standard requests, piece lists,
   client transports, delivery transports, and individual display. Preserve
   each tab's criteria and validate request-number conventions by transport type.
-- [ ] Reuse the transport request/task hierarchy and request editor from SE09,
+  Each tab owns a screen with its own criteria fields; the transport service
+  owns the number convention per transport type and rejects a request that
+  belongs to another type.
+- [x] Reuse the transport request/task hierarchy and request editor from SE09,
   while retaining extended request type, source/target system, owner, status,
-  attributes, object list, documentation, and logs.
+  attributes, object list, documentation, and logs. SE09 and SE01 both build
+  and fill the editor through `zcl_gg_system_request_view`.
 - [ ] Implement direct individual-request display and navigation from SE09's
   Extended View action without trusting a browser-supplied request identity.
+  Individual display and the navigation itself are implemented; carrying the
+  request *selected in SE09* into SE01 is blocked on the host. `LEAVE TO
+  TRANSACTION` is terminal, closes the session and starts the target with a
+  fresh one, and the host has no SPA/GPA parameter memory that survives that
+  transition. The only alternatives are process-global handover state, which
+  the cross-session rule above forbids, or a continuation on a terminal
+  transfer, which classic ABAP does not have. Implement session-scoped
+  parameter memory in the host first.
 - [x] Keep special request creation, object-list changes, release, export, and
   transport actions disabled until a real CTS-compatible backend provides
   naming, route, lock, authorization, logging, and failure semantics.
@@ -79,10 +95,12 @@ coverage beyond this first read-only slice.
 - [x] Build the initial object chooser with independent name/value-help input
   per supported Dictionary object type and Display, Change, and Create actions.
   Preserve the selected object type and value after lookup errors.
-- [ ] Implement read-only detail screens from actual Dictionary metadata. Start
+- [x] Implement read-only detail screens from actual Dictionary metadata. Start
   with database tables, structures, data elements, domains, and views, then add
   search helps, lock objects, table types, and type groups without flattening
-  unlike object kinds into one generic property dump.
+  unlike object kinds into one generic property dump. Each kind owns one screen
+  and one detail record; an unsupported kind and an unknown name are rejected
+  with different messages.
 - [x] For tables and views, render stable tabs for attributes, fields, keys,
   data types, lengths/decimals, descriptions, checks/entry help, and technical
   settings. Link Table Contents to `SE16` with validated server-owned context.
@@ -95,9 +113,11 @@ coverage beyond this first read-only slice.
 - [x] Build the Table Name initial screen with F4 help and Table Contents.
   Resolve only Dictionary tables/views allowed by the data-access policy and
   report unknown or forbidden objects without leaking metadata.
-- [ ] Generate the selection screen from actual field metadata, including
+- [x] Generate the selection screen from actual field metadata, including
   typed single/range criteria, include/exclude operators, output-field choice,
   maximum-hit limit, and retained criteria after Back or validation errors.
+  One criteria screen and one result table are generated per permitted table;
+  a criterion carries a field position, never a field name.
 - [x] Execute a parameterized, server-built query. Never accept SQL, arbitrary
   field names, an unbounded row count, or browser-owned sort/filter expressions;
   enforce authorization and a hard maximum before reading data.
@@ -108,20 +128,18 @@ coverage beyond this first read-only slice.
 
 ## `SE38` — ABAP Editor
 
-- [ ] Build the initial Program/subobject screen with F4 help and
+- [x] Build the initial Program/subobject screen with F4 help and
   Display/Change/Create. Preserve the selected program and subobject across
   errors and distinguish missing, inactive, non-executable, and unauthorized
-  programs.
-- [x] Implement read-only Source Code, Attributes, Documentation, Text Elements,
-  and Variants views from the repository service. Source display preserves
+  programs. An inactive or non-executable program stays displayable while
+  execution is refused with its own reason.
+- [x] Implement read-only Source Code, Attributes, Documentation, and Text Elements
+  views from the repository service. Source display preserves
   line numbers and text while escaping every repository value at the HTML
   boundary.
 - [x] Route Execute/F8 through the existing report runtime. Show the program's
   selection screen when present, support direct execution when absent, and
   return list/navigation/messages through the normal host session.
-- [x] Implement With Variant as program → variant selection → populated
-  selection screen → execution. Unknown or incompatible variants are rejected
-  without losing the initial program context.
 - [ ] Add Change/Create, syntax check, Save, and Activate only when edits persist
   to the repository and activation has a real compiler result. Debugging stays
   disabled with a documented capability message until a genuine debugger

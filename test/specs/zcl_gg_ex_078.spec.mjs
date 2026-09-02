@@ -1,12 +1,12 @@
-import {test, expect, openExample, dispatch, submit, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, dispatch, submit, expectPageKind, clickHelp} from "../fixtures.mjs";
 
 test("ZCL_GG_EX_078 - preserves fields around value-help requests", async ({page, host}) => {
   await openExample(page, host, 78);
-  await page.getByRole("button", {name: "Value help for Range"}).click();
-  await page.waitForLoadState("networkidle");
+  await clickHelp(page, "S_RANGE-LOW", "Value help for Range");
+  await page.waitForLoadState("load");
   await expect(page.locator('[name="P_CARRIER"]')).toHaveValue("");
-  await page.getByRole("button", {name: "Value help for Carrier"}).click();
-  await page.waitForLoadState("networkidle");
+  await clickHelp(page, "P_CARRIER", "Value help for Carrier");
+  await page.waitForLoadState("load");
   await expect(page.locator(".gg-value-help li")).toHaveCount(3);
   await dispatch(page, {
     action: "SUBMIT",
@@ -18,4 +18,29 @@ test("ZCL_GG_EX_078 - preserves fields around value-help requests", async ({page
   });
   await expectPageKind(page, "LIST");
   await expect(page.locator(".gg-list-line")).toHaveText(["LH", "AA"]);
+});
+
+test("ZCL_GG_EX_078 - double-clicking a selection value fills the field", async ({page, host}) => {
+  await openExample(page, host, 78);
+  await clickHelp(page, "P_CARRIER", "Value help for Carrier");
+  await page.waitForLoadState("load");
+  const modal = page.getByRole("dialog", {name: "Value help"});
+  await modal.locator(".gg-value-help li").first().dblclick();
+  await expect(page.locator('[name="P_CARRIER"]')).toHaveValue("AA");
+  await expect(modal).toBeHidden();
+});
+
+test("ZCL_GG_EX_078 - F4 reaches the value help of a selection field and of a range row", async ({page, host}) => {
+  await openExample(page, host, 78);
+  await page.locator('[name="P_CARRIER"]').focus();
+  await page.keyboard.press("F4");
+  await page.waitForLoadState("load");
+  await expect(page.locator(".gg-value-help li")).toHaveCount(3);
+
+  await openExample(page, host, 78);
+  await page.locator('[name="S_RANGE-LOW"]').focus();
+  await page.keyboard.press("F4");
+  await page.waitForLoadState("load");
+  await expect(page.locator(".gg-range-row")).toHaveCount(3);
+  await expect(page.locator('[name="S_RANGE-1-LOW"]')).toHaveValue("AA");
 });

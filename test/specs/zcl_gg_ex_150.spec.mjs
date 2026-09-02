@@ -19,7 +19,7 @@ test("ZCL_GG_EX_150 — saves filters through an authorized application action",
   await openExample(page, host, 150);
   await submit(page);
   await page.locator(".gg-cockpit").getByRole("button", {name: "Save filters"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
 
   await expect(page.locator(".gg-list-line").last()).toContainText("filters saved");
   await expect(page.locator(".gg-list-status")).toContainText("FILTERS SAVED");
@@ -29,7 +29,7 @@ test("ZCL_GG_EX_150 — opens the detail dynpro from the cockpit", async ({page,
   await openExample(page, host, 150);
   await submit(page);
   await page.locator(".gg-cockpit").getByRole("button", {name: "Open detail dynpro"}).click();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
 
   await expect(page.locator(".gg-list-line").last()).toContainText("Detail dynpro opened");
 });
