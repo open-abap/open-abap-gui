@@ -10,6 +10,10 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
     assert.equal(await pageA.locator("[data-page-kind]").getAttribute("data-page-kind"), "SELECTION");
     const initialSession = await pageA.locator("[data-page-kind]").getAttribute("data-session-id");
     const initialPage = await pageA.locator("[data-page-kind]").getAttribute("data-page-id");
+    // The screen is only sent on entry, so its validation has not run yet.
+    assert.equal(await pageA.getByRole("alert").count(), 0);
+    await pageA.getByRole("button", {name: "Execute"}).click();
+    await pageA.waitForLoadState("load");
     assert.match(await pageA.getByRole("alert").textContent(), /Enter a carrier/);
 
     await dispatch(pageA, {action: "HELP", target: "P_CARR"});
@@ -17,7 +21,7 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
 
     await pageA.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_HTML_REPORT`);
     await pageA.locator('[name="P_CARR"]').fill("ZZZ");
-    await pageA.getByRole("button", {name: "Continue"}).click();
+    await pageA.getByRole("button", {name: "Execute"}).click();
     await pageA.waitForLoadState("load");
     assert.match(await pageA.getByRole("alert").textContent(), /Unknown carrier/);
     assert.equal(await pageA.locator('[name="P_CARR"]').inputValue(), "ZZZ");
@@ -25,7 +29,7 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
     assert.equal(await pageA.locator('[name="P_CARR"]').evaluate((element) => element === document.activeElement), true);
 
     await pageA.locator('[name="P_CARR"]').fill("LH");
-    await pageA.getByRole("button", {name: "Continue"}).click();
+    await pageA.getByRole("button", {name: "Execute"}).click();
     await pageA.waitForLoadState("load");
     assert.equal(await pageA.locator("[data-page-kind]").getAttribute("data-page-kind"), "LIST");
     assert.match(await pageA.getByText(/LH\/0400/).first().textContent(), /LH\/0400/);
@@ -47,8 +51,8 @@ test("ZCL_GG_INTEGRATION_HTML_REPORT — selection, list, and session isolation"
     await pageB.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_HTML_REPORT`);
     await pageA.locator('[name="P_CARR"]').fill("AA");
     await pageB.locator('[name="P_CARR"]').fill("LH");
-    await pageA.getByRole("button", {name: "Continue"}).click();
-    await pageB.getByRole("button", {name: "Continue"}).click();
+    await pageA.getByRole("button", {name: "Execute"}).click();
+    await pageB.getByRole("button", {name: "Execute"}).click();
     await pageA.waitForLoadState("load");
     await pageB.waitForLoadState("load");
     assert.match(await pageA.getByText(/AA\/0017/).first().textContent(), /AA\/0017/);

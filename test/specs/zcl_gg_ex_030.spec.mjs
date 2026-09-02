@@ -2,8 +2,7 @@ import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.m
 
 test(`ZCL_GG_EX_030 — executes general selection validation`, async ({page, host}) => {
   await openExample(page, host, 30);
-  await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list-line")).toHaveCount(0);
+  await expectPageKind(page, "SELECTION");
   await dispatch(page, {
     action: "SUBMIT",
     values: [{name: "P_N", value: "-1"}],
