@@ -114,6 +114,16 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_attrs) TYPE string.
 
+* Sizes and aligns an input from the type the program declared, so a date, an
+* integer and a long text stop rendering at one shared width. Any caller class
+* is merged in, because a second class attribute would be ignored.
+    CLASS-METHODS field_type_attrs
+      IMPORTING
+        is_data_type    TYPE zif_gg_selection_screen_types=>ty_data_type
+        iv_extra_class  TYPE string OPTIONAL
+      RETURNING
+        VALUE(rv_attrs) TYPE string.
+
     CLASS-METHODS dynpro_attrs
       IMPORTING
         is_state        TYPE zif_gg_dynpro_types_v1=>ty_state
@@ -278,6 +288,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_tab_action TYPE string.
     DATA ls_range TYPE zif_gg_selection_screen_types=>ty_range.
     DATA lv_element_id TYPE string.
+    DATA lv_message_attrs TYPE string.
 
     lv_body = |<section class="gg-selection" aria-label="Selection screen">|.
     lv_body = lv_body && |{ render_messages( it_messages ) }|.
@@ -328,8 +339,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF sy-subrc <> 0.
             CLEAR ls_state.
           ENDIF.
-          lv_body = lv_body && |<div class="gg-field gg-parameter"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }"{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ state_attrs( ls_state ) }{ field_message_attrs( it_messages         = it_messages
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            iv_name = CONV string( ls_element-name ) ) }>|.
+          lv_message_attrs = field_message_attrs(
+            it_messages = it_messages
+            iv_name     = CONV string( ls_element-name ) ).
+          lv_body = lv_body && |<div class="gg-field gg-parameter"><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }"{ field_type_attrs( ls_element-data_type ) }{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ state_attrs( ls_state ) }{ lv_message_attrs }>|.
           lv_body = lv_body && value_help_button( iv_name       = CONV string( ls_element-name )
                                                   iv_label      = CONV string( ls_element-text )
                                                   iv_value_help = xsdbool( ls_element-value_help = abap_true OR ls_state-value_help = abap_true ) ).
@@ -382,16 +395,21 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF lv_range_count = 0.
             lv_range_count = 1.
           ENDIF.
-          lv_body = lv_body && |<fieldset class="gg-range"><legend>{ zcl_gg_host_html=>escape_text( ls_element-text ) }</legend><div class="gg-range-list">|.
+* A select-option reads as one labelled row, like the parameters around it, so
+* its name lines up in the same label column instead of sitting in a framed
+* box of its own. Only a multi-row range needs the row numbers.
+          lv_body = lv_body && |<div class="gg-field gg-range" role="group" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) }"><span class="gg-range-name">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</span><div class="gg-range-list{ COND string( WHEN lv_range_count > 1 THEN ` gg-range-list--numbered` ELSE `` ) }">|.
           DO lv_range_count TIMES.
             CLEAR ls_range.
             READ TABLE ls_value-ranges INTO ls_range INDEX sy-index.
             DATA(lv_row_suffix) = COND string( WHEN lv_range_count = 1 THEN `` ELSE |-{ sy-index }| ).
             DATA(lv_low_name) = |{ lv_range_name }{ lv_row_suffix }-LOW|.
             DATA(lv_high_name) = |{ lv_range_name }{ lv_row_suffix }-HIGH|.
-            lv_body = lv_body && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }"><span class="gg-range-index" aria-hidden="true">{ sy-index }</span><label class="gg-range-label" for="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }">From</label><input class="gg-range-input" type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }"{ state_attrs( ls_state ) }>|.
+            lv_body = lv_body && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }">{ COND string( WHEN lv_range_count > 1 THEN |<span class="gg-range-index" aria-hidden="true">{ sy-index }</span>| ELSE `` ) }<label class="gg-range-label" for="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }">From</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }"{ field_type_attrs( is_data_type   = ls_element-data_type
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            iv_extra_class = `gg-range-input` ) }{ state_attrs( ls_state ) }>|.
             IF ls_element-no_intervals = abap_false.
-              lv_body = lv_body && |<label class="gg-range-label" for="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }">To</label><input class="gg-range-input" type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-high ) }"{ state_attrs( ls_state ) }>|.
+              lv_body = lv_body && |<label class="gg-range-label" for="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }">To</label><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_range-high ) }"{ field_type_attrs( is_data_type   = ls_element-data_type
+                                                                                                                                                                                                                                                                                                                                                                         iv_extra_class = `gg-range-input` ) }{ state_attrs( ls_state ) }>|.
             ENDIF.
             lv_body = lv_body && |<select class="gg-range-select gg-range-sign" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" aria-label="Sign"><option value="I"{ COND string( WHEN ls_range-sign = 'I' THEN ` selected` ELSE `` ) }>Include</option><option value="E"{ COND string( WHEN ls_range-sign = 'E' THEN ` selected` ELSE `` ) }>Exclude</option></select><select class="gg-range-select gg-range-option" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" aria-label="Option"><option value="EQ"{ COND string( WHEN ls_range-option = 'EQ' THEN ` selected` ELSE `` ) }>=</option><option value="BT"{ COND string( WHEN ls_range-option = 'BT' THEN ` selected` ELSE `` ) }>Between</option><option value="CP"{ COND string( WHEN ls_range-option = 'CP' THEN ` selected` ELSE `` ) }>Contains</option></select>|.
             IF sy-index = 1.
@@ -401,7 +419,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             ENDIF.
             lv_body = lv_body && |</div>|.
           ENDDO.
-          lv_body = lv_body && `</div></fieldset>`.
+          lv_body = lv_body && `</div></div>`.
         WHEN 'PUSHBUTTON' OR 'FUNCTION_KEY'.
           lv_body = lv_body && |<button class="gg-selection-button" type="submit" formnovalidate name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</button>|.
         WHEN 'COMMENT'.
@@ -422,14 +440,21 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_body = lv_body && |</fieldset>|.
       lv_open_block = lv_open_block - 1.
     ENDWHILE.
-    lv_body = lv_body && |<div class="gg-field gg-actions"><button type="submit" name="gg_ucomm" value="ONLI">Continue</button><button type="submit" name="gg_action" value="EXIT">Cancel</button></div></form></section>|.
+* Execute carries the ONLI function code. It skips browser validation, as the
+* program-declared pushbuttons above already do, so an empty obligatory field
+* is rejected by the program's own selection-screen validation with a message
+* rather than by a native browser bubble.
+    lv_body = lv_body && |<div class="gg-field gg-actions"><button type="submit" formnovalidate name="gg_ucomm" value="ONLI">Execute</button><button type="submit" name="gg_action" value="EXIT">Cancel</button></div></form></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
       iv_kind       = zif_gg_host_html_v1=>page_selection
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
-      iv_body       = |<header class="gg-selection-heading"><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>{ lv_body }| ).
+* The workbench shell already carries the page title in wb-app-title, the way
+* SAP GUI shows it once in the window title bar. A second heading inside the
+* screen would duplicate it and give the page two h1 elements.
+      iv_body       = lv_body ).
   ENDMETHOD.
 
   METHOD render_dynpro.
@@ -698,6 +723,43 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       rv_text = repeat( val = ` `
                         occ = iv_count ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD field_type_attrs.
+    DATA lv_length TYPE i.
+    DATA lv_class TYPE string.
+
+    lv_length = is_data_type-visible_length.
+    IF lv_length <= 0.
+      lv_length = is_data_type-length.
+    ENDIF.
+
+* Dates and times render at the width of their formatted value, not at the
+* internal length. Numerics keep the declared length and align right.
+    CASE is_data_type-typ.
+      WHEN 'D'.
+        lv_class = `gg-type-date`.
+        lv_length = 10.
+      WHEN 'T'.
+        lv_class = `gg-type-time`.
+        lv_length = 8.
+      WHEN 'I' OR 'P' OR 'N' OR 'F'.
+        lv_class = `gg-type-number`.
+        IF lv_length <= 0.
+          lv_length = 13.
+        ENDIF.
+      WHEN OTHERS.
+        lv_class = `gg-type-text`.
+    ENDCASE.
+
+    IF iv_extra_class IS NOT INITIAL.
+      lv_class = |{ iv_extra_class } { lv_class }|.
+    ENDIF.
+
+    IF lv_length > 0.
+      rv_attrs = | size="{ lv_length }"|.
+    ENDIF.
+    rv_attrs = rv_attrs && | class="{ lv_class }"|.
   ENDMETHOD.
 
   METHOD state_attrs.

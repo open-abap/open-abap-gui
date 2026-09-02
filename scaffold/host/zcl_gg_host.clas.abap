@@ -64,6 +64,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_can_back            TYPE abap_bool DEFAULT abap_false
         iv_pause_at_navigation TYPE abap_bool DEFAULT abap_false
         iv_stop_before_start   TYPE abap_bool DEFAULT abap_false
+        iv_present_selection   TYPE abap_bool DEFAULT abap_false
         is_resume_navigation   TYPE zif_gg_host_html_v1=>ty_navigation OPTIONAL
         is_resume_submit       TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
       RETURNING
@@ -200,6 +201,17 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_values  TYPE zif_gg_selection_screen_types=>ty_values
         io_session TYPE REF TO zcl_gg_host_session.
 
+* True when iv_screen carries at least one element the user can act on, so
+* starting the program interactively has to send that screen first instead of
+* running straight into START-OF-SELECTION. Comments, lines and blank lines
+* alone are not a reason to stop.
+    CLASS-METHODS has_interactive_selection
+      IMPORTING
+        it_elements     TYPE zcl_gg_host_screen=>ty_elements
+        iv_screen       TYPE zif_gg_selection_screen_types=>ty_screen_number
+      RETURNING
+        VALUE(rv_found) TYPE abap_bool.
+
     CLASS-METHODS run_selection_events
       IMPORTING
         io_report           TYPE REF TO zif_gg_report_v1
@@ -212,6 +224,10 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_help_name        TYPE zif_gg_selection_screen_types=>ty_name
         iv_exit_ucomm       TYPE zif_gg_session_types_v1=>ty_ucomm
         it_input            TYPE zif_gg_selection_screen_types=>ty_values
+* True while the screen is only being sent. The PBO events still run so the
+* program can shape the screen, but the validation events belong to PAI and
+* must not fire before the user has submitted anything.
+        iv_initial_display  TYPE abap_bool DEFAULT abap_false
       CHANGING
         ct_values           TYPE zif_gg_selection_screen_types=>ty_values
         ct_states           TYPE zif_gg_selection_screen_types=>ty_states
@@ -311,6 +327,10 @@ CLASS zcl_gg_host IMPLEMENTATION.
           ct_values = ct_values ).
     ENDIF.
 
+    IF iv_initial_display = abap_true.
+      RETURN.
+    ENDIF.
+
     LOOP AT ct_values INTO DATA(ls_value).
       io_session->set_event( 'AT SELECTION-SCREEN ON FIELD' ).
       io_report->at_selection_screen_on_field(
@@ -392,6 +412,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lv_page_id TYPE string.
     DATA lv_display_screen TYPE zif_gg_selection_screen_types=>ty_screen_number.
     DATA lt_elements TYPE zcl_gg_host_screen=>ty_elements.
+    DATA lv_stop_before_start TYPE abap_bool.
 
     lv_session_id = COND #( WHEN iv_session_id IS INITIAL
       THEN next_run_id( ) ELSE iv_session_id ).
@@ -426,6 +447,19 @@ CLASS zcl_gg_host IMPLEMENTATION.
           lo_list->apply_settings( lo_handler->get_settings( lo_session ) ).
         ENDIF.
 
+* Starting a program interactively sends its selection screen and waits for
+* Execute, as SAP GUI does. On that first send only the PBO events run and
+* nothing is validated, so the screen carries no complaint about fields nobody
+* has filled in yet. START-OF-SELECTION follows the user's submit.
+        lv_stop_before_start = iv_stop_before_start.
+        IF lv_stop_before_start = abap_false
+            AND iv_present_selection = abap_true
+            AND iv_batch = abap_false
+            AND has_interactive_selection( it_elements = lt_elements
+                                           iv_screen   = lv_display_screen ) = abap_true.
+          lv_stop_before_start = abap_true.
+        ENDIF.
+
         run_selection_events(
           EXPORTING
             io_report           = io_report
@@ -438,16 +472,19 @@ CLASS zcl_gg_host IMPLEMENTATION.
             iv_help_name        = iv_help_name
             iv_exit_ucomm       = iv_exit_ucomm
             it_input            = it_input
+            iv_initial_display  = lv_stop_before_start
           CHANGING
             ct_values           = lt_values
             ct_states           = lt_states
             ct_radio_groups     = lt_radio_groups
             cs_result           = rs_result ).
 
-        validate_required(
-          it_states  = lt_states
-          it_values  = lt_values
-          io_session = lo_session ).
+        IF lv_stop_before_start = abap_false.
+          validate_required(
+            it_states  = lt_states
+            it_values  = lt_values
+            io_session = lo_session ).
+        ENDIF.
 
         start_or_stop(
           EXPORTING
@@ -457,7 +494,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
             is_resume_navigation       = is_resume_navigation
             is_resume_submit           = is_resume_submit
             it_input                   = it_input
-            iv_stop_before_start       = iv_stop_before_start
+            iv_stop_before_start       = lv_stop_before_start
           CHANGING
             ct_values                  = lt_values
             ct_states                  = lt_states
@@ -1046,6 +1083,18 @@ CLASS zcl_gg_host IMPLEMENTATION.
           ct_states            = ct_states
           cv_ended             = cv_ended ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD has_interactive_selection.
+    LOOP AT it_elements INTO DATA(ls_candidate)
+        WHERE screen = iv_screen.
+      CASE ls_candidate-kind.
+        WHEN 'PARAMETER' OR 'CHECKBOX' OR 'RADIOBUTTON' OR 'LISTBOX'
+            OR 'SELECT_OPTION' OR 'PUSHBUTTON' OR 'FUNCTION_KEY' OR 'TAB'.
+          rv_found = abap_true.
+          RETURN.
+      ENDCASE.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD validate_required.

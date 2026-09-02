@@ -10,7 +10,6 @@ CLASS zcl_gg_analytics_cockpit_base DEFINITION PUBLIC ABSTRACT CREATE PUBLIC.
 
   PRIVATE SECTION.
     DATA mv_saved TYPE abap_bool.
-    DATA mv_selection_opened TYPE abap_bool.
     DATA mv_carrier TYPE string.
     DATA mv_date TYPE string.
 
@@ -117,12 +116,9 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
-    IF mv_selection_opened = abap_false.
-      mv_selection_opened = abap_true.
-      io_session->get_dialog( )->call_selection_screen(
-        is_call         = VALUE #( screen = '1000' )
-        is_continuation = VALUE #( id = 'AFTER_FILTERS' ) ).
-    ENDIF.
+* The host sends the declared selection screen before START-OF-SELECTION, so
+* the filters are already in ct_values by the time the cockpit renders. This
+* used to call selection screen 1000 itself, guarded by a one-shot flag.
     render_cockpit( io_session ).
   ENDMETHOD.
 

@@ -70,7 +70,7 @@ export async function clickHelp(page, fieldName, helpName) {
   await page.getByRole("button", {name: helpName}).click();
 }
 
-export async function submit(page, buttonName = "Continue") {
+export async function submit(page, buttonName = "Execute") {
   await page.getByRole("button", {name: buttonName}).click();
   await page.waitForLoadState("load");
 }

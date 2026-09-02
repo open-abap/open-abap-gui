@@ -13,6 +13,10 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_program               TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
         iv_batch                 TYPE abap_bool DEFAULT abap_false
         iv_selection_screen_only TYPE abap_bool DEFAULT abap_false
+* A report a user starts opens on its selection screen and waits for Execute,
+* so this is on by default. SUBMIT arrives with its values already supplied and
+* passes abap_false; it stops only when it asked for VIA SELECTION-SCREEN.
+        iv_interactive           TYPE abap_bool DEFAULT abap_true
         it_input                 TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
       RETURNING
         VALUE(rs_response)       TYPE zif_gg_host_html_v1=>ty_response.
@@ -124,6 +128,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         iv_batch               = iv_batch
         it_input               = it_input
         iv_stop_before_start   = iv_selection_screen_only
+        iv_present_selection   = iv_interactive
         iv_session_id          = lv_session_id
         iv_page_id             = |{ lv_session_id }-1|
         iv_pause_at_navigation = abap_true ).
@@ -312,6 +317,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       rs_response = start(
         io_report                = lo_report
         it_input                 = ls_dynpro-submit-values
+        iv_interactive           = abap_false
         iv_selection_screen_only = ls_dynpro-submit-via_selection_screen ).
       RETURN.
     ENDIF.

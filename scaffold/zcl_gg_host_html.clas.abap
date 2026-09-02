@@ -219,15 +219,18 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.wb-icon-sprite\{position:absolute;width:0;height:0;overflow:hidden;\}|.
     rv_html = rv_html && |.wb-icon\{display:inline-block;width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;\}|.
     rv_html = rv_html && |.gg-selection\{max-width:100%;padding:0 0 16px;color:#123b64;\}|.
-    rv_html = rv_html && |.gg-selection-heading\{margin:0 0 10px;padding:0 0 8px;border-bottom:1px solid #8da9c5;\}|.
-    rv_html = rv_html && |.gg-selection-heading h1\{margin:0;color:#123b64;font-size:20px;font-weight:600;letter-spacing:-.2px;\}|.
-    rv_html = rv_html && |.gg-selection>form\{display:flex;flex-direction:column;gap:8px;\}|.
+    rv_html = rv_html && |.gg-selection>form\{display:flex;flex-direction:column;gap:2px;\}|.
     rv_html = rv_html && |.gg-selection fieldset\{min-width:0;margin:.75rem 0;padding:.75rem;border:1px solid #8daac4;border-radius:2px;background:linear-gradient(#e3eff8,#d5e6f3);box-shadow:0 1px 4px rgba(34,67,102,.12);\}|.
     rv_html = rv_html && |.gg-selection fieldset>legend\{padding:0 7px;color:#123b64;font-size:13px;font-weight:600;\}|.
     rv_html = rv_html && |.gg-field\{display:flex;gap:.5rem;align-items:center;margin:.35rem 0;\}|.
-    rv_html = rv_html && |.gg-selection .gg-field\{min-height:26px;padding:2px 0;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-selection .gg-field\{min-height:26px;margin:0;padding:1px 0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-selection .gg-field label\{min-width:12rem;color:#123b64;font-weight:400;\}|.
-    rv_html = rv_html && |.gg-selection .gg-parameter>input[type=text],.gg-selection .gg-parameter>select\{width:260px;max-width:100%;\}|.
+* An input is sized by the size attribute the renderer derives from the
+* declared type, so a date, an integer and a long text differ in width the way
+* they do on a dynpro. Only the lower bound is fixed here.
+    rv_html = rv_html && |.gg-selection .gg-parameter>input[type=text]\{width:auto;min-width:5rem;max-width:100%;\}|.
+    rv_html = rv_html && |.gg-selection .gg-parameter>select\{width:auto;min-width:10rem;max-width:100%;\}|.
+    rv_html = rv_html && |.gg-selection .gg-type-number\{text-align:right;\}|.
     rv_html = rv_html && |.gg-selection input[type=text],.gg-selection select\{height:26px;padding:2px 6px;border:1px solid #819db8;border-radius:1px;background:#fff;color:#123b64;box-sizing:border-box;font:inherit;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
     rv_html = rv_html && |.gg-selection input[type=text]:focus,.gg-selection select:focus\{border-color:#5e8fbd;box-shadow:0 0 0 2px rgba(94,143,189,.25),inset 0 1px 2px rgba(54,87,116,.18);outline:0;\}|.
     rv_html = rv_html && |.gg-selection input[required]\{background:#fff1a6;border-color:#d4a000;\}|.
@@ -235,18 +238,24 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection .gg-choice\{gap:8px;min-height:26px;padding:2px 0;\}|.
     rv_html = rv_html && |.gg-selection .gg-choice input[type=checkbox],.gg-selection .gg-choice input[type=radio]\{width:14px;height:14px;margin:0;accent-color:#28679e;\}|.
     rv_html = rv_html && |.gg-selection .gg-choice label\{min-width:0;cursor:pointer;\}|.
-    rv_html = rv_html && |.gg-selection .gg-range\{padding:.6rem .75rem .7rem;background:linear-gradient(#e3eff8,#d5e6f3);border-color:#8daac4;box-shadow:0 1px 4px rgba(34,67,102,.12);\}|.
-    rv_html = rv_html && |.gg-selection .gg-range>legend\{font-size:13px;\}|.
-    rv_html = rv_html && |.gg-range-list\{display:grid;gap:2px;\}|.
-    rv_html = rv_html && |.gg-range-row\{display:grid;grid-template-columns:24px 3rem minmax(8rem,1fr) 3rem minmax(8rem,1fr) minmax(7.5rem,auto) minmax(8.5rem,auto) 22px;align-items:center;gap:5px;min-height:26px;padding:3px 4px;border:0;border-bottom:1px solid #b8ccdc;background:transparent;box-shadow:none;\}|.
-    rv_html = rv_html && |.gg-range-row:last-child\{border-bottom:0;\}|.
+* A select-option is a row in the same label column as the parameters, so the
+* group carries no frame of its own. Row numbers appear only once a range has
+* more than one row to distinguish.
+    rv_html = rv_html && |.gg-selection .gg-range\{align-items:flex-start;padding:1px 0;\}|.
+    rv_html = rv_html && |.gg-range-name\{flex:0 0 auto;min-width:12rem;padding-top:3px;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-range-list\{flex:1 1 auto;min-width:0;display:grid;gap:2px;\}|.
+* The columns are sized by their content, not stretched across the card, so a
+* two character carrier range does not span the full width the way it did.
+    rv_html = rv_html && |.gg-range-row\{display:grid;grid-template-columns:auto auto auto auto auto auto 22px;justify-content:start;align-items:center;gap:5px;min-height:26px;padding:1px 0;border:0;background:transparent;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-range-list--numbered .gg-range-row\{grid-template-columns:24px auto auto auto auto auto auto 22px;\}|.
+    rv_html = rv_html && |.gg-range-list--numbered .gg-range-row--single\{grid-template-columns:24px auto auto auto auto 22px;\}|.
     rv_html = rv_html && |.gg-range-index\{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #8daac4;border-radius:1px;background:#d5e6f3;color:#2c618d;font-size:11px;font-weight:700;\}|.
-    rv_html = rv_html && |.gg-range-label\{font-size:12px;color:#123b64!important;font-weight:400!important;text-transform:none;letter-spacing:0;\}|.
-    rv_html = rv_html && |.gg-range-input\{width:100%;min-width:0;\}|.
-    rv_html = rv_html && |.gg-range-select\{min-width:0;width:100%;padding:2px 6px!important;font-size:13px!important;\}|.
-    rv_html = rv_html && |.gg-range-sign\{min-width:7.5rem;\}|.
-    rv_html = rv_html && |.gg-range-option\{min-width:8.5rem;\}|.
-    rv_html = rv_html && |.gg-range-row--single\{grid-template-columns:24px 3rem minmax(10rem,1fr) minmax(7.5rem,auto) minmax(8.5rem,auto) 22px;\}|.
+* From and To sit next to their own input, so they must not take the 12rem
+* label column that the field labels to their left occupy.
+    rv_html = rv_html && |.gg-range-label\{min-width:0!important;font-size:12px;color:#123b64!important;font-weight:400!important;text-transform:none;letter-spacing:0;\}|.
+    rv_html = rv_html && |.gg-range-input\{width:auto;min-width:5rem;\}|.
+    rv_html = rv_html && |.gg-range-select\{width:auto;min-width:0;padding:2px 6px!important;font-size:13px!important;\}|.
+    rv_html = rv_html && |.gg-range-row--single\{grid-template-columns:3rem minmax(10rem,1fr) minmax(7.5rem,auto) minmax(8.5rem,auto) 22px;\}|.
     rv_html = rv_html && |.gg-selection .gg-actions\{display:flex;justify-content:flex-start;gap:8px;margin:.75rem 0 0;padding:.75rem 0 0;border:0;border-top:1px solid #8daac4;border-radius:0;background:transparent;box-shadow:none;\}|.
     rv_html = rv_html && |.gg-selection .gg-actions:hover\{background:transparent;box-shadow:none;\}|.
     rv_html = rv_html && |.gg-selection button:not(.gg-help-button)\{min-height:26px;padding:2px 12px;border:1px solid #8c8c8c;border-radius:2px;background:linear-gradient(#fefefe,#d9d9d9);color:#163e6b;font:inherit;cursor:pointer;box-shadow:none;\}|.
@@ -264,7 +273,9 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection\{padding-bottom:12px;\}|.
     rv_html = rv_html && |.gg-selection .gg-field\{display:grid;grid-template-columns:1fr;gap:4px;padding:4px 0;\}|.
     rv_html = rv_html && |.gg-selection .gg-field>label\{grid-column:1;min-width:0;\}|.
-    rv_html = rv_html && |.gg-selection .gg-parameter>input[type=text],.gg-selection .gg-parameter>select\{width:100%;max-width:none;\}|.
+    rv_html = rv_html && |.gg-selection .gg-parameter>input[type=text],.gg-selection .gg-parameter>select\{width:100%;min-width:0;max-width:none;\}|.
+    rv_html = rv_html && |.gg-selection .gg-range\{display:grid;grid-template-columns:1fr;gap:4px;\}|.
+    rv_html = rv_html && |.gg-range-name\{min-width:0;padding-top:0;\}|.
     rv_html = rv_html && |.gg-selection fieldset\{padding:.6rem .5rem .7rem;\}|.
     rv_html = rv_html && |.gg-range-row,.gg-range-row--single\{grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:4px;\}|.
     rv_html = rv_html && |.gg-range-index\{grid-column:1 / -1;justify-self:start;\}|.
