@@ -126,6 +126,10 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_html   TYPE string
         iv_status TYPE i DEFAULT 200.
 
+    CLASS-METHODS send_refresh_svg
+      IMPORTING
+        server TYPE REF TO if_http_server.
+
     CLASS-METHODS send_error
       IMPORTING
         server    TYPE REF TO if_http_server
@@ -201,6 +205,10 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
 
     lv_path = server->request->get_header_field( '~path' ).
+    IF lv_path = '/assets/icons/refresh.svg'.
+      send_refresh_svg( server ).
+      RETURN.
+    ENDIF.
     IF lv_path = '/'.
       lo_workbench = NEW zcl_gg_workbench( ).
       send_html( server  = server
@@ -920,6 +928,17 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     server->response->set_status(
       code   = iv_status
       reason = COND string( WHEN iv_status = 200 THEN 'OK' ELSE 'Error' ) ).
+  ENDMETHOD.
+
+  METHOD send_refresh_svg.
+    server->response->set_header_field(
+      name  = 'cache-control'
+      value = 'public, max-age=3600' ).
+    server->response->set_content_type( 'image/svg+xml; charset=utf-8' ).
+    server->response->set_cdata( zcl_gg_host_icons=>refresh_svg( ) ).
+    server->response->set_status(
+      code   = 200
+      reason = 'OK' ).
   ENDMETHOD.
 
   METHOD send_error.

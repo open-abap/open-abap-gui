@@ -201,6 +201,7 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
         lo_root = NEW cl_gui_custom_container( container_name = 'ROOT141' ).
         DATA(lo_list_tree) = NEW cl_gui_list_tree( parent       = lo_root
                                                    with_headers = abap_true ).
+        lo_list_tree->set_visible( abap_false ).
         lo_list_tree->hierarchy_header_set_text( 'Flight hierarchy' ).
         DATA(lo_column_tree) = NEW cl_gui_column_tree(
           parent                = lo_root
@@ -208,6 +209,7 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
           item_selection        = abap_true
           hierarchy_column_name = 'NAME'
           hierarchy_header      = ls_header ).
+        lo_column_tree->set_visible( abap_false ).
         lo_column_tree->add_column( name        = 'STATUS'
                                     width       = 12
                                     header_text = 'Status' ).
