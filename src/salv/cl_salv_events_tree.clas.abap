@@ -1,4 +1,4 @@
-CLASS cl_salv_events_tree DEFINITION PUBLIC.
+CLASS cl_salv_events_tree DEFINITION PUBLIC INHERITING FROM cl_salv_events.
   PUBLIC SECTION.
 
     INTERFACES if_salv_events_tree.
@@ -12,10 +12,6 @@ CLASS cl_salv_events_tree DEFINITION PUBLIC.
       EXPORTING
         VALUE(columnname) TYPE lvc_fname
         VALUE(node_key)   TYPE salv_de_node_key.
-
-    EVENTS added_function
-      EXPORTING
-        VALUE(e_salv_function) TYPE salv_de_function.
 
 ENDCLASS.
 
