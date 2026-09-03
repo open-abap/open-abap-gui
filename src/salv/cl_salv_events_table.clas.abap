@@ -1,8 +1,7 @@
-CLASS cl_salv_events_table DEFINITION PUBLIC.
+CLASS cl_salv_events_table DEFINITION PUBLIC INHERITING FROM cl_salv_events.
   PUBLIC SECTION.
 
     INTERFACES if_salv_events_actions_table.
-    INTERFACES if_salv_events_functions.
 
     EVENTS double_click
       EXPORTING
@@ -13,10 +12,6 @@ CLASS cl_salv_events_table DEFINITION PUBLIC.
       EXPORTING
         VALUE(row)    TYPE salv_de_row
         VALUE(column) TYPE salv_de_column.
-
-    EVENTS added_function
-      EXPORTING
-        VALUE(e_salv_function) TYPE salv_de_function OPTIONAL.
 
 ENDCLASS.
 

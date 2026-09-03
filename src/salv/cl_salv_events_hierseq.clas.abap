@@ -1,4 +1,4 @@
-CLASS cl_salv_events_hierseq DEFINITION PUBLIC.
+CLASS cl_salv_events_hierseq DEFINITION PUBLIC INHERITING FROM cl_salv_events.
   PUBLIC SECTION.
 
     EVENTS link_click
@@ -12,10 +12,6 @@ CLASS cl_salv_events_hierseq DEFINITION PUBLIC.
         VALUE(level)  TYPE i
         VALUE(row)    TYPE i
         VALUE(column) TYPE lvc_fname.
-
-    EVENTS added_function
-      EXPORTING
-        VALUE(e_salv_function) TYPE salv_de_function.
 
 ENDCLASS.
 
