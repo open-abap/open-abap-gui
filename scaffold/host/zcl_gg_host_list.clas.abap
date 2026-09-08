@@ -84,10 +84,6 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_status) TYPE zif_gg_session_types_v1=>ty_gui_status.
 
-    METHODS get_breadcrumbs
-      RETURNING
-        VALUE(rt_breadcrumbs) TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
-
     METHODS get_settings
       RETURNING
         VALUE(rs_settings) TYPE zif_gg_list_processing_types_v1=>ty_settings.
@@ -124,7 +120,6 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA ms_settings  TYPE zif_gg_list_processing_types_v1=>ty_settings.
     DATA ms_format    TYPE zif_gg_list_processing_types_v1=>ty_format.
     DATA ms_status    TYPE zif_gg_session_types_v1=>ty_gui_status.
-    DATA mt_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
     DATA mt_lines     TYPE ty_text_lines.
     DATA mt_line_formats TYPE ty_line_formats.
     DATA mt_hidden_lines TYPE ty_hidden_lines.
@@ -721,18 +716,6 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
         iv_operation = lv_error ).
     ENDIF.
     ms_status = is_status.
-  ENDMETHOD.
-
-  METHOD zif_gg_list_session_v1~set_breadcrumbs.
-    mt_breadcrumbs = it_breadcrumbs.
-  ENDMETHOD.
-
-  METHOD zif_gg_list_session_v1~get_breadcrumbs.
-    rt_breadcrumbs = mt_breadcrumbs.
-  ENDMETHOD.
-
-  METHOD get_breadcrumbs.
-    rt_breadcrumbs = mt_breadcrumbs.
   ENDMETHOD.
 
 ENDCLASS.

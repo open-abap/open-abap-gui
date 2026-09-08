@@ -81,7 +81,6 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_body        TYPE string
         iv_csp_nonce   TYPE string OPTIONAL
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
-        it_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -344,7 +343,6 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
       iv_session_id   = iv_session_id
       iv_page_id      = iv_page_id
       is_status       = is_status
-      it_breadcrumbs  = it_breadcrumbs
       iv_content_form = COND string( WHEN iv_kind = zif_gg_host_html_v1=>page_dynpro THEN `gg-dynpro-form` ELSE `` ) ).
     rv_html = rv_html && |<div class="wb-runtime-content{ lv_content_class }" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main>{ iv_body }</main></div>|.

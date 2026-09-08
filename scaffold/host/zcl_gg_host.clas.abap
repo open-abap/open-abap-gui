@@ -741,7 +741,11 @@ CLASS zcl_gg_host IMPLEMENTATION.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO lt_actions.
       ENDIF.
       IF cl_gui_control=>has_content( ) = abap_true.
-        lv_controls_html = cl_gui_control=>render_html( iv_document = abap_false ).
+        lv_controls_html = cl_gui_control=>render_html(
+          iv_document = abap_false
+          is_sapevent = zcl_gg_host_renderer=>sapevent_transport(
+            iv_session_id = iv_session_id
+            iv_page_id    = iv_page_id ) ).
       ENDIF.
       cs_result-html = zcl_gg_host_renderer=>render_list(
         iv_session_id    = iv_session_id
@@ -752,7 +756,6 @@ CLASS zcl_gg_host IMPLEMENTATION.
         it_actions       = lt_actions
         is_context       = ls_context
         it_messages      = cs_result-messages
-        it_breadcrumbs   = io_list->get_breadcrumbs( )
         iv_controls_html = lv_controls_html ).
     ENDIF.
     IF lv_page_kind <> zif_gg_host_html_v1=>page_navigation.
@@ -762,17 +765,16 @@ CLASS zcl_gg_host IMPLEMENTATION.
     ENDIF.
     cs_result-page_kind = lv_page_kind.
     ls_page = VALUE #(
-      session_id  = iv_session_id
-      page_id     = iv_page_id
-      kind        = lv_page_kind
-      processor   = ls_context-processor
-      status      = cs_result-status
-      breadcrumbs = io_list->get_breadcrumbs( )
-      terminal    = xsdbool( cs_result-terminal IS NOT INITIAL )
-      navigation  = cs_result-navigation
-      messages    = cs_result-messages
-      title       = lv_title
-      html        = cs_result-html ).
+      session_id = iv_session_id
+      page_id    = iv_page_id
+      kind       = lv_page_kind
+      processor  = ls_context-processor
+      status     = cs_result-status
+      terminal   = xsdbool( cs_result-terminal IS NOT INITIAL )
+      navigation = cs_result-navigation
+      messages   = cs_result-messages
+      title      = lv_title
+      html       = cs_result-html ).
     CASE lv_page_kind.
       WHEN zif_gg_host_html_v1=>page_selection.
         APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_submit

@@ -156,6 +156,9 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_150"})).toContainText(
     "Analytics cockpit",
   );
+  await expect(page.getByRole("link", {name: "ZGG_EX_151"})).toContainText(
+    "Full-screen HTML viewer shell",
+  );
   await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(150);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });

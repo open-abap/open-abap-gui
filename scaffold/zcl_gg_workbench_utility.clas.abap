@@ -18,7 +18,6 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_session_id   TYPE string OPTIONAL
         iv_page_id      TYPE string OPTIONAL
         is_status       TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
-        it_breadcrumbs  TYPE zif_gg_session_types_v1=>ty_breadcrumbs OPTIONAL
         iv_content_form TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html)  TYPE string.
@@ -77,12 +76,6 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html)  TYPE string.
 
-    CLASS-METHODS render_breadcrumbs
-      IMPORTING
-        it_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs
-      RETURNING
-        VALUE(rv_html) TYPE string.
-
     CLASS-METHODS is_command_enabled
       IMPORTING
         iv_ucomm          TYPE zif_gg_session_types_v1=>ty_ucomm
@@ -123,10 +116,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-toolbar-button .wb-icon{width:17px;height:17px}' &&
       '.wb-appbar{margin:0;padding:12px 18px;background:linear-gradient(#c9d9e9,#b2c7dc);border:0;border-bottom:1px solid #8da9c5;border-radius:0;color:#132d4b;display:flex;align-items:center;box-sizing:border-box}' &&
       '.wb-app-title{margin:0;font-size:20px;font-weight:600;letter-spacing:-.3px}' &&
-      '.wb-breadcrumbs{padding:5px 18px;background:#eef4fa;border-bottom:1px solid #c5d5e5;color:#4d667f}' &&
-      '.wb-breadcrumbs ol{display:flex;gap:0;margin:0;padding:0;list-style:none}' &&
-      '.wb-breadcrumbs li+li:before{content:"/";padding:0 8px;color:#8ba1b6}' &&
-      '.wb-breadcrumbs span{white-space:nowrap}' &&
       '.wb-toolbar{margin:0;padding:7px 18px;display:flex;gap:5px;background:#dce8f3;border:0;border-bottom:1px solid #a8bfd6;border-radius:0}' &&
       '.wb-toolbar-separator{height:24px;border-left:1px solid #b8c9dc;margin:0 4px}' &&
       '.wb-toolbar-button{height:28px;min-width:32px;border:1px solid #91adca;border-radius:3px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
@@ -180,7 +169,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && |<header class="wb-appbar"><h1 class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       |</h1></header>| &&
-      render_breadcrumbs( it_breadcrumbs ) &&
       render_iconbar(
         iv_runtime      = iv_runtime
         iv_content_form = lv_content_form
@@ -351,21 +339,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && '</form>' &&
       COND string( WHEN iv_error IS INITIAL THEN `` ELSE |<div id="wb-command-error" class="wb-command-error" role="alert" aria-live="assertive">{ zcl_gg_host_html=>escape_text( iv_error ) }</div>| ) &&
       lv_buttons && lv_forms && '</section>'.
-  ENDMETHOD.
-
-  METHOD render_breadcrumbs.
-    IF it_breadcrumbs IS INITIAL.
-      RETURN.
-    ENDIF.
-    rv_html = '<nav class="wb-breadcrumbs" aria-label="Breadcrumb"><ol>'.
-    LOOP AT it_breadcrumbs INTO DATA(ls_breadcrumb).
-      IF ls_breadcrumb-current = abap_true.
-        rv_html = rv_html && |<li><span aria-current="page" data-breadcrumb-target="{ zcl_gg_host_html=>escape_attribute( ls_breadcrumb-target ) }">{ zcl_gg_host_html=>escape_text( ls_breadcrumb-label ) }</span></li>|.
-      ELSE.
-        rv_html = rv_html && |<li><span data-breadcrumb-target="{ zcl_gg_host_html=>escape_attribute( ls_breadcrumb-target ) }">{ zcl_gg_host_html=>escape_text( ls_breadcrumb-label ) }</span></li>|.
-      ENDIF.
-    ENDLOOP.
-    rv_html = rv_html && '</ol></nav>'.
   ENDMETHOD.
 
   METHOD status_attrs.

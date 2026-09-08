@@ -17,6 +17,8 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         parent               TYPE REF TO cl_gui_container
         query_table_disabled TYPE c OPTIONAL.
 
+    METHODS set_registered_events REDEFINITION.
+
     METHODS go_back.
 
     METHODS go_forward
@@ -72,6 +74,14 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_html_viewer IMPLEMENTATION.
+  METHOD set_registered_events.
+* sapevent is the only event this control raises, so registering events on it
+* means the loaded document wants its sapevent anchors dispatched. The generic
+* events table of the base class is not inspected any further.
+    cl_gui_control=>set_sapevent( control    = me
+                                  registered = abap_true ).
+  ENDMETHOD.
+
   METHOD set_ui_flag.
     RETURN. " todo, implement method
   ENDMETHOD.
