@@ -741,7 +741,11 @@ CLASS zcl_gg_host IMPLEMENTATION.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO lt_actions.
       ENDIF.
       IF cl_gui_control=>has_content( ) = abap_true.
-        lv_controls_html = cl_gui_control=>render_html( iv_document = abap_false ).
+        lv_controls_html = cl_gui_control=>render_html(
+          iv_document = abap_false
+          is_sapevent = zcl_gg_host_renderer=>sapevent_transport(
+            iv_session_id = iv_session_id
+            iv_page_id    = iv_page_id ) ).
       ENDIF.
       cs_result-html = zcl_gg_host_renderer=>render_list(
         iv_session_id    = iv_session_id

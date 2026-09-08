@@ -6,6 +6,16 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS html_control_registry FOR TESTING.
     METHODS html_alv_structured_rows FOR TESTING.
     METHODS html_typed_surface FOR TESTING.
+    METHODS html_viewer_sapevent FOR TESTING.
+    METHODS html_viewer_without_sapevent FOR TESTING.
+
+    METHODS viewer_html
+      IMPORTING
+        iv_document    TYPE string
+        iv_register    TYPE abap_bool
+        iv_transport   TYPE abap_bool
+      RETURNING
+        VALUE(rv_html) TYPE string.
 
 ENDCLASS.
 
@@ -196,6 +206,80 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<script>alert(1)</script>' ) ).
     cl_gui_control=>clear( ).
     zcl_gg_host_surface=>clear( ).
+  ENDMETHOD.
+
+  METHOD viewer_html.
+    DATA lt_events TYPE cntl_simple_events.
+    DATA lt_document TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA ls_sapevent TYPE cl_gui_control=>ty_sapevent.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'SAPEVENT' ).
+    DATA(lo_viewer) = NEW cl_gui_html_viewer( parent = lo_container ).
+    IF iv_register = abap_true.
+      APPEND VALUE #( eventid    = cl_gui_html_viewer=>m_id_sapevent
+                      appl_event = abap_true ) TO lt_events.
+      lo_viewer->set_registered_events( lt_events ).
+    ENDIF.
+    APPEND iv_document TO lt_document.
+    lo_viewer->load_data( CHANGING data_table = lt_document ).
+    IF iv_transport = abap_true.
+      ls_sapevent = VALUE #(
+        url          = '/dispatch'
+        action_field = 'ucomm'
+        fields       = VALUE #( ( name = 'session_id' value = 'HOST-1' )
+                                ( name = 'action' value = 'COMMAND' ) ) ).
+    ENDIF.
+    rv_html = cl_gui_control=>render_html( iv_document = abap_false
+                                           is_sapevent = ls_sapevent ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD html_viewer_sapevent.
+    DATA(lv_html) = viewer_html(
+      iv_register  = abap_true
+      iv_transport = abap_true
+      iv_document  = '<p><a class="keep" href="sapevent:STAGE" title="t">Stage &amp; go</a>' &&
+                     '<a href="/manual">plain</a></p>' ).
+
+* The document reaches the browser through srcdoc, so the whole rewritten
+* document is escaped once more on the way out.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'sandbox="allow-forms allow-top-navigation-by-user-activation"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '&lt;form class=&quot;gg-sapevent&quot; method=&quot;post&quot; action=&quot;/dispatch&quot; target=&quot;_top&quot;&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'name=&quot;session_id&quot; value=&quot;HOST-1&quot;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'name=&quot;action&quot; value=&quot;COMMAND&quot;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '&lt;button type=&quot;submit&quot; name=&quot;ucomm&quot; value=&quot;STAGE&quot;' ) ).
+* Everything else the program put on the anchor survives on the button, and
+* the markup the anchor wrapped becomes its label.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class=&quot;keep&quot;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'title=&quot;t&quot;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Stage &amp;amp; go&lt;/button&gt;&lt;/form&gt;' ) ).
+* A link that is not a sapevent stays a link, and no sapevent href is left.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '&lt;a href=&quot;/manual&quot;&gt;plain&lt;/a&gt;' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'sapevent:STAGE' ) ).
+  ENDMETHOD.
+
+  METHOD html_viewer_without_sapevent.
+* No registration and no transport, so the viewer keeps the fully closed
+* sandbox it has always had and the document is left exactly as it was.
+    DATA(lv_unregistered) = viewer_html( iv_register  = abap_false
+                                         iv_transport = abap_true
+                                         iv_document  = '<a href="sapevent:STAGE">Stage</a>' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_unregistered CS 'sandbox=""' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_unregistered CS 'sapevent:STAGE' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_unregistered CS 'gg-sapevent' ) ).
+
+    DATA(lv_no_transport) = viewer_html( iv_register  = abap_true
+                                         iv_transport = abap_false
+                                         iv_document  = '<a href="sapevent:STAGE">Stage</a>' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_no_transport CS 'sandbox=""' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_no_transport CS 'sapevent:STAGE' ) ).
   ENDMETHOD.
 
 ENDCLASS.

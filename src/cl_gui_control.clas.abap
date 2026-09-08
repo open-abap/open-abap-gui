@@ -14,8 +14,26 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
              payload    TYPE string,
              html       TYPE string,
              buttons    TYPE ttb_button,
+             sapevent   TYPE abap_bool,
            END OF ty_snapshot.
     TYPES ty_snapshots TYPE STANDARD TABLE OF ty_snapshot WITH DEFAULT KEY.
+
+    TYPES: BEGIN OF ty_field,
+             name  TYPE string,
+             value TYPE string,
+           END OF ty_field.
+    TYPES ty_fields TYPE STANDARD TABLE OF ty_field WITH DEFAULT KEY.
+
+* How the caller wants a sapevent anchor inside an HTML viewer document to
+* reach the server. SAP GUI turns such an anchor back into an ABAP event; a
+* browser cannot, so the anchor is rewritten into a form that posts these
+* fields plus the anchor's own action under action_field. The control framework
+* knows nothing about the transport itself, only how to build the form.
+    TYPES: BEGIN OF ty_sapevent,
+             url          TYPE string,
+             action_field TYPE string,
+             fields       TYPE ty_fields,
+           END OF ty_sapevent.
 
     DATA parent TYPE REF TO cl_gui_container.
     DATA control_id TYPE string.
@@ -58,6 +76,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
     CLASS-METHODS render_html
       IMPORTING
         iv_document   TYPE abap_bool DEFAULT abap_true
+        is_sapevent   TYPE ty_sapevent OPTIONAL
       RETURNING
         VALUE(result) TYPE string.
 
@@ -152,6 +171,10 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       IMPORTING
         control TYPE REF TO cl_gui_control
         buttons TYPE ttb_button.
+    CLASS-METHODS set_sapevent
+      IMPORTING
+        control    TYPE REF TO cl_gui_control
+        registered TYPE abap_bool.
 
   PRIVATE SECTION.
     CLASS-DATA mv_next_id TYPE i.
@@ -164,6 +187,12 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
     CLASS-METHODS escape
       IMPORTING
         text          TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+    CLASS-METHODS rewrite_sapevent
+      IMPORTING
+        document      TYPE string
+        sapevent      TYPE ty_sapevent
       RETURNING
         VALUE(result) TYPE string.
     CLASS-METHODS safe_url
@@ -248,6 +277,15 @@ CLASS cl_gui_control IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD set_sapevent.
+    READ TABLE mt_snapshots INTO DATA(ls_snapshot)
+      WITH KEY control_id = control->control_id.
+    IF sy-subrc = 0.
+      ls_snapshot-sapevent = registered.
+      MODIFY mt_snapshots FROM ls_snapshot INDEX sy-tabix.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD get_snapshots.
     result = mt_snapshots.
   ENDMETHOD.
@@ -270,6 +308,9 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_html.
+    DATA lv_srcdoc  TYPE string.
+    DATA lv_sandbox TYPE string.
+
     IF iv_document = abap_true.
       result = |<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GUI controls</title><style>.gg-control\{position:absolute;box-sizing:border-box\}.gg-controls\{position:relative;min-height:240px\}.gg-control[hidden]\{display:none\}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible\{outline:2px solid #2668a3;outline-offset:2px\}</style></head><body><main class="gg-controls" aria-label="GUI controls">|.
     ELSE.
@@ -303,7 +344,18 @@ CLASS cl_gui_control IMPLEMENTATION.
           DATA(lv_url) = COND string( WHEN safe_url( ls_snapshot-payload ) = abap_true THEN escape( ls_snapshot-payload ) ELSE '' ).
           result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="PICTURE" role="img" aria-label="Picture"{ lv_hidden }><img src="{ lv_url }" alt="Picture"></div>|.
         WHEN 'HTML_VIEWER'.
-          result = result && |<iframe class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" title="HTML viewer" sandbox=""{ lv_hidden } srcdoc="{ escape( ls_snapshot-payload ) }"></iframe>|.
+          lv_srcdoc = ls_snapshot-payload.
+          CLEAR lv_sandbox.
+          IF ls_snapshot-sapevent = abap_true AND is_sapevent-url IS NOT INITIAL.
+* The document registered sapevent and the caller supplied a transport, so its
+* anchors become forms that submit to it. Submitting a form and, on a real
+* click, replacing the top page are the only two things this needs; scripts
+* stay blocked and the frame keeps its opaque origin.
+            lv_srcdoc = rewrite_sapevent( document = lv_srcdoc
+                                          sapevent = is_sapevent ).
+            lv_sandbox = `allow-forms allow-top-navigation-by-user-activation`.
+          ENDIF.
+          result = result && |<iframe class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" title="HTML viewer" sandbox="{ lv_sandbox }"{ lv_hidden } srcdoc="{ escape( lv_srcdoc ) }"></iframe>|.
         WHEN 'CALENDAR'.
           result = result && |<section class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="CALENDAR" role="group" aria-label="Calendar"{ lv_hidden }>{ ls_snapshot-html }{ escape( ls_snapshot-payload ) }</section>|.
         WHEN 'SELECTOR'.
@@ -392,6 +444,111 @@ CLASS cl_gui_control IMPLEMENTATION.
       mv_width = width.
     ENDIF.
     sync( me ).
+  ENDMETHOD.
+
+  METHOD rewrite_sapevent.
+* Replaces every <a href="sapevent:ACTION">label</a> of the document with a
+* form that posts the caller's fields plus ACTION, and keeps the rest of the
+* document as it is. Only the sapevent href is taken out of the opening tag,
+* so no attribute has to be parsed and everything else the program wrote stays
+* on the button. A sapevent anchor must not sit inside a form of the document
+* itself, because nested forms are dropped by the browser.
+    CONSTANTS lc_marker TYPE string VALUE 'href="sapevent:'.
+    DATA lv_rest       TYPE string.
+    DATA lv_offset     TYPE i.
+    DATA lv_tag_end    TYPE i.
+    DATA lv_close      TYPE i.
+    DATA lv_quote      TYPE i.
+    DATA lv_head       TYPE string.
+    DATA lv_tag        TYPE string.
+    DATA lv_action     TYPE string.
+    DATA lv_attributes TYPE string.
+    DATA lv_form       TYPE string.
+    DATA ls_field      TYPE ty_field.
+
+    lv_rest = document.
+    WHILE lv_rest IS NOT INITIAL.
+      FIND FIRST OCCURRENCE OF '<a' IN lv_rest MATCH OFFSET lv_offset.
+      IF sy-subrc <> 0.
+        EXIT.
+      ENDIF.
+      result = result && substring( val = lv_rest
+                                    len = lv_offset ).
+      lv_rest = substring( val = lv_rest
+                           off = lv_offset ).
+      IF strlen( lv_rest ) < 3.
+        EXIT.
+      ENDIF.
+
+* <abbr>, <article> and friends start with <a as well. Both operands are
+* strings, so the trailing blank of the opening tag is significant here.
+      lv_head = substring( val = lv_rest
+                           len = 3 ).
+      IF lv_head <> `<a ` AND lv_head <> `<a>`.
+        result = result && substring( val = lv_rest
+                                      len = 2 ).
+        lv_rest = substring( val = lv_rest
+                             off = 2 ).
+        CONTINUE.
+      ENDIF.
+
+      FIND FIRST OCCURRENCE OF '>' IN lv_rest MATCH OFFSET lv_tag_end.
+      IF sy-subrc <> 0.
+        EXIT.
+      ENDIF.
+      lv_tag = substring( val = lv_rest
+                          len = lv_tag_end + 1 ).
+      FIND FIRST OCCURRENCE OF lc_marker IN lv_tag MATCH OFFSET lv_offset.
+      IF sy-subrc <> 0.
+* An ordinary link of the document, left untouched.
+        result = result && lv_tag.
+        lv_rest = substring( val = lv_rest
+                             off = lv_tag_end + 1 ).
+        CONTINUE.
+      ENDIF.
+
+      lv_action = substring( val = lv_tag
+                             off = lv_offset + strlen( lc_marker ) ).
+      FIND FIRST OCCURRENCE OF '"' IN lv_action MATCH OFFSET lv_quote.
+      IF sy-subrc <> 0.
+        result = result && lv_tag.
+        lv_rest = substring( val = lv_rest
+                             off = lv_tag_end + 1 ).
+        CONTINUE.
+      ENDIF.
+      lv_action = substring( val = lv_action
+                             len = lv_quote ).
+      lv_attributes = substring( val = lv_tag
+                                 off = 2
+                                 len = lv_tag_end - 2 ).
+      REPLACE FIRST OCCURRENCE OF |{ lc_marker }{ lv_action }"| IN lv_attributes WITH ``.
+
+      lv_form = |<form class="gg-sapevent" method="post" action="{ escape( sapevent-url ) }" target="_top">|.
+      LOOP AT sapevent-fields INTO ls_field.
+        lv_form = lv_form && |<input type="hidden" name="{ escape( ls_field-name ) }"| &&
+          | value="{ escape( ls_field-value ) }">|.
+      ENDLOOP.
+* The action is taken out of an attribute of the document and put back into
+* one, so it is already escaped at exactly the level it is needed at.
+      lv_form = lv_form && |<button type="submit" name="{ escape( sapevent-action_field ) }"| &&
+        | value="{ lv_action }"{ lv_attributes }>|.
+      result = result && lv_form.
+      lv_rest = substring( val = lv_rest
+                           off = lv_tag_end + 1 ).
+
+* Whatever the anchor wrapped becomes the label of the button.
+      FIND FIRST OCCURRENCE OF '</a>' IN lv_rest MATCH OFFSET lv_close.
+      IF sy-subrc <> 0.
+        result = result && lv_rest && |</button></form>|.
+        CLEAR lv_rest.
+        EXIT.
+      ENDIF.
+      result = result && substring( val = lv_rest
+                                    len = lv_close ) && |</button></form>|.
+      lv_rest = substring( val = lv_rest
+                           off = lv_close + 4 ).
+    ENDWHILE.
+    result = result && lv_rest.
   ENDMETHOD.
 
   METHOD escape.

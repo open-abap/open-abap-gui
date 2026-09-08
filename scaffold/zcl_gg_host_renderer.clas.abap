@@ -12,6 +12,17 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+    "! How a sapevent anchor of an HTML viewer document reaches this host. It
+    "! is the same dispatch the rest of the page posts to, so a click inside
+    "! the control produces one host page like every other command, and the
+    "! function code is still checked against the status of the current page.
+    CLASS-METHODS sapevent_transport
+      IMPORTING
+        iv_session_id      TYPE string
+        iv_page_id         TYPE string
+      RETURNING
+        VALUE(rs_sapevent) TYPE cl_gui_control=>ty_sapevent.
+
     CLASS-METHODS render_list
       IMPORTING
         iv_session_id    TYPE string
@@ -174,6 +185,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
     DATA(lv_navigation) = |<nav class="gg-navigation" aria-label="Host navigation" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span></nav>|.
     REPLACE FIRST OCCURRENCE OF '<main>' IN rv_html WITH |<main>{ lv_navigation }|.
+  ENDMETHOD.
+
+  METHOD sapevent_transport.
+    rs_sapevent = VALUE #(
+      url          = '/dispatch'
+      action_field = 'ucomm'
+      fields       = VALUE #(
+        ( name = 'session_id' value = iv_session_id )
+        ( name = 'page_id'    value = iv_page_id )
+        ( name = 'action'     value = zif_gg_host_html_v1=>action_command ) ) ).
   ENDMETHOD.
 
   METHOD render_list.
