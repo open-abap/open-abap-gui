@@ -4,7 +4,9 @@ import {test, expect, openExample} from "../fixtures.mjs";
 // spreads across workers rather than pinning a single one for ~19s.
 test.describe.configure({mode: "parallel"});
 
-const plan7Examples = Array.from({length: 92}, (_, index) => index + 59);
+// 65 is a gap: it demonstrated the breadcrumb band, which the shell no longer has.
+const plan7Examples = Array.from({length: 92}, (_, index) => index + 59)
+  .filter((number) => number !== 65);
 const batchSize = 12;
 
 async function auditExample(page, host, number) {

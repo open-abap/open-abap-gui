@@ -292,7 +292,6 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
 
   METHOD publish_status.
     DATA ls_status TYPE zif_gg_session_types_v1=>ty_gui_status.
-    DATA lt_breadcrumbs TYPE zif_gg_session_types_v1=>ty_breadcrumbs.
     DATA lt_repositories TYPE ty_repositories.
     DATA ls_repository TYPE ty_repository.
 
@@ -300,18 +299,7 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    APPEND VALUE #( label   = 'Repositories'
-                    target  = c_page_home
-                    current = xsdbool( ms_cur_page-name = c_page_home ) )
-      TO lt_breadcrumbs.
-
     IF ms_cur_page-name = c_page_repo.
-      lt_repositories = repositories( ).
-      READ TABLE lt_repositories INTO ls_repository
-        WITH KEY ucomm = ms_cur_page-repo.
-      APPEND VALUE #( label   = ls_repository-name
-                      target  = c_page_repo
-                      current = abap_true ) TO lt_breadcrumbs.
       ls_status = VALUE #(
         status       = 'REPOSITORY'
         active_ucomm = VALUE #( ( c_action-stage ) ( c_action-refresh ) ( c_action-go_back ) )
@@ -338,7 +326,6 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
     ENDIF.
 
     mo_session->get_list( )->set_status( ls_status ).
-    mo_session->get_list( )->set_breadcrumbs( lt_breadcrumbs ).
   ENDMETHOD.
 
   METHOD render_home.

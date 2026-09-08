@@ -39,11 +39,9 @@ their enabled state. An initial icon bar omits the application toolbar; the
 workbench index never supplies fallback buttons. Unknown icon names resolve to
 the shared safe fallback icon through `zcl_gg_host_icons`.
 
-Example 65 is intentionally browser-only: typed application breadcrumb state is
-available through the list session API, while classic list processing has no
-equivalent typed state to claim as a parallel `zgg_ex_065` report. Its labels and
-targets remain server-owned page data; targets are metadata, never generated
-links.
+The runtime chrome has no breadcrumb band. A program that wants to show where
+the user is puts that in its own page content, next to the rest of what it
+renders, rather than handing typed crumbs to the shell.
 
 ## Transaction commands and navigation
 

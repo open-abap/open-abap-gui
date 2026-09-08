@@ -91,8 +91,6 @@ test("ZCL_GG_EX_151 — opens a repository page from the declared icon bar", asy
   await page.waitForLoadState("load");
 
   await expect(page.locator(".gg-list-status")).toHaveText("REPOSITORY");
-  const breadcrumbs = page.getByRole("navigation", {name: "Breadcrumb"});
-  await expect(breadcrumbs.locator('[aria-current="page"]')).toHaveText("$ZDEMO_BETA");
 
   const document = page.frameLocator('[title="HTML viewer"]');
   await expect(document.locator("header")).toHaveText("$ZDEMO_BETA");

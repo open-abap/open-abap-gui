@@ -97,7 +97,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Edit"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Refresh"})).toHaveCount(0);
   await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
-  await expect(page.locator(".wb-app-list > li")).toHaveCount(157);
+  await expect(page.locator(".wb-app-list > li")).toHaveCount(156);
   await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
@@ -159,7 +159,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_151"})).toContainText(
     "Full-screen HTML viewer shell",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(151);
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(150);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 

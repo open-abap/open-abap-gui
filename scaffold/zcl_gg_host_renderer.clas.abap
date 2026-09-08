@@ -33,7 +33,6 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_status        TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
         it_actions       TYPE zif_gg_host_html_v1=>ty_actions OPTIONAL
         it_messages      TYPE zcl_gg_host_session=>ty_messages OPTIONAL
-        it_breadcrumbs   TYPE zif_gg_session_types_v1=>ty_breadcrumbs OPTIONAL
         iv_controls_html TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html)   TYPE string.
@@ -290,14 +289,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
     lv_body = lv_body && |</section>|.
     rv_html = zcl_gg_host_html=>document(
-      iv_session_id  = iv_session_id
-      iv_page_id     = iv_page_id
-      iv_kind        = zif_gg_host_html_v1=>page_list
-      iv_title       = iv_title
-      iv_csp_nonce   = is_context-csp_nonce
-      is_status      = is_status
-      it_breadcrumbs = it_breadcrumbs
-      iv_body        = |<header><p class="gg-list-status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header>{ render_messages( it_messages ) }<nav aria-label="List actions">{ lv_nav }</nav><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }</form>| ).
+      iv_session_id = iv_session_id
+      iv_page_id    = iv_page_id
+      iv_kind       = zif_gg_host_html_v1=>page_list
+      iv_title      = iv_title
+      iv_csp_nonce  = is_context-csp_nonce
+      is_status     = is_status
+      iv_body       = |<header><p class="gg-list-status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header>{ render_messages( it_messages ) }<nav aria-label="List actions">{ lv_nav }</nav><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }</form>| ).
   ENDMETHOD.
 
   METHOD render_selection.

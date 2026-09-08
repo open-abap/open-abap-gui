@@ -180,13 +180,6 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            icon_bar       TYPE ty_icon_bar,
            END OF ty_gui_status.
 
-  TYPES: BEGIN OF ty_breadcrumb,
-           label   TYPE string,
-           target  TYPE string,
-           current TYPE abap_bool,
-         END OF ty_breadcrumb.
-  TYPES ty_breadcrumbs TYPE STANDARD TABLE OF ty_breadcrumb WITH DEFAULT KEY.
-
   TYPES: BEGIN OF ty_dialog_cursor,
            field TYPE ty_name,
            row   TYPE i,
