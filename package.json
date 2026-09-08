@@ -21,8 +21,8 @@
   "dependencies": {
     "@abaplint/cli": "^2.120.44",
     "@abaplint/database-sqlite": "^2.13.40",
-    "@abaplint/runtime": "^2.13.78",
-    "@abaplint/transpiler-cli": "^2.13.78",
+    "@abaplint/runtime": "^2.13.79",
+    "@abaplint/transpiler-cli": "^2.13.80",
     "express": "^4.22.2",
     "playwright": "^1.62.1"
   },
@@ -46,7 +46,7 @@
     "url": "^0.11.4",
     "util": "^0.12.5",
     "vm-browserify": "^1.1.2",
-    "webpack": "^5.110.2",
+    "webpack": "^5.110.3",
     "webpack-cli": "^7.2.3"
   }
 }
