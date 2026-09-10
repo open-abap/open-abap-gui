@@ -73,7 +73,7 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS escape
       IMPORTING
-        text          TYPE string
+        text          TYPE clike
       RETURNING
         VALUE(result) TYPE string.
 
