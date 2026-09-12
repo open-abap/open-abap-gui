@@ -6,6 +6,29 @@ import {createWorkbenchPreviewHandlers} from "../converter/src/workbench-http.mj
 
 const outputRoot = path.resolve(process.env.OPEN_ABAP_GUI_OUTPUT ?? "output");
 await import(pathToFileURL(path.join(outputRoot, "init.mjs")).href);
+
+function applyFixedSystemFields() {
+  const system = globalThis.abap?.builtin?.sy?.get?.();
+  if (!system) return;
+  const fields = {
+    datum: process.env.OPEN_ABAP_GUI_FIXED_DATE,
+    datlo: process.env.OPEN_ABAP_GUI_FIXED_DATE,
+    uzeit: process.env.OPEN_ABAP_GUI_FIXED_TIME,
+    timlo: process.env.OPEN_ABAP_GUI_FIXED_TIME,
+    uname: process.env.OPEN_ABAP_GUI_FIXED_USER,
+    host: process.env.OPEN_ABAP_GUI_FIXED_HOST,
+    sysid: process.env.OPEN_ABAP_GUI_FIXED_SYSID,
+    mandt: process.env.OPEN_ABAP_GUI_FIXED_MANDT,
+    langu: process.env.OPEN_ABAP_GUI_FIXED_LANG,
+    zonlo: process.env.OPEN_ABAP_GUI_FIXED_TIMEZONE,
+  };
+  for (const [name, value] of Object.entries(fields)) {
+    if (value !== undefined && system[name]?.set) system[name].set(value);
+  }
+  if (process.env.OPEN_ABAP_GUI_FIXED_TIMEZONE === "UTC" && system.tzone?.set) system.tzone.set(0);
+}
+
+applyFixedSystemFields();
 const {cl_express_icf_shim} = await import(
   pathToFileURL(path.join(outputRoot, "cl_express_icf_shim.clas.mjs")).href);
 const converterWorkbench = createWorkbenchPreviewHandlers();

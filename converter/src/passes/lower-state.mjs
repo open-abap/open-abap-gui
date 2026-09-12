@@ -1,5 +1,5 @@
 export function buildStatePlan(ir) {
-  const globals = ir.declarations.filter((item) => item.statement?.scope !== "local" && ["data", "static", "tables"].includes(item.kind)).flatMap((item) => item.names ?? []);
+  const globals = ir.declarations.filter((item) => item.statement?.scope !== "local" && !item.statement?.localClassName && ["data", "static", "tables", "ranges"].includes(item.kind)).flatMap((item) => item.names ?? []);
   const selections = ir.selections
     .flatMap((screen) => screen.elements)
     .filter((item) => ["parameter", "select-option"].includes(item.kind) && item.name)

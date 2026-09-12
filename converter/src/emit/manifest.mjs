@@ -1,5 +1,6 @@
 import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
 import { sortDiagnostics } from "../diagnostics.mjs";
+import { compatibilityAdapter, functionModuleName } from "../function-modules.mjs";
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -9,6 +10,10 @@ function stable(value) {
 
 export function createManifest(ir, diagnostics, options) {
   const features = [...new Set(ir.features)].sort();
+  const compatibilityAdapters = [...new Set((ir.statements ?? [])
+    .map((statement) => functionModuleName(statement.text))
+    .filter((name) => name && compatibilityAdapter(name)))]
+    .sort();
   return stable({
     converterVersion: options.converterVersion ?? CONVERTER_VERSION,
     manifestSchema: MANIFEST_SCHEMA_VERSION,
@@ -17,12 +22,16 @@ export function createManifest(ir, diagnostics, options) {
     sourceFilename: ir.source.filename,
     sourceHash: ir.source.sourceHash,
     targetClass: ir.targetClassName,
+    helperClasses: (ir.localClasses ?? []).map((localClass) => ({ sourceName: localClass.name, targetClass: localClass.generatedName })).filter((item) => item.targetClass),
     transactionCode: ir.transactionCode,
     programKind: ir.programKind,
     interfaces: [...ir.interfaces].sort(),
     includes: ir.units.map((unit) => unit.filename).sort(),
     metadataInputs: {
       dynpro: Boolean(ir.dynproMetadata),
+      screenProvider: Boolean(ir.screenMetadata),
+      ddicTypes: Boolean(options.ddicTypes ?? options.dictionaryTypes ?? options.dictionary),
+      compatibilityAdapters,
       messages: ir.messageMetadata ?? { supplied: false },
       resolvedTypes: Object.keys(ir.resolvedTypes ?? {}).sort(),
     },

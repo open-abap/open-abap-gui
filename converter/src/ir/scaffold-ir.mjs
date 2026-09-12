@@ -36,7 +36,8 @@ function selectionOperations(screenBuilder) {
     }
     for (const flow of screenBuilder.dynproMetadata?.flowLogic ?? []) {
       for (const phase of ["pbo", "pai", "pov", "poh"]) {
-        for (const module of flow[phase] ?? []) operations.push({ kind: `flow-${phase}`, screen: flow.screen, name: module.name ?? module });
+        const modules = Array.isArray(flow[phase]) ? flow[phase] : flow[phase]?.modules ?? [];
+        for (const module of modules) operations.push({ kind: `flow-${phase}`, screen: flow.screen, field: module.field ?? flow[phase]?.field, name: module.name ?? module });
       }
     }
     return operations;

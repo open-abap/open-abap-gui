@@ -43,25 +43,25 @@ contract.
 
 ## Phase 0 - make the comparison reproducible
 
-- [ ] Extend `converter/test/gg-gui.mjs` to write a comparison index with the
+- [x] Extend `converter/test/gg-gui.mjs` to write a comparison index with the
   generated image, reference image, optional diff image, conversion status,
   diagnostics, and reference dimensions on one card per report.
-- [ ] Reuse the existing screenshot-diff implementation instead of introducing
+- [x] Reuse the existing screenshot-diff implementation instead of introducing
   a second pixel engine, but allow separate native-reference and browser image
   dimensions and a documented content-region crop.
-- [ ] Fix the browser capture at 1299 x 1009 or record the deliberate viewport
+- [x] Fix the browser capture at 1299 x 1009 or record the deliberate viewport
   transform in the comparison metadata; do not compare a 1440 x 900 browser
   page to a 1299 x 1009 desktop capture without normalization.
-- [ ] Freeze dates, times, user names, local paths, URLs, and sample rows so
+- [x] Freeze dates, times, user names, local paths, URLs, and sample rows so
   `HVAM`, timestamps, temporary directories, and current dates do not create
   false visual changes.
-- [ ] Define three comparison gates per report: semantic content, interactive
+- [x] Define three comparison gates per report: semantic content, interactive
   behavior, and visual structure. Pixel similarity alone must not pass a
   non-working control.
-- [ ] Verify the provenance and intended screen state of `ZGG_GUI_SUBSCREENS`
+- [x] Verify the provenance and intended screen state of `ZGG_GUI_SUBSCREENS`
   and `ZGG_GUI_DIALOGS_HELP`; replace stale reference images upstream or mark
   the correct initial state explicitly before accepting a visual result.
-- [ ] Record intentional reference fallbacks for `ZGG_GUI_SALV_TABLE`,
+- [x] Record intentional reference fallbacks for `ZGG_GUI_SALV_TABLE`,
   `ZGG_GUI_GRAPHICS`, and `ZGG_GUI_ILI_DRAGDROP` so future work does not replace
   honest capability messages with fake native success.
 
@@ -72,36 +72,36 @@ The 50 generated manifests currently contain 1,921 `GGCONV-E501`, 170
 entries. These are occurrences rather than unique root causes; shared lowering
 work should eliminate them family by family.
 
-- [ ] Add report-owned dynpro metadata loading from `.prog.xml` and all matching
+- [x] Add report-owned dynpro metadata loading from `.prog.xml` and all matching
   `.prog.screen_NNNN.abap` files, including screen geometry, attributes,
   elements, flow logic, GUI status, titlebar, subscreens, and next-screen
   relationships.
-- [ ] Define a report-plus-screen-provider contract so a converted executable
+- [x] Define a report-plus-screen-provider contract so a converted executable
   report can expose dynpros without violating the existing single application
   kind and registry rules.
-- [ ] Lower global `TYPES`, structured types, ranges, internal tables, constants,
+- [x] Lower global `TYPES`, structured types, ranges, internal tables, constants,
   field symbols, and data declarations into legal class-pool scopes while
   preserving initialization order.
-- [ ] Resolve the DDIC types used by gg-gui (`LVC`, `SLIS`, `SALV`, screen,
+- [x] Resolve the DDIC types used by gg-gui (`LVC`, `SLIS`, `SALV`, screen,
   toolbar, tree, color, icon, and demo data types) through an explicit resolver;
   never invent a shape when metadata is missing.
-- [ ] Hoist report-local classes into collision-free generated helper classes,
+- [x] Hoist report-local classes into collision-free generated helper classes,
   preserve inheritance and event-handler declarations, and map their private
   state without widening visibility.
-- [ ] Fix generated method signatures and declaration placement responsible for
+- [x] Fix generated method signatures and declaration placement responsible for
   `GGCONV-E204`, including event methods, table parameters, returning values,
   and references to local helper types.
-- [ ] Lower static local `FORM` calls and event blocks with ordered control flow,
+- [x] Lower static local `FORM` calls and event blocks with ordered control flow,
   including suspension and continuation at selection-screen, dynpro, popup,
   list, and transaction boundaries.
-- [ ] Add typed compatibility adapters for the finite function-module families
+- [x] Add typed compatibility adapters for the finite function-module families
   used by gg-gui: popup/dialog, classic ALV, dynamic selections, F4/help,
   variants, list navigation, frontend services, and capability probing.
-- [ ] Split the broad `GGCONV-E501` category into actionable diagnostics for
+- [x] Split the broad `GGCONV-E501` category into actionable diagnostics for
   control construction, control methods, event registration, function-module
   adapters, frontend operations, dynamic type creation, and unsupported ABAP
   statements.
-- [ ] Preserve text symbols and selection texts from report metadata so labels,
+- [x] Preserve text symbols and selection texts from report metadata so labels,
   tab captions, headings, and button text do not degrade to variable names.
 - [ ] Emit runnable application content when only an optional feature is
   unsupported; reserve the whole-page diagnostic shell for failures that make

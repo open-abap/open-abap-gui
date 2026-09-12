@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <PROGDIR>
+    <NAME>ZTEXT_METADATA</NAME>
+   </PROGDIR>
+   <TPOOL>
+    <item><ID>R</ID><ENTRY>Metadata-backed selection</ENTRY><LENGTH>26</LENGTH></item>
+    <item><ID>S</ID><KEY>001</KEY><ENTRY>Text from metadata</ENTRY><LENGTH>19</LENGTH></item>
+    <item><ID>S</ID><KEY>002</KEY><ENTRY>Main block heading</ENTRY><LENGTH>18</LENGTH></item>
+    <item><ID>S</ID><KEY>003</KEY><ENTRY>Apply metadata</ENTRY><LENGTH>15</LENGTH></item>
+    <item><ID>S</ID><KEY>P_TEXT</KEY><ENTRY>Text value</ENTRY><LENGTH>10</LENGTH></item>
+    <item><ID>S</ID><KEY>TAB_ONE</KEY><ENTRY>First tab</ENTRY><LENGTH>9</LENGTH></item>
+   </TPOOL>
+  </asx:values>
+ </asx:abap>
+</abapGit>

@@ -1,17 +1,52 @@
 const DECLARATION_KINDS = new Set([
-  "Data", "DataBegin", "DataEnd", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Type", "TypeBegin", "TypeEnd", "Constant", "Static", "FieldSymbol",
+  "Data", "DataBegin", "DataEnd", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "Constant", "Static", "FieldSymbol",
 ]);
 
-function firstNames(raw, keyword) {
+function splitDeclarationParts(body) {
+  const parts = [];
+  let current = "";
+  let quoted = false;
+  let depth = 0;
+  for (let index = 0; index < body.length; index++) {
+    const char = body[index];
+    if (char === "'" && quoted && body[index + 1] === "'") {
+      current += "''";
+      index++;
+    } else if (char === "'") {
+      quoted = !quoted;
+      current += char;
+    } else if (!quoted && char === "(") {
+      depth++;
+      current += char;
+    } else if (!quoted && char === ")") {
+      depth = Math.max(0, depth - 1);
+      current += char;
+    } else if (!quoted && depth === 0 && char === ",") {
+      parts.push(current.trim());
+      current = "";
+    } else current += char;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+}
+
+export function declarationEntries(raw, keyword) {
   const body = raw.replace(new RegExp(`^\\s*${keyword}\\s*:??\\s*`, "i"), "").replace(/\.$/, "");
-  return body.split(",").map((part) => /^\s*([A-Z][A-Z0-9_]*)/i.exec(part)?.[1]?.toUpperCase()).filter(Boolean);
+  return splitDeclarationParts(body).map((part) => {
+    const match = /^([A-Z][A-Z0-9_]*)\s*(.*)$/i.exec(part);
+    return match ? { name: match[1].toUpperCase(), definition: match[2].trim() } : undefined;
+  }).filter(Boolean);
+}
+
+function firstNames(raw, keyword) {
+  return declarationEntries(raw, keyword).map((entry) => entry.name);
 }
 
 export function declarationInfo(statement) {
   const raw = statement.text.replace(/\s+/g, " ").trim();
   if (["Data", "Constant", "Static"].includes(statement.kind)) {
     const keyword = { Data: "DATA", Constant: "CONSTANTS", Static: "STATICS" }[statement.kind];
-    return { kind: statement.kind === "Data" ? "data" : statement.kind === "Constant" ? "constant" : "static", names: firstNames(raw, keyword), raw, complex: statement.kind === "Data" && /\bBEGIN\s+OF\b|\bEND\s+OF\b/i.test(raw) };
+    return { kind: statement.kind === "Data" ? "data" : statement.kind === "Constant" ? "constant" : "static", names: firstNames(raw, keyword), entries: declarationEntries(raw, keyword), raw, complex: statement.kind === "Data" && /\bBEGIN\s+OF\b|\bEND\s+OF\b/i.test(raw) };
   }
   if (statement.kind === "FieldSymbol") {
     const names = [...raw.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)].map((match) => match[1].toUpperCase());
@@ -29,9 +64,13 @@ export function declarationInfo(statement) {
     const match = /^TABLES\s+([A-Z][A-Z0-9_]*)/i.exec(raw);
     return { kind: "tables", names: match?.[1] ? [match[1].toUpperCase()] : [], raw };
   }
+  if (statement.kind === "Ranges") {
+    const match = /^RANGES\s+([A-Z][A-Z0-9_]*)\s+FOR\s+(.+)$/i.exec(raw.replace(/\.$/, ""));
+    return { kind: "ranges", names: match?.[1] ? [match[1].toUpperCase()] : [], target: match?.[2]?.trim().toUpperCase(), raw };
+  }
   if (statement.kind === "Type") {
     const match = /^TYPES\s+([A-Z][A-Z0-9_]*)/i.exec(raw);
-    return { kind: "type", names: match?.[1] ? [match[1].toUpperCase()] : [], raw };
+    return { kind: "type", names: match?.[1] ? [match[1].toUpperCase()] : [], typeExpression: match?.[1] ? raw.replace(/^TYPES\s+[A-Z][A-Z0-9_]*\s*/i, "").replace(/\.$/, "").trim() : undefined, raw };
   }
   if (statement.kind === "TypeBegin") {
     const match = /^TYPES\s+BEGIN\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(raw);

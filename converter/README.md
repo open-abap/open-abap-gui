@@ -14,8 +14,9 @@ const result = await convertProgram({
 });
 ```
 
-`result` contains `classSource`, serializable `reportIR` and `scaffoldIR` values,
-a stable JSON-ready `manifest`, source maps, diagnostics, and the `supported`
+`result` contains `classSource`, optional `helperSources` for hoisted report-local
+classes, serializable `reportIR` and `scaffoldIR` values, a stable JSON-ready
+`manifest`, source maps, diagnostics, and the `supported`
 flag. Strict mode returns no class source when an error diagnostic exists.
 Partial mode emits a compilable skeleton with explicit `TODO GGCONV-*` comments
 for unsupported semantics.
@@ -75,6 +76,37 @@ Unresolved DDIC references produce `GGCONV-E301` rather than an invented type.
 Generated selection callbacks hydrate private `mv_*` state from scaffold
 values and flush changes back to `ct_values` for mutable callbacks.
 
+Report-local classes are emitted as separate, collision-free global helper class
+sources. Their class-definition visibility sections, inheritance, method/event
+declarations, and private attributes are retained. The generated report grants
+only those helpers friendship, so helper methods can use report state without
+promoting that state to public visibility.
+
+The pinned gg-gui validation uses the exported `GG_GUI_DDIC_TYPES` inventory.
+Its entries identify classic LVC, SLIS, SALV, tree, toolbar, icon, and demo
+data types without pretending that component metadata is available. Pass a
+separate `fields` map when a conversion needs to inspect a structure; an
+identity-only entry never creates a guessed component shape.
+
+Classic function modules are lowered only through the explicit compatibility
+adapter registry in `src/function-modules.mjs`. Popup/dialog, classic ALV,
+dynamic-selection, F4, variant, list-memory, conversion, and frontend URL or
+binary families each have a named session operation. Unknown or custom
+function modules remain diagnostics, and the manifest records the exact
+adapter names used by a conversion.
+
+Unsupported constructs use operation-family diagnostics instead of the broad
+`GGCONV-E501` bucket: `GGCONV-E510` control construction, `E511` control
+methods, `E512` event registration, `E513` function-module adapters, `E514`
+frontend operations, `E515` dynamic types or unsafe field-symbol operations,
+and `E516` unsupported statements.
+
+When a sibling `.prog.xml` is available, its `TPOOL` is applied automatically:
+selection text symbols resolve `TEXT-*` labels, while report-title entries
+provide the default transaction heading. Explicit `textPool` or
+`textSymbols` input still takes precedence. The same lookup is applied to
+metadata-backed dynpro titles, headings, and pushbuttons.
+
 Selection-screen domain values and GUI status definitions can be supplied as
 metadata when the classic repository does not carry those definitions in the
 program source:
@@ -94,10 +126,15 @@ Reports containing supported `CALL SCREEN`, `CALL SELECTION-SCREEN`, `SUBMIT
 cases. Complex or metadata-dependent transfers remain explicitly diagnosed in
 partial mode.
 
-Module pools are accepted only with explicit `dynproMetadata` or an
-`resolveDynpro(metadataRequest)` callback. Metadata supplies screens, flow
-logic, and module direction; source code is never used to invent dynpro
-controls.
+Module pools are accepted with explicit `dynproMetadata`, an
+`resolveDynpro(metadataRequest)` callback, or report-owned abapGit metadata.
+The exported `loadDynproMetadata({ filename })` helper reads the sibling
+`.prog.xml` and every matching `.prog.screen_NNNN.abap` file. It supplies
+screen geometry and attributes, field elements, flow logic, GUI statuses,
+titlebars, subscreens, next-screen relationships, and text-pool entries;
+source code is never used to invent dynpro controls. For REPORT sources the
+same automatic load is retained as `reportIR.screenMetadata` for the screen
+provider layer.
 
 Development commands:
 

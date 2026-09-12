@@ -3,7 +3,11 @@ import test from "node:test";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "../../src/api.mjs";
+import { loadDynproMetadata } from "../../src/dynpro-metadata.mjs";
+import { GG_GUI_DDIC_TYPES } from "../../src/gg-gui-ddic.mjs";
+import { COMPATIBILITY_FUNCTION_MODULES } from "../../src/function-modules.mjs";
 import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
+import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../src/capability.mjs";
 import { repositoryRoot } from "../repository.mjs";
 
 const fixture = (name) => fs.readFile(path.join(repositoryRoot, "scaffold", "examples", name), "utf8");
@@ -108,6 +112,23 @@ test("applies supplied text-pool labels and warns for unresolved labels", async 
   assert.ok(fallback.diagnostics.some((item) => item.code === "GGCONV-W101"));
 });
 
+test("applies report metadata text symbols to selection labels and transaction headings", async () => {
+  const filename = path.join(repositoryRoot, "converter", "test", "fixtures", "text_metadata.prog.abap");
+  const result = await convertProgram({
+    source: await fs.readFile(filename, "utf8"),
+    filename,
+  });
+  assert.equal(result.supported, true);
+  assert.equal(result.reportIR.description, "Metadata-backed selection");
+  assert.equal(result.reportIR.selections[0].elements.find((item) => item.kind === "parameter").text, "Text value");
+  assert.match(result.classSource, /text = 'Text from metadata'/);
+  assert.match(result.classSource, /title = 'Main block heading'/);
+  assert.match(result.classSource, /text = 'Apply metadata'/);
+  assert.match(result.classSource, /text = 'First tab'/);
+  assert.match(result.classSource, /description = 'Metadata-backed selection'/);
+  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W101"), false);
+});
+
 test("strict mode reports an unsupported program kind without emitting", async () => {
   const result = await convertProgram({ source: "PROGRAM zpool.\nMODULE x INPUT.\nENDMODULE.\n", filename: "zpool.prog.abap" });
   assert.equal(result.supported, false);
@@ -123,14 +144,14 @@ test("partial mode marks unsupported statements instead of dropping them", async
 
 test("safe partial strategy emits a compilable diagnostic skeleton", async () => {
   const result = await convertProgram({
-    source: "REPORT zpartial_skeleton.\nCLASS lcl_local DEFINITION.\nENDCLASS.\nCALL FUNCTION 'X'.\n",
+    source: "PROGRAM zpartial_skeleton.\nMODULE x INPUT.\nENDMODULE.\n",
     filename: "zpartial_skeleton.prog.abap",
     mode: "partial",
     partialStrategy: "skeleton",
   });
   assert.equal(result.supported, false);
   assert.match(result.classSource, /Partial conversion preview/);
-  assert.match(result.classSource, /TODO GGCONV-E305/);
+  assert.doesNotMatch(result.classSource, /GGCONV-E305/);
   assert.doesNotMatch(result.classSource, /(?:^|\n)CLASS lcl_local DEFINITION/);
   assert.equal(result.manifest.partialStrategy, "skeleton");
   assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
@@ -139,7 +160,7 @@ test("safe partial strategy emits a compilable diagnostic skeleton", async () =>
 test("reports unsupported WRITE additions individually", async () => {
   const result = await convertProgram({ source: "REPORT zwrite.\nWRITE 'x' COLOR 4.\n", filename: "zwrite.prog.abap", mode: "partial" });
   assert.equal(result.supported, false);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E501"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516"));
   assert.match(result.classSource, /TODO GGCONV-E501: unsupported WRITE formatting/);
 });
 
@@ -150,7 +171,7 @@ test("keeps logical-database GET events outside the converter scope", async () =
   });
   assert.equal(result.supported, false);
   assert.equal(result.classSource, undefined);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E501"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516"));
 });
 
 test("marks dynamic WRITE calls before lowering", () => {
@@ -257,7 +278,7 @@ test("diagnoses unrepresentable desktop GUI operations", async () => {
     mode: "partial",
   });
   assert.equal(result.supported, false);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E501"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E514"));
   assert.match(result.classSource, /TODO GGCONV-E501/);
 });
 
@@ -269,7 +290,7 @@ test("diagnoses dynamic PERFORM instead of emitting a guessed call", async () =>
 
   const dynamicCall = await convertProgram({ source: "REPORT zdyncall.\nCALL METHOD (lv_method).\n", filename: "zdyncall.prog.abap", mode: "partial" });
   assert.equal(dynamicCall.supported, false);
-  assert.ok(dynamicCall.diagnostics.some((item) => item.code === "GGCONV-E501"));
+  assert.ok(dynamicCall.diagnostics.some((item) => item.code === "GGCONV-E511"));
   assert.match(dynamicCall.classSource, /TODO GGCONV-E501/);
 });
 
@@ -340,10 +361,13 @@ test("converts composite fixtures with nested includes, routines, and database a
   const localClass = await convertProgram({
     source: await compositeFixture("composite_local_class.abap.txt"),
     filename: "zcomposite_local_class.prog.abap",
+    transactionCode: "ZCOMPLOCAL",
     mode: "partial",
   });
-  assert.ok(localClass.diagnostics.some((item) => item.code === "GGCONV-E305"));
-  assert.match(localClass.classSource, /TODO GGCONV-E305/);
+  assert.equal(localClass.supported, true);
+  assert.equal(localClass.helperSources.length, 1);
+  assert.match(localClass.classSource, /FRIENDS zcl_composite_local_clas_h1/);
+  assert.match(localClass.helperSources[0].source, /CLASS zcl_composite_local_clas_h1 DEFINITION PUBLIC/);
 
   const database = await convertProgram({
     source: await compositeFixture("composite_sql_form.abap.txt"),
@@ -417,6 +441,68 @@ test("uses explicit dynpro metadata for module-pool conversion", async () => {
   assert.doesNotMatch(result.classSource, /TODO GGCONV-E502/);
 });
 
+test("partial skeleton strategy keeps runnable content for optional gaps", async () => {
+  const result = await convertProgram({
+    source: "REPORT zpartial_content.\nCALL FUNCTION 'UNKNOWN_OPTIONAL'.\nWRITE 'entry'.\n",
+    filename: "zpartial_content.prog.abap",
+    mode: "partial",
+    partialStrategy: "skeleton",
+  });
+  assert.equal(result.supported, false);
+  assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\./);
+  assert.match(result.classSource, /entry/);
+  assert.doesNotMatch(result.classSource, /Partial conversion preview/);
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E513"));
+});
+
+test("loads report-owned dynpro XML and every matching screen flow file", async () => {
+  const metadataFilename = path.join(repositoryRoot, "converter", "test", "fixtures", "dynpro_metadata.prog.xml");
+  const metadata = await loadDynproMetadata({
+    filename: metadataFilename.replace(/\.prog\.xml$/i, ".prog.abap"),
+  });
+  assert.equal(metadata.programName, "ZDYNPRO_METADATA");
+  assert.deepEqual(metadata.screens.map((screen) => screen.number), ["0100", "0200"]);
+  assert.deepEqual(metadata.screens[0].geometry, { width: 80, height: 12, columns: 80, lines: 12 });
+  assert.equal(metadata.screens[0].containers[0].kind, "subscreen");
+  assert.equal(metadata.screens[0].containers[0].resizable.horizontal, true);
+  assert.equal(metadata.screens[0].elements[1].kind, "input-output");
+  assert.equal(metadata.screens[0].elements[1].required, true);
+  assert.equal(metadata.screens[0].elements[2].ucomm, "APPLY");
+  assert.equal(metadata.screens[1].modal, true);
+  assert.equal(metadata.screens[1].nextScreen, "0000");
+  assert.deepEqual(metadata.flowLogic[0].pbo.map((item) => item.name), ["STATUS_0100"]);
+  assert.equal(metadata.flowLogic[0].pai[0].atExitCommand, true);
+  assert.equal(metadata.flowLogic[0].pai[1].field, "GV_INPUT");
+  assert.equal(metadata.flowLogic[0].pov.field, "GV_INPUT");
+  assert.equal(metadata.flowLogic[1].poh.modules[0].name, "F1_INPUT");
+  assert.equal(metadata.guiStatuses.MAIN.activeUcomm[0], "APPLY");
+  assert.equal(metadata.titlebars.TITLE_0100.text, "Metadata sample");
+  assert.equal(metadata.screens[0].titlebar.text, "Metadata sample");
+  assert.equal(metadata.textPool.GV_INPUT, "Input value");
+  assert.equal(metadata.files.screens.length, 2);
+
+  const converted = await convertProgram({
+    source: "PROGRAM zdynpro_metadata.\nMODULE user_command_0100 INPUT.\nENDMODULE.\n",
+    filename: metadataFilename.replace(/\.prog\.xml$/i, ".prog.abap"),
+  });
+  assert.equal(converted.reportIR.dynproMetadata.screens.length, 2);
+  assert.equal(converted.reportIR.dynproMetadata.flowLogic[0].pai[0].name, "EXIT_0100");
+
+  const report = await convertProgram({
+    source: "REPORT zscreen_provider.\nDATA gv_value TYPE i.\nMODULE user_command INPUT.\ngv_value = 1.\nENDMODULE.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n",
+    filename: "zscreen_provider.prog.abap",
+    screenMetadata: metadata,
+  });
+  assert.equal(report.supported, true);
+  assert.ok(report.reportIR.interfaces.includes("zif_gg_report_v1"));
+  assert.ok(report.reportIR.interfaces.includes("zif_gg_screen_provider_v1"));
+  assert.doesNotMatch(report.classSource, /INTERFACES zif_gg_dynpro_v1/);
+  assert.match(report.classSource, /METHOD zif_gg_screen_provider_v1~build_screens\./);
+  assert.match(report.classSource, /METHOD zif_gg_screen_provider_v1~process_input_module\.[\s\S]*WHEN 'USER_COMMAND'\.[\s\S]*gv_value = 1\./);
+  assert.equal(report.diagnostics.some((item) => item.code === "GGCONV-E501" && item.construct.includes("MODULE")), false);
+  assert.equal(report.manifest.metadataInputs.screenProvider, true);
+});
+
 test("keeps report IR serializable and renames generated-name collisions", async () => {
   const result = await convertProgram({
     source: "REPORT zcollision.\nDATA lo_writer TYPE i.\nSTART-OF-SELECTION.\nWRITE lo_writer.\n",
@@ -473,7 +559,7 @@ test("lowers method-local field symbols only when static binding is provable", a
     mode: "partial",
   });
   assert.equal(unsafe.supported, false);
-  assert.ok(unsafe.diagnostics.some((item) => item.code === "GGCONV-E501"));
+  assert.ok(unsafe.diagnostics.some((item) => item.code === "GGCONV-E515"));
 });
 
 test("preserves chained and table-shaped global declarations", async () => {
@@ -552,6 +638,44 @@ test("preserves structured, table, reference, and elementary type declarations",
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
+test("lowers global declaration families into ordered class-pool members", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zglobal_declarations.",
+      "DATA gv_first TYPE i VALUE 1.",
+      "TYPES: BEGIN OF ty_row,",
+      "         id TYPE i,",
+      "         text TYPE string,",
+      "       END OF ty_row.",
+      "TYPES ty_rows TYPE STANDARD TABLE OF ty_row WITH EMPTY KEY.",
+      "TYPES ty_range TYPE RANGE OF i.",
+      "CONSTANTS gc_value TYPE i VALUE 2.",
+      "DATA gs_row TYPE ty_row.",
+      "DATA gt_rows TYPE ty_rows.",
+      "STATICS gv_second TYPE i VALUE 3.",
+      "RANGES r_value FOR gv_first.",
+      "FIELD-SYMBOLS <gv_ref> TYPE i.",
+      "START-OF-SELECTION.",
+      "  ASSIGN gv_first TO <gv_ref>.",
+      "  <gv_ref> = gc_value.",
+      "  APPEND gs_row TO gt_rows.",
+      "  WRITE gv_second.",
+    ].join("\n"),
+    filename: "global-declarations.prog.abap",
+  });
+  assert.equal(result.supported, true);
+  const privateSection = result.classSource.slice(result.classSource.indexOf("PRIVATE SECTION."), result.classSource.indexOf("ENDCLASS."));
+  assert.ok(privateSection.indexOf("TYPES: BEGIN OF ty_row") < privateSection.indexOf("DATA gv_first"));
+  assert.ok(privateSection.indexOf("DATA gv_first") < privateSection.indexOf("DATA gv_second"));
+  assert.match(privateSection, /TYPES ty_rows TYPE STANDARD TABLE OF ty_row WITH EMPTY KEY\./);
+  assert.match(privateSection, /TYPES ty_range TYPE RANGE OF i\./);
+  assert.match(privateSection, /CONSTANTS gc_value TYPE i VALUE 2\./);
+  assert.match(privateSection, /DATA r_value TYPE zif_gg_selection_screen_types=>ty_ranges\./);
+  assert.doesNotMatch(privateSection, /FIELD-SYMBOLS/);
+  assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\.[\s\S]*FIELD-SYMBOLS <gv_ref> TYPE i\.[\s\S]*ASSIGN gv_first TO <gv_ref>/);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
+});
+
 test("does not duplicate WRITE operands or rewrite short-circuit conditions", async () => {
   const result = await convertProgram({
     source: [
@@ -599,7 +723,7 @@ test("preserves static Open SQL and diagnoses dynamic database targets", async (
     mode: "partial",
   });
   assert.equal(dynamic.supported, false);
-  assert.ok(dynamic.diagnostics.some((item) => item.code === "GGCONV-E501"));
+  assert.ok(dynamic.diagnostics.some((item) => item.code === "GGCONV-E516"));
 });
 
 test("diagnoses report-only method legality gaps instead of claiming support", async () => {
@@ -616,7 +740,7 @@ test("diagnoses report-only method legality gaps instead of claiming support", a
     mode: "partial",
   });
   assert.equal(implicitLoop.supported, false);
-  assert.ok(implicitLoop.diagnostics.some((item) => item.code === "GGCONV-E501" && item.message.includes("implicit-header-table LOOP")));
+  assert.ok(implicitLoop.diagnostics.some((item) => item.code === "GGCONV-E516" && item.message.includes("implicit-header-table LOOP")));
   assert.match(implicitLoop.classSource, /TODO GGCONV-E501: unsupported statement omitted: LOOP AT gt_values/i);
 
   const functionCall = await convertProgram({
@@ -625,8 +749,58 @@ test("diagnoses report-only method legality gaps instead of claiming support", a
     mode: "partial",
   });
   assert.equal(functionCall.supported, false);
-  assert.ok(functionCall.diagnostics.some((item) => item.code === "GGCONV-E501" && item.construct.includes("CALL FUNCTION 'Z_UNSUPPORTED'")));
+  assert.ok(functionCall.diagnostics.some((item) => item.code === "GGCONV-E513" && item.construct.includes("CALL FUNCTION 'Z_UNSUPPORTED'")));
   assert.match(functionCall.classSource, /TODO GGCONV-E501/);
+});
+
+test("lowers the finite gg-gui function-module families through typed adapters", async () => {
+  const source = [
+    "REPORT zcompatibility.",
+    "START-OF-SELECTION.",
+    "CALL FUNCTION 'POPUP_TO_CONFIRM' EXPORTING titlebar = 'Confirm' text_question = 'Continue?' IMPORTING answer = lv_answer.",
+    "CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST' EXPORTING retfield = 'VALUE' TABLES value_tab = lt_values return_tab = lt_return.",
+    "CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY' EXPORTING i_grid_title = 'Grid' TABLES t_outtab = gt_rows.",
+    "CALL FUNCTION 'SELECT_OPTIONS_RESTRICT' EXPORTING restriction = ls_restriction.",
+    "CALL FUNCTION 'RS_VARIANT_CONTENTS' EXPORTING report = sy-repid variant = p_variant TABLES valutab = lt_params.",
+    "CALL FUNCTION 'DP_PUBLISH_WWW_URL' EXPORTING objid = 'OBJECT' lifetime = 'T' IMPORTING url = lv_url.",
+  ].join("\n");
+  const result = await convertProgram({ source, filename: "zcompatibility.prog.abap" });
+  assert.equal(result.supported, true);
+  assert.match(result.classSource, /get_compatibility\( \)->popup_to_confirm/);
+  assert.match(result.classSource, /get_compatibility\( \)->f4_table_value_request/);
+  assert.match(result.classSource, /get_compatibility\( \)->alv_display/);
+  assert.match(result.classSource, /get_compatibility\( \)->select_options_restrict/);
+  assert.match(result.classSource, /get_compatibility\( \)->variant_contents/);
+  assert.match(result.classSource, /get_compatibility\( \)->publish_url/);
+  assert.deepEqual(result.manifest.metadataInputs.compatibilityAdapters, [
+    "DP_PUBLISH_WWW_URL",
+    "F4IF_INT_TABLE_VALUE_REQUEST",
+    "POPUP_TO_CONFIRM",
+    "REUSE_ALV_GRID_DISPLAY",
+    "RS_VARIANT_CONTENTS",
+    "SELECT_OPTIONS_RESTRICT",
+  ]);
+  assert.equal(Object.keys(COMPATIBILITY_FUNCTION_MODULES).length, 34);
+});
+
+test("classifies former E501 gaps by actionable operation family", async () => {
+  const cases = [
+    ["CREATE OBJECT go_control.", ACTIONABLE_DIAGNOSTIC_CODES.controlConstruction],
+    ["CALL METHOD go_control->refresh.", ACTIONABLE_DIAGNOSTIC_CODES.controlMethod],
+    ["SET HANDLER go_events->on_click FOR go_control.", ACTIONABLE_DIAGNOSTIC_CODES.eventRegistration],
+    ["CALL FUNCTION 'Z_CUSTOM'.", ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter],
+    ["CALL METHOD cl_gui_frontend_services=>execute.", ACTIONABLE_DIAGNOSTIC_CODES.frontendOperation],
+    ["CREATE DATA lr_value TYPE string.", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],
+    ["AUTHORITY-CHECK OBJECT 'S_TCODE' ID 'TCD' FIELD 'SE38'.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement],
+  ];
+  for (const [statement, code] of cases) {
+    const result = await convertProgram({
+      source: `REPORT zdiagnostic_family.\n${statement}`,
+      filename: "zdiagnostic_family.prog.abap",
+      mode: "partial",
+    });
+    assert.ok(result.diagnostics.some((item) => item.code === code && item.category), `${statement} was not classified as ${code}`);
+  }
 });
 
 test("records typed symbol read and write references", async () => {
@@ -652,6 +826,33 @@ test("resolves supplied DDIC table and field metadata", async () => {
   const missing = await convertProgram({ source: "REPORT zddic.\nTABLES zsflight.\n", filename: "zddic.prog.abap" });
   assert.equal(missing.supported, false);
   assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E301"));
+});
+
+test("resolves the explicit gg-gui type inventory without inventing fields", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zgg_type_inventory.",
+      "TYPES ty_nodes TYPE treev_ntab.",
+      "TYPES ty_keys TYPE STANDARD TABLE OF salv_de_node_key WITH EMPTY KEY.",
+      "TYPES ty_products TYPE zcl_gg_gui_demo_data=>ty_products.",
+    ].join("\n"),
+    filename: "zgg_type_inventory.prog.abap",
+    ddicTypes: GG_GUI_DDIC_TYPES,
+  });
+  assert.equal(result.supported, true);
+  assert.equal(result.manifest.metadataInputs.ddicTypes, true);
+  assert.ok(result.manifest.metadataInputs.resolvedTypes.includes("TY_NODES"));
+  assert.deepEqual(result.reportIR.resolvedTypes.TY_NODES.fields, {});
+  assert.equal(result.reportIR.resolvedTypes.TY_NODES.metadataComplete, false);
+  assert.ok(result.reportIR.resolvedTypes.TY_PRODUCTS);
+
+  const missing = await convertProgram({
+    source: "REPORT zgg_type_missing.\nTYPES ty_missing TYPE lvc_type_not_in_inventory.\n",
+    filename: "zgg_type_missing.prog.abap",
+    ddicTypes: GG_GUI_DDIC_TYPES,
+  });
+  assert.equal(missing.supported, false);
+  assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E301" && item.construct === "LVC_TYPE_NOT_IN_INVENTORY"));
 });
 
 test("classifies non-report program kinds and rejects duplicate singleton events", async () => {
@@ -726,7 +927,7 @@ test("marks unsupported statements instead of silently dropping them", async () 
     mode: "partial",
   });
   assert.equal(result.supported, false);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E501"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E513"));
   assert.match(result.classSource, /TODO GGCONV-E501: unsupported/);
 });
 
@@ -835,12 +1036,45 @@ test("emits every top-level continuation in a deterministic resume dispatcher", 
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
-test("diagnoses local classes with a targeted manual-conversion message", async () => {
+test("hoists local classes into collision-free helper class sources", async () => {
   const result = await convertProgram({
-    source: "REPORT zlocal.\nCLASS lcl_local DEFINITION.\nENDCLASS.\nCLASS lcl_local IMPLEMENTATION.\nENDCLASS.\n",
+    source: [
+      "REPORT zlocal.",
+      "DATA go_events TYPE REF TO lcl_events.",
+      "CLASS lcl_events DEFINITION FINAL INHERITING FROM cl_super.",
+      "  PUBLIC SECTION.",
+      "    DATA mv_public TYPE i READ-ONLY.",
+      "    METHODS on_event FOR EVENT changed OF cl_gui_alv_grid IMPORTING sender.",
+      "  PRIVATE SECTION.",
+      "    DATA mv_private TYPE i.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD on_event.",
+      "    mv_private = 1.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+    ].join("\n"),
     filename: "zlocal.prog.abap",
   });
-  assert.equal(result.supported, false);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E305"));
-  assert.equal(result.reportIR.localClasses.length, 2);
+  assert.equal(result.supported, true);
+  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-E305"), false);
+  assert.equal(result.reportIR.localClasses.length, 1);
+  assert.equal(result.reportIR.localClasses[0].generatedName, "ZCL_LOCAL_H1");
+  assert.match(result.classSource, /DATA go_events TYPE REF TO zcl_local_h1\./);
+  assert.match(result.classSource, /CLASS zcl_local DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_local_h1\./);
+  assert.equal(result.helperSources.length, 1);
+  assert.match(result.helperSources[0].source, /CLASS zcl_local_h1 DEFINITION PUBLIC FINAL INHERITING FROM cl_super CREATE PUBLIC\./);
+  assert.match(result.helperSources[0].source, /METHODS on_event FOR EVENT changed OF cl_gui_alv_grid IMPORTING sender\./);
+  assert.match(result.helperSources[0].source, /PRIVATE SECTION\.[\s\S]*DATA mv_private TYPE i/);
+  assert.match(result.helperSources[0].source, /METHOD on_event\.[\s\S]*mv_private = 1\./);
+
+  const collision = await convertProgram({
+    source: result.reportIR.source.source,
+    filename: "zlocal.prog.abap",
+    className: "ZCL_LOCAL",
+    transactionCode: "ZLOCAL",
+    existingClassNames: ["ZCL_LOCAL_H1"],
+  });
+  assert.equal(collision.reportIR.localClasses[0].generatedName, "ZCL_LOCAL_H1_1");
+  assert.match(collision.classSource, /FRIENDS zcl_local_h1_1\./);
 });

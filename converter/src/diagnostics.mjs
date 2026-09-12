@@ -11,6 +11,7 @@ export function diagnostic({
   suggestion = "",
   phase,
   feature,
+  category,
 }) {
   return {
     code,
@@ -22,6 +23,7 @@ export function diagnostic({
     message: message ?? construct ?? "conversion diagnostic",
     suggestion,
     phase: phase ?? "analysis",
+    ...(category ? { category } : {}),
     ...(feature ? { feature } : {}),
   };
 }

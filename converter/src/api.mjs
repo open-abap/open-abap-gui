@@ -8,6 +8,7 @@ import { classifyProgram } from "./passes/classify-program.mjs";
 import { collectDeclarations } from "./passes/collect-declarations.mjs";
 import { collectSelectionScreens } from "./passes/collect-selection-screens.mjs";
 import { collectEvents } from "./passes/collect-events.mjs";
+import { collectLocalClasses } from "./passes/collect-local-classes.mjs";
 import { collectRoutines } from "./passes/collect-routines.mjs";
 import { collectModules } from "./passes/collect-modules.mjs";
 import { buildSourceIndex } from "./source-index.mjs";
@@ -19,9 +20,21 @@ import { analyzeReferences } from "./passes/analyze-references.mjs";
 import { buildControlFlowGraphs } from "./passes/control-flow.mjs";
 import { analyzeFieldSymbols } from "./passes/analyze-field-symbols.mjs";
 import { scanCapabilities } from "./capability.mjs";
-import { emitClassSource, emitPartialSkeleton, lowerToScaffoldIR } from "./emit/class-source.mjs";
+import { emitClassSource, emitHelperSources, emitPartialSkeleton, lowerToScaffoldIR } from "./emit/class-source.mjs";
 import { createManifest } from "./emit/manifest.mjs";
 import { dynproProgramIR } from "./ir/dynpro-ir.mjs";
+import { loadDynproMetadata } from "./dynpro-metadata.mjs";
+
+const SAFE_ENTRY_FAILURE_CODES = new Set([
+  "GGCONV-E100", "GGCONV-E101", "GGCONV-E102", "GGCONV-E103", "GGCONV-E104",
+  "GGCONV-E105", "GGCONV-E106", "GGCONV-E107", "GGCONV-E108", "GGCONV-E109",
+  "GGCONV-E201", "GGCONV-E202", "GGCONV-E203", "GGCONV-E204", "GGCONV-E301",
+  "GGCONV-E502", "GGCONV-E503",
+]);
+
+function requiresDiagnosticShell(diagnostics) {
+  return diagnostics.some((item) => item.severity === "error" && SAFE_ENTRY_FAILURE_CODES.has(item.code));
+}
 
 function headerSettings(raw) {
   const text = raw?.replace(/\s+/g, " ").toUpperCase() ?? "";
@@ -88,6 +101,7 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
   ir.statements = allStatements;
   ir.header = headerSettings(classification.header?.text);
   ir.guiStatusMetadata = options.guiStatusMetadata ?? options.guiStatuses ?? {};
+  collectLocalClasses(ir, allStatements);
   collectEvents(ir, allStatements);
   collectRoutines(ir);
   ir.declarations = collectDeclarations(allStatements);
@@ -110,6 +124,13 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
   }))].sort();
   resolveTypes(ir, options, diagnostics);
   return ir;
+}
+
+function metadataTextPool(ir, options) {
+  return options.textPool
+    ?? options.textSymbols
+    ?? ir.screenMetadata?.textPool
+    ?? ir.dynproMetadata?.textPool;
 }
 
 function textFallbackDiagnostics(ir, options) {
@@ -149,25 +170,40 @@ function textFallbackDiagnostics(ir, options) {
   return result;
 }
 
+function textPoolKey(key) {
+  return String(key ?? "").replace(/^TEXT[-_]/i, "").toUpperCase();
+}
+
 function textPoolLookup(textPool) {
-  if (textPool instanceof Map) return (key) => textPool.get(key) ?? textPool.get(key.toUpperCase());
-  if (textPool && typeof textPool === "object") return (key) => textPool[key] ?? textPool[key.toUpperCase()];
+  const entries = new Map();
+  const add = (key, value) => {
+    if (key !== undefined && value !== undefined && value !== "") {
+      entries.set(textPoolKey(key), value);
+    }
+  };
+  if (textPool instanceof Map) {
+    for (const [key, value] of textPool) add(key, value);
+  } else if (Array.isArray(textPool)) {
+    for (const entry of textPool) add(entry?.key, entry?.entry ?? entry?.text ?? entry?.value);
+  } else if (textPool && typeof textPool === "object") {
+    for (const [key, value] of Object.entries(textPool)) add(key, value);
+  }
+  if (entries.size) return (key) => entries.get(textPoolKey(key));
   if (typeof textPool === "string") {
-    const entries = new Map();
+    const parsed = new Map();
     for (const line of textPool.replace(/^\uFEFF/, "").split(/\r?\n/)) {
       const match = /^\s*([^|=\t ]+)\s*(?:\||=|\t|\s{2,})\s*(.*?)\s*$/.exec(line);
-      if (match && match[2]) entries.set(match[1].toUpperCase(), match[2].replace(/^'(.*)'$/, "$1").replaceAll("''", "'"));
+      if (match && match[2]) parsed.set(textPoolKey(match[1]), match[2].replace(/^'(.*)'$/, "$1").replaceAll("''", "'"));
     }
-    return (key) => entries.get(key) ?? entries.get(key.toUpperCase());
+    return (key) => parsed.get(textPoolKey(key));
   }
   return () => undefined;
 }
 
 function applyTextPool(ir, options) {
-  if (!options.textPool) return;
-  const lookup = textPoolLookup(options.textPool);
-  for (const screen of ir.selections) {
-    for (const item of screen.elements) {
+  const lookup = textPoolLookup(metadataTextPool(ir, options));
+  const apply = (items) => {
+    for (const item of items ?? []) {
       for (const field of ["text", "title"]) {
         if (typeof item[field] !== "string") continue;
         if (field === "text" && item.suppressTextPool) continue;
@@ -178,6 +214,17 @@ function applyTextPool(ir, options) {
         if (typeof value === "string" && value !== "") item[field] = value;
       }
     }
+  };
+  for (const screen of ir.selections) {
+    apply(screen.elements);
+  }
+  for (const screen of [...(ir.screenMetadata?.screens ?? []), ...(ir.dynproMetadata?.screens ?? [])]) {
+    if (typeof screen.title === "string") screen.title = lookup(screen.title) ?? screen.title;
+    if (screen.titlebar?.text) screen.titlebar.text = lookup(screen.titlebar.text) ?? screen.titlebar.text;
+    apply(screen.elements);
+  }
+  for (const titlebar of Object.values(ir.screenMetadata?.titlebars ?? {})) {
+    if (titlebar && typeof titlebar.text === "string") titlebar.text = lookup(titlebar.text) ?? titlebar.text;
   }
 }
 
@@ -288,7 +335,8 @@ function validateNames(ir, options, diagnostics) {
   if (!transactionCode) diagnostics.push(diagnostic({ code: "GGCONV-E105", filename: options.filename, construct: "transaction code", message: "the report name cannot be used as a scaffold transaction code", suggestion: "Pass transactionCode/--tcode explicitly.", phase: "options" }));
   ir.targetClassName = className;
   ir.transactionCode = transactionCode;
-  ir.description = options.description;
+  const metadataDescription = ir.screenMetadata?.reportTitle ?? ir.dynproMetadata?.reportTitle;
+  ir.description = !options.descriptionProvided && metadataDescription ? metadataDescription : options.description;
 }
 
 function validateSymbolCollisions(ir, diagnostics) {
@@ -431,8 +479,32 @@ export async function convertProgram(input = {}) {
       } catch (error) {
         diagnostics.push(diagnostic({ code: "GGCONV-E503", filename: options.filename, construct: "dynpro metadata", message: `dynpro metadata resolver failed: ${error.message}`, suggestion: "Return explicit screen and flow metadata from the resolver.", phase: "dynpro" }));
       }
+    } else if (options.loadDynproMetadata !== false) {
+      try {
+        ir.dynproMetadata = await loadDynproMetadata({
+          filename: options.filename,
+          metadataFilename: options.dynproMetadataFilename,
+          screenDirectory: options.dynproScreenDirectory,
+          screenFiles: options.dynproScreenFiles,
+        });
+      } catch (error) {
+        diagnostics.push(diagnostic({ code: "GGCONV-E503", filename: options.filename, construct: "dynpro metadata", message: error.message, suggestion: "Fix the report-owned .prog.xml and .prog.screen_NNNN.abap metadata files or supply dynproMetadata explicitly.", phase: "dynpro" }));
+      }
     }
     if (ir.dynproMetadata) ir.dynproIR = dynproProgramIR(ir);
+  } else if (ir.programKind === "report" && options.screenMetadata) {
+    ir.screenMetadata = options.screenMetadata;
+  } else if (ir.programKind === "report" && options.loadDynproMetadata !== false) {
+    try {
+      ir.screenMetadata = await loadDynproMetadata({
+        filename: options.filename,
+        metadataFilename: options.dynproMetadataFilename,
+        screenDirectory: options.dynproScreenDirectory,
+        screenFiles: options.dynproScreenFiles,
+      });
+    } catch (error) {
+      diagnostics.push(diagnostic({ code: "GGCONV-E503", filename: options.filename, construct: "dynpro metadata", message: error.message, suggestion: "Fix the report-owned .prog.xml and .prog.screen_NNNN.abap metadata files or supply screenMetadata explicitly.", phase: "dynpro" }));
+    }
   }
   validateNames(ir, options, diagnostics);
   validateSymbolCollisions(ir, diagnostics);
@@ -452,11 +524,18 @@ export async function convertProgram(input = {}) {
   if (!supported && options.mode === "strict") {
     return { classSource: undefined, manifest: createManifest(ir, sorted, options), diagnostics: sorted, sourceMap: [], reportIR: ir, supported: false };
   }
-  const classSource = !supported && options.mode === "partial" && options.partialStrategy === "skeleton"
+  const useDiagnosticShell = !supported && options.mode === "partial" && options.partialStrategy === "skeleton" && requiresDiagnosticShell(sorted);
+  const classSource = useDiagnosticShell
     ? emitPartialSkeleton(ir, options, sorted)
     : emitClassSource(ir, options);
+  const helperSources = !useDiagnosticShell
+    ? emitHelperSources(ir, options)
+    : [];
   const sourceMap = addGeneratedLocations(classSource, buildSourceMap(ir));
-  const generatedValidation = parseUnits([{ filename: `${ir.targetClassName}.clas.abap`, source: classSource, ancestry: [], newline: "\n" }], config);
+  const generatedValidation = parseUnits([
+    { filename: `${ir.targetClassName}.clas.abap`, source: classSource, ancestry: [], newline: "\n" },
+    ...helperSources.map((helper) => ({ filename: `${helper.className}.clas.abap`, source: helper.source, ancestry: [], newline: "\n" })),
+  ], config);
   diagnostics.push(...generatedValidation.diagnostics.map((item) => ({
     ...item,
     code: "GGCONV-E202",
@@ -469,5 +548,5 @@ export async function convertProgram(input = {}) {
   const finalSupported = !finalDiagnostics.some((item) => item.severity === "error" || item.code.startsWith("GGCONV-E")) && Boolean(ir.targetClassName) && Boolean(ir.transactionCode);
   const manifest = createManifest(ir, finalDiagnostics, options);
   const scaffold = lowerToScaffoldIR(ir, options, sourceMap);
-  return { classSource, manifest, diagnostics: finalDiagnostics, sourceMap, reportIR: ir, scaffoldIR: scaffold, supported: finalSupported };
+  return { classSource, helperSources, manifest, diagnostics: finalDiagnostics, sourceMap, reportIR: ir, scaffoldIR: scaffold, supported: finalSupported };
 }

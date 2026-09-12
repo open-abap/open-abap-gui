@@ -26,7 +26,7 @@ test("regression fixture keeps report-only loop legality explicit", async () => 
     mode: "partial",
   });
   assert.equal(result.supported, false);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E501" && item.message.includes("implicit-header-table LOOP")));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516" && item.message.includes("implicit-header-table LOOP")));
   assert.match(result.classSource, /TODO GGCONV-E501/);
 });
 

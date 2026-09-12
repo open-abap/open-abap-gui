@@ -59,6 +59,7 @@ export function normalizeOptions(options = {}) {
     filename,
     mode,
     partialStrategy,
+    descriptionProvided: options.description !== undefined,
     description: options.description ?? "Converted executable report",
     configPath: options.configPath ?? "abaplint.jsonc",
     converterVersion: options.converterVersion ?? CONVERTER_VERSION,

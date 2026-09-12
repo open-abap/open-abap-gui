@@ -21,13 +21,12 @@ export function collectEvents(ir, statements) {
   let moduleDepth = 0;
   let currentBlock;
   let localClassDepth = 0;
-  const declarationKinds = new Set(["Data", "Constant", "Static", "FieldSymbol", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Type", "TypeBegin", "TypeEnd", "DataBegin", "DataEnd"]);
+  const declarationKinds = new Set(["Data", "Constant", "Static", "FieldSymbol", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "DataBegin", "DataEnd"]);
   ir.eventQualifiers ??= {};
   for (const statement of statements) {
     if (statement.kind === "Include") continue;
     if (["ClassDefinition", "ClassImplementation"].includes(statement.kind)) {
       localClassDepth++;
-      ir.localClasses.push({ kind: statement.kind, name: /^CLASS\s+([^\s.]+)/i.exec(statement.text)?.[1]?.toUpperCase(), statement });
       continue;
     }
     if (statement.kind === "EndClass") {

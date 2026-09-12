@@ -1,9 +1,47 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
+import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
 import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
+import { compatibilityAdapter } from "./function-modules.mjs";
+
+export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
+  controlConstruction: "GGCONV-E510",
+  controlMethod: "GGCONV-E511",
+  eventRegistration: "GGCONV-E512",
+  functionModuleAdapter: "GGCONV-E513",
+  frontendOperation: "GGCONV-E514",
+  dynamicType: "GGCONV-E515",
+  unsupportedStatement: "GGCONV-E516",
+});
+
+const ACTIONABLE_CATEGORIES = Object.freeze(Object.fromEntries(
+  Object.entries(ACTIONABLE_DIAGNOSTIC_CODES).map(([category, code]) => [code, category]),
+));
+
+export function actionableDiagnosticCode(statement) {
+  const text = normalizedText(statement).toUpperCase();
+  if (statement.kind === "CallFunction") return ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter;
+  if (statement.kind === "SetHandler" || /\bSET\s+HANDLER\b|\bREGISTER(?:ED|ING)?\b/.test(text)) {
+    return ACTIONABLE_DIAGNOSTIC_CODES.eventRegistration;
+  }
+  if (statement.kind === "CreateData" || /\bCREATE\s+DATA\b|CREATE_DYNAMIC_TABLE|CREATE_DYNAMIC/.test(text)) {
+    return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
+  }
+  if (statement.kind === "FieldSymbol" || statement.kind === "Assign" || statement.kind === "Unassign") {
+    return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
+  }
+  if (statement.kind === "CreateObject" || /\bCONTROLS\b|\bCREATE\s+OBJECT\b|CL_SALV_TABLE=>FACTORY/.test(text)) {
+    return ACTIONABLE_DIAGNOSTIC_CODES.controlConstruction;
+  }
+  if (/CL_GUI_FRONTEND_SERVICES|CL_GUI_CFW|CL_ABAP_BROWSER|CL_PROGRESS_INDICATOR/.test(text)) {
+    return ACTIONABLE_DIAGNOSTIC_CODES.frontendOperation;
+  }
+  if (statement.kind === "CallMethod" || /\bCALL\s+METHOD\b|->|=>/.test(text)) return ACTIONABLE_DIAGNOSTIC_CODES.controlMethod;
+  return ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement;
+}
 
 const SUPPORTED_STATEMENTS = new Set([
-  "Comment", "Empty", "Report", "Program", "Data", "DataBegin", "DataEnd", "Constant", "Static", "Parameter", "SelectOption", "Tables", "Type", "TypeBegin", "TypeEnd",
+  "Comment", "Empty", "Report", "Program", "Data", "DataBegin", "DataEnd", "Constant", "Static", "Parameter", "SelectOption", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd",
   "SelectionScreen", "StartOfSelection", "EndOfSelection", "LoadOfProgram", "Initialization", "AtSelectionScreen",
   "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Write", "Skip", "Uline", "Format",
   "NewLine", "SetBlank", "Reserve", "NewPage", "Stop", "Message", "If", "Else", "ElseIf", "EndIf", "Do", "EndDo",
@@ -17,8 +55,9 @@ const SUPPORTED_STATEMENTS = new Set([
 ]);
 
 function addStatementDiagnostic(diagnostics, statement, message, suggestion, code = "GGCONV-E501") {
+  const resolvedCode = code === "GGCONV-E501" ? actionableDiagnosticCode(statement) : code;
   diagnostics.push(diagnostic({
-    code,
+    code: resolvedCode,
     filename: statement.filename,
     start: statement.span.start,
     end: statement.span.end,
@@ -26,6 +65,7 @@ function addStatementDiagnostic(diagnostics, statement, message, suggestion, cod
     message,
     suggestion,
     phase: "capability",
+    category: ACTIONABLE_CATEGORIES[resolvedCode],
   }));
 }
 
@@ -58,10 +98,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   }
   for (const statement of statements) {
     const text = normalizedText(statement).toUpperCase();
-    if (["ClassDefinition", "ClassImplementation"].includes(statement.kind)) {
-      addStatementDiagnostic(diagnostics, statement, "local class definitions are not emitted into the generated report class pool", "Move the local class to a separate global class or provide a manual class-pool mapping.", "GGCONV-E305");
-      continue;
-    }
+    if (isLocalClassStructural(statement)) continue;
     if (statement.kind === "FieldSymbol") {
       if (ir.safeFieldSymbols?.includes([...statement.text.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)].map((match) => match[1].toUpperCase())[0])) continue;
       addStatementDiagnostic(diagnostics, statement, "field-symbol declarations require method-local binding analysis", "Move the field symbol into a generated method or provide an explicit field-symbol lowering rule.", "GGCONV-E501");
@@ -78,7 +115,8 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
-    const supportedSpecial = statement.kind === "CallFunction" && /CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text);
+    const supportedSpecial = statement.kind === "CallFunction"
+      && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text));
     if (statement.kind === "CallFunction" && !supportedSpecial) {
       addStatementDiagnostic(diagnostics, statement, "CALL FUNCTION is not supported by the generated report method", "Use a supported scaffold operation or provide a dedicated function-module adapter.", "GGCONV-E501");
       continue;
@@ -100,7 +138,9 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       interfaces.add("zif_gg_dynpro_v1");
       continue;
     }
-    if (ir.programKind === "module-pool" && ir.dynproMetadata && ["Module", "EndModule", "SetScreen", "LeaveScreen", "LeaveToScreen"].includes(statement.kind)) continue;
+    const hasDynproFrontend = ir.programKind === "module-pool" && ir.dynproMetadata
+      || ir.programKind === "report" && ir.screenMetadata;
+    if (hasDynproFrontend && ["Module", "EndModule", "SetScreen", "LeaveScreen", "LeaveToScreen"].includes(statement.kind)) continue;
     if (!SUPPORTED_STATEMENTS.has(statement.kind) && !LOWERING_RULES.has(statement.kind) && !supportedSpecial) {
       addStatementDiagnostic(diagnostics, statement, `statement kind ${statement.kind} is not supported by this converter`, "Convert this statement manually or add a lowering rule.");
     }

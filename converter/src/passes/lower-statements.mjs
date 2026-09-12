@@ -1,3 +1,5 @@
+import { lowerCompatibilityFunction } from "../function-modules.mjs";
+
 const TYPE_CODES = new Map([
   ["C", "C"], ["N", "N"], ["D", "D"], ["T", "T"], ["I", "I"], ["INT4", "I"],
   ["P", "P"], ["F", "F"], ["X", "X"], ["STRING", "STRING"],
@@ -24,6 +26,7 @@ export const LOWERING_RULES = new Map([
   ["Select", { kind: "open-sql-select" }], ["SelectLoop", { kind: "open-sql-select-loop" }], ["EndSelect", { kind: "open-sql-end-select" }],
   ["InsertDatabase", { kind: "open-sql-insert" }], ["UpdateDatabase", { kind: "open-sql-update" }],
   ["DeleteDatabase", { kind: "open-sql-delete" }], ["ModifyDatabase", { kind: "open-sql-modify" }],
+  ["CallFunction", { kind: "compatibility-function-module" }],
   ["Clear", { kind: "statement" }], ["Add", { kind: "statement" }], ["Subtract", { kind: "statement" }],
   ["Multiply", { kind: "statement" }], ["Divide", { kind: "statement" }], ["Compute", { kind: "statement" }],
   ["Leave", { kind: "navigation-leave" }], ["SetScreen", { kind: "dialog-set-screen" }], ["LeaveScreen", { kind: "dialog-leave-screen" }],
@@ -35,7 +38,7 @@ export const LOWERING_RULES = new Map([
   ["EndDo", { kind: "control-end-do" }], ["Case", { kind: "control-case" }], ["When", { kind: "control-when" }],
   ["WhenOthers", { kind: "control-when-others" }], ["EndCase", { kind: "control-end-case" }], ["Loop", { kind: "control-loop" }],
   ["EndLoop", { kind: "control-end-loop" }], ["Try", { kind: "control-try" }], ["Catch", { kind: "control-catch" }],
-  ["Cleanup", { kind: "control-cleanup" }], ["EndTry", { kind: "control-end-try" }], ["Data", { kind: "declaration" }], ["TypeBegin", { kind: "declaration" }], ["TypeEnd", { kind: "declaration" }], ["Constant", { kind: "declaration" }],
+  ["Cleanup", { kind: "control-cleanup" }], ["EndTry", { kind: "control-end-try" }], ["Data", { kind: "declaration" }], ["TypeBegin", { kind: "declaration" }], ["TypeEnd", { kind: "declaration" }], ["Constant", { kind: "declaration" }], ["Ranges", { kind: "declaration" }],
   ["Static", { kind: "declaration" }], ["Assign", { kind: "field-symbol-assign" }], ["FieldSymbol", { kind: "field-symbol-declaration" }], ["Comment", { kind: "comment" }], ["Empty", { kind: "empty" }],
 ]);
 
@@ -467,6 +470,13 @@ export function lowerStatement(statement, context) {
     const name = /<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
     return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw, context.replacements) : undefined;
   }
+  if (statement.kind === "Ranges") {
+    const match = /^RANGES\s+([A-Z][A-Z0-9_]*)\s+FOR\s+(.+)$/i.exec(stripPeriod(raw));
+    if (!match) return undefined;
+    const name = match[1].toLowerCase();
+    const type = context.rangeDeclarations?.[match[1].toUpperCase()] ?? "zif_gg_selection_screen_types=>ty_ranges";
+    return `DATA ${name} TYPE ${type}.`;
+  }
   if (statement.kind === "Assign") {
     const name = /\bTO\s+<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
     return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw, context.replacements) : undefined;
@@ -552,7 +562,7 @@ export function lowerStatement(statement, context) {
     if (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(raw) && target) {
       return `${target} = io_session->get_navigation( )->get_list_from_memory( ).`;
     }
-    return undefined;
+    return lowerCompatibilityFunction(raw);
   }
   if (statement.kind === "Leave") {
     if (/LIST-PROCESSING/i.test(raw)) return /TO LIST/i.test(raw) ? "io_session->get_list( )->enter_list_processing( )." : "io_session->get_list( )->leave_list_processing( ).";

@@ -91,6 +91,34 @@ function renameIdentifiers(text, renames = {}) {
   return result;
 }
 
+function allRenames(ir) {
+  return { ...(ir.statePlan?.renames ?? {}), ...(ir.localClassRenames ?? {}) };
+}
+
+export function prepareLocalClassNames(ir, options = {}) {
+  const target = String(ir.targetClassName ?? "ZCL_CONVERTED").toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+  const used = new Set([
+    target,
+    ...(options.existingClassNames ?? options.existingClasses ?? []).map((name) => String(name).toUpperCase()),
+  ]);
+  const stem = target.slice(0, 24);
+  const renames = {};
+  for (const [index, localClass] of (ir.localClasses ?? []).entries()) {
+    let suffix = `_H${index + 1}`;
+    let candidate = `${stem}${suffix}`.slice(0, 30);
+    let collision = 1;
+    while (used.has(candidate)) {
+      suffix = `_H${index + 1}_${collision++}`;
+      candidate = `${stem.slice(0, 30 - suffix.length)}${suffix}`;
+    }
+    used.add(candidate);
+    renames[localClass.name] = candidate;
+    localClass.generatedName = candidate;
+  }
+  ir.localClassRenames = renames;
+  return renames;
+}
+
 function method(name, body, comment) {
   const entry = { name, body: body.length ? [...body] : ["RETURN."] };
   if (comment) entry.comment = comment;
@@ -126,7 +154,7 @@ function addWriterDeclaration(body) {
 }
 
 function interfaceOrder(ir) {
-  const order = ["zif_gg_report_v1", "zif_gg_dynpro_v1", "zif_gg_transaction_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
+  const order = ["zif_gg_report_v1", "zif_gg_screen_provider_v1", "zif_gg_dynpro_v1", "zif_gg_transaction_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
   return order.filter((name) => ir.interfaces.includes(name));
 }
 
@@ -144,38 +172,65 @@ function header({ className, ir, options }) {
 }
 
 function dataMembers(ir) {
-  const members = [];
-  const declarations = ir.declarations;
+  const typeMembers = [];
+  const constantMembers = [];
+  const dataMembers = [];
+  const declarations = ir.declarations ?? [];
   const routineStatements = new Set(ir.routines.flatMap((routine) => routine.statements));
+  const consumed = new Set();
+  const global = (item) => !routineStatements.has(item.statement)
+    && item.statement?.scope !== "local"
+    && !item.statement?.localClassName;
+  const rename = (text) => renameIdentifiers(text, allRenames(ir));
+  const addStructured = (index, begin, end, keyword, target) => {
+    const components = [];
+    for (let cursor = index + 1; cursor < declarations.length; cursor++) {
+      consumed.add(cursor);
+      if (declarations[cursor].kind === begin) {
+        components.push(rename(declarations[cursor].raw.replace(new RegExp(`^${keyword}\\s+`, "i"), "")));
+      }
+      if (declarations[cursor].kind === end) {
+        const endName = /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
+        const declaration = `${keyword}: BEGIN OF ${target}, ${components.join(" ")} END OF ${endName}.`;
+        (keyword === "TYPES" ? typeMembers : dataMembers).push(rename(declaration));
+        break;
+      }
+    }
+    consumed.add(index);
+  };
+  const rangeMember = (item) => {
+    const name = item.names?.[0]?.toLowerCase();
+    if (!name) return undefined;
+    // RANGES creates a four-column selection range table. The scaffold's
+    // shared range type is the legal class-pool equivalent and keeps LOW/HIGH
+    // transport stable even when the original DDIC type is not available.
+    return `DATA ${name} TYPE zif_gg_selection_screen_types=>ty_ranges.`;
+  };
   for (let index = 0; index < declarations.length; index++) {
     const item = declarations[index];
-    if (routineStatements.has(item.statement) || item.statement.scope === "local") continue;
+    if (!global(item) || consumed.has(index)) continue;
     if (item.kind === "databegin" || item.kind === "typebegin") {
       const begin = /BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1];
       const keyword = item.kind === "typebegin" ? "TYPES" : "DATA";
-      const components = [];
-      for (let cursor = index + 1; cursor < declarations.length; cursor++) {
-        if (declarations[cursor].kind === (item.kind === "typebegin" ? "type" : "data")) {
-          const componentKeyword = item.kind === "typebegin" ? "TYPES" : "DATA";
-          components.push(renameIdentifiers(declarations[cursor].raw.replace(new RegExp(`^${componentKeyword}\\s+`, "i"), ""), ir.statePlan?.renames));
-        }
-        if (declarations[cursor].kind === (item.kind === "typebegin" ? "typeend" : "dataend")) {
-          const end = /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? begin;
-          members.push(`${keyword}: BEGIN OF ${begin}, ${components.join(" ")} END OF ${end}.`);
-          index = cursor;
-          break;
-        }
-      }
-    } else if ((item.kind === "data" || item.kind === "type" || item.kind === "constant" || item.kind === "static" || (item.kind === "tables" && item.resolved)) && !item.complex) {
+      addStructured(index, item.kind === "typebegin" ? "type" : "data", item.kind === "typebegin" ? "typeend" : "dataend", keyword, begin);
+    } else if (item.kind === "type" && !item.complex) {
+      typeMembers.push(rename(item.raw.replace(/,\s*$/, ".")));
+    } else if (item.kind === "constant" && !item.complex) {
+      constantMembers.push(rename(item.raw.replace(/,\s*$/, ".")));
+    } else if ((item.kind === "data" || item.kind === "static") && !item.complex) {
       const declarationRaw = item.raw.replace(/,\s*$/, ".");
       const declaration = item.kind === "static"
         ? declarationRaw.replace(/^STATICS\b/i, "DATA")
-        : item.kind === "tables"
-          ? `DATA ${item.names?.[0]?.toLowerCase()} TYPE ${item.type}.`
-          : declarationRaw;
-      members.push(renameIdentifiers(declaration, ir.statePlan?.renames));
+        : declarationRaw;
+      dataMembers.push(rename(declaration));
+    } else if (item.kind === "tables" && item.resolved && !item.complex) {
+      dataMembers.push(rename(`DATA ${item.names?.[0]?.toLowerCase()} TYPE ${item.type}.`));
+    } else if (item.kind === "ranges") {
+      const declaration = rangeMember(item);
+      if (declaration) dataMembers.push(rename(declaration));
     }
   }
+  const members = [...typeMembers, ...constantMembers, ...dataMembers];
   for (const [name, state] of Object.entries(ir.statePlan?.selectionState ?? {})) {
     const type = state.ranges ? "zif_gg_selection_screen_types=>ty_ranges" : "string";
     members.push(`DATA ${state.member} TYPE ${type}.`);
@@ -292,7 +347,7 @@ function methodContext(ir, event, qualifierOverride) {
   const dynamicWriteTargets = [];
   const dynamicTargetNames = new Set();
   for (const declaration of ir.declarations ?? []) {
-    if (declaration.statement?.scope === "local" || !["data", "static", "tables"].includes(declaration.kind)) continue;
+    if (declaration.statement?.scope === "local" || declaration.statement?.localClassName || !["data", "static", "tables", "ranges"].includes(declaration.kind)) continue;
     for (const name of declaration.names ?? []) {
       const upper = name.toUpperCase();
       if (dynamicTargetNames.has(upper)) continue;
@@ -321,6 +376,7 @@ function methodContext(ir, event, qualifierOverride) {
     ucomm: event.startsWith("at_selection_screen") || event === "at_user_command" ? "iv_ucomm" : undefined,
     replacements: [
       ...Object.entries(ir.statePlan?.renames ?? {}),
+      ...Object.entries(ir.localClassRenames ?? {}),
       ...values.map((item) => [item.name, valueReference(item)]),
       ...(event === "at_line_selection" || event === "at_user_command" || event === "at_pf"
         ? (ir.hiddenNames ?? []).map((name) => [name, `is_line-fields[ name = '${name}' ]-value`])
@@ -342,7 +398,20 @@ function methodContext(ir, event, qualifierOverride) {
     selectionState: ir.statePlan?.selectionState ?? {},
     dynamicWriteTargets,
     safeFieldSymbols: ir.safeFieldSymbols ?? [],
+    rangeDeclarations: Object.fromEntries((ir.declarations ?? [])
+      .filter((declaration) => declaration.kind === "ranges")
+      .flatMap((declaration) => (declaration.names ?? []).map((name) => [name.toUpperCase(), "zif_gg_selection_screen_types=>ty_ranges"]))),
   };
+}
+
+function globalFieldSymbolDeclarations(ir, statements) {
+  const source = statements ?? [];
+  return (ir.declarations ?? [])
+    .filter((declaration) => declaration.kind === "field-symbol"
+      && declaration.statement?.scope !== "local"
+      && (declaration.names ?? []).some((name) => ir.safeFieldSymbols?.includes(name.toUpperCase()))
+      && (declaration.names ?? []).some((name) => source.some((statement) => new RegExp(`<${name}>`, "i").test(statement.text))))
+    .map((declaration) => declaration.raw);
 }
 
 function selectionStateTransport(ir, event) {
@@ -541,8 +610,10 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   const activeStatements = statements.slice(0, end);
   const lowered = lowerStatements(activeStatements, context);
   const transport = selectionStateTransport(ir, event);
+  const fieldSymbols = globalFieldSymbolDeclarations(ir, activeStatements);
   const continuation = index >= 0 ? continuationFor(ir, statements[index]) : undefined;
   let body = [
+    ...fieldSymbols,
     ...transport.hydrate,
     ...lowered.map((item) => item.text),
     ...continuationClosers(continuation),
@@ -604,9 +675,6 @@ function reportMethods(ir) {
       methods.push(method(`zif_gg_report_v1~${event}`, bodiesFor(event)));
     } else {
       const body = [...bodiesFor(event)];
-      if (event === "start_of_selection" && ir.localClasses?.length) {
-        body.unshift("* TODO GGCONV-E305: local class definitions require separate global classes.");
-      }
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
       methods.push(method(`zif_gg_report_v1~${event}`, body));
     }
@@ -661,6 +729,7 @@ function resumeMethod(ir) {
     } else {
       const context = methodContext(ir, "resume");
       lowered = lowerStatements(tail, context).map((item) => item.text);
+      lowered = [...globalFieldSymbolDeclarations(ir, tail), ...lowered];
       if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
     }
     if (lowered.length === 0) lowered.push("RETURN.");
@@ -680,7 +749,7 @@ function dynproStateComponents(ir) {
     components.push({ name: upper, member: ir.statePlan?.renames?.[upper] ?? name.toLowerCase() });
   };
   for (const declaration of ir.declarations ?? []) {
-    if (!["data", "static"].includes(declaration.kind) || declaration.complex) continue;
+    if (declaration.statement?.localClassName || !["data", "static"].includes(declaration.kind) || declaration.complex) continue;
     const body = declaration.raw.replace(/^\s*(?:DATA|STATICS)\s*:??\s*/i, "").replace(/\.\s*$/, "");
     for (const part of body.split(",")) {
       const name = /^\s*([A-Z][A-Z0-9_]*)\b/i.exec(part)?.[1];
@@ -714,24 +783,25 @@ function routineBody(ir, routine) {
   const active = index >= 0 ? statements.slice(0, index + 1) : statements;
   const context = methodContext(ir, "start_of_selection");
   let lowered = lowerStatements(active, context).map((item) => item.text);
+  lowered = [...globalFieldSymbolDeclarations(ir, active), ...lowered];
   if (index >= 0) lowered.push(...continuationClosers(continuationFor(ir, statements[index])));
   if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
   return lowered;
 }
 
-function dynproMethods(ir) {
-  const metadata = ir.dynproMetadata;
+function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg_dynpro_v1") {
+  const interfaceMethod = (name) => `${interfaceName}~${name}`;
   if (!metadata) {
     const todo = ["* TODO GGCONV-E502: supply dynpro metadata before activating this class."];
     return [
-      method("zif_gg_dynpro_v1~get_initial_screen", ["RETURN."]),
-      method("zif_gg_dynpro_v1~build_screens", todo),
-      method("zif_gg_dynpro_v1~build_flow_logic", todo),
-      method("zif_gg_dynpro_v1~initialization", ["RETURN."]),
-      method("zif_gg_dynpro_v1~process_output_module", todo),
-      method("zif_gg_dynpro_v1~process_input_module", todo),
-      method("zif_gg_dynpro_v1~process_on_value_request", ["RETURN."]),
-      method("zif_gg_dynpro_v1~process_on_help_request", ["RETURN."]),
+      method(interfaceMethod("get_initial_screen"), ["RETURN."]),
+      method(interfaceMethod("build_screens"), todo),
+      method(interfaceMethod("build_flow_logic"), todo),
+      method(interfaceMethod("initialization"), ["RETURN."]),
+      method(interfaceMethod("process_output_module"), todo),
+      method(interfaceMethod("process_input_module"), todo),
+      method(interfaceMethod("process_on_value_request"), ["RETURN."]),
+      method(interfaceMethod("process_on_help_request"), ["RETURN."]),
     ];
   }
   const screenNumber = (value) => String(value ?? "").padStart(4, "0");
@@ -793,7 +863,7 @@ function dynproMethods(ir) {
     const lines = ["CASE is_context-module."];
     for (const module of modules) {
       const context = { ...methodContext(ir, "dynpro"), ucomm: "is_context-ucomm" };
-      const body = lowerStatements(module.statements, context).map((item) => item.text);
+      const body = [...globalFieldSymbolDeclarations(ir, module.statements), ...lowerStatements(module.statements, context).map((item) => item.text)];
       lines.push(`WHEN '${module.name}'.`, ...body);
     }
     lines.push("WHEN OTHERS.", "RETURN.", "ENDCASE.");
@@ -815,22 +885,88 @@ function dynproMethods(ir) {
   const stateHydrate = dynproStateHydrate(ir);
   const stateFlush = dynproStateFlush(ir);
   return [
-    method("zif_gg_dynpro_v1~get_initial_screen", [`rv_screen = '${initial}'.`]),
-    method("zif_gg_dynpro_v1~build_screens", buildScreens),
-    method("zif_gg_dynpro_v1~build_flow_logic", buildFlow),
-    method("zif_gg_dynpro_v1~initialization", stateFlush),
-    method("zif_gg_dynpro_v1~process_output_module", [...stateHydrate, ...statusLines, ...dispatch("OUTPUT"), ...stateFlush]),
-    method("zif_gg_dynpro_v1~process_input_module", [...stateHydrate, ...dispatch("INPUT"), ...stateFlush]),
-    method("zif_gg_dynpro_v1~process_on_value_request", ["RETURN."]),
-    method("zif_gg_dynpro_v1~process_on_help_request", ["RETURN."]),
+    method(interfaceMethod("get_initial_screen"), [`rv_screen = '${initial}'.`]),
+    method(interfaceMethod("build_screens"), buildScreens),
+    method(interfaceMethod("build_flow_logic"), buildFlow),
+    method(interfaceMethod("initialization"), stateFlush),
+    method(interfaceMethod("process_output_module"), [...stateHydrate, ...statusLines, ...dispatch("OUTPUT"), ...stateFlush]),
+    method(interfaceMethod("process_input_module"), [...stateHydrate, ...dispatch("INPUT"), ...stateFlush]),
+    method(interfaceMethod("process_on_value_request"), ["RETURN."]),
+    method(interfaceMethod("process_on_help_request"), ["RETURN."]),
   ];
 }
 
+function helperDefinitionHeader(localClass, generatedName, ir) {
+  const raw = localClass.definitionHeader ?? `CLASS ${localClass.name} DEFINITION.`;
+  let rest = raw
+    .replace(new RegExp(`^CLASS\\s+${localClass.name}\\s+DEFINITION\\b`, "i"), "")
+    .replace(/\.\s*$/, "")
+    .trim()
+    .replace(/^PUBLIC\b\s*/i, "");
+  if (!/\bCREATE\b/i.test(rest)) rest = `${rest}${rest ? " " : ""}CREATE PUBLIC`;
+  return `CLASS ${generatedName.toLowerCase()} DEFINITION PUBLIC${rest ? ` ${renameIdentifiers(rest, allRenames(ir))}` : ""}.`;
+}
+
+function helperMethodContext(ir) {
+  const context = methodContext(ir, "local_class");
+  context.ucomm = "sy-ucomm";
+  context.replacements = [
+    ...Object.entries(ir.statePlan?.renames ?? {}),
+    ...(ir.selections ?? []).flatMap((screen) => (screen.elements ?? [])
+      .filter((item) => item.name)
+      .map((item) => [item.name, ir.statePlan?.selectionState?.[item.name]?.member ?? item.name.toLowerCase()])),
+    ...Object.entries(ir.localClassRenames ?? {}),
+  ];
+  return context;
+}
+
+function helperMethodBody(ir, localClass, localMethod) {
+  const statements = truncateTerminalPaths(localMethod.statements ?? []);
+  const context = helperMethodContext(ir);
+  let body = lowerStatements(statements, context).map((item) => item.text);
+  body = [...globalFieldSymbolDeclarations(ir, statements), ...body];
+  if (body.some((line) => line.includes("lo_writer->")) && !/\bio_session\b/i.test(localMethod.definition?.text ?? "")) {
+    body = ["* TODO GGCONV-E501: local class writer access requires an explicit session mapping."];
+  }
+  return body.length ? body : ["RETURN."];
+}
+
+function helperSource(ir, options, localClass) {
+  const generatedName = localClass.generatedName;
+  const rename = (text) => renameIdentifiers(text, allRenames(ir));
+  const definition = [
+    helperDefinitionHeader(localClass, generatedName, ir),
+    "",
+    ...localClass.definition.flatMap((statement) => rename(statement.text).split("\n").map((line) => `  ${line.trim()}`)),
+    "",
+    "ENDCLASS.",
+    "",
+    `CLASS ${generatedName.toLowerCase()} IMPLEMENTATION.`,
+    "",
+  ];
+  const implementations = (localClass.methods ?? [])
+    .filter((localMethod) => localMethod.statement)
+    .map((localMethod) => method(localMethod.name.toLowerCase(), helperMethodBody(ir, localClass, localMethod)));
+  return `${header({ className: generatedName, ir, options })}${definition.join("\n")}${implementations.join("\n")}ENDCLASS.\n`.replace(/\r?\n/g, "\n");
+}
+
+export function emitHelperSources(ir, options) {
+  prepareLocalClassNames(ir, options);
+  return (ir.localClasses ?? []).map((localClass) => ({
+    className: localClass.generatedName,
+    sourceName: localClass.name,
+    source: helperSource(ir, options, localClass),
+  }));
+}
+
 export function emitClassSource(ir, options) {
+  prepareLocalClassNames(ir, options);
   const className = ir.targetClassName.toLowerCase();
   const interfaces = interfaceOrder(ir);
   const members = dataMembers(ir);
-  const definition = [`CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC.`, "", "  PUBLIC SECTION.", ...interfaces.map((name) => `    INTERFACES ${name}.`), ""];
+  const friends = (ir.localClasses ?? []).map((localClass) => localClass.generatedName.toLowerCase());
+  const friendAddition = friends.length ? ` FRIENDS ${friends.join(" ")}` : "";
+  const definition = [`CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC${friendAddition}.`, "", "  PUBLIC SECTION.", ...interfaces.map((name) => `    INTERFACES ${name}.`), ""];
   if (members.length) definition.push("  PRIVATE SECTION.", ...members.flatMap((line) => line.split("\n").map((part) => `    ${part}`)), "");
   definition.push("ENDCLASS.", "", `CLASS ${className} IMPLEMENTATION.`, "");
   const implementation = [];
@@ -838,7 +974,10 @@ export function emitClassSource(ir, options) {
     implementation.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}' ).`]));
   }
   if (ir.programKind === "module-pool") implementation.push(...dynproMethods(ir));
-  else implementation.push(...reportMethods(ir));
+  else {
+    implementation.push(...reportMethods(ir));
+    if (ir.screenMetadata) implementation.push(...dynproMethods(ir, ir.screenMetadata, "zif_gg_screen_provider_v1"));
+  }
   if (ir.interfaces.includes("zif_gg_list_processing_v1")) implementation.push(...listMethods(ir));
   if (ir.interfaces.includes("zif_gg_resumable_v1")) implementation.push(resumeMethod(ir));
   for (const routine of ir.routines) {
@@ -882,7 +1021,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     `CLASS ${className} IMPLEMENTATION.`,
     "",
     method("zif_gg_transaction_v1~get_transaction", [
-      `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(options.description)} ).`,
+      `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(ir.description)} ).`,
     ]).toString(),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
@@ -896,7 +1035,10 @@ export function lowerToScaffoldIR(ir, options, sourceMap = []) {
     methods.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}' ).`]));
   }
   if (ir.programKind === "module-pool") methods.push(...dynproMethods(ir));
-  else methods.push(...reportMethods(ir));
+  else {
+    methods.push(...reportMethods(ir));
+    if (ir.screenMetadata) methods.push(...dynproMethods(ir, ir.screenMetadata, "zif_gg_screen_provider_v1"));
+  }
   if (ir.interfaces.includes("zif_gg_list_processing_v1")) methods.push(...listMethods(ir));
   if (ir.interfaces.includes("zif_gg_resumable_v1")) methods.push(resumeMethod(ir));
   for (const routine of ir.routines) {
@@ -905,9 +1047,9 @@ export function lowerToScaffoldIR(ir, options, sourceMap = []) {
   return scaffoldIR({
     className: ir.targetClassName,
     transactionCode: ir.transactionCode,
-    description: options.description,
+    description: ir.description,
     definition: { visibility: "public", final: true, create: "public" },
-    transaction: { tcode: ir.transactionCode, description: options.description },
+    transaction: { tcode: ir.transactionCode, description: ir.description },
     interfaces: interfaceOrder(ir),
     members: dataMembers(ir),
     methods: methods.map(({ name, body, comment }) => ({ name, body: [...body], ...(comment ? { comment } : {}) })),
@@ -915,6 +1057,7 @@ export function lowerToScaffoldIR(ir, options, sourceMap = []) {
       kind: ir.programKind === "module-pool" ? "dynpro" : "selection-screen",
       selections: ir.selections,
       dynproMetadata: ir.dynproMetadata,
+      screenProviderMetadata: ir.screenMetadata,
     },
     listProcessing: {
       settings: ir.header,

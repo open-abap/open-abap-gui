@@ -27,6 +27,7 @@ export function emptyReportIR({ filename, source, sourceHash, newline }) {
     modules: [],
     controlFlowGraphs: [],
     dynproMetadata: undefined,
+    screenMetadata: undefined,
     guiStatusMetadata: {},
     references: { globals: [], selections: [] },
     programKind: "unknown",
