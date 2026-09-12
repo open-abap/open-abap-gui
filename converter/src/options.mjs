@@ -46,6 +46,10 @@ export function normalizeOptions(options = {}) {
   if (mode !== "strict" && mode !== "partial") {
     throw new Error(`mode must be strict or partial, got ${mode}`);
   }
+  const partialStrategy = options.partialStrategy ?? "preserve";
+  if (partialStrategy !== "preserve" && partialStrategy !== "skeleton") {
+    throw new Error(`partialStrategy must be preserve or skeleton, got ${partialStrategy}`);
+  }
   const filename = (options.filename ? path.normalize(options.filename) : "program.prog.abap").replaceAll("\\", "/");
   if (options.source !== undefined && typeof options.source !== "string") {
     throw new Error("source must be a string when supplied");
@@ -54,6 +58,7 @@ export function normalizeOptions(options = {}) {
     ...options,
     filename,
     mode,
+    partialStrategy,
     description: options.description ?? "Converted executable report",
     configPath: options.configPath ?? "abaplint.jsonc",
     converterVersion: options.converterVersion ?? CONVERTER_VERSION,

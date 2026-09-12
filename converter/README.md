@@ -20,6 +20,11 @@ flag. Strict mode returns no class source when an error diagnostic exists.
 Partial mode emits a compilable skeleton with explicit `TODO GGCONV-*` comments
 for unsupported semantics.
 
+For broad migration surveys where unsupported source fragments must never be
+preserved in the emitted class, set `partialStrategy: "skeleton"`. The default
+`"preserve"` strategy keeps supported lowering around the explicit TODOs for
+hands-on migration work.
+
 Read-only workbench adapters can use `previewProgram` or
 `previewRepositoryProgram` from `src/index.mjs`. The preview contract requires
 an explicit target class, reports a collision before offering generated source,
@@ -109,8 +114,16 @@ npm run coverage
 npm run transpile
 npm run behavior
 npm run browser
+npm run test:gg-gui
 npm test
 ```
+
+`test:gg-gui` clones `https://github.com/larshp/gg-gui` into the gitignored
+`gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), converts every
+catalog report with the safe partial strategy, transpiles and serves the
+generated report classes, and writes one browser screenshot per report plus an
+HTML index under `gg-gui-validation/screenshots/`. It is intentionally separate
+from the offline verification gate because it resolves an external repository.
 
 `behavior` compiles generated and hand-written report classes under
 distinct names, runs examples `001`-`057` through `zcl_gg_host`, and compares

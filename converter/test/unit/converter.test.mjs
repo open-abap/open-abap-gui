@@ -121,6 +121,21 @@ test("partial mode marks unsupported statements instead of dropping them", async
   assert.match(result.classSource, /TODO GGCONV/);
 });
 
+test("safe partial strategy emits a compilable diagnostic skeleton", async () => {
+  const result = await convertProgram({
+    source: "REPORT zpartial_skeleton.\nCLASS lcl_local DEFINITION.\nENDCLASS.\nCALL FUNCTION 'X'.\n",
+    filename: "zpartial_skeleton.prog.abap",
+    mode: "partial",
+    partialStrategy: "skeleton",
+  });
+  assert.equal(result.supported, false);
+  assert.match(result.classSource, /Partial conversion preview/);
+  assert.match(result.classSource, /TODO GGCONV-E305/);
+  assert.doesNotMatch(result.classSource, /(?:^|\n)CLASS lcl_local DEFINITION/);
+  assert.equal(result.manifest.partialStrategy, "skeleton");
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
+});
+
 test("reports unsupported WRITE additions individually", async () => {
   const result = await convertProgram({ source: "REPORT zwrite.\nWRITE 'x' COLOR 4.\n", filename: "zwrite.prog.abap", mode: "partial" });
   assert.equal(result.supported, false);

@@ -713,7 +713,7 @@ function routineBody(ir, routine) {
   const index = suspensionIndex(statements);
   const active = index >= 0 ? statements.slice(0, index + 1) : statements;
   const context = methodContext(ir, "start_of_selection");
-  const lowered = lowerStatements(active, context).map((item) => item.text);
+  let lowered = lowerStatements(active, context).map((item) => item.text);
   if (index >= 0) lowered.push(...continuationClosers(continuationFor(ir, statements[index])));
   if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
   return lowered;
@@ -846,6 +846,48 @@ export function emitClassSource(ir, options) {
   }
   implementation.push("ENDCLASS.", "");
   return `${header({ className: ir.targetClassName, ir, options })}${definition.join("\n")}\n${implementation.join("\n")}`.replace(/\r?\n/g, "\n");
+}
+
+export function emitPartialSkeleton(ir, options, diagnostics) {
+  const className = ir.targetClassName.toLowerCase();
+  const diagnosticLines = diagnostics
+    .filter((item) => item.severity === "error" || item.severity === "warning")
+    .map((item) => `${item.code}: ${item.construct}`)
+    .filter((value, index, values) => values.indexOf(value) === index);
+  const startBody = [
+    `io_session->get_list( )->set_title( ${literal(ir.programName ?? ir.targetClassName)} ).`,
+    "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
+    `lo_writer->write_field( VALUE #( text = ${literal("Partial conversion preview")} placement = VALUE #( new_line = abap_true ) ) ).`,
+    `lo_writer->write_field( VALUE #( text = ${literal(`Source report: ${ir.programName ?? "UNKNOWN"}`)} placement = VALUE #( new_line = abap_true ) ) ).`,
+    `lo_writer->write_field( VALUE #( text = ${literal("Unsupported source remains as explicit converter diagnostics.")} placement = VALUE #( new_line = abap_true ) ) ).`,
+    ...diagnosticLines.map((line) => `lo_writer->write_field( VALUE #( text = ${literal(line)} placement = VALUE #( new_line = abap_true ) ) ).`),
+  ];
+  const methods = REPORT_METHODS.map((name) => method(
+    `zif_gg_report_v1~${name}`,
+    name === "start_of_selection" ? startBody : ["RETURN."],
+  ));
+  const todos = diagnostics
+    .filter((item) => item.severity === "error" || item.code.startsWith("GGCONV-E"))
+    .map((item) => `* TODO ${item.code}: ${item.construct}`)
+    .filter((value, index, values) => values.indexOf(value) === index);
+  return `${header({className: ir.targetClassName, ir, options})}${todos.join("\n")}${todos.length ? "\n" : ""}` + [
+    `CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC.`,
+    "",
+    "  PUBLIC SECTION.",
+    "    INTERFACES zif_gg_report_v1.",
+    "    INTERFACES zif_gg_transaction_v1.",
+    "",
+    "ENDCLASS.",
+    "",
+    `CLASS ${className} IMPLEMENTATION.`,
+    "",
+    method("zif_gg_transaction_v1~get_transaction", [
+      `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(options.description)} ).`,
+    ]).toString(),
+    ...methods.map((entry) => entry.toString()),
+    "ENDCLASS.",
+    "",
+  ].join("\n");
 }
 
 export function lowerToScaffoldIR(ir, options, sourceMap = []) {

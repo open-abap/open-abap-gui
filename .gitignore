@@ -10,3 +10,4 @@ converter/abaplint-validation.jsonc
 converter/behavior-validation/
 converter/behavior-abaplint.jsonc
 converter/browser-validation/
+converter/gg-gui-validation/

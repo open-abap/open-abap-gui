@@ -19,7 +19,7 @@ import { analyzeReferences } from "./passes/analyze-references.mjs";
 import { buildControlFlowGraphs } from "./passes/control-flow.mjs";
 import { analyzeFieldSymbols } from "./passes/analyze-field-symbols.mjs";
 import { scanCapabilities } from "./capability.mjs";
-import { emitClassSource, lowerToScaffoldIR } from "./emit/class-source.mjs";
+import { emitClassSource, emitPartialSkeleton, lowerToScaffoldIR } from "./emit/class-source.mjs";
 import { createManifest } from "./emit/manifest.mjs";
 import { dynproProgramIR } from "./ir/dynpro-ir.mjs";
 
@@ -452,7 +452,9 @@ export async function convertProgram(input = {}) {
   if (!supported && options.mode === "strict") {
     return { classSource: undefined, manifest: createManifest(ir, sorted, options), diagnostics: sorted, sourceMap: [], reportIR: ir, supported: false };
   }
-  const classSource = emitClassSource(ir, options);
+  const classSource = !supported && options.mode === "partial" && options.partialStrategy === "skeleton"
+    ? emitPartialSkeleton(ir, options, sorted)
+    : emitClassSource(ir, options);
   const sourceMap = addGeneratedLocations(classSource, buildSourceMap(ir));
   const generatedValidation = parseUnits([{ filename: `${ir.targetClassName}.clas.abap`, source: classSource, ancestry: [], newline: "\n" }], config);
   diagnostics.push(...generatedValidation.diagnostics.map((item) => ({

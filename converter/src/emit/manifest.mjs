@@ -12,6 +12,7 @@ export function createManifest(ir, diagnostics, options) {
   return stable({
     converterVersion: options.converterVersion ?? CONVERTER_VERSION,
     manifestSchema: MANIFEST_SCHEMA_VERSION,
+    ...(options.partialStrategy === "skeleton" ? {partialStrategy: "skeleton"} : {}),
     sourceObject: ir.programName,
     sourceFilename: ir.source.filename,
     sourceHash: ir.source.sourceHash,

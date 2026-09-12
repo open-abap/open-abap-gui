@@ -24,6 +24,7 @@
     "transpile": "node test/transpile-generated.mjs",
     "behavior": "node test/behavioral-generated.mjs",
     "browser": "node test/browser-generated.mjs",
+    "test:gg-gui": "node test/gg-gui.mjs",
     "verify": "node test/verify.mjs"
   },
   "engines": {
