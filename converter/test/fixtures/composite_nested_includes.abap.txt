@@ -1,0 +1,5 @@
+REPORT zcomposite_nested.
+INCLUDE zcomposite_top.
+START-OF-SELECTION.
+PERFORM add_value USING 1 CHANGING gv_total.
+WRITE gv_total.

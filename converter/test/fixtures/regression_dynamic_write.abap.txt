@@ -1,0 +1,3 @@
+REPORT zreg_dynamic_write.
+DATA gv_name TYPE string.
+WRITE (gv_name(10)).

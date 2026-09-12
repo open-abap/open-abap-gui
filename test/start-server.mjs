@@ -1,8 +1,14 @@
 import express from "express";
 import {createServer} from "node:http";
+import path from "node:path";
 import {pathToFileURL} from "node:url";
-import "../output/init.mjs";
-import {cl_express_icf_shim} from "../output/cl_express_icf_shim.clas.mjs";
+import {createWorkbenchPreviewHandlers} from "../converter/src/workbench-http.mjs";
+
+const outputRoot = path.resolve(process.env.OPEN_ABAP_GUI_OUTPUT ?? "output");
+await import(pathToFileURL(path.join(outputRoot, "init.mjs")).href);
+const {cl_express_icf_shim} = await import(
+  pathToFileURL(path.join(outputRoot, "cl_express_icf_shim.clas.mjs")).href);
+const converterWorkbench = createWorkbenchPreviewHandlers();
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -14,8 +20,38 @@ export function createAbapHtmlHostServer() {
   app.set("etag", false);
   app.use(express.raw({type: "*/*", limit: MAX_BODY_BYTES}));
 
-  // Node owns only the transport. Every request is handed to the fixed ABAP
-  // IF_HTTP_EXTENSION handler, which owns the HTTP application behavior.
+  app.get("/converter/preview", async (request, response, next) => {
+    try {
+      await converterWorkbench.get(request, response);
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post("/converter/preview", async (request, response, next) => {
+    try {
+      await converterWorkbench.post(request, response);
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.post("/converter/preview/save", async (request, response, next) => {
+    try {
+      await converterWorkbench.save(request, response);
+    } catch (error) {
+      next(error);
+    }
+  });
+  app.get("/converter/preview/download", async (request, response, next) => {
+    try {
+      await converterWorkbench.download(request, response);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // The read-only converter preview is an explicit workbench adapter. All
+  // other requests are handed to the fixed ABAP IF_HTTP_EXTENSION handler,
+  // which owns the application behavior for the deployed GUI.
   app.all("*", async (request, response, next) => {
     try {
       await cl_express_icf_shim.run({

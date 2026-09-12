@@ -1,0 +1,36 @@
+{
+  "name": "open-abap-gui-converter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic, offline conversion of classic ABAP executable reports to the versioned scaffold interfaces.",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "bin": {
+    "open-abap-gui-convert": "bin/convert.mjs"
+  },
+  "scripts": {
+    "check": "node bin/convert.mjs ../scaffold/examples/zgg_ex_001.prog.abap --check",
+    "check:matrix": "node test/check-fixtures.mjs",
+    "test:unit": "node --test test/unit/*.test.mjs test/integration/*.test.mjs",
+    "test": "node test/verify.mjs",
+    "fixtures": "node test/run-fixtures.mjs",
+    "structural": "node test/structural-snapshots.mjs",
+    "warnings": "node test/warnings.mjs",
+    "hardening": "node test/hardening.mjs",
+    "coverage": "node test/coverage.mjs",
+    "transpile": "node test/transpile-generated.mjs",
+    "behavior": "node test/behavioral-generated.mjs",
+    "browser": "node test/browser-generated.mjs",
+    "verify": "node test/verify.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@abaplint/core": "^2.120.50"
+  },
+  "license": ""
+}

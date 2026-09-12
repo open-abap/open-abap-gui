@@ -1,0 +1,5 @@
+REPORT zcomposite_local_class.
+CLASS lcl_not_inlined DEFINITION.
+ENDCLASS.
+START-OF-SELECTION.
+WRITE 'local class requires a separate global class'.

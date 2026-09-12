@@ -4,3 +4,9 @@ node_modules
 output_test
 regression-work
 test-results
+converter/.tmp/
+converter/transpile-validation/
+converter/abaplint-validation.jsonc
+converter/behavior-validation/
+converter/behavior-abaplint.jsonc
+converter/browser-validation/

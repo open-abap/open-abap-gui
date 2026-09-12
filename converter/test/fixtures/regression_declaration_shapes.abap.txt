@@ -1,0 +1,21 @@
+REPORT zregdecl.
+
+TYPES: BEGIN OF ty_row,
+         id TYPE i,
+         text TYPE string,
+       END OF ty_row.
+DATA gs_row TYPE ty_row.
+DATA gt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+DATA gr_row TYPE REF TO ty_row.
+
+FORM use_local_type.
+  TYPES ty_local TYPE i.
+  DATA lv_local TYPE ty_local.
+  lv_local = gs_row-id.
+ENDFORM.
+
+START-OF-SELECTION.
+  gs_row-id = 1.
+  APPEND gs_row TO gt_rows.
+  PERFORM use_local_type.
+  WRITE lines( gt_rows ).

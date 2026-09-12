@@ -1,0 +1,11 @@
+PROGRAM zreg_dynpro_state.
+DATA gv_counter TYPE i VALUE 1.
+MODULE status_0100 OUTPUT.
+  ADD 1 TO gv_counter.
+ENDMODULE.
+MODULE user_command_0100 INPUT.
+  IF sy-ucomm = 'NEXT'.
+    ADD 1 TO gv_counter.
+    LEAVE SCREEN.
+  ENDIF.
+ENDMODULE.
