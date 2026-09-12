@@ -1,0 +1,12 @@
+REPORT zcomposite_sql_form.
+DATA gv_total TYPE i.
+DATA lt_flights TYPE STANDARD TABLE OF zsflight WITH DEFAULT KEY.
+FORM add_value USING iv_value TYPE i CHANGING cv_total TYPE i.
+  ADD iv_value TO cv_total.
+ENDFORM.
+START-OF-SELECTION.
+PERFORM add_value USING 1 CHANGING gv_total.
+SELECT * FROM zsflight INTO TABLE @lt_flights ORDER BY carrid, connid, fldate.
+LOOP AT lt_flights INTO DATA(ls_flight).
+  WRITE / ls_flight-carrid.
+ENDLOOP.

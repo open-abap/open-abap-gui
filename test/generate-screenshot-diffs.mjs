@@ -1,16 +1,46 @@
 import {mkdir, readdir, readFile, rm, writeFile} from "node:fs/promises";
-import {basename, resolve} from "node:path";
+import {basename, relative, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {chromium} from "playwright";
 
-const [, , baselineArgument, currentArgument, outputArgument] = process.argv;
+const rawArguments = process.argv.slice(2);
+const [baselineArgument, currentArgument, outputArgument] = rawArguments;
 const baselineDirectory = resolve(baselineArgument || "deployment/main/screenshots");
 const currentDirectory = resolve(currentArgument || "build/screenshots");
 const outputDirectory = resolve(outputArgument || "build/visual-diffs");
 const diffDirectory = resolve(outputDirectory, "images");
+const contentRegion = parseContentRegion(argumentValue("--content-region"));
+
+function argumentValue(name) {
+  const inline = rawArguments.find((argument) => argument.startsWith(`${name}=`));
+  if (inline) return inline.slice(name.length + 1);
+  const index = rawArguments.indexOf(name);
+  return index >= 0 ? rawArguments[index + 1] : undefined;
+}
+
+function parseContentRegion(value) {
+  if (!value || value === "full") return null;
+  const values = value.split(",").map((item) => Number(item));
+  if (values.length !== 4 || values.some((item) => !Number.isInteger(item))) {
+    throw new Error("--content-region must be x,y,width,height using integer values, or full");
+  }
+  const [x, y, width, height] = values;
+  if (x < 0 || y < 0 || width <= 0 || height <= 0) {
+    throw new Error("--content-region must have non-negative x/y and positive width/height");
+  }
+  return {x, y, width, height};
+}
 
 function escapeHtml(value) {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+function relativeHref(from, to) {
+  return relative(from, to).split("\\").join("/");
+}
+
+function dimensionsText(dimensions) {
+  return dimensions ? `${dimensions.width} x ${dimensions.height}` : "not present";
 }
 
 function urlSegment(value) {
@@ -73,10 +103,17 @@ try {
     const currentPath = hasCurrent ? resolve(currentDirectory, name) : null;
     const baselineDimensions = baselinePath ? await imageDimensions(baselinePath) : null;
     const currentDimensions = currentPath ? await imageDimensions(currentPath) : null;
-    const width = Math.max(baselineDimensions?.width || 0, currentDimensions?.width || 0);
-    const height = Math.max(baselineDimensions?.height || 0, currentDimensions?.height || 0);
+    if (contentRegion) {
+      for (const [label, dimensions] of [["native reference", baselineDimensions], ["browser", currentDimensions]]) {
+        if (dimensions && (contentRegion.x + contentRegion.width > dimensions.width || contentRegion.y + contentRegion.height > dimensions.height)) {
+          throw new Error(`Content region exceeds ${label} image ${name} (${dimensionsText(dimensions)})`);
+        }
+      }
+    }
+    const width = contentRegion?.width || Math.max(baselineDimensions?.width || 0, currentDimensions?.width || 0);
+    const height = contentRegion?.height || Math.max(baselineDimensions?.height || 0, currentDimensions?.height || 0);
 
-    const result = await page.evaluate(async ({baselineUrl, currentUrl, width, height}) => {
+    const result = await page.evaluate(async ({baselineUrl, currentUrl, width, height, contentRegion}) => {
       async function loadImage(url) {
         if (!url) {
           return null;
@@ -95,7 +132,11 @@ try {
         context.fillStyle = "#fff";
         context.fillRect(0, 0, width, height);
         if (image) {
-          context.drawImage(image, 0, 0);
+          if (contentRegion) {
+            context.drawImage(image, contentRegion.x, contentRegion.y, contentRegion.width, contentRegion.height, 0, 0, width, height);
+          } else {
+            context.drawImage(image, 0, 0);
+          }
         }
         return context.getImageData(0, 0, width, height);
       }
@@ -149,6 +190,7 @@ try {
       currentUrl: currentPath ? pathToFileURL(currentPath).href : null,
       width,
       height,
+      contentRegion,
     });
 
     const status = !hasBaseline ? "added" : !hasCurrent ? "removed" : result.changedPixels > 0 ? "changed" : "unchanged";
@@ -164,6 +206,7 @@ try {
       dimensions: {width, height},
       baselineDimensions,
       currentDimensions,
+      contentRegion,
     });
   }
 } finally {
@@ -179,15 +222,15 @@ const cards = differences.map((comparison) => {
   const percentage = comparison.totalPixels === 0
     ? "0.00"
     : (comparison.changedPixels / comparison.totalPixels * 100).toFixed(2);
-  const baselineSource = comparison.baselineDimensions ? `../../main/screenshots/${filename}` : null;
-  const currentSource = comparison.currentDimensions ? `../screenshots/${filename}` : null;
+  const baselineSource = comparison.baselineDimensions ? relativeHref(outputDirectory, resolve(baselineDirectory, comparison.name)) : null;
+  const currentSource = comparison.currentDimensions ? relativeHref(outputDirectory, resolve(currentDirectory, comparison.name)) : null;
   const diffSource = comparison.changedPixels > 0 ? `images/${filename}` : null;
 
   return `      <article id="${label}" class="comparison comparison--${comparison.status}">
-        <header><h2>${label}</h2><span class="status">${comparison.status}</span><span>${comparison.changedPixels} pixels (${percentage}%)</span></header>
+        <header><h2>${label}</h2><span class="status">${comparison.status}</span><span>${comparison.changedPixels} pixels (${percentage}%)</span><span class="dimensions">Native reference: ${dimensionsText(comparison.baselineDimensions)} - Browser: ${dimensionsText(comparison.currentDimensions)}</span></header>
         <div class="panels">
-          <figure><figcaption>Main baseline</figcaption>${imageMarkup({source: baselineSource, alt: `${label} on main`, dimensions: comparison.baselineDimensions})}</figure>
-          <figure><figcaption>Preview</figcaption>${imageMarkup({source: currentSource, alt: `${label} in preview`, dimensions: comparison.currentDimensions})}</figure>
+          <figure><figcaption>Native reference</figcaption>${imageMarkup({source: baselineSource, alt: `${label} native reference`, dimensions: comparison.baselineDimensions})}</figure>
+          <figure><figcaption>Browser</figcaption>${imageMarkup({source: currentSource, alt: `${label} in browser`, dimensions: comparison.currentDimensions})}</figure>
           <figure><figcaption>Visual diff</figcaption>${imageMarkup({source: diffSource, alt: `${label} visual difference`, dimensions: comparison.dimensions})}</figure>
         </div>
       </article>`;
@@ -212,6 +255,7 @@ const html = `<!doctype html>
       .comparison--added .status { background: #d8f0dc; color: #155c25; }
       .comparison--removed .status { background: #f5d9d9; color: #8b2020; }
       .comparison--changed .status { background: #ffe8b8; color: #704900; }
+      .dimensions { flex-basis: 100%; color: #52677c; font: .85rem ui-monospace, monospace; }
       .panels { display: grid; grid-template-columns: repeat(3, minmax(260px, 1fr)); gap: 1rem; align-items: start; }
       figure { min-width: 0; margin: 0; }
       figcaption { margin-bottom: .4rem; font-weight: 650; }
@@ -224,7 +268,7 @@ const html = `<!doctype html>
   </head>
   <body>
     <h1>Screenshot visual diffs</h1>
-    <p class="intro">Preview screenshots compared pixel-by-pixel with the deployed <a href="../../main/screenshots/">main baseline</a>. Pink pixels differ.</p>
+    <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Content region: ${contentRegion ? `${contentRegion.x},${contentRegion.y},${contentRegion.width},${contentRegion.height}` : "full image"}.</p>
     <div class="summary">
       <span>${counts.changed} changed</span><span>${counts.added} added</span><span>${counts.removed} removed</span><span>${counts.unchanged} unchanged</span>
     </div>
@@ -239,7 +283,7 @@ await writeFile(resolve(outputDirectory, "index.html"), html, "utf8");
 
 // Keep this deterministic (no timestamps): the preview deployment only commits when
 // the generated files actually change.
-const summary = {compared: comparisons.length, differences: differences.length, ...counts};
+const summary = {compared: comparisons.length, differences: differences.length, contentRegion, ...counts, comparisons};
 await writeFile(resolve(outputDirectory, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 
 console.log(`Compared ${comparisons.length} screenshots: ${differences.length} visual differences`);

@@ -1,0 +1,7 @@
+REPORT zreg_dynamic_write_fallback.
+DATA gv_name TYPE string.
+DATA gv_offset TYPE i.
+START-OF-SELECTION.
+gv_name = 'GV_VALUE'.
+gv_offset = 1.
+WRITE / (gv_name+gv_offset(8)).

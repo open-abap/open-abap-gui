@@ -68,6 +68,11 @@ module.exports = {
     ],
   },
   plugins: [
+    // Webpack treats node:-prefixed imports as URI schemes before applying
+    // resolve.fallback. Strip the prefix so browser fallbacks still apply.
+    new webpack.NormalModuleReplacementPlugin(/^node:(crypto|fs)$/, (resource) => {
+      resource.request = resource.request.slice("node:".length);
+    }),
     new webpack.NormalModuleReplacementPlugin(
       /%23ui2%23cl_json\.clas(?:\.locals)?\.mjs$/,
       (resource) => {

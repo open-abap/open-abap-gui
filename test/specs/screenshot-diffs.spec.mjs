@@ -28,6 +28,7 @@ test("generates a visual report for changed, added, and removed screenshots", as
     process.argv[2] = baseline;
     process.argv[3] = current;
     process.argv[4] = output;
+    process.argv[5] = "--content-region=5,4,20,10";
     try {
       await import(`../generate-screenshot-diffs.mjs?test=${Date.now()}`);
     } finally {
@@ -35,11 +36,15 @@ test("generates a visual report for changed, added, and removed screenshots", as
     }
 
     const html = await readFile(resolve(output, "index.html"), "utf8");
+    const summary = JSON.parse(await readFile(resolve(output, "summary.json"), "utf8"));
     expect(html).toContain("1 changed");
     expect(html).toContain("1 added");
     expect(html).toContain("1 removed");
     expect(html).toContain("1 unchanged");
     expect(html).toContain('width="40" height="30"');
+    expect(html).toContain("Content region: 5,4,20,10");
+    expect(summary.contentRegion).toEqual({x: 5, y: 4, width: 20, height: 10});
+    expect(summary.comparisons[0].dimensions).toEqual({width: 20, height: 10});
     await expect(readFile(resolve(output, "images", "changed.png"))).resolves.toBeTruthy();
     await expect(readFile(resolve(output, "images", "added.png"))).resolves.toBeTruthy();
     await expect(readFile(resolve(output, "images", "removed.png"))).resolves.toBeTruthy();

@@ -47,10 +47,13 @@ renders, rather than handing typed crumbs to the shell.
 
 Runnable workbench applications publish a stable transaction code through
 `zif_gg_transaction_v1` and exactly one executable contract,
-`zif_gg_report_v1` or `zif_gg_dynpro_v1`. `zcl_gg_transaction_registry` is the
-single discovery, validation, normalization, lookup, and launch-authorization
-catalog. Codes are case-insensitive, rendered canonically in upper case, and
-must contain only letters, digits, underscores, or valid namespace separators.
+`zif_gg_report_v1` or `zif_gg_dynpro_v1`. A report may additionally implement
+the auxiliary `zif_gg_screen_provider_v1`; the host adapts it at a `CALL
+SCREEN` boundary without changing the registry kind from REPORT. `zcl_gg_transaction_registry`
+is the single discovery, validation, normalization, lookup, and
+launch-authorization catalog. Codes are case-insensitive, rendered
+canonically in upper case, and must contain only letters, digits, underscores,
+or valid namespace separators.
 
 The command field is a real `POST /transaction` form. Its supported syntax is
 `/n<tcode>`; `/n` is case-insensitive and surrounding whitespace is accepted.

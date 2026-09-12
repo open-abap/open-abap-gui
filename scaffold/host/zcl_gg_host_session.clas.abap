@@ -88,6 +88,7 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     DATA mo_list      TYPE REF TO zcl_gg_host_list.
+    DATA mo_compatibility TYPE REF TO zif_gg_compatibility_v1.
     DATA mv_program   TYPE zif_gg_session_types_v1=>ty_program.
     DATA mv_event     TYPE zif_gg_session_types_v1=>ty_event.
     DATA mv_batch     TYPE abap_bool.
@@ -117,6 +118,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD constructor.
     mo_list    = io_list.
+    mo_compatibility = NEW zcl_gg_host_compatibility( ).
     mv_program = iv_program.
     mv_batch   = iv_batch.
     mv_processor = iv_processor.
@@ -221,6 +223,10 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD zif_gg_session_v1~get_navigation.
     ro_navigation = me.
+  ENDMETHOD.
+
+  METHOD zif_gg_session_v1~get_compatibility.
+    ro_compatibility = mo_compatibility.
   ENDMETHOD.
 
   METHOD zif_gg_session_v1~message.

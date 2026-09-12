@@ -1,0 +1,6 @@
+REPORT zreg_implicit_loop.
+DATA gt_values TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+START-OF-SELECTION.
+LOOP AT gt_values.
+  WRITE / gt_values.
+ENDLOOP.
