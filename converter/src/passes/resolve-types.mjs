@@ -52,6 +52,19 @@ export function resolveTypes(ir, options, diagnostics) {
     return ELEMENTARY.has(upper) || localTypes.has(upper) || localClasses.has(upper) || Boolean(lookup(dictionary, upper));
   };
   ir.resolvedTypes = {};
+  const scalarTypes = new Map();
+  for (const declaration of ir.declarations) {
+    if (!['data', 'static'].includes(declaration.kind)) continue;
+    for (const entry of declaration.entries ?? []) {
+      const match = /\bTYPE\s+([A-Z0-9_\/]+)(?:\s+LENGTH\s+(\d+))?(?:\s+DECIMALS\s+(\d+))?/i.exec(entry.definition ?? '');
+      if (!match) continue;
+      scalarTypes.set(entry.name.toUpperCase(), {
+        typ: (match[1] ?? 'STRING').toUpperCase(),
+        ...(match[2] ? {length: Number(match[2])} : {}),
+        ...(match[3] ? {decimals: Number(match[3])} : {}),
+      });
+    }
+  }
   for (const declaration of ir.declarations) {
     if (declaration.kind === "tables") {
       const name = declaration.names?.[0];
@@ -88,6 +101,12 @@ export function resolveTypes(ir, options, diagnostics) {
   }
   for (const screen of ir.selections) {
     for (const item of screen.elements) {
+      const scalarMatch = /\bFOR\s+([A-Z][A-Z0-9_]*)\b/i.exec(item.additions ?? '');
+      const scalarType = scalarTypes.get(scalarMatch?.[1]?.toUpperCase());
+      if (scalarType) {
+        item.dataType = scalarType;
+        continue;
+      }
       const match = /\bFOR\s+([A-Z][A-Z0-9_]*)-([A-Z][A-Z0-9_]*)/i.exec(item.additions ?? "");
       if (!match) continue;
       const table = lookup(ir.resolvedTypes, match[1]) ?? lookup(dictionary, match[1]);

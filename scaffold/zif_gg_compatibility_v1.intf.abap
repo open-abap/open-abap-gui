@@ -27,6 +27,29 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
            text4 TYPE string,
          END OF ty_popup_inform_request.
 
+  TYPES: BEGIN OF ty_popup_field,
+           name  TYPE string,
+           text  TYPE string,
+           value TYPE string,
+         END OF ty_popup_field.
+  TYPES ty_popup_fields TYPE STANDARD TABLE OF ty_popup_field WITH DEFAULT KEY.
+
+  TYPES: BEGIN OF ty_popup_button,
+           value TYPE string,
+           text  TYPE string,
+         END OF ty_popup_button.
+  TYPES ty_popup_buttons TYPE STANDARD TABLE OF ty_popup_button WITH DEFAULT KEY.
+
+  TYPES: BEGIN OF ty_popup,
+           kind         TYPE string,
+           title        TYPE string,
+           text_lines   TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
+           fields       TYPE ty_popup_fields,
+           buttons      TYPE ty_popup_buttons,
+           start_column TYPE i,
+           start_row    TYPE i,
+         END OF ty_popup.
+
   TYPES: BEGIN OF ty_popup_values_request,
            title          TYPE string,
            no_value_check TYPE abap_bool,
@@ -79,11 +102,33 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
            tree_visible TYPE abap_bool,
          END OF ty_dynamic_selection_request.
 
+  TYPES: BEGIN OF ty_dynamic_selection_field,
+           table_name TYPE string,
+           name       TYPE string,
+           text       TYPE string,
+           active     TYPE abap_bool,
+           sign       TYPE string,
+           option     TYPE string,
+           low        TYPE string,
+           high       TYPE string,
+         END OF ty_dynamic_selection_field.
+  TYPES ty_dynamic_selection_fields TYPE STANDARD TABLE OF ty_dynamic_selection_field WITH EMPTY KEY.
+
+  TYPES: BEGIN OF ty_dynamic_selection,
+           open          TYPE abap_bool,
+           as_window     TYPE abap_bool,
+           selection_id  TYPE string,
+           title         TYPE string,
+           active_fields TYPE i,
+           fields        TYPE ty_dynamic_selection_fields,
+         END OF ty_dynamic_selection.
+
   TYPES: BEGIN OF ty_variant_request,
            report  TYPE string,
            variant TYPE string,
            title   TYPE string,
          END OF ty_variant_request.
+  TYPES ty_variant_parameters TYPE STANDARD TABLE OF rsparams WITH EMPTY KEY.
 
   TYPES: BEGIN OF ty_frontend_url_request,
            type     TYPE string,
@@ -118,6 +163,16 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
     IMPORTING is_request    TYPE ty_f4_request
     CHANGING  ct_value_tab  TYPE STANDARD TABLE
               ct_return_tab TYPE STANDARD TABLE.
+
+  METHODS set_popup_request
+    IMPORTING iv_action TYPE string
+              it_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+
+  METHODS get_popup
+    RETURNING VALUE(rs_popup) TYPE ty_popup.
+
+  METHODS get_value_help_values
+    RETURNING VALUE(rt_values) TYPE zif_gg_dynpro_types_v1=>ty_values.
 
   METHODS set_selection_list_values
     IMPORTING iv_id     TYPE string
@@ -194,9 +249,30 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
     IMPORTING it_field_ranges  TYPE any
     CHANGING  ct_where_clauses TYPE any.
 
+  METHODS set_dynamic_selection_request
+    IMPORTING
+      iv_action TYPE string OPTIONAL
+      it_values TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL.
+
+  METHODS get_dynamic_selection
+    RETURNING VALUE(rs_selection) TYPE ty_dynamic_selection.
+
+  METHODS set_selection_context
+    IMPORTING
+      iv_report TYPE string
+      it_values TYPE zif_gg_selection_screen_types=>ty_values
+      it_states TYPE zif_gg_selection_screen_types=>ty_states OPTIONAL
+      iv_screen TYPE zif_gg_selection_screen_types=>ty_screen_number DEFAULT '1000'.
+
+  METHODS selection_table_to_values
+    IMPORTING
+      it_selection     TYPE ty_variant_parameters
+    RETURNING
+      VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_values.
+
   METHODS variant_refresh
     IMPORTING is_request   TYPE ty_variant_request
-    CHANGING  ct_selection TYPE STANDARD TABLE.
+    CHANGING  ct_selection TYPE ty_variant_parameters.
 
   METHODS variant_catalog
     IMPORTING is_request        TYPE ty_variant_request
@@ -204,16 +280,16 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
 
   METHODS variant_contents
     IMPORTING is_request  TYPE ty_variant_request
-    CHANGING  ct_contents TYPE STANDARD TABLE.
+    CHANGING  ct_contents TYPE ty_variant_parameters.
 
   METHODS variant_create
     IMPORTING is_request  TYPE ty_variant_request
-    CHANGING  ct_contents TYPE STANDARD TABLE
+    CHANGING  ct_contents TYPE ty_variant_parameters
               ct_text     TYPE STANDARD TABLE.
 
   METHODS variant_change
     IMPORTING is_request  TYPE ty_variant_request
-    CHANGING  ct_contents TYPE STANDARD TABLE
+    CHANGING  ct_contents TYPE ty_variant_parameters
               ct_text     TYPE STANDARD TABLE.
 
   METHODS variant_delete

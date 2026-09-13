@@ -254,6 +254,34 @@ function parseFlowLogic(source, filename, number) {
       chainDepth = Math.max(0, chainDepth - 1);
       continue;
     }
+    const subscreen = /^CALL\s+SUBSCREEN\s+([A-Z0-9_]+)(?:\s+INCLUDING\s+[^\s]+\s+(?:(?:'?(\d{1,4})'?)|([A-Z][A-Z0-9_-]*)))?\s*\.?$/i.exec(raw);
+    if (subscreen && phase) {
+      flow.steps.push({
+        kind: "subscreen",
+        phase,
+        area: subscreen[1].toUpperCase(),
+        screen: subscreen[2] ? paddedScreen(subscreen[2]) : undefined,
+        screenField: subscreen[3]?.toUpperCase(),
+        line: index + 1,
+        source: raw,
+      });
+      continue;
+    }
+    const tableLoop = /^LOOP\s+AT\s+.+?(?:\s+WITH\s+CONTROL\s+([A-Z0-9_-]+))?\s*\.?$/i.exec(raw);
+    if (tableLoop && phase && (phase === "pbo" || phase === "pai")) {
+      flow.steps.push({
+        kind: "table-loop-begin",
+        phase,
+        tableControl: tableLoop[1]?.toUpperCase(),
+        line: index + 1,
+        source: raw,
+      });
+      continue;
+    }
+    if (/^ENDLOOP\s*\.?$/i.test(raw) && phase && (phase === "pbo" || phase === "pai")) {
+      flow.steps.push({ kind: "table-loop-end", phase, line: index + 1, source: raw });
+      continue;
+    }
     const field = /^FIELD\s+([^\s.]+)\s+MODULE\s+([^\s.]+)(.*)$/i.exec(raw);
     if (field && phase) {
       const entry = moduleEntry(field[2], {
@@ -278,6 +306,7 @@ function parseFlowLogic(source, filename, number) {
       const entry = moduleEntry(module[1], {
         atExitCommand: /\bAT\s+EXIT-COMMAND\b/i.test(module[2]),
         onInput: /\bON\s+INPUT\b/i.test(module[2]),
+        onRequest: /\bON\s+(?:CHAIN-)?REQUEST\b/i.test(module[2]),
         chainDepth,
         line: index + 1,
         source: raw,

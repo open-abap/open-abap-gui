@@ -43,7 +43,7 @@ export function actionableDiagnosticCode(statement) {
 const SUPPORTED_STATEMENTS = new Set([
   "Comment", "Empty", "Report", "Program", "Data", "DataBegin", "DataEnd", "Constant", "Static", "Parameter", "SelectOption", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd",
   "SelectionScreen", "StartOfSelection", "EndOfSelection", "LoadOfProgram", "Initialization", "AtSelectionScreen",
-  "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Write", "Skip", "Uline", "Format",
+  "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Write", "Skip", "Uline", "Format", "ScrollList",
   "NewLine", "SetBlank", "Reserve", "NewPage", "Stop", "Message", "If", "Else", "ElseIf", "EndIf", "Do", "EndDo",
   "Case", "When", "WhenOthers", "EndCase", "Loop", "EndLoop", "Move", "Return", "Hide", "GetCursor", "ReadLine",
   "ModifyLine", "SetPFStatus", "SetTitlebar", "Leave", "AtSelectionScreenOutput", "LoopAtScreen", "ModifyScreen",
@@ -75,12 +75,22 @@ function loopName(statement) {
 
 function isSelectionRangeLoop(ir, statement) {
   const name = loopName(statement);
-  return Boolean(name && ir.selections?.some((selection) => selection.name === name && selection.ranges));
+  return Boolean(name && ir.selections?.some((screen) => screen.elements?.some((item) =>
+    item.name === name && item.kind === "select-option")));
 }
 
 function hasDynamicWriteTargets(ir) {
   if ((ir.declarations ?? []).some((declaration) => declaration.statement?.scope !== "local" && ["data", "static", "tables"].includes(declaration.kind) && (declaration.names ?? []).length)) return true;
   return (ir.selections ?? []).some((screen) => (screen.elements ?? []).some((element) => element.name));
+}
+
+function supportedClassicWriteFormat(text) {
+  const classic = text
+    .replace(/'(?:''|[^'])*'/g, "")
+    .replace(/\bHOTSPOT\b/gi, "")
+    .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
+    .replace(/\bCURRENCY\b/gi, "");
+  return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
 export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
@@ -125,7 +135,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "dynamic or external PERFORM cannot be lowered safely", "Convert the routine to a local FORM or provide a manual method mapping.", "GGCONV-E401");
       continue;
     }
-    if (statement.kind === "Write" && /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(statement.text)) {
+    if (statement.kind === "Write" && !supportedClassicWriteFormat(statement.text)) {
       addStatementDiagnostic(diagnostics, statement, "this WRITE formatting addition is not represented by the scaffold writer", "Move the formatting to FORMAT or provide a typed writer extension.", "GGCONV-E501");
     }
     const dynamicWrite = dynamicWriteOperand(statement);

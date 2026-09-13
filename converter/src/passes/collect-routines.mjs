@@ -17,8 +17,17 @@ function parseParameters(header) {
 }
 
 export function collectRoutines(ir) {
+  const usedMethodNames = new Set();
   for (const routine of ir.routines) {
-    routine.methodName = `form_${routine.name.toLowerCase()}`;
+    const baseName = `form_${routine.name.toLowerCase()}`;
+    let methodName = baseName.slice(0, 30);
+    let suffix = 2;
+    while (usedMethodNames.has(methodName)) {
+      const marker = `_${suffix++}`;
+      methodName = `${baseName.slice(0, 30 - marker.length)}${marker}`;
+    }
+    usedMethodNames.add(methodName);
+    routine.methodName = methodName;
     routine.parameters = parseParameters(routine.statement.text);
   }
   return ir;

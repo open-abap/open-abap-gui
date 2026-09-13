@@ -20,7 +20,7 @@ import { analyzeReferences } from "./passes/analyze-references.mjs";
 import { buildControlFlowGraphs } from "./passes/control-flow.mjs";
 import { analyzeFieldSymbols } from "./passes/analyze-field-symbols.mjs";
 import { scanCapabilities } from "./capability.mjs";
-import { emitClassSource, emitHelperSources, emitPartialSkeleton, lowerToScaffoldIR } from "./emit/class-source.mjs";
+import { emitClassSource, emitHelperSources, emitPartialApplication, emitPartialSkeleton, lowerToScaffoldIR } from "./emit/class-source.mjs";
 import { createManifest } from "./emit/manifest.mjs";
 import { dynproProgramIR } from "./ir/dynpro-ir.mjs";
 import { loadDynproMetadata } from "./dynpro-metadata.mjs";
@@ -33,7 +33,7 @@ const SAFE_ENTRY_FAILURE_CODES = new Set([
 ]);
 
 function requiresDiagnosticShell(diagnostics) {
-  return diagnostics.some((item) => item.severity === "error" && SAFE_ENTRY_FAILURE_CODES.has(item.code));
+  return diagnostics.some((item) => SAFE_ENTRY_FAILURE_CODES.has(item.code));
 }
 
 function headerSettings(raw) {
@@ -54,7 +54,7 @@ function includeIdentity(filename) {
 }
 
 function includeBase(filename) {
-  return includeIdentity(filename).split("/").at(-1)?.replace(/\.(?:INCL\.)?ABAP$/, "") ?? "";
+  return includeIdentity(filename).split("/").at(-1)?.replace(/\.(?:(?:INCL|PROG)\.)?ABAP$/, "") ?? "";
 }
 
 function orderedStatements(parsedUnits) {
@@ -524,11 +524,14 @@ export async function convertProgram(input = {}) {
   if (!supported && options.mode === "strict") {
     return { classSource: undefined, manifest: createManifest(ir, sorted, options), diagnostics: sorted, sourceMap: [], reportIR: ir, supported: false };
   }
-  const useDiagnosticShell = !supported && options.mode === "partial" && options.partialStrategy === "skeleton" && requiresDiagnosticShell(sorted);
+  const usePartialStrategy = !supported && options.mode === "partial" && options.partialStrategy === "skeleton";
+  const useDiagnosticShell = usePartialStrategy && requiresDiagnosticShell(sorted);
+  const usePartialApplication = usePartialStrategy && !useDiagnosticShell;
   const classSource = useDiagnosticShell
     ? emitPartialSkeleton(ir, options, sorted)
+    : usePartialApplication ? emitPartialApplication(ir, options, sorted)
     : emitClassSource(ir, options);
-  const helperSources = !useDiagnosticShell
+  const helperSources = !useDiagnosticShell && !usePartialApplication
     ? emitHelperSources(ir, options)
     : [];
   const sourceMap = addGeneratedLocations(classSource, buildSourceMap(ir));

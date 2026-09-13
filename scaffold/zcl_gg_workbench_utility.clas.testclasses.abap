@@ -17,6 +17,11 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-menubar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-statusbar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-runtime-content' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-work-area:#d5e6f3' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-row:26px' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-input:#fff1a6' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'border:1px solid var(--gg-border-dark)' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-skip-link:focus' ) ).
 * A disabled command must not react to hover or to being pressed.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-command-button:not(:disabled):active' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '.wb-command-button:active' ) ).
@@ -27,6 +32,9 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-status-feedback:not(:empty){' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-status-error:not(:empty){' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '@media(prefers-reduced-motion:reduce)' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '@media(max-width:760px)' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'flex-wrap:wrap' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-runtime-content--dynpro{margin:6px 10px 0;padding:0;overflow:auto}' ) ).
   ENDMETHOD.
 
   METHOD renders_status_owned_icon_bar.
@@ -45,6 +53,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="COMMAND:EXCLUDED"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-ucomm="INACTIVE" disabled' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-toolbar-separator' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-toolbar-scope="application-status"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '#wb-icon-help-circle' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'not-a-real-icon' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<svg on' ) ).
@@ -76,6 +85,9 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_untrusted_html CS '&lt;/h1&gt;&lt;style&gt;.wb-appbar{display:none}&lt;/style&gt;' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_untrusted_html CS '</h1><style>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '<span class="wb-brand">open-abap</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'id="wb-page-title"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="shell-menu"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="standard-command"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Applications</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1>' ) ).
 * The app bar shows the title only, so the CUA status name never reaches the page.
@@ -96,9 +108,15 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F4"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.gg-dynpro-field,.gg-field,.gg-range' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-help-button:not(:disabled)' ) ).
-* F1 has no help behind it yet and says so as a success in the status bar.
+* F1 posts field help when the focused field has an ABAP name.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F1"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'announce("F1: help todo","S")' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'post(field,"gg_action","HELP:"+name)' ) ).
+* F8, Enter, Escape, arrow navigation and modal focus trapping are explicit
+* browser parity hooks rather than browser-default behavior.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key==="F8"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'form.requestSubmit' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key==="ArrowDown"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-value-help-close' ) ).
 * Feedback set while the page is open replays the entry animation and drops
 * the error colour, so a neutral message is never painted as a failure.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'function announce(text,type)' ) ).

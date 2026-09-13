@@ -512,9 +512,12 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         lv_depth = lv_depth + 1.
         lv_parent = ls_parent-parent_key.
       ENDDO.
-      DATA(lv_selected) = COND string( WHEN ls_node-selected = abap_true THEN ' aria-current="true"' ELSE '' ).
+      DATA(lv_state_class) = cl_gui_control=>state_class( iv_selected = ls_node-selected ).
+      DATA(lv_selected) = COND string(
+        WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
+        ELSE ' aria-selected="false"' ).
       DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
-      result = result && |<li role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }>{ escape_html( ls_node-text ) }</li>|.
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }>{ escape_html( ls_node-text ) }</li>|.
     ENDLOOP.
     result = result && |</ul>|.
   ENDMETHOD.

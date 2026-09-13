@@ -7,10 +7,13 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              terminal_state TYPE abap_bool,
              messages       TYPE zcl_gg_host_session=>ty_messages,
              help_text      TYPE string,
+             help_name      TYPE zif_gg_dynpro_types_v1=>ty_name,
              help_values    TYPE zif_gg_dynpro_types_v1=>ty_values,
              status         TYPE zif_gg_session_types_v1=>ty_gui_status,
              title          TYPE string,
              cursor         TYPE zif_gg_session_types_v1=>ty_dialog_cursor,
+             modal_position TYPE zif_gg_session_types_v1=>ty_modal_position,
+             popup          TYPE zif_gg_compatibility_v1=>ty_popup,
              values         TYPE zif_gg_dynpro_types_v1=>ty_values,
              lines          TYPE zcl_gg_host_list=>ty_text_lines,
              states         TYPE zif_gg_dynpro_types_v1=>ty_states,
@@ -28,21 +31,24 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS run
       IMPORTING
-        io_program       TYPE REF TO zif_gg_dynpro_v1
-        iv_ucomm         TYPE zif_gg_dynpro_types_v1=>ty_ucomm DEFAULT 'BACK'
-        iv_submitted     TYPE abap_bool DEFAULT abap_true
-        it_values        TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
-        iv_field         TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_row           TYPE i OPTIONAL
-        iv_cursor_field  TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_cursor_row    TYPE i OPTIONAL
-        iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
-        iv_session_id    TYPE string OPTIONAL
-        iv_page_id       TYPE string OPTIONAL
+        io_program        TYPE REF TO zif_gg_dynpro_v1
+        iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm DEFAULT 'BACK'
+        iv_submitted      TYPE abap_bool DEFAULT abap_true
+        it_values         TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
+        iv_field          TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_row            TYPE i OPTIONAL
+        iv_cursor_field   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_cursor_row     TYPE i OPTIONAL
+        iv_value_request  TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_help_request   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_popup_action   TYPE string OPTIONAL
+        it_popup_values   TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
+        is_modal_position TYPE zif_gg_session_types_v1=>ty_modal_position OPTIONAL
+        iv_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
+        iv_session_id     TYPE string OPTIONAL
+        iv_page_id        TYPE string OPTIONAL
       RETURNING
-        VALUE(rs_result) TYPE ty_result.
+        VALUE(rs_result)  TYPE ty_result.
 
   PRIVATE SECTION.
     CLASS-DATA mv_run_id TYPE i.
@@ -55,6 +61,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         io_session        TYPE REF TO zcl_gg_host_session
         it_controls       TYPE zcl_gg_host_dynpro_builder=>ty_controls
+        it_active_screens TYPE zcl_gg_host_dynpro_builder=>ty_screens OPTIONAL
         iv_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm
         iv_submitted      TYPE abap_bool
@@ -76,6 +83,14 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls
       CHANGING
         ct_values   TYPE zif_gg_dynpro_types_v1=>ty_values.
+
+    CLASS-METHODS command_on_active_subscreen
+      IMPORTING
+        it_controls       TYPE zcl_gg_host_dynpro_builder=>ty_controls
+        it_active_screens TYPE zcl_gg_host_dynpro_builder=>ty_screens
+        iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+      RETURNING
+        VALUE(rv_allowed) TYPE abap_bool.
 
     CLASS-METHODS render_terminal_page
       IMPORTING
@@ -109,6 +124,97 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         cv_help_text     TYPE string
         ct_help_values   TYPE zif_gg_dynpro_types_v1=>ty_values.
 
+    CLASS-METHODS seed_table_states
+      IMPORTING
+        it_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls
+        it_values   TYPE zif_gg_dynpro_types_v1=>ty_values
+      CHANGING
+        ct_states   TYPE zif_gg_dynpro_types_v1=>ty_states.
+
+    CLASS-METHODS table_line_count
+      IMPORTING
+        it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
+        iv_container    TYPE zif_gg_dynpro_types_v1=>ty_name
+      RETURNING
+        VALUE(rv_lines) TYPE i.
+
+    CLASS-METHODS table_loop_bounds
+      IMPORTING
+        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name
+        it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
+        it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
+      EXPORTING
+        ev_lines         TYPE i
+        ev_start         TYPE i
+        ev_end           TYPE i.
+
+    CLASS-METHODS execute_output_step
+      IMPORTING
+        io_program       TYPE REF TO zif_gg_dynpro_v1
+        io_session       TYPE REF TO zcl_gg_host_session
+        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        is_step          TYPE zcl_gg_host_dynpro_flow=>ty_step
+        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_table_start   TYPE i
+        iv_table_end     TYPE i
+        iv_table_lines   TYPE i
+      CHANGING
+        cs_context       TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_values        TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states        TYPE zif_gg_dynpro_types_v1=>ty_states.
+
+    CLASS-METHODS execute_input_step
+      IMPORTING
+        io_program       TYPE REF TO zif_gg_dynpro_v1
+        io_session       TYPE REF TO zcl_gg_host_session
+        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        is_step          TYPE zcl_gg_host_dynpro_flow=>ty_step
+        iv_ucomm         TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_table_start   TYPE i
+        iv_table_end     TYPE i
+        iv_table_lines   TYPE i
+      CHANGING
+        cs_context       TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_values        TYPE zif_gg_dynpro_types_v1=>ty_values.
+
+    CLASS-METHODS execute_subscreen_output
+      IMPORTING
+        io_program TYPE REF TO zif_gg_dynpro_v1
+        io_flow    TYPE REF TO zcl_gg_host_dynpro_flow
+        io_session TYPE REF TO zcl_gg_host_session
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+      CHANGING
+        cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+
+    CLASS-METHODS execute_subscreen_input
+      IMPORTING
+        io_program TYPE REF TO zif_gg_dynpro_v1
+        io_flow    TYPE REF TO zcl_gg_host_dynpro_flow
+        io_session TYPE REF TO zcl_gg_host_session
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        iv_ucomm   TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+      CHANGING
+        cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
+
+    CLASS-METHODS resolve_subscreen
+      IMPORTING
+        is_call          TYPE zif_gg_dynpro_types_v1=>ty_subscreen_call
+        it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
+      RETURNING
+        VALUE(rv_screen) TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+
+    CLASS-METHODS modal_return_screen
+      IMPORTING
+        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        it_screens       TYPE zcl_gg_host_dynpro_builder=>ty_screens
+      RETURNING
+        VALUE(rv_screen) TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+
     CLASS-METHODS destination_pbo
       IMPORTING
         io_program TYPE REF TO zif_gg_dynpro_v1
@@ -140,9 +246,14 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lv_session_id TYPE string.
     DATA lv_page_id TYPE string.
     DATA ls_context TYPE zif_gg_dynpro_types_v1=>ty_module_context.
+    DATA ls_screen_call TYPE zif_gg_session_types_v1=>ty_screen_call.
+    DATA lv_returned_from_modal TYPE abap_bool.
     DATA ls_input_value TYPE zif_gg_dynpro_types_v1=>ty_value.
+    DATA lt_dynamic_lists TYPE zcl_gg_host_compatibility=>ty_selection_lists.
     FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
+    FIELD-SYMBOLS <ls_control> TYPE zcl_gg_host_dynpro_builder=>ty_control_record.
     DATA lv_loop_lines TYPE i.
+    DATA ls_state TYPE zif_gg_dynpro_types_v1=>ty_state.
 
     lo_builder = NEW zcl_gg_host_dynpro_builder( ).
     lo_flow = NEW zcl_gg_host_dynpro_flow( ).
@@ -150,7 +261,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lo_session = NEW zcl_gg_host_session(
       io_list      = lo_list
       iv_processor = zif_gg_session_types_v1=>processor_dynpro ).
+    lo_session->zif_gg_session_v1~get_compatibility( )->set_popup_request(
+      iv_action = iv_popup_action
+      it_values = it_popup_values ).
 
+    zcl_gg_host_compatibility=>clear_selection_list_values( ).
     io_program->build_screens( lo_builder ).
     io_program->build_flow_logic( lo_flow ).
     lt_screens = lo_builder->get_screens( ).
@@ -160,13 +275,21 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       INSERT VALUE #(
         container    = COND #( WHEN ls_control-kind = 'TABLE_COLUMN'
                             THEN ls_control-parent ELSE `` )
-        name         = ls_control-name
+        name         = COND #( WHEN ls_control-state_name IS INITIAL
+                               THEN ls_control-name ELSE ls_control-state_name )
         row          = 0
         text         = ls_control-text
         fixed_values = ls_control-fixed_values
+        modif_id     = ls_control-modif_id
+        group1       = ls_control-group
         visible      = ls_control-visible
         enabled      = ls_control-enabled
+        input        = ls_control-input
+        output       = xsdbool( ls_control-kind = 'OUTPUT'
+                             OR ls_control-kind = 'INPUT' )
         required     = ls_control-required
+        intensified  = abap_false
+        no_display   = abap_false
         password     = ls_control-password
         value_help   = ls_control-value_help ) INTO TABLE lt_states.
     ENDLOOP.
@@ -187,6 +310,23 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         INSERT ls_input_value INTO TABLE lt_values.
       ENDIF.
     ENDLOOP.
+    IF iv_submitted = abap_true AND iv_ucomm IS NOT INITIAL.
+      READ TABLE lt_values ASSIGNING <ls_value>
+        WITH KEY container = `` name = 'GV_OK_CODE' row = 0.
+      IF sy-subrc = 0.
+        <ls_value>-value = iv_ucomm.
+      ELSE.
+        INSERT VALUE #( name = 'GV_OK_CODE' value = iv_ucomm ) INTO TABLE lt_values.
+      ENDIF.
+    ENDIF.
+
+    seed_table_states(
+      EXPORTING
+        it_controls = lt_controls
+        it_values   = lt_values
+      CHANGING
+        ct_states   = lt_states ).
+
     clear_radio_siblings(
       EXPORTING
         it_input    = it_values
@@ -213,17 +353,17 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
     IF ls_context-table_control IS NOT INITIAL.
-      LOOP AT lt_values INTO DATA(ls_loop_value).
-        IF ls_loop_value-container = ls_context-table_control.
-          lv_loop_lines = lv_loop_lines + 1.
-        ENDIF.
-      ENDLOOP.
+      lv_loop_lines = table_line_count(
+        it_values    = lt_values
+        iv_container = ls_context-table_control ).
       ls_context-loop_lines = lv_loop_lines.
     ENDIF.
 
     lv_screen = COND #(
       WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
       ELSE iv_screen ).
+    rs_result-modal_position = is_modal_position.
+    rs_result-help_name = iv_help_request.
     lo_session->set_processor(
       iv_processor = zif_gg_session_types_v1=>processor_dynpro
       iv_screen    = lv_screen ).
@@ -253,6 +393,9 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           OR ( lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_screen
             AND lo_session->get_next_screen( ) = '0000' ) ).
         CASE lx_flow->mv_kind.
+          WHEN zcx_gg_control_flow=>kind_call_screen.
+            ls_screen_call = lo_session->get_screen_call( ).
+            lv_screen = ls_screen_call-screen.
           WHEN zcx_gg_control_flow=>kind_leave_screen.
             lv_screen = lo_session->get_next_screen( ).
             IF lv_screen IS INITIAL.
@@ -260,11 +403,43 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             ENDIF.
           WHEN zcx_gg_control_flow=>kind_leave_to_screen.
             lv_screen = lo_session->get_next_screen( ).
+            IF lv_screen = '0000'.
+              DATA(lv_modal_parent) = modal_return_screen(
+                iv_screen  = COND #( WHEN iv_screen IS INITIAL
+                                     THEN io_program->get_initial_screen( )
+                                     ELSE iv_screen )
+                it_screens = lt_screens ).
+              IF lv_modal_parent IS NOT INITIAL.
+                lv_screen = lv_modal_parent.
+                lv_returned_from_modal = abap_true.
+              ENDIF.
+            ENDIF.
         ENDCASE.
+        IF lv_returned_from_modal = abap_true.
+          rs_result-terminal_state = abap_false.
+          CLEAR rs_result-terminal.
+          CLEAR rs_result-modal_position.
+        ENDIF.
         lo_session->set_processor(
           iv_processor = zif_gg_session_types_v1=>processor_dynpro
           iv_screen    = lv_screen ).
     ENDTRY.
+
+    lt_dynamic_lists = zcl_gg_host_compatibility=>get_selection_list_values( ).
+    LOOP AT lt_dynamic_lists INTO DATA(ls_dynamic_list).
+      READ TABLE lt_controls ASSIGNING <ls_control>
+        WITH KEY name = CONV zif_gg_dynpro_types_v1=>ty_name( ls_dynamic_list-id ).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      CLEAR <ls_control>-fixed_values.
+      LOOP AT ls_dynamic_list-values INTO DATA(ls_dynamic_value).
+        APPEND VALUE #(
+          key  = CONV string( ls_dynamic_value-key )
+          text = CONV string( ls_dynamic_value-text ) )
+          TO <ls_control>-fixed_values.
+      ENDLOOP.
+    ENDLOOP.
 
     capture_navigation(
       EXPORTING
@@ -274,7 +449,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         cs_result  = rs_result ).
 
     IF lx_flow IS BOUND
-        AND ( lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_screen
+        AND ( lx_flow->mv_kind = zcx_gg_control_flow=>kind_call_screen
+        OR lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_screen
         OR lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_screen )
         AND lv_screen IS NOT INITIAL.
       destination_pbo(
@@ -296,6 +472,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     rs_result-controls = lt_controls.
     rs_result-flow = lt_steps.
     rs_result-messages = lo_session->get_messages( ).
+    rs_result-popup = lo_session->zif_gg_session_v1~get_compatibility( )->get_popup( ).
     rs_result-status = lo_session->get_status( ).
     rs_result-title = lo_session->get_title( ).
     rs_result-cursor = lo_session->get_cursor( ).
@@ -309,19 +486,21 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     rs_result-page_id = lv_page_id.
     rs_result-page_kind = zif_gg_host_html_v1=>page_dynpro.
     rs_result-html = zcl_gg_host_renderer=>render_dynpro(
-      iv_session_id  = lv_session_id
-      iv_page_id     = lv_page_id
-      is_screen      = ls_screen
-      iv_title       = rs_result-title
-      is_status      = rs_result-status
-      is_cursor      = rs_result-cursor
-      it_controls    = lt_controls
-      it_values      = lt_values
-      it_states      = lt_states
-      iv_help_text   = rs_result-help_text
-      iv_help_name   = CONV string( iv_value_request )
-      it_help_values = rs_result-help_values
-      it_messages    = rs_result-messages ).
+      iv_session_id     = lv_session_id
+      iv_page_id        = lv_page_id
+      is_screen         = ls_screen
+      iv_title          = rs_result-title
+      is_modal_position = rs_result-modal_position
+      is_status         = rs_result-status
+      is_cursor         = rs_result-cursor
+      it_controls       = lt_controls
+      it_values         = lt_values
+      it_states         = lt_states
+      iv_help_text      = rs_result-help_text
+      iv_help_name      = CONV string( rs_result-help_name )
+      it_help_values    = rs_result-help_values
+      is_popup          = rs_result-popup
+      it_messages       = rs_result-messages ).
     render_terminal_page(
       EXPORTING
         iv_session_id = lv_session_id
@@ -347,44 +526,204 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD process_modules.
+    TYPES: BEGIN OF ty_active_subscreen,
+             area   TYPE zif_gg_dynpro_types_v1=>ty_name,
+             screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+           END OF ty_active_subscreen.
+    TYPES ty_active_subscreens TYPE STANDARD TABLE OF ty_active_subscreen
+      WITH DEFAULT KEY.
     DATA lv_submit_allowed TYPE abap_bool.
+    DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
+    DATA ls_step TYPE zcl_gg_host_dynpro_flow=>ty_step.
+    DATA ls_module TYPE zcl_gg_host_dynpro_flow=>ty_module.
+    DATA lv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_table_lines TYPE i.
+    DATA lv_table_start TYPE i.
+    DATA lv_table_end TYPE i.
+    DATA lv_has_steps TYPE abap_bool.
+    DATA lv_subscreen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+    DATA lt_active_screens TYPE zcl_gg_host_dynpro_builder=>ty_screens.
+    DATA lt_active_subscreens TYPE ty_active_subscreens.
 
-    LOOP AT io_flow->get_modules( ) INTO DATA(ls_module)
-        WHERE screen = iv_screen AND phase = 'PBO'.
-      io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
-      cs_context-screen = iv_screen.
-      cs_context-module = ls_module-module-name.
-      CLEAR cs_context-ucomm.
-      io_program->process_output_module(
-        EXPORTING
-          is_context = cs_context
-          io_session = io_session
-        CHANGING
-          ct_values  = ct_values
-          ct_states  = ct_states ).
-    ENDLOOP.
+    lt_steps = io_flow->get_steps( ).
+    lv_has_steps = xsdbool(
+      line_exists( lt_steps[ screen = iv_screen phase = 'PBO' ] )
+      OR line_exists( lt_steps[ screen = iv_screen phase = 'PAI' ] ) ).
 
-    lv_submit_allowed = validate_submission(
-      io_session   = io_session
-      it_controls  = it_controls
-      iv_screen    = iv_screen
-      iv_ucomm     = iv_ucomm
-      iv_submitted = iv_submitted ).
-
-    IF iv_submitted = abap_true AND lv_submit_allowed = abap_true.
+    IF lv_has_steps = abap_true.
+      LOOP AT lt_steps INTO ls_step
+          WHERE screen = iv_screen AND phase = 'PBO'.
+        CASE ls_step-kind.
+          WHEN 'BEGIN_TABLE_LOOP'.
+            lv_table_control = ls_step-table_loop-table_control.
+            table_loop_bounds(
+              EXPORTING
+                iv_screen        = iv_screen
+                iv_table_control = lv_table_control
+                it_controls      = it_controls
+                it_values        = ct_values
+              IMPORTING
+                ev_lines         = lv_table_lines
+                ev_start         = lv_table_start
+                ev_end           = lv_table_end ).
+          WHEN 'END_TABLE_LOOP'.
+            CLEAR: lv_table_control, lv_table_lines, lv_table_start, lv_table_end.
+          WHEN 'SUBSCREEN'.
+            lv_subscreen = resolve_subscreen(
+              is_call   = ls_step-subscreen
+              it_values = ct_values ).
+            IF lv_subscreen IS NOT INITIAL AND lv_subscreen <> '0000'.
+              DELETE lt_active_subscreens
+                WHERE area = ls_step-subscreen-area.
+              APPEND VALUE #( area   = ls_step-subscreen-area
+                              screen = lv_subscreen ) TO lt_active_subscreens.
+              IF NOT line_exists( lt_active_screens[ number = lv_subscreen ] ).
+                APPEND VALUE #( number = lv_subscreen ) TO lt_active_screens.
+              ENDIF.
+              execute_subscreen_output(
+                EXPORTING
+                  io_program = io_program
+                  io_flow    = io_flow
+                  io_session = io_session
+                  iv_screen  = lv_subscreen
+                CHANGING
+                  cs_context = cs_context
+                  ct_values  = ct_values
+                  ct_states  = ct_states ).
+            ENDIF.
+          WHEN 'MODULE'.
+            execute_output_step(
+              EXPORTING
+                io_program       = io_program
+                io_session       = io_session
+                iv_screen        = iv_screen
+                is_step          = ls_step
+                iv_table_control = lv_table_control
+                iv_table_start   = lv_table_start
+                iv_table_end     = lv_table_end
+                iv_table_lines   = lv_table_lines
+              CHANGING
+                cs_context       = cs_context
+                ct_values        = ct_values
+                ct_states        = ct_states ).
+        ENDCASE.
+      ENDLOOP.
+    ELSE.
       LOOP AT io_flow->get_modules( ) INTO ls_module
-          WHERE screen = iv_screen AND phase = 'PAI'.
-        io_session->set_event( 'PROCESS AFTER INPUT' ).
+          WHERE screen = iv_screen AND phase = 'PBO'.
+        io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
         cs_context-screen = iv_screen.
         cs_context-module = ls_module-module-name.
-        cs_context-ucomm = iv_ucomm.
-        io_program->process_input_module(
+        CLEAR cs_context-ucomm.
+        io_program->process_output_module(
           EXPORTING
             is_context = cs_context
             io_session = io_session
           CHANGING
-            ct_values  = ct_values ).
+            ct_values  = ct_values
+            ct_states  = ct_states ).
       ENDLOOP.
+    ENDIF.
+
+    lv_submit_allowed = validate_submission(
+      io_session        = io_session
+      it_controls       = it_controls
+      it_active_screens = lt_active_screens
+      iv_screen         = iv_screen
+      iv_ucomm          = iv_ucomm
+      iv_submitted      = iv_submitted ).
+
+    IF iv_submitted = abap_true AND lv_submit_allowed = abap_true.
+      IF lv_has_steps = abap_true.
+        CLEAR lv_table_control.
+        LOOP AT lt_steps INTO ls_step
+            WHERE screen = iv_screen AND phase = 'PAI'.
+          CASE ls_step-kind.
+            WHEN 'BEGIN_TABLE_LOOP'.
+              lv_table_control = ls_step-table_loop-table_control.
+              table_loop_bounds(
+                EXPORTING
+                  iv_screen        = iv_screen
+                  iv_table_control = lv_table_control
+                  it_controls      = it_controls
+                  it_values        = ct_values
+                IMPORTING
+                  ev_lines         = lv_table_lines
+                  ev_start         = lv_table_start
+                  ev_end           = lv_table_end ).
+            WHEN 'END_TABLE_LOOP'.
+              CLEAR: lv_table_control, lv_table_lines, lv_table_start, lv_table_end.
+            WHEN 'SUBSCREEN'.
+              lv_subscreen = resolve_subscreen(
+                is_call   = ls_step-subscreen
+                it_values = ct_values ).
+              IF lv_subscreen IS INITIAL OR lv_subscreen = '0000'.
+                READ TABLE lt_active_subscreens INTO DATA(ls_active_subscreen)
+                  WITH KEY area = ls_step-subscreen-area.
+                lv_subscreen = COND #( WHEN sy-subrc = 0
+                                       THEN ls_active_subscreen-screen
+                                       ELSE lv_subscreen ).
+              ENDIF.
+              IF lv_subscreen IS NOT INITIAL AND lv_subscreen <> '0000'.
+                execute_subscreen_input(
+                  EXPORTING
+                    io_program = io_program
+                    io_flow    = io_flow
+                    io_session = io_session
+                    iv_screen  = lv_subscreen
+                    iv_ucomm   = iv_ucomm
+                  CHANGING
+                    cs_context = cs_context
+                    ct_values  = ct_values ).
+              ENDIF.
+            WHEN 'MODULE'.
+              IF ls_step-module-at_exit_command = abap_true
+                  AND iv_ucomm <> 'BACK'
+                  AND iv_ucomm <> 'ECAN'
+                  AND NOT line_exists( it_controls[ screen = iv_screen
+                                                    ucomm = iv_ucomm
+                                                    exit_command = abap_true ] ).
+                CONTINUE.
+              ENDIF.
+              execute_input_step(
+                EXPORTING
+                  io_program       = io_program
+                  io_session       = io_session
+                  iv_screen        = iv_screen
+                  is_step          = ls_step
+                  iv_ucomm         = iv_ucomm
+                  iv_table_control = lv_table_control
+                  iv_table_start   = lv_table_start
+                  iv_table_end     = lv_table_end
+                  iv_table_lines   = lv_table_lines
+                CHANGING
+                  cs_context       = cs_context
+                  ct_values        = ct_values ).
+          ENDCASE.
+        ENDLOOP.
+      ELSE.
+        LOOP AT io_flow->get_modules( ) INTO ls_module
+            WHERE screen = iv_screen AND phase = 'PAI'.
+          IF ls_module-module-at_exit_command = abap_true
+              AND iv_ucomm <> 'BACK'
+              AND iv_ucomm <> 'ECAN'
+              AND NOT line_exists( it_controls[ screen = iv_screen
+                                                ucomm = iv_ucomm
+                                                exit_command = abap_true ] ).
+            CONTINUE.
+          ENDIF.
+          io_session->set_event( 'PROCESS AFTER INPUT' ).
+          cs_context-screen = iv_screen.
+          cs_context-module = ls_module-module-name.
+          cs_context-ucomm = iv_ucomm.
+          io_program->process_input_module(
+            EXPORTING
+              is_context = cs_context
+              io_session = io_session
+            CHANGING
+              ct_values  = ct_values ).
+        ENDLOOP.
+      ENDIF.
     ENDIF.
 
     IF iv_value_request IS NOT INITIAL.
@@ -416,13 +755,78 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD destination_pbo.
-    LOOP AT io_flow->get_modules( ) INTO DATA(ls_module)
-        WHERE screen = iv_screen AND phase = 'PBO'.
-      io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
-      cs_context-screen = iv_screen.
-      cs_context-module = ls_module-module-name.
-      CLEAR cs_context-ucomm.
+  METHOD seed_table_states.
+    DATA ls_state TYPE zif_gg_dynpro_types_v1=>ty_state.
+
+    LOOP AT it_controls INTO DATA(ls_table_column)
+        WHERE kind = 'TABLE_COLUMN'.
+      LOOP AT it_values INTO DATA(ls_value)
+          WHERE container = ls_table_column-parent
+            AND name = ls_table_column-name
+            AND row > 0.
+        READ TABLE ct_states INTO ls_state
+          WITH KEY container = ls_table_column-parent
+                   name = COND #( WHEN ls_table_column-state_name IS INITIAL
+                                  THEN ls_table_column-name
+                                  ELSE ls_table_column-state_name )
+                   row = 0.
+        IF sy-subrc = 0.
+          ls_state-row = ls_value-row.
+          INSERT ls_state INTO TABLE ct_states.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD table_line_count.
+    LOOP AT it_values INTO DATA(ls_value)
+        WHERE container = iv_container.
+      IF ls_value-row > rv_lines.
+        rv_lines = ls_value-row.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD table_loop_bounds.
+    DATA lv_visible_rows TYPE i.
+
+    ev_lines = table_line_count(
+      it_values    = it_values
+      iv_container = iv_table_control ).
+    ev_start = 1.
+    READ TABLE it_values INTO DATA(ls_top_line)
+      WITH KEY container = `` name = 'GV_TOP_LINE' row = 0.
+    IF sy-subrc = 0 AND ls_top_line-value IS NOT INITIAL.
+      ev_start = CONV i( ls_top_line-value ).
+    ENDIF.
+    IF ev_start <= 0.
+      ev_start = 1.
+    ENDIF.
+    READ TABLE it_controls INTO DATA(ls_control)
+      WITH KEY screen = iv_screen kind = 'TABLE_CONTROL'
+               name = iv_table_control.
+    IF sy-subrc = 0.
+      lv_visible_rows = ls_control-visible_rows.
+    ENDIF.
+    IF lv_visible_rows <= 0.
+      lv_visible_rows = 1.
+    ENDIF.
+    ev_end = ev_start + lv_visible_rows - 1.
+    IF ev_end > ev_lines.
+      ev_end = ev_lines.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD execute_output_step.
+    DATA lv_table_row TYPE i.
+
+    io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
+    cs_context-screen = iv_screen.
+    cs_context-module = is_step-module-name.
+    CLEAR cs_context-ucomm.
+    IF iv_table_control IS INITIAL.
+      CLEAR: cs_context-table_control, cs_context-row,
+             cs_context-loop_index, cs_context-loop_lines.
       io_program->process_output_module(
         EXPORTING
           is_context = cs_context
@@ -430,7 +834,187 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         CHANGING
           ct_values  = ct_values
           ct_states  = ct_states ).
+    ELSEIF iv_table_end >= iv_table_start.
+      lv_table_row = iv_table_start.
+      WHILE lv_table_row <= iv_table_end.
+        cs_context-table_control = iv_table_control.
+        cs_context-row = lv_table_row.
+        cs_context-loop_index = lv_table_row - iv_table_start + 1.
+        cs_context-loop_lines = iv_table_lines.
+        io_program->process_output_module(
+          EXPORTING
+            is_context = cs_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+        lv_table_row = lv_table_row + 1.
+      ENDWHILE.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD execute_input_step.
+    DATA lv_table_row TYPE i.
+
+    IF is_step-module-on_request = abap_true
+        AND ( iv_ucomm = 'RESET' OR iv_ucomm = 'BACK' OR iv_ucomm = 'CANCEL' ).
+      RETURN.
+    ENDIF.
+    io_session->set_event( 'PROCESS AFTER INPUT' ).
+    cs_context-screen = iv_screen.
+    cs_context-module = is_step-module-name.
+    cs_context-ucomm = iv_ucomm.
+    IF iv_table_control IS INITIAL.
+      CLEAR: cs_context-table_control, cs_context-row,
+             cs_context-loop_index, cs_context-loop_lines.
+      io_program->process_input_module(
+        EXPORTING
+          is_context = cs_context
+          io_session = io_session
+        CHANGING
+          ct_values  = ct_values ).
+    ELSEIF iv_table_end >= iv_table_start.
+      lv_table_row = iv_table_start.
+      WHILE lv_table_row <= iv_table_end.
+        cs_context-table_control = iv_table_control.
+        cs_context-row = lv_table_row.
+        cs_context-loop_index = lv_table_row - iv_table_start + 1.
+        cs_context-loop_lines = iv_table_lines.
+        io_program->process_input_module(
+          EXPORTING
+            is_context = cs_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+        lv_table_row = lv_table_row + 1.
+      ENDWHILE.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD execute_subscreen_output.
+    LOOP AT io_flow->get_steps( ) INTO DATA(ls_step)
+        WHERE screen = iv_screen AND phase = 'PBO' AND kind = 'MODULE'.
+      execute_output_step(
+        EXPORTING
+          io_program       = io_program
+          io_session       = io_session
+          iv_screen        = iv_screen
+          is_step          = ls_step
+          iv_table_control = ``
+          iv_table_start   = 1
+          iv_table_end     = 0
+          iv_table_lines   = 0
+        CHANGING
+          cs_context       = cs_context
+          ct_values        = ct_values
+          ct_states        = ct_states ).
     ENDLOOP.
+  ENDMETHOD.
+
+  METHOD execute_subscreen_input.
+    LOOP AT io_flow->get_steps( ) INTO DATA(ls_step)
+        WHERE screen = iv_screen AND phase = 'PAI' AND kind = 'MODULE'.
+      execute_input_step(
+        EXPORTING
+          io_program       = io_program
+          io_session       = io_session
+          iv_screen        = iv_screen
+          is_step          = ls_step
+          iv_ucomm         = iv_ucomm
+          iv_table_control = ``
+          iv_table_start   = 1
+          iv_table_end     = 0
+          iv_table_lines   = 0
+        CHANGING
+          cs_context       = cs_context
+          ct_values        = ct_values ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD resolve_subscreen.
+    DATA ls_subscreen_value TYPE zif_gg_dynpro_types_v1=>ty_value.
+
+    rv_screen = is_call-screen.
+    IF rv_screen IS INITIAL AND is_call-screen_field IS NOT INITIAL.
+      READ TABLE it_values INTO ls_subscreen_value
+        WITH KEY container = ``
+                 name = is_call-screen_field
+                 row = 0.
+      IF sy-subrc = 0.
+        rv_screen = CONV #( ls_subscreen_value-value ).
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD modal_return_screen.
+    READ TABLE it_screens INTO DATA(ls_screen) WITH KEY number = iv_screen.
+    IF sy-subrc <> 0 OR ls_screen-modal = abap_false.
+      RETURN.
+    ENDIF.
+    LOOP AT it_screens INTO DATA(ls_parent) WHERE modal = abap_false.
+      rv_screen = ls_parent-number.
+      EXIT.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD destination_pbo.
+    DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
+    DATA lv_subscreen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+
+    lt_steps = io_flow->get_steps( ).
+    IF line_exists( lt_steps[ screen = iv_screen phase = 'PBO' ] ).
+      LOOP AT lt_steps INTO DATA(ls_step)
+          WHERE screen = iv_screen AND phase = 'PBO'.
+        CASE ls_step-kind.
+          WHEN 'MODULE'.
+            execute_output_step(
+              EXPORTING
+                io_program       = io_program
+                io_session       = io_session
+                iv_screen        = iv_screen
+                is_step          = ls_step
+                iv_table_control = ``
+                iv_table_start   = 1
+                iv_table_end     = 0
+                iv_table_lines   = 0
+              CHANGING
+                cs_context       = cs_context
+                ct_values        = ct_values
+                ct_states        = ct_states ).
+          WHEN 'SUBSCREEN'.
+            lv_subscreen = resolve_subscreen(
+              is_call   = ls_step-subscreen
+              it_values = ct_values ).
+            IF lv_subscreen IS NOT INITIAL AND lv_subscreen <> '0000'.
+              execute_subscreen_output(
+                EXPORTING
+                  io_program = io_program
+                  io_flow    = io_flow
+                  io_session = io_session
+                  iv_screen  = lv_subscreen
+                CHANGING
+                  cs_context = cs_context
+                  ct_values  = ct_values
+                  ct_states  = ct_states ).
+            ENDIF.
+        ENDCASE.
+      ENDLOOP.
+    ELSE.
+      LOOP AT io_flow->get_modules( ) INTO DATA(ls_module)
+          WHERE screen = iv_screen AND phase = 'PBO'.
+        io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
+        cs_context-screen = iv_screen.
+        cs_context-module = ls_module-module-name.
+        CLEAR cs_context-ucomm.
+        io_program->process_output_module(
+          EXPORTING
+            is_context = cs_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      ENDLOOP.
+    ENDIF.
   ENDMETHOD.
 
   METHOD validate_submission.
@@ -439,12 +1023,26 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     IF iv_submitted = abap_true
         AND iv_ucomm <> 'BACK'
         AND NOT line_exists( it_controls[ screen = iv_screen ucomm = iv_ucomm ] )
-        AND NOT line_exists( ls_status-active_ucomm[ table_line = iv_ucomm ] ).
+        AND NOT line_exists( ls_status-active_ucomm[ table_line = iv_ucomm ] )
+        AND command_on_active_subscreen(
+          it_controls       = it_controls
+          it_active_screens = it_active_screens
+          iv_ucomm          = iv_ucomm ) = abap_false.
       rv_allowed = abap_false.
       io_session->zif_gg_session_v1~message( VALUE #(
         type = zif_gg_session_types_v1=>message_type_error
         text = |Command { iv_ucomm } is not available on dynpro screen { iv_screen }| ) ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD command_on_active_subscreen.
+    rv_allowed = abap_false.
+    LOOP AT it_active_screens INTO DATA(ls_screen).
+      IF line_exists( it_controls[ screen = ls_screen-number ucomm = iv_ucomm ] ).
+        rv_allowed = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD clear_radio_siblings.
@@ -480,8 +1078,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_terminal_page.
-    IF cs_result-terminal_state = abap_true
-        AND cs_result-terminal IS INITIAL.
+    IF cs_result-terminal_state = abap_true.
       cs_result-page_kind = zif_gg_host_html_v1=>page_terminal.
       cs_result-html = zcl_gg_host_renderer=>render_terminal(
         iv_session_id = iv_session_id

@@ -18,6 +18,7 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
   CONSTANTS action_pf           TYPE string VALUE 'PF'.
   CONSTANTS action_help         TYPE string VALUE 'HELP'.
   CONSTANTS action_value_help   TYPE string VALUE 'VALUE_HELP'.
+  CONSTANTS action_popup        TYPE string VALUE 'POPUP'.
   CONSTANTS action_screen       TYPE string VALUE 'SCREEN'.
   CONSTANTS action_tab          TYPE string VALUE 'TAB'.
   CONSTANTS action_back         TYPE string VALUE 'BACK'.
@@ -79,19 +80,21 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
   TYPES ty_pages TYPE STANDARD TABLE OF ty_page WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_request,
-           session_id    TYPE string,
-           page_id       TYPE string,
-           action        TYPE string,
-           ucomm         TYPE string,
-           target        TYPE string,
-           value         TYPE string,
-           row           TYPE i,
-           pf_key        TYPE i,
-           token         TYPE string,
-           cursor_field  TYPE string,
-           cursor_value  TYPE string,
-           values        TYPE zif_gg_selection_screen_types=>ty_values,
-           dynpro_values TYPE zif_gg_dynpro_types_v1=>ty_values,
+           session_id     TYPE string,
+           page_id        TYPE string,
+           action         TYPE string,
+           ucomm          TYPE string,
+           target         TYPE string,
+           value          TYPE string,
+           row            TYPE i,
+           pf_key         TYPE i,
+           token          TYPE string,
+           cursor_field   TYPE string,
+           cursor_value   TYPE string,
+           values         TYPE zif_gg_selection_screen_types=>ty_values,
+           dynamic_action TYPE string,
+           dynamic_values TYPE zif_gg_selection_screen_types=>ty_values,
+           dynpro_values  TYPE zif_gg_dynpro_types_v1=>ty_values,
          END OF ty_request.
 
   TYPES: BEGIN OF ty_response,

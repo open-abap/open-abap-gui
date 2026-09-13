@@ -184,6 +184,8 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
     const generated = await imageInfo(path.join(screenshotsRoot, filename));
     const reference = await imageInfo(path.join(referenceRoot, filename));
     const diff = await imageInfo(path.join(diffRoot, "images", filename));
+    const activationStatus = result.activation?.status || "pending";
+    const parityCandidate = result.applicationParityCandidate === true;
     const errors = result.diagnostics.filter((item) => item.severity === "error").length;
     const warnings = result.diagnostics.filter((item) => item.severity === "warning").length;
     const status = result.supported ? "supported" : "partial";
@@ -199,14 +201,14 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
       const gate = gates[id] || {status: "not-run", evidence: "Pixel similarity alone cannot pass this gate."};
       return `<li class="gate gate--${escapeHtml(gate.status)}"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(gate.status)}<span>${escapeHtml(gate.evidence || gate.rule || "")}</span></li>`;
     }).join("");
-    return `<article class="comparison-card comparison-card--${status}" id="${escapeHtml(result.programName.toLowerCase())}" data-program="${escapeHtml(result.programName)}" data-conversion-status="${status}" data-comparison-accepted="false">
-  <header><h2>${escapeHtml(result.programName)}</h2><span class="status">${statusLabel}</span><span class="comparison-status">not accepted</span><span class="diagnostic-count">${diagnosticSummary}</span></header>
+    return `<article class="comparison-card comparison-card--${status}" id="${escapeHtml(result.programName.toLowerCase())}" data-program="${escapeHtml(result.programName)}" data-conversion-status="${status}" data-activation-status="${escapeHtml(activationStatus)}" data-application-parity-candidate="${parityCandidate}" data-comparison-accepted="false">
+  <header><h2>${escapeHtml(result.programName)}</h2><span class="status">${statusLabel}</span><span class="comparison-status">not accepted</span><span class="activation-status">Activation: ${escapeHtml(activationStatus)}</span><span class="diagnostic-count">${diagnosticSummary}</span></header>
   <div class="panels">
     <figure><figcaption>Generated browser <span>${dimensionsText(generated?.dimensions)}</span></figcaption>${imageMarkup({info: generated, alt: `${result.programName} generated browser screen`, missingLabel: "Generated image not present"})}</figure>
     <figure><figcaption>SAP GUI reference <span>${dimensionsText(reference?.dimensions)}</span></figcaption>${imageMarkup({info: reference, alt: `${result.programName} SAP GUI reference`, missingLabel: "Reference image not present"})}</figure>
     <figure><figcaption>Optional pixel diff <span>${dimensionsText(diff?.dimensions)}</span></figcaption>${imageMarkup({info: diff, alt: `${result.programName} pixel difference`, missingLabel: "No diff image generated"})}</figure>
   </div>
-  <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}</p>
+  <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}</p>
   ${referenceAudit ? `<section class="reference-audit" data-reference-audit="${escapeHtml(referenceAudit.status)}"><h3>Reference audit: ${escapeHtml(referenceAudit.acceptance)}</h3><p><strong>Observed:</strong> ${escapeHtml(referenceAudit.observedState)}<br><strong>Intended:</strong> ${escapeHtml(referenceAudit.intendedState)}</p></section>` : ""}
   ${fallbackAudit ? `<section class="fallback-audit" data-fallback-audit="${escapeHtml(fallbackAudit.status)}"><h3>Intentional capability boundary: ${escapeHtml(fallbackAudit.acceptance)}</h3><p><strong>Native evidence:</strong> ${escapeHtml(fallbackAudit.nativeEvidence)}<br><strong>Browser contract:</strong> ${escapeHtml(fallbackAudit.browserContract)}</p></section>` : ""}
   <section class="gate-section" aria-label="Comparison gates"><h3>Comparison gates</h3><ul>${gateMarkup}</ul><p>Pixel similarity is visual evidence only; acceptance requires all three gates to pass.</p></section>
@@ -232,6 +234,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
       .comparison-card--supported .status { color: #155c25; background: #d8f0dc; }
       .comparison-card--partial .status { color: #704900; background: #ffe8b8; }
       .comparison-status { padding: .3rem .6rem; border-radius: 999px; color: #8b2020; background: #f5d9d9; font-size: .9rem; font-weight: 650; }
+      .activation-status { padding: .3rem .6rem; border-radius: 999px; color: #704900; background: #fff1cc; font-size: .9rem; font-weight: 650; }
       .panels { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 1rem; align-items: start; }
       figure { min-width: 0; margin: 0; }
       figcaption { display: flex; justify-content: space-between; gap: .5rem; margin-bottom: .4rem; font-weight: 650; }
@@ -365,7 +368,7 @@ for (const filename of reportFiles) {
     transactionCode: transactionCode(programName),
     description: `Converted gg-gui report ${programName}`,
     mode: "partial",
-    partialStrategy: "skeleton",
+     partialStrategy: ["ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP"].includes(programName) ? "preserve" : "skeleton",
     resolveInclude,
     screenMetadata,
     ddicTypes: GG_GUI_DDIC_TYPES,
@@ -386,6 +389,9 @@ for (const filename of reportFiles) {
     comparisonAccepted: false,
     comparisonGates: pendingComparisonGates(),
     fallbackAudit: intentionalReferenceFallbacks[programName] || null,
+    generatedClasses: [result.manifest.targetClass, ...(result.helperSources ?? []).map((helper) => helper.className)],
+    activation: {status: "pending", tool: "abap_transpile"},
+    applicationParityCandidate: false,
   });
 }
 
@@ -416,6 +422,22 @@ await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify(
 console.log(`Converted ${results.length} gg-gui reports from ${revision}`);
 
 await runCommand(repositoryTool("abap_transpile"), [path.relative(repositoryRoot, transpileConfigPath)]);
+
+for (const result of results) {
+  const outputChecks = await Promise.all(result.generatedClasses.map(async (className) => ({
+    className,
+    present: await exists(path.join(outputRoot, `${className.toLowerCase()}.clas.mjs`)),
+  })));
+  const missing = outputChecks.filter((item) => !item.present).map((item) => item.className);
+  assert.equal(missing.length, 0, `${result.programName} generated classes missing transpiler output: ${missing.join(", ")}`);
+  result.activation = {
+    status: "passed",
+    tool: "abap_transpile",
+    classes: [...result.generatedClasses],
+  };
+  result.applicationParityCandidate = true;
+}
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
 
 let hostProcess;
 let browser;
@@ -449,11 +471,274 @@ try {
   browser = await chromium.launch({headless: true});
   const page = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
   for (const result of results) {
+    assert.equal(result.applicationParityCandidate, true, `Screenshot blocked until ${result.programName} has clean transpiler activation`);
     const response = await page.goto(`${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`, {waitUntil: "load"});
     assert.equal(response?.status(), 200, `Host failed for ${result.programName}`);
     await page.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
     await page.screenshot({path: path.join(screenshotsRoot, `${result.programName.toLowerCase()}.png`), fullPage: true});
   }
+  const variantsPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  variantsPage.on("dialog", async (dialog) => dialog.accept());
+  const variantsUrl = `${baseUrl}/transaction?tcode=${encodeURIComponent("CV_SEL_VARIANTS")}`;
+  await variantsPage.goto(variantsUrl, {waitUntil: "load"});
+  await variantsPage.locator('[name="P_VARI"]').fill("GG_E2E");
+  await variantsPage.locator('[name="P_NAME"]').fill("Created value");
+  await variantsPage.locator('button[name="gg_ucomm"][value="SAVE"]').click();
+  await variantsPage.waitForLoadState("load");
+  assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was created/);
+  await variantsPage.locator('[name="P_NAME"]').fill("Updated value");
+  await variantsPage.locator('button[name="gg_ucomm"][value="SAVE"]').click();
+  await variantsPage.waitForLoadState("load");
+  assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was updated/);
+  await variantsPage.locator('[name="P_NAME"]').fill("Unsaved value");
+  await variantsPage.locator('button[name="gg_ucomm"][value="SHOW"]').click();
+  await variantsPage.waitForLoadState("load");
+  assert.match(await variantsPage.locator("body").textContent(), /S_CAT kind S/);
+  await variantsPage.locator('button[name="gg_ucomm"][value="SUBVAR"]').click();
+  await variantsPage.waitForLoadState("load");
+  await variantsPage.getByRole("button", {name: "Continue", exact: true}).click();
+  await variantsPage.waitForLoadState("load");
+  await variantsPage.getByRole("button", {name: "BACK", exact: true}).click();
+  await variantsPage.waitForLoadState("load");
+  assert.match(await variantsPage.locator("body").textContent(), /Returned from the report started with USING SELECTION-SET/);
+  await variantsPage.goto(variantsUrl, {waitUntil: "load"});
+  await variantsPage.locator('[name="P_VARI"]').fill("GG_E2E");
+  await variantsPage.locator('button[name="gg_ucomm"][value="DELETE"]').click();
+  await variantsPage.waitForLoadState("load");
+  assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was deleted/);
+  await variantsPage.close();
+  const freePage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const freeUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SEL_FREE");
+  await freePage.goto(freeUrl, {waitUntil: "load"});
+  await freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]').click();
+  await freePage.waitForLoadState("load");
+  assert.equal(await freePage.locator('[data-free-selection="true"]').count(), 1);
+  assert.equal(await freePage.getByRole("dialog").getAttribute("aria-modal"), "true");
+  await freePage.locator('[name="gg-free-SPRSL-LOW"]').fill("EN");
+  await freePage.locator('[name="gg_free_action"][value="APPLY"]').click();
+  await freePage.waitForLoadState("load");
+  assert.equal(await freePage.locator('[data-free-selection="true"]').count(), 0);
+  assert.match(await freePage.locator("body").textContent(), /Converted WHERE T100/);
+  await freePage.locator('button[name="gg_ucomm"][value="DLGFULL"]').click();
+  await freePage.waitForLoadState("load");
+  assert.equal(await freePage.locator(".gg-free-selection-modal--fullscreen").count(), 1);
+  await freePage.locator('[name="gg_free_action"][value="CANCEL"]').click();
+  await freePage.waitForLoadState("load");
+  assert.equal(await freePage.locator('[data-free-selection="true"]').count(), 0);
+  await freePage.locator('button[name="gg_ucomm"][value="RESET"]').click();
+  await freePage.waitForLoadState("load");
+  assert.match(await freePage.locator("body").textContent(), /Dynamic selection, field list,/);
+  await freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]').click();
+  await freePage.waitForLoadState("load");
+  await freePage.locator('[name="gg-free-SPRSL-LOW"]').fill("EN");
+  await freePage.locator('[name="gg_free_action"][value="APPLY"]').click();
+  await freePage.waitForLoadState("load");
+  await freePage.locator('button[name="gg_ucomm"][value="ONLI"]').click();
+  await freePage.waitForLoadState("load");
+  assert.equal(await freePage.locator('[data-page-kind="LIST"]').count(), 1);
+  assert.match(await freePage.locator("body").textContent(), /Range T100-SPRSL/);
+  assert.match(await freePage.locator("body").textContent(), /Converted WHERE T100|WHERE T100/);
+  await freePage.close();
+  const dynproPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const dynproUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_ELEMENTS");
+  await dynproPage.goto(dynproUrl, {waitUntil: "load"});
+  assert.equal(await dynproPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
+  assert.equal(await dynproPage.locator(".gg-dynpro fieldset").count(), 2);
+  assert.equal(await dynproPage.locator('[name="GV_TEXT"]').inputValue(), "Editable text");
+  assert.equal(await dynproPage.locator('[name="GV_SECRET"]').getAttribute("type"), "password");
+  assert.equal(await dynproPage.locator('output[id*="GV_ICON"] .wb-icon').count(), 1);
+  assert.equal(await dynproPage.locator('[name="GV_LIST"] option').count(), 3);
+  assert.equal(await dynproPage.locator('[name="GV_LIST"]').inputValue(), "ONE");
+  assert.equal(await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').isChecked(), true);
+  assert.equal(await dynproPage.locator('input[type="radio"][data-abap-name="GV_RADIO_A"]').isChecked(), true);
+  assert.ok((await dynproPage.locator('input[name="GV_DATE"]').inputValue()).length > 0);
+  assert.ok((await dynproPage.locator('input[name="GV_TIME"]').inputValue()).length > 0);
+  await dynproPage.locator('[name="GV_TEXT"]').fill("Changed text");
+  await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').uncheck();
+  await dynproPage.locator('[name="GV_LIST"]').selectOption("TWO");
+  await dynproPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await dynproPage.waitForLoadState("load");
+  assert.equal(await dynproPage.locator('[name="GV_TEXT"]').inputValue(), "Changed text");
+  assert.equal(await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').isChecked(), false);
+  assert.equal(await dynproPage.locator('[name="GV_LIST"]').inputValue(), "TWO");
+  assert.match(await dynproPage.locator('output[id*="GV_OUTPUT"]').textContent(), /Applied TWO, PBO pass/);
+  await dynproPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
+  await dynproPage.waitForLoadState("load");
+  assert.equal(await dynproPage.locator('[name="GV_TEXT"]').inputValue(), "Editable text");
+  assert.equal(await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').isChecked(), true);
+  assert.equal(await dynproPage.locator('[name="GV_LIST"]').inputValue(), "ONE");
+  assert.match(await dynproPage.locator('output[id*="GV_OUTPUT"]').textContent(), /Values reset/);
+  await dynproPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
+  await dynproPage.waitForLoadState("load");
+  assert.equal(await dynproPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  await dynproPage.close();
+  const flowPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const flowUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_FLOW");
+  await flowPage.goto(flowUrl, {waitUntil: "load"});
+  assert.equal(await flowPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
+  assert.equal(await flowPage.locator(".gg-dynpro fieldset").count(), 2);
+  assert.equal(await flowPage.locator('[name="GV_FIRST"]').inputValue(), "Ada");
+  assert.equal(await flowPage.locator('[name="GV_LAST"]').inputValue(), "Lovelace");
+  assert.equal(await flowPage.locator('input[type="checkbox"][name="GV_ENABLE"]').isChecked(), true);
+  assert.equal(await flowPage.locator('[name="GV_DYNAMIC"]').isVisible(), true);
+  assert.match(await flowPage.locator("body").textContent(), /PBO: STATUS_0100/);
+  await flowPage.locator('[name="GV_REQUEST"]').fill("typed request");
+  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await flowPage.waitForLoadState("load");
+  assert.equal(await flowPage.locator('[name="GV_REQUEST"]').inputValue(), "typed request");
+  assert.match(await flowPage.locator("body").textContent(), /Validated Ada Lovelace/);
+  assert.match(await flowPage.locator("body").textContent(), /PAI: OBSERVE_REQUEST ON INPUT/);
+  assert.match(await flowPage.locator("body").textContent(), /PAI: VALIDATE_NAME ON CHAIN-REQUEST/);
+  await flowPage.locator('[name="GV_FIRST"]').fill("");
+  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await flowPage.waitForLoadState("load");
+  assert.equal(await flowPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
+  assert.match(await flowPage.locator("body").textContent(), /Enter a first name/);
+  await flowPage.locator('[name="GV_FIRST"]').fill("Ada");
+  await flowPage.locator('input[type="checkbox"][name="GV_ENABLE"]').uncheck();
+  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await flowPage.waitForLoadState("load");
+  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await flowPage.waitForLoadState("load");
+  assert.equal(await flowPage.locator('[name="GV_DYNAMIC"]').isVisible(), false);
+  await flowPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
+  await flowPage.waitForLoadState("load");
+  assert.equal(await flowPage.locator('[name="GV_FIRST"]').inputValue(), "Ada");
+  assert.equal(await flowPage.locator('[name="GV_LAST"]').inputValue(), "Lovelace");
+  assert.equal(await flowPage.locator('[name="GV_REQUEST"]').inputValue(), "");
+  assert.equal(await flowPage.locator('input[type="checkbox"][name="GV_ENABLE"]').isChecked(), true);
+  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await flowPage.waitForLoadState("load");
+  assert.equal(await flowPage.locator('[name="GV_DYNAMIC"]').isVisible(), true);
+  await flowPage.locator('button[name="gg_ucomm"][value="FOCUS"]').click();
+  await flowPage.waitForLoadState("load");
+  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await flowPage.waitForLoadState("load");
+  assert.equal(await flowPage.locator('.gg-dynpro[data-cursor-field="GV_FIRST"]').count(), 1);
+  await flowPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
+  await flowPage.waitForLoadState("load");
+  assert.equal(await flowPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  await flowPage.close();
+  const cancelPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  await cancelPage.goto(flowUrl, {waitUntil: "load"});
+  await cancelPage.locator('button[name="gg_ucomm"][value="CANCEL"]').click();
+  await cancelPage.waitForLoadState("load");
+  assert.equal(await cancelPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.match(await cancelPage.locator("body").textContent(), /Changes canceled/);
+  await cancelPage.close();
+  const tablePage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const tableUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABLE_CONTROL");
+  await tablePage.goto(tableUrl, {waitUntil: "load"});
+  assert.equal(await tablePage.locator('[data-page-kind="DYNPRO"]').count(), 1);
+  const tableControl = tablePage.locator('[data-table-control]');
+  assert.equal(await tableControl.count(), 1);
+  assert.equal(await tableControl.locator("thead th").count(), 7);
+  assert.equal(await tableControl.locator("tbody tr").count(), 15);
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').inputValue(), "Mechanical Keyboard");
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-4"]').inputValue(), "USB-C Dock");
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-QUANTITY-4"]').isDisabled(), true);
+  await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').fill("Mechanical Keyboard Pro");
+  await tablePage.locator('input[name="gg-cell-TC_ROWS-QUANTITY-1"]').fill("13");
+  await tablePage.locator('input[name="gg-cell-TC_ROWS-PRICE-1"]').fill("139.90");
+  await tablePage.locator('input[type="checkbox"][name="gg-cell-TC_ROWS-MARK-1"]').check();
+  await tablePage.locator('button[name="gg_ucomm"][value="APPEND"]').click();
+  await tablePage.waitForLoadState("load");
+  assert.match(await tablePage.locator("body").textContent(), /A row was appended/);
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').inputValue(), "Mechanical Keyboard Pro");
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-6"]').inputValue(), "New product");
+  await tablePage.locator('button[name="gg_ucomm"][value="COPY"]').click();
+  await tablePage.waitForLoadState("load");
+  assert.match(await tablePage.locator("body").textContent(), /copied/);
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-7"]').inputValue(), "Copy of Mechanical Keyboard Pro".slice(0, 30));
+  await tablePage.locator('input[type="checkbox"][name="gg-cell-TC_ROWS-MARK-1"]').check();
+  await tablePage.locator('button[name="gg_ucomm"][value="DELETE"]').click();
+  await tablePage.waitForLoadState("load");
+  assert.match(await tablePage.locator("body").textContent(), /marked row\(s\) deleted/);
+  await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').fill("");
+  await tablePage.locator('button[name="gg_ucomm"][value="APPEND"]').click();
+  await tablePage.waitForLoadState("load");
+  assert.match(await tablePage.locator("body").textContent(), /Enter a product name/);
+  await tablePage.locator('button[name="gg_ucomm"][value="RESET"]').click();
+  await tablePage.waitForLoadState("load");
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').inputValue(), "Mechanical Keyboard");
+  assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-5"]').inputValue(), "Conference Speaker");
+  await tablePage.locator('button[name="gg_ucomm"][value="BACK"]').click();
+  await tablePage.waitForLoadState("load");
+  assert.equal(await tablePage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  await tablePage.close();
+  const tabPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const tabUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABSTRIP");
+  await tabPage.goto(tabUrl, {waitUntil: "load"});
+  assert.equal(await tabPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
+  assert.equal(await tabPage.locator('[role="tab"]').count(), 3);
+  assert.match(await tabPage.locator("body").textContent(), /Identity: Ada Lovela/);
+  assert.match(await tabPage.locator("body").textContent(), /Settings: notify/);
+  assert.match(await tabPage.locator("body").textContent(), /Advanced/);
+  assert.equal(await tabPage.locator('[name="GV_NAME"]').isVisible(), true);
+  assert.equal(await tabPage.locator('[name="GV_START_DATE"]').count(), 0);
+  await tabPage.getByRole("tab", {name: /Settings: notify/}).click();
+  await tabPage.waitForLoadState("load");
+  assert.equal(await tabPage.locator('[name="TS_MAIN-ACTIVETAB"]').inputValue(), "TAB2");
+  assert.equal(await tabPage.locator('[name="GV_NAME"]').count(), 0);
+  assert.equal(await tabPage.locator('[name="GV_START_DATE"]').isVisible(), true);
+  await tabPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await tabPage.waitForLoadState("load");
+  assert.match(await tabPage.locator("body").textContent(), /Active page TAB2 was applied/);
+  await tabPage.getByRole("tab", {name: "Advanced", exact: true}).click();
+  await tabPage.waitForLoadState("load");
+  assert.equal(await tabPage.locator('[name="TS_MAIN-ACTIVETAB"]').inputValue(), "TAB3");
+  assert.equal(await tabPage.locator('[name="GV_NAME"]').count(), 0);
+  await tabPage.locator('input[type="checkbox"][name="GV_SHOW_ADVANCED"]').uncheck();
+  await tabPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await tabPage.waitForLoadState("load");
+  assert.equal(await tabPage.locator('[role="tab"]').count(), 2);
+  assert.equal(await tabPage.locator('[name="TS_MAIN-ACTIVETAB"]').inputValue(), "TAB1");
+  await tabPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
+  await tabPage.waitForLoadState("load");
+  assert.equal(await tabPage.locator('[role="tab"]').count(), 3);
+  assert.equal(await tabPage.locator('input[type="checkbox"][name="GV_SHOW_ADVANCED"]').isChecked(), true);
+  await tabPage.locator('button[name="gg_ucomm"][value="CLIENT"]').click();
+  await tabPage.waitForLoadState("load");
+  assert.equal(await tabPage.locator('[data-screen="0200"]').count(), 1);
+  assert.equal(await tabPage.locator('[role="tab"]').count(), 3);
+  assert.equal(await tabPage.locator('[name="GV_NAME"]').isVisible(), true);
+  assert.equal(await tabPage.locator('[name="GV_START_DATE"]').count(), 0);
+  await tabPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
+  await tabPage.waitForLoadState("load");
+  assert.equal(await tabPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  await tabPage.close();
+  const subscreenPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const subscreenUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SUBSCREENS");
+  await subscreenPage.goto(subscreenUrl, {waitUntil: "load"});
+  assert.equal(await subscreenPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
+  assert.equal(await subscreenPage.locator('[data-screen="0100"]').count(), 1);
+  assert.match(await subscreenPage.locator("body").textContent(), /Parent sees: Shared left value \/ Details variant A/);
+  assert.equal(await subscreenPage.locator('[name="GV_LEFT_VALUE"]').isVisible(), true);
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').isVisible(), true);
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_B"]').count(), 0);
+  assert.match(await subscreenPage.locator('[name="GV_LEFT_VALUE"]').locator("xpath=../..").getAttribute("style"), /left:50px/);
+  assert.match(await subscreenPage.locator('[name="GV_RIGHT_A"]').locator("xpath=../..").getAttribute("style"), /left:580px/);
+  await subscreenPage.locator('button[name="gg_ucomm"][value="SWAP"]').click();
+  await subscreenPage.waitForLoadState("load");
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').count(), 0);
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_B"]').isVisible(), true);
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_SCREEN"]').inputValue(), "0130");
+  await subscreenPage.locator('button[name="gg_ucomm"][value="SUBNAV"]').click();
+  await subscreenPage.waitForLoadState("load");
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_SCREEN"]').inputValue(), "0120");
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').isVisible(), true);
+  assert.match(await subscreenPage.locator("body").textContent(), /Parent accepted subscreen request for screen 0120/);
+  await subscreenPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
+  await subscreenPage.waitForLoadState("load");
+  assert.match(await subscreenPage.locator("body").textContent(), /Parent and both active subscreens completed PAI/);
+  await subscreenPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
+  await subscreenPage.waitForLoadState("load");
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_SCREEN"]').inputValue(), "0120");
+  assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').inputValue(), "Details variant A");
+  await subscreenPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
+  await subscreenPage.waitForLoadState("load");
+  assert.equal(await subscreenPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  await subscreenPage.close();
   await writeScreenshotIndex(results, revision, referenceRoot);
   await runCommand(process.execPath, [
     path.join(repositoryRoot, "test", "generate-screenshot-diffs.mjs"),

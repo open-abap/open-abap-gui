@@ -1,5 +1,8 @@
 export function buildStatePlan(ir) {
-  const globals = ir.declarations.filter((item) => item.statement?.scope !== "local" && !item.statement?.localClassName && ["data", "static", "tables", "ranges"].includes(item.kind)).flatMap((item) => item.names ?? []);
+  const isGlobal = (item) => item.statement?.scope !== "local"
+    && !item.statement?.localClassName
+    && (item.statement?.span?.start?.column ?? 1) <= 1;
+  const globals = ir.declarations.filter((item) => isGlobal(item) && ["data", "static", "tables", "ranges"].includes(item.kind)).flatMap((item) => item.names ?? []);
   const selections = ir.selections
     .flatMap((screen) => screen.elements)
     .filter((item) => ["parameter", "select-option"].includes(item.kind) && item.name)

@@ -236,7 +236,7 @@ function lowerVariants(raw, name) {
 function lowerFrontend(raw, name) {
   if (name === "CONVERSION_EXIT_ALPHA_INPUT" || name === "CONVERSION_EXIT_ALPHA_OUTPUT") {
     const input = functionParameter(raw, "input");
-    return returningCall(functionParameter(raw, "output"), name.endsWith("INPUT") ? "alpha_input" : "alpha_output", input ?? "''");
+    return returningCall(functionParameter(raw, "output"), name.endsWith("INPUT") ? "alpha_input" : "alpha_output", `CONV string( ${input ?? "''"} )`);
   }
   if (name === "SCMS_XSTRING_TO_BINARY") return call("xstring_to_binary", `EXPORTING iv_buffer = ${functionParameter(raw, "buffer") ?? "VALUE #( )"} CHANGING cv_output_length = ${functionParameter(raw, "output_length") ?? "VALUE #( )"} ct_binary = ${functionParameter(raw, "binary_tab") ?? "VALUE #( )"}`);
   if (name === "DP_CREATE_URL") return call("create_url", `EXPORTING is_request = ${requestFields(raw, { type: "type", subtype: "subtype", size: "size", lifetime: "lifetime" })} CHANGING cv_url = ${functionParameter(raw, "url") ?? "VALUE #( )"} ct_data = ${functionParameter(raw, "data") ?? "VALUE #( )"}`);

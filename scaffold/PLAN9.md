@@ -103,86 +103,86 @@ work should eliminate them family by family.
   statements.
 - [x] Preserve text symbols and selection texts from report metadata so labels,
   tab captions, headings, and button text do not degrade to variable names.
-- [ ] Emit runnable application content when only an optional feature is
+- [x] Emit runnable application content when only an optional feature is
   unsupported; reserve the whole-page diagnostic shell for failures that make
   safe entry impossible.
-- [ ] Add converter fixtures based on minimal extracted constructs, not copies
+- [x] Add converter fixtures based on minimal extracted constructs, not copies
   of the full gg-gui reports, for every new lowering and adapter rule.
-- [ ] Require clean activation/transpilation of every generated class before
+- [x] Require clean activation/transpilation of every generated class before
   its screenshot is classified as an application-parity candidate.
 
 ## Phase 2 - shared shell and visual language
 
-- [ ] Add a compact classic theme for generated examples: pale blue work area,
+- [x] Add a compact classic theme for generated examples: pale blue work area,
   dark one-pixel borders, dense 22-28 px rows, restrained gradients, small
   system/monospace content fonts, and yellow input/action emphasis.
-- [ ] Preserve the open-abap identity and accessible HTML semantics; reproduce
+- [x] Preserve the open-abap identity and accessible HTML semantics; reproduce
   recognizable layout behavior without copying SAP logos, proprietary icon
   bitmaps, operating-system title bars, or inaccessible image-only controls.
-- [ ] Separate shell menus, the standard command toolbar, an application GUI
+- [x] Separate shell menus, the standard command toolbar, an application GUI
   status toolbar, and a control-local toolbar so each reference row appears in
   the correct hierarchy.
-- [ ] Render title, status text, instruction text, message area, work area, and
+- [x] Render title, status text, instruction text, message area, work area, and
   bottom action rows as distinct regions with consistent spacing across
   reports.
-- [ ] Standardize focused, selected, changed, disabled, required, error,
+- [x] Standardize focused, selected, changed, disabled, required, error,
   warning, total, subtotal, hotspot, and readonly states across selection,
   dynpro, list, tree, and grid controls.
-- [ ] Match fixed-width ABAP field behavior: character fields left aligned;
+- [x] Match fixed-width ABAP field behavior: character fields left aligned;
   numeric, quantity, and amount fields right aligned; checkbox/radio controls
   compact; dates and times externally formatted without changing their values.
-- [ ] Add keyboard parity for Enter, F1, F4, F8, Back, Exit, Cancel, toolbar
+- [x] Add keyboard parity for Enter, F1, F4, F8, Back, Exit, Cancel, toolbar
   commands, tab traversal, arrow navigation, and modal focus restoration.
-- [ ] Keep responsive behavior usable below the reference width while making
+- [x] Keep responsive behavior usable below the reference width while making
   the fixed comparison viewport reproduce the reference grouping and density.
 
 ## Phase 3 - classic lists and selection screens
 
-- [ ] **`ZGG_GUI_CATALOG`:** render the real catalog rows as a paged classic
+- [x] **`ZGG_GUI_CATALOG`:** render the real catalog rows as a paged classic
   list with cyan headings, fixed-width category/program/title columns, program
   hotspots, page header/footer, vertical scroll, and drill-down behavior.
-- [ ] **`ZGG_GUI_CLASSIC_LIST`:** preserve list colors, intensified and hotspot
+- [x] **`ZGG_GUI_CLASSIC_LIST`:** preserve list colors, intensified and hotspot
   fragments, icon text, numeric alignment, top/end-of-page sections, and the
   Change/Top/Bottom/Reset application actions.
-- [ ] **`ZGG_GUI_SEL_FIELDS`:** reproduce every typed field, label, default,
+- [x] **`ZGG_GUI_SEL_FIELDS`:** reproduce every typed field, label, default,
   password mask, checkbox, radio group, listbox, F4 affordance, required state,
   initial focus, validation, and external formatting.
-- [ ] **`ZGG_GUI_SEL_RANGES`:** render low/high range pairs, include/exclude and
+- [x] **`ZGG_GUI_SEL_RANGES`:** render low/high range pairs, include/exclude and
   option state, multiple-selection buttons, required markers, aligned typed
   values, and a working range editor dialog.
-- [ ] **`ZGG_GUI_SEL_LAYOUT`:** honor block frames, block titles, comments,
+- [x] **`ZGG_GUI_SEL_LAYOUT`:** honor block frames, block titles, comments,
   horizontal rules, explicit positions, function-key buttons, Reset, and About.
-- [ ] **`ZGG_GUI_SEL_DYNAMIC`:** execute `AT SELECTION-SCREEN OUTPUT` changes for
+- [x] **`ZGG_GUI_SEL_DYNAMIC`:** execute `AT SELECTION-SCREEN OUTPUT` changes for
   visibility, input, required, masked, listbox, checkbox, and radio-driven
   state, including Apply and contextual F1 help.
-- [ ] **`ZGG_GUI_SEL_TABS`:** render Identity/Contact/Limits as real selection
+- [x] **`ZGG_GUI_SEL_TABS`:** render Identity/Contact/Limits as real selection
   tabs, retain inactive-tab values server-side, validate only the proper
   callbacks, and restore focus when switching tabs.
-- [ ] **`ZGG_GUI_MODAL_SELSCREEN`:** implement modal and fullscreen selection
+- [x] **`ZGG_GUI_MODAL_SELSCREEN`:** implement modal and fullscreen selection
   screen calls, explicit screen-number handling, validation/cancel return
   codes, parent value retention, and visible result status.
-- [ ] **`ZGG_GUI_SEL_VARIANTS`:** implement variant read/save/delete/apply,
+- [x] **`ZGG_GUI_SEL_VARIANTS`:** implement variant read/save/delete/apply,
   report values, screen state, confirmations, ownership, and the six reference
   actions without trusting browser-supplied variant data.
-- [ ] **`ZGG_GUI_SEL_FREE`:** implement the dynamic-selection dialog/fullscreen
+- [x] **`ZGG_GUI_SEL_FREE`:** implement the dynamic-selection dialog/fullscreen
   flow, selected-field criteria, returned ranges, reset, and the reference
   classic-list summary.
 
 ## Phase 4 - dynpro flow, status, navigation, and dialogs
 
-- [ ] **`ZGG_GUI_DYNPRO_ELEMENTS`:** reproduce the paired Input/Output frames,
+- [x] **`ZGG_GUI_DYNPRO_ELEMENTS`:** reproduce the paired Input/Output frames,
   typed controls, dropdown, checkbox/radios, value transport, Apply/Reset, and
   Back behavior with reference-like coordinates and widths.
-- [ ] **`ZGG_GUI_DYNPRO_FLOW`:** run PBO/PAI in order, update the module log,
+- [x] **`ZGG_GUI_DYNPRO_FLOW`:** run PBO/PAI in order, update the module log,
   preserve dynamic field/checkbox state, and implement Apply/Focus/Reset/
   Back/Cancel with correct cursor and message behavior.
-- [ ] **`ZGG_GUI_TABLE_CONTROL`:** render the dense editable table, row
+- [x] **`ZGG_GUI_TABLE_CONTROL`:** render the dense editable table, row
   selection, disabled cells, visible-row scrolling, current-line semantics,
   cell validation, and Append/Insert/Copy/Delete/Reset actions.
-- [ ] **`ZGG_GUI_TABSTRIP`:** bind tabs to subscreens, retain each tab's state,
+- [x] **`ZGG_GUI_TABSTRIP`:** bind tabs to subscreens, retain each tab's state,
   support dynamic tab visibility and active tab, and update the status field
   and action row.
-- [ ] **`ZGG_GUI_SUBSCREENS`:** after baseline identity is fixed, preserve parent
+- [x] **`ZGG_GUI_SUBSCREENS`:** after baseline identity is fixed, preserve parent
   and child field namespaces, PBO/PAI order, nested container geometry, state,
   and navigation shown by the intended reference screen.
 - [ ] **`ZGG_GUI_DIALOGS_HELP`:** after baseline identity is fixed, implement F1,

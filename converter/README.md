@@ -18,8 +18,11 @@ const result = await convertProgram({
 classes, serializable `reportIR` and `scaffoldIR` values, a stable JSON-ready
 `manifest`, source maps, diagnostics, and the `supported`
 flag. Strict mode returns no class source when an error diagnostic exists.
-Partial mode emits a compilable skeleton with explicit `TODO GGCONV-*` comments
-for unsupported semantics.
+Partial mode emits compilable output with explicit `TODO GGCONV-*` comments for
+unsupported semantics. When `partialStrategy: "skeleton"` is requested, a
+safe-entry failure gets the diagnostic-only shell; optional feature gaps get a
+small runnable application containing the recovered selection-screen content
+and headings, with the unsupported operations retained in diagnostics.
 
 For broad migration surveys where unsupported source fragments must never be
 preserved in the emitted class, set `partialStrategy: "skeleton"`. The default
@@ -158,8 +161,10 @@ npm test
 `test:gg-gui` clones `https://github.com/larshp/gg-gui` into the gitignored
 `gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), converts every
 catalog report with the safe partial strategy, transpiles and serves the
-generated report classes, and writes one browser screenshot per report plus an
-HTML index under `gg-gui-validation/screenshots/`. It is intentionally separate
+generated report classes, verifies every generated target/helper class has clean
+transpiler output before marking it as an application-parity candidate, and
+writes one browser screenshot per report plus an HTML index under
+`gg-gui-validation/screenshots/`. It is intentionally separate
 from the offline verification gate because it resolves an external repository.
 
 `behavior` compiles generated and hand-written report classes under

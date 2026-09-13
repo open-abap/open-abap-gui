@@ -13,6 +13,10 @@ const identity = (name, kind = "ddic-type") => ({
 
 const names = [
   "DISVARIANT",
+  "RSPARAMS",
+  "RSVAR",
+  "VARID",
+  "VARIT",
   "ICON_D",
   "LVC_FNAME",
   "LVC_NKEY",
@@ -66,4 +70,3 @@ const names = [
 export const GG_GUI_DDIC_TYPES = Object.freeze(Object.fromEntries(names.map((name) => [name, identity(name)]).concat([
   ["ZCL_GG_GUI_DEMO_DATA=>TY_PRODUCTS", identity("zcl_gg_gui_demo_data=>ty_products", "class-type")],
 ])));
-

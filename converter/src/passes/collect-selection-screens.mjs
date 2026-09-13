@@ -5,6 +5,11 @@ function quoted(value) {
   return match ? `'${match[1]}'` : undefined;
 }
 
+function defaultValue(additions) {
+  const match = /\bDEFAULT\s+((?:'(?:''|[^'])*')|(?:\|[^|]*\|)|(?:[A-Z_][A-Z0-9_-]*(?:\s*-\s*[A-Z_][A-Z0-9_-]*)?)|(?:[-+]?\d+(?:\.\d+)?))/i.exec(additions);
+  return match?.[1];
+}
+
 function typeDefinition(additions) {
   const type = /\bTYPE\s+([A-Z0-9_\/]+)(?:\s+LENGTH\s+(\d+))?(?:\s+DECIMALS\s+(\d+))?/i.exec(additions);
   const typ = type?.[1]?.toUpperCase() ?? "STRING";
@@ -33,8 +38,8 @@ function layoutItem(raw, span) {
     const name = /^[A-Z]\d+$/i.test(key) ? key.toUpperCase() : `CMT${match[1] ?? "1"}`;
     return { kind: "layout", layout: "comment", name, text: match[3].toUpperCase(), position: match[1] ? Number(match[1]) : undefined, length: match[2] ? Number(match[2]) : undefined, span };
   }
-  match = /SKIP\s+(\d+)/i.exec(text);
-  if (match) return { kind: "layout", layout: "skip", lines: Number(match[1]), span };
+  match = /SKIP(?:\s+(\d+))?/i.exec(text);
+  if (match) return { kind: "layout", layout: "skip", lines: Number(match[1] ?? 1), span };
   match = /ULINE\s+\/?(\d+)?(?:\((\d+)\))?/i.exec(text);
   if (match) return { kind: "layout", layout: "uline", position: match[1] ? Number(match[1]) : undefined, length: match[2] ? Number(match[2]) : undefined, span };
   match = /POSITION\s+(\d+)/i.exec(text);
@@ -98,7 +103,7 @@ export function collectSelectionScreens(declarations) {
       const item = {
         ...declaration,
         dataType: typeDefinition(declaration.additions),
-        default: quoted(declaration.additions),
+        default: defaultValue(declaration.additions),
         screen: currentScreen?.number ?? "0100",
         text: inLine ? "" : declaration.name,
         suppressTextPool: inLine,

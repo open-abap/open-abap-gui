@@ -68,6 +68,7 @@ INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
            name         TYPE ty_name,
            text         TYPE string,
            placement    TYPE ty_placement,
+           format       TYPE ty_format,
            write_format TYPE ty_write_format,
            hide         TYPE ty_hidden_fields,
          END OF ty_write_field.

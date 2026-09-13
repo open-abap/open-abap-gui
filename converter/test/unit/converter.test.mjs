@@ -164,6 +164,67 @@ test("reports unsupported WRITE additions individually", async () => {
   assert.match(result.classSource, /TODO GGCONV-E501: unsupported WRITE formatting/);
 });
 
+test("lowers classic named WRITE hotspot and color formatting", async () => {
+  const result = await convertProgram({
+    source: "REPORT zwrite_classic.\nSTART-OF-SELECTION.\nWRITE 15 'Program' HOTSPOT COLOR COL_KEY.\n",
+    filename: "zwrite_classic.prog.abap",
+    className: "ZCL_WRITE_CLASSIC",
+    transactionCode: "ZWRCLASS",
+  });
+  assert.equal(result.supported, true);
+  assert.doesNotMatch(result.classSource, /GGCONV-E516/);
+  assert.match(result.classSource, /format = VALUE #\( color = zif_gg_list_processing_types_v1=>color_key hotspot = abap_true \)/);
+});
+
+test("lowers classic list color constants through the scaffold interface", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zwrite_color_constant.",
+      "DATA lv_color TYPE i.",
+      "START-OF-SELECTION.",
+      "  lv_color = COND #( WHEN sy-batch = abap_true THEN col_normal ELSE col_negative ).",
+      "  FORMAT COLOR = lv_color.",
+      "  WRITE / sy-pagno.",
+      "  WRITE lv_color.",
+    ].join("\n"),
+    filename: "zwrite_color_constant.prog.abap",
+    className: "ZCL_WRITE_COLOR_CONSTANT",
+    transactionCode: "ZWRCOL",
+  });
+  assert.equal(result.supported, true);
+  assert.doesNotMatch(result.classSource, /abap\.builtin\.col_(?:normal|negative)/);
+  assert.match(result.classSource, /zif_gg_list_processing_types_v1=>color_normal/);
+  assert.match(result.classSource, /zif_gg_list_processing_types_v1=>color_negative/);
+  assert.match(result.classSource, /set_format\( VALUE #\( color = lv_color \) \)/i);
+  assert.match(result.classSource, /io_session->get_list\( \)->get_context\( \)-page/);
+});
+
+test("lowers classic currency WRITE formatting and list paging commands", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zwrite_currency LINE-COUNT 10(2).",
+      "DATA gv_price TYPE p DECIMALS 2.",
+      "DATA gv_currency TYPE c LENGTH 3.",
+      "START-OF-SELECTION.",
+      "WRITE / 'Currency'.",
+      "WRITE 10 gv_price CURRENCY gv_currency.",
+      "AT USER-COMMAND.",
+      "  CASE sy-ucomm.",
+      "    WHEN 'TOP'. SCROLL LIST TO FIRST PAGE.",
+      "    WHEN 'BOTTOM'. SCROLL LIST TO LAST PAGE.",
+      "  ENDCASE.",
+    ].join("\n"),
+    filename: "zwrite_currency.prog.abap",
+    className: "ZCL_WRITE_CURRENCY",
+    transactionCode: "ZWRCUR",
+  });
+  assert.equal(result.supported, true);
+  assert.deepEqual(result.diagnostics, []);
+  assert.match(result.classSource, /write_format = VALUE #\( currency = \|\{ gv_currency \}\| \)/);
+  assert.match(result.classSource, /lo_writer->scroll_to_first_page\( \)\./);
+  assert.match(result.classSource, /lo_writer->scroll_to_last_page\( \)\./);
+});
+
 test("keeps logical-database GET events outside the converter scope", async () => {
   const result = await convertProgram({
     source: "REPORT zlogical_database.\nGET spfli.\n",
@@ -450,7 +511,7 @@ test("partial skeleton strategy keeps runnable content for optional gaps", async
   });
   assert.equal(result.supported, false);
   assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\./);
-  assert.match(result.classSource, /entry/);
+  assert.match(result.classSource, /Application content is available/);
   assert.doesNotMatch(result.classSource, /Partial conversion preview/);
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E513"));
 });
@@ -781,6 +842,18 @@ test("lowers the finite gg-gui function-module families through typed adapters",
     "SELECT_OPTIONS_RESTRICT",
   ]);
   assert.equal(Object.keys(COMPATIBILITY_FUNCTION_MODULES).length, 34);
+});
+
+test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture", async () => {
+  const source = await compositeFixture("plan9_minimal_constructs.prog.abap");
+  const result = await convertProgram({ source, filename: "plan9_minimal_constructs.prog.abap", transactionCode: "ZPLAN9MIN" });
+  assert.equal(result.supported, true);
+  assert.match(result.classSource, /TYPES: BEGIN OF ty_row/);
+  assert.match(result.classSource, /DATA r_value TYPE zif_gg_selection_screen_types=>ty_ranges/);
+  assert.match(result.classSource, /FIELD-SYMBOLS <lv_value> TYPE i/);
+  assert.match(result.classSource, /get_compatibility\( \)->popup_to_confirm/);
+  assert.match(result.classSource, /get_compatibility\( \)->publish_url/);
+  assert.deepEqual(result.manifest.metadataInputs.compatibilityAdapters, Object.keys(COMPATIBILITY_FUNCTION_MODULES).sort());
 });
 
 test("classifies former E501 gaps by actionable operation family", async () => {

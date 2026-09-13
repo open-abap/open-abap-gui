@@ -70,6 +70,7 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
            no_display  TYPE abap_bool,
            value_check TYPE abap_bool,
            value_help  TYPE abap_bool,
+           password    TYPE abap_bool,
          END OF ty_parameter.
 
   TYPES: BEGIN OF ty_checkbox,
@@ -203,6 +204,7 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
            lower_case   TYPE abap_bool,
            no_display   TYPE abap_bool,
            value_help   TYPE abap_bool,
+           password     TYPE abap_bool,
            group1       TYPE ty_group,
            group2       TYPE ty_group,
            group3       TYPE ty_group,
@@ -212,6 +214,7 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
            input        TYPE abap_bool,
            output       TYPE abap_bool,
            obligatory   TYPE abap_bool,
+           intensified  TYPE abap_bool,
          END OF ty_state.
   TYPES ty_states TYPE SORTED TABLE OF ty_state WITH UNIQUE KEY name.
 

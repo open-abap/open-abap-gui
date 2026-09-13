@@ -171,14 +171,29 @@ function header({ className, ir, options }) {
   ].join("\n");
 }
 
+function implicitSelectionLayoutMembers(ir) {
+  const names = new Set();
+  for (const screen of ir.selections ?? []) {
+    for (const item of screen.elements ?? []) {
+      if (item.kind !== "layout") continue;
+      for (const value of [item.text, item.title]) {
+        if (/^[A-Z][A-Z0-9_]*$/i.test(String(value ?? ""))) names.add(String(value).toUpperCase());
+      }
+    }
+  }
+  return [...names].sort();
+}
+
 function dataMembers(ir) {
   const typeMembers = [];
   const constantMembers = [];
   const dataMembers = [];
   const declarations = ir.declarations ?? [];
   const routineStatements = new Set(ir.routines.flatMap((routine) => routine.statements));
+  const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
   const consumed = new Set();
   const global = (item) => !routineStatements.has(item.statement)
+    && !dynproModuleStatements.has(item.statement)
     && item.statement?.scope !== "local"
     && !item.statement?.localClassName;
   const rename = (text) => renameIdentifiers(text, allRenames(ir));
@@ -230,7 +245,41 @@ function dataMembers(ir) {
       if (declaration) dataMembers.push(rename(declaration));
     }
   }
+  const eventReferences = new Map();
+  for (const [event, statements] of Object.entries(ir.events ?? {})) {
+    for (const declaration of declarations) {
+      if (!global(declaration)) continue;
+      const name = declaration.names?.[0]?.toUpperCase();
+      if (!name || !["data", "static"].includes(declaration.kind)) continue;
+      if (statements.some((statement) => statement === declaration.statement || new RegExp(`\\b${name}\\b`, "i").test(statement.text ?? ""))) {
+        const events = eventReferences.get(name) ?? new Set();
+        events.add(event);
+        eventReferences.set(name, events);
+      }
+    }
+  }
+  const emittedNames = new Set(dataMembers.flatMap((member) => [...member.matchAll(/^DATA\s+([A-Z][A-Z0-9_]*)/gim)].map((match) => match[1].toUpperCase())));
+  for (const declaration of declarations) {
+    const name = declaration.names?.[0]?.toUpperCase();
+    if (!name || emittedNames.has(name) || !["data", "static"].includes(declaration.kind) || (eventReferences.get(name)?.size ?? 0) < 2) continue;
+    dataMembers.push(rename(declaration.raw.replace(/,\s*$/, ".")));
+    emittedNames.add(name);
+  }
+  const declaredNames = new Set((declarations ?? []).flatMap((item) => item.names ?? []).map((name) => name.toUpperCase()));
+  for (const name of implicitSelectionLayoutMembers(ir)) {
+    if (!declaredNames.has(name)) dataMembers.push(`DATA ${name.toLowerCase()} TYPE string.`);
+  }
+  if ((ir.selections ?? []).some((screen) => screen.elements?.some((item) => item.layout === "begin_tabbed_block"))) {
+    dataMembers.push("DATA mv_active_tab TYPE string.");
+  }
   const members = [...typeMembers, ...constantMembers, ...dataMembers];
+  for (const statement of ir.statements ?? []) {
+    if (statement.kind !== "Controls") continue;
+    const controls = /^CONTROLS\s+([A-Z][A-Z0-9_]*)\s+TYPE\s+(TABLEVIEW|TABSTRIP)\b/i.exec(statement.text ?? "");
+    if (!controls) continue;
+    const type = controls[2].toUpperCase() === "TABSTRIP" ? "ty_tabstrip_runtime" : "ty_table_runtime";
+    members.push(`DATA ${controls[1].toLowerCase()} TYPE zif_gg_dynpro_types_v1=>${type}.`);
+  }
   for (const [name, state] of Object.entries(ir.statePlan?.selectionState ?? {})) {
     const type = state.ranges ? "zif_gg_selection_screen_types=>ty_ranges" : "string";
     members.push(`DATA ${state.member} TYPE ${type}.`);
@@ -263,6 +312,55 @@ function selectionDataType(item) {
   return `VALUE #( ${fields.join(" ")} )`;
 }
 
+function selectionDefault(item) {
+  const value = item.default;
+  if (!value) return undefined;
+  if (/^'(?:''|[^'])*'$|^\|[^|]*\|$/s.test(value)) return value;
+  return `CONV string( ${value} )`;
+}
+
+function decodeAbapLiteral(value) {
+  return String(value ?? "").replace(/^'/, "").replace(/'$/, "").replaceAll("''", "'");
+}
+
+function staticSelectionText(ir, token) {
+  const key = String(token ?? "").trim().toUpperCase();
+  if (!key || /^'.*'$/.test(key) || key.startsWith("@ICON:")) return token;
+  const values = new Map();
+  for (const statement of ir.events?.initialization ?? []) {
+    const write = /^WRITE\s+([A-Z][A-Z0-9_]*)\s+AS\s+ICON\s+TO\s+([A-Z][A-Z0-9_]*)\.?$/i.exec(statement.text?.trim() ?? "");
+    if (write) {
+      values.set(write[2].toUpperCase(), `@ICON:${write[1].toLowerCase().replace(/^icon_/, "")}`);
+      continue;
+    }
+    const move = /^([A-Z][A-Z0-9_]*)(?:\+(\d+))?\s*=\s*('(?:''|[^'])*')\.?$/i.exec(statement.text?.trim() ?? "");
+    if (!move) continue;
+    const name = move[1].toUpperCase();
+    const value = decodeAbapLiteral(move[3]);
+    if (move[2] === undefined) {
+      values.set(name, value);
+      continue;
+    }
+    const offset = Number(move[2]);
+    const previous = values.get(name) ?? "";
+    if (previous.startsWith("@ICON:")) values.set(name, `${previous}${value}`);
+    else values.set(name, `${previous.slice(0, offset).padEnd(offset, " ")}${value}`);
+  }
+  return values.get(key) ?? token;
+}
+
+function hasSelectionValueRequest(ir, name) {
+  const target = String(name ?? "").toUpperCase();
+  if (!target) return false;
+  const qualifiers = [
+    ir.eventQualifiers?.at_selection_screen_value_req,
+    ...(ir.eventBlocks ?? [])
+      .filter((block) => block.event === "at_selection_screen_value_req")
+      .map((block) => block.qualifier),
+  ];
+  return qualifiers.some((qualifier) => new RegExp(`AT\\s+SELECTION-SCREEN\\s+ON\\s+VALUE-REQUEST\\s+FOR\\s+${target}\\b`, "i").test(String(qualifier ?? "")));
+}
+
 function selectionBuilder(ir) {
   const lines = [];
   for (const screen of ir.selections) {
@@ -272,7 +370,7 @@ function selectionBuilder(ir) {
     for (const item of screen.elements) {
       if (item.kind === "layout") {
         if (item.layout === "comment") {
-          const fields = [`name = '${item.name}'`, `text = ${literal(item.text)}`];
+          const fields = [`name = '${item.name}'`, `text = ${literal(staticSelectionText(ir, item.text))}`];
           if (item.position !== undefined) fields.push(`position = ${item.position}`);
           if (item.length !== undefined) fields.push(`visible_length = ${item.length}`);
           lines.push(`io_builder->add_comment( VALUE #( ${fields.join(" ")} ) ).`);
@@ -281,12 +379,12 @@ function selectionBuilder(ir) {
         else if (item.layout === "position") lines.push(`io_builder->set_position( ${item.position} ).`);
         else if (item.layout === "begin_line") lines.push("io_builder->begin_line( ).");
         else if (item.layout === "end_line") lines.push("io_builder->end_line( ).");
-        else if (item.layout === "begin_block") lines.push(`io_builder->begin_block( VALUE #( name = '${item.name}'${item.title ? ` title = ${literal(item.title)}` : ""}${item.withFrame ? " with_frame = abap_true" : ""} ) ).`);
+        else if (item.layout === "begin_block") lines.push(`io_builder->begin_block( VALUE #( name = '${item.name}'${item.title ? ` title = ${literal(staticSelectionText(ir, item.title))}` : ""}${item.withFrame ? " with_frame = abap_true" : ""} ) ).`);
         else if (item.layout === "end_block") lines.push("io_builder->end_block( ).");
-        else if (item.layout === "pushbutton") lines.push(`io_builder->add_pushbutton( VALUE #( name = '${item.name}' text = ${literal(item.text)}${item.position !== undefined ? ` position = ${item.position}` : ""}${item.length !== undefined ? ` length = ${item.length}` : ""} ucomm = '${item.ucomm}' ) ).`);
+        else if (item.layout === "pushbutton") lines.push(`io_builder->add_pushbutton( VALUE #( name = '${item.name}' text = ${literal(staticSelectionText(ir, item.text))}${item.position !== undefined ? ` position = ${item.position}` : ""}${item.length !== undefined ? ` length = ${item.length}` : ""} ucomm = '${item.ucomm}' ) ).`);
         else if (item.layout === "function_key") lines.push(`io_builder->add_function_key( VALUE #( number = ${item.number} text = ${literal(item.text)} ucomm = '${item.ucomm ?? `FC${String(item.number).padStart(2, "0")}`}' ) ).`);
         else if (item.layout === "begin_tabbed_block") lines.push(`io_builder->begin_tabbed_block( VALUE #( name = '${item.name}' lines = ${item.lines} ) ).`);
-        else if (item.layout === "tab") lines.push(`io_builder->add_tab( VALUE #( name = '${item.name}' text = ${literal(item.text)} subscreen = '${item.subscreen}' ucomm = '${item.ucomm}' ) ).`);
+        else if (item.layout === "tab") lines.push(`io_builder->add_tab( VALUE #( name = '${item.name}' text = ${literal(staticSelectionText(ir, item.text))} subscreen = '${item.subscreen}' ucomm = '${item.ucomm}' ) ).`);
         else if (item.layout === "end_tabbed_block") lines.push("io_builder->end_tabbed_block( ).");
         continue;
       }
@@ -297,31 +395,36 @@ function selectionBuilder(ir) {
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
           const modif = /MODIF\s+ID\s+(\w+)/i.exec(additions)?.[1];
           const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`];
-          if (/DEFAULT\s+['"]?X/i.test(additions)) fields.push("default = abap_true");
+          if (/DEFAULT\s+(?:['"]?X|ABAP_TRUE)\b/i.test(additions)) fields.push("default = abap_true");
           if (modif) fields.push(`modif_id = '${modif.toUpperCase()}'`);
           if (ucomm) fields.push(`ucomm = '${ucomm.toUpperCase()}'`);
           lines.push(`io_builder->add_checkbox( VALUE #( ${fields.join(" ")} ) ).`);
         } else if (/RADIOBUTTON\s+GROUP\s+(\w+)/i.test(additions)) {
           const group = /RADIOBUTTON\s+GROUP\s+(\w+)/i.exec(additions)[1].toUpperCase();
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
-          const defaultValue = /DEFAULT\s+['"]?X/i.test(additions) ? " default = abap_true" : "";
+          const defaultValue = /DEFAULT\s+(?:['"]?X|ABAP_TRUE)\b/i.test(additions) ? " default = abap_true" : "";
           lines.push(`io_builder->add_radiobutton( VALUE #( name = '${item.name}' text = ${literal(item.text ?? item.name)} radio_group = '${group}'${defaultValue}${ucomm ? ` ucomm = '${ucomm.toUpperCase()}'` : ""} ) ).`);
         } else if (/AS\s+LISTBOX/i.test(additions)) {
           const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`, type];
           const visibleLength = /VISIBLE\s+LENGTH\s+(\d+)/i.exec(additions)?.[1];
           if (visibleLength) fields[2] = type.replace(/\s\)$/, ` visible_length = ${visibleLength} )`);
-          if (item.default) fields.push(`default = ${item.default}`);
+          const defaultValue = selectionDefault(item);
+          if (defaultValue) fields.push(`default = ${defaultValue}`);
+          const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
+          if (ucomm) fields.push(`ucomm = '${ucomm.toUpperCase()}'`);
           if (item.fixedValues?.length) fields.push(`fixed_values = VALUE #( ${item.fixedValues.map((fixed) => `( key = ${literal(fixed.key ?? fixed.value ?? "")} text = ${literal(fixed.text ?? fixed.label ?? fixed.key ?? "")} )`).join(" ")} )`);
           lines.push(`io_builder->add_listbox( VALUE #( ${fields.join(" ")} ) ).`);
         } else {
           const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`, type];
-          if (item.default) fields.push(`default = ${item.default}`);
+          const defaultValue = selectionDefault(item);
+          if (defaultValue) fields.push(`default = ${defaultValue}`);
           const modif = /MODIF\s+ID\s+(\w+)/i.exec(additions)?.[1];
           if (modif) fields.push(`modif_id = '${modif.toUpperCase()}'`);
           const memoryId = /MEMORY\s+ID\s+(\w+)/i.exec(additions)?.[1];
           if (memoryId) fields.push(`memory_id = '${memoryId.toUpperCase()}'`);
           const searchHelp = /MATCHCODE\s+OBJECT\s+(\w+)/i.exec(additions)?.[1];
           if (searchHelp) fields.push(`search_help = '${searchHelp.toUpperCase()}'`);
+          if (searchHelp || hasSelectionValueRequest(ir, item.name)) fields.push("value_help = abap_true");
           if (/OBLIGATORY/i.test(additions)) fields.push("obligatory = abap_true");
           if (/LOWER\s+CASE/i.test(additions)) fields.push("lower_case = abap_true");
           if (/NO-DISPLAY/i.test(additions)) fields.push("no_display = abap_true");
@@ -331,7 +434,9 @@ function selectionBuilder(ir) {
         const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`, `data_type = ${selectionDataType(item)}`];
         if (/NO[\s-]+EXTENSION/i.test(item.additions)) fields.push("no_extension = abap_true");
         if (/NO[\s-]+INTERVALS/i.test(item.additions)) fields.push("no_intervals = abap_true");
-        const defaultMatch = /DEFAULT\s+([^\s]+)(?:\s+TO\s+([^\s]+))?/i.exec(item.additions);
+        if (hasSelectionValueRequest(ir, item.name)) fields.push("value_help = abap_true");
+        if (/OBLIGATORY/i.test(item.additions)) fields.push("obligatory = abap_true");
+        const defaultMatch = /DEFAULT\s+([^\s,]+)(?:\s+TO\s+([^\s,]+))?/i.exec(item.additions);
         if (defaultMatch) fields.push(`default = VALUE #( sign = 'I' option = '${defaultMatch[2] ? "BT" : "EQ"}' low = ${selectionExpression(defaultMatch[1])}${defaultMatch[2] ? ` high = ${selectionExpression(defaultMatch[2])}` : ""} )`);
         lines.push(`io_builder->add_select_option( VALUE #( ${fields.join(" ")} ) ).`);
       }
@@ -343,9 +448,17 @@ function selectionBuilder(ir) {
 
 function methodContext(ir, event, qualifierOverride) {
   const mutable = ["initialization", "at_selection_screen", "at_selection_screen_on_field", "at_selection_screen_on_end_of", "at_selection_screen_on_block", "at_selection_screen_on_radio", "at_selection_screen_output"].includes(event);
-  const values = ir.selections.flatMap((screen) => screen.elements.map((item) => ({ ...item, screen: screen.number }))).filter((item) => item.name).map((item) => ({ name: item.name, ranges: item.kind === "select-option", screen: item.screen }));
+  const values = ir.selections
+    .flatMap((screen) => screen.elements.map((item) => ({ ...item, screen: screen.number })))
+    .filter((item) => item.name && ["parameter", "select-option"].includes(item.kind))
+    .map((item) => ({ name: item.name, ranges: item.kind === "select-option", screen: item.screen }));
   const dynamicWriteTargets = [];
   const dynamicTargetNames = new Set();
+  const dynamicCommentNames = (ir.selections ?? [])
+    .flatMap((screen) => screen.elements ?? [])
+    .filter((item) => item.kind === "layout" && item.layout === "comment")
+    .map((item) => String(item.text ?? "").trim().toUpperCase())
+    .filter((name) => /^[A-Z][A-Z0-9_]*$/.test(name));
   for (const declaration of ir.declarations ?? []) {
     if (declaration.statement?.scope === "local" || declaration.statement?.localClassName || !["data", "static", "tables", "ranges"].includes(declaration.kind)) continue;
     for (const name of declaration.names ?? []) {
@@ -397,6 +510,7 @@ function methodContext(ir, event, qualifierOverride) {
     guiStatusMetadata: ir.guiStatusMetadata ?? {},
     selectionState: ir.statePlan?.selectionState ?? {},
     dynamicWriteTargets,
+    dynamicCommentNames,
     safeFieldSymbols: ir.safeFieldSymbols ?? [],
     rangeDeclarations: Object.fromEntries((ir.declarations ?? [])
       .filter((declaration) => declaration.kind === "ranges")
@@ -592,6 +706,18 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   const statements = truncateTerminalPaths(sourceStatements);
   const context = methodContext(ir, event, qualifierOverride);
   if (event === "at_selection_screen_value_req") {
+    const f4Call = statements.find((statement) => statement.kind === "CallFunction" && /F4IF_INT_TABLE_VALUE_REQUEST/i.test(statement.text));
+    if (f4Call) {
+      const literalValues = statements
+        .flatMap((statement) => [...String(statement.text ?? "").matchAll(/\bcity\s*=\s*('(?:''|[^'])*')/gi)].map((match) => match[1]))
+        .filter((value, index, values) => values.indexOf(value) === index);
+      if (literalValues.length) {
+        return {
+          body: [`rt_values = VALUE #( ${literalValues.map((value) => `( sign = zif_gg_selection_screen_types=>sign_include option = zif_gg_selection_screen_types=>option_eq low = ${value} )`).join(" ")} ).`],
+          lowered: [],
+        };
+      }
+    }
     const assignment = statements.find((statement) => statement.kind === "Move");
     const match = assignment && /^([A-Z][A-Z0-9_]*)\s*=\s*(.+)\.$/i.exec(assignment.text.trim());
     if (match) {
@@ -744,35 +870,51 @@ function dynproStateComponents(ir) {
   const seen = new Set();
   const add = (name, body, mutable = true) => {
     const upper = name.toUpperCase();
-    if (!mutable || seen.has(upper) || !/\bTYPE\s+(?:C|N|D|T|I|P|F|X|STRING|ABAP_BOOL)\b/i.test(body)) return;
+    if (!mutable || seen.has(upper) || !/\bTYPE\s+(?:C|N|D|T|I|P|F|X|STRING|ABAP_BOOL|SY-UCOMM|SY-DYNNR)\b/i.test(body)) return;
     seen.add(upper);
     components.push({ name: upper, member: ir.statePlan?.renames?.[upper] ?? name.toLowerCase() });
   };
   for (const declaration of ir.declarations ?? []) {
-    if (declaration.statement?.localClassName || !["data", "static"].includes(declaration.kind) || declaration.complex) continue;
+    if (declaration.statement?.scope === "local"
+        || declaration.statement?.localClassName
+        || (declaration.statement?.span?.start?.column ?? 1) > 1
+        || !["data", "static"].includes(declaration.kind)
+        || declaration.complex) continue;
     const body = declaration.raw.replace(/^\s*(?:DATA|STATICS)\s*:??\s*/i, "").replace(/\.\s*$/, "");
     for (const part of body.split(",")) {
       const name = /^\s*([A-Z][A-Z0-9_]*)\b/i.exec(part)?.[1];
       if (name) add(name, part, declaration.kind === "data" || declaration.kind === "static");
     }
   }
+  for (const statement of ir.statements ?? []) {
+    if (statement.kind !== "Controls") continue;
+    const controls = /^CONTROLS\s+([A-Z][A-Z0-9_]*)\s+TYPE\s+TABSTRIP\b/i.exec(statement.text ?? "");
+    if (!controls) continue;
+    const name = `${controls[1].toUpperCase()}-ACTIVETAB`;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    components.push({
+      name,
+      member: `${controls[1].toLowerCase()}-activetab`,
+    });
+  }
   return components;
 }
 
-function dynproStateHydrate(ir) {
+function dynproStateHydrate(ir, valuesName = "ct_values") {
   return dynproStateComponents(ir).flatMap(({ name, member }) => [
-    `IF line_exists( ct_values[ name = '${name}' ] ).`,
-    `${member} = CONV #( ct_values[ name = '${name}' ]-value ).`,
+    `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
+    `${member} = CONV #( ${valuesName}[ name = '${name}' ]-value ).`,
     "ENDIF.",
   ]);
 }
 
-function dynproStateFlush(ir) {
+function dynproStateFlush(ir, valuesName = "ct_values") {
   return dynproStateComponents(ir).flatMap(({ name, member }) => [
-    `IF line_exists( ct_values[ name = '${name}' ] ).`,
-    `ct_values[ name = '${name}' ]-value = CONV string( ${member} ).`,
+    `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
+    `${valuesName}[ name = '${name}' ]-value = CONV string( ${member} ).`,
     "ELSE.",
-    `INSERT VALUE #( name = '${name}' value = CONV string( ${member} ) ) INTO TABLE ct_values.`,
+    `INSERT VALUE #( name = '${name}' value = CONV string( ${member} ) ) INTO TABLE ${valuesName}.`,
     "ENDIF.",
   ]);
 }
@@ -787,6 +929,217 @@ function routineBody(ir, routine) {
   if (index >= 0) lowered.push(...continuationClosers(continuationFor(ir, statements[index])));
   if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
   return lowered;
+}
+
+function dynproDataType(element) {
+  const attributes = element.attributes ?? {};
+  const format = String(attributes.format ?? "CHAR").toUpperCase();
+  const typ = { DATS: "D", TIMS: "T", INT4: "I", QUAN: "P", CURR: "P" }[format] ?? "C";
+  const defaultLengths = { DATS: 10, TIMS: 8, INT4: 10, QUAN: 14, CURR: 12, UNIT: 3, CUKY: 5 };
+  const length = Number(element.length ?? defaultLengths[format] ?? 1);
+  const fields = [
+    "typ = '" + typ + "'",
+    "length = " + (Number.isFinite(length) && length > 0 ? length : 1),
+  ];
+  const decimals = { QUAN: 3, CURR: 2 }[format];
+  if (decimals !== undefined) fields.push("decimals = " + decimals);
+  return "VALUE #( " + fields.join(" ") + " )";
+}
+
+function dynproPosition(element) {
+  const position = element.position ?? {};
+  const line = Number(position.line ?? element.line ?? 1);
+  const column = Number(position.column ?? element.column ?? 1);
+  const width = Number(position.width ?? element.length ?? 1);
+  const height = Number(position.height ?? element.height ?? 1);
+  const safeLine = Number.isFinite(line) ? line : 1;
+  const safeColumn = Number.isFinite(column) ? column : 1;
+  const safeWidth = Number.isFinite(width) && width > 0 ? width : 1;
+  const safeHeight = Number.isFinite(height) && height > 0 ? height : 1;
+  return "VALUE #( row = " + ((safeLine - 1) * 26 + 10)
+    + " column = " + ((safeColumn - 1) * 10 + 5)
+    + " width = " + (safeWidth * 10)
+    + " height = " + Math.max(safeHeight * 26, 26) + " )";
+}
+
+function dynproControl(element) {
+  const name = String(element.name ?? "").toUpperCase();
+  const fields = [
+    "name = '" + name + "'",
+    "position = " + dynproPosition(element),
+  ];
+  const modifId = element.attributes?.modifId
+    ?? element.attributes?.modifid
+    ?? element.attributes?.group1;
+  if (modifId) fields.push("modif_id = '" + String(modifId).toUpperCase() + "'");
+  return "VALUE #( " + fields.join(" ") + " )";
+}
+
+function dynproTabDefinitions(screen, flowLogic) {
+  const screenNumber = String(screen.number ?? "").padStart(4, "0");
+  const flows = (flowLogic ?? []).filter((flow) => String(flow.screen ?? "").padStart(4, "0") === screenNumber);
+  const flowFor = (area) => flows
+    .flatMap((flow) => flow.steps ?? [])
+    .find((step) => step.kind === "subscreen" && step.phase === "pbo"
+      && String(step.area ?? "").toUpperCase() === String(area ?? "").toUpperCase()
+      && (step.screen || step.screenField));
+  const targetFor = (area) => flowFor(area)?.screen;
+  const fieldFor = (area) => flowFor(area)?.screenField;
+  const containers = screen.containers ?? [];
+  return containers
+    .filter((container) => String(container.type ?? container.kind ?? "").toUpperCase() === "STRIP_CTRL")
+    .map((container) => {
+      const name = String(container.name ?? "").toUpperCase();
+      const areas = containers
+        .filter((area) => String(area.type ?? area.kind ?? "").toUpperCase() === "SUBSCREEN"
+          && String(area.elementOf ?? "").toUpperCase() === name)
+        .map((area) => ({
+          name: String(area.name ?? "").toUpperCase(),
+          line: area.line,
+          column: area.column,
+          length: area.length,
+          height: area.height,
+          control: dynproControl(area),
+          subscreen: targetFor(area.name),
+          screenField: fieldFor(area.name),
+        }));
+      const tabs = (screen.elements ?? [])
+        .filter((element) => String(element.attributes?.contName ?? "").toUpperCase() === name
+          && (element.kind === "input-output" || element.kind === "pushbutton")
+          && element.ucomm)
+        .sort((left, right) => Number(left.line ?? 0) - Number(right.line ?? 0)
+          || Number(left.column ?? 0) - Number(right.column ?? 0))
+        .map((element) => {
+          const areaName = element.attributes?.refField;
+          const area = areas.find((item) => item.name === String(areaName ?? "").toUpperCase());
+          return {
+            name: String(element.name ?? "").toUpperCase(),
+            line: element.line,
+            column: element.column,
+            control: dynproControl(element),
+            text: element.name,
+            ucomm: String(element.ucomm).toUpperCase(),
+            subscreen: area?.subscreen,
+          };
+        });
+      return {
+        name,
+        line: container.line,
+        column: container.column,
+        control: dynproControl(container),
+        tabs,
+        areas,
+      };
+    })
+    .filter((strip) => strip.name && (strip.tabs.length || strip.areas.length));
+}
+
+function dynproSubscreenAreas(screen, flowLogic) {
+  const screenNumber = String(screen.number ?? "").padStart(4, "0");
+  const flows = (flowLogic ?? []).filter((flow) => String(flow.screen ?? "").padStart(4, "0") === screenNumber);
+  const flowFor = (area) => flows
+    .flatMap((flow) => flow.steps ?? [])
+    .find((step) => step.kind === "subscreen" && step.phase === "pbo"
+      && String(step.area ?? "").toUpperCase() === String(area ?? "").toUpperCase()
+      && (step.screen || step.screenField));
+  return (screen.containers ?? [])
+    .filter((container) => String(container.type ?? container.kind ?? "").toUpperCase() === "SUBSCREEN")
+    .map((area) => ({
+      name: String(area.name ?? "").toUpperCase(),
+      line: area.line,
+      column: area.column,
+      control: dynproControl(area),
+      subscreen: flowFor(area.name)?.screen,
+      screenField: flowFor(area.name)?.screenField,
+    }))
+    .filter((area) => area.name);
+}
+
+function dynproTableDefinitions(screen) {
+  const elements = screen.elements ?? [];
+  const containers = (screen.containers ?? []).filter((container) =>
+    String(container.type ?? container.kind ?? "").toUpperCase() === "TABLE_CTRL");
+  return containers.map((container) => {
+    const name = String(container.name ?? "").toUpperCase();
+    const children = elements
+      .filter((element) => String(element.attributes?.contName ?? "").toUpperCase() === name)
+      .sort((left, right) => Number(left.column ?? 0) - Number(right.column ?? 0));
+    const headings = children.filter((element) => element.kind === "text");
+    const columns = children
+      .filter((element) => element.kind !== "text" && element.name)
+      .map((element) => ({
+        name: String(element.name).split("-").slice(1).join("-").toUpperCase() || String(element.name).toUpperCase(),
+        dataType: dynproDataType(element),
+        width: Math.max(1, Number(element.visibleLength ?? element.length ?? 1)) * 10,
+        input: element.input === true,
+        required: element.required === true,
+        checkbox: element.kind === "checkbox",
+        title: headings.find((heading) => Number(heading.column ?? 0) === Number(element.column ?? 0))?.text
+          ?? (element.kind === "checkbox" && element.column === undefined ? "" : String(element.name).split("-").at(-1)),
+      }));
+    const attributes = container.attributes ?? {};
+    return {
+      name,
+      rowPrefix: String(children.find((element) => element.name?.includes("-"))?.name ?? "GS_ROW").split("-")[0].toUpperCase(),
+      tableVariable: `GT_${name.replace(/^TC_/, "")}`,
+      control: dynproControl(container),
+      visibleRows: Math.max(1, Number(container.height ?? container.position?.height ?? 1) - 1),
+      selectionMode: String(attributes.tcSelLns ?? attributes.tcSelCls ?? "NONE").toUpperCase(),
+      withHscroll: String(attributes.cScrollH ?? "").toUpperCase() === "X",
+      withVscroll: String(attributes.cScrollV ?? "").toUpperCase() === "X",
+      columns,
+    };
+  }).filter((table) => table.name && table.columns.length);
+}
+
+function dynproTableBindings(metadata) {
+  return (metadata?.screens ?? []).flatMap((screen) => dynproTableDefinitions(screen));
+}
+
+function dynproTableRuntimeMembers(ir) {
+  return (ir.statements ?? []).flatMap((statement) => {
+    if (statement.kind !== "Controls") return [];
+    const name = /^CONTROLS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1];
+    return name ? [`DATA ${name.toLowerCase()} TYPE zif_gg_dynpro_types_v1=>ty_table_runtime.`] : [];
+  });
+}
+
+function dynproTableHydrate(bindings) {
+  const lines = [];
+  for (const [tableIndex, table] of bindings.entries()) {
+    const rowSymbol = `<ls_${table.name.toLowerCase()}_hydrate_row>`;
+    const rowIndex = `lv_${table.name.toLowerCase()}_hydrate_row_index_${tableIndex + 1}`;
+    lines.push(`LOOP AT ${table.tableVariable} ASSIGNING FIELD-SYMBOL(${rowSymbol}).`);
+    lines.push(`  DATA(${rowIndex}) = sy-tabix.`);
+    for (const column of table.columns) {
+      lines.push(`  IF line_exists( ct_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ] ).`);
+      lines.push(`    ${rowSymbol}-${column.name.toLowerCase()} = CONV #( ct_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ]-value ).`);
+      lines.push("  ENDIF.");
+    }
+    lines.push("ENDLOOP.");
+    lines.push(`IF is_context-table_control = '${table.name}' AND is_context-row > 0.`);
+    lines.push(`  READ TABLE ${table.tableVariable} INTO ${table.rowPrefix.toLowerCase()} INDEX is_context-row.`);
+    lines.push("ELSEIF is_context-row = 0.");
+    lines.push(`  CLEAR ${table.rowPrefix.toLowerCase()}.`);
+    lines.push("ENDIF.");
+  }
+  return lines;
+}
+
+function dynproTableFlush(bindings) {
+  const lines = [];
+  for (const [tableIndex, table] of bindings.entries()) {
+    const rowSymbol = `<ls_${table.name.toLowerCase()}_flush_row>`;
+    const rowIndex = `lv_${table.name.toLowerCase()}_flush_row_index_${tableIndex + 1}`;
+    lines.push(`DELETE ct_values WHERE container = '${table.name}'.`);
+    lines.push(`LOOP AT ${table.tableVariable} ASSIGNING FIELD-SYMBOL(${rowSymbol}).`);
+    lines.push(`  DATA(${rowIndex}) = sy-tabix.`);
+    for (const column of table.columns) {
+      lines.push(`  INSERT VALUE #( container = '${table.name}' name = '${column.name}' row = ${rowIndex} value = CONV string( ${rowSymbol}-${column.name.toLowerCase()} ) ) INTO TABLE ct_values.`);
+    }
+    lines.push("ENDLOOP.");
+  }
+  return lines;
 }
 
 function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg_dynpro_v1") {
@@ -806,55 +1159,207 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
   }
   const screenNumber = (value) => String(value ?? "").padStart(4, "0");
   const screens = Array.isArray(metadata.screens) ? metadata.screens : [];
+  const tableBindings = dynproTableBindings(metadata);
   const initial = screenNumber(metadata.initialScreen ?? screens[0]?.number ?? "0100");
   const screenFields = (screen) => {
     const fields = [`number = '${screenNumber(screen.number)}'`];
     if (screen.title) fields.push(`title = ${literal(screen.title)}`);
     if (screen.nextScreen !== undefined) fields.push(`next_screen = '${screenNumber(screen.nextScreen)}'`);
     if (screen.modal) fields.push("modal = abap_true");
-    if (screen.width !== undefined) fields.push(`width = ${screen.width}`);
-    if (screen.height !== undefined) fields.push(`height = ${screen.height}`);
+    if (screen.width !== undefined) fields.push(`width = ${screen.width * 10}`);
+    if (screen.height !== undefined) fields.push(`height = ${screen.height * 26 + 20}`);
     return fields.join(" ");
   };
+  const flowLogic = Array.isArray(metadata.flowLogic) ? metadata.flowLogic : [];
+  const hasDynproValueRequest = (name) => flowLogic.some((screen) =>
+    (screen.steps ?? []).some((step) => step.phase === "pov"
+      && (!step.field || String(step.field).toUpperCase() === String(name).toUpperCase())));
   const buildScreens = [];
+  const radioGroups = new Map();
+  let radioGroupIndex = 0;
+  const radioGroup = (element) => {
+    const source = String(element.attributes?.contName ?? element.attributes?.elementOf ?? "RADIO");
+    if (!radioGroups.has(source)) {
+      radioGroupIndex += 1;
+      radioGroups.set(source, "G" + String(radioGroupIndex).padStart(3, "0"));
+    }
+    return radioGroups.get(source);
+  };
   for (const screen of screens) {
-    buildScreens.push(`io_builder->begin_screen( VALUE #( ${screenFields(screen)} ) ).`);
-    for (const element of screen.elements ?? []) {
-      if (element.kind === "text") buildScreens.push(`io_builder->add_text( VALUE #( text = ${literal(element.text ?? "")} ) ).`);
-      else if (element.kind === "input") buildScreens.push(`io_builder->add_input_field( VALUE #( control = VALUE #( name = '${String(element.name ?? "").toUpperCase()}' ) ) ).`);
-      else if (element.kind === "output") buildScreens.push(`io_builder->add_output_field( VALUE #( control = VALUE #( name = '${String(element.name ?? "").toUpperCase()}' ) ) ).`);
-      else if (element.kind === "pushbutton") buildScreens.push(`io_builder->add_pushbutton( VALUE #( control = VALUE #( name = '${String(element.name ?? "").toUpperCase()}' ) text = ${literal(element.text ?? "")} ucomm = '${String(element.ucomm ?? "").toUpperCase()}' ) ).`);
+    buildScreens.push("io_builder->begin_screen( VALUE #( " + screenFields(screen) + " ) ).");
+    const tables = dynproTableDefinitions(screen);
+    const tabstrips = dynproTabDefinitions(screen, flowLogic);
+    const genericSubscreenAreas = dynproSubscreenAreas(screen, flowLogic);
+    const tableChildren = new Set(tables.flatMap((table) => (screen.elements ?? [])
+      .filter((element) => String(element.attributes?.contName ?? "").toUpperCase() === table.name)
+      .map((element) => element.name)));
+    const tabChildren = new Set(tabstrips.flatMap((strip) => strip.tabs.map((tab) => tab.name)));
+    const tabSubscreenAreas = new Set(tabstrips.flatMap((strip) => strip.areas.map((area) => area.name)));
+    const subscreenAreas = new Set([
+      ...tabSubscreenAreas,
+      ...genericSubscreenAreas.map((area) => area.name),
+    ]);
+    const items = [
+      ...(screen.elements ?? []).filter((element) => element.name
+        && !tableChildren.has(element.name)
+        && !tabChildren.has(element.name)
+        && !subscreenAreas.has(element.name)),
+      ...tables.map((table) => ({
+        kind: "table-control",
+        name: table.name,
+        line: screen.containers?.find((container) => String(container.name).toUpperCase() === table.name)?.line ?? 1,
+        column: screen.containers?.find((container) => String(container.name).toUpperCase() === table.name)?.column ?? 1,
+        table,
+      })),
+      ...tabstrips.map((strip) => ({
+        kind: "tabstrip",
+        name: strip.name,
+        line: strip.line,
+        column: strip.column,
+        tabstrip: strip,
+      })),
+      ...tabstrips.flatMap((strip) => strip.areas.map((area) => ({
+        kind: "subscreen-area",
+        name: area.name,
+        line: area.line,
+        column: area.column,
+        area,
+      }))),
+      ...genericSubscreenAreas
+        .filter((area) => !tabSubscreenAreas.has(area.name))
+        .map((area) => ({
+          kind: "subscreen-area",
+          name: area.name,
+          line: area.line,
+          column: area.column,
+          area,
+        })),
+    ].sort((left, right) => Number(left.line ?? left.position?.line ?? 1) - Number(right.line ?? right.position?.line ?? 1)
+      || Number(left.column ?? left.position?.column ?? 1) - Number(right.column ?? right.position?.column ?? 1));
+    for (const element of items) {
+      if (element.kind === "table-control") {
+        const table = element.table;
+        buildScreens.push(`io_builder->begin_table_control( VALUE #( control = ${table.control} visible_rows = ${table.visibleRows} selection_mode = '${table.selectionMode}' with_hscroll = ${table.withHscroll ? "abap_true" : "abap_false"} with_vscroll = ${table.withVscroll ? "abap_true" : "abap_false"} ) ).`);
+        for (const column of table.columns) {
+          buildScreens.push(`io_builder->add_table_column( VALUE #( table_control = '${table.name}' name = '${column.name}' state_name = '${table.rowPrefix}-${column.name}' title = ${literal(column.title ?? column.name)} data_type = ${column.dataType} width = ${column.width} input = ${column.input ? "abap_true" : "abap_false"} required = ${column.required ? "abap_true" : "abap_false"} checkbox = ${column.checkbox ? "abap_true" : "abap_false"} ) ).`);
+        }
+        buildScreens.push("io_builder->end_table_control( ).");
+        continue;
+      }
+      if (element.kind === "tabstrip") {
+        const strip = element.tabstrip;
+        buildScreens.push(`io_builder->add_tabstrip( VALUE #( control = ${strip.control} ) ).`);
+        for (const tab of strip.tabs) {
+          const fields = [
+            `control = ${tab.control}`,
+            `tabstrip = '${strip.name}'`,
+            `text = ${literal(tab.text)}`,
+            `ucomm = '${tab.ucomm}'`,
+          ];
+          if (tab.subscreen) fields.splice(3, 0, `subscreen = '${screenNumber(tab.subscreen)}'`);
+          buildScreens.push(`io_builder->add_tab( VALUE #( ${fields.join(" ")} ) ).`);
+        }
+        continue;
+      }
+      if (element.kind === "subscreen-area") {
+        const fields = [`control = ${element.area.control}`];
+        if (element.area.subscreen) fields.push(`subscreen = '${screenNumber(element.area.subscreen)}'`);
+        if (element.area.screenField) fields.push(`screen_field = '${element.area.screenField}'`);
+        buildScreens.push(`io_builder->add_subscreen_area( VALUE #( ${fields.join(" ")} ) ).`);
+        continue;
+      }
+      const control = dynproControl(element);
+      const dataType = dynproDataType(element);
+      if (element.kind === "frame") {
+        buildScreens.push("io_builder->add_box( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " ) ).");
+      } else if (element.kind === "text") {
+        buildScreens.push("io_builder->add_text( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " ) ).");
+      } else if (element.kind === "dropdown"
+          || (element.kind === "input-output" && String(element.attributes?.dropdown ?? "").toUpperCase() === "L")) {
+        buildScreens.push("io_builder->add_listbox( VALUE #( control = " + control + " data_type = " + dataType + " ) ).");
+      } else if (element.kind === "input-output" || element.kind === "input") {
+        const fields = ["control = " + control, "data_type = " + dataType];
+        if (element.required) fields.push("required = abap_true");
+        if (element.invisible) fields.push("password = abap_true");
+        if (hasDynproValueRequest(element.name)
+            || ["X", "1", "TRUE", "Y"].includes(String(element.attributes?.possEntry ?? "").toUpperCase())) {
+          fields.push("value_help = abap_true");
+        }
+        buildScreens.push("io_builder->add_input_field( VALUE #( " + fields.join(" ") + " ) ).");
+      } else if (element.kind === "output") {
+        buildScreens.push("io_builder->add_output_field( VALUE #( control = " + control + " data_type = " + dataType + " ) ).");
+      } else if (element.kind === "pushbutton") {
+        const exitCommand = String(element.pushType ?? element.attributes?.pushFtype ?? "").toUpperCase() === "E" ? " exit_command = abap_true" : "";
+        buildScreens.push("io_builder->add_pushbutton( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " ucomm = '" + String(element.ucomm ?? "").toUpperCase() + "'" + exitCommand + " ) ).");
+      } else if (element.kind === "checkbox") {
+        buildScreens.push("io_builder->add_checkbox( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " ) ).");
+      } else if (element.kind === "radio") {
+        buildScreens.push("io_builder->add_radiobutton( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " group = '" + radioGroup(element) + "' ) ).");
+      }
     }
     buildScreens.push("io_builder->end_screen( ).");
   }
-  const flowLogic = Array.isArray(metadata.flowLogic) ? metadata.flowLogic : [];
   const buildFlow = [];
   for (const screen of flowLogic) {
     buildFlow.push(`io_builder->begin_screen( '${screenNumber(screen.screen)}' ).`);
-    for (const [phase, begin] of [["pbo", "begin_pbo"], ["pai", "begin_pai"]]) {
-      const modules = screen[phase] ?? [];
-      if (!modules.length) continue;
-      buildFlow.push(`io_builder->${begin}( ).`);
-      for (const item of modules) {
-        const module = typeof item === "string" ? { name: item } : item;
-        const flags = phase === "pai" ? " on_input = abap_true" : "";
-        buildFlow.push(`io_builder->add_module( VALUE #( name = '${String(module.name ?? "").toUpperCase()}'${flags} ) ).`);
-      }
-      buildFlow.push("io_builder->end_processing( ).");
+    const fallbackSteps = [];
+    const addFallbackPhase = (phase, entries) => {
+      if (!entries?.length) return;
+      fallbackSteps.push({ kind: "process", phase });
+      fallbackSteps.push(...entries.map((entry) => ({
+        kind: "module",
+        phase,
+        ...(typeof entry === "string" ? { name: entry } : entry),
+      })));
+    };
+    addFallbackPhase("pbo", screen.pbo);
+    addFallbackPhase("pai", screen.pai);
+    if (screen.pov?.modules?.length) {
+      fallbackSteps.push({ kind: "process", phase: "pov", field: screen.pov.field });
+      fallbackSteps.push(...screen.pov.modules.map((entry) => ({ kind: "module", phase: "pov", ...entry })));
     }
-    for (const [phase, begin, flag] of [["pov", "begin_value_request", "on_request"], ["poh", "begin_help_request", "on_request"]]) {
-      const request = screen[phase];
-      const modules = Array.isArray(request) ? request : request?.modules ?? [];
-      if (!modules.length) continue;
-      const field = Array.isArray(request) ? screen[`${phase}Field`] : request.field;
-      if (field) buildFlow.push(`io_builder->${begin}( '${String(field).toUpperCase()}' ).`);
-      else buildFlow.push(`io_builder->${begin}( '' ).`);
-      for (const item of modules) {
-        const module = typeof item === "string" ? { name: item } : item;
-        buildFlow.push(`io_builder->add_module( VALUE #( name = '${String(module.name ?? "").toUpperCase()}' ${flag} = abap_true ) ).`);
-      }
-      buildFlow.push("io_builder->end_processing( ).");
+    if (screen.poh?.modules?.length) {
+      fallbackSteps.push({ kind: "process", phase: "poh", field: screen.poh.field });
+      fallbackSteps.push(...screen.poh.modules.map((entry) => ({ kind: "module", phase: "poh", ...entry })));
     }
+    const steps = screen.steps?.length ? screen.steps : fallbackSteps;
+    let openPhase;
+    const addModule = (phase, item) => {
+      const module = typeof item === "string" ? { name: item } : item;
+      const flags = [];
+      if (phase === "pai" || module.onInput) flags.push(" on_input = abap_true");
+      if (module.onRequest) flags.push(" on_request = abap_true");
+      if (module.onChainRequest) flags.push(" on_chain_request = abap_true");
+      if (module.atExitCommand) flags.push(" at_exit_command = abap_true");
+      buildFlow.push(`io_builder->add_module( VALUE #( name = '${String(module.name ?? "").toUpperCase()}'${flags.join("")} ) ).`);
+    };
+    for (const step of steps) {
+      if (step.kind === "process") {
+        if (openPhase) buildFlow.push("io_builder->end_processing( ).");
+        openPhase = step.phase;
+        const begin = { pbo: "begin_pbo", pai: "begin_pai", pov: "begin_value_request", poh: "begin_help_request" }[openPhase];
+        if (begin === "begin_value_request" || begin === "begin_help_request") {
+          buildFlow.push(`io_builder->${begin}( '${String(step.field ?? "").toUpperCase()}' ).`);
+        } else if (begin) buildFlow.push(`io_builder->${begin}( ).`);
+      } else if (step.kind === "module" || step.kind === "field-module") {
+        addModule(openPhase, step);
+      } else if (step.kind === "chain-begin") {
+        buildFlow.push("io_builder->begin_chain( ).");
+      } else if (step.kind === "chain-end") {
+        buildFlow.push("io_builder->end_chain( ).");
+      } else if (step.kind === "subscreen") {
+        const fields = [`area = '${String(step.area ?? "").toUpperCase()}'`];
+        if (step.screen) fields.push(`screen = '${screenNumber(step.screen)}'`);
+        if (step.screenField) fields.push(`screen_field = '${String(step.screenField).toUpperCase()}'`);
+        buildFlow.push(`io_builder->call_subscreen( VALUE #( ${fields.join(" ")} ) ).`);
+      } else if (step.kind === "table-loop-begin") {
+        const table = step.tableControl ?? dynproTableDefinitions(screens.find((item) => screenNumber(item.number) === screenNumber(screen.screen)))?.[0]?.name ?? "";
+        buildFlow.push(`io_builder->begin_table_loop( VALUE #( table_control = '${table}' ) ).`);
+      } else if (step.kind === "table-loop-end") {
+        buildFlow.push("io_builder->end_table_loop( ).");
+      }
+    }
+    if (openPhase) buildFlow.push("io_builder->end_processing( ).");
     buildFlow.push("io_builder->end_screen( ).");
   }
   const dispatch = (direction) => {
@@ -866,6 +1371,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
       const body = [...globalFieldSymbolDeclarations(ir, module.statements), ...lowerStatements(module.statements, context).map((item) => item.text)];
       lines.push(`WHEN '${module.name}'.`, ...body);
     }
+    if (lines.some((line) => line.includes("lo_writer->"))) lines.splice(0, 0, "DATA(lo_writer) = io_session->get_list( )->get_writer( ).");
     lines.push("WHEN OTHERS.", "RETURN.", "ENDCASE.");
     return lines;
   };
@@ -884,15 +1390,66 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
   }
   const stateHydrate = dynproStateHydrate(ir);
   const stateFlush = dynproStateFlush(ir);
+  const tableHydrate = dynproTableHydrate(tableBindings);
+  const tableFlush = dynproTableFlush(tableBindings);
+  const tableContext = tableBindings.length ? [
+    "IF is_context-row > 0.",
+    ...tableBindings.map((table) => [
+      `  IF is_context-table_control = '${table.name}'.`,
+      `    ${table.name.toLowerCase()}-current_line = is_context-row.`,
+      "  ENDIF.",
+    ]).flat(),
+    "ENDIF.",
+  ] : [];
+  const requestDispatch = (phase) => {
+    const requestModules = flowLogic
+      .flatMap((screen) => screen.steps ?? [])
+      .filter((step) => step.phase === phase && (step.kind === "module" || step.kind === "field-module"))
+      .map((step) => String(step.name ?? "").toUpperCase())
+      .filter(Boolean);
+    const modules = ir.modules.filter((item) => requestModules.includes(String(item.name ?? "").toUpperCase()));
+    if (!modules.length) return ["RETURN."];
+    const lines = [
+      "DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
+      "ct_values = it_values.",
+      ...dynproStateHydrate(ir),
+      ...dynproTableHydrate(tableBindings),
+      ...tableContext,
+      "CASE is_context-module.",
+    ];
+    for (const module of modules) {
+      const context = { ...methodContext(ir, "dynpro"), ucomm: "is_context-ucomm" };
+      const body = [...globalFieldSymbolDeclarations(ir, module.statements), ...lowerStatements(module.statements, context).map((item) => item.text)];
+      lines.push(`WHEN '${module.name}'.`, ...body);
+    }
+    lines.push(
+      "WHEN OTHERS.",
+      "RETURN.",
+      "ENDCASE.",
+      ...dynproStateFlush(ir),
+      ...dynproTableFlush(tableBindings),
+    );
+    return lines;
+  };
+  const valueRequest = [
+    ...requestDispatch("pov"),
+    "rt_values = io_session->get_compatibility( )->get_value_help_values( ).",
+  ];
+  const helpRequest = [
+    ...requestDispatch("poh"),
+    "IF line_exists( ct_values[ name = 'GV_RESULT' ] ).",
+    "  rv_text = ct_values[ name = 'GV_RESULT' ]-value.",
+    "ENDIF.",
+  ];
   return [
     method(interfaceMethod("get_initial_screen"), [`rv_screen = '${initial}'.`]),
     method(interfaceMethod("build_screens"), buildScreens),
     method(interfaceMethod("build_flow_logic"), buildFlow),
-    method(interfaceMethod("initialization"), stateFlush),
-    method(interfaceMethod("process_output_module"), [...stateHydrate, ...statusLines, ...dispatch("OUTPUT"), ...stateFlush]),
-    method(interfaceMethod("process_input_module"), [...stateHydrate, ...dispatch("INPUT"), ...stateFlush]),
-    method(interfaceMethod("process_on_value_request"), ["RETURN."]),
-    method(interfaceMethod("process_on_help_request"), ["RETURN."]),
+    method(interfaceMethod("initialization"), [...stateFlush, ...tableFlush]),
+    method(interfaceMethod("process_output_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...dispatch("OUTPUT"), ...stateFlush, ...tableFlush]),
+    method(interfaceMethod("process_input_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...dispatch("INPUT"), ...stateFlush, ...tableFlush]),
+    method(interfaceMethod("process_on_value_request"), valueRequest),
+    method(interfaceMethod("process_on_help_request"), helpRequest),
   ];
 }
 
@@ -976,7 +1533,7 @@ export function emitClassSource(ir, options) {
   if (ir.programKind === "module-pool") implementation.push(...dynproMethods(ir));
   else {
     implementation.push(...reportMethods(ir));
-    if (ir.screenMetadata) implementation.push(...dynproMethods(ir, ir.screenMetadata, "zif_gg_screen_provider_v1"));
+    if (ir.screenMetadata?.screens?.length) implementation.push(...dynproMethods(ir, ir.screenMetadata, "zif_gg_screen_provider_v1"));
   }
   if (ir.interfaces.includes("zif_gg_list_processing_v1")) implementation.push(...listMethods(ir));
   if (ir.interfaces.includes("zif_gg_resumable_v1")) implementation.push(resumeMethod(ir));
@@ -1029,6 +1586,65 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
   ].join("\n");
 }
 
+export function emitPartialApplication(ir, options, diagnostics) {
+  const className = ir.targetClassName.toLowerCase();
+  const interfaceNames = ir.programKind === "module-pool"
+    ? ["zif_gg_dynpro_v1", "zif_gg_transaction_v1"]
+    : ["zif_gg_report_v1", "zif_gg_transaction_v1"];
+  const definition = [
+    `CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC.`,
+    "",
+    "  PUBLIC SECTION.",
+    ...interfaceNames.map((name) => `    INTERFACES ${name}.`),
+    "",
+    "ENDCLASS.",
+    "",
+    `CLASS ${className} IMPLEMENTATION.`,
+    "",
+  ];
+  const label = ir.description ?? ir.programName ?? ir.targetClassName;
+  const applicationBody = [
+    `io_session->get_list( )->set_title( ${literal(label)} ).`,
+    "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
+    `lo_writer->write_field( VALUE #( text = ${literal(label)} placement = VALUE #( new_line = abap_true ) ) ).`,
+    `lo_writer->write_field( VALUE #( text = ${literal("Application content is available; unsupported optional operations remain in converter diagnostics.")} placement = VALUE #( new_line = abap_true ) ) ).`,
+  ];
+  const methods = [];
+  if (ir.programKind === "module-pool") {
+    methods.push(
+      method("zif_gg_dynpro_v1~get_initial_screen", [`rv_screen = '${String(ir.dynproMetadata?.initialScreen ?? "0100").padStart(4, "0")}'.`]),
+      method("zif_gg_dynpro_v1~build_screens", ["RETURN."]),
+      method("zif_gg_dynpro_v1~build_flow_logic", ["RETURN."]),
+      method("zif_gg_dynpro_v1~initialization", ["RETURN."]),
+      method("zif_gg_dynpro_v1~process_output_module", ["RETURN."]),
+      method("zif_gg_dynpro_v1~process_input_module", ["RETURN."]),
+      method("zif_gg_dynpro_v1~process_on_value_request", ["RETURN."]),
+      method("zif_gg_dynpro_v1~process_on_help_request", ["RETURN."]),
+    );
+  } else {
+    for (const name of REPORT_METHODS) {
+      const body = name === "build_screen"
+        ? selectionBuilder(ir)
+        : name === "start_of_selection" ? applicationBody : ["RETURN."];
+      methods.push(method(`zif_gg_report_v1~${name}`, body.length ? body : ["RETURN."]));
+    }
+  }
+  const todos = diagnostics
+    .filter((item) => item.severity === "error" || item.code.startsWith("GGCONV-E"))
+    .map((item) => `* TODO ${item.code}: ${item.construct}`)
+    .filter((value, index, values) => values.indexOf(value) === index);
+  const transaction = method("zif_gg_transaction_v1~get_transaction", [
+    `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(label)} ).`,
+  ]);
+  return `${header({className: ir.targetClassName, ir, options})}${todos.join("\n")}${todos.length ? "\n" : ""}${[
+    ...definition,
+    transaction.toString(),
+    ...methods.map((entry) => entry.toString()),
+    "ENDCLASS.",
+    "",
+  ].join("\n")}`;
+}
+
 export function lowerToScaffoldIR(ir, options, sourceMap = []) {
   const methods = [];
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
@@ -1037,7 +1653,7 @@ export function lowerToScaffoldIR(ir, options, sourceMap = []) {
   if (ir.programKind === "module-pool") methods.push(...dynproMethods(ir));
   else {
     methods.push(...reportMethods(ir));
-    if (ir.screenMetadata) methods.push(...dynproMethods(ir, ir.screenMetadata, "zif_gg_screen_provider_v1"));
+    if (ir.screenMetadata?.screens?.length) methods.push(...dynproMethods(ir, ir.screenMetadata, "zif_gg_screen_provider_v1"));
   }
   if (ir.interfaces.includes("zif_gg_list_processing_v1")) methods.push(...listMethods(ir));
   if (ir.interfaces.includes("zif_gg_resumable_v1")) methods.push(resumeMethod(ir));
@@ -1057,7 +1673,7 @@ export function lowerToScaffoldIR(ir, options, sourceMap = []) {
       kind: ir.programKind === "module-pool" ? "dynpro" : "selection-screen",
       selections: ir.selections,
       dynproMetadata: ir.dynproMetadata,
-      screenProviderMetadata: ir.screenMetadata,
+      screenProviderMetadata: ir.screenMetadata?.screens?.length ? ir.screenMetadata : undefined,
     },
     listProcessing: {
       settings: ir.header,

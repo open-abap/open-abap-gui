@@ -21,6 +21,10 @@ INTERFACE zif_gg_list_session_v1 PUBLIC.
     RETURNING
       VALUE(rs_context) TYPE zif_gg_session_types_v1=>ty_list_context.
 
+  METHODS set_level
+    IMPORTING
+      iv_level TYPE i.
+
   METHODS read_line
     IMPORTING
       iv_level       TYPE i OPTIONAL
