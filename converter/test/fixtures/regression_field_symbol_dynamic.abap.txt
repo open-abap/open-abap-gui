@@ -1,0 +1,11 @@
+REPORT zreg_fs_dynamic.
+
+DATA gs_context TYPE string.
+DATA gv_text TYPE string.
+FIELD-SYMBOLS <lv_parameters> TYPE string.
+
+START-OF-SELECTION.
+  ASSIGN COMPONENT 'PARAMETERS' OF STRUCTURE gs_context TO <lv_parameters>.
+  gv_text = <lv_parameters>.
+  CLEAR <lv_parameters>.
+  WRITE / gv_text.

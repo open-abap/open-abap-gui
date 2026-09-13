@@ -14,26 +14,43 @@ Options:
   --description <text>           Transaction description
   --mode strict|partial          Conversion mode (default: strict)
   --diagnostics text|json        Diagnostic format (default: text)
+  --include-path <dir>           Directory to search for INCLUDE programs
+                                 (repeatable; <name>, <name>.incl.abap and
+                                 <name>.prog.abap are tried in each)
+  --ddic <file.json>             DDIC types as {"TABLE":{"type":"...",
+                                 "fields":{"FIELD":"..."}}}
   --check                        Analyze without writing generated source
   --help                         Show this help
 `;
 }
 
+const VALUE_OPTIONS = new Set(["diagnostics", "mode", "class", "output", "tcode", "description", "ddic"]);
+
 function parseArgs(argv) {
-  const options = { diagnostics: "text" };
+  const options = { diagnostics: "text", includePaths: [] };
   const positional = [];
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--check") options.check = true;
+    else if (arg === "--include-path") options.includePaths.push(argv[++index]);
     else if (arg.startsWith("--")) {
       const key = arg.slice(2);
-      if (key === "diagnostics" || key === "mode" || key === "class" || key === "output" || key === "tcode" || key === "description") options[key] = argv[++index];
+      if (VALUE_OPTIONS.has(key)) options[key] = argv[++index];
       else throw new Error(`unknown option ${arg}`);
     } else positional.push(arg);
   }
   options.filename = positional[0];
   return options;
+}
+
+async function readDdicTypes(filename) {
+  if (!filename) return undefined;
+  const parsed = JSON.parse(await fs.readFile(path.resolve(filename), "utf8"));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`--ddic must contain a JSON object of DDIC type metadata, got ${Array.isArray(parsed) ? "an array" : typeof parsed}`);
+  }
+  return parsed;
 }
 
 async function exists(filename) {
@@ -57,12 +74,16 @@ if (!options.filename) {
 }
 if (options.diagnostics !== "text" && options.diagnostics !== "json") throw new Error("--diagnostics must be text or json");
 
+if (options.includePaths.some((item) => typeof item !== "string" || !item)) throw new Error("--include-path requires a directory");
+
 const result = await convertProgram({
   filename: options.filename,
   className: options.class,
   transactionCode: options.tcode,
   description: options.description,
   mode: options.mode,
+  includePaths: options.includePaths,
+  ddicTypes: await readDdicTypes(options.ddic),
 });
 if (result.diagnostics.length) {
   const rendered = options.diagnostics === "json" ? diagnosticsToJSON(result.diagnostics) : diagnosticsToText(result.diagnostics);

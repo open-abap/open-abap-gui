@@ -1,0 +1,20 @@
+REPORT zreg_fs_row.
+
+TYPES: BEGIN OF ty_package,
+         name TYPE string,
+         size TYPE i,
+       END OF ty_package.
+DATA gt_packages TYPE STANDARD TABLE OF ty_package WITH DEFAULT KEY.
+DATA gs_package TYPE ty_package.
+FIELD-SYMBOLS <ls_package> LIKE LINE OF gt_packages.
+FIELD-SYMBOLS <ls_found> TYPE LINE OF gt_packages.
+
+START-OF-SELECTION.
+  gs_package-name = 'ZCORE'.
+  gs_package-size = 1.
+  APPEND gs_package TO gt_packages.
+  LOOP AT gt_packages ASSIGNING <ls_package>.
+    WRITE / <ls_package>-name.
+  ENDLOOP.
+  READ TABLE gt_packages ASSIGNING <ls_found> INDEX 1.
+  WRITE / <ls_found>-name.

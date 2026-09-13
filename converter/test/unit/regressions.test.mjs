@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertProgram } from "../../src/api.mjs";
+import { convertProgram, undeclaredFieldSymbols } from "../../src/api.mjs";
 import { repositoryRoot } from "../repository.mjs";
 
 const fixture = (name) => fs.readFile(path.join(repositoryRoot, "converter", "test", "fixtures", name), "utf8");
@@ -28,6 +28,97 @@ test("regression fixture keeps report-only loop legality explicit", async () => 
   assert.equal(result.supported, false);
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516" && item.message.includes("implicit-header-table LOOP")));
   assert.match(result.classSource, /TODO GGCONV-E501/);
+});
+
+test("regression fixture keeps row-typed field symbols bound by LOOP and READ TABLE", async () => {
+  const result = await convertProgram({
+    source: await fixture("regression_field_symbol_row.abap.txt"),
+    filename: "regression_field_symbol_row.prog.abap",
+    transactionCode: "ZREGFSROW",
+  });
+  assert.equal(result.supported, true);
+  assert.deepEqual(result.reportIR.safeFieldSymbols, ["LS_FOUND", "LS_PACKAGE"]);
+  // Both the declarations and the statements that use them are emitted.
+  assert.match(result.classSource, /FIELD-SYMBOLS <ls_package> LIKE LINE OF gt_packages\./);
+  assert.match(result.classSource, /FIELD-SYMBOLS <ls_found> TYPE LINE OF gt_packages\./);
+  assert.match(result.classSource, /LOOP AT gt_packages ASSIGNING <ls_package>\./);
+  assert.match(result.classSource, /READ TABLE gt_packages ASSIGNING <ls_found> INDEX 1\./);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
+});
+
+test("regression fixture omits uses of a field symbol whose binding cannot be lowered", async () => {
+  const result = await convertProgram({
+    source: await fixture("regression_field_symbol_dynamic.abap.txt"),
+    filename: "regression_field_symbol_dynamic.prog.abap",
+    mode: "partial",
+  });
+  assert.equal(result.supported, false);
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E515"));
+  // The dynamic ASSIGN cannot be lowered, so neither the declaration nor any
+  // use of <lv_parameters> may reach the generated class.
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E205"));
+  assert.match(result.classSource, /TODO GGCONV-E515: statement omitted, field symbol <lv_parameters> has no convertible binding: gv_text = <lv_parameters>\./);
+  assert.match(result.classSource, /TODO GGCONV-E515: statement omitted, field symbol <lv_parameters> has no convertible binding: CLEAR <lv_parameters>\./);
+  for (const line of result.classSource.split("\n")) {
+    if (line.trimStart().startsWith("*")) continue;
+    assert.doesNotMatch(line, /<lv_parameters>/);
+  }
+  // Statements that do not depend on the field symbol still convert.
+  assert.match(result.classSource, /write_field\(.*gv_text/);
+});
+
+test("the post-emit gate reports field symbols used without a declaration", () => {
+  // The shape the parser validation behind GGCONV-E202 accepts but activation
+  // rejects: a surviving use whose declaration was dropped.
+  assert.deepEqual(undeclaredFieldSymbols([
+    "CLASS zcl_gap IMPLEMENTATION.",
+    "  METHOD run.",
+    "* FIELD-SYMBOLS <lv_commented> TYPE string.",
+    "    LOOP AT gt_rows ASSIGNING <ls_row>.",
+    "      WRITE <lv_commented>.",
+    "    ENDLOOP.",
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+  ].join("\n")), [["LS_ROW", 4], ["LV_COMMENTED", 5]]);
+
+  // Declared inline, in a chain that wraps, and inside a literal.
+  assert.deepEqual(undeclaredFieldSymbols([
+    "METHOD run.",
+    "  FIELD-SYMBOLS: <ls_a> TYPE ty_row,",
+    "                 <ls_b> TYPE ty_row.",
+    "  LOOP AT gt_rows ASSIGNING FIELD-SYMBOL(<ls_c>).",
+    "    lv_html = '<b> markup </b>'.",
+    "    lv_x = <ls_a>-id + <ls_b>-id + <ls_c>-id.",
+    "  ENDLOOP.",
+    "ENDMETHOD.",
+  ].join("\n")), []);
+});
+
+test("resolves abapGit repository-layout includes without a custom resolver", async () => {
+  const repository = path.join(repositoryRoot, "converter", "test", "fixtures", "repository");
+  const main = path.join(repository, "src", "zrepo_main.prog.abap");
+  // `<name>.prog.abap` beside the parent is how abapGit serialises an INCLUDE
+  // program; the second one only resolves through the search path.
+  const result = await convertProgram({
+    source: await fs.readFile(main, "utf8"),
+    filename: main,
+    includePaths: [path.join(repository, "shared")],
+    transactionCode: "ZREPOMAIN",
+  });
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E102"), JSON.stringify(result.diagnostics));
+  assert.equal(result.supported, true);
+  assert.match(result.classSource, /local include/);
+  assert.match(result.classSource, /shared include/);
+
+  const withoutSearchPath = await convertProgram({
+    source: await fs.readFile(main, "utf8"),
+    filename: main,
+    transactionCode: "ZREPOMAIN",
+    mode: "partial",
+  });
+  const unresolved = withoutSearchPath.diagnostics.filter((item) => item.code === "GGCONV-E102");
+  assert.equal(unresolved.length, 1);
+  assert.match(unresolved[0].message, /zrepo_shared_f02/);
 });
 
 test("regression fixture emits dynpro state helpers", async () => {
