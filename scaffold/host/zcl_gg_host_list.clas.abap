@@ -39,6 +39,8 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
              format    TYPE zif_gg_list_processing_types_v1=>ty_format,
              fields    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields,
              fragments TYPE ty_fragments,
+             selected  TYPE abap_bool,
+             changed   TYPE abap_bool,
            END OF ty_render_line.
     TYPES ty_render_lines TYPE STANDARD TABLE OF ty_render_line WITH DEFAULT KEY.
 
@@ -104,6 +106,10 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rt_events) TYPE ty_model_events.
 
+    METHODS get_visible_page
+      RETURNING
+        VALUE(rv_page) TYPE i.
+
     METHODS select_line
       IMPORTING
         iv_index TYPE i
@@ -131,6 +137,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mv_current   TYPE string.
     DATA mv_column    TYPE i.
     DATA mv_page      TYPE i.
+    DATA mv_visible_page TYPE i.
     DATA mv_line      TYPE i.
     DATA mv_list_level TYPE i.
     DATA mv_no_gap    TYPE abap_bool.
@@ -259,10 +266,17 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     rt_events = mt_model_events.
   ENDMETHOD.
 
+  METHOD get_visible_page.
+    rv_page = mv_visible_page.
+  ENDMETHOD.
+
   METHOD select_line.
     mv_selected_line = iv_index.
     mv_cursor_field = iv_field.
     mv_cursor_value = iv_value.
+    LOOP AT mt_render_lines ASSIGNING FIELD-SYMBOL(<ls_render_line>).
+      <ls_render_line>-selected = xsdbool( <ls_render_line>-index = iv_index ).
+    ENDLOOP.
     IF mv_cursor_field IS INITIAL AND iv_index > 0
         AND iv_index <= lines( mt_hidden_lines )
         AND lines( mt_hidden_lines[ iv_index ] ) > 0.
@@ -351,7 +365,8 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
                                            len = lv_length )
                     format    = ms_format
                     fields    = mt_current_hidden
-                    fragments = mt_current_fragments ) TO mt_render_lines.
+                    fragments = mt_current_fragments
+                    selected  = xsdbool( lines( mt_lines ) = mv_selected_line ) ) TO mt_render_lines.
     CLEAR mv_current.
     CLEAR mt_current_hidden.
     CLEAR mt_current_fragments.
@@ -455,14 +470,19 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     DATA lv_integer TYPE string.
     DATA lv_fraction TYPE string.
     DATA lv_offset TYPE i.
+    DATA lv_decimals TYPE i.
 
     rv_text = iv_text.
+    lv_decimals = is_format-decimals.
+    IF lv_decimals = 0 AND is_format-currency IS NOT INITIAL.
+      lv_decimals = 2.
+    ENDIF.
     IF is_format-edit_mask IS NOT INITIAL.
       rv_text = is_format-edit_mask.
       REPLACE FIRST OCCURRENCE OF '*' IN rv_text WITH iv_text.
     ENDIF.
 
-    IF is_format-decimals > 0 AND rv_text CO '0123456789.-+'.
+    IF lv_decimals > 0 AND rv_text CO '0123456789.-+'.
       FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
       IF sy-subrc = 0.
         lv_integer = substring( val = rv_text
@@ -473,16 +493,16 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       ELSE.
         lv_integer = rv_text.
       ENDIF.
-      WHILE strlen( lv_fraction ) < is_format-decimals.
+      WHILE strlen( lv_fraction ) < lv_decimals.
         lv_fraction = lv_fraction && `0`.
       ENDWHILE.
-      IF strlen( lv_fraction ) > is_format-decimals.
+      IF strlen( lv_fraction ) > lv_decimals.
         lv_fraction = substring( val = lv_fraction
                                  off = 0
-                                 len = is_format-decimals ).
+                                 len = lv_decimals ).
       ENDIF.
       rv_text = lv_integer && `.` && lv_fraction.
-    ELSEIF is_format-decimals = 0 AND rv_text CO '0123456789.-+'.
+    ELSEIF lv_decimals = 0 AND rv_text CO '0123456789.-+'.
       FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
       IF sy-subrc = 0.
         rv_text = substring( val = rv_text
@@ -516,15 +536,32 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_field.
+    DATA ls_format TYPE zif_gg_list_processing_types_v1=>ty_format.
+    DATA lv_text TYPE string.
+    DATA lv_justification TYPE zif_gg_list_processing_types_v1=>ty_justification.
+
+    ls_format = ms_format.
+    IF is_field-format-color <> zif_gg_list_processing_types_v1=>color_background.
+      ls_format-color = is_field-format-color.
+    ENDIF.
+    IF is_field-format-hotspot = abap_true.
+      ls_format-hotspot = abap_true.
+    ENDIF.
+    lv_text = format_write(
+                iv_text   = is_field-text
+                is_format = is_field-write_format ).
+    lv_justification = is_field-write_format-justification.
+    IF lv_justification IS INITIAL AND lv_text CO '0123456789.-+'.
+      lv_justification = zif_gg_list_processing_types_v1=>justify_right.
+    ENDIF.
     write_at(
       is_placement = is_field-placement
       iv_kind      = 'TEXT'
-      iv_text      = fit( iv_text          = format_write(
-                            iv_text   = is_field-text
-                            is_format = is_field-write_format )
+      iv_text      = fit( iv_text          = lv_text
                           iv_length        = is_field-placement-length
-                          iv_justification = is_field-write_format-justification )
+                          iv_justification = lv_justification )
       it_hidden    = is_field-hide ).
+    mt_current_fragments[ lines( mt_current_fragments ) ]-format = ls_format.
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_checkbox.
@@ -626,6 +663,25 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     begin_page( is_new_page-no_heading ).
   ENDMETHOD.
 
+  METHOD zif_gg_list_writer_v1~scroll_to_first_page.
+    ensure_page( ).
+    mv_visible_page = 1.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_writer_v1~scroll_to_last_page.
+    DATA lv_last_page TYPE i.
+
+    ensure_page( ).
+    LOOP AT mt_render_lines INTO DATA(ls_line).
+      IF ls_line-page > lv_last_page.
+        lv_last_page = ls_line-page.
+      ENDIF.
+    ENDLOOP.
+    IF lv_last_page > 0.
+      mv_visible_page = lv_last_page.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD zif_gg_list_writer_v1~set_format.
     ms_format = is_format.
   ENDMETHOD.
@@ -663,6 +719,13 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     rs_context = get_context( ).
   ENDMETHOD.
 
+  METHOD zif_gg_list_session_v1~set_level.
+    mv_list_level = iv_level.
+    IF mv_list_level < 0.
+      CLEAR mv_list_level.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD zif_gg_list_session_v1~read_line.
     IF iv_index < 1 OR iv_index > lines( mt_lines ).
       RETURN.
@@ -686,6 +749,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     mt_lines[ is_line-index ] = is_line-text.
     IF is_line-index <= lines( mt_render_lines ).
       mt_render_lines[ is_line-index ]-text = is_line-text.
+      mt_render_lines[ is_line-index ]-changed = abap_true.
       IF mt_render_lines[ is_line-index ]-fragments IS INITIAL.
         APPEND VALUE #( kind     = 'TEXT'
                         text     = is_line-text

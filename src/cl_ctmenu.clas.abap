@@ -68,59 +68,126 @@ CLASS cl_ctmenu DEFINITION PUBLIC.
         disable TYPE ui_functions OPTIONAL
       EXCEPTIONS
         read_error.
+
+  PRIVATE SECTION.
+    METHODS get_items
+      RETURNING
+        VALUE(items) TYPE zcl_gg_context_menu_state=>ty_items.
+
+    METHODS sync_state.
+
+    DATA mt_items TYPE zcl_gg_context_menu_state=>ty_items.
 ENDCLASS.
 
 CLASS cl_ctmenu IMPLEMENTATION.
+  METHOD get_items.
+    items = mt_items.
+  ENDMETHOD.
+
+  METHOD sync_state.
+    zcl_gg_context_menu_state=>set_items(
+      io_menu  = me
+      it_items = mt_items ).
+  ENDMETHOD.
+
   METHOD add_submenu.
-    RETURN. " todo, implement method
+    APPEND VALUE #( text     = text
+                    icon     = icon
+                    disabled = xsdbool( disabled IS NOT INITIAL )
+                    hidden   = xsdbool( hidden IS NOT INITIAL )
+                    submenu  = menu ) TO mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD add_menu.
-    RETURN. " todo, implement method
+    IF menu IS BOUND.
+      APPEND LINES OF menu->get_items( ) TO mt_items.
+      sync_state( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD clear.
-    RETURN. " todo, implement method
+    CLEAR mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD reset.
-    RETURN. " todo, implement method
+    CLEAR mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD add_separator.
-    RETURN. " todo, implement method
+    APPEND VALUE #( separator = abap_true ) TO mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD add_function.
-    RETURN. " todo, implement method
+    DATA ls_item TYPE zcl_gg_context_menu_state=>ty_item.
+
+    ls_item-fcode = fcode.
+    ls_item-text = text.
+    ls_item-icon = icon.
+    ls_item-disabled = disabled.
+    ls_item-hidden = hidden.
+    IF insert_at_the_top = abap_true.
+      INSERT ls_item INTO mt_items INDEX 1.
+    ELSE.
+      APPEND ls_item TO mt_items.
+    ENDIF.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD modify_function_text.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>) WHERE fcode = fcode.
+      IF text IS NOT INITIAL.
+        <ls_item>-text = text.
+      ENDIF.
+    ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD set_default_function.
-    RETURN. " todo, implement method
+    default_function = fcode.
   ENDMETHOD.
 
   METHOD hide_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        <ls_item>-hidden = abap_true.
+      ENDIF.
+    ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD show_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        CLEAR <ls_item>-hidden.
+      ENDIF.
+    ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD disable_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        <ls_item>-disabled = abap_true.
+      ENDIF.
+    ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD enable_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        CLEAR <ls_item>-disabled.
+      ENDIF.
+    ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD load_gui_status.
-    RETURN. " todo, implement method
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

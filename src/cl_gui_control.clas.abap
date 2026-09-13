@@ -159,6 +159,29 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         cntl_system_error.
 
   PROTECTED SECTION.
+    CLASS-METHODS state_class
+      IMPORTING
+        iv_focused    TYPE abap_bool DEFAULT abap_false
+        iv_selected   TYPE abap_bool DEFAULT abap_false
+        iv_changed    TYPE abap_bool DEFAULT abap_false
+        iv_disabled   TYPE abap_bool DEFAULT abap_false
+        iv_required   TYPE abap_bool DEFAULT abap_false
+        iv_error      TYPE abap_bool DEFAULT abap_false
+        iv_warning    TYPE abap_bool DEFAULT abap_false
+        iv_total      TYPE abap_bool DEFAULT abap_false
+        iv_subtotal   TYPE abap_bool DEFAULT abap_false
+        iv_hotspot    TYPE abap_bool DEFAULT abap_false
+        iv_readonly   TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(result) TYPE string.
+
+    CLASS-METHODS format_external_value
+      IMPORTING
+        iv_value      TYPE string
+        iv_type       TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
     CLASS-METHODS set_payload
       IMPORTING
         control TYPE REF TO cl_gui_control
@@ -268,6 +291,85 @@ CLASS cl_gui_control IMPLEMENTATION.
     result = escape( text ).
   ENDMETHOD.
 
+  METHOD state_class.
+    result = `gg-state`.
+    IF iv_focused = abap_true.
+      result = result && ` gg-state-focused`.
+    ENDIF.
+    IF iv_selected = abap_true.
+      result = result && ` gg-state-selected`.
+    ENDIF.
+    IF iv_changed = abap_true.
+      result = result && ` gg-state-changed`.
+    ENDIF.
+    IF iv_disabled = abap_true.
+      result = result && ` gg-state-disabled`.
+    ENDIF.
+    IF iv_required = abap_true.
+      result = result && ` gg-state-required`.
+    ENDIF.
+    IF iv_error = abap_true.
+      result = result && ` gg-state-error`.
+    ENDIF.
+    IF iv_warning = abap_true.
+      result = result && ` gg-state-warning`.
+    ENDIF.
+    IF iv_total = abap_true.
+      result = result && ` gg-state-total`.
+    ENDIF.
+    IF iv_subtotal = abap_true.
+      result = result && ` gg-state-subtotal`.
+    ENDIF.
+    IF iv_hotspot = abap_true.
+      result = result && ` gg-state-hotspot`.
+    ENDIF.
+    IF iv_readonly = abap_true.
+      result = result && ` gg-state-readonly`.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD format_external_value.
+    DATA lv_first TYPE string.
+    DATA lv_second TYPE string.
+    DATA lv_third TYPE string.
+
+    result = iv_value.
+    CASE to_upper( iv_type ).
+      WHEN 'D'.
+        IF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
+          lv_first = substring(
+            val = iv_value
+            off = 6
+            len = 2 ).
+          lv_second = substring(
+            val = iv_value
+            off = 4
+            len = 2 ).
+          lv_third = substring(
+            val = iv_value
+            off = 0
+            len = 4 ).
+          result = |{ lv_first }.{ lv_second }.{ lv_third }|.
+        ENDIF.
+      WHEN 'T'.
+        IF strlen( iv_value ) = 6 AND iv_value CO '0123456789'.
+          lv_first = substring(
+            val = iv_value
+            off = 0
+            len = 2 ).
+          lv_second = substring(
+            val = iv_value
+            off = 2
+            len = 2 ).
+          lv_third = substring(
+            val = iv_value
+            off = 4
+            len = 2 ).
+          result = |{ lv_first }:{ lv_second }:{ lv_third }|.
+        ENDIF.
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD set_buttons.
     READ TABLE mt_snapshots INTO DATA(ls_snapshot)
       WITH KEY control_id = control->control_id.
@@ -310,6 +412,8 @@ CLASS cl_gui_control IMPLEMENTATION.
   METHOD render_html.
     DATA lv_srcdoc  TYPE string.
     DATA lv_sandbox TYPE string.
+    DATA lv_button_label TYPE string.
+    DATA lv_state_class TYPE string.
 
     IF iv_document = abap_true.
       result = |<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GUI controls</title><style>.gg-control\{position:absolute;box-sizing:border-box\}.gg-controls\{position:relative;min-height:240px\}.gg-control[hidden]\{display:none\}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible\{outline:2px solid #2668a3;outline-offset:2px\}</style></head><body><main class="gg-controls" aria-label="GUI controls">|.
@@ -326,23 +430,30 @@ CLASS cl_gui_control IMPLEMENTATION.
       ENDIF.
       DATA(lv_hidden) = COND string( WHEN ls_snapshot-visible = abap_false THEN ' hidden' ELSE '' ).
       DATA(lv_disabled) = COND string( WHEN ls_snapshot-enabled = abap_false THEN ' disabled' ELSE '' ).
+      lv_state_class = state_class(
+        iv_focused  = ls_snapshot-focused
+        iv_disabled = xsdbool( ls_snapshot-enabled = abap_false )
+        iv_readonly = xsdbool( ls_snapshot-enabled = abap_false ) ).
       CASE ls_snapshot-kind.
         WHEN 'CUSTOM_CONTAINER' OR 'DOCKING_CONTAINER' OR 'DIALOGBOX_CONTAINER'
             OR 'SPLITTER_CONTAINER' OR 'EASY_SPLITTER'.
-          result = result && |<section class="gg-control gg-container" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="{ escape( ls_snapshot-kind ) }" role="region" aria-label="{ escape( ls_snapshot-kind ) }"{ lv_hidden }>{ escape( ls_snapshot-payload ) }{ ls_snapshot-html }</section>|.
+          result = result && |<section class="gg-control gg-container { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="{ escape( ls_snapshot-kind ) }" role="region" aria-label="{ escape( ls_snapshot-kind ) }"{ lv_hidden }>{ escape( ls_snapshot-payload ) }{ ls_snapshot-html }</section>|.
         WHEN 'ALV_GRID' OR 'ALV_TREE' OR 'SIMPLE_TREE' OR 'LIST_TREE' OR 'COLUMN_TREE'.
-          result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="{ escape( ls_snapshot-kind ) }"{ lv_hidden }{ lv_disabled }>{ ls_snapshot-html }{ escape( ls_snapshot-payload ) }</div>|.
+          result = result && |<div class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="{ escape( ls_snapshot-kind ) }"{ lv_hidden }{ lv_disabled }>{ ls_snapshot-html }{ escape( ls_snapshot-payload ) }</div>|.
         WHEN 'TOOLBAR'.
-          result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" role="toolbar"{ lv_hidden }>|.
+          result = result && |<div class="gg-control gg-control-toolbar { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" role="toolbar" aria-label="Control toolbar" data-toolbar-scope="control"{ lv_hidden }>|.
           LOOP AT ls_snapshot-buttons INTO DATA(ls_button).
-            result = result && |<button type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
+            lv_button_label = COND #( WHEN ls_button-text IS INITIAL
+                                      THEN CONV string( ls_button-quickinfo )
+                                      ELSE CONV string( ls_button-text ) ).
+            result = result && |<button class="{ state_class( iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ) }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
           ENDLOOP.
           result = result && |</div>|.
         WHEN 'TEXTEDIT'.
-          result = result && |<textarea class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_hidden }{ lv_disabled }>{ escape( ls_snapshot-payload ) }</textarea>|.
+          result = result && |<textarea class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_hidden }{ lv_disabled }>{ escape( ls_snapshot-payload ) }</textarea>|.
         WHEN 'PICTURE'.
           DATA(lv_url) = COND string( WHEN safe_url( ls_snapshot-payload ) = abap_true THEN escape( ls_snapshot-payload ) ELSE '' ).
-          result = result && |<div class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="PICTURE" role="img" aria-label="Picture"{ lv_hidden }><img src="{ lv_url }" alt="Picture"></div>|.
+          result = result && |<div class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="PICTURE" role="img" aria-label="Picture"{ lv_hidden }><img src="{ lv_url }" alt="Picture"></div>|.
         WHEN 'HTML_VIEWER'.
           lv_srcdoc = ls_snapshot-payload.
           CLEAR lv_sandbox.
@@ -355,11 +466,11 @@ CLASS cl_gui_control IMPLEMENTATION.
                                           sapevent = is_sapevent ).
             lv_sandbox = `allow-forms allow-top-navigation-by-user-activation`.
           ENDIF.
-          result = result && |<iframe class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" title="HTML viewer" sandbox="{ lv_sandbox }"{ lv_hidden } srcdoc="{ escape( lv_srcdoc ) }"></iframe>|.
+          result = result && |<iframe class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" title="HTML viewer" sandbox="{ lv_sandbox }"{ lv_hidden } srcdoc="{ escape( lv_srcdoc ) }"></iframe>|.
         WHEN 'CALENDAR'.
-          result = result && |<section class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="CALENDAR" role="group" aria-label="Calendar"{ lv_hidden }>{ ls_snapshot-html }{ escape( ls_snapshot-payload ) }</section>|.
+          result = result && |<section class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="CALENDAR" role="group" aria-label="Calendar"{ lv_hidden }>{ ls_snapshot-html }{ escape( ls_snapshot-payload ) }</section>|.
         WHEN 'SELECTOR'.
-          result = result && |<select class="gg-control" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" data-control-kind="SELECTOR" aria-label="Selector"{ lv_hidden }{ lv_disabled }>{ COND string( WHEN ls_snapshot-html IS INITIAL THEN |<option>{ escape( ls_snapshot-payload ) }</option>| ELSE ls_snapshot-html ) }</select>|.
+          result = result && |<select class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" data-control-kind="SELECTOR" aria-label="Selector"{ lv_hidden }{ lv_disabled }>{ COND string( WHEN ls_snapshot-html IS INITIAL THEN |<option>{ escape( ls_snapshot-payload ) }</option>| ELSE ls_snapshot-html ) }</select>|.
         WHEN 'BARCHART' OR 'CHART_ENGINE' OR 'GP_PRES'.
           result = result && |<figure class="gg-control gg-graphic" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="{ escape( ls_snapshot-kind ) }" role="img" aria-label="{ escape( ls_snapshot-kind ) }"{ lv_hidden }>{ ls_snapshot-html }<figcaption>{ escape( ls_snapshot-payload ) }</figcaption></figure>|.
         WHEN OTHERS.

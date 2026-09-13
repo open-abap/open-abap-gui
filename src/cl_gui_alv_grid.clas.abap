@@ -505,8 +505,13 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_html_cell,
-             fieldname TYPE lvc_fname,
-             text      TYPE string,
+             fieldname  TYPE lvc_fname,
+             text       TYPE string,
+             type_class TYPE string,
+             editable   TYPE abap_bool,
+             total      TYPE abap_bool,
+             subtotal   TYPE abap_bool,
+             hotspot    TYPE abap_bool,
            END OF ty_html_cell.
     TYPES ty_html_cells TYPE STANDARD TABLE OF ty_html_cell WITH DEFAULT KEY.
     TYPES: BEGIN OF ty_html_row,
@@ -751,8 +756,24 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
             ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO <component>.
             IF sy-subrc = 0.
-              APPEND VALUE #( fieldname = ls_fieldcat-fieldname
-                              text      = |{ <component> }| ) TO ls_row-cells.
+              DATA(lv_cell_raw) = |{ <component> }|.
+              DATA(lv_cell_text) = cl_gui_control=>format_external_value(
+                iv_value = lv_cell_raw
+                iv_type  = CONV string( ls_fieldcat-inttype ) ).
+              APPEND VALUE #( fieldname  = ls_fieldcat-fieldname
+                              text       = lv_cell_text
+                              type_class = COND string(
+                                WHEN ls_fieldcat-inttype = 'I'
+                                  OR ls_fieldcat-inttype = 'P'
+                                  OR ls_fieldcat-inttype = 'N'
+                                  OR ls_fieldcat-inttype = 'F'
+                                  THEN `gg-type-number`
+                                WHEN ls_fieldcat-inttype = 'D' THEN `gg-type-date`
+                                WHEN ls_fieldcat-inttype = 'T' THEN `gg-type-time`
+                                ELSE `gg-type-text` )
+                              editable   = xsdbool( ls_fieldcat-edit = 'X' )
+                              total      = xsdbool( ls_fieldcat-do_sum = 'X' )
+                              hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
               lv_has_component = abap_true.
             ENDIF.
           ENDIF.
@@ -760,8 +781,23 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         IF lv_has_component = abap_false.
           READ TABLE mt_fieldcatalog INTO ls_fieldcat INDEX 1.
           IF sy-subrc = 0.
-            APPEND VALUE #( fieldname = ls_fieldcat-fieldname
-                            text      = |{ <row> }| ) TO ls_row-cells.
+            DATA(lv_row_text) = cl_gui_control=>format_external_value(
+              iv_value = |{ <row> }|
+              iv_type  = CONV string( ls_fieldcat-inttype ) ).
+            APPEND VALUE #( fieldname  = ls_fieldcat-fieldname
+                            text       = lv_row_text
+                            type_class = COND string(
+                              WHEN ls_fieldcat-inttype = 'I'
+                                OR ls_fieldcat-inttype = 'P'
+                                OR ls_fieldcat-inttype = 'N'
+                                OR ls_fieldcat-inttype = 'F'
+                                THEN `gg-type-number`
+                              WHEN ls_fieldcat-inttype = 'D' THEN `gg-type-date`
+                              WHEN ls_fieldcat-inttype = 'T' THEN `gg-type-time`
+                              ELSE `gg-type-text` )
+                            editable   = xsdbool( ls_fieldcat-edit = 'X' )
+                            total      = xsdbool( ls_fieldcat-do_sum = 'X' )
+                            hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
           ENDIF.
         ENDIF.
       ENDIF.
@@ -776,7 +812,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_model.
-    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header><div class="gg-alv-toolbar" role="toolbar"><button type="submit" name="gg_ucomm" value="&REFRESH">Refresh</button><button type="submit" name="gg_ucomm" value="&SORT">Sort</button><button type="submit" name="gg_ucomm" value="&FILTER">Filter</button></div><table data-sortable="true"><thead><tr><th scope="col">Select</th>|.
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header><div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control"><button type="submit" name="gg_ucomm" value="&REFRESH">Refresh</button><button type="submit" name="gg_ucomm" value="&SORT">Sort</button><button type="submit" name="gg_ucomm" value="&FILTER">Filter</button></div><table data-sortable="true"><thead><tr><th scope="col">Select</th>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         DATA(lv_heading) = ls_fieldcat-coltext.
@@ -786,15 +822,21 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         IF lv_heading IS INITIAL.
           lv_heading = ls_fieldcat-fieldname.
         ENDIF.
-        result = result && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-sortable="true">{ cl_gui_control=>escape_html( CONV string( lv_heading ) ) }</th>|.
+        result = result && |<th class="gg-grid-column { cl_gui_control=>state_class( iv_total = xsdbool( ls_fieldcat-do_sum = 'X' ) ) }" scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-sortable="true">{ cl_gui_control=>escape_html( CONV string( lv_heading ) ) }</th>|.
       ENDIF.
     ENDLOOP.
     result = result && |</tr></thead><tbody>|.
     LOOP AT mt_html_rows INTO DATA(ls_row).
-      DATA(lv_selected) = COND string( WHEN line_exists( mt_selected_rows[ index = ls_row-index ] ) THEN ` selected` ELSE `` ).
-      result = result && |<tr data-row-index="{ ls_row-index }"{ lv_selected }><td><input type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected IS NOT INITIAL THEN ` checked` ELSE `` ) }></td>|.
+      DATA(lv_selected) = xsdbool( line_exists( mt_selected_rows[ index = ls_row-index ] ) ).
+      DATA(lv_row_state_class) = cl_gui_control=>state_class( iv_selected = lv_selected ).
+      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }><td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
-        result = result && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
+        DATA(lv_cell_state_class) = cl_gui_control=>state_class(
+          iv_total    = ls_cell-total
+          iv_subtotal = ls_cell-subtotal
+          iv_hotspot  = ls_cell-hotspot
+          iv_readonly = xsdbool( ls_cell-editable = abap_false ) ).
+        result = result && |<td class="gg-grid-cell { lv_cell_state_class } { ls_cell-type_class }" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
       ENDLOOP.
       result = result && |</tr>|.
     ENDLOOP.

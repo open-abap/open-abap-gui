@@ -24,6 +24,10 @@ CLASS ltcl_ex_67 IMPLEMENTATION.
       act = ls_result-elements[ name = 'P_DEC' ]-data_type-decimals
       exp = 2 ).
     cl_abap_unit_assert=>assert_true( ls_result-states[ name = 'P_CHAR' ]-obligatory ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="30.08.2026"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="12:34:56"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-abap-value="20260830"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-type-number' ) ).
   ENDMETHOD.
 
 ENDCLASS.

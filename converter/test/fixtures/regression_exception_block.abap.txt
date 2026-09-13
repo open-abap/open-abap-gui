@@ -1,0 +1,12 @@
+REPORT zregexc.
+DATA gv_value TYPE i.
+
+START-OF-SELECTION.
+TRY.
+  gv_value = 1.
+CATCH cx_root.
+  gv_value = 2.
+CLEANUP.
+  CLEAR gv_value.
+ENDTRY.
+WRITE gv_value.

@@ -22,6 +22,7 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'role="tree"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '/ZCL_GG_EX_001' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-commandbar"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="/converter/preview"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-logo-mark" viewBox="0 0 108 108"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'stop-color="#174a80"' ) ).
 

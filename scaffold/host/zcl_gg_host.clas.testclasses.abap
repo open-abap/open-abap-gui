@@ -370,6 +370,10 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<!doctype html>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-page-kind="LIST"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'hello world' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-status-region"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-message-region"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-work-area"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-action-row"' ) ).
   ENDMETHOD.
 
   METHOD html_selection.
@@ -381,6 +385,7 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<form method="post" action="/dispatch">' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'name="P_CARR"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'required' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-state-required' ) ).
   ENDMETHOD.
 
   METHOD html_escapes_output.
@@ -483,6 +488,7 @@ CLASS ltcl_host IMPLEMENTATION.
       io_report     = NEW zcl_gg_ex_046( )
       iv_line_index = 1 ).
     cl_abap_unit_assert=>assert_true( act = ls_modified-line_formats[ 1 ]-intensified ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_modified-html CS 'gg-state-changed' ) ).
   ENDMETHOD.
 
   METHOD selection_output_snapshot.
@@ -612,7 +618,9 @@ CLASS ltcl_host IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD navigation_metadata.
-    DATA(ls_selection) = zcl_gg_host=>run( NEW zcl_gg_ex_051( ) ).
+    DATA(ls_selection) = zcl_gg_host=>run(
+      io_report              = NEW zcl_gg_ex_051( )
+      iv_pause_at_navigation = abap_true ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_selection-navigation-kind
       exp = zcx_gg_control_flow=>kind_call_selection_screen ).
@@ -620,7 +628,7 @@ CLASS ltcl_host IMPLEMENTATION.
                                         exp = '0500' ).
     cl_abap_unit_assert=>assert_equals( act = ls_selection-navigation-continuation
                                         exp = 'AFTER_0500' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'gg-navigation' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'gg-selection' ) ).
 
     DATA(ls_screen) = zcl_gg_host=>run( NEW zcl_gg_ex_052( ) ).
     cl_abap_unit_assert=>assert_equals(
@@ -651,6 +659,7 @@ CLASS ltcl_host IMPLEMENTATION.
       act = ls_selection-page_kind
       exp = zif_gg_host_html_v1=>page_selection ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'name="P_B"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'gg-modal-backdrop' ) ).
     DATA(ls_selection_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_selection-session_id
       page_id    = ls_selection-page_id
@@ -658,6 +667,15 @@ CLASS ltcl_host IMPLEMENTATION.
       values     = VALUE #( ( name = 'P_B' value = 'X' ) ) ) ).
     cl_abap_unit_assert=>assert_true( ls_selection_next-valid ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_selection_next-compatibility-lines[ table_line = 'X' ] ) ) ).
+
+    zcl_gg_host_runtime=>clear( ).
+    DATA(ls_cancel) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_051( ) ).
+    DATA(ls_cancel_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_cancel-session_id
+      page_id    = ls_cancel-page_id
+      action     = zif_gg_host_html_v1=>action_exit ) ).
+    cl_abap_unit_assert=>assert_true( ls_cancel_next-valid ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( line_exists( ls_cancel_next-compatibility-lines[ table_line = 'X' ] ) ) ).
     zcl_gg_host_runtime=>clear( ).
 
     DATA(ls_screen) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_052( ) ).
@@ -739,13 +757,15 @@ CLASS ltcl_host IMPLEMENTATION.
       it_states     = lo_screen->get_states( )
       it_blocks     = lo_screen->get_blocks( )
       it_elements   = lo_screen->get_elements( )
-      it_tabs       = lo_screen->get_tabs( ) ).
+      it_tabs       = lo_screen->get_tabs( )
+      iv_help_text  = 'Instructions' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'type="checkbox"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-radio-GRP' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;A&gt;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'role="tablist"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<label for=' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label=' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-instruction-region"' ) ).
   ENDMETHOD.
 
   METHOD html_display_like.

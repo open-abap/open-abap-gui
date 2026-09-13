@@ -167,6 +167,28 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
   TYPES ty_icon_bar TYPE STANDARD TABLE OF ty_icon_bar_item WITH DEFAULT KEY.
   TYPES ty_pf_keys TYPE SORTED TABLE OF i WITH UNIQUE KEY table_line.
 
+  TYPES: BEGIN OF ty_pf_action,
+           number TYPE i,
+           ucomm  TYPE ty_ucomm,
+         END OF ty_pf_action.
+  TYPES ty_pf_actions TYPE STANDARD TABLE OF ty_pf_action WITH DEFAULT KEY.
+
+  TYPES: BEGIN OF ty_gui_menu_item,
+           ucomm     TYPE ty_ucomm,
+           text      TYPE string,
+           separator TYPE abap_bool,
+           disabled  TYPE abap_bool,
+         END OF ty_gui_menu_item.
+  TYPES ty_gui_menu_items TYPE STANDARD TABLE OF ty_gui_menu_item WITH DEFAULT KEY.
+
+  TYPES: BEGIN OF ty_gui_menu,
+           code  TYPE ty_name,
+           text  TYPE string,
+           path  TYPE string,
+           items TYPE ty_gui_menu_items,
+         END OF ty_gui_menu.
+  TYPES ty_gui_menus TYPE STANDARD TABLE OF ty_gui_menu WITH DEFAULT KEY.
+
 * status names the CUA status, active_ucomm lists the function codes it
 * activates, excluded_ucomm removes function codes again, as EXCLUDING does,
 * and active_pf_keys declares the AT PFnn events accepted by the HTML runtime.
@@ -177,8 +199,10 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            active_ucomm   TYPE ty_ucomms,
            excluded_ucomm TYPE ty_ucomms,
            active_pf_keys TYPE ty_pf_keys,
+           pf_actions     TYPE ty_pf_actions,
            icon_bar       TYPE ty_icon_bar,
-           END OF ty_gui_status.
+           menus          TYPE ty_gui_menus,
+         END OF ty_gui_status.
 
   TYPES: BEGIN OF ty_dialog_cursor,
            field TYPE ty_name,

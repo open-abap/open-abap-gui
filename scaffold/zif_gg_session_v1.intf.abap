@@ -24,6 +24,10 @@ INTERFACE zif_gg_session_v1 PUBLIC.
     RETURNING
       VALUE(ro_navigation) TYPE REF TO zif_gg_navigation_v1.
 
+  METHODS get_compatibility
+    RETURNING
+      VALUE(ro_compatibility) TYPE REF TO zif_gg_compatibility_v1.
+
   "! Execute MESSAGE with processor-specific ABAP semantics. Error and warning
   "! messages may abort the current callback and return control to the host,
   "! and the types A and X end the program without returning at all.

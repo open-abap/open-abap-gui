@@ -45,6 +45,10 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
     IMPORTING
       is_new_page TYPE zif_gg_list_processing_types_v1=>ty_new_page.
 
+  METHODS scroll_to_first_page.
+
+  METHODS scroll_to_last_page.
+
   METHODS set_format
     IMPORTING
       is_format TYPE zif_gg_list_processing_types_v1=>ty_format.

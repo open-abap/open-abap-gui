@@ -7,33 +7,38 @@ CLASS zcl_gg_host_dynpro_builder DEFINITION PUBLIC FINAL CREATE PUBLIC.
       WITH DEFAULT KEY.
 
     TYPES: BEGIN OF ty_control_record,
-             screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
-             kind           TYPE string,
-             name           TYPE zif_gg_dynpro_types_v1=>ty_name,
-             parent         TYPE zif_gg_dynpro_types_v1=>ty_name,
-             text           TYPE string,
-             ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm,
-             position       TYPE zif_gg_dynpro_types_v1=>ty_position,
-             data_type      TYPE zif_gg_dynpro_types_v1=>ty_data_type,
-             modif_id       TYPE zif_gg_dynpro_types_v1=>ty_modif_id,
-             search_help    TYPE zif_gg_dynpro_types_v1=>ty_name,
-             value_help     TYPE abap_bool,
-             uppercase      TYPE abap_bool,
-             fixed_values   TYPE zif_gg_dynpro_types_v1=>ty_fixed_values,
-             required       TYPE abap_bool,
-             enabled        TYPE abap_bool,
-             visible        TYPE abap_bool,
-             input          TYPE abap_bool,
-             password       TYPE abap_bool,
-             group          TYPE zif_gg_dynpro_types_v1=>ty_group,
-             subscreen      TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
-             table_control  TYPE zif_gg_dynpro_types_v1=>ty_name,
-             visible_rows   TYPE i,
-             selection_mode TYPE string,
-             with_hscroll   TYPE abap_bool,
-             with_vscroll   TYPE abap_bool,
-             column_title   TYPE string,
-             column_width   TYPE i,
+             screen          TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+             kind            TYPE string,
+             name            TYPE zif_gg_dynpro_types_v1=>ty_name,
+             parent          TYPE zif_gg_dynpro_types_v1=>ty_name,
+             text            TYPE string,
+             ucomm           TYPE zif_gg_dynpro_types_v1=>ty_ucomm,
+             position        TYPE zif_gg_dynpro_types_v1=>ty_position,
+             data_type       TYPE zif_gg_dynpro_types_v1=>ty_data_type,
+             modif_id        TYPE zif_gg_dynpro_types_v1=>ty_modif_id,
+             search_help     TYPE zif_gg_dynpro_types_v1=>ty_name,
+             value_help      TYPE abap_bool,
+             uppercase       TYPE abap_bool,
+             fixed_values    TYPE zif_gg_dynpro_types_v1=>ty_fixed_values,
+             required        TYPE abap_bool,
+             enabled         TYPE abap_bool,
+             visible         TYPE abap_bool,
+             input           TYPE abap_bool,
+             exit_command    TYPE abap_bool,
+             password        TYPE abap_bool,
+             context_menu    TYPE abap_bool,
+             group           TYPE zif_gg_dynpro_types_v1=>ty_group,
+             subscreen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+             subscreen_field TYPE zif_gg_dynpro_types_v1=>ty_name,
+             table_control   TYPE zif_gg_dynpro_types_v1=>ty_name,
+             state_name      TYPE zif_gg_dynpro_types_v1=>ty_name,
+             visible_rows    TYPE i,
+             selection_mode  TYPE string,
+             with_hscroll    TYPE abap_bool,
+             with_vscroll    TYPE abap_bool,
+             column_title    TYPE string,
+             column_width    TYPE i,
+             checkbox        TYPE abap_bool,
            END OF ty_control_record.
     TYPES ty_controls TYPE STANDARD TABLE OF ty_control_record WITH DEFAULT KEY.
 
@@ -69,20 +74,21 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_input_field.
-    APPEND VALUE #( screen      = mv_screen
-                    kind        = 'INPUT'
-                    name        = is_input_field-control-name
-                    position    = is_input_field-control-position
-                    data_type   = is_input_field-data_type
-                    modif_id    = is_input_field-control-modif_id
-                    search_help = is_input_field-search_help
-                    value_help  = is_input_field-value_help
-                    uppercase   = is_input_field-uppercase
-                    required    = is_input_field-required
-                    enabled     = abap_true
-                    visible     = abap_true
-                    input       = abap_true
-                    password    = is_input_field-password ) TO mt_controls.
+    APPEND VALUE #( screen       = mv_screen
+                    kind         = 'INPUT'
+                    name         = is_input_field-control-name
+                    position     = is_input_field-control-position
+                    data_type    = is_input_field-data_type
+                    modif_id     = is_input_field-control-modif_id
+                    search_help  = is_input_field-search_help
+                    value_help   = is_input_field-value_help
+                    uppercase    = is_input_field-uppercase
+                    required     = is_input_field-required
+                    enabled      = abap_true
+                    visible      = abap_true
+                    input        = abap_true
+                    password     = is_input_field-password
+                    context_menu = is_input_field-context_menu ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_output_field.
@@ -108,14 +114,15 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_pushbutton.
-    APPEND VALUE #( screen   = mv_screen
-                    kind     = 'PUSHBUTTON'
-                    name     = is_pushbutton-control-name
-                    text     = is_pushbutton-text
-                    ucomm    = is_pushbutton-ucomm
-                    position = is_pushbutton-control-position
-                    enabled  = abap_true
-                    visible  = abap_true ) TO mt_controls.
+    APPEND VALUE #( screen       = mv_screen
+                    kind         = 'PUSHBUTTON'
+                    name         = is_pushbutton-control-name
+                    text         = is_pushbutton-text
+                    ucomm        = is_pushbutton-ucomm
+                    position     = is_pushbutton-control-position
+                    enabled      = abap_true
+                    visible      = abap_true
+                    exit_command = is_pushbutton-exit_command ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_checkbox.
@@ -163,11 +170,13 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_subscreen_area.
-    APPEND VALUE #( screen   = mv_screen
-                    kind     = 'SUBSCREEN_AREA'
-                    name     = is_subscreen_area-control-name
-                    position = is_subscreen_area-control-position
-                    visible  = abap_true ) TO mt_controls.
+    APPEND VALUE #( screen          = mv_screen
+                    kind            = 'SUBSCREEN_AREA'
+                    name            = is_subscreen_area-control-name
+                    position        = is_subscreen_area-control-position
+                    subscreen       = is_subscreen_area-subscreen
+                    subscreen_field = is_subscreen_area-screen_field
+                    visible         = abap_true ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_custom_control.
@@ -219,13 +228,16 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
     APPEND VALUE #( screen       = mv_screen
                     kind         = 'TABLE_COLUMN'
                     name         = is_table_column-name
+                    state_name   = is_table_column-state_name
                     parent       = mv_table_control
                     text         = is_table_column-title
                     data_type    = is_table_column-data_type
                     column_title = is_table_column-title
                     column_width = is_table_column-width
                     required     = is_table_column-required
+                    checkbox     = is_table_column-checkbox
                     input        = is_table_column-input
+                    enabled      = abap_true
                     visible      = abap_true ) TO mt_controls.
   ENDMETHOD.
 

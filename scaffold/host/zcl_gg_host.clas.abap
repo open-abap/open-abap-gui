@@ -19,6 +19,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              blocks              TYPE zcl_gg_host_screen=>ty_blocks,
              elements            TYPE zcl_gg_host_screen=>ty_elements,
              screen_snapshot     TYPE zcl_gg_host_screen=>ty_snapshot,
+             dynamic_selection   TYPE zif_gg_compatibility_v1=>ty_dynamic_selection,
              memory_render_lines TYPE zcl_gg_host_list=>ty_render_lines,
              help_text           TYPE string,
              help_name           TYPE string,
@@ -46,10 +47,14 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_submit_report       TYPE REF TO zif_gg_report_v1 OPTIONAL
         iv_program             TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
         iv_selection_screen    TYPE zif_gg_selection_screen_types=>ty_screen_number DEFAULT '1000'
+        iv_selection_tab       TYPE zif_gg_session_types_v1=>ty_ucomm OPTIONAL
+        iv_resume_subrc        TYPE i DEFAULT 0
         iv_batch               TYPE abap_bool DEFAULT abap_false
         it_input               TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
+        it_dynamic_input       TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
         it_retry_input         TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
         iv_ucomm               TYPE zif_gg_session_types_v1=>ty_ucomm DEFAULT 'ONLI'
+        iv_dynamic_action      TYPE string OPTIONAL
         iv_value_request       TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
         iv_help_name           TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
         iv_exit_ucomm          TYPE zif_gg_selection_screen_types=>ty_ucomm OPTIONAL
@@ -162,6 +167,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_navigation    TYPE zif_gg_host_html_v1=>ty_navigation
         is_submit        TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
         it_input         TYPE zif_gg_selection_screen_types=>ty_values
+        iv_resume_subrc  TYPE i DEFAULT 0
       CHANGING
         ct_values        TYPE zif_gg_selection_screen_types=>ty_values
         ct_states        TYPE zif_gg_selection_screen_types=>ty_states
@@ -175,6 +181,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_resume_navigation TYPE zif_gg_host_html_v1=>ty_navigation
         is_resume_submit     TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
         it_input             TYPE zif_gg_selection_screen_types=>ty_values
+        iv_resume_subrc      TYPE i DEFAULT 0
       CHANGING
         ct_values            TYPE zif_gg_selection_screen_types=>ty_values
         ct_states            TYPE zif_gg_selection_screen_types=>ty_states
@@ -189,6 +196,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_resume_submit           TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
         it_input                   TYPE zif_gg_selection_screen_types=>ty_values
         iv_stop_before_start       TYPE abap_bool
+        iv_resume_subrc            TYPE i DEFAULT 0
       CHANGING
         ct_values                  TYPE zif_gg_selection_screen_types=>ty_values
         ct_states                  TYPE zif_gg_selection_screen_types=>ty_states
@@ -200,6 +208,12 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_states  TYPE zif_gg_selection_screen_types=>ty_states
         it_values  TYPE zif_gg_selection_screen_types=>ty_values
         io_session TYPE REF TO zcl_gg_host_session.
+
+    CLASS-METHODS merge_submit_values
+      IMPORTING
+        is_submit        TYPE zif_gg_session_types_v1=>ty_submit
+      RETURNING
+        VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_values.
 
 * True when iv_screen carries at least one element the user can act on, so
 * starting the program interactively has to send that screen first instead of
@@ -224,6 +238,8 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_help_name        TYPE zif_gg_selection_screen_types=>ty_name
         iv_exit_ucomm       TYPE zif_gg_session_types_v1=>ty_ucomm
         it_input            TYPE zif_gg_selection_screen_types=>ty_values
+        it_dynamic_input    TYPE zif_gg_selection_screen_types=>ty_values
+        iv_dynamic_action   TYPE string
 * True while the screen is only being sent. The PBO events still run so the
 * program can shape the screen, but the validation events belong to PAI and
 * must not fire before the user has submitted anything.
@@ -327,7 +343,10 @@ CLASS zcl_gg_host IMPLEMENTATION.
           ct_values = ct_values ).
     ENDIF.
 
-    IF iv_initial_display = abap_true.
+    IF iv_initial_display = abap_true
+        AND iv_ucomm = 'ONLI'
+        AND iv_help_name IS INITIAL
+        AND iv_value_request IS INITIAL.
       RETURN.
     ENDIF.
 
@@ -381,6 +400,17 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
 
+    DATA(ls_context) = io_session->zif_gg_session_v1~get_context( ).
+    io_session->zif_gg_session_v1~get_compatibility( )->set_selection_context(
+      iv_report = CONV string( ls_context-program-program )
+      it_values = ct_values
+      it_states = ct_states
+      iv_screen = ls_context-selection-screen ).
+
+    io_session->zif_gg_session_v1~get_compatibility( )->set_dynamic_selection_request(
+      iv_action = iv_dynamic_action
+      it_values = it_dynamic_input ).
+
     io_session->set_event( 'AT SELECTION-SCREEN' ).
     io_report->at_selection_screen(
       EXPORTING
@@ -412,6 +442,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lv_page_id TYPE string.
     DATA lv_display_screen TYPE zif_gg_selection_screen_types=>ty_screen_number.
     DATA lt_elements TYPE zcl_gg_host_screen=>ty_elements.
+    DATA lt_dynamic_lists TYPE zcl_gg_host_compatibility=>ty_selection_lists.
     DATA lv_stop_before_start TYPE abap_bool.
 
     lv_session_id = COND #( WHEN iv_session_id IS INITIAL
@@ -424,6 +455,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
 
     lo_list   = NEW zcl_gg_host_list( ).
     lo_screen = NEW zcl_gg_host_screen( ).
+    zcl_gg_host_compatibility=>clear_selection_list_values( ).
     lo_session = NEW zcl_gg_host_session(
       io_list    = lo_list
       iv_program = iv_program
@@ -472,6 +504,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
             iv_help_name        = iv_help_name
             iv_exit_ucomm       = iv_exit_ucomm
             it_input            = it_input
+            it_dynamic_input    = it_dynamic_input
+            iv_dynamic_action   = iv_dynamic_action
             iv_initial_display  = lv_stop_before_start
           CHANGING
             ct_values           = lt_values
@@ -479,7 +513,23 @@ CLASS zcl_gg_host IMPLEMENTATION.
             ct_radio_groups     = lt_radio_groups
             cs_result           = rs_result ).
 
-        IF lv_stop_before_start = abap_false.
+        lt_dynamic_lists = zcl_gg_host_compatibility=>get_selection_list_values( ).
+        LOOP AT lt_dynamic_lists INTO DATA(ls_dynamic_list).
+          READ TABLE lt_states ASSIGNING FIELD-SYMBOL(<ls_dynamic_state>)
+            WITH KEY name = ls_dynamic_list-id.
+          IF sy-subrc <> 0.
+            CONTINUE.
+          ENDIF.
+          CLEAR <ls_dynamic_state>-fixed_values.
+          LOOP AT ls_dynamic_list-values INTO DATA(ls_dynamic_value).
+            APPEND VALUE #(
+              key  = CONV string( ls_dynamic_value-key )
+              text = CONV string( ls_dynamic_value-text ) )
+              TO <ls_dynamic_state>-fixed_values.
+          ENDLOOP.
+        ENDLOOP.
+
+        IF lv_stop_before_start = abap_false AND iv_ucomm <> 'ECAN'.
           validate_required(
             it_states  = lt_states
             it_values  = lt_values
@@ -495,6 +545,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
             is_resume_submit           = is_resume_submit
             it_input                   = it_input
             iv_stop_before_start       = lv_stop_before_start
+            iv_resume_subrc            = iv_resume_subrc
           CHANGING
             ct_values                  = lt_values
             ct_states                  = lt_states
@@ -600,6 +651,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
     rs_result-lines    = lo_list->finish_output( ).
     IF iv_ucomm <> 'ONLI'.
       lo_screen->select_tab( iv_ucomm ).
+    ELSEIF iv_selection_tab IS NOT INITIAL.
+      lo_screen->select_tab( iv_selection_tab ).
     ENDIF.
     rs_result-render_lines = lo_list->get_render_lines( ).
     rs_result-model_events = lo_list->get_model_events( ).
@@ -613,10 +666,15 @@ CLASS zcl_gg_host IMPLEMENTATION.
       iv_screen = lv_display_screen
       it_values = lt_values
       it_states = lt_states ).
+    rs_result-dynamic_selection = lo_session->zif_gg_session_v1~get_compatibility( )->get_dynamic_selection( ).
     rs_result-memory_render_lines = lo_session->get_list_render_from_memory( ).
     rs_result-dialog_suppressed = lo_session->is_dialog_suppressed( ).
     rs_result-settings = lo_list->get_settings( ).
-    rs_result-status   = lo_list->get_status( ).
+    IF lv_selection_screen_active = abap_true.
+      rs_result-status = lo_session->get_status( ).
+    ELSE.
+      rs_result-status = lo_list->get_status( ).
+    ENDIF.
     rs_result-title    = lo_list->get_title( ).
     rs_result-submit   = lo_session->get_submit_call( ).
     rs_result-selection_active = lv_selection_screen_active.
@@ -652,11 +710,19 @@ CLASS zcl_gg_host IMPLEMENTATION.
       WHEN zcx_gg_control_flow=>kind_call_selection_screen.
         DATA(ls_selection_call) = io_session->get_selection_call( ).
         rs_navigation-target = ls_selection_call-screen.
-        rs_navigation-modal = abap_true.
+        rs_navigation-modal = xsdbool(
+          ls_selection_call-modal-start_row > 0
+          OR ls_selection_call-modal-start_column > 0
+          OR ls_selection_call-modal-end_row > 0
+          OR ls_selection_call-modal-end_column > 0 ).
       WHEN zcx_gg_control_flow=>kind_call_screen.
         DATA(ls_screen_call) = io_session->get_screen_call( ).
         rs_navigation-target = ls_screen_call-screen.
-        rs_navigation-modal = abap_true.
+        rs_navigation-modal = xsdbool(
+          ls_screen_call-modal-start_row > 0
+          OR ls_screen_call-modal-start_column > 0
+          OR ls_screen_call-modal-end_row > 0
+          OR ls_screen_call-modal-end_column > 0 ).
       WHEN zcx_gg_control_flow=>kind_submit_return.
         DATA(ls_submit_call) = io_session->get_submit_call( ).
         rs_navigation-target = ls_submit_call-program.
@@ -697,18 +763,20 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ls_context-screen = iv_selection_screen.
       lv_title = 'Selection'.
       cs_result-html = zcl_gg_host_renderer=>render_selection(
-        iv_session_id = iv_session_id
-        iv_page_id    = iv_page_id
-        iv_title      = lv_title
-        it_values     = cs_result-values
-        it_states     = cs_result-states
-        it_blocks     = cs_result-blocks
-        it_elements   = cs_result-elements
-        it_tabs       = cs_result-screen_snapshot-tabs
-        is_context    = ls_context
-        it_messages   = cs_result-messages
-        iv_help_text  = cs_result-help_text
-        iv_help_name  = cs_result-help_name ).
+        iv_session_id        = iv_session_id
+        iv_page_id           = iv_page_id
+        iv_title             = lv_title
+        it_values            = cs_result-values
+        it_states            = cs_result-states
+        it_blocks            = cs_result-blocks
+        it_elements          = cs_result-elements
+        it_tabs              = cs_result-screen_snapshot-tabs
+        is_dynamic_selection = cs_result-dynamic_selection
+        is_context           = ls_context
+        is_status            = cs_result-status
+        it_messages          = cs_result-messages
+        iv_help_text         = cs_result-help_text
+        iv_help_name         = cs_result-help_name ).
     ELSEIF iv_pause_at_navigation = abap_true AND iv_navigation-kind IS NOT INITIAL.
       lv_page_kind = zif_gg_host_html_v1=>page_navigation.
       ls_context-processor = zif_gg_session_types_v1=>processor_report.
@@ -740,6 +808,14 @@ CLASS zcl_gg_host IMPLEMENTATION.
       IF iv_can_back = abap_true.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO lt_actions.
       ENDIF.
+      LOOP AT cs_result-status-active_ucomm INTO DATA(lv_active_ucomm).
+        IF line_exists( cs_result-status-excluded_ucomm[ table_line = lv_active_ucomm ] )
+            OR line_exists( cs_result-status-icon_bar[ ucomm = lv_active_ucomm ] ).
+          CONTINUE.
+        ENDIF.
+        APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_command
+                        ucomm = lv_active_ucomm ) TO lt_actions.
+      ENDLOOP.
       IF cl_gui_control=>has_content( ) = abap_true.
         lv_controls_html = cl_gui_control=>render_html(
           iv_document = abap_false
@@ -752,6 +828,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         iv_page_id       = iv_page_id
         iv_title         = lv_title
         it_lines         = io_list->get_render_lines( )
+        iv_visible_page  = io_list->get_visible_page( )
         is_status        = cs_result-status
         it_actions       = lt_actions
         is_context       = ls_context
@@ -786,6 +863,14 @@ CLASS zcl_gg_host IMPLEMENTATION.
         IF iv_can_back = abap_true.
           APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO ls_page-actions.
         ENDIF.
+        LOOP AT cs_result-status-active_ucomm INTO DATA(lv_page_ucomm).
+          IF line_exists( cs_result-status-excluded_ucomm[ table_line = lv_page_ucomm ] )
+              OR line_exists( cs_result-status-icon_bar[ ucomm = lv_page_ucomm ] ).
+            CONTINUE.
+          ENDIF.
+          APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_command
+                          ucomm = lv_page_ucomm ) TO ls_page-actions.
+        ENDLOOP.
       WHEN zif_gg_host_html_v1=>page_dynpro.
         APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_back
                         ucomm = 'BACK' ) TO ls_page-actions.
@@ -973,12 +1058,16 @@ CLASS zcl_gg_host IMPLEMENTATION.
   METHOD resume_submit_return.
     DATA ls_sub_result TYPE ty_result.
     DATA ls_submit TYPE zif_gg_session_types_v1=>ty_submit.
+    DATA lt_submit_values TYPE zif_gg_selection_screen_types=>ty_values.
 
     rv_ended = abap_false.
     ls_submit = io_session->get_submit_call( ).
+    lt_submit_values = merge_submit_values( is_submit = ls_submit ).
     ls_sub_result = run(
-      io_report = io_submit_report
-      it_input  = ls_submit-values ).
+      io_report            = io_submit_report
+      iv_program           = ls_submit-program
+      it_input             = lt_submit_values
+      iv_present_selection = ls_submit-via_selection_screen ).
     io_session->set_list_from_memory(
       it_lines        = ls_sub_result-lines
       it_render_lines = ls_sub_result-render_lines ).
@@ -990,6 +1079,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
   METHOD resume_navigation.
     DATA lo_resumable TYPE REF TO zif_gg_resumable_v1.
     DATA ls_submit_result TYPE ty_result.
+    DATA lt_submit_values TYPE zif_gg_selection_screen_types=>ty_values.
 
     cv_ended = abap_false.
     IF is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen.
@@ -1009,25 +1099,37 @@ CLASS zcl_gg_host IMPLEMENTATION.
           ct_values[ name = ls_input-name ] = ls_input.
         ENDIF.
       ENDLOOP.
-      io_session->set_event( 'AT SELECTION-SCREEN' ).
-      io_report->at_selection_screen(
-        EXPORTING
+      IF iv_resume_subrc = 0.
+        io_session->set_event( 'AT SELECTION-SCREEN' ).
+        io_report->at_selection_screen(
+          EXPORTING
+            iv_screen  = CONV #( is_navigation-target )
+            iv_ucomm   = 'ONLI'
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+        validate_required(
+          it_states  = ct_states
+          it_values  = ct_values
+          io_session = io_session ).
+      ELSE.
+        io_session->set_event( 'AT SELECTION-SCREEN ON EXIT-COMMAND' ).
+        io_report->at_selection_screen_on_exit(
           iv_screen  = CONV #( is_navigation-target )
-          iv_ucomm   = 'ONLI'
-          io_session = io_session
-        CHANGING
-          ct_values  = ct_values ).
-      validate_required(
-        it_states  = ct_states
-        it_values  = ct_values
-        io_session = io_session ).
+          iv_ucomm   = 'ECAN'
+          it_values  = ct_values
+          io_session = io_session ).
+      ENDIF.
     ENDIF.
 
     IF is_navigation-kind = zcx_gg_control_flow=>kind_submit_return
         AND io_submit_report IS BOUND.
+      lt_submit_values = merge_submit_values( is_submit = is_submit ).
       ls_submit_result = run(
-        io_report  = io_submit_report
-          it_input = is_submit-values ).
+        io_report            = io_submit_report
+        iv_program           = is_submit-program
+        it_input             = lt_submit_values
+        iv_present_selection = is_submit-via_selection_screen ).
       io_session->set_list_from_memory(
         it_lines        = ls_submit_result-lines
         it_render_lines = ls_submit_result-render_lines ).
@@ -1039,9 +1141,25 @@ CLASS zcl_gg_host IMPLEMENTATION.
       lo_resumable->resume(
         is_resume  = VALUE #(
           continuation = VALUE #( id = is_navigation-continuation )
-          subrc        = 0 )
+          subrc        = iv_resume_subrc )
         io_session = io_session ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD merge_submit_values.
+    rt_values = is_submit-values.
+    IF is_submit-variant IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    DATA(lt_variant_values) = zcl_gg_host_variant=>load(
+      iv_name   = CONV zif_gg_session_types_v1=>ty_variant( is_submit-variant )
+      iv_report = CONV string( is_submit-program )
+      iv_owner  = 'GG_BROWSER' ).
+    LOOP AT lt_variant_values INTO DATA(ls_variant_value).
+      DELETE rt_values WHERE name = ls_variant_value-name.
+      INSERT ls_variant_value INTO TABLE rt_values.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD start_or_resume.
@@ -1060,6 +1178,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
           is_navigation    = is_resume_navigation
           is_submit        = is_resume_submit
           it_input         = it_input
+          iv_resume_subrc  = iv_resume_subrc
         CHANGING
           ct_values        = ct_values
           ct_states        = ct_states
@@ -1080,6 +1199,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
           is_resume_navigation = is_resume_navigation
           is_resume_submit     = is_resume_submit
           it_input             = it_input
+          iv_resume_subrc      = iv_resume_subrc
         CHANGING
           ct_values            = ct_values
           ct_states            = ct_states
@@ -1088,6 +1208,11 @@ CLASS zcl_gg_host IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD has_interactive_selection.
+    READ TABLE it_elements WITH KEY kind = 'TAB' TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      rv_found = abap_true.
+      RETURN.
+    ENDIF.
     LOOP AT it_elements INTO DATA(ls_candidate)
         WHERE screen = iv_screen.
       CASE ls_candidate-kind.

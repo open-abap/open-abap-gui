@@ -7,8 +7,9 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
     INTERFACES zif_gg_selection_screen_builder_v1.
 
     TYPES: BEGIN OF ty_block,
-             block TYPE zif_gg_selection_screen_types=>ty_block,
-             depth TYPE i,
+             block  TYPE zif_gg_selection_screen_types=>ty_block,
+             depth  TYPE i,
+             screen TYPE zif_gg_selection_screen_types=>ty_screen_number,
            END OF ty_block.
     TYPES ty_blocks TYPE STANDARD TABLE OF ty_block WITH DEFAULT KEY.
 
@@ -149,6 +150,7 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_lower_case   TYPE abap_bool OPTIONAL
         iv_no_display   TYPE abap_bool OPTIONAL
         iv_value_help   TYPE abap_bool OPTIONAL
+        iv_password     TYPE abap_bool OPTIONAL
         iv_group1       TYPE zif_gg_selection_screen_types=>ty_group OPTIONAL
         it_fixed_values TYPE zif_gg_selection_screen_types=>ty_fixed_values OPTIONAL
         iv_obligatory   TYPE abap_bool OPTIONAL.
@@ -196,7 +198,10 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     IF it_states IS NOT INITIAL.
       rs_snapshot-states = it_states.
     ENDIF.
-    READ TABLE mt_tabs INTO DATA(ls_tab) INDEX 1.
+    READ TABLE mt_tabs INTO DATA(ls_tab) WITH KEY selected = abap_true.
+    IF sy-subrc <> 0.
+      READ TABLE mt_tabs INTO ls_tab INDEX 1.
+    ENDIF.
     IF sy-subrc = 0.
       rs_snapshot-selected_tab = ls_tab-name.
     ENDIF.
@@ -266,6 +271,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     ls_state-lower_case = iv_lower_case.
     ls_state-no_display = iv_no_display.
     ls_state-value_help = iv_value_help.
+    ls_state-password = iv_password.
     ls_state-group1 = iv_group1.
     ls_state-fixed_values = it_fixed_values.
     ls_state-visible = abap_true.
@@ -289,6 +295,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_lower_case  = is_parameter-lower_case
       iv_no_display  = is_parameter-no_display
       iv_value_help  = is_parameter-value_help
+      iv_password    = is_parameter-password
       iv_obligatory  = is_parameter-obligatory ).
     add_element(
       iv_kind       = 'PARAMETER'
@@ -441,8 +448,9 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
 
   METHOD zif_gg_selection_screen_builder_v1~begin_block.
     mv_block_depth = mv_block_depth + 1.
-    APPEND VALUE #( block = is_block
-                    depth = mv_block_depth ) TO mt_blocks.
+    APPEND VALUE #( block  = is_block
+                    depth  = mv_block_depth
+                    screen = COND #( WHEN mv_screen IS INITIAL THEN '1000' ELSE mv_screen ) ) TO mt_blocks.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~end_block.
@@ -460,6 +468,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   METHOD zif_gg_selection_screen_builder_v1~end_line.
     mv_in_line = abap_false.
     mv_position = 0.
+    mv_line = mv_line + 1.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~begin_tabbed_block.

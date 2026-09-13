@@ -1,0 +1,2 @@
+REPORT zreg_dynamic_write_call.
+WRITE (get_target( )).

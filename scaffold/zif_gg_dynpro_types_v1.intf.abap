@@ -48,14 +48,15 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 
 * Definitions consumed by the operation-specific builder methods.
   TYPES: BEGIN OF ty_input_field,
-           control     TYPE ty_control,
-           data_type   TYPE ty_data_type,
-           search_help TYPE ty_name,
-           uppercase   TYPE abap_bool,
-           required    TYPE abap_bool,
-           value_check TYPE abap_bool,
-           value_help  TYPE abap_bool,
-           password    TYPE abap_bool,
+           control      TYPE ty_control,
+           data_type    TYPE ty_data_type,
+           search_help  TYPE ty_name,
+           uppercase    TYPE abap_bool,
+           required     TYPE abap_bool,
+           value_check  TYPE abap_bool,
+           value_help   TYPE abap_bool,
+           password     TYPE abap_bool,
+           context_menu TYPE abap_bool,
          END OF ty_input_field.
 
   TYPES: BEGIN OF ty_output_field,
@@ -69,9 +70,10 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_text.
 
   TYPES: BEGIN OF ty_pushbutton,
-           control TYPE ty_control,
-           text    TYPE string,
-           ucomm   TYPE ty_ucomm,
+           control      TYPE ty_control,
+           text         TYPE string,
+           ucomm        TYPE ty_ucomm,
+           exit_command TYPE abap_bool,
          END OF ty_pushbutton.
 
   TYPES: BEGIN OF ty_checkbox,
@@ -100,7 +102,9 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_box.
 
   TYPES: BEGIN OF ty_subscreen_area,
-           control TYPE ty_control,
+           control      TYPE ty_control,
+           subscreen    TYPE ty_screen_number,
+           screen_field TYPE ty_name,
          END OF ty_subscreen_area.
 
   TYPES: BEGIN OF ty_custom_control,
@@ -131,11 +135,13 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
   TYPES: BEGIN OF ty_table_column,
            table_control TYPE ty_name,
            name          TYPE ty_name,
+           state_name    TYPE ty_name,
            title         TYPE string,
            data_type     TYPE ty_data_type,
            width         TYPE i,
            input         TYPE abap_bool,
            required      TYPE abap_bool,
+           checkbox      TYPE abap_bool,
          END OF ty_table_column.
 
 * Dynpro flow-logic instructions. The builder preserves their order and
@@ -155,9 +161,10 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_table_loop.
 
   TYPES: BEGIN OF ty_subscreen_call,
-           area    TYPE ty_name,
-           program TYPE ty_program,
-           screen  TYPE ty_screen_number,
+           area         TYPE ty_name,
+           program      TYPE ty_program,
+           screen       TYPE ty_screen_number,
+           screen_field TYPE ty_name,
          END OF ty_subscreen_call.
 
 * Context supplied for each MODULE invocation. table_control and row are
@@ -186,6 +193,16 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
   TYPES ty_values TYPE SORTED TABLE OF ty_value
     WITH UNIQUE KEY container name row.
 
+  TYPES: BEGIN OF ty_table_runtime,
+           lines        TYPE i,
+           top_line     TYPE i,
+           current_line TYPE i,
+         END OF ty_table_runtime.
+
+  TYPES: BEGIN OF ty_tabstrip_runtime,
+           activetab TYPE ty_name,
+         END OF ty_tabstrip_runtime.
+
 * Mutable SCREEN-like state, seeded from the definition before every PBO.
   TYPES: BEGIN OF ty_state,
            container         TYPE ty_name,
@@ -193,10 +210,15 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            row               TYPE i,
            text              TYPE string,
            fixed_values      TYPE ty_fixed_values,
+           modif_id          TYPE ty_modif_id,
+           group1            TYPE ty_group,
            visible           TYPE abap_bool,
            enabled           TYPE abap_bool,
+           input             TYPE abap_bool,
+           output            TYPE abap_bool,
            required          TYPE abap_bool,
            intensified       TYPE abap_bool,
+           no_display        TYPE abap_bool,
            password          TYPE abap_bool,
            value_help        TYPE abap_bool,
            subscreen_program TYPE ty_program,

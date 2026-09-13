@@ -42,19 +42,22 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_session,
-             session_id         TYPE string,
-             program            TYPE zif_gg_session_types_v1=>ty_program,
-             batch              TYPE abap_bool,
-             report             TYPE REF TO zif_gg_report_v1,
-             submit_report      TYPE REF TO zif_gg_report_v1,
-             dynpro_program     TYPE REF TO zif_gg_dynpro_v1,
-             next_page          TYPE i,
-             pending_navigation TYPE zif_gg_host_html_v1=>ty_navigation,
-             pending_submit     TYPE zif_gg_session_types_v1=>ty_submit,
-             last_result        TYPE zcl_gg_host=>ty_result,
-             last_dynpro        TYPE zcl_gg_host_dynpro=>ty_result,
-             results            TYPE STANDARD TABLE OF zcl_gg_host=>ty_result WITH DEFAULT KEY,
-             pages              TYPE zif_gg_host_html_v1=>ty_pages,
+             session_id          TYPE string,
+             program             TYPE zif_gg_session_types_v1=>ty_program,
+             batch               TYPE abap_bool,
+             report              TYPE REF TO zif_gg_report_v1,
+             submit_report       TYPE REF TO zif_gg_report_v1,
+             dynpro_program      TYPE REF TO zif_gg_dynpro_v1,
+             resumable           TYPE REF TO zif_gg_resumable_v1,
+             pending_popup_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm,
+             pending_help        TYPE zif_gg_dynpro_types_v1=>ty_name,
+             next_page           TYPE i,
+             pending_navigation  TYPE zif_gg_host_html_v1=>ty_navigation,
+             pending_submit      TYPE zif_gg_session_types_v1=>ty_submit,
+             last_result         TYPE zcl_gg_host=>ty_result,
+             last_dynpro         TYPE zcl_gg_host_dynpro=>ty_result,
+             results             TYPE STANDARD TABLE OF zcl_gg_host=>ty_result WITH DEFAULT KEY,
+             pages               TYPE zif_gg_host_html_v1=>ty_pages,
            END OF ty_session.
     TYPES ty_sessions TYPE STANDARD TABLE OF ty_session WITH DEFAULT KEY.
 
@@ -112,15 +115,30 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lv_session_id TYPE string.
     DATA ls_result TYPE zcl_gg_host=>ty_result.
     DATA ls_dynpro TYPE zcl_gg_host_dynpro=>ty_result.
+    DATA lo_screen_provider TYPE REF TO zif_gg_screen_provider_v1.
+    DATA lo_resumable TYPE REF TO zif_gg_resumable_v1.
+    DATA lo_context TYPE REF TO zif_gg_context_menu_v1.
+    DATA lo_report_dynpro TYPE REF TO zif_gg_dynpro_v1.
 
     lv_session_id = next_session_id( ).
     IF io_dynpro_program IS BOUND.
+      TRY.
+          lo_resumable ?= io_dynpro_program.
+        CATCH cx_root.
+          CLEAR lo_resumable.
+      ENDTRY.
       ls_dynpro = zcl_gg_host_dynpro=>run(
         io_program    = io_dynpro_program
+        io_resumable  = lo_resumable
         iv_submitted  = abap_false
         iv_session_id = lv_session_id
         iv_page_id    = |{ lv_session_id }-1| ).
     ELSEIF io_report IS BOUND.
+      TRY.
+          lo_resumable ?= io_report.
+        CATCH cx_root.
+          CLEAR lo_resumable.
+      ENDTRY.
       ls_result = zcl_gg_host=>run(
         io_report              = io_report
         io_submit_report       = io_submit_report
@@ -132,6 +150,29 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         iv_session_id          = lv_session_id
         iv_page_id             = |{ lv_session_id }-1|
         iv_pause_at_navigation = abap_true ).
+      TRY.
+          lo_screen_provider ?= io_report.
+        CATCH cx_root.
+          CLEAR lo_screen_provider.
+      ENDTRY.
+      TRY.
+          lo_context ?= io_report.
+        CATCH cx_root.
+          CLEAR lo_context.
+      ENDTRY.
+      IF lo_screen_provider IS BOUND
+          AND ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
+        lo_report_dynpro = NEW zcl_gg_host_report_dynpro(
+          io_provider  = lo_screen_provider
+          io_resumable = lo_resumable
+          io_context   = lo_context ).
+        ls_dynpro = zcl_gg_host_dynpro=>run(
+          io_program    = lo_report_dynpro
+          io_resumable  = lo_resumable
+          iv_submitted  = abap_false
+          iv_session_id = lv_session_id
+          iv_page_id    = |{ lv_session_id }-1| ).
+      ENDIF.
     ELSE.
       rs_response = invalid_response( 'A report or dynpro program is required' ).
       RETURN.
@@ -141,9 +182,14 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ls_session-batch = iv_batch.
     ls_session-report = io_report.
     ls_session-submit_report = io_submit_report.
-    ls_session-dynpro_program = io_dynpro_program.
-    ls_session-next_page = 2.
+    ls_session-resumable = lo_resumable.
     IF io_dynpro_program IS BOUND.
+      ls_session-dynpro_program = io_dynpro_program.
+    ELSE.
+      ls_session-dynpro_program = lo_report_dynpro.
+    ENDIF.
+    ls_session-next_page = 2.
+    IF ls_session-dynpro_program IS BOUND.
       ls_session-last_dynpro = ls_dynpro.
       APPEND ls_dynpro-page TO ls_session-pages.
     ELSE.
@@ -202,6 +248,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         AND is_request-action <> zif_gg_host_html_v1=>action_back
         AND is_request-action <> zif_gg_host_html_v1=>action_help
         AND is_request-action <> zif_gg_host_html_v1=>action_value_help
+        AND is_request-action <> zif_gg_host_html_v1=>action_popup
         AND is_request-action <> zif_gg_host_html_v1=>action_exit ).
       rs_response = invalid_response( 'Missing or unknown host action' ).
       RETURN.
@@ -247,40 +294,95 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA ls_dynpro TYPE zcl_gg_host_dynpro=>ty_result.
     DATA lt_dynpro_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     DATA lv_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm.
+    DATA ls_pf_action TYPE zif_gg_session_types_v1=>ty_pf_action.
     DATA lv_page_id TYPE string.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
     DATA lo_object TYPE REF TO object.
     DATA lo_report TYPE REF TO zif_gg_report_v1.
     DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
+    DATA lv_popup_action TYPE string.
+    DATA lv_help_request TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_resume_continuation TYPE string.
+    DATA lv_list_back TYPE abap_bool.
 
     ls_session = is_session.
+    lv_list_back = xsdbool(
+      is_request-action = zif_gg_host_html_v1=>action_back
+      AND ls_session-last_dynpro-page_kind = zif_gg_host_html_v1=>page_list ).
     lt_dynpro_values = is_request-dynpro_values.
     IF lt_dynpro_values IS INITIAL.
       lt_dynpro_values = ls_session-last_dynpro-values.
     ENDIF.
     lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-ucomm ).
-    IF lv_ucomm IS INITIAL.
+    IF is_request-action = zif_gg_host_html_v1=>action_pf.
+      READ TABLE ls_session-last_dynpro-status-pf_actions INTO ls_pf_action
+        WITH KEY number = is_request-pf_key.
+      IF sy-subrc = 0.
+        lv_ucomm = ls_pf_action-ucomm.
+      ENDIF.
+    ENDIF.
+    IF is_request-action = zif_gg_host_html_v1=>action_popup.
+      lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-target ).
+      lv_popup_action = |{ is_request-target }:{ is_request-value }|.
+      IF is_request-target = 'INFORM'.
+        lv_help_request = ls_session-pending_help.
+        IF lv_help_request IS INITIAL
+            AND ls_session-pending_popup_ucomm IS NOT INITIAL.
+          lv_ucomm = ls_session-pending_popup_ucomm.
+        ENDIF.
+      ENDIF.
+    ELSEIF is_request-action = zif_gg_host_html_v1=>action_help.
+      ls_session-pending_help = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target ).
+      CLEAR ls_session-pending_popup_ucomm.
+    ELSEIF is_request-action <> zif_gg_host_html_v1=>action_value_help.
+      ls_session-pending_popup_ucomm = lv_ucomm.
+    ENDIF.
+    IF lv_ucomm IS INITIAL AND lv_list_back = abap_false.
       lv_ucomm = 'BACK'.
+    ENDIF.
+    IF lv_list_back = abap_false
+        AND ls_session-last_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
+      lv_resume_continuation = ls_session-last_dynpro-navigation-continuation.
     ENDIF.
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
     ls_dynpro = zcl_gg_host_dynpro=>run(
-      io_program       = ls_session-dynpro_program
-      iv_ucomm         = lv_ucomm
-      iv_submitted     = xsdbool( is_request-action <> zif_gg_host_html_v1=>action_help
-                                  AND is_request-action <> zif_gg_host_html_v1=>action_value_help )
-      it_values        = lt_dynpro_values
-      iv_field         = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
-      iv_row           = is_request-row
-      iv_cursor_field  = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-cursor_field )
-      iv_value_request = CONV zif_gg_dynpro_types_v1=>ty_name(
+      io_program             = ls_session-dynpro_program
+      iv_ucomm               = lv_ucomm
+      iv_submitted           = xsdbool( lv_list_back = abap_false
+                                  AND is_request-action <> zif_gg_host_html_v1=>action_help
+                                  AND is_request-action <> zif_gg_host_html_v1=>action_value_help
+                                  AND NOT ( is_request-action = zif_gg_host_html_v1=>action_popup
+                                            AND is_request-target = 'INFORM'
+                                            AND lv_help_request IS NOT INITIAL ) )
+      it_values              = lt_dynpro_values
+      iv_field               = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
+      iv_row                 = is_request-row
+      iv_cursor_field        = COND #( WHEN is_request-cursor_field IS INITIAL
+                                      THEN ls_session-last_dynpro-cursor-field
+                                      ELSE CONV zif_gg_dynpro_types_v1=>ty_name( is_request-cursor_field ) )
+      iv_cursor_row          = COND #( WHEN is_request-cursor_field IS INITIAL
+                                      THEN ls_session-last_dynpro-cursor-row
+                                      ELSE 0 )
+      iv_value_request       = CONV zif_gg_dynpro_types_v1=>ty_name(
                            COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_value_help
                                         THEN is_request-target ELSE `` ) )
-      iv_help_request  = CONV zif_gg_dynpro_types_v1=>ty_name(
-                           COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_help
-                                        THEN is_request-target ELSE `` ) )
-      iv_screen        = ls_session-last_dynpro-screen
-      iv_session_id    = ls_session-session_id
-      iv_page_id       = lv_page_id ).
+      iv_help_request        = COND #( WHEN is_request-action = zif_gg_host_html_v1=>action_help
+                                 THEN CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
+                                 ELSE lv_help_request )
+      iv_popup_action        = lv_popup_action
+      it_popup_values        = is_request-dynpro_values
+      is_modal_position      = ls_session-last_dynpro-modal_position
+      io_resumable           = ls_session-resumable
+      iv_resume_continuation = lv_resume_continuation
+      iv_screen              = COND #( WHEN lv_list_back = abap_true
+                                      THEN ls_session-last_dynpro-list_return_screen
+                                      ELSE ls_session-last_dynpro-screen )
+      iv_session_id          = ls_session-session_id
+      iv_page_id             = lv_page_id ).
+    IF ls_dynpro-popup-kind IS INITIAL.
+      CLEAR ls_session-pending_popup_ucomm.
+      CLEAR ls_session-pending_help.
+    ENDIF.
     IF ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
         OR ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction.
       ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = ls_dynpro-navigation-target ).
@@ -339,14 +441,23 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lv_index TYPE i.
     DATA lv_page_id TYPE string.
     DATA lv_ucomm TYPE zif_gg_session_types_v1=>ty_ucomm.
+    DATA lv_selection_tab TYPE zif_gg_session_types_v1=>ty_ucomm.
     DATA lt_input TYPE zif_gg_selection_screen_types=>ty_values.
 
     ls_session = is_session.
-    lt_input = is_request-values.
-    IF lt_input IS INITIAL.
-      lt_input = ls_session-last_result-values.
+    READ TABLE ls_session-last_result-screen_snapshot-tabs INTO DATA(ls_selected_tab) WITH KEY selected = abap_true.
+    IF sy-subrc = 0.
+      lv_selection_tab = ls_selected_tab-ucomm.
     ENDIF.
+    lt_input = ls_session-last_result-values.
+    LOOP AT is_request-values INTO DATA(ls_request_value).
+      DELETE lt_input WHERE name = ls_request_value-name.
+      INSERT ls_request_value INTO TABLE lt_input.
+    ENDLOOP.
     lv_ucomm = CONV zif_gg_session_types_v1=>ty_ucomm( is_request-ucomm ).
+    IF is_request-dynamic_action IS NOT INITIAL.
+      lv_ucomm = COND #( WHEN is_request-dynamic_action = 'RESET' THEN 'RESET' ELSE 'DLGWIN' ).
+    ENDIF.
     IF lv_ucomm IS INITIAL.
       lv_ucomm = COND #( WHEN is_request-action = zif_gg_host_html_v1=>action_exit
                          THEN 'ECAN'
@@ -428,6 +539,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
+          iv_stop_before_start   = xsdbool( is_request-direct_action = abap_false )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_value_help.
         ls_result = zcl_gg_host=>run(
@@ -439,18 +551,22 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
+          iv_stop_before_start   = xsdbool( is_request-direct_action = abap_false )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_exit.
         ls_result = zcl_gg_host=>run(
-          io_report     = ls_session-report
-          iv_program    = ls_session-program
-          iv_batch      = ls_session-batch
-          it_input      = lt_input
-          iv_exit_ucomm = lv_ucomm
-          iv_ucomm      = lv_ucomm
-          iv_session_id = ls_session-session_id
-          iv_page_id    = lv_page_id
-          iv_can_back   = xsdbool( lines( ls_session-results ) > 0 ) ).
+          io_report            = ls_session-report
+          iv_program           = ls_session-program
+          iv_batch             = ls_session-batch
+          it_input             = lt_input
+          iv_exit_ucomm        = 'ECAN'
+          iv_ucomm             = 'ECAN'
+          is_resume_navigation = ls_session-pending_navigation
+          is_resume_submit     = ls_session-pending_submit
+          iv_resume_subrc      = 4
+          iv_session_id        = ls_session-session_id
+          iv_page_id           = lv_page_id
+          iv_can_back          = xsdbool( lines( ls_session-results ) > 0 ) ).
       WHEN zif_gg_host_html_v1=>action_submit
           OR zif_gg_host_html_v1=>action_tab
           OR zif_gg_host_html_v1=>action_back.
@@ -460,6 +576,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_program             = ls_session-program
           iv_batch               = ls_session-batch
           it_input               = lt_input
+          it_dynamic_input       = is_request-dynamic_values
+          iv_dynamic_action      = is_request-dynamic_action
           iv_ucomm               = lv_ucomm
           iv_user_command        = COND #(
             WHEN is_request-ucomm IS NOT INITIAL
@@ -468,8 +586,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
             WHEN ls_session-pending_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
             THEN CONV #( ls_session-pending_navigation-target )
             ELSE '1000' )
+          iv_selection_tab       = lv_selection_tab
           is_resume_navigation   = ls_session-pending_navigation
           is_resume_submit       = ls_session-pending_submit
+          iv_stop_before_start   = xsdbool( lv_ucomm <> 'ONLI' AND lv_ucomm <> 'ECAN' )
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
@@ -552,6 +672,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   METHOD clear.
     CLEAR mt_sessions.
     CLEAR mv_session_id.
+    zcl_gg_host_compatibility=>clear_parameters( ).
   ENDMETHOD.
 
   METHOD next_session_id.
@@ -614,8 +735,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
 
     IF is_request-action = zif_gg_host_html_v1=>action_pf
-        AND ( is_page-kind <> zif_gg_host_html_v1=>page_list
-          OR is_request-pf_key < 1
+        AND ( is_request-pf_key < 1
           OR NOT line_exists( is_page-status-active_pf_keys[ table_line = is_request-pf_key ] ) ).
       rv_error = 'PF key is not active for the current host page'.
     ENDIF.

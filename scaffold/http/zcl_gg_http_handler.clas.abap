@@ -6,22 +6,25 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_payload,
-             session_id    TYPE string,
-             page_id       TYPE string,
-             action        TYPE string,
-             gg_action     TYPE string,
-             ucomm         TYPE string,
-             gg_ucomm      TYPE string,
-             target        TYPE string,
-             value         TYPE string,
-             row           TYPE i,
-             pf_key        TYPE i,
-             token         TYPE string,
-             gg_token      TYPE string,
-             cursor_field  TYPE string,
-             cursor_value  TYPE string,
-             values        TYPE zif_gg_selection_screen_types=>ty_values,
-             dynpro_values TYPE zif_gg_dynpro_types_v1=>ty_values,
+             session_id     TYPE string,
+             page_id        TYPE string,
+             action         TYPE string,
+             direct_action  TYPE abap_bool,
+             gg_action      TYPE string,
+             ucomm          TYPE string,
+             gg_ucomm       TYPE string,
+             target         TYPE string,
+             value          TYPE string,
+             row            TYPE i,
+             pf_key         TYPE i,
+             token          TYPE string,
+             gg_token       TYPE string,
+             cursor_field   TYPE string,
+             cursor_value   TYPE string,
+             values         TYPE zif_gg_selection_screen_types=>ty_values,
+             dynamic_action TYPE string,
+             dynamic_values TYPE zif_gg_selection_screen_types=>ty_values,
+             dynpro_values  TYPE zif_gg_dynpro_types_v1=>ty_values,
            END OF ty_payload.
 
     TYPES: BEGIN OF ty_error_response,
@@ -80,6 +83,12 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rt_values) TYPE zif_gg_dynpro_types_v1=>ty_values.
 
+    CLASS-METHODS dynamic_values_from_fields
+      IMPORTING
+        it_fields        TYPE tihttpnvp
+      RETURNING
+        VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_values.
+
     CLASS-METHODS add_dynpro_value
       IMPORTING
         iv_container TYPE string
@@ -95,6 +104,7 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         io_report          TYPE REF TO zif_gg_report_v1 OPTIONAL
         io_dynpro          TYPE REF TO zif_gg_dynpro_v1 OPTIONAL
+        iv_program         TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 
@@ -257,9 +267,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     TRANSLATE lv_class_name TO UPPER CASE.
     CASE lv_class_name.
       WHEN 'ZCL_GG_INTEGRATION_HTML_REPORT'.
-        ls_response = start_program( io_report = NEW zcl_gg_integration_html_report( ) ).
+        ls_response = start_program(
+          io_report  = NEW zcl_gg_integration_html_report( )
+          iv_program = 'ZCL_GG_INTEGRATION_HTML_REPORT' ).
       WHEN 'ZCL_GG_INTEGRATION_DYNPRO'.
-        ls_response = start_program( io_dynpro = NEW zcl_gg_integration_dynpro( ) ).
+        ls_response = start_program(
+          io_dynpro  = NEW zcl_gg_integration_dynpro( )
+          iv_program = 'ZCL_GG_INTEGRATION_DYNPRO' ).
       WHEN OTHERS.
         lt_transactions = zcl_gg_transaction_registry=>get_all( ).
         READ TABLE lt_transactions INTO ls_transaction
@@ -429,6 +443,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           json = lv_cdata
         CHANGING
           data = ls_payload ).
+      ls_payload-direct_action = abap_true.
       rs_request = request_from_payload( ls_payload ).
     ELSE.
       rs_request = request_from_form( server ).
@@ -478,6 +493,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ls_payload-cursor_value = form_value( it_fields = lt_fields
                                           iv_name   = 'cursor_value' ).
     ls_payload-values = values_from_fields( lt_fields ).
+    ls_payload-dynamic_action = form_value( it_fields = lt_fields
+                                            iv_name   = 'gg_free_action' ).
+    ls_payload-dynamic_values = dynamic_values_from_fields( lt_fields ).
     ls_payload-dynpro_values = dynpro_from_fields( lt_fields ).
     rs_request = request_from_payload( ls_payload ).
   ENDMETHOD.
@@ -492,6 +510,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     rs_request-session_id = is_payload-session_id.
     rs_request-page_id = is_payload-page_id.
     rs_request-action = is_payload-action.
+    rs_request-direct_action = is_payload-direct_action.
     rs_request-ucomm = is_payload-ucomm.
     rs_request-target = is_payload-target.
     rs_request-value = is_payload-value.
@@ -501,6 +520,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     rs_request-cursor_field = is_payload-cursor_field.
     rs_request-cursor_value = is_payload-cursor_value.
     rs_request-values = is_payload-values.
+    rs_request-dynamic_action = is_payload-dynamic_action.
+    rs_request-dynamic_values = is_payload-dynamic_values.
     rs_request-dynpro_values = is_payload-dynpro_values.
 
     IF is_payload-gg_ucomm IS NOT INITIAL.
@@ -528,6 +549,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       rs_request-action = zif_gg_host_html_v1=>action_help.
       rs_request-target = substring( val = lv_action_value
                                      off = 5 ).
+    ELSEIF lv_action_value CP 'POPUP:*'.
+      rs_request-action = zif_gg_host_html_v1=>action_popup.
+      lv_remainder = substring( val = lv_action_value
+                                off = 6 ).
+      SPLIT lv_remainder AT ':' INTO lv_target lv_second.
+      rs_request-target = lv_target.
+      rs_request-value = lv_second.
     ELSEIF lv_action_value CP 'TAB:*'.
       rs_request-action = zif_gg_host_html_v1=>action_tab.
       lv_remainder = substring( val = lv_action_value
@@ -577,6 +605,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD form_value.
     LOOP AT it_fields INTO DATA(ls_field) WHERE name = iv_name.
       rv_value = ls_field-value.
+      IF iv_name = 'gg_action' AND ls_field-value <> 'SUBMIT'.
+        RETURN.
+      ENDIF.
     ENDLOOP.
   ENDMETHOD.
 
@@ -593,6 +624,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     LOOP AT it_fields INTO DATA(ls_field).
       lv_value = ls_field-value.
       REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
+      IF ls_field-name CP 'gg-unchecked-*'.
+        lv_name = substring(
+          val = ls_field-name
+          off = 13 ).
+        INSERT VALUE #(
+          name   = CONV zif_gg_selection_screen_types=>ty_name( lv_name )
+          value  = ``
+          ranges = VALUE #( ) ) INTO TABLE rt_values.
+        CONTINUE.
+      ENDIF.
       IF ls_field-name CP 'gg-radio-*'.
         lv_name = ls_field-value.
         INSERT VALUE #(
@@ -618,7 +659,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           OR ls_field-name = 'gg_token'
           OR ls_field-name = 'cursor_field'
           OR ls_field-name = 'cursor_value'
-          OR ls_field-name CP 'gg_*'.
+          OR ls_field-name CP 'gg_*'
+          OR ls_field-name CP 'gg-*'.
         CONTINUE.
       ENDIF.
 
@@ -679,6 +721,68 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
+  METHOD dynamic_values_from_fields.
+    DATA lv_name TYPE string.
+    DATA lv_value TYPE string.
+    DATA lv_field_name TYPE string.
+    DATA lv_suffix TYPE string.
+    DATA lv_typed_name TYPE zif_gg_selection_screen_types=>ty_name.
+    DATA lt_parts TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    FIELD-SYMBOLS <ls_value> TYPE zif_gg_selection_screen_types=>ty_value.
+    FIELD-SYMBOLS <ls_range> TYPE zif_gg_selection_screen_types=>ty_range.
+
+    LOOP AT it_fields INTO DATA(ls_field).
+      lv_name = ls_field-name.
+      TRANSLATE lv_name TO LOWER CASE.
+      IF lv_name NP 'gg-free-*'.
+        CONTINUE.
+      ENDIF.
+      lv_value = ls_field-value.
+      REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
+      lv_name = substring(
+        val = ls_field-name
+        off = 8 ).
+      CLEAR lt_parts.
+      SPLIT lv_name AT '-' INTO TABLE lt_parts.
+      IF lines( lt_parts ) < 2.
+        CONTINUE.
+      ENDIF.
+      READ TABLE lt_parts INTO lv_field_name INDEX 1.
+      READ TABLE lt_parts INTO lv_suffix INDEX 2.
+      lv_typed_name = CONV zif_gg_selection_screen_types=>ty_name( lv_field_name ).
+      READ TABLE rt_values ASSIGNING <ls_value> WITH KEY name = lv_typed_name.
+      IF sy-subrc <> 0.
+        INSERT VALUE #( name = lv_typed_name value = `` ranges = VALUE #( ) ) INTO TABLE rt_values.
+        READ TABLE rt_values ASSIGNING <ls_value> WITH KEY name = lv_typed_name.
+      ENDIF.
+      IF lv_suffix = 'ACTIVE'.
+        <ls_value>-value = lv_value.
+        CONTINUE.
+      ENDIF.
+      IF lv_suffix <> 'LOW' AND lv_suffix <> 'HIGH'
+          AND <ls_value>-ranges IS INITIAL.
+        CONTINUE.
+      ENDIF.
+      IF <ls_value>-ranges IS INITIAL AND lv_value IS INITIAL.
+        CONTINUE.
+      ENDIF.
+      IF <ls_value>-ranges IS INITIAL.
+        APPEND VALUE #( sign = 'I' option = 'EQ' ) TO <ls_value>-ranges.
+      ENDIF.
+      READ TABLE <ls_value>-ranges ASSIGNING <ls_range> INDEX 1.
+      CASE lv_suffix.
+        WHEN 'LOW'.
+          <ls_range>-low = lv_value.
+        WHEN 'HIGH'.
+          <ls_range>-high = lv_value.
+        WHEN 'SIGN'.
+          <ls_range>-sign = lv_value.
+        WHEN 'OPTION'.
+          <ls_range>-option = lv_value.
+      ENDCASE.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD dynpro_from_fields.
     DATA lv_cell      TYPE string.
     DATA lv_part      TYPE string.
@@ -693,6 +797,20 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     LOOP AT it_fields INTO DATA(ls_field).
       lv_value = ls_field-value.
       REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
+      IF ls_field-name CP 'gg-unchecked-*'.
+        lv_name = substring(
+          val = ls_field-name
+          off = 13 ).
+        add_dynpro_value(
+          EXPORTING
+            iv_container = ``
+            iv_name      = lv_name
+            iv_row       = 0
+            iv_value     = ``
+          CHANGING
+            ct_values    = rt_values ).
+        CONTINUE.
+      ENDIF.
       IF ls_field-name CP 'gg-radio-*'.
 *       A radio group posts the selected control name as its value; the field
 *       name only carries the group. Selecting the group would name no control.
@@ -738,6 +856,20 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         ENDIF.
         CONTINUE.
       ENDIF.
+      IF ls_field-name CP 'gg-popup-*'.
+        lv_name = substring(
+          val = ls_field-name
+          off = 9 ).
+        add_dynpro_value(
+          EXPORTING
+            iv_container = ``
+            iv_name      = lv_name
+            iv_row       = 0
+            iv_value     = lv_value
+          CHANGING
+            ct_values    = rt_values ).
+        CONTINUE.
+      ENDIF.
       IF ls_field-name = 'session_id'
           OR ls_field-name = 'page_id'
           OR ls_field-name = 'action'
@@ -752,6 +884,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           OR ls_field-name = 'gg_token'
           OR ls_field-name = 'cursor_field'
           OR ls_field-name = 'cursor_value'
+          OR ls_field-name CP 'gg-popup-*'
           OR ls_field-name CP 'gg_*'.
         CONTINUE.
       ENDIF.
@@ -797,9 +930,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD start_program.
     ensure_database( ).
     IF io_dynpro IS BOUND.
-      rs_response = zcl_gg_host_runtime=>start( io_dynpro_program = io_dynpro ).
+      rs_response = zcl_gg_host_runtime=>start(
+        io_dynpro_program = io_dynpro
+        iv_program        = iv_program ).
     ELSEIF io_report IS BOUND.
-      rs_response = zcl_gg_host_runtime=>start( io_report = io_report ).
+      rs_response = zcl_gg_host_runtime=>start(
+        io_report  = io_report
+        iv_program = iv_program ).
     ELSE.
       rs_response-valid = abap_false.
       rs_response-error = 'A report or dynpro program is required'.
@@ -857,7 +994,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
             RAISE EXCEPTION NEW zcx_gg_transaction_error(
               iv_message = |Transaction { is_transaction-tcode } is not a report implementation| ).
         ENDTRY.
-        rs_response = start_program( io_report = lo_report ).
+        rs_response = start_program(
+          io_report  = lo_report
+          iv_program = CONV #( is_transaction-class_name ) ).
       WHEN zcl_gg_transaction_registry=>kind_dynpro.
         TRY.
             lo_dynpro ?= lo_object.
@@ -865,7 +1004,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
             RAISE EXCEPTION NEW zcx_gg_transaction_error(
               iv_message = |Transaction { is_transaction-tcode } is not a dynpro implementation| ).
         ENDTRY.
-        rs_response = start_program( io_dynpro = lo_dynpro ).
+        rs_response = start_program(
+          io_dynpro  = lo_dynpro
+          iv_program = CONV #( is_transaction-class_name ) ).
       WHEN OTHERS.
         RAISE EXCEPTION NEW zcx_gg_transaction_error(
           iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind| ).

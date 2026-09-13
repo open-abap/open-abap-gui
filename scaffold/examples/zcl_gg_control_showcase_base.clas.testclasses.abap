@@ -74,7 +74,7 @@ CLASS ltcl_gg_control_showcase_base IMPLEMENTATION.
 
   METHOD toolbar.
     check_html( io_report = NEW zcl_gg_ex_125( )
-                iv_text   = 'role="toolbar"' ).
+                iv_text   = 'role="toolbar" aria-label="Control toolbar" data-toolbar-scope="control"' ).
     check_command( io_report = NEW zcl_gg_ex_125( )
                    iv_ucomm  = 'RUN'
       iv_text                = 'toolbar RUN dispatched by the server' ).

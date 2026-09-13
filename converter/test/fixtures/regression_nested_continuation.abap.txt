@@ -1,0 +1,13 @@
+REPORT zreg_nested_continuation.
+DATA gv_value TYPE i.
+START-OF-SELECTION.
+IF gv_value = 0.
+  IF abap_true = abap_true.
+    CALL SCREEN 100.
+    WRITE 'after inner'.
+  ENDIF.
+  WRITE 'after outer'.
+ELSE.
+  WRITE 'sibling branch'.
+ENDIF.
+WRITE 'after conditional'.

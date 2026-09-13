@@ -20,6 +20,7 @@ CLASS zcx_gg_control_flow DEFINITION PUBLIC INHERITING FROM cx_no_check FINAL CR
     CONSTANTS kind_leave_to_transaction TYPE ty_kind VALUE 'LEAVE_TO_TRANSACTION'.
     CONSTANTS kind_leave_screen TYPE ty_kind VALUE 'LEAVE_SCREEN'.
     CONSTANTS kind_leave_to_screen TYPE ty_kind VALUE 'LEAVE_TO_SCREEN'.
+    CONSTANTS kind_popup         TYPE ty_kind VALUE 'POPUP'.
     CONSTANTS kind_unsupported   TYPE ty_kind VALUE 'UNSUPPORTED'.
 
     DATA mv_kind      TYPE ty_kind READ-ONLY.

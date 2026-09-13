@@ -22,6 +22,7 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
              level    TYPE i,
              node_key TYPE string,
              expanded TYPE abap_bool,
+             selected TYPE abap_bool,
              hidden   TYPE abap_bool,
            END OF ty_surface_node.
     TYPES ty_surface_nodes TYPE STANDARD TABLE OF ty_surface_node WITH DEFAULT KEY.
@@ -236,11 +237,14 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
         WHEN ls_node-node_key IS NOT INITIAL THEN | data-node-key="{ escape( ls_node-node_key ) }"| ELSE '' ).
       DATA(lv_expanded) = COND string(
         WHEN ls_node-expanded = abap_true THEN ' aria-expanded="true"' ELSE '' ).
+      DATA(lv_state_class) = zcl_gg_host_html=>state_class( iv_selected = ls_node-selected ).
+      DATA(lv_selected) = COND string(
+        WHEN ls_node-selected = abap_true THEN ' aria-selected="true"' ELSE ' aria-selected="false"' ).
       DATA(lv_hidden) = COND string(
         WHEN ls_node-hidden = abap_true THEN ' hidden' ELSE '' ).
       DATA(lv_tabindex) = COND string(
         WHEN ls_node-hidden = abap_true THEN '' ELSE ' tabindex="0"' ).
-      result = result && |<li role="treeitem"{ lv_level }{ lv_key }{ lv_expanded }{ lv_hidden }{ lv_tabindex }>{ escape( ls_node-text ) }</li>|.
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem"{ lv_level }{ lv_key }{ lv_expanded }{ lv_selected }{ lv_hidden }{ lv_tabindex }>{ escape( ls_node-text ) }</li>|.
     ENDLOOP.
     result = result && |</ul>{ render_actions( is_surface-actions ) }|.
     IF is_surface-token_value IS NOT INITIAL.
