@@ -56,9 +56,12 @@ async function loadInclude(name, parentFilename, resolver) {
 
 function findIncludes(source) {
   const includes = [];
-  const pattern = /^\s*INCLUDE\s+([^\s.]+)\s*\./gim;
+  // `[ \t]*` (not `\s*`) keeps the match anchored on the INCLUDE line: with the
+  // `m` flag `\s` also matches newlines, which made the offset - and therefore
+  // the diagnostic line - point at the preceding blank line.
+  const pattern = /^[ \t]*INCLUDE\s+([^\s.]+)\s*(IF\s+FOUND)?\s*\./gim;
   for (const match of source.matchAll(pattern)) {
-    includes.push({ name: match[1], offset: match.index ?? 0 });
+    includes.push({ name: match[1], optional: Boolean(match[2]), offset: match.index ?? 0 });
   }
   return includes;
 }
@@ -101,6 +104,10 @@ export async function resolveSources({ source, filename, resolveInclude }) {
     for (const include of findIncludes(normalized.source)) {
       const loaded = await loadInclude(include.name, unit.filename, resolveInclude);
       if (loaded === undefined) {
+        // `INCLUDE name IF FOUND.` is optional: a missing include is not an
+        // error, but a resolvable one still has to participate in the
+        // conversion so its content is not silently dropped.
+        if (include.optional) continue;
         diagnostics.push(diagnostic({
           code: "GGCONV-E102",
           filename: unit.filename,

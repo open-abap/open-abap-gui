@@ -460,39 +460,45 @@ function parseFormat(raw, context) {
 
 function parseMessage(raw, context) {
   const body = stripPeriod(raw).replace(/^MESSAGE\s+/i, "");
+  // DISPLAY LIKE is an addition that sits after TYPE (or after the message
+  // operands). Detect it once and strip it from the text/operand payload so it
+  // is never copied into the emitted string template.
+  const displayLike = /DISPLAY\s+LIKE\s+'?([AEISWX])'?/i.exec(body)?.[1]?.toUpperCase();
+  const displayField = displayLike ? ` display_like = zif_gg_session_types_v1=>${MESSAGE_TYPES[displayLike]}` : "";
   const type = /TYPE\s+'?([AEISWX])'?/i.exec(body)?.[1]?.toUpperCase() ?? "I";
   const typeExpr = `zif_gg_session_types_v1=>${MESSAGE_TYPES[type]}`;
+  const withPart = (source) => (/\bWITH\s+(.+?)(?:\s+DISPLAY\s+LIKE\b[\s\S]*)?$/i.exec(source)?.[1] ?? "");
   const text = /^('(?:''|[^'])*')\s+TYPE/i.exec(body)?.[1];
   if (text) {
-    const displayLike = /DISPLAY\s+LIKE\s+'?([AEISWX])'?/i.exec(body)?.[1]?.toUpperCase();
-    return `io_session->message( VALUE #( type = ${typeExpr} text = ${text}${displayLike ? ` display_like = zif_gg_session_types_v1=>${MESSAGE_TYPES[displayLike]}` : ""} ) ).`;
+    return `io_session->message( VALUE #( type = ${typeExpr} text = ${text}${displayField} ) ).`;
   }
   const messageReference = /^([AEISWX])(\d{3})\(([A-Z0-9_]+)\)/i.exec(body);
   if (messageReference) {
-    const withPart = /\bWITH\s+(.+)$/i.exec(body)?.[1] ?? "";
-    const operands = splitMessageOperands(withPart);
+    const operands = splitMessageOperands(withPart(body));
     const fields = [
       "type = zif_gg_session_types_v1=>" + MESSAGE_TYPES[messageReference[1].toUpperCase()],
       "id = '" + messageReference[3].toUpperCase() + "'",
       "number = '" + messageReference[2] + "'",
     ];
     operands.slice(0, 4).forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
-    return "io_session->message( VALUE #( " + fields.join(" ") + " ) ).";
+    return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
   }
   const reference = /^([A-Z0-9_]+)\((\d+)\)/i.exec(body);
   if (reference) {
-    const withPart = /\bWITH\s+(.+)$/i.exec(body)?.[1] ?? "";
-    const operands = splitMessageOperands(withPart);
+    const operands = splitMessageOperands(withPart(body));
     const fields = [
       "type = " + typeExpr,
       "id = '" + reference[1].toUpperCase() + "'",
       "number = '" + reference[2].padStart(3, "0") + "'",
     ];
     operands.slice(0, 4).forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
-    return "io_session->message( VALUE #( " + fields.join(" ") + " ) ).";
+    return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
   }
-  if (reference) return `io_session->message( VALUE #( type = ${typeExpr} id = '${reference[1].toUpperCase()}' number = '${reference[2].padStart(3, "0")}' ) ).`;
-  return `io_session->message( VALUE #( type = ${typeExpr} text = ${expressionText(body.replace(/\s+TYPE\s+['"]?[AEISWX]['"]?$/i, ""), context)} ) ).`;
+  const literal = body
+    .replace(/\s+DISPLAY\s+LIKE\s+'?[AEISWX]'?\s*$/i, "")
+    .replace(/\s+TYPE\s+['"]?[AEISWX]['"]?\s*$/i, "")
+    .trim();
+  return `io_session->message( VALUE #( type = ${typeExpr} text = ${expressionText(literal, context)}${displayField} ) ).`;
 }
 
 export function lowerStatement(statement, context) {
@@ -891,7 +897,14 @@ export function lowerStatement(statement, context) {
   }
   if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static", "Comment", "Empty"].includes(statement.kind)) {
     const declaration = statement.kind === "Static" ? raw.replace(/^STATICS\b/i, "DATA") : raw;
-    return replaceOutsideStrings(declaration, context.replacements);
+    // abaplint splits a chained declaration into one statement per element and
+    // repeats the keyword while keeping the separating comma. Each emitted
+    // element is a standalone statement, so a trailing comma must become its
+    // terminator.
+    const terminated = ["Data", "Type", "Constant", "Static"].includes(statement.kind)
+      ? declaration.replace(/,\s*$/, ".")
+      : declaration;
+    return replaceOutsideStrings(terminated, context.replacements);
   }
   return `* TODO GGCONV-E501: unsupported ${statement.kind} statement requires manual lowering.`;
 }
