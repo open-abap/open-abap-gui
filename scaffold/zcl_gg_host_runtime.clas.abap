@@ -300,7 +300,6 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lo_object TYPE REF TO object.
     DATA lo_report TYPE REF TO zif_gg_report_v1.
     DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
-    DATA ls_submit_result TYPE zcl_gg_host=>ty_result.
     DATA lv_popup_action TYPE string.
     DATA lv_help_request TYPE zif_gg_dynpro_types_v1=>ty_name.
     DATA lv_resume_continuation TYPE string.
@@ -416,21 +415,13 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         rs_response = invalid_response( 'Submitted report is unknown or not executable.' ).
         RETURN.
       ENDIF.
-      ls_submit_result = zcl_gg_host=>run(
-        io_report            = lo_report
-        iv_program           = CONV #( ls_dynpro-navigation-target )
-        it_input             = ls_dynpro-submit-values
-        iv_present_selection = ls_dynpro-submit-via_selection_screen ).
-      ls_dynpro = zcl_gg_host_dynpro=>run(
-        io_program             = ls_session-dynpro_program
-        iv_ucomm               = ``
-        iv_submitted           = abap_false
-        it_values              = ls_dynpro-values
-        iv_screen              = ls_dynpro-screen
-        io_resumable           = ls_session-resumable
-        iv_resume_continuation = ls_dynpro-navigation-continuation
-        iv_session_id          = ls_session-session_id
-        iv_page_id             = lv_page_id ).
+      close( ls_session-session_id ).
+      rs_response = start(
+        io_report                = lo_report
+        it_input                 = ls_dynpro-submit-values
+        iv_interactive           = abap_false
+        iv_selection_screen_only = ls_dynpro-submit-via_selection_screen ).
+      RETURN.
     ENDIF.
     ls_session-next_page = ls_session-next_page + 1.
     ls_session-last_dynpro = ls_dynpro.
@@ -548,7 +539,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
-          iv_stop_before_start   = abap_true
+          iv_stop_before_start   = xsdbool( is_request-direct_action = abap_false )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_value_help.
         ls_result = zcl_gg_host=>run(
@@ -560,7 +551,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
-          iv_stop_before_start   = abap_true
+          iv_stop_before_start   = xsdbool( is_request-direct_action = abap_false )
           iv_pause_at_navigation = abap_true ).
       WHEN zif_gg_host_html_v1=>action_exit.
         ls_result = zcl_gg_host=>run(

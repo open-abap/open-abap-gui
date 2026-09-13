@@ -443,9 +443,9 @@ CLASS cl_gui_control IMPLEMENTATION.
         WHEN 'TOOLBAR'.
           result = result && |<div class="gg-control gg-control-toolbar { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" role="toolbar" aria-label="Control toolbar" data-toolbar-scope="control"{ lv_hidden }>|.
           LOOP AT ls_snapshot-buttons INTO DATA(ls_button).
-            lv_button_label = COND #( WHEN ls_button-quickinfo IS INITIAL
-                                      THEN CONV string( ls_button-text )
-                                      ELSE CONV string( ls_button-quickinfo ) ).
+            lv_button_label = COND #( WHEN ls_button-text IS INITIAL
+                                      THEN CONV string( ls_button-quickinfo )
+                                      ELSE CONV string( ls_button-text ) ).
             result = result && |<button class="{ state_class( iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ) }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
           ENDLOOP.
           result = result && |</div>|.

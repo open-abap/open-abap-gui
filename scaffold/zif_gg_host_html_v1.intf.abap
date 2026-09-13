@@ -83,6 +83,7 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
            session_id     TYPE string,
            page_id        TYPE string,
            action         TYPE string,
+           direct_action  TYPE abap_bool,
            ucomm          TYPE string,
            target         TYPE string,
            value          TYPE string,

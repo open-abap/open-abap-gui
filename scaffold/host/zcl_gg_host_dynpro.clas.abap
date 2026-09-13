@@ -194,6 +194,13 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_lines) TYPE i.
 
+    CLASS-METHODS table_value_count
+      IMPORTING
+        it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
+        iv_container    TYPE zif_gg_dynpro_types_v1=>ty_name
+      RETURNING
+        VALUE(rv_lines) TYPE i.
+
     CLASS-METHODS table_loop_bounds
       IMPORTING
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
@@ -312,7 +319,6 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lt_dynamic_lists TYPE zcl_gg_host_compatibility=>ty_selection_lists.
     FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
     FIELD-SYMBOLS <ls_control> TYPE zcl_gg_host_dynpro_builder=>ty_control_record.
-    DATA lv_loop_lines TYPE i.
     DATA ls_state TYPE zif_gg_dynpro_types_v1=>ty_state.
     DATA lo_context_menu_provider TYPE REF TO zif_gg_context_menu_v1.
     DATA lo_context_menu TYPE REF TO cl_ctmenu.
@@ -405,7 +411,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
 
     ls_context-field = iv_field.
     ls_context-row = iv_row.
-    ls_context-loop_index = iv_row.
+    ls_context-loop_index = COND #( WHEN iv_row IS INITIAL THEN 0 ELSE 1 ).
     ls_context-cursor_field = iv_cursor_field.
     ls_context-cursor_row = iv_cursor_row.
     LOOP AT lt_values INTO ls_input_value.
@@ -416,16 +422,15 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         ENDIF.
         IF ls_context-row IS INITIAL.
           ls_context-row = ls_input_value-row.
-          ls_context-loop_index = ls_input_value-row.
+          ls_context-loop_index = 1.
         ENDIF.
         EXIT.
       ENDIF.
     ENDLOOP.
     IF ls_context-table_control IS NOT INITIAL.
-      lv_loop_lines = table_line_count(
+      ls_context-loop_lines = table_value_count(
         it_values    = lt_values
         iv_container = ls_context-table_control ).
-      ls_context-loop_lines = lv_loop_lines.
     ENDIF.
 
     lv_screen = COND #(
@@ -462,9 +467,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         rs_result-terminal = lx_flow->mv_operation.
         rs_result-terminal_state = xsdbool(
           lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_program
-          OR lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_transaction
-          OR ( lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_screen
-            AND lo_session->get_next_screen( ) = '0000' ) ).
+          OR lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_transaction ).
         CASE lx_flow->mv_kind.
           WHEN zcx_gg_control_flow=>kind_call_screen.
             ls_screen_call = lo_session->get_screen_call( ).
@@ -942,6 +945,13 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
+  METHOD table_value_count.
+    LOOP AT it_values TRANSPORTING NO FIELDS
+        WHERE container = iv_container.
+      rv_lines = rv_lines + 1.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD table_loop_bounds.
     DATA lv_visible_rows TYPE i.
 
@@ -974,17 +984,19 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
 
   METHOD execute_output_step.
     DATA lv_table_row TYPE i.
+    DATA ls_context TYPE zif_gg_dynpro_types_v1=>ty_module_context.
 
     io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
-    cs_context-screen = iv_screen.
-    cs_context-module = is_step-module-name.
-    CLEAR cs_context-ucomm.
+    ls_context = cs_context.
+    ls_context-screen = iv_screen.
+    ls_context-module = is_step-module-name.
+    CLEAR ls_context-ucomm.
     IF iv_table_control IS INITIAL.
-      CLEAR: cs_context-table_control, cs_context-row,
-             cs_context-loop_index, cs_context-loop_lines.
+      CLEAR: ls_context-table_control, ls_context-row,
+             ls_context-loop_index, ls_context-loop_lines.
       io_program->process_output_module(
         EXPORTING
-          is_context = cs_context
+          is_context = ls_context
           io_session = io_session
         CHANGING
           ct_values  = ct_values
@@ -992,13 +1004,13 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     ELSEIF iv_table_end >= iv_table_start.
       lv_table_row = iv_table_start.
       WHILE lv_table_row <= iv_table_end.
-        cs_context-table_control = iv_table_control.
-        cs_context-row = lv_table_row.
-        cs_context-loop_index = lv_table_row - iv_table_start + 1.
-        cs_context-loop_lines = iv_table_lines.
+        ls_context-table_control = iv_table_control.
+        ls_context-row = lv_table_row.
+        ls_context-loop_index = lv_table_row - iv_table_start + 1.
+        ls_context-loop_lines = iv_table_lines.
         io_program->process_output_module(
           EXPORTING
-            is_context = cs_context
+            is_context = ls_context
             io_session = io_session
           CHANGING
             ct_values  = ct_values
@@ -1020,8 +1032,6 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     cs_context-module = is_step-module-name.
     cs_context-ucomm = iv_ucomm.
     IF iv_table_control IS INITIAL.
-      CLEAR: cs_context-table_control, cs_context-row,
-             cs_context-loop_index, cs_context-loop_lines.
       io_program->process_input_module(
         EXPORTING
           is_context = cs_context
@@ -1120,10 +1130,18 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     IF iv_resume_enabled = abap_true AND iv_continuation IS NOT INITIAL.
       TRY.
           lo_resumable = io_resumable.
-          IF lo_resumable IS NOT BOUND.
+        CATCH cx_root.
+          CLEAR lo_resumable.
+      ENDTRY.
+      IF lo_resumable IS NOT BOUND.
+        TRY.
             lo_resumable ?= io_program.
-          ENDIF.
-          IF lo_resumable IS BOUND.
+          CATCH cx_root.
+            CLEAR lo_resumable.
+        ENDTRY.
+      ENDIF.
+      IF lo_resumable IS BOUND.
+        TRY.
             lo_resumable->resume(
               is_resume  = VALUE #(
                 continuation = VALUE #( id = iv_continuation )
@@ -1134,9 +1152,9 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
                 io_session = io_session
               CHANGING
                 ct_values  = ct_values ).
-          ENDIF.
-        CATCH zcx_gg_control_flow.
-      ENDTRY.
+          CATCH zcx_gg_control_flow.
+        ENDTRY.
+      ENDIF.
     ENDIF.
     IF iv_execute_pbo = abap_false.
       RETURN.
@@ -1200,6 +1218,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
 
   METHOD refresh_after_input.
     DATA ls_status TYPE zif_gg_session_types_v1=>ty_gui_status.
+    DATA lt_values TYPE zif_gg_dynpro_types_v1=>ty_values.
 
     IF iv_submitted <> abap_true OR iv_allowed <> abap_true.
       RETURN.
@@ -1215,6 +1234,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    lt_values = ct_values.
     destination_pbo(
       EXPORTING
         io_program        = io_program
@@ -1226,7 +1246,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_execute_pbo    = abap_true
       CHANGING
         cs_context        = cs_context
-        ct_values         = ct_values
+        ct_values         = lt_values
         ct_states         = ct_states ).
     prepare_context_menu(
       EXPORTING

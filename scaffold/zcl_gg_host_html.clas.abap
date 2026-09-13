@@ -249,6 +249,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-hotspot\{color:#075e9a;text-decoration:underline;text-decoration-style:dotted;\}|.
     rv_html = rv_html && |[role=tree]\{margin:0;padding:4px 8px;list-style:none;\}|.
     rv_html = rv_html && |.gg-tree-node\{display:block;min-height:22px;padding:2px 6px;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-tree-node[hidden]\{display:none;\}|.
     rv_html = rv_html && |.gg-tree-node.gg-state-selected\{background:#c7dced;color:#102f4d;font-weight:600;\}|.
     rv_html = rv_html && |.gg-control-toolbar,.gg-alv-toolbar\{display:flex;align-items:center;gap:4px;min-height:26px;padding:2px 4px;background:linear-gradient(var(--gg-panel),var(--gg-work-area));border:1px solid var(--gg-border-dark);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button\{min-height:22px;padding:2px 8px;border:1px solid var(--gg-border);border-radius:1px;background:linear-gradient(#fff,var(--gg-panel));color:#123b64;font:inherit;cursor:pointer;\}|.

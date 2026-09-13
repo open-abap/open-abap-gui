@@ -829,7 +829,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     LOOP AT mt_html_rows INTO DATA(ls_row).
       DATA(lv_selected) = xsdbool( line_exists( mt_selected_rows[ index = ls_row-index ] ) ).
       DATA(lv_row_state_class) = cl_gui_control=>state_class( iv_selected = lv_selected ).
-      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"><td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
+      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }><td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
         DATA(lv_cell_state_class) = cl_gui_control=>state_class(
           iv_total    = ls_cell-total

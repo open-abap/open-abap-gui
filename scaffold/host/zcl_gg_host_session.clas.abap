@@ -241,6 +241,9 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
         ls_message-text = lv_text.
       ENDIF.
     ENDIF.
+    IF line_exists( mt_messages[ type = ls_message-type text = ls_message-text field = ls_message-field ] ).
+      RETURN.
+    ENDIF.
     APPEND ls_message TO mt_messages.
     IF ls_message-type = zif_gg_session_types_v1=>message_type_info
         OR ls_message-type = zif_gg_session_types_v1=>message_type_success.

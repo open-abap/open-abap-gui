@@ -9,6 +9,7 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
              session_id     TYPE string,
              page_id        TYPE string,
              action         TYPE string,
+             direct_action  TYPE abap_bool,
              gg_action      TYPE string,
              ucomm          TYPE string,
              gg_ucomm       TYPE string,
@@ -442,6 +443,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           json = lv_cdata
         CHANGING
           data = ls_payload ).
+      ls_payload-direct_action = abap_true.
       rs_request = request_from_payload( ls_payload ).
     ELSE.
       rs_request = request_from_form( server ).
@@ -508,6 +510,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     rs_request-session_id = is_payload-session_id.
     rs_request-page_id = is_payload-page_id.
     rs_request-action = is_payload-action.
+    rs_request-direct_action = is_payload-direct_action.
     rs_request-ucomm = is_payload-ucomm.
     rs_request-target = is_payload-target.
     rs_request-value = is_payload-value.
@@ -602,6 +605,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD form_value.
     LOOP AT it_fields INTO DATA(ls_field) WHERE name = iv_name.
       rv_value = ls_field-value.
+      IF iv_name = 'gg_action' AND ls_field-value <> 'SUBMIT'.
+        RETURN.
+      ENDIF.
     ENDLOOP.
   ENDMETHOD.
 
@@ -618,6 +624,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     LOOP AT it_fields INTO DATA(ls_field).
       lv_value = ls_field-value.
       REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
+      IF ls_field-name CP 'gg-unchecked-*'.
+        lv_name = substring(
+          val = ls_field-name
+          off = 13 ).
+        INSERT VALUE #(
+          name   = CONV zif_gg_selection_screen_types=>ty_name( lv_name )
+          value  = ``
+          ranges = VALUE #( ) ) INTO TABLE rt_values.
+        CONTINUE.
+      ENDIF.
       IF ls_field-name CP 'gg-radio-*'.
         lv_name = ls_field-value.
         INSERT VALUE #(
@@ -781,6 +797,20 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     LOOP AT it_fields INTO DATA(ls_field).
       lv_value = ls_field-value.
       REPLACE ALL OCCURRENCES OF '+' IN lv_value WITH ` `.
+      IF ls_field-name CP 'gg-unchecked-*'.
+        lv_name = substring(
+          val = ls_field-name
+          off = 13 ).
+        add_dynpro_value(
+          EXPORTING
+            iv_container = ``
+            iv_name      = lv_name
+            iv_row       = 0
+            iv_value     = ``
+          CHANGING
+            ct_values    = rt_values ).
+        CONTINUE.
+      ENDIF.
       IF ls_field-name CP 'gg-radio-*'.
 *       A radio group posts the selected control name as its value; the field
 *       name only carries the group. Selecting the group would name no control.
