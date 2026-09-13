@@ -1,66 +1,63 @@
 import {test as base, expect} from "playwright/test";
 import {spawn} from "node:child_process";
-import {createServer} from "node:net";
 import {once} from "node:events";
 
 const HOST_STARTUP_TIMEOUT_MS = 30_000;
 
-async function freePort() {
-  const probe = createServer();
-  await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
-  const port = probe.address().port;
-  await new Promise((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
-  return port;
+async function stopHost(child) {
+  if (child.exitCode === null) {
+    child.kill();
+    await once(child, "close");
+  }
 }
 
 async function startHost() {
-  const port = await freePort();
   const child = spawn(process.execPath, ["test/start-server.mjs"], {
     cwd: process.cwd(),
-    env: {...process.env, OPEN_ABAP_GUI_PORT: String(port)},
+    env: {...process.env, OPEN_ABAP_GUI_PORT: "0"},
     stdio: ["ignore", "pipe", "pipe"],
   });
-  const baseUrl = `http://127.0.0.1:${port}`;
   const started = new Promise((resolve, reject) => {
     let settled = false;
+    let stdout = "";
+    let stderr = "";
     const timeout = setTimeout(() => {
       if (settled) return;
       settled = true;
       reject(new Error("Timed out starting the ABAP HTML host"));
     }, HOST_STARTUP_TIMEOUT_MS);
-    const check = async () => {
-      if (settled) return;
-      try {
-        const response = await fetch(baseUrl);
-        if (response.ok) {
-          settled = true;
-          clearTimeout(timeout);
-          resolve();
-          return;
-        }
-      } catch {
-        // The child is still starting.
-      }
-      if (!settled) setTimeout(check, 50);
-    };
-    child.once("exit", (code) => {
+    const finish = (callback) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      reject(new Error(`ABAP HTML host exited during startup (${code})`));
+      callback();
+    };
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+      const match = stdout.match(/ABAP HTML server started at (http:\/\/127\.0\.0\.1:\d+)/);
+      if (match) finish(() => resolve(match[1]));
     });
-    check();
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.once("error", (error) => {
+      finish(() => reject(new Error(`Unable to start the ABAP HTML host: ${error.message}`)));
+    });
+    child.once("exit", (code) => {
+      const details = stderr.trim() || stdout.trim();
+      finish(() => reject(new Error(
+        `ABAP HTML host exited during startup (${code})${details ? `: ${details}` : ""}`)));
+    });
   });
   try {
-    await started;
+    const baseUrl = await started;
+    return {child, baseUrl};
   } catch (error) {
-    if (child.exitCode === null) {
-      child.kill();
-      await once(child, "close");
-    }
+    await stopHost(child);
     throw error;
   }
-  return {child, baseUrl};
 }
 
 export const test = base.extend({
@@ -70,10 +67,7 @@ export const test = base.extend({
     try {
       await use({baseUrl});
     } finally {
-      if (child.exitCode === null) {
-        child.kill();
-        await once(child, "close");
-      }
+      await stopHost(child);
     }
   }, {scope: "worker"}],
 });
@@ -111,11 +105,7 @@ export async function dispatch(page, request) {
     return {status: result.status, html: await result.text()};
   }, {sessionId, pageId, request});
   expect(response.status, response.html).toBe(200);
-  await page.evaluate((html) => {
-    document.open();
-    document.write(html);
-    document.close();
-  }, response.html);
+  await page.setContent(response.html, {waitUntil: "load"});
   await expect(page.locator("[data-page-kind]")).toHaveCount(1);
 }
 
