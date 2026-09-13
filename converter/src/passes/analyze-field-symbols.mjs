@@ -9,16 +9,42 @@ function ownerStatements(ir, statement) {
     .find((method) => method.statements?.includes(statement))?.statements ?? [];
 }
 
-function staticType(raw) {
+const UNSAFE_ASSIGN_ADDITIONS = /\b(CASTING|INCREMENTING|DECIMALS|RANGE|ELSEWHERE)\b/i;
+const TABLE_DECLARATION_KINDS = new Set(["data", "static", "tables", "ranges"]);
+
+function declaredTables(ir) {
+  return new Set((ir.declarations ?? [])
+    .filter((declaration) => TABLE_DECLARATION_KINDS.has(declaration.kind))
+    .flatMap((declaration) => (declaration.names ?? []).map((name) => String(name).toUpperCase())));
+}
+
+// `TYPE <elementary>` is determined on its own. `TYPE|LIKE LINE OF <itab>` is
+// too, provided the table is named statically and declared by the program
+// itself: the row type is then whatever the emitted table declaration already
+// says, so no shape has to be guessed.
+function staticType(raw, tables) {
   const type = /\bTYPE\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1]?.toUpperCase();
-  return type && ELEMENTARY_TYPES.has(type);
+  if (type && ELEMENTARY_TYPES.has(type)) return true;
+  const row = /\b(?:TYPE|LIKE)\s+LINE\s+OF\s+([A-Z][A-Z0-9_]*)(?![A-Z0-9_(-])/i.exec(raw)?.[1]?.toUpperCase();
+  return Boolean(row && tables.has(row));
+}
+
+// `LOOP AT itab ASSIGNING <fs>` and `READ TABLE itab ... ASSIGNING <fs>` bind
+// the field symbol to a row of a statically named table, which is exactly as
+// determined as the `ASSIGN x TO <fs>` form. Both are lowered and emitted, so
+// both have to count as bindings or the emitted use loses its declaration.
+function bindsStatically(text, name) {
+  if (UNSAFE_ASSIGN_ADDITIONS.test(text)) return false;
+  const assign = /^\s*ASSIGN\s+([A-Z][A-Z0-9_-]*)\s+TO\s+<([A-Z][A-Z0-9_]*)>\.?\s*$/i.exec(text);
+  if (assign) return assign[2].toUpperCase() === name;
+  if (!/^\s*(?:LOOP\s+AT|READ\s+TABLE)\s+[A-Z][A-Z0-9_]*\b/i.test(text)) return false;
+  if (/^\s*LOOP\s+AT\s+SCREEN\b/i.test(text)) return false;
+  const assigning = /\bASSIGNING\s+<([A-Z][A-Z0-9_]*)>/i.exec(text)?.[1]?.toUpperCase();
+  return assigning === name;
 }
 
 function staticallyAssigned(statements, name) {
-  return statements.some((statement) => {
-    const match = /^\s*ASSIGN\s+([A-Z][A-Z0-9_-]*)\s+TO\s+<([A-Z][A-Z0-9_]*)>\.?\s*$/i.exec(statement.text);
-    return match?.[2]?.toUpperCase() === name && !/\b(CASTING|INCREMENTING|DECIMALS|RANGE|ELSEWHERE)\b/i.test(statement.text);
-  });
+  return statements.some((statement) => bindsStatically(statement.text, name));
 }
 
 function references(statements, name) {
@@ -36,9 +62,10 @@ function globalOwners(ir, name) {
 
 export function analyzeFieldSymbols(ir) {
   const safe = new Set();
+  const tables = declaredTables(ir);
   for (const declaration of ir.declarations ?? []) {
     for (const name of declaration.names ?? []) {
-      if (declaration.kind !== "field-symbol" || !staticType(declaration.raw)) continue;
+      if (declaration.kind !== "field-symbol" || !staticType(declaration.raw, tables)) continue;
       const owner = declaration.statement?.scope === "local"
         ? [ownerStatements(ir, declaration.statement)]
         : globalOwners(ir, name);

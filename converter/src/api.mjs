@@ -28,9 +28,48 @@ import { loadDynproMetadata } from "./dynpro-metadata.mjs";
 const SAFE_ENTRY_FAILURE_CODES = new Set([
   "GGCONV-E100", "GGCONV-E101", "GGCONV-E102", "GGCONV-E103", "GGCONV-E104",
   "GGCONV-E105", "GGCONV-E106", "GGCONV-E107", "GGCONV-E108", "GGCONV-E109",
-  "GGCONV-E201", "GGCONV-E202", "GGCONV-E203", "GGCONV-E204", "GGCONV-E301",
+  "GGCONV-E201", "GGCONV-E202", "GGCONV-E203", "GGCONV-E204", "GGCONV-E205", "GGCONV-E301",
   "GGCONV-E502", "GGCONV-E503",
 ]);
+
+// The parser validation behind GGCONV-E202 only proves the generated source
+// parses. A field symbol whose declaration was dropped while its uses survived
+// still parses and still fails activation, so the emitted class is also checked
+// for that structurally.
+export function undeclaredFieldSymbols(source) {
+  const declared = new Set();
+  const used = new Map();
+  const lines = source.split("\n");
+  let declaring = false;
+  for (let index = 0; index < lines.length; index++) {
+    if (/^\s*\*/.test(lines[index])) continue;
+    const code = lines[index].replace(/'(?:''|[^'])*'/g, " ").split('"')[0];
+    for (const match of code.matchAll(/\bFIELD-SYMBOL\s*\(\s*<([A-Z][A-Z0-9_]*)>\s*\)/gi)) declared.add(match[1].toUpperCase());
+    // A chained FIELD-SYMBOLS declaration keeps declaring across lines until
+    // the statement is terminated.
+    if (declaring || /^\s*FIELD-SYMBOLS\b/i.test(code)) {
+      for (const match of code.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)) declared.add(match[1].toUpperCase());
+      declaring = !/\.\s*$/.test(code.trimEnd());
+      continue;
+    }
+    for (const match of code.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)) {
+      if (!used.has(match[1].toUpperCase())) used.set(match[1].toUpperCase(), index + 1);
+    }
+  }
+  return [...used].filter(([name]) => !declared.has(name));
+}
+
+function undeclaredFieldSymbolDiagnostics(sources) {
+  return sources.flatMap(({ filename, source }) => undeclaredFieldSymbols(source).map(([name, line]) => diagnostic({
+    code: "GGCONV-E205",
+    filename,
+    start: { line, column: 1 },
+    construct: `<${name.toLowerCase()}>`,
+    message: `generated class references field symbol <${name.toLowerCase()}> without declaring it`,
+    suggestion: "Emit the field-symbol declaration, or omit the statements that use it together with its binding.",
+    phase: "validate-generated",
+  })));
+}
 
 function requiresDiagnosticShell(diagnostics) {
   return diagnostics.some((item) => SAFE_ENTRY_FAILURE_CODES.has(item.code));
@@ -446,7 +485,7 @@ export async function convertProgram(input = {}) {
   if (diagnostics.some((item) => item.code === "GGCONV-E107" || item.code === "GGCONV-E108")) {
     return { classSource: undefined, manifest: undefined, diagnostics: sortDiagnostics(diagnostics), sourceMap: [], supported: false };
   }
-  const resolved = await resolveSources({ source, filename: options.filename, resolveInclude: options.resolveInclude });
+  const resolved = await resolveSources({ source, filename: options.filename, resolveInclude: options.resolveInclude, includePaths: options.includePaths });
   diagnostics.push(...resolved.diagnostics);
   const resolvedBytes = resolved.units.reduce((total, unit) => total + Buffer.byteLength(unit.source, "utf8"), 0);
   const resolvedLines = resolved.units.reduce((total, unit) => total + unit.source.split("\n").length, 0);
@@ -537,10 +576,12 @@ export async function convertProgram(input = {}) {
     ? emitHelperSources(ir, options)
     : [];
   const sourceMap = addGeneratedLocations(classSource, buildSourceMap(ir));
-  const generatedValidation = parseUnits([
+  const generatedUnits = [
     { filename: `${ir.targetClassName}.clas.abap`, source: classSource, ancestry: [], newline: "\n" },
     ...helperSources.map((helper) => ({ filename: `${helper.className}.clas.abap`, source: helper.source, ancestry: [], newline: "\n" })),
-  ], config);
+  ];
+  const generatedValidation = parseUnits(generatedUnits, config);
+  diagnostics.push(...undeclaredFieldSymbolDiagnostics(generatedUnits));
   diagnostics.push(...generatedValidation.diagnostics.map((item) => ({
     ...item,
     code: "GGCONV-E202",

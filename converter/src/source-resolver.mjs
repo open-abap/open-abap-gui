@@ -23,14 +23,18 @@ export function rangeFromOffsets(source, startOffset, endOffset) {
   return { start: linePosition(source, startOffset), end: linePosition(source, endOffset) };
 }
 
-function includeCandidates(name, parentFilename) {
-  const base = path.dirname(parentFilename);
-  return [name, `${name}.incl.abap`, path.join(base, name), path.join(base, `${name}.incl.abap`)].filter(
-    (value, index, values) => values.indexOf(value) === index,
-  );
+// abapGit-serialised repositories store INCLUDE programs as `<name>.prog.abap`,
+// so that suffix has to be tried alongside the `<name>.incl.abap` form.
+const INCLUDE_SUFFIXES = ["", ".incl.abap", ".prog.abap"];
+
+function includeCandidates(name, parentFilename, searchPaths = []) {
+  const bases = [undefined, path.dirname(parentFilename), ...searchPaths];
+  const candidates = bases.flatMap((base) => INCLUDE_SUFFIXES
+    .map((suffix) => (base === undefined ? `${name}${suffix}` : path.join(base, `${name}${suffix}`))));
+  return candidates.filter((value, index, values) => values.indexOf(value) === index);
 }
 
-async function loadInclude(name, parentFilename, resolver) {
+async function loadInclude(name, parentFilename, resolver, includePaths) {
   if (typeof resolver === "function") {
     try {
       const result = await resolver(name, parentFilename);
@@ -44,7 +48,7 @@ async function loadInclude(name, parentFilename, resolver) {
       return undefined;
     }
   }
-  for (const candidate of includeCandidates(name, parentFilename)) {
+  for (const candidate of includeCandidates(name, parentFilename, includePaths)) {
     try {
       return { filename: candidate, source: await fs.readFile(candidate, "utf8") };
     } catch {
@@ -66,7 +70,8 @@ function findIncludes(source) {
   return includes;
 }
 
-export async function resolveSources({ source, filename, resolveInclude }) {
+export async function resolveSources({ source, filename, resolveInclude, includePaths }) {
+  const searchPaths = (Array.isArray(includePaths) ? includePaths : []).filter((item) => typeof item === "string" && item);
   const diagnostics = [];
   const units = [];
   const seen = new Set();
@@ -102,7 +107,7 @@ export async function resolveSources({ source, filename, resolveInclude }) {
     active.push(identity);
     units.push({ filename: unit.filename, source: normalized.source, newline: normalized.newline, ancestry });
     for (const include of findIncludes(normalized.source)) {
-      const loaded = await loadInclude(include.name, unit.filename, resolveInclude);
+      const loaded = await loadInclude(include.name, unit.filename, resolveInclude, searchPaths);
       if (loaded === undefined) {
         // `INCLUDE name IF FOUND.` is optional: a missing include is not an
         // error, but a resolvable one still has to participate in the

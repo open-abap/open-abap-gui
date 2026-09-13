@@ -935,6 +935,26 @@ function blockEndIndex(statements, start) {
   return -1;
 }
 
+// `'...'` and `` `...` `` literals can hold angle brackets that are not field
+// symbols at all - HTML fragments in particular - so they are removed first.
+function referencedFieldSymbols(text) {
+  const body = text.replace(/'(?:''|[^'])*'/g, " ").replace(/`(?:``|[^`])*`/g, " ");
+  return [...body.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)].map((match) => match[1].toUpperCase());
+}
+
+export function inlineFieldSymbols(statements) {
+  return (statements ?? []).flatMap((statement) =>
+    [...statement.text.matchAll(/\bFIELD-SYMBOL\s*\(\s*<([A-Z][A-Z0-9_]*)>\s*\)/gi)].map((match) => match[1].toUpperCase()));
+}
+
+// A field symbol whose declaration and binding were both dropped as
+// unconvertible has no declaration in the generated class, so a statement that
+// still reads or writes it cannot compile. The use has to go with the binding.
+function unboundFieldSymbols(statement, bound) {
+  if (statement.kind === "Comment") return [];
+  return [...new Set(referencedFieldSymbols(statement.text))].filter((name) => !bound.has(name));
+}
+
 function isCommentOnly(lowered) {
   return lowered === undefined || lowered.split("\n").every((line) => line.trim().startsWith("*"));
 }
@@ -953,6 +973,13 @@ export function lowerStatements(statements, context) {
   let pendingHidden = [];
   let lastWriteIndex = -1;
   const rangeLoops = [];
+  // An inline `FIELD-SYMBOL(<fs>)` declares the symbol where it is bound, so it
+  // is available to the rest of this statement list without a declaration of
+  // its own. `safeFieldSymbols` is absent when a caller lowers statements
+  // outside a generated class, and the check then stays off.
+  const bound = Array.isArray(context.safeFieldSymbols)
+    ? new Set([...context.safeFieldSymbols, ...inlineFieldSymbols(statements)])
+    : undefined;
   for (let index = 0; index < statements.length; index++) {
     const statement = statements[index];
     if (statement.kind === "Hide") {
@@ -979,8 +1006,11 @@ export function lowerStatements(statements, context) {
       && /^WRITE\s*\//i.test(statement.text.trim())
       ? { ...statement, text: statement.text.replace(/^\s*WRITE\s*\/\s*/i, "WRITE ") }
       : statement;
-    const lowered = lowerStatement(lowerInput, statementContext);
-    const omitted = `* TODO GGCONV-E501: unsupported statement omitted: ${statement.text.trim().replace(/\s+/g, " ")}`;
+    const unbound = bound ? unboundFieldSymbols(statement, bound) : [];
+    const lowered = unbound.length ? undefined : lowerStatement(lowerInput, statementContext);
+    const omitted = unbound.length
+      ? `* TODO GGCONV-E515: statement omitted, field symbol${unbound.length > 1 ? "s" : ""} ${unbound.map((name) => `<${name.toLowerCase()}>`).join(" ")} ${unbound.length > 1 ? "have" : "has"} no convertible binding: ${statement.text.trim().replace(/\s+/g, " ")}`
+      : `* TODO GGCONV-E501: unsupported statement omitted: ${statement.text.trim().replace(/\s+/g, " ")}`;
     const blockEnd = BLOCK_CLOSERS.has(statement.kind) && isCommentOnly(lowered)
       ? blockEndIndex(statements, index)
       : -1;
