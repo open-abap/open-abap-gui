@@ -300,7 +300,16 @@ ENDCLASS.
 CLASS cl_tree_control_base IMPLEMENTATION.
 
   METHOD add_key_stroke.
-    RETURN. " todo, implement method
+    IF key <> key_f1 AND key <> key_enter.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_html_nodes INTO DATA(ls_node) WITH KEY selected = abap_true.
+    IF sy-subrc = 0.
+      RAISE EVENT node_keypress
+        EXPORTING
+          node_key = CONV tv_nodekey( ls_node-node_key )
+          key      = key.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_ctx_menu_select_event_appl.
@@ -338,11 +347,31 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selected_nodes.
-    RETURN. " todo, implement method
+    CLEAR node_key_table.
+    LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE selected = abap_true.
+      APPEND CONV tv_nodekey( ls_node-node_key ) TO node_key_table.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD ensure_visible.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = CONV string( node_key ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( node_key ).
+    WHILE ls_node-parent_key IS NOT INITIAL.
+      READ TABLE mt_html_nodes INTO DATA(ls_parent)
+        WITH KEY node_key = ls_node-parent_key.
+      IF sy-subrc <> 0.
+        EXIT.
+      ENDIF.
+      ls_parent-expanded = abap_true.
+      MODIFY mt_html_nodes FROM ls_parent INDEX sy-tabix.
+      ls_node = ls_parent.
+    ENDWHILE.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD collapse_nodes.
@@ -363,7 +392,25 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD move_node.
-    RETURN. " todo, implement method
+    DATA lv_node_index TYPE sy-tabix.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( node_key ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lv_node_index = sy-tabix.
+    IF relatship = relat_first_child OR relatship = relat_last_child.
+      ls_node-parent_key = CONV string( relatkey ).
+    ELSE.
+      READ TABLE mt_html_nodes INTO DATA(ls_relative)
+        WITH KEY node_key = CONV string( relatkey ).
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      ls_node-parent_key = ls_relative-parent_key.
+    ENDIF.
+    MODIFY mt_html_nodes FROM ls_node INDEX lv_node_index.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_expanded_nodes.
@@ -417,13 +464,29 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD delete_node.
-    DELETE mt_html_nodes WHERE node_key = CONV string( node_key ).
+    DATA lt_delete TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    APPEND CONV string( node_key ) TO lt_delete.
+    DO 32 TIMES.
+      LOOP AT mt_html_nodes INTO DATA(ls_child).
+        IF line_exists( lt_delete[ table_line = ls_child-parent_key ] )
+            AND NOT line_exists( lt_delete[ table_line = ls_child-node_key ] ).
+          APPEND ls_child-node_key TO lt_delete.
+        ENDIF.
+      ENDLOOP.
+    ENDDO.
+    LOOP AT lt_delete INTO DATA(lv_delete_key).
+      DELETE mt_html_nodes WHERE node_key = lv_delete_key.
+    ENDLOOP.
     refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD expand_node.
-    set_html_node_state( node_key = CONV string( node_key )
-                         expanded = abap_true ).
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = CONV string( node_key ).
+    IF sy-subrc = 0.
+      set_html_node_state( node_key = CONV string( node_key )
+                           expanded = abap_true ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_top_node.
@@ -441,7 +504,8 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD node_set_n_image.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = |node { node_key } image={ n_image }| ).
   ENDMETHOD.
 
   METHOD unselect_all.

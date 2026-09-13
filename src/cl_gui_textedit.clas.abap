@@ -13,7 +13,7 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
       IMPORTING
         max_number_chars           TYPE i OPTIONAL
         wordwrap_mode              TYPE i DEFAULT wordwrap_at_windowborder
-        wordwrap_to_linebreak_mode TYPE i DEFAULT false
+        wordwrap_to_linebreak_mode TYPE i DEFAULT 0
         wordwrap_position          TYPE i DEFAULT -1
         parent                     TYPE REF TO cl_gui_container.
 
@@ -31,7 +31,7 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS get_text_as_r3table
       IMPORTING
-        only_when_modified TYPE i DEFAULT false
+        only_when_modified TYPE i DEFAULT 0
       EXPORTING
         table              TYPE STANDARD TABLE
         is_modified        TYPE i.
@@ -46,14 +46,14 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS get_textstream
       IMPORTING
-        only_when_modified TYPE i DEFAULT false
+        only_when_modified TYPE i DEFAULT 0
       EXPORTING
         text               TYPE string
         is_modified        TYPE i.
 
     METHODS set_readonly_mode
       IMPORTING
-        readonly_mode TYPE i DEFAULT true.
+        readonly_mode TYPE i DEFAULT 1.
 
     METHODS get_selection_pos
       EXPORTING
@@ -87,7 +87,7 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS set_font_fixed
       IMPORTING
-        mode TYPE i DEFAULT true.
+        mode TYPE i DEFAULT 1.
 
     METHODS set_textstream
       IMPORTING
@@ -99,17 +99,36 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     DATA mv_readonly TYPE i.
     DATA mv_cursor_line TYPE i.
     DATA mv_cursor_pos TYPE i.
+    DATA mv_toolbar_mode TYPE i.
+    DATA mv_statusbar_mode TYPE i.
+    DATA mv_wordwrap_mode TYPE i.
+    DATA mv_wordwrap_position TYPE i.
+    DATA mv_wordwrap_to_linebreak TYPE i.
+    DATA mv_fixed_font TYPE i.
+    DATA mv_protected_from TYPE i.
+    DATA mv_protected_to TYPE i.
 
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
   METHOD set_wordwrap_behavior.
-    RETURN. " todo, implement method
+    IF wordwrap_mode >= 0.
+      mv_wordwrap_mode = wordwrap_mode.
+    ENDIF.
+    IF wordwrap_position >= 0.
+      mv_wordwrap_position = wordwrap_position.
+    ENDIF.
+    mv_wordwrap_to_linebreak = wordwrap_to_linebreak_mode.
   ENDMETHOD.
 
   METHOD get_text_as_r3table.
+    DATA lt_lines TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+
     CLEAR table.
-    APPEND mv_text TO table.
+    SPLIT mv_text AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
+    LOOP AT lt_lines ASSIGNING FIELD-SYMBOL(<line>).
+      APPEND CONV string( <line> ) TO table.
+    ENDLOOP.
     is_modified = mv_modified.
   ENDMETHOD.
 
@@ -134,7 +153,7 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_font_fixed.
-    RETURN. " todo, implement method
+    mv_fixed_font = mode.
   ENDMETHOD.
 
   METHOD set_text_as_stream.
@@ -156,11 +175,19 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD protect_lines.
-    RETURN. " todo, implement method
+    mv_protected_from = COND #( WHEN from_line > 0 THEN from_line ELSE 1 ).
+    mv_protected_to = COND #( WHEN to_line >= mv_protected_from THEN to_line ELSE mv_protected_from ).
   ENDMETHOD.
 
   METHOD go_to_line.
-    mv_cursor_line = line.
+    DATA lv_line_count TYPE i.
+    DATA lt_lines TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+
+    SPLIT mv_text AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
+    lv_line_count = lines( lt_lines ).
+    mv_cursor_line = COND #( WHEN line < 1 THEN 1
+                             WHEN line > lv_line_count THEN lv_line_count
+                             ELSE line ).
   ENDMETHOD.
 
   METHOD set_readonly_mode.
@@ -169,6 +196,9 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    mv_wordwrap_mode = wordwrap_mode.
+    mv_wordwrap_position = wordwrap_position.
+    mv_wordwrap_to_linebreak = wordwrap_to_linebreak_mode.
     cl_gui_control=>initialize(
       control = me
       parent  = parent
@@ -177,11 +207,11 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_toolbar_mode.
-    ASSERT 1 = 2.
+    mv_toolbar_mode = toolbar_mode.
   ENDMETHOD.
 
   METHOD set_statusbar_mode.
-    ASSERT 1 = 2.
+    mv_statusbar_mode = statusbar_mode.
   ENDMETHOD.
 
   METHOD get_textstream.

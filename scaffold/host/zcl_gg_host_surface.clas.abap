@@ -341,6 +341,13 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
     IF is_surface-input_name IS NOT INITIAL.
       result = result && |<label>{ escape( is_surface-input_label ) }<input type="{ escape( lv_input_type ) }" name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }"></label>|.
     ENDIF.
+    IF is_surface-rows IS NOT INITIAL.
+      result = result && '<table class="gg-popup-table"><caption>Choose a row</caption><thead><tr><th scope="col">Row</th><th scope="col">Value</th><th scope="col">Details</th></tr></thead><tbody>'.
+      LOOP AT is_surface-rows INTO DATA(ls_popup_row).
+        result = result && |<tr><th scope="row">{ sy-tabix }</th><td>{ escape( ls_popup_row-cell1 ) }</td><td>{ escape( ls_popup_row-cell2 ) }</td></tr>|.
+      ENDLOOP.
+      result = result && '</tbody></table>'.
+    ENDIF.
     result = result && |<footer class="gg-popup-actions">{ render_actions( is_surface-actions ) }</footer></div></section>|.
   ENDMETHOD.
 

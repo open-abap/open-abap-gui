@@ -421,6 +421,14 @@ CLASS cl_gui_control IMPLEMENTATION.
       result = |<section class="gg-controls" aria-label="GUI controls">|.
     ENDIF.
     LOOP AT mt_snapshots INTO DATA(ls_snapshot).
+      IF ls_snapshot-kind = 'CUSTOM_CONTAINER'.
+        READ TABLE mt_snapshots INTO DATA(ls_parent_snapshot)
+          WITH KEY control_id = ls_snapshot-parent_id.
+        IF sy-subrc = 0 AND ( ls_parent_snapshot-kind = 'SPLITTER_CONTAINER'
+            OR ls_parent_snapshot-kind = 'EASY_SPLITTER' ).
+          CONTINUE.
+        ENDIF.
+      ENDIF.
       DATA(lv_style) = |left:{ ls_snapshot-left }px;top:{ ls_snapshot-top }px;|.
       IF ls_snapshot-width > 0.
         lv_style = lv_style && |width:{ ls_snapshot-width }px;|.
@@ -443,17 +451,37 @@ CLASS cl_gui_control IMPLEMENTATION.
         WHEN 'TOOLBAR'.
           result = result && |<div class="gg-control gg-control-toolbar { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" role="toolbar" aria-label="Control toolbar" data-toolbar-scope="control"{ lv_hidden }>|.
           LOOP AT ls_snapshot-buttons INTO DATA(ls_button).
+            IF ls_button-butn_type = 2.
+              result = result && |<span class="gg-toolbar-separator" role="separator" aria-orientation="vertical"></span>|.
+              CONTINUE.
+            ENDIF.
             lv_button_label = COND #( WHEN ls_button-text IS INITIAL
                                       THEN CONV string( ls_button-quickinfo )
                                       ELSE CONV string( ls_button-text ) ).
-            result = result && |<button class="{ state_class( iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ) }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
+            DATA(lv_toolbar_type) = COND string(
+              WHEN ls_button-butn_type = 3 OR ls_button-butn_type = 4 THEN ' aria-haspopup="menu"'
+              ELSE `` ).
+            DATA(lv_toolbar_checked) = COND string(
+              WHEN ls_button-checked IS NOT INITIAL THEN ' aria-pressed="true"'
+              ELSE ' aria-pressed="false"' ).
+            result = result && |<button class="{ state_class( iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ) }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }"{ lv_toolbar_type }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
           ENDLOOP.
           result = result && |</div>|.
         WHEN 'TEXTEDIT'.
           result = result && |<textarea class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" name="{ escape( ls_snapshot-control_id ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_hidden }{ lv_disabled }>{ escape( ls_snapshot-payload ) }</textarea>|.
         WHEN 'PICTURE'.
-          DATA(lv_url) = COND string( WHEN safe_url( ls_snapshot-payload ) = abap_true THEN escape( ls_snapshot-payload ) ELSE '' ).
-          result = result && |<div class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="PICTURE" role="img" aria-label="Picture"{ lv_hidden }><img src="{ lv_url }" alt="Picture"></div>|.
+          DATA(lv_picture_payload) = ls_snapshot-payload.
+          DATA(lv_picture_separator) = 0.
+          DATA(lv_picture_state) = ``.
+          FIND FIRST OCCURRENCE OF ';' IN lv_picture_payload MATCH OFFSET lv_picture_separator.
+          IF sy-subrc = 0.
+            lv_picture_state = substring( val = lv_picture_payload
+                                          off = lv_picture_separator + 1 ).
+            lv_picture_payload = substring( val = lv_picture_payload
+                                            len = lv_picture_separator ).
+          ENDIF.
+          DATA(lv_url) = COND string( WHEN safe_url( lv_picture_payload ) = abap_true THEN escape( lv_picture_payload ) ELSE '' ).
+          result = result && |<div class="gg-control { lv_state_class }" style="{ lv_style }" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="PICTURE" data-picture-state="{ escape( lv_picture_state ) }" role="img" aria-label="Picture"{ lv_hidden }><img src="{ lv_url }" alt="Picture"></div>|.
         WHEN 'HTML_VIEWER'.
           lv_srcdoc = ls_snapshot-payload.
           CLEAR lv_sandbox.

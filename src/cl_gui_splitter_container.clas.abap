@@ -99,34 +99,70 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
         column           TYPE i
       RETURNING
         VALUE(container) TYPE REF TO cl_gui_container.
+
+  PRIVATE SECTION.
+    TYPES: BEGIN OF ty_cell,
+             row       TYPE i,
+             column    TYPE i,
+             container TYPE REF TO cl_gui_container,
+           END OF ty_cell.
+    TYPES ty_cells TYPE STANDARD TABLE OF ty_cell WITH DEFAULT KEY.
+    DATA mv_rows TYPE i.
+    DATA mv_columns TYPE i.
+    DATA mv_row_mode TYPE i.
+    DATA mv_column_mode TYPE i.
+    DATA mv_border TYPE abap_bool.
+    DATA mt_row_heights TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_column_widths TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_cells TYPE ty_cells.
 ENDCLASS.
 
 CLASS cl_gui_splitter_container IMPLEMENTATION.
   METHOD get_row_height.
-    RETURN. " todo, implement method
+    READ TABLE mt_row_heights INTO result INDEX id.
   ENDMETHOD.
 
   METHOD get_column_width.
-    RETURN. " todo, implement method
+    READ TABLE mt_column_widths INTO result INDEX id.
   ENDMETHOD.
 
   METHOD set_row_sash.
-    RETURN. " todo, implement method
+    result = value.
+    set_row_height(
+      id     = id
+      height = value ).
   ENDMETHOD.
 
   METHOD set_column_sash.
-    RETURN. " todo, implement method
+    result = value.
+    set_column_width(
+      id    = id
+      width = value ).
   ENDMETHOD.
 
   METHOD set_row_mode.
-    RETURN. " todo, implement method
+    mv_row_mode = mode.
+    result = mode.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
   METHOD set_row_height.
-    RETURN. " todo, implement method
+    IF id < 1 OR id > mv_rows.
+      result = 0.
+      RETURN.
+    ENDIF.
+    MODIFY mt_row_heights FROM height INDEX id.
+    result = height.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
   METHOD constructor.
+    DATA lv_row TYPE i.
+    DATA lv_column TYPE i.
+    DATA ls_cell TYPE ty_cell.
+
     cl_gui_control=>initialize(
       control = me
       parent  = parent
@@ -134,10 +170,39 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.
+    mv_rows = COND #( WHEN rows > 0 THEN rows ELSE 1 ).
+    mv_columns = COND #( WHEN columns > 0 THEN columns ELSE 1 ).
+    mv_row_mode = mode_relative.
+    mv_column_mode = mode_relative.
+    mv_border = abap_true.
+    DO mv_rows TIMES.
+      APPEND 100 TO mt_row_heights.
+    ENDDO.
+    DO mv_columns TIMES.
+      APPEND 100 TO mt_column_widths.
+    ENDDO.
+    DO mv_rows TIMES.
+      lv_row = sy-index.
+      DO mv_columns TIMES.
+        lv_column = sy-index.
+        ls_cell = VALUE #(
+          row       = lv_row
+          column    = lv_column
+          container = NEW cl_gui_custom_container(
+            container_name = |SPLITTER-{ control_id }-{ lv_row }-{ lv_column }|
+            parent         = me ) ).
+        APPEND ls_cell TO mt_cells.
+      ENDDO.
+    ENDDO.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
   METHOD set_column_mode.
-    result = 0.
+    mv_column_mode = mode.
+    result = mode.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
   METHOD free.
@@ -145,15 +210,28 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_container.
-    RETURN.
+    READ TABLE mt_cells INTO DATA(ls_cell)
+      WITH KEY row = row column = column.
+    IF sy-subrc = 0.
+      container = ls_cell-container.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_column_width.
+    IF id < 1 OR id > mv_columns.
+      result = 0.
+      RETURN.
+    ENDIF.
+    MODIFY mt_column_widths FROM width INDEX id.
     result = width.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
   METHOD set_border.
-    RETURN.
+    mv_border = border.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
 ENDCLASS.

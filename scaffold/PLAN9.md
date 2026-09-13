@@ -194,7 +194,7 @@ work should eliminate them family by family.
 - [ ] **`ZGG_GUI_NAVIGATION`:** implement CALL SCREEN, SET/LEAVE SCREEN, list
   transitions, dialog suppression, SPA/GPA memory, SUBMIT, transaction calls,
   Reset/Leave/Back, and loop-safe continuations.
-- [ ] **`ZGG_GUI_POPUPS`:** map the displayed popup function-module inventory to
+- [x] **`ZGG_GUI_POPUPS`:** map the displayed popup function-module inventory to
   typed accessible dialogs, preserve the reference classic list and hotspots,
   and show returned values plus an ordered event log after each popup closes.
 
@@ -228,7 +228,7 @@ work should eliminate them family by family.
 - [ ] **`ZGG_GUI_TEXTEDIT`:** match the large editor, local toolbar/status bar,
   readonly, word wrap, font, cursor/selection, stream/table round trips,
   protected lines, clear/restore, and capability-gated file load/save actions.
-- [ ] **`ZGG_GUI_HTML_VIEWER`:** match the external-URL selection screen, then
+- [x] **`ZGG_GUI_HTML_VIEWER`:** match the external-URL selection screen, then
   apply URL policy, sandbox content, load safe inline pages, report navigation
   state, and route `sapevent` links to typed host actions.
 - [ ] **`ZGG_GUI_ABAP_BROWSER`:** render the ABAP browser document with its print
@@ -318,34 +318,34 @@ ALV, tree, SALV, graphics, and composite foundations. Extend those examples and
 their shared implementations for parity fixes. Add the following examples only
 for contracts that the current catalog does not demonstrate.
 
-- [ ] **152 - Timer lifecycle:** add `zcl_gg_ex_152` for deterministic ticks,
+- [x] **152 - Timer lifecycle:** add `zcl_gg_ex_152` for deterministic ticks,
   start/stop, interval changes, instance reuse, navigation cancellation, and
   two-session isolation.
-- [ ] **153 - Tree/grid drag and drop:** add `zcl_gg_ex_153` for typed flavors,
+- [x] **153 - Tree/grid drag and drop:** add `zcl_gg_ex_153` for typed flavors,
   move/copy effects, payload validation, reject, undo, keyboard parity, and
   stale/cross-session token rejection.
-- [ ] **154 - Browser frontend services:** add `zcl_gg_ex_154` for explicit
+- [x] **154 - Browser frontend services:** add `zcl_gg_ex_154` for explicit
   upload/download, clipboard permission, safe external navigation, capability
   reporting, cleanup, and refusal of desktop-only registry/directory claims.
-- [ ] **155 - Modeless dialog container:** add `zcl_gg_ex_155` for independent
+- [x] **155 - Modeless dialog container:** add `zcl_gg_ex_155` for independent
   move, resize, focus, parent interaction, close events, and cleanup; keep it
   distinct from example 121's modal dialog.
-- [ ] **156 - Popup compatibility gallery:** add `zcl_gg_ex_156` for confirm,
+- [x] **156 - Popup compatibility gallery:** add `zcl_gg_ex_156` for confirm,
   input, selection, table, message, progress, cancellation, focus restoration,
   and typed return values through the popup adapter family.
-- [ ] **157 - ALV variant lifecycle:** add `zcl_gg_ex_157` for save/apply/switch/
+- [x] **157 - ALV variant lifecycle:** add `zcl_gg_ex_157` for save/apply/switch/
   delete/cleanup, ownership, default layout, persistence failure, and safe
   report-local handles.
-- [ ] **158 - Hierarchical-sequential SALV:** add `zcl_gg_ex_158` for typed
+- [x] **158 - Hierarchical-sequential SALV:** add `zcl_gg_ex_158` for typed
   header/item relations, grouped rendering, totals, sorting, selection, and
   semantic table fallback.
-- [ ] **159 - Multi-month calendar:** add `zcl_gg_ex_159` for a nine-month grid,
+- [x] **159 - Multi-month calendar:** add `zcl_gg_ex_159` for a nine-month grid,
   week numbers, marks, focus/selection distinction, range mode, navigation,
   locale, and deterministic current-date injection.
-- [ ] Register examples `152`-`159` as transactions, add them to the catalog,
+- [x] Register examples `152`-`159` as transactions, add them to the catalog,
   and give each focused ABAP Unit and Playwright coverage without renumbering
   `059`-`151`.
-- [ ] Update `GUI_HTML_CAPABILITIES.md` only after each new contract is
+- [x] Update `GUI_HTML_CAPABILITIES.md` only after each new contract is
   implemented and verified; do not advertise planned behavior as available.
 
 ## Phase 10 - verification and rollout

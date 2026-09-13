@@ -106,19 +106,55 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         cntl_error
         cntb_error_fcode.
+
+  PRIVATE SECTION.
+    DATA mt_hidden_buttons TYPE ttb_button.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
   METHOD set_button_visible.
-    RETURN. " todo, implement method
+    DATA lv_hidden_index TYPE sy-tabix.
+
+    READ TABLE m_table_button INTO DATA(ls_button) WITH KEY function = fcode.
+    IF visible IS INITIAL.
+      IF sy-subrc = 0.
+        APPEND ls_button TO mt_hidden_buttons.
+        DELETE m_table_button INDEX sy-tabix.
+      ENDIF.
+    ELSE.
+      READ TABLE mt_hidden_buttons INTO ls_button WITH KEY function = fcode.
+      IF sy-subrc = 0.
+        lv_hidden_index = sy-tabix.
+        APPEND ls_button TO m_table_button.
+        DELETE mt_hidden_buttons INDEX lv_hidden_index.
+      ENDIF.
+    ENDIF.
+    cl_gui_control=>set_buttons( control = me
+                                 buttons = m_table_button ).
   ENDMETHOD.
 
   METHOD delete_button.
-    RETURN. " todo, implement method
+    DELETE m_table_button WHERE function = fcode.
+    DELETE mt_hidden_buttons WHERE function = fcode.
+    cl_gui_control=>set_buttons( control = me
+                                 buttons = m_table_button ).
   ENDMETHOD.
 
   METHOD set_button_state.
-    RETURN. " todo, implement method
+    READ TABLE m_table_button ASSIGNING FIELD-SYMBOL(<button>)
+      WITH KEY function = fcode.
+    IF sy-subrc = 0.
+      <button>-disabled = COND #( WHEN enabled IS INITIAL THEN 'X' ELSE ' ' ).
+      <button>-checked = checked.
+      cl_gui_control=>set_buttons( control = me
+                                   buttons = m_table_button ).
+      RETURN.
+    ENDIF.
+    READ TABLE mt_hidden_buttons ASSIGNING <button> WITH KEY function = fcode.
+    IF sy-subrc = 0.
+      <button>-disabled = COND #( WHEN enabled IS INITIAL THEN 'X' ELSE ' ' ).
+      <button>-checked = checked.
+    ENDIF.
   ENDMETHOD.
 
   METHOD track_context_menu.
@@ -147,7 +183,22 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_button_info.
-    RETURN. " todo, implement method
+    READ TABLE m_table_button ASSIGNING FIELD-SYMBOL(<button>)
+      WITH KEY function = fcode.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    IF icon IS SUPPLIED.
+      <button>-icon = CONV #( icon ).
+    ENDIF.
+    IF text IS SUPPLIED.
+      <button>-text = text.
+    ENDIF.
+    IF quickinfo IS SUPPLIED.
+      <button>-quickinfo = quickinfo.
+    ENDIF.
+    cl_gui_control=>set_buttons( control = me
+                                 buttons = m_table_button ).
   ENDMETHOD.
 
   METHOD constructor.

@@ -46,25 +46,35 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     METHODS set_3d_border
       IMPORTING
         border TYPE i.
+
+  PRIVATE SECTION.
+    DATA mv_url TYPE string.
+    DATA mv_display_mode TYPE i.
+    DATA mv_border TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_picture IMPLEMENTATION.
   METHOD set_3d_border.
-    RETURN. " todo, implement method
+    mv_border = border.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |{ mv_url }; mode={ mv_display_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
   METHOD load_picture_from_url.
+    mv_url = CONV string( url ).
     cl_gui_control=>set_payload( control = me
-                                 payload = CONV string( url ) ).
+                                 payload = |{ mv_url }; mode={ mv_display_mode }; border={ mv_border }| ).
     result = 0.
   ENDMETHOD.
 
   METHOD load_picture_from_url_async.
+    mv_url = CONV string( url ).
     cl_gui_control=>set_payload( control = me
-                                 payload = CONV string( url ) ).
+                                 payload = |{ mv_url }; mode={ mv_display_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
   METHOD clear_picture.
+    CLEAR mv_url.
     cl_gui_control=>set_payload( control = me
                                  payload = `` ).
   ENDMETHOD.
@@ -78,7 +88,9 @@ CLASS cl_gui_picture IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_display_mode.
-    RETURN.
+    mv_display_mode = display_mode.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |{ mv_url }; mode={ mv_display_mode }; border={ mv_border }| ).
   ENDMETHOD.
 
 ENDCLASS.

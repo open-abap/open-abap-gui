@@ -79,7 +79,7 @@ class name is never passed to dynamic construction.
 | Tree controls | node key, parent, text, expanded, selected, hidden | accessible `ul`/`li` tree with parent metadata | selection/expansion state is retained | flat ordered tree when a native tree widget is unavailable |
 | SALV table | row count, header | semantic table section via `get_html` | model methods remain safe no-ops | row-count table when generic row reflection is unavailable |
 | Graphics/chart | payload and control identity | labelled figure/chart fallback | data/render calls are observable | text figure; no raw untrusted SVG |
-| browser/progress/timer/frontend services | last requested content or lifecycle intent | host-owned state only | no browser action is fabricated | intentional no-op documented in `ANORMALIES.md` when runtime support is the blocker |
+| browser/progress/timer/frontend services | last requested content or lifecycle intent | host-owned state only | explicit capability result and user-activated action | no desktop operation is reported as successful without browser evidence |
 
 Security invariant: payloads are escaped at the registry boundary, URLs are
 allow-listed, HTML viewer content is sandboxed, and no HIDE or continuation
@@ -89,3 +89,27 @@ Examples 148 and 149 preserve the SAP bar-chart/chart-engine intent through
 the browser-safe graphics model. Because the browser host does not reproduce
 the desktop graphics controls, both expose labelled figures with a semantic
 table of series and values; application data is never emitted as raw SVG.
+
+## Verified PLAN9 contracts 152-159
+
+The post-catalog examples are transaction-discovered automatically by
+`zcl_gg_transaction_registry`; their metadata appears in the workbench catalog
+without a second hand-maintained inventory. Each example keeps its state in the
+report instance and publishes only typed surfaces and declared commands.
+
+- `ZGG_EX_152` drives timer start, stop, interval, reuse, and tick state with
+  an explicit deterministic clock; it never schedules browser background work.
+- `ZGG_EX_153` exposes opaque node payloads and server-validated move/copy,
+  reject, undo, and keyboard-equivalent actions.
+- `ZGG_EX_154` reports upload/download/clipboard intent while refusing
+  desktop-only directory and registry claims.
+- `ZGG_EX_155` keeps a modeless dialog container and its parent lifecycle
+  separate, including geometry, focus, and close actions.
+- `ZGG_EX_156` renders typed confirm, input, selection, message, and progress
+  popup states with explicit OK/cancel return actions.
+- `ZGG_EX_157` keeps ALV layout variant state report-local and supports the
+  save/apply/switch/delete/cleanup lifecycle.
+- `ZGG_EX_158` preserves typed header/item rows and totals in a semantic SALV
+  fallback table.
+- `ZGG_EX_159` renders a deterministic nine-month calendar window with ISO
+  week ranges and navigation actions.

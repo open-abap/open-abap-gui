@@ -32,7 +32,7 @@ test("ZCL_GG_EX_154 - frontend services report capability boundaries", async ({p
   await expect(page.locator('input[type="file"]')).toHaveCount(1);
   await pressToolbar(page, "Directory capability");
   await expect(page.locator(".gg-structured-table")).toContainText("desktop API unavailable");
-  await expect(page.locator(".gg-list-line")).toContainText("refused");
+  await expect(page.getByText("Directory access refused: browser has no desktop directory capability")).toBeVisible();
 });
 
 test("ZCL_GG_EX_155 - modeless dialog keeps the parent available", async ({page, host}) => {
@@ -40,8 +40,8 @@ test("ZCL_GG_EX_155 - modeless dialog keeps the parent available", async ({page,
   await expect(page.locator('[data-control-kind="DIALOGBOX_CONTAINER"]')).toHaveCount(1);
   await pressToolbar(page, "Resize dialog");
   await expect(page.locator(".gg-structured-table")).toContainText("380 x 190");
-  await pressToolbar(page, "Parent action");
-  await expect(page.locator(".gg-list-line")).toContainText("parent action remained available");
+  await pressToolbar(page, "Use parent");
+  await expect(page.getByText("Parent action remained available while dialog was modeless")).toBeVisible();
 });
 
 test("ZCL_GG_EX_156 - popup actions return typed state", async ({page, host}) => {
@@ -51,6 +51,18 @@ test("ZCL_GG_EX_156 - popup actions return typed state", async ({page, host}) =>
   await page.getByRole("dialog", {name: "INPUT popup"}).getByRole("button", {name: "OK"}).click();
   await page.waitForLoadState("load");
   await expect(page.getByRole("article", {name: "Popup compatibility gallery"})).toContainText("INPUT returned typed OK");
+  await expect(page.locator(".gg-structured-table")).toContainText("INPUT -> OK");
+});
+
+test("ZCL_GG_EX_156 - table popup exposes accessible rows", async ({page, host}) => {
+  await openExample(page, host, 156);
+  await pressToolbar(page, "Table popup");
+  const popup = page.getByRole("dialog", {name: "TABLE popup"});
+  await expect(popup.locator(".gg-popup-table tbody tr")).toHaveCount(3);
+  await popup.getByRole("button", {name: "Select row 2"}).click();
+  await page.waitForLoadState("load");
+  await expect(page.getByRole("article", {name: "Popup compatibility gallery"})).toContainText("TABLE returned typed row 2");
+  await expect(page.locator(".gg-structured-table")).toContainText("TABLE -> row 2");
 });
 
 test("ZCL_GG_EX_157 - variant lifecycle stays report-local", async ({page, host}) => {
@@ -69,7 +81,7 @@ test("ZCL_GG_EX_158 - SALV fallback preserves header item structure", async ({pa
   await expect(table).toContainText("LH400 / Lufthansa");
   await expect(table).toContainText("Total: 410.00");
   await pressToolbar(page, "Select item");
-  await expect(page.locator(".gg-list-line")).toContainText("Selected item LH400");
+  await expect(page.getByText("Selected item LH400 under header Order 100")).toBeVisible();
 });
 
 test("ZCL_GG_EX_159 - calendar renders nine stable months", async ({page, host}) => {

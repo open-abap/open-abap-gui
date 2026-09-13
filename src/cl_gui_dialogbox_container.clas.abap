@@ -57,7 +57,8 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_caption.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = CONV string( caption ) ).
   ENDMETHOD.
 
 ENDCLASS.

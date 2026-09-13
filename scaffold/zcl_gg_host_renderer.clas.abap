@@ -1539,16 +1539,25 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_prefix = COND string(
       WHEN lv_kind = 'CONFIRM' THEN 'CONFIRM'
       WHEN lv_kind = 'VALUES' THEN 'VALUE'
+      WHEN lv_kind = 'TABLE' THEN 'TABLE'
+      WHEN lv_kind = 'MONTH' THEN 'MONTH'
       ELSE 'INFORM' ).
     rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-popup-title" data-popup-kind="{ zcl_gg_host_html=>escape_attribute( lv_kind ) }" data-popup-start-row="{ is_popup-start_row }" data-popup-start-column="{ is_popup-start_column }"><div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 id="gg-popup-title">{ zcl_gg_host_html=>escape_text( is_popup-title ) }</h2></header><div class="gg-popup-body">|.
     LOOP AT is_popup-text_lines INTO DATA(lv_line).
       rv_html = rv_html && |<p>{ zcl_gg_host_html=>escape_text( lv_line ) }</p>|.
     ENDLOOP.
-    IF lv_kind = 'VALUES'.
-      LOOP AT is_popup-fields INTO DATA(ls_field).
-        rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_field-text IS INITIAL THEN ls_field-name ELSE ls_field-text ) ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_field-value ) }"></label>|.
-      ENDLOOP.
-    ENDIF.
+    CASE lv_kind.
+      WHEN 'VALUES'.
+        LOOP AT is_popup-fields INTO DATA(ls_field).
+          rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_field-text IS INITIAL THEN ls_field-name ELSE ls_field-text ) ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_field-value ) }"></label>|.
+        ENDLOOP.
+      WHEN 'TABLE'.
+        rv_html = rv_html && |<table class="gg-popup-table"><caption>Choose a row</caption><thead><tr><th scope="col">Row</th><th scope="col">Value</th></tr></thead><tbody>|.
+        LOOP AT is_popup-table_values INTO DATA(lv_table_value).
+          rv_html = rv_html && |<tr><th scope="row">{ sy-tabix }</th><td><button type="submit" name="gg_action" value="POPUP:TABLE:{ sy-tabix }" formnovalidate>{ zcl_gg_host_html=>escape_text( lv_table_value ) }</button></td></tr>|.
+        ENDLOOP.
+        rv_html = rv_html && '</tbody></table>'.
+    ENDCASE.
     rv_html = rv_html && |</div><footer class="gg-popup-actions">|.
     LOOP AT is_popup-buttons INTO DATA(ls_button).
       rv_html = rv_html && |<button type="submit" name="gg_action" value="POPUP:{ lv_prefix }:{ zcl_gg_host_html=>escape_attribute( ls_button-value ) }" formnovalidate>{ zcl_gg_host_html=>escape_text( ls_button-text ) }</button>|.

@@ -852,7 +852,8 @@ try {
     cancelable: true,
   })));
   await statusPage.waitForLoadState("load");
-  assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Apply excluded/);
+  assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Normal/);
+  assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Apply"]').isDisabled(), false);
   await statusPage.close();
   await writeScreenshotIndex(results, revision, referenceRoot);
   await runCommand(process.execPath, [

@@ -177,12 +177,74 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_with_table_display.
-    CLEAR rv_choice.
+    DATA lv_action TYPE string.
+    DATA lv_choice TYPE string.
+
+    IF mv_popup_interactive = abap_false.
+      CLEAR rv_choice.
+      RETURN.
+    ENDIF.
+    SPLIT mv_popup_action AT ':' INTO lv_action lv_choice.
+    IF lv_action = 'TABLE'.
+      IF lv_choice IS INITIAL OR lv_choice CN '0123456789'.
+        CLEAR rv_choice.
+        sy-subrc = 4.
+      ELSE.
+        rv_choice = CONV i( lv_choice ).
+        sy-subrc = 0.
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    ms_popup = VALUE #(
+      kind         = 'TABLE'
+      title        = is_request-title
+      start_column = is_request-start_column
+      start_row    = is_request-start_row ).
+    LOOP AT ct_values ASSIGNING FIELD-SYMBOL(<lv_value>).
+      APPEND CONV string( <lv_value> ) TO ms_popup-table_values.
+      APPEND VALUE #( value = |{ sy-tabix }|
+                      text  = |Select row { sy-tabix }| ) TO ms_popup-buttons.
+    ENDLOOP.
+    APPEND VALUE #( value = '0' text = 'Cancel' ) TO ms_popup-buttons.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_popup
+      iv_operation = 'POPUP WITH TABLE DISPLAY' ).
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_to_select_month.
-    CLEAR cv_return_code.
-    cv_selected_month = is_request-actual_month.
+    DATA lv_action TYPE string.
+    DATA lv_month TYPE string.
+
+    IF mv_popup_interactive = abap_false.
+      CLEAR cv_return_code.
+      cv_selected_month = is_request-actual_month.
+      RETURN.
+    ENDIF.
+    SPLIT mv_popup_action AT ':' INTO lv_action lv_month.
+    IF lv_action = 'MONTH'.
+      IF lv_month = 'CANCEL'.
+        cv_return_code = 1.
+        sy-subrc = 1.
+      ELSE.
+        CLEAR cv_return_code.
+        cv_selected_month = is_request-actual_month.
+        sy-subrc = 0.
+      ENDIF.
+      RETURN.
+    ENDIF.
+    ms_popup = VALUE #(
+      kind         = 'MONTH'
+      title        = 'Select month'
+      text_lines   = VALUE #( ( |Current month: { is_request-actual_month }| )
+                              ( |Language: { is_request-language }| ) )
+      buttons      = VALUE #( ( value = 'APPLY' text = 'Use month' )
+                              ( value = 'CANCEL' text = 'Cancel' ) )
+      start_column = is_request-start_column
+      start_row    = is_request-start_row ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_popup
+      iv_operation = 'POPUP TO SELECT MONTH' ).
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~f4_table_value_request.

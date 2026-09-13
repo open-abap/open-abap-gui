@@ -343,19 +343,19 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD directory_exist.
-    ASSERT 1 = 'directory_exist not supported'.
+    CLEAR result.
   ENDMETHOD.
 
   METHOD get_sapgui_workdir.
-    ASSERT 1 = 'get_sapgui_workdir not supported'.
+    CLEAR sapworkdir.
   ENDMETHOD.
 
   METHOD file_exist.
-    ASSERT 1 = 'file_exist not supported'.
+    CLEAR result.
   ENDMETHOD.
 
   METHOD file_delete.
-    ASSERT 1 = 'file_delete not supported'.
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD get_sapgui_directory.
@@ -367,55 +367,65 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD clipboard_import.
-    ASSERT 1 = 'clipboard_import not supported'.
+    CLEAR data.
+    CLEAR length.
   ENDMETHOD.
 
   METHOD directory_list_files.
-    ASSERT 1 = 'directory_list_files not supported'.
+    CLEAR file_table.
+    CLEAR count.
   ENDMETHOD.
 
   METHOD directory_create.
-    ASSERT 1 = 'directory_create not supported'.
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD gui_download.
-    ASSERT 1 = 'gui_download not supported'.
+    CLEAR data_tab.
   ENDMETHOD.
 
   METHOD get_file_separator.
-    ASSERT 1 = 'get_file_separator not supported'.
+    file_separator = '/'.
   ENDMETHOD.
 
   METHOD execute.
-    ASSERT 1 = 'execute not supported'.
+    RETURN.
   ENDMETHOD.
 
   METHOD directory_browse.
-    ASSERT 1 = 'directory_browse not supported'.
+    CLEAR selected_folder.
   ENDMETHOD.
 
   METHOD gui_upload.
-    ASSERT 1 = 'gui_upload not supported'.
+    CLEAR data_tab.
+    CLEAR filelength.
+    CLEAR header.
   ENDMETHOD.
 
   METHOD file_open_dialog.
-    ASSERT 1 = 'file_open_dialog not supported'.
+    CLEAR file_table.
+    rc = action_cancel.
+    user_action = action_cancel.
   ENDMETHOD.
 
   METHOD file_save_dialog.
-    ASSERT 1 = 'file_save_dialog not supported'.
+    CLEAR filename.
+    CLEAR path.
+    CLEAR fullpath.
+    user_action = action_cancel.
   ENDMETHOD.
 
   METHOD get_platform.
-    platform = platform_windowsxp.
+    CLEAR platform.
   ENDMETHOD.
 
   METHOD clipboard_export.
-    ASSERT 1 = 'clipboard_export not supported'.
+    CLEAR data.
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD get_system_directory.
-    ASSERT 1 = 'get_system_directory not supported'.
+    CLEAR system_directory.
   ENDMETHOD.
 
   METHOD get_gui_version.

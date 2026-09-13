@@ -85,6 +85,11 @@ CLASS cl_gui_ilidragndrop_control DEFINITION PUBLIC INHERITING FROM cl_gui_contr
     EVENTS contextmenu_clicked
       EXPORTING
         VALUE(no) TYPE i OPTIONAL.
+
+  PRIVATE SECTION.
+    DATA mt_context_items TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA mv_context_visible TYPE abap_bool.
+    DATA mv_drag_mode TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
@@ -100,31 +105,51 @@ CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD start_dragging.
-    RETURN. " todo, implement method
+    mv_drag_mode = mode.
+    set_position( left   = left
+                  top    = top
+                  width  = width
+                  height = height ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |Legacy ActiveX drag/drop unavailable; geometry={ left },{ top },{ width },{ height }; mode={ mode }| ).
   ENDMETHOD.
 
   METHOD show.
-    RETURN. " todo, implement method
+    set_visible( 'X' ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Legacy ActiveX drag/drop unavailable; visible=true; mode={ mv_drag_mode }| ).
   ENDMETHOD.
 
   METHOD hide.
-    RETURN. " todo, implement method
+    set_visible( ' ' ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Legacy ActiveX drag/drop unavailable; visible=false; mode={ mv_drag_mode }| ).
   ENDMETHOD.
 
   METHOD add_contextmenuitem.
-    RETURN. " todo, implement method
+    APPEND CONV string( str ) TO mt_context_items.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Legacy ActiveX drag/drop unavailable; context-items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD show_contextmenu.
-    RETURN. " todo, implement method
+    mv_context_visible = abap_true.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Legacy ActiveX drag/drop unavailable; context-menu=visible; items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD hide_contextmenu.
-    RETURN. " todo, implement method
+    mv_context_visible = abap_false.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Legacy ActiveX drag/drop unavailable; context-menu=hidden; items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD clear_contextmenu.
-    RETURN. " todo, implement method
+    CLEAR mt_context_items.
+    mv_context_visible = abap_false.
+    cl_gui_control=>set_payload( control = me
+                                 payload = `Legacy ActiveX drag/drop unavailable; context-menu=cleared` ).
   ENDMETHOD.
 
 ENDCLASS.

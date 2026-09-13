@@ -102,14 +102,30 @@ function continuationLocalNames(ir) {
     && !dynproModuleStatements.has(item.statement)
     && item.statement?.scope !== 'local'
     && !item.statement?.localClassName;
+  const localDeclarations = (ir.declarations ?? [])
+    .filter((item) => !global(item) && ['data', 'static'].includes(item.kind));
+  const declaredBefore = (declaration, continuation) => {
+    const declarationSpan = declaration.statement?.span;
+    const continuationSpan = continuation.span;
+    if (!declarationSpan?.start || !continuationSpan?.start
+      || declaration.statement?.filename !== continuation.filename) return true;
+    return declarationSpan.start.line < continuationSpan.start.line
+      || (declarationSpan.start.line === continuationSpan.start.line
+        && declarationSpan.start.column <= continuationSpan.start.column);
+  };
   const localNames = new Set((ir.declarations ?? [])
     .filter((item) => !global(item) && ['data', 'static'].includes(item.kind))
     .flatMap((item) => item.names ?? [])
     .map((name) => name.toUpperCase()));
   return new Set((ir.continuations ?? [])
-    .flatMap((continuation) => continuation.liveVariables ?? [])
+    .filter((continuation) => continuation.liveVariables?.length)
+    .flatMap((continuation) => (continuation.liveVariables ?? [])
+      .filter((name) => localNames.has(name.toUpperCase()))
+      .filter((name) => localDeclarations.some((declaration) =>
+        (declaration.names ?? []).some((declaredName) => declaredName.toUpperCase() === name.toUpperCase())
+          && declaredBefore(declaration, continuation))))
     .map((name) => name.toUpperCase())
-    .filter((name) => localNames.has(name)));
+  );
 }
 
 function continuationRenames(ir) {

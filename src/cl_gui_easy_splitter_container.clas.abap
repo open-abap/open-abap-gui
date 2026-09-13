@@ -34,6 +34,15 @@ CLASS cl_gui_easy_splitter_container IMPLEMENTATION.
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.
+    top_left_container = NEW cl_gui_custom_container(
+      container_name = |EASY-{ control_id }-TOP-LEFT|
+      parent         = me ).
+    bottom_right_container = NEW cl_gui_custom_container(
+      container_name = |EASY-{ control_id }-BOTTOM-RIGHT|
+      parent         = me ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |orientation={ orientation }; sash={ sash_position }; border={ with_border }| ).
   ENDMETHOD.
 
 ENDCLASS.

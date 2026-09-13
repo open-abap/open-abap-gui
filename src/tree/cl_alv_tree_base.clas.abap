@@ -77,6 +77,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mr_toolbar TYPE REF TO cl_gui_toolbar.
 
     DATA ms_exception_field TYPE lvc_s_l004.
+    DATA ms_layout TYPE lvc_s_layo.
     DATA ms_hierarchy_header TYPE treev_hhdr.
     DATA mt_calculated_items TYPE HASHED TABLE OF lvc_s_item WITH UNIQUE KEY node_key item_name.
     DATA mt_checked_items TYPE lvc_t_chit.
@@ -90,6 +91,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mt_simple_hierarchy_data TYPE HASHED TABLE OF lvc_s_item WITH UNIQUE KEY node_key item_name.
     DATA mt_sort TYPE lvc_t_sort.
     DATA mt_special_groups TYPE lvc_t_sgrp.
+    DATA mt_toolbar TYPE ttb_button.
     DATA mt_toolbar_excluding TYPE ui_functions.
 
     TYPES: BEGIN OF ty_html_node,
@@ -332,27 +334,46 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_column.
-    RETURN. " todo, implement method
+    READ TABLE mt_fieldcatalog TRANSPORTING NO FIELDS
+      WITH KEY fieldname = i_column.
+    IF sy-subrc <> 0.
+      APPEND VALUE #( fieldname = i_column ) TO mt_fieldcatalog.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_toolbar_buttons.
-    RETURN. " todo, implement method
+    IF mr_toolbar IS BOUND.
+      mr_toolbar->add_button_group( data_table = mt_toolbar ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_filter.
-    RETURN. " todo, implement method
+    mt_filter = it_filter.
   ENDMETHOD.
 
   METHOD set_fieldcatalog.
-    RETURN. " todo, implement method
+    mt_fieldcatalog = it_fieldcatalog.
   ENDMETHOD.
 
   METHOD set_first_fieldcatalog.
-    RETURN. " todo, implement method
+    IF it_fieldcatalog IS SUPPLIED.
+      mt_fieldcatalog = it_fieldcatalog.
+    ENDIF.
+    IF it_sort IS SUPPLIED.
+      mt_sort = it_sort.
+    ENDIF.
+    IF it_filter IS SUPPLIED.
+      mt_filter = it_filter.
+    ENDIF.
+    IF is_layout IS SUPPLIED.
+      ms_layout = is_layout.
+    ENDIF.
   ENDMETHOD.
 
   METHOD create_report_header.
-    RETURN. " todo, implement method
+    mt_list_commentary = it_list_commentary.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Report header lines={ lines( mt_list_commentary ) }| ).
   ENDMETHOD.
 
   METHOD add_model_node.
@@ -420,19 +441,30 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD tree_get_parent.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc = 0.
+      e_parent_node_key = CONV lvc_nkey( ls_node-parent_key ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD tree_get_children.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node)
+        WHERE parent_key = CONV string( i_node_key ).
+      APPEND CONV lvc_nkey( ls_node-node_key ) TO et_children.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_index_from_node_key.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc = 0.
+      e_index = sy-tabix.
+    ENDIF.
   ENDMETHOD.
 
   METHOD frontend_update.
-    RETURN. " todo, implement method
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD determine_icon_for_exception.
@@ -440,11 +472,23 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD change_line.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    IF i_node_text IS SUPPLIED.
+      ls_node-text = CONV string( i_node_text ).
+    ENDIF.
+    MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_node_key_from_index.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node) INDEX i_index.
+    IF sy-subrc = 0.
+      e_node_key = CONV lvc_nkey( ls_node-node_key ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_default_drop.
@@ -452,7 +496,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_registered_events.
-    RETURN. " todo, implement method
+    CLEAR events.
   ENDMETHOD.
 
   METHOD get_selected_columns.
@@ -464,7 +508,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD column_optimize.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Tree columns optimized; fields={ lines( mt_fieldcatalog ) }| ).
   ENDMETHOD.
 
   METHOD update_calculations.
@@ -472,7 +517,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_frontend_fieldcatalog.
-    RETURN. " todo, implement method
+    et_fieldcatalog = mt_fieldcatalog.
   ENDMETHOD.
 
   METHOD add_html_node.

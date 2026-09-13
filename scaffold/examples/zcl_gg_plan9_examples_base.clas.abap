@@ -33,6 +33,7 @@ CLASS zcl_gg_plan9_examples_base DEFINITION PUBLIC ABSTRACT CREATE PUBLIC.
     DATA mv_dialog_height TYPE i.
     DATA mv_popup_kind TYPE string.
     DATA mv_popup_result TYPE string.
+    DATA mt_popup_log TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     DATA mv_variant TYPE string.
     DATA mv_variant_saved TYPE abap_bool.
     DATA mv_variant_layout TYPE string.
@@ -174,11 +175,13 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
           ( ucomm = 'CLOSE_DIALOG' label = 'Close dialog' icon = 'circle-x' ) ).
       WHEN '156'.
         ls_status-active_ucomm = VALUE #( ( 'OPEN_CONFIRM' ) ( 'OPEN_INPUT' ) ( 'OPEN_SELECTION' )
-          ( 'OPEN_MESSAGE' ) ( 'OPEN_PROGRESS' ) ( 'POPUP_OK' ) ( 'POPUP_CANCEL' ) ).
+          ( 'OPEN_TABLE' ) ( 'OPEN_MESSAGE' ) ( 'OPEN_PROGRESS' ) ( 'POPUP_OK' )
+          ( 'POPUP_CANCEL' ) ( 'POPUP_ROW_1' ) ( 'POPUP_ROW_2' ) ( 'POPUP_ROW_3' ) ).
         ls_status-icon_bar = VALUE #(
           ( ucomm = 'OPEN_CONFIRM' label = 'Confirm popup' icon = 'question' )
           ( ucomm = 'OPEN_INPUT' label = 'Input popup' icon = 'edit' )
           ( ucomm = 'OPEN_SELECTION' label = 'Selection popup' icon = 'select-all' )
+          ( ucomm = 'OPEN_TABLE' label = 'Table popup' icon = 'table' )
           ( ucomm = 'OPEN_MESSAGE' label = 'Message popup' icon = 'information' )
           ( ucomm = 'OPEN_PROGRESS' label = 'Progress popup' icon = 'refresh' ) ).
       WHEN '157'.
@@ -216,6 +219,7 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
     DATA lo_root TYPE REF TO cl_gui_custom_container.
     DATA lt_nodes TYPE string_table.
     DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lt_popup_log_rows TYPE zcl_gg_host_surface=>ty_surface_rows.
     DATA lt_fcat TYPE lvc_t_fcat.
 
     CASE mv_mode.
@@ -329,14 +333,21 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'CLOSE_DIALOG' label = 'Close' ) ) ).
         zcl_gg_host_surface=>set_surface( ls_surface ).
       WHEN '156'.
+        LOOP AT mt_popup_log INTO DATA(lv_popup_log_entry).
+          APPEND VALUE #( cell1 = |{ sy-tabix }| cell2 = lv_popup_log_entry ) TO lt_popup_log_rows.
+        ENDLOOP.
         ls_surface = VALUE #(
-          kind       = zcl_gg_host_surface=>surface_document
-          aria_label = 'Popup compatibility gallery'
-          title      = 'Typed popup compatibility gallery'
-          text       = COND string( WHEN mv_popup_result IS INITIAL THEN 'Open a popup family and close it to record its typed return.' ELSE mv_popup_result )
-          actions    = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'OPEN_CONFIRM' label = 'Confirm' )
+          kind          = zcl_gg_host_surface=>surface_document
+          aria_label    = 'Popup compatibility gallery'
+          title         = 'Typed popup compatibility gallery'
+          text          = COND string( WHEN mv_popup_result IS INITIAL THEN 'Open a popup family and close it to record its typed return.' ELSE mv_popup_result )
+          table_caption = 'Ordered popup event log'
+          columns       = VALUE #( ( `#` ) ( `Popup event` ) )
+          rows          = lt_popup_log_rows
+          actions       = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'OPEN_CONFIRM' label = 'Confirm' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'OPEN_INPUT' label = 'Input' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'OPEN_SELECTION' label = 'Selection' )
+                             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'OPEN_TABLE' label = 'Table' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'OPEN_MESSAGE' label = 'Message' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'OPEN_PROGRESS' label = 'Progress' ) ) ).
         zcl_gg_host_surface=>set_surface( ls_surface ).
@@ -345,6 +356,7 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
             WHEN mv_popup_kind = 'CONFIRM' THEN 'Confirm this server-owned action.'
             WHEN mv_popup_kind = 'INPUT' THEN 'Enter a value; the result is returned as text.'
             WHEN mv_popup_kind = 'SELECTION' THEN 'Select one of the available values.'
+            WHEN mv_popup_kind = 'TABLE' THEN 'Choose a row; the server returns the typed row number.'
             WHEN mv_popup_kind = 'MESSAGE' THEN 'This is an informational message.'
             ELSE 'Progress is reported without blocking the browser.' ).
           zcl_gg_host_surface=>set_surface( VALUE #(
@@ -354,8 +366,17 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
             text        = lv_popup_text
             input_label = COND string( WHEN mv_popup_kind = 'INPUT' THEN 'Value' ELSE '' )
             input_name  = COND string( WHEN mv_popup_kind = 'INPUT' THEN 'POPUP_VALUE' ELSE '' )
-            actions     = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_OK' label = 'OK' )
-                               ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_CANCEL' label = 'Cancel' ) ) ) ).
+            rows        = COND #( WHEN mv_popup_kind = 'TABLE' THEN VALUE #(
+                            ( cell1 = 'Carrier LH400' cell2 = '180 seats' )
+                            ( cell1 = 'Carrier UA901' cell2 = '210 seats' )
+                            ( cell1 = 'Carrier AF010' cell2 = '160 seats' ) ) ELSE VALUE #( ) )
+            actions     = COND #( WHEN mv_popup_kind = 'TABLE' THEN VALUE #(
+                            ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_ROW_1' label = 'Select row 1' )
+                            ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_ROW_2' label = 'Select row 2' )
+                            ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_ROW_3' label = 'Select row 3' )
+                            ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_CANCEL' label = 'Cancel' ) )
+                        ELSE VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_OK' label = 'OK' )
+                                      ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'POPUP_CANCEL' label = 'Cancel' ) ) ) ) ).
         ENDIF.
       WHEN '157'.
         ls_surface = VALUE #(
@@ -568,15 +589,25 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
             mv_popup_kind = 'INPUT'.
           WHEN 'OPEN_SELECTION'.
             mv_popup_kind = 'SELECTION'.
+          WHEN 'OPEN_TABLE'.
+            mv_popup_kind = 'TABLE'.
           WHEN 'OPEN_MESSAGE'.
             mv_popup_kind = 'MESSAGE'.
           WHEN 'OPEN_PROGRESS'.
             mv_popup_kind = 'PROGRESS'.
           WHEN 'POPUP_OK'.
             mv_popup_result = |{ mv_popup_kind } returned typed OK|.
+            APPEND |{ mv_popup_kind } -> OK| TO mt_popup_log.
+            CLEAR mv_popup_kind.
+          WHEN 'POPUP_ROW_1' OR 'POPUP_ROW_2' OR 'POPUP_ROW_3'.
+            DATA(lv_popup_row) = iv_ucomm.
+            SHIFT lv_popup_row LEFT BY 10 PLACES.
+            mv_popup_result = |{ mv_popup_kind } returned typed row { lv_popup_row }|.
+            APPEND |{ mv_popup_kind } -> row { lv_popup_row }| TO mt_popup_log.
             CLEAR mv_popup_kind.
           WHEN 'POPUP_CANCEL'.
             mv_popup_result = |{ mv_popup_kind } cancelled with return code 1|.
+            APPEND |{ mv_popup_kind } -> CANCEL| TO mt_popup_log.
             CLEAR mv_popup_kind.
         ENDCASE.
         build_view( io_session ).
