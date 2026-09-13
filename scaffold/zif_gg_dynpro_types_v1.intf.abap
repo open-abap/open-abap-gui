@@ -48,14 +48,15 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 
 * Definitions consumed by the operation-specific builder methods.
   TYPES: BEGIN OF ty_input_field,
-           control     TYPE ty_control,
-           data_type   TYPE ty_data_type,
-           search_help TYPE ty_name,
-           uppercase   TYPE abap_bool,
-           required    TYPE abap_bool,
-           value_check TYPE abap_bool,
-           value_help  TYPE abap_bool,
-           password    TYPE abap_bool,
+           control      TYPE ty_control,
+           data_type    TYPE ty_data_type,
+           search_help  TYPE ty_name,
+           uppercase    TYPE abap_bool,
+           required     TYPE abap_bool,
+           value_check  TYPE abap_bool,
+           value_help   TYPE abap_bool,
+           password     TYPE abap_bool,
+           context_menu TYPE abap_bool,
          END OF ty_input_field.
 
   TYPES: BEGIN OF ty_output_field,

@@ -368,7 +368,7 @@ for (const filename of reportFiles) {
     transactionCode: transactionCode(programName),
     description: `Converted gg-gui report ${programName}`,
     mode: "partial",
-     partialStrategy: ["ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP"].includes(programName) ? "preserve" : "skeleton",
+     partialStrategy: ["ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP", "ZGG_GUI_GUI_STATUS", "ZGG_GUI_NAVIGATION"].includes(programName) ? "preserve" : "skeleton",
     resolveInclude,
     screenMetadata,
     ddicTypes: GG_GUI_DDIC_TYPES,
@@ -812,6 +812,48 @@ try {
   await dialogsPage.waitForLoadState("load");
   assert.equal(await dialogsPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
   await dialogsPage.close();
+  const statusPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const statusUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_GUI_STATUS");
+  await statusPage.goto(statusUrl, {waitUntil: "load"});
+  assert.equal(await statusPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
+  assert.equal(await statusPage.locator('[data-screen="0100"]').count(), 1);
+  assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Normal/);
+  assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Apply"]').count(), 1);
+  assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Reset"]').count(), 1);
+  assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Toggle"]').count(), 1);
+  assert.equal(await statusPage.locator('[data-menu-code="000001"]').count(), 1);
+  assert.equal(await statusPage.locator('[data-menu-code="000002"]').count(), 1);
+  const statusInput = statusPage.locator('[name="GV_INPUT"]');
+  assert.equal(await statusInput.getAttribute("data-context-menu"), "true");
+  const contextMenu = statusPage.locator('.gg-context-menu[data-context-menu-for="GV_INPUT"]');
+  await statusInput.click({button: "right"});
+  assert.equal(await contextMenu.isVisible(), true);
+  assert.equal(await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').count(), 1);
+  await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').click();
+  await statusPage.waitForLoadState("load");
+  assert.equal(await statusInput.inputValue(), "RIGHT-CLICK THIS FIELD");
+  assert.match(await statusPage.locator("body").textContent(), /converted the value to upper case/);
+  await statusPage.locator('.wb-app-toolbar button[aria-label="Toggle"]').click();
+  await statusPage.waitForLoadState("load");
+  assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Apply excluded/);
+  assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Apply"]').isDisabled(), true);
+  await statusPage.locator('.wb-app-toolbar button[aria-label="Reset"]').click();
+  await statusPage.waitForLoadState("load");
+  await statusPage.locator('input[type="checkbox"][name="GV_DISABLE_CONTEXT"]').check();
+  await statusPage.locator('.wb-app-toolbar button[aria-label="Toggle"]').click();
+  await statusPage.waitForLoadState("load");
+  await statusPage.locator('[name="GV_INPUT"]').click({button: "right"});
+  assert.equal(await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').isDisabled(), true);
+  await statusPage.locator('[name="GV_INPUT"]').focus();
+  await statusPage.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", {
+    key: "F14",
+    code: "F14",
+    bubbles: true,
+    cancelable: true,
+  })));
+  await statusPage.waitForLoadState("load");
+  assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Apply excluded/);
+  await statusPage.close();
   await writeScreenshotIndex(results, revision, referenceRoot);
   await runCommand(process.execPath, [
     path.join(repositoryRoot, "test", "generate-screenshot-diffs.mjs"),

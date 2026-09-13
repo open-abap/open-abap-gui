@@ -864,7 +864,6 @@ test("classifies former E501 gaps by actionable operation family", async () => {
     ["CALL FUNCTION 'Z_CUSTOM'.", ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter],
     ["CALL METHOD cl_gui_frontend_services=>execute.", ACTIONABLE_DIAGNOSTIC_CODES.frontendOperation],
     ["CREATE DATA lr_value TYPE string.", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],
-    ["AUTHORITY-CHECK OBJECT 'S_TCODE' ID 'TCD' FIELD 'SE38'.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement],
   ];
   for (const [statement, code] of cases) {
     const result = await convertProgram({

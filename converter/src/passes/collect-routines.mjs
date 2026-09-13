@@ -4,7 +4,7 @@ function parseParameters(header) {
   for (const match of body.matchAll(/\b(USING|CHANGING|TABLES)\s+(.+?)(?=\s+(?:USING|CHANGING|TABLES)\s+|$)/gi)) {
     const direction = match[1].toUpperCase() === "USING" ? "IMPORTING" : "CHANGING";
     const section = match[2].trim();
-    const typed = [...section.matchAll(/([A-Z][A-Z0-9_]*)\s+(?:TYPE|LIKE)\s+([A-Z0-9_\/]+(?:\s+LENGTH\s+\d+)?(?:\s+DECIMALS\s+\d+)?)/gi)];
+    const typed = [...section.matchAll(/([A-Z][A-Z0-9_]*)\s+(?:TYPE|LIKE)\s+(REF\s+TO\s+[A-Z0-9_\/]+|[A-Z0-9_\/]+(?:\s+LENGTH\s+\d+)?(?:\s+DECIMALS\s+\d+)?)/gi)];
     if (typed.length) {
       for (const item of typed) result.push({ name: item[1].toLowerCase(), direction, type: item[2].toLowerCase() });
     } else {

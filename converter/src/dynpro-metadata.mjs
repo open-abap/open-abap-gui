@@ -413,6 +413,35 @@ function parseGuiStatus(values) {
     menu: menus.filter((item) => item.code === status.activeCode),
     buttons: buttons.filter((item) => item.functionKeyCode === status.pfKeyCode),
     pfKeys: pfKeys.filter((item) => item.code === status.pfKeyCode),
+    activePFKeys: pfKeys.filter((item) => item.code === status.pfKeyCode).map((item) => item.functionKey).filter((item) => item !== undefined),
+    pfActions: pfKeys.filter((item) => item.code === status.pfKeyCode && item.functionCode).map((item) => ({
+      number: item.functionKey,
+      ucomm: item.functionCode,
+    })),
+    iconBar: buttons.filter((item) => item.functionKeyCode === status.pfKeyCode).map((button) => {
+      const pfKey = pfKeys.find((item) => item.code === status.pfKeyCode && item.functionKey === button.functionKey);
+      const func = functions.find((item) => item.code === pfKey?.functionCode);
+      if (!func?.code || !func.textName) return undefined;
+      return {
+        ucomm: func.code,
+        label: func.iconText ?? func.text ?? func.code,
+        icon: func.textName,
+      };
+    }).filter(Boolean),
+    menus: menuTexts.map((menuText) => ({
+      code: menuText.code,
+      text: menuText.text,
+      path: menuText.path,
+      items: menus.filter((item) => item.code === menuText.code).map((item) => {
+        const func = functions.find((candidate) => candidate.code === item.referenceCode);
+        return item.referenceType === "S"
+          ? { separator: true }
+          : {
+            ucomm: item.referenceCode,
+            text: func?.text ?? item.referenceCode,
+          };
+      }),
+    })).filter((item) => item.items.length),
     activeUcomm: assignments.filter((item) => item.status === status.name).map((item) => item.function),
   }]));
   return {

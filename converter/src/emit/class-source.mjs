@@ -92,7 +92,28 @@ function renameIdentifiers(text, renames = {}) {
 }
 
 function allRenames(ir) {
-  return { ...(ir.statePlan?.renames ?? {}), ...(ir.localClassRenames ?? {}) };
+  return { ...(ir.statePlan?.renames ?? {}), ...(ir.localClassRenames ?? {}), ...continuationRenames(ir) };
+}
+
+function continuationLocalNames(ir) {
+  const routineStatements = new Set((ir.routines ?? []).flatMap((routine) => routine.statements ?? []));
+  const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
+  const global = (item) => !routineStatements.has(item.statement)
+    && !dynproModuleStatements.has(item.statement)
+    && item.statement?.scope !== 'local'
+    && !item.statement?.localClassName;
+  const localNames = new Set((ir.declarations ?? [])
+    .filter((item) => !global(item) && ['data', 'static'].includes(item.kind))
+    .flatMap((item) => item.names ?? [])
+    .map((name) => name.toUpperCase()));
+  return new Set((ir.continuations ?? [])
+    .flatMap((continuation) => continuation.liveVariables ?? [])
+    .map((name) => name.toUpperCase())
+    .filter((name) => localNames.has(name)));
+}
+
+function continuationRenames(ir) {
+  return Object.fromEntries([...continuationLocalNames(ir)].sort().map((name) => [name, `mv_ggconv_${name.toLowerCase()}`]));
 }
 
 export function prepareLocalClassNames(ir, options = {}) {
@@ -154,8 +175,12 @@ function addWriterDeclaration(body) {
 }
 
 function interfaceOrder(ir) {
-  const order = ["zif_gg_report_v1", "zif_gg_screen_provider_v1", "zif_gg_dynpro_v1", "zif_gg_transaction_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
+  const order = ["zif_gg_report_v1", "zif_gg_screen_provider_v1", "zif_gg_dynpro_v1", "zif_gg_context_menu_v1", "zif_gg_transaction_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
   return order.filter((name) => ir.interfaces.includes(name));
+}
+
+function contextMenuRoutine(ir) {
+  return (ir.routines ?? []).find((routine) => /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? "")));
 }
 
 function header({ className, ir, options }) {
@@ -264,6 +289,15 @@ function dataMembers(ir) {
     if (!name || emittedNames.has(name) || !["data", "static"].includes(declaration.kind) || (eventReferences.get(name)?.size ?? 0) < 2) continue;
     dataMembers.push(rename(declaration.raw.replace(/,\s*$/, ".")));
     emittedNames.add(name);
+  }
+  for (const name of continuationLocalNames(ir)) {
+    const declaration = declarations.find((item) => ['data', 'static'].includes(item.kind)
+      && (item.names ?? []).some((itemName) => itemName.toUpperCase() === name));
+    if (!declaration || declaration.complex) continue;
+    const raw = declaration.kind === 'static'
+      ? declaration.raw.replace(/^STATICS\b/i, 'DATA')
+      : declaration.raw;
+    dataMembers.push(rename(raw.replace(/,\s*$/, '.')));
   }
   const declaredNames = new Set((declarations ?? []).flatMap((item) => item.names ?? []).map((name) => name.toUpperCase()));
   for (const name of implicitSelectionLayoutMembers(ir)) {
@@ -490,6 +524,7 @@ function methodContext(ir, event, qualifierOverride) {
     replacements: [
       ...Object.entries(ir.statePlan?.renames ?? {}),
       ...Object.entries(ir.localClassRenames ?? {}),
+      ...Object.entries(continuationRenames(ir)),
       ...values.map((item) => [item.name, valueReference(item)]),
       ...(event === "at_line_selection" || event === "at_user_command" || event === "at_pf"
         ? (ir.hiddenNames ?? []).map((name) => [name, `is_line-fields[ name = '${name}' ]-value`])
@@ -501,6 +536,7 @@ function methodContext(ir, event, qualifierOverride) {
       capturedVariables: (continuation.liveVariables ?? []).map((name) =>
         ir.statePlan?.selectionState?.[name]?.member
         ?? ir.statePlan?.renames?.[name]
+        ?? continuationRenames(ir)[name]
         ?? name.toLowerCase()),
     })),
     routines: ir.routines ?? [],
@@ -508,6 +544,7 @@ function methodContext(ir, event, qualifierOverride) {
     activeCommands,
     activePFKeys,
     guiStatusMetadata: ir.guiStatusMetadata ?? {},
+    titlebarMetadata: ir.screenMetadata?.titlebars ?? ir.dynproMetadata?.titlebars ?? {},
     selectionState: ir.statePlan?.selectionState ?? {},
     dynamicWriteTargets,
     dynamicCommentNames,
@@ -578,6 +615,13 @@ function continuationFor(ir, statement) {
   return ir.continuations?.find((item) => item.filename === statement.filename
     && item.span.start.line === statement.span.start.line
     && item.span.start.column === statement.span.start.column);
+}
+
+function removePromotedDeclarations(ir, lines) {
+  const promoted = new Set([...continuationLocalNames(ir)].map((name) => continuationRenames(ir)[name].toLowerCase()));
+  if (!promoted.size) return lines;
+  return lines.flatMap((line) => String(line).split('\n'))
+    .filter((line) => ![...promoted].some((name) => new RegExp(`^\\s*DATA\\s+${name}\\b`, 'i').test(line)));
 }
 
 function continuationClosers(continuation) {
@@ -741,7 +785,7 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   let body = [
     ...fieldSymbols,
     ...transport.hydrate,
-    ...lowered.map((item) => item.text),
+    ...removePromotedDeclarations(ir, lowered.map((item) => item.text)),
     ...continuationClosers(continuation),
     ...transport.flush,
   ];
@@ -856,7 +900,7 @@ function resumeMethod(ir) {
       ];
     } else {
       const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
-      lowered = lowerStatements(tail, context).map((item) => item.text);
+      lowered = removePromotedDeclarations(ir, lowerStatements(tail, context).map((item) => item.text));
       lowered = [...globalFieldSymbolDeclarations(ir, tail), ...lowered];
       if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
     }
@@ -926,7 +970,8 @@ function routineBody(ir, routine) {
   const index = suspensionIndex(statements);
   const active = index >= 0 ? statements.slice(0, index + 1) : statements;
   const context = methodContext(ir, "start_of_selection");
-  let lowered = lowerStatements(active, context).map((item) => item.text);
+  context.contextMenu = /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""));
+  let lowered = removePromotedDeclarations(ir, lowerStatements(active, context).map((item) => item.text));
   lowered = [...globalFieldSymbolDeclarations(ir, active), ...lowered];
   if (index >= 0) lowered.push(...continuationClosers(continuationFor(ir, statements[index])));
   if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
@@ -1281,6 +1326,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
         buildScreens.push("io_builder->add_listbox( VALUE #( control = " + control + " data_type = " + dataType + " ) ).");
       } else if (element.kind === "input-output" || element.kind === "input") {
         const fields = ["control = " + control, "data_type = " + dataType];
+        if (String(element.attributes?.cxtMenon ?? "").toUpperCase() === "INPUT") fields.push("context_menu = abap_true");
         if (element.required) fields.push("required = abap_true");
         if (element.invisible) fields.push("password = abap_true");
         if (hasDynproValueRequest(element.name)
@@ -1370,7 +1416,10 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     const lines = ["CASE is_context-module."];
     for (const module of modules) {
       const context = { ...methodContext(ir, "dynpro"), ucomm: "is_context-ucomm" };
-      const body = [...globalFieldSymbolDeclarations(ir, module.statements), ...lowerStatements(module.statements, context).map((item) => item.text)];
+      const body = [
+        ...globalFieldSymbolDeclarations(ir, module.statements),
+        ...removePromotedDeclarations(ir, lowerStatements(module.statements, context).map((item) => item.text)),
+      ];
       lines.push(`WHEN '${module.name}'.`, ...body);
     }
     if (lines.some((line) => line.includes("lo_writer->"))) lines.splice(0, 0, "DATA(lo_writer) = io_session->get_list( )->get_writer( ).");
@@ -1386,6 +1435,25 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     const excluded = value.excludedUcomm ?? value.excluded_ucomm ?? [];
     if (active.length) fields.push(`active_ucomm = VALUE #( ${active.map((item) => `( '${String(item).toUpperCase()}' )`).join(" ")} )`);
     if (excluded.length) fields.push(`excluded_ucomm = VALUE #( ${excluded.map((item) => `( '${String(item).toUpperCase()}' )`).join(" ")} )`);
+    const guiStatus = ir.guiStatusMetadata?.[String(value.status ?? value.name ?? "").toUpperCase()]
+      ?? ir.guiStatusMetadata?.[value.status ?? value.name];
+    if (guiStatus?.activePFKeys?.length || guiStatus?.active_pf_keys?.length) {
+      const keys = guiStatus.activePFKeys ?? guiStatus.active_pf_keys;
+      fields.push(`active_pf_keys = VALUE #( ${[...new Set(keys)].map((key) => `( ${Number(key)} )`).join(" ")} )`);
+    }
+    if (guiStatus?.pfActions?.length || guiStatus?.pf_actions?.length) {
+      const actions = guiStatus.pfActions ?? guiStatus.pf_actions;
+      fields.push(`pf_actions = VALUE #( ${actions.map((item) => `( number = ${Number(item.number ?? item.functionKey)} ucomm = '${String(item.ucomm ?? item.functionCode ?? "").toUpperCase()}' )`).join(" ")} )`);
+    }
+    if (guiStatus?.iconBar?.length || guiStatus?.icon_bar?.length) {
+      const icons = guiStatus.iconBar ?? guiStatus.icon_bar;
+      fields.push(`icon_bar = VALUE #( ${icons.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${literal(String(item.label ?? ""))} icon = ${literal(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
+    }
+    if (guiStatus?.menus?.length) {
+      fields.push(`menus = VALUE #( ${guiStatus.menus.map((menu) => `( code = ${literal(String(menu.code ?? ""))} text = ${literal(String(menu.text ?? ""))} path = ${literal(String(menu.path ?? ""))} items = VALUE #( ${(
+        menu.items ?? []
+      ).map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' text = ${literal(String(item.text ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} ) )`).join(" ")} )`);
+    }
     statusLines.push(`IF is_context-screen = '${screenNumber(screen)}'.`);
     statusLines.push(`io_session->get_dialog( )->set_status( VALUE #( ${fields.join(" ")} ) ).`);
     statusLines.push("ENDIF.");
@@ -1423,7 +1491,10 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     );
     for (const module of modules) {
       const context = { ...methodContext(ir, "dynpro"), ucomm: "is_context-ucomm" };
-      const body = [...globalFieldSymbolDeclarations(ir, module.statements), ...lowerStatements(module.statements, context).map((item) => item.text)];
+      const body = [
+        ...globalFieldSymbolDeclarations(ir, module.statements),
+        ...removePromotedDeclarations(ir, lowerStatements(module.statements, context).map((item) => item.text)),
+      ];
       lines.push(`WHEN '${module.name}'.`, ...body);
     }
     lines.push(
@@ -1455,6 +1526,26 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     method(interfaceMethod("process_on_value_request"), valueRequest),
     method(interfaceMethod("process_on_help_request"), helpRequest),
   ];
+}
+
+function contextMenuMethod(ir) {
+  const routine = contextMenuRoutine(ir);
+  if (!routine) return undefined;
+  const screenField = (ir.screenMetadata?.screens ?? ir.dynproMetadata?.screens ?? [])
+    .flatMap((screen) => screen.elements ?? [])
+    .find((element) => String(element.attributes?.cxtMenon ?? "").toUpperCase() === "INPUT")?.name;
+  const body = [
+    "DATA lo_menu TYPE REF TO cl_ctmenu.",
+    "CREATE OBJECT lo_menu.",
+    ...(screenField ? [`IF iv_field = '${String(screenField).toUpperCase()}'.`] : []),
+    `  me->${routine.methodName}(
+      EXPORTING
+        io_session = io_session
+        io_menu    = lo_menu ).`,
+    ...(screenField ? ["ENDIF."] : []),
+    "ro_menu = lo_menu.",
+  ];
+  return method("zif_gg_context_menu_v1~get_context_menu", body);
 }
 
 function helperDefinitionHeader(localClass, generatedName, ir) {
@@ -1541,6 +1632,8 @@ export function emitClassSource(ir, options) {
   }
   if (ir.interfaces.includes("zif_gg_list_processing_v1")) implementation.push(...listMethods(ir));
   if (ir.interfaces.includes("zif_gg_resumable_v1")) implementation.push(resumeMethod(ir));
+  const contextMethod = contextMenuMethod(ir);
+  if (contextMethod) implementation.push(contextMethod);
   for (const routine of ir.routines) {
     implementation.push(method(routine.methodName, routineBody(ir, routine)));
   }
@@ -1661,6 +1754,8 @@ export function lowerToScaffoldIR(ir, options, sourceMap = []) {
   }
   if (ir.interfaces.includes("zif_gg_list_processing_v1")) methods.push(...listMethods(ir));
   if (ir.interfaces.includes("zif_gg_resumable_v1")) methods.push(resumeMethod(ir));
+  const contextMethod = contextMenuMethod(ir);
+  if (contextMethod) methods.push(contextMethod);
   for (const routine of ir.routines) {
     methods.push(method(routine.methodName, routineBody(ir, routine)));
   }

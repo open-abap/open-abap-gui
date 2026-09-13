@@ -26,7 +26,12 @@ function assigned(text) {
 export function collectContinuations(statements, knownVariables = []) {
   const controlStack = [];
   const result = [];
-  const known = new Set(knownVariables.map((name) => name.toUpperCase()));
+  const declared = statements.flatMap((statement) => {
+    if (!['Data', 'Static'].includes(statement.kind)) return [];
+    return [...String(statement.text ?? '').matchAll(/\b(?:DATA|STATICS)\s+([A-Z][A-Z0-9_]*)\b/gi)]
+      .map((match) => match[1].toUpperCase());
+  });
+  const known = new Set([...knownVariables, ...declared].map((name) => name.toUpperCase()));
   for (const statement of statements) {
     const contextDepth = controlStack.length;
     if (SUSPENDING.test(statement.text)) {

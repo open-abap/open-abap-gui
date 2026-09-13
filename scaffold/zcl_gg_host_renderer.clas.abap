@@ -75,6 +75,8 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_help_name      TYPE string OPTIONAL
         it_help_values    TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
         is_popup          TYPE zif_gg_compatibility_v1=>ty_popup OPTIONAL
+        io_menu           TYPE REF TO cl_ctmenu OPTIONAL
+        iv_menu_field     TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html)    TYPE string.
 
@@ -266,6 +268,19 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS render_dynpro_popup
       IMPORTING
         is_popup       TYPE zif_gg_compatibility_v1=>ty_popup
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS render_context_menu
+      IMPORTING
+        io_menu        TYPE REF TO cl_ctmenu
+        iv_field       TYPE string
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS render_context_menu_items
+      IMPORTING
+        it_items       TYPE cl_ctmenu=>ty_items
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -944,6 +959,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA ls_tab_value TYPE zif_gg_dynpro_types_v1=>ty_value.
     DATA ls_active_value TYPE zif_gg_dynpro_types_v1=>ty_value.
     DATA lv_modal_style TYPE string.
+    DATA lv_context_menu TYPE string.
 
     lv_title = is_screen-title.
     IF iv_title IS NOT INITIAL.
@@ -1037,6 +1053,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       it_values        = it_values
       it_states        = it_states
       it_messages      = it_messages ).
+    IF io_menu IS BOUND AND iv_menu_field IS NOT INITIAL.
+      lv_context_menu = render_context_menu(
+        io_menu  = io_menu
+        iv_field = iv_menu_field ).
+      lv_body = lv_body && lv_context_menu && '<script>(function(){var menu=document.querySelector(".gg-context-menu");if(!menu){return;}var close=function(){menu.hidden=true;};document.addEventListener("contextmenu",function(event){var field=event.target.closest?event.target.closest("[data-context-menu=true]"):null;if(!field){return;}event.preventDefault();menu.hidden=false;menu.style.left=event.clientX+"px";menu.style.top=event.clientY+"px";var first=menu.querySelector("button:not(:disabled)");if(first){first.focus();}});document.addEventListener("click",function(event){if(!menu.contains(event.target)){close();}});document.addEventListener("keydown",function(event){if(event.key==="Escape"&&!menu.hidden){event.preventDefault();close();}});}());</script>'.
+    ENDIF.
     lv_body = lv_body && |</form></section></section></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
@@ -1046,6 +1068,33 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_csp_nonce  = is_context-csp_nonce
       is_status     = is_status
       iv_body       = lv_body ).
+  ENDMETHOD.
+
+  METHOD render_context_menu.
+    IF io_menu IS NOT BOUND OR iv_field IS INITIAL.
+      RETURN.
+    ENDIF.
+    rv_html = |<div class="gg-context-menu" data-context-menu-for="{ zcl_gg_host_html=>escape_attribute( iv_field ) }" role="menu" hidden><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( io_menu->get_items( ) ) }</ul></div>|.
+  ENDMETHOD.
+
+  METHOD render_context_menu_items.
+    DATA lv_state TYPE string.
+
+    LOOP AT it_items INTO DATA(ls_item).
+      IF ls_item-hidden = abap_true.
+        CONTINUE.
+      ENDIF.
+      IF ls_item-separator = abap_true.
+        rv_html = rv_html && '<li class="gg-context-menu-separator" role="separator"></li>'.
+        CONTINUE.
+      ENDIF.
+      IF ls_item-submenu IS BOUND.
+        rv_html = rv_html && |<li class="gg-context-menu-group" role="none"><span class="gg-context-menu-group-label">{ zcl_gg_host_html=>escape_text( ls_item-text ) }</span><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( ls_item-submenu->get_items( ) ) }</ul></li>|.
+        CONTINUE.
+      ENDIF.
+      lv_state = COND string( WHEN ls_item-disabled = abap_true THEN ` disabled` ELSE `` ).
+      rv_html = rv_html && |<li role="none"><button class="gg-context-menu-item" type="submit" name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( ls_item-fcode ) }" role="menuitem" formnovalidate{ lv_state }>{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD render_dynpro_controls.
@@ -1203,7 +1252,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           iv_type  = is_control-data_type-typ ).
         lv_field_attrs = field_message_attrs( it_messages = it_messages
                                               iv_name     = CONV string( is_control-name ) ).
-        rv_html = |<span class="gg-dynpro-control gg-dynpro-field { iv_state_class }" style="{ iv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ COND string( WHEN is_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_type_attrs }{ lv_external_attrs }{ iv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
+        rv_html = |<span class="gg-dynpro-control gg-dynpro-field { iv_state_class }" style="{ iv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_control-context_menu = abap_true THEN ` data-context-menu="true"` ELSE `` ) } value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ COND string( WHEN is_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_type_attrs }{ lv_external_attrs }{ iv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
       WHEN 'OUTPUT'.
         lv_output_class = data_type_class(
           iv_type        = is_control-data_type-typ

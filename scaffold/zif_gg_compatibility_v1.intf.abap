@@ -310,6 +310,20 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
               iv_lifetime   TYPE string
     RETURNING VALUE(rv_url) TYPE string.
 
+  METHODS set_parameter
+    IMPORTING iv_id    TYPE string
+              iv_value TYPE string.
+
+  METHODS get_parameter
+    IMPORTING iv_id           TYPE string
+    RETURNING VALUE(rv_value) TYPE string.
+
+  METHODS authority_check
+    IMPORTING iv_object            TYPE string
+              iv_id                TYPE string
+              iv_value             TYPE string
+    RETURNING VALUE(rv_authorized) TYPE abap_bool.
+
   METHODS supports
     IMPORTING iv_family           TYPE string
     RETURNING VALUE(rv_supported) TYPE abap_bool.

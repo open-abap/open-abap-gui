@@ -7,14 +7,17 @@ CLASS zcl_gg_host_report_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
     METHODS constructor
       IMPORTING
         io_provider  TYPE REF TO zif_gg_screen_provider_v1
-        io_resumable TYPE REF TO zif_gg_resumable_v1 OPTIONAL.
+        io_resumable TYPE REF TO zif_gg_resumable_v1 OPTIONAL
+        io_context   TYPE REF TO zif_gg_context_menu_v1 OPTIONAL.
 
     INTERFACES zif_gg_dynpro_v1.
     INTERFACES zif_gg_resumable_v1.
+    INTERFACES zif_gg_context_menu_v1.
 
   PRIVATE SECTION.
     DATA mo_provider TYPE REF TO zif_gg_screen_provider_v1.
     DATA mo_resumable TYPE REF TO zif_gg_resumable_v1.
+    DATA mo_context TYPE REF TO zif_gg_context_menu_v1.
 ENDCLASS.
 
 CLASS zcl_gg_host_report_dynpro IMPLEMENTATION.
@@ -22,6 +25,7 @@ CLASS zcl_gg_host_report_dynpro IMPLEMENTATION.
   METHOD constructor.
     mo_provider = io_provider.
     mo_resumable = io_resumable.
+    mo_context = io_context.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.
@@ -81,6 +85,14 @@ CLASS zcl_gg_host_report_dynpro IMPLEMENTATION.
     IF mo_resumable IS BOUND.
       mo_resumable->resume(
         is_resume  = is_resume
+        io_session = io_session ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_context_menu_v1~get_context_menu.
+    IF mo_context IS BOUND.
+      ro_menu = mo_context->get_context_menu(
+        iv_field   = iv_field
         io_session = io_session ).
     ENDIF.
   ENDMETHOD.

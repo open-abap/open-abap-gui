@@ -76,6 +76,21 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html)  TYPE string.
 
+    CLASS-METHODS render_application_menus
+      IMPORTING
+        iv_runtime      TYPE abap_bool
+        iv_content_form TYPE string
+        is_status       TYPE zif_gg_session_types_v1=>ty_gui_status
+      RETURNING
+        VALUE(rv_html)  TYPE string.
+
+    CLASS-METHODS render_pf_keys
+      IMPORTING
+        iv_runtime     TYPE abap_bool
+        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
     CLASS-METHODS is_command_enabled
       IMPORTING
         iv_ucomm          TYPE zif_gg_session_types_v1=>ty_ucomm
@@ -98,6 +113,15 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-menu-items{display:flex;align-self:stretch;align-items:center;gap:2px}' &&
       '.wb-menu{border:0;border-radius:3px;background:transparent;height:30px;padding:0 10px;color:#163e6b;font:inherit;cursor:pointer;text-decoration:none;display:flex;align-items:center}' &&
       '.wb-menu:hover,.wb-menu:focus{background:#d7e5f4;color:#092f5b;outline:0}' &&
+      '.wb-menu-dropdown{position:relative;display:flex;align-items:center;align-self:stretch}' &&
+      '.wb-menu-dropdown>.wb-menu{appearance:none}' &&
+      '.wb-menu-popup{position:absolute;z-index:1200;top:30px;left:0;min-width:190px;padding:3px;background:#fff;border:1px solid #7594b2;box-shadow:0 4px 14px rgba(18,52,84,.28)}' &&
+      '.wb-menu-popup[hidden]{display:none}' &&
+      '.wb-menu-popup ul{margin:0;padding:0;list-style:none}' &&
+      '.wb-menu-action{display:block;width:100%;min-height:26px;padding:3px 12px;border:0;background:transparent;color:#123b64;text-align:left;font:inherit;cursor:pointer}' &&
+      '.wb-menu-action:hover,.wb-menu-action:focus{background:#d9e8f7;outline:0}' &&
+      '.wb-menu-action:disabled{background:#eee;color:#808080;cursor:default}' &&
+      '.wb-menu-separator{display:block;height:1px;margin:3px 4px;background:#b4c8db}' &&
       '.wb-commandbar{height:38px;display:flex;align-items:center;gap:2px;padding:0 0 0 14px;background:linear-gradient(#f7faff,#e4edf7);border-bottom:1px solid var(--gg-border-dark);box-sizing:border-box}' &&
       '.wb-command-input{width:190px;height:28px;padding:3px 9px;border:1px solid var(--gg-border-dark);border-radius:2px;background:var(--gg-input);box-sizing:border-box;color:#1d2d3e;font:inherit;box-shadow:inset 0 1px 2px #d6e0eb}' &&
       '.wb-command-input:focus{outline:2px solid #8db5df;outline-offset:0}' &&
@@ -172,11 +196,66 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && |<header class="wb-appbar"><h1 id="wb-page-title" class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       |</h1></header>| &&
+      render_application_menus(
+        iv_runtime      = iv_runtime
+        iv_content_form = lv_content_form
+        is_status       = is_status ) &&
       render_iconbar(
         iv_runtime      = iv_runtime
         iv_content_form = lv_content_form
         it_entries      = is_status-icon_bar
-        is_status       = is_status ).
+        is_status       = is_status ) &&
+      render_pf_keys(
+        iv_runtime = iv_runtime
+        is_status  = is_status ).
+  ENDMETHOD.
+
+  METHOD render_application_menus.
+    DATA lv_items TYPE string.
+    DATA lv_state TYPE string.
+    DATA lv_command TYPE string.
+    DATA lv_enabled TYPE abap_bool.
+
+    LOOP AT is_status-menus INTO DATA(ls_menu).
+      CLEAR lv_items.
+      LOOP AT ls_menu-items INTO DATA(ls_item).
+        IF ls_item-separator = abap_true.
+          lv_items = lv_items && '<li class="wb-menu-separator" role="separator"></li>'.
+          CONTINUE.
+        ENDIF.
+        lv_enabled = is_command_enabled(
+          iv_ucomm   = ls_item-ucomm
+          iv_runtime = iv_runtime
+          is_status  = is_status ).
+        IF ls_item-disabled = abap_true.
+          CLEAR lv_enabled.
+        ENDIF.
+        lv_state = COND string( WHEN lv_enabled = abap_true THEN '' ELSE ' disabled' ).
+        lv_command = COND string(
+          WHEN iv_runtime = abap_true AND lv_enabled = abap_true
+          THEN | form="gg-dynpro-form" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_item-ucomm ) ) }"|
+          ELSE '' ).
+        lv_items = lv_items &&
+          |<li role="none"><button class="wb-menu-action" type="submit"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( ls_item-text ) }"{ lv_state }>{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.
+      ENDLOOP.
+      rv_html = rv_html &&
+        |<details class="wb-menu-dropdown" data-menu-code="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_menu-code ) ) }"><summary class="wb-menu" role="menuitem">{ zcl_gg_host_html=>escape_text( ls_menu-text ) }</summary><div class="wb-menu-popup" role="menu">{ lv_items }</div></details>|.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD render_pf_keys.
+    DATA lv_map TYPE string.
+
+    LOOP AT is_status-pf_actions INTO DATA(ls_pf_action).
+      IF lv_map IS NOT INITIAL.
+        lv_map = lv_map && ';'.
+      ENDIF.
+      lv_map = lv_map && |{ ls_pf_action-number }:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_pf_action-ucomm ) ) }|.
+    ENDLOOP.
+    IF lv_map IS INITIAL OR iv_runtime = abap_false.
+      RETURN.
+    ENDIF.
+    rv_html = '<span hidden data-pf-map="' && lv_map && '"></span><script>(function(){var node=document.querySelector("[data-pf-map]");if(!node){return;}var map={};(node.getAttribute("data-pf-map")||"").split(";").forEach(function(item){var pair=item.split(":");if(pair.length===2){map[pair[0]]=pair[1];}});document.addEventListener("keydown",function(event){var match=/^F([1-9]|1[0-9]|2[0-4])$/.exec(event.key||"");if(!match){return;}var key=String(Number(match[1]));var ucomm=map[key];if(!ucomm){return;}var field=document.activeElement;if(key==="1"&&field&&field.closest&&field.closest(".gg-dynpro-field,.gg-field")){return;}var form=document.getElementById("gg-dynpro-form");if(!form){return;}var action=form.querySelector("input[name=action]");if(action){action.value="PF";}var keyField=document["cr"+"eateElement"]("input");keyField.type="hidden";keyField.name="pf_key";keyField.value=key;form.appendChild(keyField);var ucommField=document["cr"+"eateElement"]("input");ucommField.type="hidden";ucommField.name="ucomm";ucommField.value=ucomm;form.appendChild(ucommField);event.preventDefault();form.submit();},true);}());</script>'.
   ENDMETHOD.
 
   METHOD render_iconbar.

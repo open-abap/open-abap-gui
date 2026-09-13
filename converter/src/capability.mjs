@@ -93,6 +93,15 @@ function supportedClassicWriteFormat(text) {
   return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
+function isContextMenuStatement(ir, statement) {
+  return (ir.routines ?? []).some((routine) =>
+    /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""))
+    && (routine.statements ?? []).some((item) => item === statement
+      || (item.filename === statement.filename
+        && item.span?.start?.line === statement.span?.start?.line
+        && item.span?.start?.column === statement.span?.start?.column)));
+}
+
 export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   const diagnostics = [];
   const interfaces = new Set(ir.interfaces);
@@ -125,8 +134,9 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
-    const supportedSpecial = statement.kind === "CallFunction"
-      && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text));
+    const supportedSpecial = (statement.kind === "CallFunction"
+      && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text)))
+      || isContextMenuStatement(ir, statement);
     if (statement.kind === "CallFunction" && !supportedSpecial) {
       addStatementDiagnostic(diagnostics, statement, "CALL FUNCTION is not supported by the generated report method", "Use a supported scaffold operation or provide a dedicated function-module adapter.", "GGCONV-E501");
       continue;
@@ -158,7 +168,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       interfaces.add("zif_gg_resumable_v1");
       ir.features.push("continuation");
     }
-    if (["AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Hide", "ReadLine", "ModifyLine", "GetCursor", "SetPFStatus", "SetTitlebar"].includes(statement.kind) || /LINE-SIZE|LINE-COUNT|NO STANDARD PAGE HEADING/.test(text)) {
+    if (["Write", "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Hide", "ReadLine", "ModifyLine", "GetCursor", "SetPFStatus", "SetTitlebar"].includes(statement.kind) || /LINE-SIZE|LINE-COUNT|NO STANDARD PAGE HEADING/.test(text)) {
       interfaces.add("zif_gg_list_processing_v1");
       ir.features.push("list-processing");
     }

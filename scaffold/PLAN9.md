@@ -185,10 +185,10 @@ work should eliminate them family by family.
 - [x] **`ZGG_GUI_SUBSCREENS`:** after baseline identity is fixed, preserve parent
   and child field namespaces, PBO/PAI order, nested container geometry, state,
   and navigation shown by the intended reference screen.
-- [ ] **`ZGG_GUI_DIALOGS_HELP`:** after baseline identity is fixed, implement F1,
+- [x] **`ZGG_GUI_DIALOGS_HELP`:** after baseline identity is fixed, implement F1,
   F4, modal screen positioning, nested dialog return values, cancellation, and
   parent focus restoration shown by the intended reference screen.
-- [ ] **`ZGG_GUI_GUI_STATUS`:** support custom menu trees, application icon-bar
+- [x] **`ZGG_GUI_GUI_STATUS`:** support custom menu trees, application icon-bar
   actions, dynamic exclusions/disabled commands, title/status changes, context
   fields, PF keys, and forged-command rejection.
 - [ ] **`ZGG_GUI_NAVIGATION`:** implement CALL SCREEN, SET/LEAVE SCREEN, list

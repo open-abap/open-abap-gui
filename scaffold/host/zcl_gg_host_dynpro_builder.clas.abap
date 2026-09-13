@@ -26,6 +26,7 @@ CLASS zcl_gg_host_dynpro_builder DEFINITION PUBLIC FINAL CREATE PUBLIC.
              input           TYPE abap_bool,
              exit_command    TYPE abap_bool,
              password        TYPE abap_bool,
+             context_menu    TYPE abap_bool,
              group           TYPE zif_gg_dynpro_types_v1=>ty_group,
              subscreen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
              subscreen_field TYPE zif_gg_dynpro_types_v1=>ty_name,
@@ -73,20 +74,21 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_input_field.
-    APPEND VALUE #( screen      = mv_screen
-                    kind        = 'INPUT'
-                    name        = is_input_field-control-name
-                    position    = is_input_field-control-position
-                    data_type   = is_input_field-data_type
-                    modif_id    = is_input_field-control-modif_id
-                    search_help = is_input_field-search_help
-                    value_help  = is_input_field-value_help
-                    uppercase   = is_input_field-uppercase
-                    required    = is_input_field-required
-                    enabled     = abap_true
-                    visible     = abap_true
-                    input       = abap_true
-                    password    = is_input_field-password ) TO mt_controls.
+    APPEND VALUE #( screen       = mv_screen
+                    kind         = 'INPUT'
+                    name         = is_input_field-control-name
+                    position     = is_input_field-control-position
+                    data_type    = is_input_field-data_type
+                    modif_id     = is_input_field-control-modif_id
+                    search_help  = is_input_field-search_help
+                    value_help   = is_input_field-value_help
+                    uppercase    = is_input_field-uppercase
+                    required     = is_input_field-required
+                    enabled      = abap_true
+                    visible      = abap_true
+                    input        = abap_true
+                    password     = is_input_field-password
+                    context_menu = is_input_field-context_menu ) TO mt_controls.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_output_field.

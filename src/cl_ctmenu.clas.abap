@@ -1,7 +1,22 @@
 CLASS cl_ctmenu DEFINITION PUBLIC.
   PUBLIC SECTION.
 
+    TYPES: BEGIN OF ty_item,
+             fcode     TYPE string,
+             text      TYPE string,
+             icon      TYPE string,
+             disabled  TYPE abap_bool,
+             hidden    TYPE abap_bool,
+             separator TYPE abap_bool,
+             submenu   TYPE REF TO cl_ctmenu,
+           END OF ty_item.
+    TYPES ty_items TYPE STANDARD TABLE OF ty_item WITH DEFAULT KEY.
+
     DATA default_function TYPE ui_func READ-ONLY.
+
+    METHODS get_items
+      RETURNING
+        VALUE(items) TYPE ty_items.
 
     METHODS hide_functions
       IMPORTING
@@ -68,59 +83,103 @@ CLASS cl_ctmenu DEFINITION PUBLIC.
         disable TYPE ui_functions OPTIONAL
       EXCEPTIONS
         read_error.
+
+  PRIVATE SECTION.
+    DATA mt_items TYPE ty_items.
 ENDCLASS.
 
 CLASS cl_ctmenu IMPLEMENTATION.
+  METHOD get_items.
+    items = mt_items.
+  ENDMETHOD.
+
   METHOD add_submenu.
-    RETURN. " todo, implement method
+    APPEND VALUE #( text     = text
+                    icon     = icon
+                    disabled = xsdbool( disabled IS NOT INITIAL )
+                    hidden   = xsdbool( hidden IS NOT INITIAL )
+                    submenu  = menu ) TO mt_items.
   ENDMETHOD.
 
   METHOD add_menu.
-    RETURN. " todo, implement method
+    IF menu IS BOUND.
+      APPEND LINES OF menu->get_items( ) TO mt_items.
+    ENDIF.
   ENDMETHOD.
 
   METHOD clear.
-    RETURN. " todo, implement method
+    CLEAR mt_items.
   ENDMETHOD.
 
   METHOD reset.
-    RETURN. " todo, implement method
+    CLEAR mt_items.
   ENDMETHOD.
 
   METHOD add_separator.
-    RETURN. " todo, implement method
+    APPEND VALUE #( separator = abap_true ) TO mt_items.
   ENDMETHOD.
 
   METHOD add_function.
-    RETURN. " todo, implement method
+    DATA ls_item TYPE ty_item.
+
+    ls_item-fcode = fcode.
+    ls_item-text = text.
+    ls_item-icon = icon.
+    ls_item-disabled = disabled.
+    ls_item-hidden = hidden.
+    IF insert_at_the_top = abap_true.
+      INSERT ls_item INTO mt_items INDEX 1.
+    ELSE.
+      APPEND ls_item TO mt_items.
+    ENDIF.
   ENDMETHOD.
 
   METHOD modify_function_text.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>) WHERE fcode = fcode.
+      IF text IS NOT INITIAL.
+        <ls_item>-text = text.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD set_default_function.
-    RETURN. " todo, implement method
+    default_function = fcode.
   ENDMETHOD.
 
   METHOD hide_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        <ls_item>-hidden = abap_true.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD show_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        CLEAR <ls_item>-hidden.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD disable_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        <ls_item>-disabled = abap_true.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD enable_functions.
-    RETURN. " todo, implement method
+    LOOP AT mt_items ASSIGNING FIELD-SYMBOL(<ls_item>).
+      IF line_exists( fcodes[ table_line = <ls_item>-fcode ] ).
+        CLEAR <ls_item>-disabled.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD load_gui_status.
-    RETURN. " todo, implement method
+    RETURN.
   ENDMETHOD.
 
 ENDCLASS.

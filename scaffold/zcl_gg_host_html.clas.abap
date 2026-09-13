@@ -357,6 +357,15 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection .gg-actions button\{flex:1 1 9rem;\}|.
     rv_html = rv_html && |\}|.
     rv_html = rv_html && |.gg-dynpro\{position:relative;min-height:12rem;overflow:hidden;background:linear-gradient(var(--gg-panel),var(--gg-work-area));box-sizing:border-box;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-context-menu\{position:fixed;z-index:1200;min-width:170px;padding:3px;background:#fff;border:1px solid #7594b2;box-shadow:0 4px 14px rgba(18,52,84,.28);color:#123b64;\}|.
+    rv_html = rv_html && |.gg-context-menu[hidden]\{display:none;\}|.
+    rv_html = rv_html && |.gg-context-menu-list\{display:grid;gap:1px;margin:0;padding:0;list-style:none;\}|.
+    rv_html = rv_html && |.gg-context-menu-item\{display:block;width:100%;min-height:26px;padding:3px 12px;border:0;background:transparent;color:#123b64;text-align:left;font:inherit;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-context-menu-item:hover,.gg-context-menu-item:focus\{background:#d9e8f7;outline:0;\}|.
+    rv_html = rv_html && |.gg-context-menu-item:disabled\{background:#eee;color:#808080;cursor:default;\}|.
+    rv_html = rv_html && |.gg-context-menu-separator\{height:1px;margin:3px 4px;background:#b4c8db;\}|.
+    rv_html = rv_html && |.gg-context-menu-group\{padding:3px 0 0;\}|.
+    rv_html = rv_html && |.gg-context-menu-group-label\{display:block;padding:2px 12px;color:#55738f;font-size:11px;font-weight:600;\}|.
     rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;color:#123b64;font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input,.gg-dynpro select,.gg-dynpro button\{font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text],.gg-dynpro input[type=password],.gg-dynpro select\{height:var(--gg-row);padding:2px 6px;border:1px solid var(--gg-border-dark);border-radius:1px;background:var(--gg-input);color:#123b64;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.

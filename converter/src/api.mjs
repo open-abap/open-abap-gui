@@ -506,6 +506,8 @@ export async function convertProgram(input = {}) {
       diagnostics.push(diagnostic({ code: "GGCONV-E503", filename: options.filename, construct: "dynpro metadata", message: error.message, suggestion: "Fix the report-owned .prog.xml and .prog.screen_NNNN.abap metadata files or supply screenMetadata explicitly.", phase: "dynpro" }));
     }
   }
+  if (ir.screenMetadata?.guiStatuses) ir.guiStatusMetadata = ir.screenMetadata.guiStatuses;
+  else if (ir.dynproMetadata?.guiStatuses) ir.guiStatusMetadata = ir.dynproMetadata.guiStatuses;
   validateNames(ir, options, diagnostics);
   validateSymbolCollisions(ir, diagnostics);
   applyTextPool(ir, options);

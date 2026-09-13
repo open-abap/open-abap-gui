@@ -46,6 +46,8 @@ export const LOWERING_RULES = new Map([
   ["Message", { kind: "session-message" }], ["SetPFStatus", { kind: "session-status" }], ["SetTitlebar", { kind: "session-title" }],
   ["CallSelectionScreen", { kind: "dialog-call-selection-screen" }], ["CallScreen", { kind: "dialog-call-screen" }],
   ["Submit", { kind: "navigation-submit" }], ["CallTransaction", { kind: "navigation-call-transaction" }],
+  ["SuppressDialog", { kind: "dialog-suppress" }], ["SetParameter", { kind: "compatibility-parameter-set" }],
+  ["GetParameter", { kind: "compatibility-parameter-get" }], ["AuthorityCheck", { kind: "compatibility-authority-check" }],
   ["Append", { kind: "internal-table-append" }], ["Collect", { kind: "internal-table-collect" }],
   ["InsertInternal", { kind: "internal-table-insert" }], ["DeleteInternal", { kind: "internal-table-delete" }],
   ["ModifyInternal", { kind: "internal-table-modify" }], ["ReadTable", { kind: "internal-table-read" }],
@@ -175,6 +177,15 @@ function quote(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
+function titlebarExpression(text, operands, context) {
+  let result = String(text ?? "").replaceAll("|", "\\|");
+  for (let index = 0; index < operands.length; index++) {
+    const expression = valueExpression(operands[index], context);
+    result = result.replaceAll(`&${index + 1}`, `{ ${expression} }`);
+  }
+  return `|${result}|`;
+}
+
 function splitOutsideStrings(text, delimiter = ",") {
   const parts = [];
   let current = "";
@@ -282,7 +293,7 @@ function valueExpression(expression, context) {
   value = value.replace(/\bsy-repid\b/gi,
     context.event === "dynpro" ? "''" : "io_session->get_context( )-program-program");
   value = value.replace(/\bsy-dynnr\b/gi,
-    context.event === "dynpro" ? "''" : "sy-dynnr");
+    "''");
   value = value.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
   value = value.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
   value = value.replace(/\bsy-index\b/gi, "sy-index");
@@ -491,8 +502,12 @@ export function lowerStatement(statement, context) {
     ...(context.replacements ?? []),
     ["sy-repid", "io_session->get_context( )-program-program"],
     ["sy-batch", "io_session->get_context( )-program-batch"],
+    ["sy-dynnr", "''"],
   ];
   if (statement.kind === "Comment") return raw;
+  if (context.contextMenu && (statement.kind === "CreateObject" || statement.kind === "Call")) {
+    return replaceOutsideStrings(raw, safeReplacements);
+  }
   if (isMethodSafeLoop(statement)) return replaceOutsideStrings(raw, safeReplacements);
   if (statement.kind === "Clear") {
     const body = stripPeriod(raw).replace(/^CLEAR\s*:?\s*/i, "");
@@ -571,8 +586,10 @@ export function lowerStatement(statement, context) {
     const name = /SET PF-STATUS\s+['"]?([^\s.'"]+)/i.exec(raw)?.[1];
     if (!name) return "* TODO GGCONV-E501: dynamic PF-STATUS.";
     const statusMetadata = context.guiStatusMetadata?.[name.toUpperCase()] ?? context.guiStatusMetadata?.[name] ?? {};
+    const excluding = /EXCLUDING\s+(['"]?)([A-Z0-9_%+-]+)/i.exec(raw);
+    const dynamicExcluding = excluding && !excluding[1] && /^[A-Z][A-Z0-9_]*$/i.test(excluding[2]);
     const excluded = [...new Set([
-      ...[...raw.matchAll(/EXCLUDING\s+['"]?([A-Z0-9_%+-]+)/gi)].map((match) => match[1].toUpperCase()),
+      ...(excluding && !dynamicExcluding ? [excluding[2].toUpperCase()] : []),
       ...(statusMetadata.excludedUcomm ?? statusMetadata.excluded_ucomm ?? []).map((command) => String(command).toUpperCase()),
     ])];
     const active = [...new Set((statusMetadata.activeUcomm ?? statusMetadata.active_ucomm ?? context.activeCommands ?? []).map((command) => String(command).toUpperCase()))];
@@ -583,7 +600,26 @@ export function lowerStatement(statement, context) {
     if (activePFKeys.length) fields.push(`active_pf_keys = VALUE #( ${[...new Set(activePFKeys)].map((key) => `( ${Number(key)} )`).join(" ")} )`);
     const iconBar = statusMetadata.iconBar ?? statusMetadata.icon_bar ?? [];
     if (iconBar.length) fields.push(`icon_bar = VALUE #( ${iconBar.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${quote(String(item.label ?? ""))} icon = ${quote(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
-    return `io_session->get_list( )->set_status( VALUE #( ${fields.join(" ")} ) ).`;
+    if (statusMetadata.pfActions?.length || statusMetadata.pf_actions?.length) {
+      const actions = statusMetadata.pfActions ?? statusMetadata.pf_actions;
+      fields.push(`pf_actions = VALUE #( ${actions.map((item) => `( number = ${Number(item.number ?? item.functionKey)} ucomm = '${String(item.ucomm ?? item.functionCode ?? "").toUpperCase()}' )`).join(" ")} )`);
+    }
+    if (statusMetadata.menus?.length) {
+      fields.push(`menus = VALUE #( ${statusMetadata.menus.map((menu) => `( code = ${quote(String(menu.code ?? ""))} text = ${quote(String(menu.text ?? ""))} path = ${quote(String(menu.path ?? ""))} items = VALUE #( ${(
+        menu.items ?? []
+      ).map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' text = ${quote(String(item.text ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} ) )`).join(" ")} )`);
+    }
+    const target = context.event === "dynpro" ? "io_session->get_dialog( )" : "io_session->get_list( )";
+    const body = `${target}->set_status( VALUE #( ${fields.join(" ")}${dynamicExcluding ? " excluded_ucomm = lt_ggconv_excluded" : ""} ) ).`;
+    if (!dynamicExcluding) return body;
+    const variable = replaceOutsideStrings(excluding[2], context.replacements);
+    return [
+      "DATA lt_ggconv_excluded TYPE zif_gg_session_types_v1=>ty_ucomms.",
+      `LOOP AT ${variable} INTO DATA(lv_ggconv_excluded).`,
+      "  APPEND CONV #( lv_ggconv_excluded ) TO lt_ggconv_excluded.",
+      "ENDLOOP.",
+      body,
+    ].join("\n");
   }
   if (/^SY-LSIND\s*=/i.test(raw)) {
     const value = raw.replace(/^SY-LSIND\s*=\s*/i, "").replace(/\.$/, "");
@@ -602,7 +638,15 @@ export function lowerStatement(statement, context) {
   }
   if (statement.kind === "SetTitlebar") {
     const title = /SET TITLEBAR\s+['"]?([^\s.'"]+)/i.exec(raw)?.[1];
-    return title ? `io_session->get_list( )->set_title( '${title.toUpperCase()}' ).` : "* TODO GGCONV-E501: dynamic titlebar.";
+    if (!title) return "* TODO GGCONV-E501: dynamic titlebar.";
+    const metadata = context.titlebarMetadata?.[title.toUpperCase()] ?? context.titlebarMetadata?.[title];
+    const operandsText = /\bWITH\s+(.+)$/i.exec(stripPeriod(raw))?.[1] ?? "";
+    const operands = splitMessageOperands(operandsText);
+    const value = metadata?.text
+      ? (operands.length ? titlebarExpression(metadata.text, operands, context) : quote(metadata.text))
+      : quote(title.toUpperCase());
+    const target = context.event === "dynpro" ? "io_session->get_dialog( )" : "io_session->get_list( )";
+    return `${target}->set_title( ${value} ).`;
   }
   if (statement.kind === "CallSelectionScreen") {
     const match = /CALL\s+SELECTION-SCREEN\s+(\d+)(.*)$/i.exec(stripPeriod(raw));
@@ -654,6 +698,24 @@ export function lowerStatement(statement, context) {
     if (!tcode || !id) return undefined;
     return continuationCall("io_session->get_navigation( )->call_transaction", "is_call", `VALUE #( tcode = '${tcode.toUpperCase()}'${/SKIP\s+FIRST\s+SCREEN/i.test(raw) ? " skip_first_screen = abap_true" : ""} )`, id);
   }
+  if (statement.kind === "SuppressDialog") {
+    return "io_session->get_dialog( )->suppress_dialog( ).";
+  }
+  if (statement.kind === "SetParameter") {
+    const match = /SET\s+PARAMETER\s+ID\s+'([^']+)'\s+FIELD\s+(.+)$/i.exec(stripPeriod(raw));
+    if (!match) return undefined;
+    return `io_session->get_compatibility( )->set_parameter( iv_id = ${quote(match[1].toUpperCase())} iv_value = CONV string( ${valueExpression(match[2], context)} ) ).`;
+  }
+  if (statement.kind === "GetParameter") {
+    const match = /GET\s+PARAMETER\s+ID\s+'([^']+)'\s+FIELD\s+(.+)$/i.exec(stripPeriod(raw));
+    if (!match) return undefined;
+    return `${replaceOutsideStrings(match[2], context.replacements)} = CONV #( io_session->get_compatibility( )->get_parameter( iv_id = ${quote(match[1].toUpperCase())} ) ).`;
+  }
+  if (statement.kind === "AuthorityCheck") {
+    const match = /AUTHORITY-CHECK\s+OBJECT\s+'([^']+)'\s+ID\s+'([^']+)'\s+FIELD\s+(.+)$/i.exec(stripPeriod(raw));
+    if (!match) return undefined;
+    return `sy-subrc = COND #( WHEN io_session->get_compatibility( )->authority_check( iv_object = ${quote(match[1].toUpperCase())} iv_id = ${quote(match[2].toUpperCase())} iv_value = CONV string( ${valueExpression(match[3], context)} ) ) = abap_true THEN 0 ELSE 4 ).`;
+  }
   if (statement.kind === "CallFunction") {
     const target = /TABLES\s+([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1];
     if (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(raw) && target) {
@@ -664,11 +726,18 @@ export function lowerStatement(statement, context) {
       ["sy-repid", context.event === "dynpro"
         ? "''"
         : "io_session->get_context( )-program-program"],
-      ["sy-dynnr", context.event === "dynpro" ? "''" : "sy-dynnr"],
+      ["sy-dynnr", "''"],
     ]));
   }
   if (statement.kind === "Leave") {
-    if (/LIST-PROCESSING/i.test(raw)) return /TO LIST/i.test(raw) ? "io_session->get_list( )->enter_list_processing( )." : "io_session->get_list( )->leave_list_processing( ).";
+    if (/LIST-PROCESSING/i.test(raw)) {
+      if (!/TO LIST/i.test(raw)) return "io_session->get_list( )->leave_list_processing( ).";
+      const returnScreen = /RETURN\s+TO\s+SCREEN\s+(\d+)/i.exec(raw)?.[1];
+      return [
+        "io_session->get_list( )->enter_list_processing( ).",
+        returnScreen ? `io_session->get_dialog( )->set_next_screen( '${returnScreen.padStart(4, "0")}' ).` : "",
+      ].filter(Boolean).join("\n");
+    }
     if (/PROGRAM/i.test(raw)) return "io_session->get_navigation( )->leave_program( ).";
     if (/TO TRANSACTION/i.test(raw)) {
       const tcode = /TO\s+TRANSACTION\s+'([^']+)'/i.exec(raw)?.[1];
@@ -699,13 +768,13 @@ export function lowerStatement(statement, context) {
     const match = /GET\s+CURSOR\s+FIELD\s+([A-Z][A-Z0-9_-]*)(?:\s+LINE\s+([A-Z][A-Z0-9_-]*))?/i.exec(raw);
     if (context.event === "dynpro") {
       if (!match) return "RETURN.";
-      const assignments = [`${match[1]} = is_context-cursor_field`];
-      if (match[2]) assignments.push(`${match[2]} = is_context-cursor_row`);
+      const assignments = [`${replaceOutsideStrings(match[1], context.replacements)} = is_context-cursor_field`];
+      if (match[2]) assignments.push(`${replaceOutsideStrings(match[2], context.replacements)} = is_context-cursor_row`);
       return assignments.map((item) => `${item}.`).join("\n");
     }
     if (!match) return "DATA(ls_cursor) = io_session->get_list( )->get_cursor( ).";
-    const assignments = [`${match[1]} = ls_cursor-field`];
-    if (match[2]) assignments.push(`${match[2]} = ls_cursor-line`);
+    const assignments = [`${replaceOutsideStrings(match[1], context.replacements)} = ls_cursor-field`];
+    if (match[2]) assignments.push(`${replaceOutsideStrings(match[2], context.replacements)} = ls_cursor-line`);
     return [`DATA(ls_cursor) = io_session->get_list( )->get_cursor( ).`, ...assignments.map((item) => `${item}.`)].join("\n");
   }
   if (statement.kind === "ReadLine") {

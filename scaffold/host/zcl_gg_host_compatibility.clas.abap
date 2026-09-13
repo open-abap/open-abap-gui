@@ -9,12 +9,20 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
            END OF ty_selection_list.
     TYPES ty_selection_lists TYPE STANDARD TABLE OF ty_selection_list WITH DEFAULT KEY.
 
+    TYPES: BEGIN OF ty_parameter,
+             id    TYPE string,
+             value TYPE string,
+           END OF ty_parameter.
+    TYPES ty_parameters TYPE STANDARD TABLE OF ty_parameter WITH DEFAULT KEY.
+
     CLASS-METHODS clear_selection_list_values.
+    CLASS-METHODS clear_parameters.
     CLASS-METHODS get_selection_list_values
       RETURNING VALUE(rt_lists) TYPE ty_selection_lists.
 
   PRIVATE SECTION.
     CLASS-DATA mt_selection_lists TYPE ty_selection_lists.
+    CLASS-DATA mt_parameters TYPE ty_parameters.
     DATA mv_context_report TYPE string.
     DATA mt_context_values TYPE zif_gg_selection_screen_types=>ty_values.
     DATA mt_context_states TYPE zif_gg_selection_screen_types=>ty_states.
@@ -222,6 +230,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
   METHOD clear_selection_list_values.
     CLEAR mt_selection_lists.
+  ENDMETHOD.
+
+  METHOD clear_parameters.
+    CLEAR mt_parameters.
   ENDMETHOD.
 
   METHOD get_selection_list_values.
@@ -782,11 +794,34 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     rv_url = |gg-published:{ iv_object }|.
   ENDMETHOD.
 
+  METHOD zif_gg_compatibility_v1~set_parameter.
+    READ TABLE mt_parameters ASSIGNING FIELD-SYMBOL(<ls_parameter>)
+      WITH KEY id = iv_id.
+    IF sy-subrc <> 0.
+      APPEND VALUE #( id = iv_id value = iv_value ) TO mt_parameters.
+    ELSE.
+      <ls_parameter>-value = iv_value.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_compatibility_v1~get_parameter.
+    READ TABLE mt_parameters INTO DATA(ls_parameter)
+      WITH KEY id = iv_id.
+    IF sy-subrc = 0.
+      rv_value = ls_parameter-value.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_compatibility_v1~authority_check.
+    rv_authorized = abap_false.
+  ENDMETHOD.
+
   METHOD zif_gg_compatibility_v1~supports.
     rv_supported = abap_false.
     CASE to_upper( iv_family ).
       WHEN 'POPUP' OR 'DIALOG' OR 'ALV' OR 'DYNAMIC_SELECTION' OR 'F4'
-          OR 'VARIANT' OR 'LIST_NAVIGATION' OR 'FRONTEND'.
+          OR 'VARIANT' OR 'LIST_NAVIGATION' OR 'FRONTEND'
+          OR 'MEMORY' OR 'AUTHORITY'.
         rv_supported = abap_true.
     ENDCASE.
   ENDMETHOD.
