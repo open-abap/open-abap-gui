@@ -94,7 +94,9 @@ export function isStaticOpenSql(statement) {
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
-  return /^\s*LOOP\s+AT\s+[A-Z][A-Z0-9_-]*(?:\s+ASSIGNING\s+<[^>]+>|\s+INTO\s+(?:DATA\s*\([^)]*\)|[A-Z][A-Z0-9_-]*))\b/i.test(body)
+  // The target may end in `>` or `)`, so the trailing guard has to be a
+  // lookahead: a `\b` after either of those can never match.
+  return /^\s*LOOP\s+AT\s+[A-Z][A-Z0-9_-]*\s+(?:ASSIGNING\s+(?:FIELD-SYMBOL\s*\(\s*<[A-Z][A-Z0-9_]*>\s*\)|<[A-Z][A-Z0-9_]*>)|INTO\s+(?:DATA\s*\(\s*[A-Z][A-Z0-9_-]*\s*\)|[A-Z][A-Z0-9_-]*))(?![A-Z0-9_-])/i.test(body)
     && !/^\s*LOOP\s+AT\s+SCREEN\b/i.test(body);
 }
 
@@ -909,6 +911,43 @@ export function lowerStatement(statement, context) {
   return `* TODO GGCONV-E501: unsupported ${statement.kind} statement requires manual lowering.`;
 }
 
+// A block opener that lowers to nothing but a comment cannot leave its body and
+// its closer behind: the generated method no longer balances, and the body would
+// run outside the loop or guard that used to control it. Opener, body and closer
+// are therefore dropped together, with the omitted source kept as comments.
+const BLOCK_CLOSERS = new Map([
+  ["If", "EndIf"], ["Do", "EndDo"], ["Loop", "EndLoop"],
+  ["Case", "EndCase"], ["Try", "EndTry"], ["While", "EndWhile"],
+]);
+const BLOCK_CLOSER_KINDS = new Set(BLOCK_CLOSERS.values());
+
+function blockEndIndex(statements, start) {
+  const closer = BLOCK_CLOSERS.get(statements[start].kind);
+  let depth = 0;
+  for (let index = start + 1; index < statements.length; index++) {
+    const kind = statements[index].kind;
+    if (BLOCK_CLOSERS.has(kind)) depth++;
+    else if (BLOCK_CLOSER_KINDS.has(kind)) {
+      if (depth > 0) depth--;
+      else return kind === closer ? index : -1;
+    }
+  }
+  return -1;
+}
+
+function isCommentOnly(lowered) {
+  return lowered === undefined || lowered.split("\n").every((line) => line.trim().startsWith("*"));
+}
+
+// `*` only starts a comment in column 1, so the omitted source is flattened
+// rather than kept at its original indentation.
+function commentedSource(statement) {
+  return statement.text.trim().split("\n")
+    .map((line) => line.trim())
+    .map((line) => (line.startsWith("*") ? line : `* ${line}`))
+    .join("\n");
+}
+
 export function lowerStatements(statements, context) {
   const output = [];
   let pendingHidden = [];
@@ -941,6 +980,19 @@ export function lowerStatements(statements, context) {
       ? { ...statement, text: statement.text.replace(/^\s*WRITE\s*\/\s*/i, "WRITE ") }
       : statement;
     const lowered = lowerStatement(lowerInput, statementContext);
+    const omitted = `* TODO GGCONV-E501: unsupported statement omitted: ${statement.text.trim().replace(/\s+/g, " ")}`;
+    const blockEnd = BLOCK_CLOSERS.has(statement.kind) && isCommentOnly(lowered)
+      ? blockEndIndex(statements, index)
+      : -1;
+    if (blockEnd >= 0) {
+      output.push({
+        text: [lowered ?? omitted, ...statements.slice(index + 1, blockEnd + 1).map(commentedSource)].join("\n"),
+        statement,
+        supported: false,
+      });
+      index = blockEnd;
+      continue;
+    }
     if (lowered !== undefined) {
       const item = { text: lowered, statement, supported: !lowered.includes("TODO GGCONV") };
       if (pendingHidden.length && statement.kind !== "Write" && lastWriteIndex >= 0) {
@@ -960,11 +1012,7 @@ export function lowerStatements(statements, context) {
         }
       }
       if (statement.kind === "EndLoop") rangeLoops.pop();
-    } else output.push({
-      text: `* TODO GGCONV-E501: unsupported statement omitted: ${statement.text.trim().replace(/\s+/g, " ")}`,
-      statement,
-      supported: false,
-    });
+    } else output.push({ text: omitted, statement, supported: false });
   }
   if (pendingHidden.length) output.push({
     text: `* TODO GGCONV-E501: HIDE values had no following WRITE statement.`,
