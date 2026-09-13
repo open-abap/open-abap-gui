@@ -96,16 +96,15 @@ export async function submit(page, buttonName = "Execute") {
 export async function dispatch(page, request) {
   const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const pageId = await page.locator("[data-page-kind]").getAttribute("data-page-id");
-  const response = await page.evaluate(async ({sessionId, pageId, request}) => {
-    const result = await fetch("/dispatch", {
-      method: "POST",
+  const response = await page.context().request.post(
+    new URL("/dispatch", page.url()).href,
+    {
       headers: {"content-type": "application/json"},
-      body: JSON.stringify({session_id: sessionId, page_id: pageId, ...request}),
+      data: {session_id: sessionId, page_id: pageId, ...request},
     });
-    return {status: result.status, html: await result.text()};
-  }, {sessionId, pageId, request});
-  expect(response.status, response.html).toBe(200);
-  await page.setContent(response.html, {waitUntil: "load"});
+  const html = await response.text();
+  expect(response.status(), html).toBe(200);
+  await page.setContent(html, {waitUntil: "load"});
   await expect(page.locator("[data-page-kind]")).toHaveCount(1);
 }
 
