@@ -95,34 +95,65 @@ CLASS cl_item_tree_model DEFINITION PUBLIC INHERITING FROM cl_tree_model.
         node_not_found
         item_not_found.
 
+  PROTECTED SECTION.
+    TYPES: BEGIN OF ty_model_item,
+             node_key  TYPE string,
+             item_name TYPE string,
+             text      TYPE string,
+             class     TYPE i,
+             chosen    TYPE abap_bool,
+             style     TYPE i,
+             editable  TYPE abap_bool,
+             hidden    TYPE abap_bool,
+           END OF ty_model_item.
+    TYPES ty_model_items TYPE STANDARD TABLE OF ty_model_item WITH DEFAULT KEY.
+    DATA mt_model_items TYPE ty_model_items.
+    DATA mt_registered_events TYPE cntl_simple_events.
+
 ENDCLASS.
 
 CLASS cl_item_tree_model IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
+    mv_node_selection_mode = node_selection_mode.
+    mv_hide_selection = hide_selection.
   ENDMETHOD.
 
   METHOD set_registered_events.
-    RETURN. " todo, implement method
+    mt_registered_events = events.
   ENDMETHOD.
 
   METHOD get_registered_events.
     CLEAR events.
-    RETURN. " todo, implement method
+    events = mt_registered_events.
   ENDMETHOD.
 
   METHOD item_set_chosen.
-    RETURN. " todo, implement method
+    READ TABLE mt_model_items ASSIGNING FIELD-SYMBOL(<item>)
+      WITH KEY node_key = node_key
+               item_name = item_name.
+    IF sy-subrc = 0.
+      <item>-chosen = chosen.
+    ENDIF.
   ENDMETHOD.
 
   METHOD item_set_text.
-    RETURN. " todo, implement method
+    READ TABLE mt_model_items ASSIGNING FIELD-SYMBOL(<item>)
+      WITH KEY node_key = node_key
+               item_name = item_name.
+    IF sy-subrc = 0.
+      <item>-text = text.
+    ENDIF.
   ENDMETHOD.
 
   METHOD item_set_style.
-    RETURN. " todo, implement method
+    READ TABLE mt_model_items ASSIGNING FIELD-SYMBOL(<item>)
+      WITH KEY node_key = node_key
+               item_name = item_name.
+    IF sy-subrc = 0.
+      <item>-style = style.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

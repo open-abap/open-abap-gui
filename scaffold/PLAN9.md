@@ -37,7 +37,7 @@ contract.
   font set, dataset, and animation state.
 - [ ] Add automated structural and behavioral assertions for every report and
   representative visual-regression assertions for every shared renderer.
-- [ ] Leave generated sources, manifests, cloned reference data, screenshots,
+- [x] Leave generated sources, manifests, cloned reference data, screenshots,
   contact sheets, and pixel diffs under the existing gitignored
   `converter/gg-gui-validation/` tree.
 
@@ -191,7 +191,7 @@ work should eliminate them family by family.
 - [x] **`ZGG_GUI_GUI_STATUS`:** support custom menu trees, application icon-bar
   actions, dynamic exclusions/disabled commands, title/status changes, context
   fields, PF keys, and forged-command rejection.
-- [ ] **`ZGG_GUI_NAVIGATION`:** implement CALL SCREEN, SET/LEAVE SCREEN, list
+- [x] **`ZGG_GUI_NAVIGATION`:** implement CALL SCREEN, SET/LEAVE SCREEN, list
   transitions, dialog suppression, SPA/GPA memory, SUBMIT, transaction calls,
   Reset/Leave/Back, and loop-safe continuations.
 - [x] **`ZGG_GUI_POPUPS`:** map the displayed popup function-module inventory to
@@ -240,7 +240,7 @@ work should eliminate them family by family.
 - [ ] **`ZGG_GUI_CALENDAR`:** render the nine-month reference layout with week
   numbers, selected/focused date, marks, single/range modes, month navigation,
   bounds, Today/Set/Read/Mark/Clear/Recreate actions, and locale-stable labels.
-- [ ] **`ZGG_GUI_DYNAMIC_DOCUMENT`:** render headings, formatted runs, icons,
+- [x] **`ZGG_GUI_DYNAMIC_DOCUMENT`:** render headings, formatted runs, icons,
   links, tables, form input/select/button controls, document metadata, event
   callbacks, background changes, refresh-in-place, and print behavior.
 - [ ] **`ZGG_GUI_TIMER`:** implement a session-owned timer with start/stop,
@@ -299,7 +299,7 @@ work should eliminate them family by family.
 - [ ] **`ZGG_GUI_ALV_CLASSIC`:** match the initial grid/list/hierarchical/block/
   popup/event selection screen and merge-field-catalog/variant controls, then
   route the selected classic ALV function-module mode to a semantic renderer.
-- [ ] **`ZGG_GUI_SALV_TABLE`:** keep the current reference fallback until SALV
+- [x] **`ZGG_GUI_SALV_TABLE`:** keep the current reference fallback until SALV
   factory support is real; once available, render selection, layouts, XML
   export, refresh, popup/fullscreen, and offline behavior without assertions or
   false success.
@@ -363,10 +363,10 @@ for contracts that the current catalog does not demonstrate.
   report work area, control geometry, labels, row data, state, or focus.
 - [ ] Test narrow and reference-width layouts, mouse and keyboard operation,
   high zoom, forced colors, reduced motion, and screen-reader names/roles.
-- [ ] Run converter unit tests, gg-gui conversion/capture, scaffold lint, ABAP
+- [x] Run converter unit tests, gg-gui conversion/capture, scaffold lint, ABAP
   transpilation/unit tests, HTML end-to-end tests, screenshot-diff tests, and
   `git diff --check` for every completed batch.
-- [ ] Publish the gitignored comparison index locally with links to all 50
+- [x] Publish the gitignored comparison index locally with links to all 50
   generated/reference/diff triples and a machine-readable pass/fail summary.
 - [ ] Accept a report only when its semantic, behavior, and visual gates pass;
   track partial progress by family rather than declaring parity because a page

@@ -196,47 +196,114 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
         VALUE(node_key)  TYPE tv_nodekey
         VALUE(item_name) TYPE tv_itmname
         VALUE(checked)   TYPE abap_bool.
+
+  PROTECTED SECTION.
+    TYPES: BEGIN OF ty_item_state,
+             node_key  TYPE string,
+             item_name TYPE string,
+             text      TYPE string,
+             chosen    TYPE abap_bool,
+             editable  TYPE abap_bool,
+             image     TYPE string,
+           END OF ty_item_state.
+    TYPES ty_item_states TYPE STANDARD TABLE OF ty_item_state WITH DEFAULT KEY.
+    DATA mt_item_states TYPE ty_item_states.
+    DATA mv_selected_item_node TYPE string.
+    DATA mv_selected_item_name TYPE string.
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.
   METHOD select_item.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    mv_selected_item_node = node_key.
+    mv_selected_item_name = item_name.
+    set_selected_node( node_key = node_key ).
   ENDMETHOD.
 
   METHOD add_nodes_and_items.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |nodes={ lines( node_table ) }; items={ lines( item_table ) }; structure={ item_table_structure_name }| ).
   ENDMETHOD.
 
   METHOD update_nodes_and_items.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |nodes={ lines( node_table ) }; items={ lines( item_table ) }; structure={ item_table_structure_name }; updated=true| ).
   ENDMETHOD.
 
   METHOD delete_all_items_of_nodes.
-    RETURN. " todo, implement method
+    LOOP AT node_key_table INTO DATA(lv_node_key).
+      DELETE mt_item_states WHERE node_key = lv_node_key.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD delete_items.
-    RETURN. " todo, implement method
+    CLEAR mt_item_states.
   ENDMETHOD.
 
   METHOD get_selected_item.
-    RETURN. " todo, implement method
+    node_key = mv_selected_item_node.
+    item_name = mv_selected_item_name.
   ENDMETHOD.
 
   METHOD item_set_editable.
-    RETURN. " todo, implement method
+    READ TABLE mt_item_states ASSIGNING FIELD-SYMBOL(<item>)
+      WITH KEY node_key = node_key item_name = item_name.
+    IF sy-subrc = 0.
+      <item>-editable = editable.
+    ELSE.
+      APPEND VALUE #( node_key = node_key item_name = item_name editable = editable )
+        TO mt_item_states.
+    ENDIF.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |item={ node_key }/{ item_name }; editable={ editable }| ).
   ENDMETHOD.
 
   METHOD item_set_chosen.
-    RETURN. " todo, implement method
+    READ TABLE mt_item_states ASSIGNING FIELD-SYMBOL(<item>)
+      WITH KEY node_key = node_key item_name = item_name.
+    IF sy-subrc = 0.
+      <item>-chosen = chosen.
+    ELSE.
+      APPEND VALUE #( node_key = node_key item_name = item_name chosen = chosen )
+        TO mt_item_states.
+    ENDIF.
+    RAISE EVENT checkbox_change
+      EXPORTING
+        node_key  = node_key
+        item_name = item_name
+        checked   = chosen.
   ENDMETHOD.
 
   METHOD item_set_text.
-    RETURN. " todo, implement method
+    READ TABLE mt_item_states ASSIGNING FIELD-SYMBOL(<item>)
+      WITH KEY node_key = node_key item_name = item_name.
+    IF sy-subrc = 0.
+      <item>-text = text.
+    ELSE.
+      APPEND VALUE #( node_key = node_key item_name = item_name text = text )
+        TO mt_item_states.
+    ENDIF.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |item={ node_key }/{ item_name }; text={ text }| ).
   ENDMETHOD.
 
   METHOD item_set_t_image.
-    RETURN. " todo, implement method
+    READ TABLE mt_item_states ASSIGNING FIELD-SYMBOL(<item>)
+      WITH KEY node_key = node_key item_name = item_name.
+    IF sy-subrc = 0.
+      <item>-image = t_image.
+    ELSE.
+      APPEND VALUE #( node_key = node_key item_name = item_name image = t_image )
+        TO mt_item_states.
+    ENDIF.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |item={ node_key }/{ item_name }; image={ t_image }| ).
   ENDMETHOD.
 
 ENDCLASS.

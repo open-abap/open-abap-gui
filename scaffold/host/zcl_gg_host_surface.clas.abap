@@ -49,6 +49,7 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
              data_value    TYPE string,
              control_id    TYPE string,
              payload       TYPE string,
+             html_content  TYPE string,
              actions       TYPE ty_surface_actions,
            END OF ty_surface.
     TYPES ty_surfaces TYPE STANDARD TABLE OF ty_surface WITH DEFAULT KEY.
@@ -286,6 +287,9 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
         result = |<article aria-label="{ escape( is_surface-aria_label ) }"><h2>{ escape( is_surface-title ) }</h2>|.
         IF is_surface-text IS NOT INITIAL.
           result = result && |<p>{ escape( is_surface-text ) }</p>|.
+        ENDIF.
+        IF is_surface-html_content IS NOT INITIAL.
+          result = result && is_surface-html_content.
         ENDIF.
         IF is_surface-link_href IS NOT INITIAL AND safe_url( is_surface-link_href ) = abap_true.
           result = result && |<a href="{ escape( is_surface-link_href ) }">{ escape( is_surface-link_label ) }</a>|.

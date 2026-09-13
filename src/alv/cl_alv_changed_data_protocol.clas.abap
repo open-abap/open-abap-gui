@@ -60,27 +60,55 @@ ENDCLASS.
 
 CLASS cl_alv_changed_data_protocol IMPLEMENTATION.
   METHOD refresh_protocol.
-    RETURN. " todo, implement method
+    RETURN.
   ENDMETHOD.
 
   METHOD constructor.
-    RETURN. " todo, implement method
+    IF i_calling_alv IS BOUND.
+      i_calling_alv->get_frontend_fieldcatalog( IMPORTING et_fieldcatalog = mt_fieldcatalog ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD modify_style.
-    RETURN. " todo, implement method
+    READ TABLE mt_mod_cells ASSIGNING FIELD-SYMBOL(<cell>)
+      WITH KEY row_id = i_row_id fieldname = i_fieldname.
+    IF sy-subrc = 0.
+      <cell>-style = i_style.
+    ELSE.
+      APPEND VALUE #( row_id    = i_row_id
+                      fieldname = i_fieldname
+                      style     = i_style ) TO mt_mod_cells.
+    ENDIF.
   ENDMETHOD.
 
   METHOD modify_cell.
-    RETURN.
+    APPEND VALUE #( row_id    = COND #( WHEN i_row_id IS INITIAL THEN i_tabix ELSE i_row_id )
+                    tabix     = i_tabix
+                    fieldname = i_fieldname
+                    value     = i_value ) TO mt_mod_cells.
   ENDMETHOD.
 
   METHOD get_cell_value.
-    RETURN.
+    READ TABLE mt_mod_cells INTO DATA(ls_cell)
+      WITH KEY row_id = COND #( WHEN i_row_id IS INITIAL THEN i_tabix ELSE i_row_id )
+               fieldname = i_fieldname.
+    IF sy-subrc = 0.
+      e_value = ls_cell-value.
+    ELSE.
+      CLEAR e_value.
+    ENDIF.
   ENDMETHOD.
 
   METHOD add_protocol_entry.
-    RETURN.
+    APPEND VALUE #( msgid     = i_msgid
+                    msgno     = i_msgno
+                    msgv1     = i_msgv1
+                    msgv2     = i_msgv2
+                    msgv3     = i_msgv3
+                    msgv4     = i_msgv4
+                    msgty     = i_msgty
+                    fieldname = i_fieldname
+                    row_id    = i_row_id ) TO mt_protocol.
   ENDMETHOD.
 
   METHOD display_protocol.

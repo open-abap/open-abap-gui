@@ -31,7 +31,7 @@ ENDCLASS.
 
 CLASS cl_gui_container IMPLEMENTATION.
   METHOD add_child.
-    IF child IS BOUND.
+    IF child IS BOUND AND NOT line_exists( mt_child_ids[ table_line = child->control_id ] ).
       APPEND child->control_id TO mt_child_ids.
     ENDIF.
   ENDMETHOD.
@@ -41,6 +41,8 @@ CLASS cl_gui_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD link.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |link-repid={ repid }; dynnr={ dynnr }; container={ container }| ).
   ENDMETHOD.
 ENDCLASS.

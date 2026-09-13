@@ -37,42 +37,49 @@ CLASS cl_salv_layout DEFINITION PUBLIC.
     METHODS f4_layouts
       RETURNING
         VALUE(value) TYPE salv_s_layout.
+
+  PRIVATE SECTION.
+    DATA ms_key TYPE salv_s_layout_key.
+    DATA mv_save_restriction TYPE i.
+    DATA mv_default TYPE abap_bool.
+    DATA mv_initial_layout TYPE string.
+    DATA ms_current_layout TYPE salv_s_layout.
 ENDCLASS.
 
 CLASS cl_salv_layout IMPLEMENTATION.
   METHOD get_layouts.
-    ASSERT 1 = 'not supported'.
+    CLEAR value.
   ENDMETHOD.
 
   METHOD get_default_layout.
-    ASSERT 1 = 'not supported'.
+    sdf = mv_initial_layout.
   ENDMETHOD.
 
   METHOD get_current_layout.
-    ASSERT 1 = 'not supported'.
+    value = ms_current_layout.
   ENDMETHOD.
 
   METHOD f4_layouts.
-    ASSERT 1 = 'not supported'.
+    value = ms_current_layout.
   ENDMETHOD.
 
   METHOD set_key.
-    ASSERT 1 = 'not supported'.
+    ms_key = value.
   ENDMETHOD.
 
   METHOD set_initial_layout.
-    ASSERT 1 = 'not supported'.
+    mv_initial_layout = value.
   ENDMETHOD.
 
   METHOD set_save_restriction.
-    ASSERT 1 = 'not supported'.
+    mv_save_restriction = value.
   ENDMETHOD.
 
   METHOD set_default.
-    ASSERT 1 = 'not supported'.
+    mv_default = value.
   ENDMETHOD.
 
   METHOD has_default.
-    ASSERT 1 = 'not supported'.
+    value = mv_default.
   ENDMETHOD.
 ENDCLASS.

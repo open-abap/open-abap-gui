@@ -61,6 +61,16 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
     DATA lo_viewer128 TYPE REF TO cl_gui_html_viewer.
     DATA lo_viewer134 TYPE REF TO cl_gui_html_viewer.
     DATA lv_picture_result124 TYPE i.
+    DATA lo_link129 TYPE REF TO cl_dd_link_element.
+    DATA lo_form129 TYPE REF TO cl_dd_form_area.
+    DATA lo_input129 TYPE REF TO cl_dd_input_element.
+    DATA lo_select129 TYPE REF TO cl_dd_select_element.
+    DATA lo_button129 TYPE REF TO cl_dd_button_element.
+    DATA lo_table129 TYPE REF TO cl_dd_table_element.
+    DATA lo_tablearea129 TYPE REF TO cl_dd_table_area.
+    DATA lv_main_url129 TYPE string.
+    DATA lv_offline_info129 TYPE string.
+    DATA lv_document_position129 TYPE i.
 
     CASE mv_mode.
       WHEN '117'.
@@ -202,11 +212,82 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
                                     width  = 500
                                     height = 150 ).
       WHEN '129'.
+        DATA(lo_document129) = NEW cl_dd_document( background_color = 35 ).
+        lo_document129->add_text(
+          text         = 'Dynamic & safe document'
+          sap_style    = cl_dd_area=>heading
+          a11y_tooltip = 'Document heading' ).
+        lo_document129->new_line( ).
+        lo_document129->add_text(
+          text         = 'Escaped text & attributes'
+          a11y_tooltip = 'Document body' ).
+        lo_document129->add_gap( width = 8 ).
+        lo_document129->add_icon(
+          sap_icon         = 'DOC'
+          alternative_text = 'Document icon' ).
+        lo_document129->add_link(
+          EXPORTING
+            url     = '/safe/document'
+            text    = 'Open document'
+            name    = 'SAFE_DOCUMENT'
+            tooltip = 'Open the safe document'
+          IMPORTING
+            link    = lo_link129 ).
+        lo_document129->add_form(
+          IMPORTING
+            formarea         = lo_form129
+            main_url         = lv_main_url129
+            alv_offline_info = lv_offline_info129 ).
+        lo_form129->add_input_element(
+          EXPORTING
+            value         = 'draft'
+            name          = 'DOCUMENT_NAME'
+            size          = 18
+            maxlength     = 40
+            tooltip       = 'Document name'
+            a11y_label    = 'Document name'
+          IMPORTING
+            input_element = lo_input129 ).
+        lo_form129->add_select_element(
+          EXPORTING
+            name           = 'DOCUMENT_KIND'
+            value          = 'REPORT'
+            options        = VALUE #( ( value = 'REPORT' text = 'Report' )
+                                     ( value = 'NOTE' text = 'Note' ) )
+            tooltip        = 'Document kind'
+            a11y_label     = 'Document kind'
+          IMPORTING
+            select_element = lo_select129 ).
+        lo_form129->add_button(
+          EXPORTING
+            label   = 'Save'
+            name    = 'SAVE_DOC'
+            tooltip = 'Save document'
+          IMPORTING
+            button  = lo_button129 ).
+        lo_document129->add_table(
+          EXPORTING
+            no_of_columns = 2
+            with_heading  = abap_true
+            a11y_label    = 'Document rows'
+          IMPORTING
+            table         = lo_table129
+            tablearea     = lo_tablearea129 ).
+        lo_tablearea129->new_row( ).
+        lo_tablearea129->add_heading( 'Field' ).
+        lo_tablearea129->add_heading( 'Value' ).
+        lo_document129->html_insert(
+          EXPORTING
+            contents = '<td>Status</td><td>Draft</td></tr></tbody></table></form>'
+          CHANGING
+            position = lv_document_position129 ).
+        lo_document129->merge_document( ).
         zcl_gg_host_surface=>set_surface( VALUE #(
           kind          = zcl_gg_host_surface=>surface_document
           aria_label    = 'Dynamic document'
           title         = 'Dynamic & safe document'
           text          = 'Escaped text & attributes'
+          html_content  = lo_document129->html_content
           link_label    = 'Open document'
           link_href     = '/safe/document'
           input_label   = 'Document name'

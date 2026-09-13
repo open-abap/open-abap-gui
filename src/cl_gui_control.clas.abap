@@ -136,6 +136,8 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       EXPORTING
         control TYPE REF TO cl_gui_control.
 
+    METHODS is_valid REDEFINITION.
+
     METHODS free.
 
     METHODS set_alignment
@@ -583,6 +585,10 @@ CLASS cl_gui_control IMPLEMENTATION.
       mv_width = width.
     ENDIF.
     sync( me ).
+  ENDMETHOD.
+
+  METHOD is_valid.
+    result = COND #( WHEN mv_alive = abap_true THEN 1 ELSE 0 ).
   ENDMETHOD.
 
   METHOD rewrite_sapevent.

@@ -109,6 +109,9 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
   PRIVATE SECTION.
     DATA mt_hidden_buttons TYPE ttb_button.
+    DATA mt_context_items TYPE zcl_gg_context_menu_state=>ty_items.
+    DATA mv_context_left TYPE i.
+    DATA mv_context_top TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
@@ -158,7 +161,15 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD track_context_menu.
-    RETURN. " todo, implement method
+    CLEAR mt_context_items.
+    IF context_menu IS BOUND.
+      mt_context_items = zcl_gg_context_menu_state=>get_items( context_menu ).
+    ENDIF.
+    mv_context_left = posx.
+    mv_context_top = posy.
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |buttons={ lines( m_table_button ) }; context-items={ lines( mt_context_items ) }; context-left={ mv_context_left }; context-top={ mv_context_top }| ).
   ENDMETHOD.
 
   METHOD fill_buttons_data_table.
@@ -173,7 +184,21 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD assign_static_ctxmenu_table.
-    RETURN. " todo, implement method
+    FIELD-SYMBOLS <table> TYPE ttb_button.
+    ASSIGN table_ctxmenu TO <table>.
+    IF sy-subrc = 0.
+      CLEAR mt_context_items.
+      LOOP AT <table> INTO DATA(ls_button).
+        APPEND VALUE #( fcode    = CONV string( ls_button-function )
+                        text     = CONV string( ls_button-text )
+                        icon     = CONV string( ls_button-icon )
+                        disabled = xsdbool( ls_button-disabled IS NOT INITIAL )
+                        hidden   = abap_false ) TO mt_context_items.
+      ENDLOOP.
+      cl_gui_control=>set_payload(
+        control = me
+        payload = |buttons={ lines( m_table_button ) }; context-items={ lines( mt_context_items ) }| ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD add_button_group.
@@ -210,7 +235,18 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_static_ctxmenu.
-    RETURN.
+    DATA lo_menu TYPE REF TO cl_ctmenu.
+    TRY.
+        lo_menu ?= ctxmenu.
+      CATCH cx_root.
+        CLEAR lo_menu.
+    ENDTRY.
+    IF lo_menu IS BOUND.
+      mt_context_items = zcl_gg_context_menu_state=>get_items( lo_menu ).
+    ENDIF.
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |static-context={ fcode }; items={ lines( mt_context_items ) }; type={ btntype }| ).
   ENDMETHOD.
 
   METHOD free.

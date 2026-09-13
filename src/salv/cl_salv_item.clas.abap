@@ -33,40 +33,48 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE abap_bool.
 
+  PRIVATE SECTION.
+    DATA mv_type TYPE i.
+    DATA mv_text TYPE string.
+    DATA mv_icon TYPE string.
+    DATA mv_style TYPE i.
+    DATA mv_editable TYPE abap_bool.
+    DATA mv_checked TYPE abap_bool.
+
 ENDCLASS.
 
 CLASS cl_salv_item IMPLEMENTATION.
 
   METHOD set_type.
-    RETURN. " todo, implement method
+    mv_type = value.
   ENDMETHOD.
 
   METHOD get_type.
-    RETURN. " todo, implement method
+    value = mv_type.
   ENDMETHOD.
 
   METHOD set_text.
-    RETURN. " todo, implement method
+    mv_text = value.
   ENDMETHOD.
 
   METHOD set_icon.
-    RETURN. " todo, implement method
+    mv_icon = value.
   ENDMETHOD.
 
   METHOD set_style.
-    RETURN. " todo, implement method
+    mv_style = value.
   ENDMETHOD.
 
   METHOD set_editable.
-    RETURN. " todo, implement method
+    mv_editable = value.
   ENDMETHOD.
 
   METHOD set_checked.
-    RETURN. " todo, implement method
+    mv_checked = value.
   ENDMETHOD.
 
   METHOD is_checked.
-    RETURN. " todo, implement method
+    value = mv_checked.
   ENDMETHOD.
 
 ENDCLASS.

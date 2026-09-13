@@ -61,59 +61,85 @@ ENDCLASS.
 
 CLASS cl_salv_functions_list IMPLEMENTATION.
   METHOD set_export_localfile.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'EXPORT_LOCALFILE'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_sort_desc.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'SORT_DESC'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_sort_asc.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'SORT_ASC'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_export_spreadsheet.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'EXPORT_SPREADSHEET'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_print_preview.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'PRINT_PREVIEW'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_find.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'FIND'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_print.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'PRINT'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_filter.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'FILTER'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_layout_save.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'LAYOUT_SAVE'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_group_layout.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'GROUP_LAYOUT'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_group_sort.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'GROUP_SORT'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_group_filter.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'GROUP_FILTER'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_view_excel.
-    RETURN. " todo, implement method
+    set_named_visibility(
+      name  = 'VIEW_EXCEL'
+      value = value ).
   ENDMETHOD.
 
   METHOD set_default.
-    RETURN.
+    set_all( value ).
   ENDMETHOD.
 
 ENDCLASS.

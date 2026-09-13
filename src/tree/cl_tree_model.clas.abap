@@ -92,46 +92,121 @@ CLASS cl_tree_model DEFINITION PUBLIC.
 
     METHODS update_view.
 
+  PROTECTED SECTION.
+    TYPES: BEGIN OF ty_model_node,
+             node_key   TYPE string,
+             parent_key TYPE string,
+             text       TYPE string,
+             expanded   TYPE abap_bool,
+             selected   TYPE abap_bool,
+             hidden     TYPE abap_bool,
+           END OF ty_model_node.
+    TYPES ty_model_nodes TYPE STANDARD TABLE OF ty_model_node WITH DEFAULT KEY.
+    DATA mt_model_nodes TYPE ty_model_nodes.
+    DATA mv_node_selection_mode TYPE i.
+    DATA mv_hide_selection TYPE abap_bool.
+    DATA mr_tree_control TYPE REF TO cl_tree_control_base.
+
+    METHODS store_node
+      IMPORTING
+        is_node TYPE ty_model_node.
+
 ENDCLASS.
 
 CLASS cl_tree_model IMPLEMENTATION.
 
   METHOD constructor.
-    RETURN. " todo, implement method
+    mv_node_selection_mode = node_selection_mode.
+    mv_hide_selection = hide_selection.
   ENDMETHOD.
 
   METHOD create_tree_control.
-    RETURN. " todo, implement method
+    IF parent IS BOUND.
+      mr_tree_control = NEW cl_gui_simple_tree(
+        parent              = parent
+        node_selection_mode = mv_node_selection_mode
+        hide_selection      = mv_hide_selection
+        shellstyle          = shellstyle
+        lifetime            = lifetime
+        name                = name ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD expand_node.
-    RETURN. " todo, implement method
+    READ TABLE mt_model_nodes ASSIGNING FIELD-SYMBOL(<node>)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    <node>-expanded = abap_true.
+    IF expand_parents = abap_true.
+      DATA(lv_parent) = <node>-parent_key.
+      DO 32 TIMES.
+        IF lv_parent IS INITIAL.
+          EXIT.
+        ENDIF.
+        READ TABLE mt_model_nodes ASSIGNING FIELD-SYMBOL(<parent>)
+          WITH KEY node_key = lv_parent.
+        IF sy-subrc <> 0.
+          EXIT.
+        ENDIF.
+        <parent>-expanded = abap_true.
+        lv_parent = <parent>-parent_key.
+      ENDDO.
+    ENDIF.
   ENDMETHOD.
 
   METHOD collapse_node.
-    RETURN. " todo, implement method
+    READ TABLE mt_model_nodes ASSIGNING FIELD-SYMBOL(<node>)
+      WITH KEY node_key = node_key.
+    IF sy-subrc = 0.
+      <node>-expanded = abap_false.
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_expanded_nodes.
     CLEAR node_key_table.
-    RETURN. " todo, implement method
+    LOOP AT mt_model_nodes INTO DATA(ls_node) WHERE expanded = abap_true.
+      APPEND ls_node-node_key TO node_key_table.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD node_get_parent.
     CLEAR parent_node_key.
-    RETURN. " todo, implement method
+    READ TABLE mt_model_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc = 0.
+      parent_node_key = ls_node-parent_key.
+    ENDIF.
   ENDMETHOD.
 
   METHOD delete_all_nodes.
-    RETURN. " todo, implement method
+    CLEAR mt_model_nodes.
   ENDMETHOD.
 
   METHOD delete_node.
-    RETURN. " todo, implement method
+    DATA lt_delete TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    APPEND node_key TO lt_delete.
+    DO 32 TIMES.
+      LOOP AT mt_model_nodes INTO DATA(ls_child).
+        IF line_exists( lt_delete[ table_line = ls_child-parent_key ] )
+            AND NOT line_exists( lt_delete[ table_line = ls_child-node_key ] ).
+          APPEND ls_child-node_key TO lt_delete.
+        ENDIF.
+      ENDLOOP.
+    ENDDO.
+    LOOP AT lt_delete INTO DATA(lv_delete_key).
+      DELETE mt_model_nodes WHERE node_key = lv_delete_key.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD update_view.
-    RETURN. " todo, implement method
+    RETURN.
+  ENDMETHOD.
+
+  METHOD store_node.
+    DELETE mt_model_nodes WHERE node_key = is_node-node_key.
+    APPEND is_node TO mt_model_nodes.
   ENDMETHOD.
 
 ENDCLASS.

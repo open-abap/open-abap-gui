@@ -3,6 +3,8 @@ CLASS cl_dd_select_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element.
 
     DATA options TYPE sdydo_option_tab.
     DATA value TYPE sdydo_value.
+    DATA tooltip TYPE string.
+    DATA a11y_label TYPE string.
 
     EVENTS selected
       EXPORTING
@@ -16,6 +18,7 @@ ENDCLASS.
 
 CLASS cl_dd_select_element IMPLEMENTATION.
   METHOD set_value.
-    RETURN. " todo, implement method
+    me->value = value.
+    RAISE EVENT selected EXPORTING sender = me.
   ENDMETHOD.
 ENDCLASS.

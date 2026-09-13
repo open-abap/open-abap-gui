@@ -49,35 +49,50 @@ ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
   METHOD constructor.
-    RETURN. " todo, implement method
+    initialize_document( background_color = background_color ).
   ENDMETHOD.
 
   METHOD print_document.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_external_html( html_content ).
   ENDMETHOD.
 
   METHOD vertical_split.
-    RETURN. " todo, implement method
+    right_area = split_area.
+    IF right_area IS NOT BOUND.
+      right_area = NEW cl_dd_area( ).
+    ENDIF.
+    html_content = html_content && `<div class="gg-dd-split">`.
   ENDMETHOD.
 
   METHOD initialize_document.
-    RETURN. " todo, implement method
+    CLEAR html_content.
+    html_content = |<section class="gg-dd-document" aria-label="Dynamic document" data-background="{ background_color }">|.
   ENDMETHOD.
 
   METHOD merge_document.
-    RETURN. " todo, implement method
+    html_content = html_content && `</section>`.
   ENDMETHOD.
 
   METHOD display_document.
-    RETURN. " todo, implement method
+    DATA lt_html TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+
+    IF parent IS BOUND AND html_control IS NOT BOUND.
+      html_control = NEW cl_gui_html_viewer( parent = parent ).
+    ENDIF.
+    IF html_control IS BOUND.
+      APPEND html_content TO lt_html.
+      html_control->load_data( CHANGING data_table = lt_html ).
+    ELSE.
+      cl_gui_control=>set_external_html( html_content ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD add_picture.
-    RETURN. " todo, implement method
+    html_content = html_content && |<img class="gg-dd-picture" src="{ cl_gui_control=>escape_html( CONV string( picture_id ) ) }" width="{ width }" alt="Dynamic document picture">|.
   ENDMETHOD.
 
   METHOD set_document_background.
-    RETURN. " todo, implement method
+    html_content = html_content && |<div class="gg-dd-background" data-picture="{ cl_gui_control=>escape_html( CONV string( picture_id ) ) }">|.
   ENDMETHOD.
 
 ENDCLASS.

@@ -221,6 +221,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF lv_path = '/'.
+      zcl_gg_host_runtime=>clear( ).
       lo_workbench = NEW zcl_gg_workbench( ).
       send_html( server  = server
                  iv_html = lo_workbench->get_html( ) ).

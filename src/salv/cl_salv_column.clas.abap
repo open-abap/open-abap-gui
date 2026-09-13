@@ -16,6 +16,34 @@ CLASS cl_salv_column DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE lvc_fname.
 
+    METHODS set_columnname
+      IMPORTING
+        value TYPE lvc_fname.
+
+    METHODS get_short_text
+      RETURNING
+        VALUE(value) TYPE string.
+
+    METHODS get_medium_text
+      RETURNING
+        VALUE(value) TYPE string.
+
+    METHODS get_long_text
+      RETURNING
+        VALUE(value) TYPE string.
+
+    METHODS get_currency_column
+      RETURNING
+        VALUE(value) TYPE lvc_fname.
+
+    METHODS get_quantity_column
+      RETURNING
+        VALUE(value) TYPE lvc_fname.
+
+    METHODS get_tooltip
+      RETURNING
+        VALUE(value) TYPE lvc_tip.
+
     METHODS set_currency_column
       IMPORTING
         value TYPE any
@@ -65,98 +93,147 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS get_ddic_reference
       RETURNING
         VALUE(value) TYPE salv_s_ddic_reference.
+
+  PROTECTED SECTION.
+    DATA mv_columnname TYPE lvc_fname.
+    DATA mv_short_text TYPE string.
+    DATA mv_medium_text TYPE string.
+    DATA mv_long_text TYPE string.
+    DATA mv_tooltip TYPE lvc_tip.
+    DATA mv_output_length TYPE i.
+    DATA mv_currency_column TYPE lvc_fname.
+    DATA mv_quantity_column TYPE lvc_fname.
+    DATA mv_technical TYPE abap_bool.
+    DATA mv_optimized TYPE abap_bool.
+    DATA mv_visible TYPE abap_bool.
+    DATA mv_zero TYPE abap_bool.
+    DATA mv_sign TYPE abap_bool.
+    DATA mv_alignment TYPE i.
+    DATA mv_edit_mask TYPE string.
+    DATA mv_ddic_datatype TYPE char4.
+    DATA mv_ddic_inttype TYPE char1.
+    DATA mv_ddic_domain TYPE char30.
+    DATA ms_ddic_reference TYPE salv_s_ddic_reference.
 ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
   METHOD set_edit_mask.
-    RETURN. " todo, implement method
+    mv_edit_mask = CONV string( value ).
   ENDMETHOD.
 
   METHOD set_ddic_reference.
-    RETURN. " todo, implement method
+    ms_ddic_reference = value.
   ENDMETHOD.
 
   METHOD get_ddic_reference.
-    RETURN. " todo, implement method
+    value = ms_ddic_reference.
   ENDMETHOD.
 
   METHOD get_ddic_domain.
-    RETURN. " todo, implement method
+    value = mv_ddic_domain.
   ENDMETHOD.
 
   METHOD get_ddic_inttype.
-    RETURN. " todo, implement method
+    value = mv_ddic_inttype.
   ENDMETHOD.
 
   METHOD get_ddic_datatype.
-    RETURN. " todo, implement method
+    value = mv_ddic_datatype.
   ENDMETHOD.
 
   METHOD get_columnname.
-    RETURN. " todo, implement method
+    value = mv_columnname.
+  ENDMETHOD.
+
+  METHOD set_columnname.
+    mv_columnname = value.
+  ENDMETHOD.
+
+  METHOD get_short_text.
+    value = mv_short_text.
+  ENDMETHOD.
+
+  METHOD get_medium_text.
+    value = mv_medium_text.
+  ENDMETHOD.
+
+  METHOD get_long_text.
+    value = mv_long_text.
+  ENDMETHOD.
+
+  METHOD get_currency_column.
+    value = mv_currency_column.
+  ENDMETHOD.
+
+  METHOD get_quantity_column.
+    value = mv_quantity_column.
+  ENDMETHOD.
+
+  METHOD get_tooltip.
+    value = mv_tooltip.
   ENDMETHOD.
 
   METHOD set_currency.
-    RETURN. " todo, implement method
+    mv_currency_column = CONV lvc_fname( value ).
   ENDMETHOD.
 
   METHOD set_quantity_column.
-    RETURN. " todo, implement method
+    mv_quantity_column = CONV lvc_fname( value ).
   ENDMETHOD.
 
   METHOD set_quantity.
-    RETURN. " todo, implement method
+    mv_quantity_column = CONV lvc_fname( value ).
   ENDMETHOD.
 
   METHOD set_tooltip.
-    RETURN. " todo, implement method
+    mv_tooltip = value.
   ENDMETHOD.
 
   METHOD set_currency_column.
-    RETURN.
+    mv_currency_column = CONV lvc_fname( value ).
   ENDMETHOD.
 
   METHOD set_zero.
-    RETURN.
+    mv_zero = value.
   ENDMETHOD.
 
   METHOD set_visible.
-    RETURN.
+    mv_visible = value.
   ENDMETHOD.
 
   METHOD set_alignment.
-    RETURN.
+    mv_alignment = value.
   ENDMETHOD.
 
   METHOD set_optimized.
-    RETURN.
+    mv_optimized = value.
   ENDMETHOD.
 
   METHOD set_technical.
-    RETURN.
+    mv_technical = value.
   ENDMETHOD.
 
   METHOD set_short_text.
-    RETURN.
+    mv_short_text = CONV string( value ).
   ENDMETHOD.
 
   METHOD set_medium_text.
-    RETURN.
+    mv_medium_text = CONV string( value ).
   ENDMETHOD.
 
   METHOD set_long_text.
-    RETURN.
+    mv_long_text = CONV string( value ).
   ENDMETHOD.
 
   METHOD set_output_length.
-    RETURN.
+    mv_output_length = value.
   ENDMETHOD.
 
   METHOD get_output_length.
-    length = 0.
+    length = mv_output_length.
   ENDMETHOD.
 
   METHOD set_sign.
-    RETURN.
+    mv_sign = value.
   ENDMETHOD.
 ENDCLASS.

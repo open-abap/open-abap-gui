@@ -40,7 +40,8 @@ CLASS cl_gui_list_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD hierarchy_header_set_text.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = |hierarchy-header={ cl_gui_control=>escape_html( CONV string( text ) ) }| ).
   ENDMETHOD.
 
 ENDCLASS.

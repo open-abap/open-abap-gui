@@ -96,8 +96,11 @@ CLASS ltcl_gg_control_showcase_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD dynamic_document.
-    check_html( io_report = NEW zcl_gg_ex_129( )
-                iv_text   = 'Dynamic document' ).
+    DATA(ls_result) = zcl_gg_host=>run( io_report = NEW zcl_gg_ex_129( ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-dd-document' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'select' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-dd-table' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'Dynamic &amp; safe document' ) ).
     check_command( io_report = NEW zcl_gg_ex_129( )
                    iv_ucomm  = 'SAVE_DOC'
       iv_text                = 'document saved by the server' ).

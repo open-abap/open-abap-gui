@@ -43,15 +43,16 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
     DATA lv_tcode_url TYPE string.
 
-    IF iv_error IS INITIAL.
-      lt_transactions = zcl_gg_transaction_registry=>get_all( ).
-    ELSE.
-      TRY.
-          lt_transactions = zcl_gg_transaction_registry=>get_all( ).
-        CATCH zcx_gg_transaction_error.
-          CLEAR lt_transactions.
-      ENDTRY.
-    ENDIF.
+    TRY.
+        lt_transactions = zcl_gg_transaction_registry=>get_all( ).
+      CATCH cx_root.
+        zcl_gg_transaction_registry=>clear( ).
+        TRY.
+            lt_transactions = zcl_gg_transaction_registry=>get_all( ).
+          CATCH cx_root.
+            CLEAR lt_transactions.
+        ENDTRY.
+    ENDTRY.
 
     rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>open-abap GUI</title><style>' &&
       zcl_gg_workbench_utility=>render_styles( ) &&

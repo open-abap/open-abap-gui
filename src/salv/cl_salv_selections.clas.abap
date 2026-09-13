@@ -49,48 +49,55 @@ CLASS cl_salv_selections DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE salv_s_cell.
 
+  PRIVATE SECTION.
+    DATA mv_selection_mode TYPE i.
+    DATA mt_selected_rows TYPE salv_t_row.
+    DATA mt_selected_columns TYPE salv_t_column.
+    DATA mt_selected_cells TYPE salv_t_cell.
+    DATA ms_current_cell TYPE salv_s_cell.
+
 ENDCLASS.
 
 CLASS cl_salv_selections IMPLEMENTATION.
 
   METHOD get_selection_mode.
-    RETURN. " todo, implement method
+    value = mv_selection_mode.
   ENDMETHOD.
 
   METHOD set_selection_mode.
-    RETURN. " todo, implement method
+    mv_selection_mode = value.
   ENDMETHOD.
 
   METHOD get_selected_rows.
-    RETURN. " todo, implement method
+    value = mt_selected_rows.
   ENDMETHOD.
 
   METHOD set_selected_rows.
-    RETURN. " todo, implement method
+    mt_selected_rows = value.
   ENDMETHOD.
 
   METHOD get_selected_columns.
-    RETURN. " todo, implement method
+    value = mt_selected_columns.
   ENDMETHOD.
 
   METHOD set_selected_columns.
-    RETURN. " todo, implement method
+    mt_selected_columns = value.
   ENDMETHOD.
 
   METHOD get_selected_cells.
-    RETURN. " todo, implement method
+    value = mt_selected_cells.
   ENDMETHOD.
 
   METHOD set_selected_cells.
-    RETURN. " todo, implement method
+    mt_selected_cells = value.
   ENDMETHOD.
 
   METHOD get_current_cell.
-    RETURN. " todo, implement method
+    value = ms_current_cell.
   ENDMETHOD.
 
   METHOD set_current_cell.
-    RETURN. " todo, implement method
+    ms_current_cell = value.
   ENDMETHOD.
 
 ENDCLASS.
