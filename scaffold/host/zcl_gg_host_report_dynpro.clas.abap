@@ -6,18 +6,22 @@ CLASS zcl_gg_host_report_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PUBLIC SECTION.
     METHODS constructor
       IMPORTING
-        io_provider TYPE REF TO zif_gg_screen_provider_v1.
+        io_provider  TYPE REF TO zif_gg_screen_provider_v1
+        io_resumable TYPE REF TO zif_gg_resumable_v1 OPTIONAL.
 
     INTERFACES zif_gg_dynpro_v1.
+    INTERFACES zif_gg_resumable_v1.
 
   PRIVATE SECTION.
     DATA mo_provider TYPE REF TO zif_gg_screen_provider_v1.
+    DATA mo_resumable TYPE REF TO zif_gg_resumable_v1.
 ENDCLASS.
 
 CLASS zcl_gg_host_report_dynpro IMPLEMENTATION.
 
   METHOD constructor.
     mo_provider = io_provider.
+    mo_resumable = io_resumable.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.
@@ -71,6 +75,14 @@ CLASS zcl_gg_host_report_dynpro IMPLEMENTATION.
       is_context = is_context
       it_values  = it_values
       io_session = io_session ).
+  ENDMETHOD.
+
+  METHOD zif_gg_resumable_v1~resume.
+    IF mo_resumable IS BOUND.
+      mo_resumable->resume(
+        is_resume  = is_resume
+        io_session = io_session ).
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

@@ -841,7 +841,9 @@ function resumeMethod(ir) {
     if (!statement) continue;
     const id = continuation.id;
     const owner = ir.eventBlocks?.find((block) => block.statements?.includes(statement))
-      ?? ir.routines?.find((item) => item.statements?.includes(statement));
+      ?? ir.routines?.find((item) => item.statements?.includes(statement))
+      ?? ir.modules?.find((item) => item.statements?.includes(statement));
+    const ownerIsModule = ir.modules?.includes(owner) === true;
     const ownerStatements = owner?.statements ?? [];
     const tail = resumeTail(ownerStatements, ownerStatements.indexOf(statement), continuation);
     let lowered;
@@ -853,7 +855,7 @@ function resumeMethod(ir) {
         "ENDLOOP.",
       ];
     } else {
-      const context = methodContext(ir, "resume");
+      const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
       lowered = lowerStatements(tail, context).map((item) => item.text);
       lowered = [...globalFieldSymbolDeclarations(ir, tail), ...lowered];
       if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);

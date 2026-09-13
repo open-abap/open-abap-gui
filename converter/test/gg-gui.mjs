@@ -749,7 +749,7 @@ try {
   assert.equal(await choiceHelp.isVisible(), false);
   await dialogsPage.locator('[name="GV_CHOICE"]').focus();
   assert.equal(await choiceHelp.isVisible(), true);
-  await choiceHelp.click();
+  await dialogsPage.keyboard.press("F4");
   await dialogsPage.waitForLoadState("load");
   await dialogsPage.locator('.gg-value-help-modal[data-help-field="GV_CHOICE"]').waitFor({state: "visible"});
   const choiceValues = dialogsPage.getByRole("region", {name: "Value help"});
@@ -757,8 +757,8 @@ try {
   await choiceValues.locator('li[data-value="BETA"]').dblclick();
   assert.equal(await dialogsPage.locator('[name="GV_CHOICE"]').inputValue(), "BETA");
   assert.equal(await dialogsPage.getByRole("dialog", {name: "Value help"}).isVisible(), false);
-  assert.equal(await dialogsPage.locator('[name="GV_CHOICE"]').isFocused(), true);
-  await dialogsPage.keyboard.press("F1");
+  assert.equal(await dialogsPage.locator('[name="GV_CHOICE"]').evaluate((field) => field === field.ownerDocument.activeElement), true);
+  await dialogsPage.locator('[name="GV_CHOICE"]').press("F1");
   await dialogsPage.waitForLoadState("load");
   const helpPopup = dialogsPage.locator('.gg-popup-modal[data-popup-kind="INFORM"]');
   assert.equal(await helpPopup.count(), 1);
@@ -792,7 +792,7 @@ try {
   await dialogsPage.waitForLoadState("load");
   const valuesPopup = dialogsPage.locator('.gg-popup-modal[data-popup-kind="VALUES"]');
   assert.equal(await valuesPopup.count(), 1);
-  await valuesPopup.locator('[name="gg-popup-GV_CHOICE"]').fill("DELTA");
+  await valuesPopup.locator('[name="gg-popup-UNAME"]').fill("DELTA");
   await valuesPopup.getByRole("button", {name: "Apply", exact: true}).click();
   await dialogsPage.waitForLoadState("load");
   assert.equal(await dialogsPage.locator('[name="GV_CHOICE"]').inputValue(), "DELTA");

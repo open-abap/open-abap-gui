@@ -279,7 +279,10 @@ function valueExpression(expression, context) {
   value = replaceListColorConstants(value);
   value = value.replace(/\bsy-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
   value = value.replace(/\bsscrfields-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
-  value = value.replace(/\bsy-repid\b/gi, "io_session->get_context( )-program-program");
+  value = value.replace(/\bsy-repid\b/gi,
+    context.event === "dynpro" ? "''" : "io_session->get_context( )-program-program");
+  value = value.replace(/\bsy-dynnr\b/gi,
+    context.event === "dynpro" ? "''" : "sy-dynnr");
   value = value.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
   value = value.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
   value = value.replace(/\bsy-index\b/gi, "sy-index");
@@ -658,7 +661,10 @@ export function lowerStatement(statement, context) {
     }
     return lowerCompatibilityFunction(replaceOutsideStrings(raw, [
       ...context.replacements,
-      ["sy-repid", "io_session->get_context( )-program-program"],
+      ["sy-repid", context.event === "dynpro"
+        ? "''"
+        : "io_session->get_context( )-program-program"],
+      ["sy-dynnr", context.event === "dynpro" ? "''" : "sy-dynnr"],
     ]));
   }
   if (statement.kind === "Leave") {

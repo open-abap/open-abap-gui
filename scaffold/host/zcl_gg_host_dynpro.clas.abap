@@ -13,6 +13,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              title          TYPE string,
              cursor         TYPE zif_gg_session_types_v1=>ty_dialog_cursor,
              modal_position TYPE zif_gg_session_types_v1=>ty_modal_position,
+             modal_returned TYPE abap_bool,
              popup          TYPE zif_gg_compatibility_v1=>ty_popup,
              values         TYPE zif_gg_dynpro_types_v1=>ty_values,
              lines          TYPE zcl_gg_host_list=>ty_text_lines,
@@ -31,24 +32,26 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS run
       IMPORTING
-        io_program        TYPE REF TO zif_gg_dynpro_v1
-        iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm DEFAULT 'BACK'
-        iv_submitted      TYPE abap_bool DEFAULT abap_true
-        it_values         TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
-        iv_field          TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_row            TYPE i OPTIONAL
-        iv_cursor_field   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_cursor_row     TYPE i OPTIONAL
-        iv_value_request  TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_help_request   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_popup_action   TYPE string OPTIONAL
-        it_popup_values   TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
-        is_modal_position TYPE zif_gg_session_types_v1=>ty_modal_position OPTIONAL
-        iv_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
-        iv_session_id     TYPE string OPTIONAL
-        iv_page_id        TYPE string OPTIONAL
+        io_program             TYPE REF TO zif_gg_dynpro_v1
+        iv_ucomm               TYPE zif_gg_dynpro_types_v1=>ty_ucomm DEFAULT 'BACK'
+        iv_submitted           TYPE abap_bool DEFAULT abap_true
+        it_values              TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
+        iv_field               TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_row                 TYPE i OPTIONAL
+        iv_cursor_field        TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_cursor_row          TYPE i OPTIONAL
+        iv_value_request       TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_help_request        TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_popup_action        TYPE string OPTIONAL
+        it_popup_values        TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
+        is_modal_position      TYPE zif_gg_session_types_v1=>ty_modal_position OPTIONAL
+        io_resumable           TYPE REF TO zif_gg_resumable_v1 OPTIONAL
+        iv_resume_continuation TYPE string OPTIONAL
+        iv_screen              TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
+        iv_session_id          TYPE string OPTIONAL
+        iv_page_id             TYPE string OPTIONAL
       RETURNING
-        VALUE(rs_result)  TYPE ty_result.
+        VALUE(rs_result)       TYPE ty_result.
 
   PRIVATE SECTION.
     CLASS-DATA mv_run_id TYPE i.
@@ -226,6 +229,16 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
         ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
 
+    CLASS-METHODS modal_continuation
+      IMPORTING
+        io_program      TYPE REF TO zif_gg_dynpro_v1
+        io_resumable    TYPE REF TO zif_gg_resumable_v1 OPTIONAL
+        io_session      TYPE REF TO zcl_gg_host_session
+        iv_enabled      TYPE abap_bool
+        iv_continuation TYPE string
+      CHANGING
+        ct_values       TYPE zif_gg_dynpro_types_v1=>ty_values.
+
 ENDCLASS.
 
 CLASS zcl_gg_host_dynpro IMPLEMENTATION.
@@ -247,6 +260,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lv_page_id TYPE string.
     DATA ls_context TYPE zif_gg_dynpro_types_v1=>ty_module_context.
     DATA ls_screen_call TYPE zif_gg_session_types_v1=>ty_screen_call.
+    DATA lo_resumable TYPE REF TO zif_gg_resumable_v1.
     DATA lv_returned_from_modal TYPE abap_bool.
     DATA ls_input_value TYPE zif_gg_dynpro_types_v1=>ty_value.
     DATA lt_dynamic_lists TYPE zcl_gg_host_compatibility=>ty_selection_lists.
@@ -363,7 +377,9 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
       ELSE iv_screen ).
     rs_result-modal_position = is_modal_position.
-    rs_result-help_name = iv_help_request.
+    rs_result-help_name = COND #( WHEN iv_value_request IS INITIAL
+                                  THEN iv_help_request
+                                  ELSE CONV zif_gg_dynpro_types_v1=>ty_name( iv_value_request ) ).
     lo_session->set_processor(
       iv_processor = zif_gg_session_types_v1=>processor_dynpro
       iv_screen    = lv_screen ).
@@ -396,6 +412,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           WHEN zcx_gg_control_flow=>kind_call_screen.
             ls_screen_call = lo_session->get_screen_call( ).
             lv_screen = ls_screen_call-screen.
+            rs_result-modal_position = ls_screen_call-modal.
           WHEN zcx_gg_control_flow=>kind_leave_screen.
             lv_screen = lo_session->get_next_screen( ).
             IF lv_screen IS INITIAL.
@@ -447,6 +464,16 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         ix_flow    = lx_flow
       CHANGING
         cs_result  = rs_result ).
+
+    zcl_gg_host_dynpro=>modal_continuation(
+      io_program      = io_program
+      io_resumable    = io_resumable
+      io_session      = lo_session
+      iv_enabled      = lv_returned_from_modal
+      iv_continuation = iv_resume_continuation
+      CHANGING
+        ct_values     = lt_values ).
+    rs_result-modal_returned = lv_returned_from_modal.
 
     IF lx_flow IS BOUND
         AND ( lx_flow->mv_kind = zcx_gg_control_flow=>kind_call_screen
@@ -523,6 +550,32 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_terminal = rs_result-terminal_state
       CHANGING
         ct_actions  = rs_result-page-actions ).
+  ENDMETHOD.
+
+  METHOD modal_continuation.
+    DATA lo_resumable TYPE REF TO zif_gg_resumable_v1.
+
+    IF iv_enabled = abap_true AND iv_continuation IS NOT INITIAL.
+      TRY.
+          lo_resumable = io_resumable.
+          IF lo_resumable IS NOT BOUND.
+            lo_resumable ?= io_program.
+          ENDIF.
+          IF lo_resumable IS BOUND.
+            lo_resumable->resume(
+              is_resume  = VALUE #(
+                continuation = VALUE #( id = iv_continuation )
+                subrc        = 0 )
+              io_session = io_session ).
+            io_program->initialization(
+              EXPORTING
+                io_session = io_session
+              CHANGING
+                ct_values  = ct_values ).
+          ENDIF.
+        CATCH zcx_gg_control_flow.
+      ENDTRY.
+    ENDIF.
   ENDMETHOD.
 
   METHOD process_modules.
@@ -1096,6 +1149,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
 
   METHOD capture_navigation.
     DATA ls_continuation TYPE zif_gg_session_types_v1=>ty_continuation.
+    DATA ls_screen_call TYPE zif_gg_session_types_v1=>ty_screen_call.
     DATA ls_transaction_call TYPE zif_gg_session_types_v1=>ty_transaction_call.
     DATA ls_submit_call TYPE zif_gg_session_types_v1=>ty_submit.
 
@@ -1104,6 +1158,13 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     ENDIF.
     ls_continuation = io_session->get_continuation( ).
     CASE ix_flow->mv_kind.
+      WHEN zcx_gg_control_flow=>kind_call_screen.
+        ls_screen_call = io_session->get_screen_call( ).
+        cs_result-navigation = VALUE #(
+          kind         = ix_flow->mv_kind
+          target       = CONV string( ls_screen_call-screen )
+          continuation = ls_continuation-id
+          modal        = abap_true ).
       WHEN zcx_gg_control_flow=>kind_call_transaction
           OR zcx_gg_control_flow=>kind_leave_to_transaction.
         ls_transaction_call = io_session->get_transaction_call( ).
