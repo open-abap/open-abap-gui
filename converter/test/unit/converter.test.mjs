@@ -537,6 +537,98 @@ test("emits valid hoisted structures for non-chained BEGIN OF declarations", asy
   assert.match(helper, /TYPES: BEGIN OF ty_old, c1 TYPE i, END OF ty_old\./);
 });
 
+test("comments out the whole block when a block opener cannot be lowered", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zdroploop.",
+      "CLASS lcl_bug DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_bug IMPLEMENTATION.",
+      "  METHOD run.",
+      "    DATA lt_packages TYPE STANDARD TABLE OF string WITH DEFAULT KEY.",
+      "    DATA lv_value TYPE string.",
+      "    LOOP AT lt_packages.",
+      "      IF lt_packages IS NOT INITIAL.",
+      "        lv_value = lt_packages.",
+      "      ENDIF.",
+      "    ENDLOOP.",
+      "    WHILE lv_value IS INITIAL.",
+      "      lv_value = 'x'.",
+      "    ENDWHILE.",
+      "    CLEAR lv_value.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  WRITE 'x'.",
+    ].join("\n"),
+    filename: "zdroploop.prog.abap",
+    className: "ZCL_DROPLOOP",
+    transactionCode: "ZDROPLOOP",
+    mode: "partial",
+  });
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
+  const helper = result.helperSources[0].source;
+  assert.match(helper, /TODO GGCONV-E501: unsupported statement omitted: LOOP AT lt_packages/);
+  for (const omitted of ["IF lt_packages IS NOT INITIAL.", "lv_value = lt_packages.", "ENDIF.", "ENDLOOP.", "lv_value = 'x'.", "ENDWHILE."]) {
+    assert.ok(helper.includes(`* ${omitted}`), `expected commented-out source for ${omitted}`);
+  }
+  assert.doesNotMatch(helper, /^\s+END(LOOP|WHILE|IF)\.$/m);
+  // Statements after the omitted blocks still lower normally.
+  assert.match(helper, /^\s+CLEAR lv_value\.$/m);
+});
+
+test("converts LOOP AT with an ASSIGNING target instead of omitting it", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zassignloop.",
+      "CLASS lcl_demo DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_demo IMPLEMENTATION.",
+      "  METHOD run.",
+      "    DATA lt_packages TYPE STANDARD TABLE OF string WITH DEFAULT KEY.",
+      "    DATA lv_value TYPE string.",
+      "    LOOP AT lt_packages ASSIGNING FIELD-SYMBOL(<lv_inline>).",
+      "      lv_value = <lv_inline>.",
+      "    ENDLOOP.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  WRITE 'x'.",
+    ].join("\n"),
+    filename: "zassignloop.prog.abap",
+    className: "ZCL_ASSIGNLOOP",
+    transactionCode: "ZASSIGNLP",
+    mode: "partial",
+  });
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
+  const helper = result.helperSources[0].source;
+  assert.match(helper, /^\s+LOOP AT lt_packages ASSIGNING FIELD-SYMBOL\(<lv_inline>\)\.$/m);
+  assert.match(helper, /^\s+lv_value = <lv_inline>\.$/m);
+  assert.match(helper, /^\s+ENDLOOP\.$/m);
+  assert.doesNotMatch(helper, /TODO GGCONV-E501/);
+
+  // The declared-field-symbol form was rejected by the same regex.
+  const declared = await convertProgram({
+    source: [
+      "REPORT zassignloop2.",
+      "DATA gt_values TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
+      "FIELD-SYMBOLS <lv_value> TYPE i.",
+      "START-OF-SELECTION.",
+      "LOOP AT gt_values ASSIGNING <lv_value>.",
+      "  WRITE / <lv_value>.",
+      "ENDLOOP.",
+    ].join("\n"),
+    filename: "zassignloop2.prog.abap",
+    mode: "partial",
+  });
+  assert.ok(!declared.diagnostics.some((item) => item.code === "GGCONV-E516" && item.message.includes("implicit-header-table LOOP")));
+  assert.match(declared.classSource, /^\s+LOOP AT gt_values ASSIGNING <lv_value>\.$/m);
+});
+
 test("converts composite fixtures with nested includes, routines, and database access", async () => {
   const nested = await convertProgram({
     source: await compositeFixture("composite_nested_includes.abap.txt"),
@@ -934,6 +1026,12 @@ test("diagnoses report-only method legality gaps instead of claiming support", a
   assert.equal(implicitLoop.supported, false);
   assert.ok(implicitLoop.diagnostics.some((item) => item.code === "GGCONV-E516" && item.message.includes("implicit-header-table LOOP")));
   assert.match(implicitLoop.classSource, /TODO GGCONV-E501: unsupported statement omitted: LOOP AT gt_values/i);
+  // The dropped opener takes its body and its ENDLOOP with it, otherwise the
+  // generated method no longer balances.
+  assert.match(implicitLoop.classSource, /^\* WRITE \/ gt_values\.$/m);
+  assert.match(implicitLoop.classSource, /^\* ENDLOOP\.$/m);
+  assert.doesNotMatch(implicitLoop.classSource, /^\s+ENDLOOP\.$/m);
+  assert.ok(!implicitLoop.diagnostics.some((item) => item.code === "GGCONV-E202"));
 
   const functionCall = await convertProgram({
     source: "REPORT zfunction_call.\nCALL FUNCTION 'Z_UNSUPPORTED'.\n",
