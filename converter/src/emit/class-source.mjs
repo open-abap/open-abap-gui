@@ -1588,8 +1588,8 @@ function helperDefinitionBody(statements, rename) {
   let structured;
   const flushStructured = () => {
     if (!structured) return;
-    const components = structured.components.join(" ");
-    lines.push(`  ${structured.keyword}: BEGIN OF ${structured.beginName}${components ? `, ${components}` : ""} END OF ${structured.endName ?? structured.beginName}.`);
+    const components = structured.components.map((component) => `${component}, `).join("");
+    lines.push(`  ${structured.keyword}: BEGIN OF ${structured.beginName}${components ? `, ${components}` : " "}END OF ${structured.endName ?? structured.beginName}.`);
     structured = undefined;
   };
   for (const statement of statements) {
@@ -1617,7 +1617,12 @@ function helperDefinitionBody(statements, rename) {
       continue;
     }
     if (structured) {
-      structured.components.push(text.replace(new RegExp(`^${structured.keyword}\\s+`, "i"), ""));
+      // Components carry their own terminator: a comma in the chained form, a
+      // period in the classic `DATA BEGIN OF x. DATA fld. DATA END OF x.` form.
+      // The structure is always re-emitted as one chain, so drop the terminator
+      // here and let flushStructured put the commas back.
+      const component = text.replace(new RegExp(`^${structured.keyword}\\s+`, "i"), "").replace(/\s*[,.]\s*$/, "");
+      if (component) structured.components.push(component);
       continue;
     }
     // abaplint splits chained declarations into one statement per element,

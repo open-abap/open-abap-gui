@@ -503,6 +503,40 @@ test("emits valid hoisted local classes for chained declarations and divider com
   assert.match(helper, /message_type_success text = \|\{ lv_a \}\| display_like = zif_gg_session_types_v1=>message_type_error/);
 });
 
+test("emits valid hoisted structures for non-chained BEGIN OF declarations", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zhoist_classic.",
+      "CLASS lcl_bug DEFINITION.",
+      "  PRIVATE SECTION.",
+      "  DATA BEGIN OF gs_old.",
+      "  DATA fld1 TYPE i.",
+      "  DATA fld2 TYPE string.",
+      "  DATA END OF gs_old.",
+      "  TYPES BEGIN OF ty_old.",
+      "  TYPES c1 TYPE i.",
+      "  TYPES END OF ty_old.",
+      "  METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_bug IMPLEMENTATION.",
+      "  METHOD run.",
+      "    gs_old-fld1 = 1.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  WRITE 'x'.",
+    ].join("\n"),
+    filename: "zhoist_classic.prog.abap",
+    className: "ZCL_HOIST_CLASSIC",
+    transactionCode: "ZHOISTCL",
+    mode: "partial",
+  });
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
+  const helper = result.helperSources[0].source;
+  assert.match(helper, /DATA: BEGIN OF gs_old, fld1 TYPE i, fld2 TYPE string, END OF gs_old\./);
+  assert.match(helper, /TYPES: BEGIN OF ty_old, c1 TYPE i, END OF ty_old\./);
+});
+
 test("converts composite fixtures with nested includes, routines, and database access", async () => {
   const nested = await convertProgram({
     source: await compositeFixture("composite_nested_includes.abap.txt"),
