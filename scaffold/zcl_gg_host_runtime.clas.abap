@@ -301,22 +301,22 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
                                   AND is_request-action <> zif_gg_host_html_v1=>action_value_help
                                   AND NOT ( is_request-action = zif_gg_host_html_v1=>action_popup
                                             AND is_request-target = 'INFORM' ) )
-      it_values        = lt_dynpro_values
-      iv_field         = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
-      iv_row           = is_request-row
-      iv_cursor_field  = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-cursor_field )
-      iv_value_request = CONV zif_gg_dynpro_types_v1=>ty_name(
+      it_values         = lt_dynpro_values
+      iv_field          = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
+      iv_row            = is_request-row
+      iv_cursor_field   = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-cursor_field )
+      iv_value_request  = CONV zif_gg_dynpro_types_v1=>ty_name(
                            COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_value_help
                                         THEN is_request-target ELSE `` ) )
-      iv_help_request  = COND #( WHEN is_request-action = zif_gg_host_html_v1=>action_help
+      iv_help_request   = COND #( WHEN is_request-action = zif_gg_host_html_v1=>action_help
                                  THEN CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
                                  ELSE lv_help_request )
-      iv_popup_action  = lv_popup_action
-      it_popup_values  = is_request-dynpro_values
+      iv_popup_action   = lv_popup_action
+      it_popup_values   = is_request-dynpro_values
       is_modal_position = ls_session-last_dynpro-modal_position
-      iv_screen        = ls_session-last_dynpro-screen
-      iv_session_id    = ls_session-session_id
-      iv_page_id       = lv_page_id ).
+      iv_screen         = ls_session-last_dynpro-screen
+      iv_session_id     = ls_session-session_id
+      iv_page_id        = lv_page_id ).
     IF ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
         OR ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction.
       ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = ls_dynpro-navigation-target ).

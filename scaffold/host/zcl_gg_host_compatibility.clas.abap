@@ -23,6 +23,7 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_dynamic_input TYPE zif_gg_selection_screen_types=>ty_values.
     DATA ms_dynamic_selection TYPE zif_gg_compatibility_v1=>ty_dynamic_selection.
     DATA mv_popup_action TYPE string.
+    DATA mv_popup_interactive TYPE abap_bool.
     DATA mt_popup_input TYPE zif_gg_dynpro_types_v1=>ty_values.
     DATA ms_popup TYPE zif_gg_compatibility_v1=>ty_popup.
     DATA mt_value_help_values TYPE zif_gg_dynpro_types_v1=>ty_values.
@@ -72,6 +73,11 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     DATA lv_action TYPE string.
     DATA lv_answer TYPE string.
 
+    IF mv_popup_interactive = abap_false.
+      rv_answer = '1'.
+      sy-subrc = 0.
+      RETURN.
+    ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_answer.
     IF lv_action = 'CONFIRM'.
       rv_answer = CONV #( lv_answer ).
@@ -96,6 +102,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     DATA lv_action TYPE string.
     DATA lv_disposition TYPE string.
 
+    IF mv_popup_interactive = abap_false.
+      RETURN.
+    ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_disposition.
     IF lv_action = 'INFORM'.
       RETURN.
@@ -115,6 +124,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     DATA lv_action TYPE string.
     DATA lv_disposition TYPE string.
 
+    IF mv_popup_interactive = abap_false.
+      CLEAR rv_returncode.
+      RETURN.
+    ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_disposition.
     IF lv_action = 'VALUE'.
       IF lv_disposition = 'CANCEL'.
@@ -184,6 +197,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~set_popup_request.
+    mv_popup_interactive = abap_true.
     mv_popup_action = iv_action.
     mt_popup_input = it_values.
   ENDMETHOD.

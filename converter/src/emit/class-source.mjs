@@ -1408,15 +1408,17 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
       .map((step) => String(step.name ?? "").toUpperCase())
       .filter(Boolean);
     const modules = ir.modules.filter((item) => requestModules.includes(String(item.name ?? "").toUpperCase()));
-    if (!modules.length) return ["RETURN."];
     const lines = [
       "DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
       "ct_values = it_values.",
+    ];
+    if (!modules.length) return [...lines, "RETURN."];
+    lines.push(
       ...dynproStateHydrate(ir),
       ...dynproTableHydrate(tableBindings),
       ...tableContext,
       "CASE is_context-module.",
-    ];
+    );
     for (const module of modules) {
       const context = { ...methodContext(ir, "dynpro"), ucomm: "is_context-ucomm" };
       const body = [...globalFieldSymbolDeclarations(ir, module.statements), ...lowerStatements(module.statements, context).map((item) => item.text)];
