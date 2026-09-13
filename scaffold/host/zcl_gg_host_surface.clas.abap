@@ -12,6 +12,7 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
              cell1      TYPE string,
              cell2      TYPE string,
              cell3      TYPE string,
+             cell4      TYPE string,
              row_header TYPE abap_bool,
            END OF ty_surface_row.
     TYPES ty_surface_rows TYPE STANDARD TABLE OF ty_surface_row WITH DEFAULT KEY.
@@ -37,6 +38,7 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
              link_href     TYPE string,
              input_label   TYPE string,
              input_name    TYPE string,
+             input_type    TYPE string,
              input_value   TYPE string,
              table_caption TYPE string,
              columns       TYPE ty_surface_columns,
@@ -60,6 +62,7 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS surface_chart          TYPE string VALUE 'CHART'.
     CONSTANTS surface_salv_layout    TYPE string VALUE 'SALV_LAYOUT'.
     CONSTANTS surface_cockpit        TYPE string VALUE 'COCKPIT'.
+    CONSTANTS surface_popup          TYPE string VALUE 'POPUP'.
     CONSTANTS surface_action_ucomm   TYPE string VALUE 'UCOMM'.
     CONSTANTS surface_action_command TYPE string VALUE 'COMMAND'.
 
@@ -129,6 +132,12 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_surface    TYPE ty_surface
       RETURNING
         VALUE(result) TYPE string.
+
+    CLASS-METHODS render_popup
+      IMPORTING
+        is_surface    TYPE ty_surface
+      RETURNING
+        VALUE(result) TYPE string.
 ENDCLASS.
 
 CLASS zcl_gg_host_surface IMPLEMENTATION.
@@ -137,7 +146,7 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
     CASE is_surface-kind.
       WHEN surface_document OR surface_event_document OR surface_alert
           OR surface_table OR surface_tree OR surface_caption OR surface_chart
-          OR surface_salv_layout OR surface_cockpit.
+          OR surface_salv_layout OR surface_cockpit OR surface_popup.
         APPEND is_surface TO mt_surfaces.
         cl_gui_control=>set_external_html( render_surfaces( ) ).
       WHEN OTHERS.
@@ -200,18 +209,24 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
       IF ls_row-cell3 IS NOT INITIAL.
         result = result && |<td>{ escape( ls_row-cell3 ) }</td>|.
       ENDIF.
+      IF ls_row-cell4 IS NOT INITIAL.
+        result = result && |<td>{ escape( ls_row-cell4 ) }</td>|.
+      ENDIF.
       result = result && '</tr>'.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD render_table.
+    DATA(lv_input_type) = COND string(
+      WHEN is_surface-input_type IS INITIAL THEN 'text'
+      ELSE is_surface-input_type ).
     result = |<section class="gg-structured-table" aria-label="{ escape( is_surface-aria_label ) }"><table><caption>{ escape( is_surface-table_caption ) }</caption><thead><tr>|.
     LOOP AT is_surface-columns INTO DATA(lv_column).
       result = result && |<th scope="col">{ escape( lv_column ) }</th>|.
     ENDLOOP.
     result = result && |</tr></thead><tbody>{ render_rows( is_surface-rows ) }</tbody></table>|.
     IF is_surface-input_name IS NOT INITIAL.
-      result = result && |<label>{ escape( is_surface-input_label ) } <input name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }" inputmode="numeric"></label>|.
+      result = result && |<label>{ escape( is_surface-input_label ) } <input type="{ escape( lv_input_type ) }" name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }" inputmode="numeric"></label>|.
     ENDIF.
     IF is_surface-text IS NOT INITIAL.
       result = result && |<p>{ escape( is_surface-text ) }</p>|.
@@ -276,7 +291,10 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
           result = result && |<a href="{ escape( is_surface-link_href ) }">{ escape( is_surface-link_label ) }</a>|.
         ENDIF.
         IF is_surface-input_name IS NOT INITIAL.
-          result = result && |<label>{ escape( is_surface-input_label ) }<input aria-label="{ escape( is_surface-input_label ) }" name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }"></label>|.
+          DATA(lv_document_input_type) = COND string(
+            WHEN is_surface-input_type IS INITIAL THEN 'text'
+            ELSE is_surface-input_type ).
+          result = result && |<label>{ escape( is_surface-input_label ) }<input type="{ escape( lv_document_input_type ) }" aria-label="{ escape( is_surface-input_label ) }" name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }"></label>|.
         ENDIF.
         IF is_surface-rows IS NOT INITIAL.
           DATA(ls_document_table) = is_surface.
@@ -298,6 +316,8 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
         result = render_salv_layout( is_surface ).
       WHEN surface_cockpit.
         result = |<section class="gg-cockpit" aria-label="{ escape( is_surface-aria_label ) }"><header><h2>{ escape( is_surface-title ) }</h2><p data-filter-carrier="{ escape( is_surface-data_value ) }">Carrier: { escape( is_surface-data_value ) }</p><p>As-of: { escape( is_surface-payload ) }</p></header><p>{ escape( is_surface-text ) }</p>{ render_actions( is_surface-actions ) }</section>|.
+      WHEN surface_popup.
+        result = render_popup( is_surface ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -308,6 +328,20 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
     ls_table = is_surface.
     ls_table-kind = surface_table.
     result = |<section class="gg-salv-layout" aria-label="{ escape( is_surface-aria_label ) }"><header><h2>{ escape( is_surface-title ) }</h2><p>{ escape( is_surface-text ) }</p></header><div class="gg-salv-grid">{ render_table( ls_table ) }</div></section>|.
+  ENDMETHOD.
+
+  METHOD render_popup.
+    DATA(lv_input_type) = COND string(
+      WHEN is_surface-input_type IS INITIAL THEN 'text'
+      ELSE is_surface-input_type ).
+    result = |<section class="gg-popup-modal gg-surface-popup" role="dialog" aria-modal="true" aria-label="{ escape( is_surface-aria_label ) }" data-popup-kind="{ escape( is_surface-kind ) }"><div class="gg-popup-panel"><header><h2>{ escape( is_surface-title ) }</h2></header>|.
+    IF is_surface-text IS NOT INITIAL.
+      result = result && |<p>{ escape( is_surface-text ) }</p>|.
+    ENDIF.
+    IF is_surface-input_name IS NOT INITIAL.
+      result = result && |<label>{ escape( is_surface-input_label ) }<input type="{ escape( lv_input_type ) }" name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }"></label>|.
+    ENDIF.
+    result = result && |<footer class="gg-popup-actions">{ render_actions( is_surface-actions ) }</footer></div></section>|.
   ENDMETHOD.
 
 ENDCLASS.
