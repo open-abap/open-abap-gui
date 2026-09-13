@@ -86,29 +86,6 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
 
     CLASS-METHODS clear.
 
-    CLASS-METHODS state_class
-      IMPORTING
-        iv_focused    TYPE abap_bool DEFAULT abap_false
-        iv_selected   TYPE abap_bool DEFAULT abap_false
-        iv_changed    TYPE abap_bool DEFAULT abap_false
-        iv_disabled   TYPE abap_bool DEFAULT abap_false
-        iv_required   TYPE abap_bool DEFAULT abap_false
-        iv_error      TYPE abap_bool DEFAULT abap_false
-        iv_warning    TYPE abap_bool DEFAULT abap_false
-        iv_total      TYPE abap_bool DEFAULT abap_false
-        iv_subtotal   TYPE abap_bool DEFAULT abap_false
-        iv_hotspot    TYPE abap_bool DEFAULT abap_false
-        iv_readonly   TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(result) TYPE string.
-
-    CLASS-METHODS format_external_value
-      IMPORTING
-        iv_value      TYPE string
-        iv_type       TYPE string
-      RETURNING
-        VALUE(result) TYPE string.
-
     CLASS-METHODS set_external_html
       IMPORTING
         html TYPE string.
@@ -182,6 +159,29 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         cntl_system_error.
 
   PROTECTED SECTION.
+    CLASS-METHODS state_class
+      IMPORTING
+        iv_focused    TYPE abap_bool DEFAULT abap_false
+        iv_selected   TYPE abap_bool DEFAULT abap_false
+        iv_changed    TYPE abap_bool DEFAULT abap_false
+        iv_disabled   TYPE abap_bool DEFAULT abap_false
+        iv_required   TYPE abap_bool DEFAULT abap_false
+        iv_error      TYPE abap_bool DEFAULT abap_false
+        iv_warning    TYPE abap_bool DEFAULT abap_false
+        iv_total      TYPE abap_bool DEFAULT abap_false
+        iv_subtotal   TYPE abap_bool DEFAULT abap_false
+        iv_hotspot    TYPE abap_bool DEFAULT abap_false
+        iv_readonly   TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(result) TYPE string.
+
+    CLASS-METHODS format_external_value
+      IMPORTING
+        iv_value      TYPE string
+        iv_type       TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
     CLASS-METHODS set_payload
       IMPORTING
         control TYPE REF TO cl_gui_control

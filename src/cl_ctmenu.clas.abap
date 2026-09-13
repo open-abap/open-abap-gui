@@ -1,22 +1,7 @@
 CLASS cl_ctmenu DEFINITION PUBLIC.
   PUBLIC SECTION.
 
-    TYPES: BEGIN OF ty_item,
-             fcode     TYPE string,
-             text      TYPE string,
-             icon      TYPE string,
-             disabled  TYPE abap_bool,
-             hidden    TYPE abap_bool,
-             separator TYPE abap_bool,
-             submenu   TYPE REF TO cl_ctmenu,
-           END OF ty_item.
-    TYPES ty_items TYPE STANDARD TABLE OF ty_item WITH DEFAULT KEY.
-
     DATA default_function TYPE ui_func READ-ONLY.
-
-    METHODS get_items
-      RETURNING
-        VALUE(items) TYPE ty_items.
 
     METHODS hide_functions
       IMPORTING
@@ -85,12 +70,24 @@ CLASS cl_ctmenu DEFINITION PUBLIC.
         read_error.
 
   PRIVATE SECTION.
-    DATA mt_items TYPE ty_items.
+    METHODS get_items
+      RETURNING
+        VALUE(items) TYPE zcl_gg_context_menu_state=>ty_items.
+
+    METHODS sync_state.
+
+    DATA mt_items TYPE zcl_gg_context_menu_state=>ty_items.
 ENDCLASS.
 
 CLASS cl_ctmenu IMPLEMENTATION.
   METHOD get_items.
     items = mt_items.
+  ENDMETHOD.
+
+  METHOD sync_state.
+    zcl_gg_context_menu_state=>set_items(
+      io_menu  = me
+      it_items = mt_items ).
   ENDMETHOD.
 
   METHOD add_submenu.
@@ -99,28 +96,33 @@ CLASS cl_ctmenu IMPLEMENTATION.
                     disabled = xsdbool( disabled IS NOT INITIAL )
                     hidden   = xsdbool( hidden IS NOT INITIAL )
                     submenu  = menu ) TO mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD add_menu.
     IF menu IS BOUND.
       APPEND LINES OF menu->get_items( ) TO mt_items.
+      sync_state( ).
     ENDIF.
   ENDMETHOD.
 
   METHOD clear.
     CLEAR mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD reset.
     CLEAR mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD add_separator.
     APPEND VALUE #( separator = abap_true ) TO mt_items.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD add_function.
-    DATA ls_item TYPE ty_item.
+    DATA ls_item TYPE zcl_gg_context_menu_state=>ty_item.
 
     ls_item-fcode = fcode.
     ls_item-text = text.
@@ -132,6 +134,7 @@ CLASS cl_ctmenu IMPLEMENTATION.
     ELSE.
       APPEND ls_item TO mt_items.
     ENDIF.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD modify_function_text.
@@ -140,6 +143,7 @@ CLASS cl_ctmenu IMPLEMENTATION.
         <ls_item>-text = text.
       ENDIF.
     ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD set_default_function.
@@ -152,6 +156,7 @@ CLASS cl_ctmenu IMPLEMENTATION.
         <ls_item>-hidden = abap_true.
       ENDIF.
     ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD show_functions.
@@ -160,6 +165,7 @@ CLASS cl_ctmenu IMPLEMENTATION.
         CLEAR <ls_item>-hidden.
       ENDIF.
     ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD disable_functions.
@@ -168,6 +174,7 @@ CLASS cl_ctmenu IMPLEMENTATION.
         <ls_item>-disabled = abap_true.
       ENDIF.
     ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD enable_functions.
@@ -176,6 +183,7 @@ CLASS cl_ctmenu IMPLEMENTATION.
         CLEAR <ls_item>-disabled.
       ENDIF.
     ENDLOOP.
+    sync_state( ).
   ENDMETHOD.
 
   METHOD load_gui_status.

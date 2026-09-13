@@ -101,7 +101,7 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-subtotal' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-hotspot' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-readonly' ) ).
-    DATA(lv_states) = cl_gui_control=>state_class(
+    DATA(lv_states) = zcl_gg_host_html=>state_class(
       iv_focused  = abap_true
       iv_selected = abap_true
       iv_changed  = abap_true

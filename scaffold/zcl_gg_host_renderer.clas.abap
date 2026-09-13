@@ -280,7 +280,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS render_context_menu_items
       IMPORTING
-        it_items       TYPE cl_ctmenu=>ty_items
+        it_items       TYPE zcl_gg_context_menu_state=>ty_items
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -422,13 +422,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         iv_program = CONV string( is_context-program )
         iv_index   = ls_line-index ).
       lv_line_state_class = |{ COND string( WHEN ls_line-fragments IS INITIAL
-        THEN zcl_gg_host_html=>css_class( ls_line-format ) ELSE `` ) } { cl_gui_control=>state_class(
+        THEN zcl_gg_host_html=>css_class( ls_line-format ) ELSE `` ) } { zcl_gg_host_html=>state_class(
         iv_selected = ls_line-selected
         iv_changed  = ls_line-changed ) }|.
       IF ls_line-fields IS INITIAL.
         lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" data-line-index="{ ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</div>|.
       ELSE.
-        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" data-line-index="{ ls_line-index }" data-action-token="{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }"><button class="{ cl_gui_control=>state_class( iv_selected = ls_line-selected ) }" type="submit" name="gg_action" value="| && |LINE:{ ls_line-index }| && `|` && |{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }| && |" aria-label="Select line { ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</button></div>|.
+        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" data-line-index="{ ls_line-index }" data-action-token="{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }"><button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_line-selected ) }" type="submit" name="gg_action" value="| && |LINE:{ ls_line-index }| && `|` && |{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }| && |" aria-label="Select line { ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</button></div>|.
       ENDIF.
     ENDLOOP.
     LOOP AT it_actions INTO DATA(ls_action).
@@ -502,7 +502,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_body = lv_body && |<nav role="tablist" aria-label="Selection tabs">|.
       LOOP AT it_tabs INTO DATA(ls_tab).
         lv_tab_action = |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }|.
-        lv_state_class = cl_gui_control=>state_class( iv_selected = ls_tab-selected ).
+        lv_state_class = zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ).
         lv_body = lv_body && |<button class="{ lv_state_class }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_html=>escape_text( ls_tab-text ) }</button>|.
       ENDLOOP.
       lv_body = lv_body && |</nav>|.
@@ -564,7 +564,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF sy-subrc <> 0.
             CLEAR ls_state.
           ENDIF.
-          lv_state_class = cl_gui_control=>state_class(
+          lv_state_class = zcl_gg_host_html=>state_class(
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory
             iv_readonly = xsdbool( ls_state-input = abap_false ) ).
@@ -581,7 +581,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_type_attrs = field_type_attrs(
             is_data_type   = ls_element-data_type
             iv_extra_class = lv_state_class ).
-          lv_display_value = cl_gui_control=>format_external_value(
+          lv_display_value = zcl_gg_host_html=>format_external_value(
             iv_value = lv_value
             iv_type  = ls_element-data_type-typ ).
           lv_external_attrs = external_value_attrs(
@@ -617,7 +617,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           CLEAR: ls_value, ls_state.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
-          lv_state_class = cl_gui_control=>state_class(
+          lv_state_class = zcl_gg_host_html=>state_class(
             iv_selected = xsdbool( ls_value-value = 'X' OR ls_value-value = '1' )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
@@ -632,7 +632,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           CLEAR: ls_value, ls_state.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
-          lv_state_class = cl_gui_control=>state_class(
+          lv_state_class = zcl_gg_host_html=>state_class(
             iv_selected = xsdbool( ls_value-value = 'X' OR ls_value-value = '1' )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
@@ -644,7 +644,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           CLEAR: ls_value, ls_state.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
-          lv_state_class = cl_gui_control=>state_class(
+          lv_state_class = zcl_gg_host_html=>state_class(
             iv_selected = xsdbool( ls_value-value IS NOT INITIAL )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
@@ -669,7 +669,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF lv_range_count = 0.
             lv_range_count = 1.
           ENDIF.
-          lv_state_class = cl_gui_control=>state_class(
+          lv_state_class = zcl_gg_host_html=>state_class(
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory
             iv_readonly = xsdbool( ls_state-input = abap_false ) ).
@@ -686,10 +686,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             lv_type_attrs = field_type_attrs(
               is_data_type   = ls_element-data_type
               iv_extra_class = |gg-range-input { lv_state_class }| ).
-            lv_low_display = cl_gui_control=>format_external_value(
+            lv_low_display = zcl_gg_host_html=>format_external_value(
               iv_value = ls_range-low
               iv_type  = ls_element-data_type-typ ).
-            lv_high_display = cl_gui_control=>format_external_value(
+            lv_high_display = zcl_gg_host_html=>format_external_value(
               iv_value = ls_range-high
               iv_type  = ls_element-data_type-typ ).
             lv_external_attrs = external_value_attrs(
@@ -841,7 +841,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_id = zcl_gg_host_html=>identifier(
       iv_scope = 'dynpro-control'
       iv_name  = CONV string( is_control-name ) ).
-    lv_table_class = cl_gui_control=>state_class( iv_disabled = xsdbool( is_control-enabled = abap_false ) ).
+    lv_table_class = zcl_gg_host_html=>state_class( iv_disabled = xsdbool( is_control-enabled = abap_false ) ).
     lv_table_body = |<table><caption>{ zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }</caption><thead><tr>|.
     LOOP AT it_controls INTO DATA(ls_column)
         WHERE screen = is_screen-number AND kind = 'TABLE_COLUMN'
@@ -875,7 +875,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           ls_state-input = ls_column-input.
         ENDIF.
         lv_cell_name = |gg-cell-{ CONV string( is_control-name ) }-{ CONV string( ls_column-name ) }-{ lv_row }|.
-        lv_state_class = cl_gui_control=>state_class(
+        lv_state_class = zcl_gg_host_html=>state_class(
           iv_disabled = xsdbool( ls_state-enabled = abap_false
                                  OR ( ls_column-input = abap_true
                                       AND ls_state-input = abap_false ) )
@@ -897,7 +897,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         IF ls_column-required = abap_true OR ls_state-required = abap_true.
           lv_cell_input_attrs = lv_cell_input_attrs && ` required aria-required="true"`.
         ENDIF.
-        lv_display_value = cl_gui_control=>format_external_value(
+        lv_display_value = zcl_gg_host_html=>format_external_value(
           iv_value = lv_cell_value
           iv_type  = ls_column-data_type-typ ).
         lv_external_attrs = external_value_attrs(
@@ -1077,7 +1077,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF io_menu IS NOT BOUND OR iv_field IS INITIAL.
       RETURN.
     ENDIF.
-    rv_html = |<div class="gg-context-menu" data-context-menu-for="{ zcl_gg_host_html=>escape_attribute( iv_field ) }" role="menu" hidden><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( io_menu->get_items( ) ) }</ul></div>|.
+    rv_html = |<div class="gg-context-menu" data-context-menu-for="{ zcl_gg_host_html=>escape_attribute( iv_field ) }" role="menu" hidden><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( zcl_gg_context_menu_state=>get_items( io_menu = io_menu ) ) }</ul></div>|.
   ENDMETHOD.
 
   METHOD render_context_menu_items.
@@ -1092,7 +1092,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
       IF ls_item-submenu IS BOUND.
-        rv_html = rv_html && |<li class="gg-context-menu-group" role="none"><span class="gg-context-menu-group-label">{ zcl_gg_host_html=>escape_text( ls_item-text ) }</span><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( ls_item-submenu->get_items( ) ) }</ul></li>|.
+        rv_html = rv_html && |<li class="gg-context-menu-group" role="none"><span class="gg-context-menu-group-label">{ zcl_gg_host_html=>escape_text( ls_item-text ) }</span><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( zcl_gg_context_menu_state=>get_items( io_menu = ls_item-submenu ) ) }</ul></li>|.
         CONTINUE.
       ENDIF.
       lv_state = COND string( WHEN ls_item-disabled = abap_true THEN ` disabled` ELSE `` ).
@@ -1188,7 +1188,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         iv_readonly = xsdbool( ls_control-kind = 'INPUT'
                                 AND ( ls_control-input = abap_false
                                       OR ls_state-input = abap_false ) ) ).
-      lv_state_class = cl_gui_control=>state_class(
+      lv_state_class = zcl_gg_host_html=>state_class(
         iv_focused  = xsdbool( is_cursor-field = ls_control-name )
         iv_disabled = xsdbool( ls_control-enabled = abap_false
                                OR ls_state-enabled = abap_false )
@@ -1247,7 +1247,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         lv_type_attrs = dynpro_type_attrs(
           is_data_type   = is_control-data_type
           iv_extra_class = iv_state_class ).
-        lv_display_value = cl_gui_control=>format_external_value(
+        lv_display_value = zcl_gg_host_html=>format_external_value(
           iv_value = is_value-value
           iv_type  = is_control-data_type-typ ).
         lv_external_attrs = external_value_attrs(
@@ -1260,7 +1260,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         lv_output_class = data_type_class(
           iv_type        = is_control-data_type-typ
           iv_extra_class = iv_state_class ).
-        lv_display_value = cl_gui_control=>format_external_value(
+        lv_display_value = zcl_gg_host_html=>format_external_value(
           iv_value = is_value-value
           iv_type  = is_control-data_type-typ ).
         lv_external_attrs = external_value_attrs(
@@ -1335,7 +1335,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF sy-subrc = 0 AND ls_tab_value-value IS NOT INITIAL.
             lv_tab_text = ls_tab_value-value.
           ENDIF.
-          rv_html = rv_html && |<button class="{ cl_gui_control=>state_class( iv_selected = lv_tab_selected ) }" type="submit" role="tab" name="gg_action" value="| && |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }" aria-selected="{ COND string( WHEN lv_tab_selected = abap_true THEN `true` ELSE `false` ) }" data-target-screen="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-subscreen ) ) }">{ zcl_gg_host_html=>escape_text( lv_tab_text ) }</button>|.
+          rv_html = rv_html && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = lv_tab_selected ) }" type="submit" role="tab" name="gg_action" value="| && |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }" aria-selected="{ COND string( WHEN lv_tab_selected = abap_true THEN `true` ELSE `false` ) }" data-target-screen="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-subscreen ) ) }">{ zcl_gg_host_html=>escape_text( lv_tab_text ) }</button>|.
         ENDLOOP.
         rv_html = rv_html && |</div>|.
       WHEN 'SUBSCREEN_AREA'.

@@ -78,14 +78,14 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS context_command_present
       IMPORTING
-        io_menu           TYPE REF TO cl_ctmenu
+        io_menu           TYPE REF TO object
         iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm
       RETURNING
         VALUE(rv_present) TYPE abap_bool.
 
     CLASS-METHODS context_command_enabled
       IMPORTING
-        io_menu           TYPE REF TO cl_ctmenu
+        io_menu           TYPE REF TO object
         iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm
       RETURNING
         VALUE(rv_enabled) TYPE abap_bool.
@@ -1337,7 +1337,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     IF io_menu IS NOT BOUND.
       RETURN.
     ENDIF.
-    LOOP AT io_menu->get_items( ) INTO DATA(ls_item).
+    LOOP AT zcl_gg_context_menu_state=>get_items( io_menu = io_menu ) INTO DATA(ls_item).
       IF ls_item-fcode = iv_ucomm.
         rv_present = abap_true.
         RETURN.
@@ -1356,7 +1356,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     IF io_menu IS NOT BOUND.
       RETURN.
     ENDIF.
-    LOOP AT io_menu->get_items( ) INTO DATA(ls_item).
+    LOOP AT zcl_gg_context_menu_state=>get_items( io_menu = io_menu ) INTO DATA(ls_item).
       IF ls_item-fcode = iv_ucomm.
         rv_enabled = xsdbool( ls_item-disabled = abap_false
                               AND ls_item-hidden = abap_false ).

@@ -96,6 +96,29 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_class) TYPE string.
 
+    CLASS-METHODS state_class
+      IMPORTING
+        iv_focused      TYPE abap_bool DEFAULT abap_false
+        iv_selected     TYPE abap_bool DEFAULT abap_false
+        iv_changed      TYPE abap_bool DEFAULT abap_false
+        iv_disabled     TYPE abap_bool DEFAULT abap_false
+        iv_required     TYPE abap_bool DEFAULT abap_false
+        iv_error        TYPE abap_bool DEFAULT abap_false
+        iv_warning      TYPE abap_bool DEFAULT abap_false
+        iv_total        TYPE abap_bool DEFAULT abap_false
+        iv_subtotal     TYPE abap_bool DEFAULT abap_false
+        iv_hotspot      TYPE abap_bool DEFAULT abap_false
+        iv_readonly     TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(rv_class) TYPE string.
+
+    CLASS-METHODS format_external_value
+      IMPORTING
+        iv_value        TYPE string
+        iv_type         TYPE string
+      RETURNING
+        VALUE(rv_value) TYPE string.
+
   PRIVATE SECTION.
     CLASS-METHODS normalize_identifier
       IMPORTING
@@ -495,7 +518,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     ELSE.
       lv_readonly = abap_true.
     ENDIF.
-    rv_class = rv_class && ` ` && cl_gui_control=>state_class(
+    rv_class = rv_class && ` ` && state_class(
       iv_total    = lv_total
       iv_subtotal = lv_subtotal
       iv_hotspot  = lv_hotspot
@@ -514,6 +537,85 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
         rv_class = 'gg-success'.
       WHEN OTHERS.
         rv_class = 'gg-info'.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD state_class.
+    rv_class = `gg-state`.
+    IF iv_focused = abap_true.
+      rv_class = rv_class && ` gg-state-focused`.
+    ENDIF.
+    IF iv_selected = abap_true.
+      rv_class = rv_class && ` gg-state-selected`.
+    ENDIF.
+    IF iv_changed = abap_true.
+      rv_class = rv_class && ` gg-state-changed`.
+    ENDIF.
+    IF iv_disabled = abap_true.
+      rv_class = rv_class && ` gg-state-disabled`.
+    ENDIF.
+    IF iv_required = abap_true.
+      rv_class = rv_class && ` gg-state-required`.
+    ENDIF.
+    IF iv_error = abap_true.
+      rv_class = rv_class && ` gg-state-error`.
+    ENDIF.
+    IF iv_warning = abap_true.
+      rv_class = rv_class && ` gg-state-warning`.
+    ENDIF.
+    IF iv_total = abap_true.
+      rv_class = rv_class && ` gg-state-total`.
+    ENDIF.
+    IF iv_subtotal = abap_true.
+      rv_class = rv_class && ` gg-state-subtotal`.
+    ENDIF.
+    IF iv_hotspot = abap_true.
+      rv_class = rv_class && ` gg-state-hotspot`.
+    ENDIF.
+    IF iv_readonly = abap_true.
+      rv_class = rv_class && ` gg-state-readonly`.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD format_external_value.
+    DATA lv_first TYPE string.
+    DATA lv_second TYPE string.
+    DATA lv_third TYPE string.
+
+    rv_value = iv_value.
+    CASE to_upper( iv_type ).
+      WHEN 'D'.
+        IF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
+          lv_first = substring(
+            val = iv_value
+            off = 6
+            len = 2 ).
+          lv_second = substring(
+            val = iv_value
+            off = 4
+            len = 2 ).
+          lv_third = substring(
+            val = iv_value
+            off = 0
+            len = 4 ).
+          rv_value = |{ lv_first }.{ lv_second }.{ lv_third }|.
+        ENDIF.
+      WHEN 'T'.
+        IF strlen( iv_value ) = 6 AND iv_value CO '0123456789'.
+          lv_first = substring(
+            val = iv_value
+            off = 0
+            len = 2 ).
+          lv_second = substring(
+            val = iv_value
+            off = 2
+            len = 2 ).
+          lv_third = substring(
+            val = iv_value
+            off = 4
+            len = 2 ).
+          rv_value = |{ lv_first }:{ lv_second }:{ lv_third }|.
+        ENDIF.
     ENDCASE.
   ENDMETHOD.
 

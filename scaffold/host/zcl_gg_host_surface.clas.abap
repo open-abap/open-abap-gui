@@ -237,7 +237,7 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
         WHEN ls_node-node_key IS NOT INITIAL THEN | data-node-key="{ escape( ls_node-node_key ) }"| ELSE '' ).
       DATA(lv_expanded) = COND string(
         WHEN ls_node-expanded = abap_true THEN ' aria-expanded="true"' ELSE '' ).
-      DATA(lv_state_class) = cl_gui_control=>state_class( iv_selected = ls_node-selected ).
+      DATA(lv_state_class) = zcl_gg_host_html=>state_class( iv_selected = ls_node-selected ).
       DATA(lv_selected) = COND string(
         WHEN ls_node-selected = abap_true THEN ' aria-selected="true"' ELSE ' aria-selected="false"' ).
       DATA(lv_hidden) = COND string(
