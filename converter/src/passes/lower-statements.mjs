@@ -94,7 +94,9 @@ export function isStaticOpenSql(statement) {
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
-  return /^\s*LOOP\s+AT\s+[A-Z][A-Z0-9_-]*(?:\s+ASSIGNING\s+<[^>]+>|\s+INTO\s+(?:DATA\s*\([^)]*\)|[A-Z][A-Z0-9_-]*))\b/i.test(body)
+  // The target may end in `>` or `)`, so the trailing guard has to be a
+  // lookahead: a `\b` after either of those can never match.
+  return /^\s*LOOP\s+AT\s+[A-Z][A-Z0-9_-]*\s+(?:ASSIGNING\s+(?:FIELD-SYMBOL\s*\(\s*<[A-Z][A-Z0-9_]*>\s*\)|<[A-Z][A-Z0-9_]*>)|INTO\s+(?:DATA\s*\(\s*[A-Z][A-Z0-9_-]*\s*\)|[A-Z][A-Z0-9_-]*))(?![A-Z0-9_-])/i.test(body)
     && !/^\s*LOOP\s+AT\s+SCREEN\b/i.test(body);
 }
 

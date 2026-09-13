@@ -549,9 +549,9 @@ test("comments out the whole block when a block opener cannot be lowered", async
       "  METHOD run.",
       "    DATA lt_packages TYPE STANDARD TABLE OF string WITH DEFAULT KEY.",
       "    DATA lv_value TYPE string.",
-      "    LOOP AT lt_packages ASSIGNING FIELD-SYMBOL(<lv_package>).",
-      "      IF <lv_package> IS NOT INITIAL.",
-      "        lv_value = <lv_package>.",
+      "    LOOP AT lt_packages.",
+      "      IF lt_packages IS NOT INITIAL.",
+      "        lv_value = lt_packages.",
       "      ENDIF.",
       "    ENDLOOP.",
       "    WHILE lv_value IS INITIAL.",
@@ -571,12 +571,62 @@ test("comments out the whole block when a block opener cannot be lowered", async
   assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
   const helper = result.helperSources[0].source;
   assert.match(helper, /TODO GGCONV-E501: unsupported statement omitted: LOOP AT lt_packages/);
-  for (const omitted of ["IF <lv_package> IS NOT INITIAL.", "lv_value = <lv_package>.", "ENDIF.", "ENDLOOP.", "lv_value = 'x'.", "ENDWHILE."]) {
+  for (const omitted of ["IF lt_packages IS NOT INITIAL.", "lv_value = lt_packages.", "ENDIF.", "ENDLOOP.", "lv_value = 'x'.", "ENDWHILE."]) {
     assert.ok(helper.includes(`* ${omitted}`), `expected commented-out source for ${omitted}`);
   }
   assert.doesNotMatch(helper, /^\s+END(LOOP|WHILE|IF)\.$/m);
   // Statements after the omitted blocks still lower normally.
   assert.match(helper, /^\s+CLEAR lv_value\.$/m);
+});
+
+test("converts LOOP AT with an ASSIGNING target instead of omitting it", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zassignloop.",
+      "CLASS lcl_demo DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_demo IMPLEMENTATION.",
+      "  METHOD run.",
+      "    DATA lt_packages TYPE STANDARD TABLE OF string WITH DEFAULT KEY.",
+      "    DATA lv_value TYPE string.",
+      "    LOOP AT lt_packages ASSIGNING FIELD-SYMBOL(<lv_inline>).",
+      "      lv_value = <lv_inline>.",
+      "    ENDLOOP.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  WRITE 'x'.",
+    ].join("\n"),
+    filename: "zassignloop.prog.abap",
+    className: "ZCL_ASSIGNLOOP",
+    transactionCode: "ZASSIGNLP",
+    mode: "partial",
+  });
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
+  const helper = result.helperSources[0].source;
+  assert.match(helper, /^\s+LOOP AT lt_packages ASSIGNING FIELD-SYMBOL\(<lv_inline>\)\.$/m);
+  assert.match(helper, /^\s+lv_value = <lv_inline>\.$/m);
+  assert.match(helper, /^\s+ENDLOOP\.$/m);
+  assert.doesNotMatch(helper, /TODO GGCONV-E501/);
+
+  // The declared-field-symbol form was rejected by the same regex.
+  const declared = await convertProgram({
+    source: [
+      "REPORT zassignloop2.",
+      "DATA gt_values TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
+      "FIELD-SYMBOLS <lv_value> TYPE i.",
+      "START-OF-SELECTION.",
+      "LOOP AT gt_values ASSIGNING <lv_value>.",
+      "  WRITE / <lv_value>.",
+      "ENDLOOP.",
+    ].join("\n"),
+    filename: "zassignloop2.prog.abap",
+    mode: "partial",
+  });
+  assert.ok(!declared.diagnostics.some((item) => item.code === "GGCONV-E516" && item.message.includes("implicit-header-table LOOP")));
+  assert.match(declared.classSource, /^\s+LOOP AT gt_values ASSIGNING <lv_value>\.$/m);
 });
 
 test("converts composite fixtures with nested includes, routines, and database access", async () => {
