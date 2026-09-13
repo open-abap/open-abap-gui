@@ -3,6 +3,8 @@ import {spawn} from "node:child_process";
 import {createServer} from "node:net";
 import {once} from "node:events";
 
+const HOST_STARTUP_TIMEOUT_MS = 30_000;
+
 async function freePort() {
   const probe = createServer();
   await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
@@ -20,11 +22,18 @@ async function startHost() {
   });
   const baseUrl = `http://127.0.0.1:${port}`;
   const started = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Timed out starting the ABAP HTML host")), 10000);
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Timed out starting the ABAP HTML host"));
+    }, HOST_STARTUP_TIMEOUT_MS);
     const check = async () => {
+      if (settled) return;
       try {
         const response = await fetch(baseUrl);
         if (response.ok) {
+          settled = true;
           clearTimeout(timeout);
           resolve();
           return;
@@ -32,12 +41,25 @@ async function startHost() {
       } catch {
         // The child is still starting.
       }
-      setTimeout(check, 50);
+      if (!settled) setTimeout(check, 50);
     };
-    child.once("exit", (code) => reject(new Error(`ABAP HTML host exited during startup (${code})`)));
+    child.once("exit", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      reject(new Error(`ABAP HTML host exited during startup (${code})`));
+    });
     check();
   });
-  await started;
+  try {
+    await started;
+  } catch (error) {
+    if (child.exitCode === null) {
+      child.kill();
+      await once(child, "close");
+    }
+    throw error;
+  }
   return {child, baseUrl};
 }
 
@@ -48,8 +70,10 @@ export const test = base.extend({
     try {
       await use({baseUrl});
     } finally {
-      child.kill();
-      await once(child, "close");
+      if (child.exitCode === null) {
+        child.kill();
+        await once(child, "close");
+      }
     }
   }, {scope: "worker"}],
 });
