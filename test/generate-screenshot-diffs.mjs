@@ -1,5 +1,5 @@
 import {mkdir, readdir, readFile, rm, writeFile} from "node:fs/promises";
-import {basename, relative, resolve} from "node:path";
+import {basename, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {chromium} from "playwright";
 
@@ -33,10 +33,6 @@ function parseContentRegion(value) {
 
 function escapeHtml(value) {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-}
-
-function relativeHref(from, to) {
-  return relative(from, to).split("\\").join("/");
 }
 
 function dimensionsText(dimensions) {
@@ -222,8 +218,10 @@ const cards = differences.map((comparison) => {
   const percentage = comparison.totalPixels === 0
     ? "0.00"
     : (comparison.changedPixels / comparison.totalPixels * 100).toFixed(2);
-  const baselineSource = comparison.baselineDimensions ? relativeHref(outputDirectory, resolve(baselineDirectory, comparison.name)) : null;
-  const currentSource = comparison.currentDimensions ? relativeHref(outputDirectory, resolve(currentDirectory, comparison.name)) : null;
+  // These paths are relative to the deployed preview repository, not to the
+  // workspace paths used while generating the report.
+  const baselineSource = comparison.baselineDimensions ? `../../main/screenshots/${filename}` : null;
+  const currentSource = comparison.currentDimensions ? `../screenshots/${filename}` : null;
   const diffSource = comparison.changedPixels > 0 ? `images/${filename}` : null;
 
   return `      <article id="${label}" class="comparison comparison--${comparison.status}">
