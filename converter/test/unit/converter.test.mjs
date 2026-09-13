@@ -406,6 +406,103 @@ test("reports parser locations and include cycles", async () => {
   assert.ok(cycle.diagnostics.some((item) => item.code === "GGCONV-E104"));
 });
 
+test("anchors include diagnostics on the INCLUDE line", async () => {
+  const missing = await convertProgram({
+    source: "REPORT zinc.\nDATA gv_x TYPE i.\n\nINCLUDE zmissing.\n",
+    filename: "zinc.prog.abap",
+    resolveInclude: async () => undefined,
+  });
+  const diagnostic = missing.diagnostics.find((item) => item.code === "GGCONV-E102");
+  assert.ok(diagnostic);
+  assert.equal(diagnostic.start.line, 4);
+});
+
+test("attempts optional INCLUDE ... IF FOUND and tolerates a missing one", async () => {
+  const content = "DATA gv_from_include TYPE i.\n";
+  const resolvable = await convertProgram({
+    source: "REPORT zinc_optional.\nINCLUDE zoptional IF FOUND.\n",
+    filename: "zinc_optional.prog.abap",
+    resolveInclude: async (name) => name === "zoptional" ? content : undefined,
+  });
+  assert.ok(!resolvable.diagnostics.some((item) => item.code === "GGCONV-E102"));
+  assert.match(resolvable.classSource, /gv_from_include/);
+
+  const absent = await convertProgram({
+    source: "REPORT zinc_optional_missing.\nINCLUDE zabsent IF FOUND.\n",
+    filename: "zinc_optional_missing.prog.abap",
+    resolveInclude: async () => undefined,
+  });
+  assert.ok(!absent.diagnostics.some((item) => item.code === "GGCONV-E102"));
+});
+
+test("keeps dynamic MESSAGE DISPLAY LIKE out of the text and into display_like", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsg_display.",
+      "DATA gv_text TYPE string.",
+      "START-OF-SELECTION.",
+      "  MESSAGE gv_text TYPE 'S' DISPLAY LIKE 'E'.",
+    ].join("\n"),
+    filename: "zmsg_display.prog.abap",
+  });
+  assert.equal(result.supported, true);
+  assert.match(result.classSource, /message_type_success text = \|\{ gv_text \}\| display_like = zif_gg_session_types_v1=>message_type_error/);
+  assert.doesNotMatch(result.classSource, /DISPLAY LIKE 'E' \}\|/);
+
+  const literal = await convertProgram({
+    source: "REPORT zmsg_display_lit.\nSTART-OF-SELECTION.\nMESSAGE 'looks like an error' TYPE 'S' DISPLAY LIKE 'E'.\n",
+    filename: "zmsg_display_lit.prog.abap",
+  });
+  assert.match(literal.classSource, /type = zif_gg_session_types_v1=>message_type_success text = 'looks like an error' display_like = zif_gg_session_types_v1=>message_type_error/);
+});
+
+test("emits valid hoisted local classes for chained declarations and divider comments", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zhoist_bugs.",
+      "CLASS lcl_bug DEFINITION.",
+      "  PRIVATE SECTION.",
+      "************** divider",
+      "  DATA: lv_repo_key    TYPE string,",
+      "        lv_package     TYPE devclass,",
+      "        lv_package_adt TYPE devclass.",
+      "  TYPES: BEGIN OF ty_row,",
+      "           id TYPE i,",
+      "         END OF ty_row.",
+      "  DATA: BEGIN OF ls_row,",
+      "          id TYPE i,",
+      "        END OF ls_row.",
+      "  METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_bug IMPLEMENTATION.",
+      "  METHOD run.",
+      "    DATA: lv_a TYPE i,",
+      "          lv_b TYPE i.",
+      "    MESSAGE lv_a TYPE 'S' DISPLAY LIKE 'E'.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  WRITE 'x'.",
+    ].join("\n"),
+    filename: "zhoist_bugs.prog.abap",
+    className: "ZCL_HOIST_BUGS",
+    transactionCode: "ZHOISTBUG",
+    mode: "partial",
+  });
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
+  const helper = result.helperSources[0].source;
+  assert.match(helper, /DATA lv_repo_key TYPE string\./);
+  assert.match(helper, /DATA lv_package TYPE devclass\./);
+  assert.match(helper, /DATA lv_package_adt TYPE devclass\./);
+  assert.doesNotMatch(helper, /DATA lv_package TYPE devclass,/);
+  assert.match(helper, /^[*]+ divider$/m);
+  assert.match(helper, /TYPES: BEGIN OF ty_row, id TYPE i, END OF ty_row\./);
+  assert.match(helper, /DATA: BEGIN OF ls_row, id TYPE i, END OF ls_row\./);
+  assert.match(helper, /DATA lv_a TYPE i\./);
+  assert.match(helper, /DATA lv_b TYPE i\./);
+  assert.match(helper, /message_type_success text = \|\{ lv_a \}\| display_like = zif_gg_session_types_v1=>message_type_error/);
+});
+
 test("converts composite fixtures with nested includes, routines, and database access", async () => {
   const nested = await convertProgram({
     source: await compositeFixture("composite_nested_includes.abap.txt"),
