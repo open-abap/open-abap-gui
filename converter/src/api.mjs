@@ -72,7 +72,7 @@ function orderedStatements(parsedUnits) {
     for (const statement of unit.statements) {
       result.push(statement);
       if (statement.kind !== "Include") continue;
-      const name = /^\s*INCLUDE\s+([^\s.]+)\s*\./i.exec(statement.text)?.[1];
+      const name = /^\s*INCLUDE\s+([^\s.]+)\s*(?:IF\s+FOUND)?\s*\./i.exec(statement.text)?.[1];
       const child = name ? childFor(unit.filename, name) : undefined;
       if (child) result.push(...expand(child, nextActive));
     }

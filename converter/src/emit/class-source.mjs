@@ -1583,13 +1583,64 @@ function helperMethodBody(ir, localClass, localMethod) {
   return body.length ? body : ["RETURN."];
 }
 
+function helperDefinitionBody(statements, rename) {
+  const lines = [];
+  let structured;
+  const flushStructured = () => {
+    if (!structured) return;
+    const components = structured.components.map((component) => `${component}, `).join("");
+    lines.push(`  ${structured.keyword}: BEGIN OF ${structured.beginName}${components ? `, ${components}` : " "}END OF ${structured.endName ?? structured.beginName}.`);
+    structured = undefined;
+  };
+  for (const statement of statements) {
+    const text = rename(statement.text).replace(/\s+$/, "");
+    if (statement.kind === "Comment") {
+      flushStructured();
+      // `*` is only a comment in column 1, so divider comments must keep that
+      // column instead of being indented into the generated class body.
+      lines.push(text.split("\n").map((line) => line.trim()).join("\n"));
+      continue;
+    }
+    if (statement.kind === "DataBegin" || statement.kind === "TypeBegin") {
+      flushStructured();
+      structured = {
+        keyword: statement.kind === "DataBegin" ? "DATA" : "TYPES",
+        beginName: /BEGIN OF\s+([A-Z0-9_]+)/i.exec(text)?.[1] ?? "",
+        components: [],
+        endName: undefined,
+      };
+      continue;
+    }
+    if (structured && (statement.kind === "DataEnd" || statement.kind === "TypeEnd")) {
+      structured.endName = /END OF\s+([A-Z0-9_]+)/i.exec(text)?.[1] ?? structured.beginName;
+      flushStructured();
+      continue;
+    }
+    if (structured) {
+      // Components carry their own terminator: a comma in the chained form, a
+      // period in the classic `DATA BEGIN OF x. DATA fld. DATA END OF x.` form.
+      // The structure is always re-emitted as one chain, so drop the terminator
+      // here and let flushStructured put the commas back.
+      const component = text.replace(new RegExp(`^${structured.keyword}\\s+`, "i"), "").replace(/\s*[,.]\s*$/, "");
+      if (component) structured.components.push(component);
+      continue;
+    }
+    // abaplint splits chained declarations into one statement per element,
+    // repeating the keyword and keeping the comma. Each element becomes a
+    // standalone member, so the comma must become a terminator.
+    lines.push(...text.split("\n").map((line) => `  ${line.trim().replace(/,\s*$/, ".")}`));
+  }
+  flushStructured();
+  return lines;
+}
+
 function helperSource(ir, options, localClass) {
   const generatedName = localClass.generatedName;
   const rename = (text) => renameIdentifiers(text, allRenames(ir));
   const definition = [
     helperDefinitionHeader(localClass, generatedName, ir),
     "",
-    ...localClass.definition.flatMap((statement) => rename(statement.text).split("\n").map((line) => `  ${line.trim()}`)),
+    ...helperDefinitionBody(localClass.definition, rename),
     "",
     "ENDCLASS.",
     "",
