@@ -522,11 +522,18 @@ CLASS cl_gui_control IMPLEMENTATION.
         ENDIF.
       ENDIF.
       DATA(lv_style) = |left:{ ls_snapshot-left }px;top:{ ls_snapshot-top }px;|.
+      IF ls_snapshot-kind = 'TEXTEDIT'.
+        lv_style = lv_style && `box-sizing:border-box;`.
+      ENDIF.
       IF ls_snapshot-width > 0.
         lv_style = lv_style && |width:{ ls_snapshot-width }px;|.
+      ELSEIF ls_snapshot-kind = 'TEXTEDIT'.
+        lv_style = lv_style && `width:160px;`.
       ENDIF.
       IF ls_snapshot-height > 0.
         lv_style = lv_style && |height:{ ls_snapshot-height }px;|.
+      ELSEIF ls_snapshot-kind = 'TEXTEDIT'.
+        lv_style = lv_style && `height:42px;`.
       ELSEIF iv_container_name IS NOT INITIAL.
         lv_style = lv_style && `height:100%;`.
       ENDIF.
