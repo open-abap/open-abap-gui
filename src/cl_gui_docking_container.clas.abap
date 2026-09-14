@@ -70,6 +70,10 @@ CLASS cl_gui_docking_container DEFINITION PUBLIC INHERITING FROM cl_gui_containe
         cntl_error
         cntl_system_error.
 
+    METHODS is_floating
+      RETURNING
+        VALUE(floating) TYPE abap_bool.
+
   PRIVATE SECTION.
     DATA mv_side TYPE i.
     DATA mv_extension TYPE i.
@@ -87,8 +91,11 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
       parent  = parent
       kind    = 'DOCKING_CONTAINER' ).
     mv_side = side.
-    mv_extension = extension.
+    mv_extension = COND #( WHEN extension > 0 THEN extension ELSE 1 ).
     mv_caption = CONV string( caption ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }; floating={ mv_floating }| ).
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.
@@ -125,6 +132,10 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
     mv_floating = xsdbool( do_float <> 0 ).
     cl_gui_control=>set_payload( control = me
                                  payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }; floating={ mv_floating }| ).
+  ENDMETHOD.
+
+  METHOD is_floating.
+    floating = mv_floating.
   ENDMETHOD.
 
 ENDCLASS.

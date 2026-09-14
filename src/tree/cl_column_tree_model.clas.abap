@@ -56,6 +56,7 @@ CLASS cl_column_tree_model IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
+    mv_model_kind = 'COLUMN'.
   ENDMETHOD.
 
   METHOD add_column.

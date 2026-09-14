@@ -70,6 +70,7 @@ CLASS cl_list_tree_model IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
+    mv_model_kind = COND string( WHEN with_headers = abap_true THEN 'LIST_WITH_HEADERS' ELSE 'LIST' ).
   ENDMETHOD.
 
   METHOD add_node.

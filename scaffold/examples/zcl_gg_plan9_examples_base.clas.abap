@@ -7,6 +7,7 @@ CLASS zcl_gg_plan9_examples_base DEFINITION PUBLIC ABSTRACT CREATE PUBLIC.
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
     INTERFACES zif_gg_list_processing_v1.
+    INTERFACES zif_gg_session_lifecycle_v1.
 
     METHODS constructor
       IMPORTING
@@ -31,13 +32,25 @@ CLASS zcl_gg_plan9_examples_base DEFINITION PUBLIC ABSTRACT CREATE PUBLIC.
     DATA mv_dialog_top TYPE i.
     DATA mv_dialog_width TYPE i.
     DATA mv_dialog_height TYPE i.
+    DATA mv_dialog_focus TYPE abap_bool.
+    DATA mv_dialog_event TYPE string.
     DATA mv_popup_kind TYPE string.
     DATA mv_popup_result TYPE string.
     DATA mt_popup_log TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     DATA mv_variant TYPE string.
     DATA mv_variant_saved TYPE abap_bool.
     DATA mv_variant_layout TYPE string.
+    DATA mv_variant_pending TYPE abap_bool.
+    DATA mv_variant_owner TYPE string.
+    DATA mv_variant_handle TYPE string.
+    DATA mv_variant_message TYPE string.
     DATA mv_month_offset TYPE i.
+    DATA mv_calendar_date159 TYPE string.
+    DATA mv_calendar_range159 TYPE abap_bool.
+    DATA mv_calendar_marked159 TYPE abap_bool.
+    DATA mv_calendar_generation159 TYPE i.
+    DATA mv_calendar_event159 TYPE string.
+    DATA mo_timer TYPE REF TO cl_gui_timer.
 
     METHODS build_view
       IMPORTING
@@ -54,9 +67,41 @@ CLASS zcl_gg_plan9_examples_base DEFINITION PUBLIC ABSTRACT CREATE PUBLIC.
         io_session TYPE REF TO zif_gg_session_v1
         iv_text    TYPE string.
 
+    METHODS request_value
+      IMPORTING
+        io_session      TYPE REF TO zif_gg_session_v1
+        iv_name         TYPE string
+      RETURNING
+        VALUE(rv_value) TYPE string.
+
+    METHODS handle_calendar_command
+      IMPORTING
+        io_session TYPE REF TO zif_gg_session_v1
+        iv_ucomm   TYPE zif_gg_list_processing_types_v1=>ty_ucomm.
+
+    METHODS stop_session_resources.
+
     METHODS action_status
       RETURNING
         VALUE(rv_status) TYPE string.
+
+    METHODS valid_variant_name
+      IMPORTING
+        iv_name         TYPE string
+      RETURNING
+        VALUE(rv_valid) TYPE abap_bool.
+
+    METHODS build_salv_hierseq.
+
+    METHODS handle_variant_command
+      IMPORTING
+        io_session TYPE REF TO zif_gg_session_v1
+        iv_ucomm   TYPE zif_gg_list_processing_types_v1=>ty_ucomm.
+
+    METHODS handle_hierseq_command
+      IMPORTING
+        io_session TYPE REF TO zif_gg_session_v1
+        iv_ucomm   TYPE zif_gg_list_processing_types_v1=>ty_ucomm.
 
     METHODS mode_title
       RETURNING
@@ -74,8 +119,16 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
     mv_dialog_top = 40.
     mv_dialog_width = 360.
     mv_dialog_height = 180.
+    mv_dialog_event = 'OPEN'.
     mv_variant = 'DEFAULT'.
     mv_variant_layout = 'Carrier, Flight, Seats'.
+    mv_variant_owner = 'GG_EX_157'.
+    mv_variant_handle = 'ALV-VAR-157'.
+    mv_variant_message = 'No variant action has been committed'.
+    mv_calendar_date159 = '2026-08-30'.
+    mv_calendar_marked159 = abap_true.
+    mv_calendar_generation159 = 1.
+    mv_calendar_event159 = 'INITIALIZED'.
   ENDMETHOD.
 
   METHOD mode_title.
@@ -107,6 +160,212 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
+  METHOD request_value.
+    DATA lo_host_session TYPE REF TO zcl_gg_host_session.
+    TRY.
+        lo_host_session ?= io_session.
+      CATCH cx_root.
+        RETURN.
+    ENDTRY.
+    IF lo_host_session IS BOUND.
+      rv_value = lo_host_session->get_request_value( iv_name ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD handle_calendar_command.
+    DATA(lv_requested_date) = request_value( io_session = io_session
+                                             iv_name    = 'CALENDAR_DATE' ).
+    CASE iv_ucomm.
+      WHEN 'PREVIOUS_MONTHS'.
+        mv_month_offset = 0.
+        mv_calendar_event159 = 'PREVIOUS_MONTHS'.
+      WHEN 'NEXT_MONTHS'.
+        mv_month_offset = 1.
+        mv_calendar_event159 = 'NEXT_MONTHS'.
+      WHEN 'TODAY'.
+        mv_month_offset = 0.
+        mv_calendar_date159 = '2026-08-30'.
+        mv_calendar_event159 = 'TODAY'.
+      WHEN 'SET_DATE'.
+        IF strlen( lv_requested_date ) = 10
+            AND lv_requested_date+4(1) = '-'
+            AND lv_requested_date+7(1) = '-'
+            AND lv_requested_date >= '2026-08-01'
+            AND lv_requested_date <= '2027-12-31'.
+          mv_calendar_date159 = lv_requested_date.
+          mv_calendar_event159 = 'DATE_SET'.
+          write_line( io_session = io_session
+                      iv_text    = |Selected { mv_calendar_date159 } within 2026-08-01..2027-12-31| ).
+        ELSE.
+          mv_calendar_event159 = 'DATE_REJECTED'.
+          write_line( io_session = io_session
+                      iv_text    = 'Date rejected; use ISO format within 2026-08-01..2027-12-31' ).
+        ENDIF.
+      WHEN 'READ_DATE'.
+        write_line( io_session = io_session
+                    iv_text    = |Calendar selection read: { mv_calendar_date159 } ({ COND string( WHEN mv_calendar_range159 = abap_true THEN 'range' ELSE 'single' ) })| ).
+        mv_calendar_event159 = 'SELECTION_READ'.
+      WHEN 'TOGGLE_RANGE'.
+        mv_calendar_range159 = COND abap_bool( WHEN mv_calendar_range159 = abap_true THEN abap_false ELSE abap_true ).
+        mv_calendar_event159 = COND string( WHEN mv_calendar_range159 = abap_true THEN 'RANGE_MODE' ELSE 'SINGLE_MODE' ).
+        write_line( io_session = io_session
+                    iv_text    = |Calendar selection mode: { COND string( WHEN mv_calendar_range159 = abap_true THEN 'range' ELSE 'single' ) }| ).
+      WHEN 'MARK_DATE'.
+        mv_calendar_marked159 = abap_true.
+        mv_calendar_event159 = 'DATE_MARKED'.
+        write_line( io_session = io_session
+                    iv_text    = |Marked { mv_calendar_date159 }| ).
+      WHEN 'CLEAR_DATE'.
+        mv_calendar_marked159 = abap_false.
+        mv_calendar_event159 = 'MARKS_CLEARED'.
+        write_line( io_session = io_session
+                    iv_text    = 'Calendar marks cleared' ).
+      WHEN 'RECREATE'.
+        mv_month_offset = 0.
+        mv_calendar_date159 = '2026-08-30'.
+        mv_calendar_range159 = abap_false.
+        mv_calendar_marked159 = abap_true.
+        mv_calendar_generation159 = mv_calendar_generation159 + 1.
+        mv_calendar_event159 = 'RECREATED'.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD valid_variant_name.
+    rv_valid = xsdbool( iv_name = 'DEFAULT' OR iv_name = 'COMPACT' ).
+  ENDMETHOD.
+
+  METHOD build_salv_hierseq.
+    TYPES: BEGIN OF ty_header,
+             order_id TYPE i,
+             customer TYPE string,
+           END OF ty_header.
+    TYPES: BEGIN OF ty_item,
+             order_id TYPE i,
+             flight   TYPE string,
+             carrier  TYPE string,
+             quantity TYPE i,
+             price    TYPE p LENGTH 8 DECIMALS 2,
+             currency TYPE string,
+           END OF ty_item.
+    DATA lt_headers TYPE STANDARD TABLE OF ty_header WITH DEFAULT KEY.
+    DATA lt_items TYPE STANDARD TABLE OF ty_item WITH DEFAULT KEY.
+    DATA lt_binding TYPE salv_t_hierseq_binding.
+    DATA lo_hierseq TYPE REF TO cl_salv_hierseq_table.
+
+    lt_headers = VALUE #( ( order_id = 100 customer = 'Order 100' )
+                          ( order_id = 200 customer = 'Order 200' ) ).
+    lt_items = VALUE #( ( order_id = 100 flight = 'LH400' carrier = 'Lufthansa'
+                          quantity = 2 price = '120.00' currency = 'EUR' )
+                        ( order_id = 100 flight = 'LH401' carrier = 'Lufthansa'
+                          quantity = 1 price = '80.00' currency = 'EUR' )
+                        ( order_id = 200 flight = 'UA901' carrier = 'United'
+                          quantity = 3 price = '210.00' currency = 'USD' ) ).
+    IF mv_ticks > 0.
+      SORT lt_items BY price DESCENDING.
+    ENDIF.
+    lt_binding = VALUE #( ( master = 'ORDER_ID' slave = 'ORDER_ID' ) ).
+    TRY.
+        cl_salv_hierseq_table=>factory(
+          EXPORTING
+            t_binding_level1_level2 = lt_binding
+          IMPORTING
+            r_hierseq               = lo_hierseq
+          CHANGING
+            t_table_level1          = lt_headers
+            t_table_level2          = lt_items ).
+        lo_hierseq->get_level( 1 )->set_items_expanded( abap_true ).
+        lo_hierseq->display( ).
+      CATCH cx_root INTO DATA(lx_error).
+        zcl_gg_host_surface=>set_surface( VALUE #(
+          kind          = zcl_gg_host_surface=>surface_table
+          aria_label    = 'Hierarchical sequential SALV fallback'
+          table_caption = 'Header and item relations'
+          columns       = VALUE #( ( `Level` ) ( `Description` ) ( `Quantity` ) ( `Price` ) )
+          rows          = VALUE #(
+            ( cell1 = 'Header' cell2 = 'Order 100' cell3 = '-' cell4 = '-' row_header = abap_true )
+            ( cell1 = 'Item' cell2 = 'LH400 / Lufthansa' cell3 = '2' cell4 = '120.00 EUR' )
+            ( cell1 = 'Item' cell2 = 'LH401 / Lufthansa' cell3 = '1' cell4 = '80.00 EUR' )
+            ( cell1 = 'Header' cell2 = 'Order 200' cell3 = '-' cell4 = '-' row_header = abap_true )
+            ( cell1 = 'Item' cell2 = 'UA901 / United' cell3 = '3' cell4 = '210.00 USD' ) )
+          data_value    = 'Total: 410.00'
+          text          = |SALV HIERSEQ fallback: { lx_error->get_text( ) }| ) ).
+    ENDTRY.
+  ENDMETHOD.
+
+  METHOD handle_variant_command.
+    DATA(lv_variant_input) = request_value( io_session = io_session
+                                            iv_name    = 'ALV_VARIANT' ).
+    DATA(lv_variant_valid) = abap_true.
+    IF lv_variant_input IS NOT INITIAL.
+      IF valid_variant_name( lv_variant_input ) = abap_true.
+        mv_variant = lv_variant_input.
+      ELSE.
+        lv_variant_valid = abap_false.
+        mv_variant_message = 'Variant rejected: only DEFAULT and COMPACT are safe report-local names'.
+      ENDIF.
+    ENDIF.
+    CASE iv_ucomm.
+      WHEN 'SAVE_VARIANT'.
+        IF lv_variant_valid = abap_true.
+          mv_variant_pending = abap_true.
+          mv_variant_message = |Confirm save for { mv_variant } (owner { mv_variant_owner }, handle { mv_variant_handle })|.
+        ENDIF.
+      WHEN 'CONFIRM_VARIANT'.
+        IF lv_variant_valid = abap_false.
+          mv_variant_message = 'Variant confirmation rejected: unsafe report-local name'.
+        ELSEIF mv_variant_pending = abap_true.
+          mv_variant_pending = abap_false.
+          mv_variant_saved = abap_true.
+          mv_variant_layout = 'Carrier, Flight, Seats (saved)'.
+          mv_variant_message = |Variant { mv_variant } saved in report-local memory; persistence is not implied|.
+        ELSE.
+          mv_variant_message = 'No pending variant save requires confirmation'.
+        ENDIF.
+      WHEN 'APPLY_VARIANT'.
+        IF lv_variant_valid = abap_false.
+          mv_variant_message = 'Variant apply rejected: unsafe report-local name'.
+        ELSEIF mv_variant_saved = abap_true.
+          mv_variant_layout = 'Carrier, Flight, Seats (applied)'.
+          mv_variant_message = |Variant { mv_variant } applied through handle { mv_variant_handle }|.
+        ELSE.
+          mv_variant_message = 'Variant apply rejected: save a report-local layout first'.
+        ENDIF.
+      WHEN 'SWITCH_VARIANT'.
+        IF lv_variant_valid = abap_true.
+          mv_variant = COND string( WHEN mv_variant = 'DEFAULT' THEN 'COMPACT' ELSE 'DEFAULT' ).
+          mv_variant_message = |Switched to safe report-local variant { mv_variant }|.
+        ENDIF.
+      WHEN 'DELETE_VARIANT'.
+        IF lv_variant_valid = abap_true.
+          mv_variant_saved = abap_false.
+          mv_variant_layout = 'Carrier, Flight, Seats'.
+          mv_variant_message = |Variant { mv_variant } deleted from report-local memory|.
+        ENDIF.
+      WHEN 'CLEANUP_VARIANT'.
+        mv_variant_saved = abap_false.
+        mv_variant_pending = abap_false.
+        mv_variant = 'DEFAULT'.
+        mv_variant_layout = 'Carrier, Flight, Seats'.
+        mv_variant_message = |Report-local variant handle { mv_variant_handle } cleaned up|.
+    ENDCASE.
+    build_view( io_session ).
+    set_status( io_session ).
+    write_line( io_session = io_session
+                iv_text    = |ALV variant action { iv_ucomm } completed; { mv_variant_message }| ).
+  ENDMETHOD.
+
+  METHOD handle_hierseq_command.
+    CASE iv_ucomm.
+      WHEN 'SORT_HIERSEQ' OR 'SHOW_TOTALS'.
+        mv_ticks = mv_ticks + 1.
+      WHEN 'SELECT_HIERSEQ'.
+        write_line( io_session = io_session
+                    iv_text    = 'Selected item LH400 under header Order 100' ).
+    ENDCASE.
+    build_view( io_session ).
+    set_status( io_session ).
+  ENDMETHOD.
+
   METHOD action_status.
     CASE mv_mode.
       WHEN '152'.
@@ -120,11 +379,16 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
       WHEN '156'.
         rv_status = COND string( WHEN mv_popup_kind IS INITIAL THEN 'POPUP GALLERY' ELSE |{ mv_popup_kind } OPEN| ).
       WHEN '157'.
-        rv_status = COND string( WHEN mv_variant_saved = abap_true THEN |VARIANT { mv_variant } SAVED| ELSE 'ALV LAYOUT READY' ).
+        rv_status = COND string(
+          WHEN mv_variant_pending = abap_true THEN 'CONFIRM VARIANT'
+          WHEN mv_variant_saved = abap_true THEN |VARIANT { mv_variant } SAVED|
+          ELSE 'ALV LAYOUT READY' ).
       WHEN '158'.
         rv_status = 'SALV HIERSEQ READY'.
       WHEN '159'.
-        rv_status = |CALENDAR WINDOW { mv_month_offset + 1 }|.
+        rv_status = COND string(
+          WHEN mv_calendar_range159 = abap_true THEN |CALENDAR RANGE { mv_calendar_date159 }|
+          ELSE |CALENDAR SINGLE { mv_calendar_date159 }| ).
     ENDCASE.
   ENDMETHOD.
 
@@ -186,13 +450,14 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
           ( ucomm = 'OPEN_PROGRESS' label = 'Progress popup' icon = 'refresh' ) ).
       WHEN '157'.
         ls_status-active_ucomm = VALUE #( ( 'SAVE_VARIANT' ) ( 'APPLY_VARIANT' ) ( 'SWITCH_VARIANT' )
-          ( 'DELETE_VARIANT' ) ( 'CLEANUP_VARIANT' ) ).
+          ( 'DELETE_VARIANT' ) ( 'CLEANUP_VARIANT' ) ( 'CONFIRM_VARIANT' ) ).
         ls_status-icon_bar = VALUE #(
           ( ucomm = 'SAVE_VARIANT' label = 'Save layout' icon = 'save' )
           ( ucomm = 'APPLY_VARIANT' label = 'Apply layout' icon = 'check' )
           ( ucomm = 'SWITCH_VARIANT' label = 'Switch layout' icon = 'refresh' )
           ( ucomm = 'DELETE_VARIANT' label = 'Delete layout' icon = 'delete' )
-          ( ucomm = 'CLEANUP_VARIANT' label = 'Cleanup layouts' icon = 'delete' ) ).
+          ( ucomm = 'CLEANUP_VARIANT' label = 'Cleanup layouts' icon = 'delete' )
+          ( ucomm = 'CONFIRM_VARIANT' label = 'Confirm save' icon = 'check' ) ).
       WHEN '158'.
         ls_status-active_ucomm = VALUE #( ( 'SORT_HIERSEQ' ) ( 'SELECT_HIERSEQ' ) ( 'SHOW_TOTALS' ) ).
         ls_status-icon_bar = VALUE #(
@@ -201,12 +466,15 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
           ( ucomm = 'SHOW_TOTALS' label = 'Show totals' icon = 'sum' ) ).
       WHEN '159'.
         ls_status-active_ucomm = VALUE #( ( 'PREVIOUS_MONTHS' ) ( 'NEXT_MONTHS' )
-          ( 'TODAY' ) ( 'SET_DATE' ) ( 'MARK_DATE' ) ( 'CLEAR_DATE' ) ( 'RECREATE' ) ).
+          ( 'TODAY' ) ( 'SET_DATE' ) ( 'READ_DATE' ) ( 'TOGGLE_RANGE' )
+          ( 'MARK_DATE' ) ( 'CLEAR_DATE' ) ( 'RECREATE' ) ).
         ls_status-icon_bar = VALUE #(
           ( ucomm = 'PREVIOUS_MONTHS' label = 'Previous months' icon = 'arrow-left' )
           ( ucomm = 'NEXT_MONTHS' label = 'Next months' icon = 'arrow-right' )
           ( ucomm = 'TODAY' label = 'Today' icon = 'calendar' )
           ( ucomm = 'SET_DATE' label = 'Set date' icon = 'check' )
+          ( ucomm = 'READ_DATE' label = 'Read selection' icon = 'display' )
+          ( ucomm = 'TOGGLE_RANGE' label = 'Toggle range' icon = 'select-all' )
           ( ucomm = 'MARK_DATE' label = 'Mark date' icon = 'star' )
           ( ucomm = 'CLEAR_DATE' label = 'Clear marks' icon = 'delete' )
           ( ucomm = 'RECREATE' label = 'Recreate calendar' icon = 'refresh' ) ).
@@ -220,18 +488,23 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
     DATA lt_nodes TYPE string_table.
     DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     DATA lt_popup_log_rows TYPE zcl_gg_host_surface=>ty_surface_rows.
+    DATA lt_calendar_rows TYPE zcl_gg_host_surface=>ty_surface_rows.
     DATA lt_fcat TYPE lvc_t_fcat.
 
     CASE mv_mode.
       WHEN '152'.
         lo_root = NEW cl_gui_custom_container( container_name = 'ROOT152' ).
-        DATA(lo_timer) = NEW cl_gui_timer( ).
-        cl_gui_control=>initialize( control = lo_timer
+        IF mo_timer IS NOT BOUND.
+          mo_timer = NEW cl_gui_timer( ).
+          mv_timer_instance = mv_timer_instance + 1.
+        ENDIF.
+        mo_timer->interval = mv_interval.
+        cl_gui_control=>initialize( control = mo_timer
                                     parent  = lo_root
                                     kind    = 'TIMER' ).
-        lo_root->add_child( lo_timer ).
+        lo_root->add_child( mo_timer ).
         IF mv_running = abap_true.
-          lo_timer->run( ).
+          mo_timer->run( ).
         ENDIF.
         ls_surface = VALUE #(
           kind          = zcl_gg_host_surface=>surface_table
@@ -278,14 +551,16 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
           text          = COND string( WHEN mv_undo_available = abap_true THEN 'Undo is available for the last accepted drop.' ELSE 'Use keyboard actions when pointer drag is unavailable.' ) ) ).
       WHEN '154'.
         ls_surface = VALUE #(
-          kind        = zcl_gg_host_surface=>surface_document
-          aria_label  = 'Browser frontend capability report'
-          title       = 'Explicit browser capabilities'
-          text        = 'Desktop-only operations are refused or require a real browser permission. The host never claims a file, clipboard, directory, registry, or URL operation happened without evidence.'
-          input_label = 'Upload fixture'
-          input_name  = 'UPLOAD_FILE'
-          input_type  = 'file'
-          actions     = VALUE #(
+          kind           = zcl_gg_host_surface=>surface_document
+          aria_label     = 'Browser frontend capability report'
+          title          = 'Explicit browser capabilities'
+          text           = 'Desktop-only operations are refused or require a real browser permission. The host never claims a file, clipboard, directory, registry, or URL operation happened without evidence.'
+          input_label    = 'Upload fixture'
+          input_name     = 'UPLOAD_FILE'
+          input_type     = 'file'
+          download_href  = '/assets/fixtures/frontend-services.txt'
+          download_label = 'Download browser fixture'
+          actions        = VALUE #(
             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'UPLOAD' label = 'Inspect upload' )
             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'DOWNLOAD' label = 'Prepare download' )
             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'CLIPBOARD' label = 'Request clipboard' )
@@ -325,7 +600,9 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
           table_caption = 'Dialog geometry'
           columns       = VALUE #( ( `Property` ) ( `Value` ) )
           rows          = VALUE #( ( cell1 = 'Position' cell2 = |{ mv_dialog_left }, { mv_dialog_top }| )
-                          ( cell1 = 'Size' cell2 = |{ mv_dialog_width } x { mv_dialog_height }| ) )
+                          ( cell1 = 'Size' cell2 = |{ mv_dialog_width } x { mv_dialog_height }| )
+                          ( cell1 = 'Focus' cell2 = COND string( WHEN mv_dialog_focus = abap_true THEN 'dialog' ELSE 'parent' ) )
+                          ( cell1 = 'Last event' cell2 = mv_dialog_event ) )
           actions       = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'MOVE_DIALOG' label = 'Move' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'RESIZE_DIALOG' label = 'Resize' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'FOCUS_DIALOG' label = 'Focus dialog' )
@@ -390,50 +667,62 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
           input_label   = 'Variant name'
           input_name    = 'ALV_VARIANT'
           input_value   = mv_variant
-          text          = |Layout: { mv_variant_layout }. Handles are report-local; no database persistence is implied.| ).
+          text          = |Layout: { mv_variant_layout }; owner={ mv_variant_owner }, handle={ mv_variant_handle }, { mv_variant_message }. No database persistence is implied.| ).
         ls_surface-actions = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'SAVE_VARIANT' label = 'Save' )
                                       ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'APPLY_VARIANT' label = 'Apply' )
                                       ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'SWITCH_VARIANT' label = 'Switch' )
                                       ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'DELETE_VARIANT' label = 'Delete' )
-                                      ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'CLEANUP_VARIANT' label = 'Cleanup' ) ).
+                                      ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'CLEANUP_VARIANT' label = 'Cleanup' )
+                                      ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'CONFIRM_VARIANT'
+                                        label = 'Confirm save'
+                                        disabled = xsdbool( mv_variant_pending = abap_false ) ) ).
         zcl_gg_host_surface=>set_surface( ls_surface ).
       WHEN '158'.
-        zcl_gg_host_surface=>set_surface( VALUE #(
-          kind          = zcl_gg_host_surface=>surface_table
-          aria_label    = 'Hierarchical sequential SALV'
-          table_caption = 'Header and item relations'
-          columns       = VALUE #( ( `Level` ) ( `Description` ) ( `Quantity` ) ( `Price` ) )
-          rows          = VALUE #(
-            ( cell1 = 'Header' cell2 = 'Order 100' cell3 = '-' cell4 = '-' row_header = abap_true )
-            ( cell1 = 'Item' cell2 = 'LH400 / Lufthansa' cell3 = '2' cell4 = '120.00 EUR' )
-            ( cell1 = 'Item' cell2 = 'LH401 / Lufthansa' cell3 = '1' cell4 = '80.00 EUR' )
-            ( cell1 = 'Header' cell2 = 'Order 200' cell3 = '-' cell4 = '-' row_header = abap_true )
-            ( cell1 = 'Item' cell2 = 'UA901 / United' cell3 = '3' cell4 = '210.00 USD' ) )
-          data_value    = COND string( WHEN mv_ticks > 0 THEN 'Total: 410.00 (typed header/item total)' ELSE 'Total: 410.00' )
-          actions       = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'SORT_HIERSEQ' label = 'Sort items' )
-                             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'SELECT_HIERSEQ' label = 'Select item' )
-                             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'SHOW_TOTALS' label = 'Show totals' ) ) ) ).
+        build_salv_hierseq( ).
       WHEN '159'.
         DATA(lv_first_month) = COND string( WHEN mv_month_offset = 0 THEN '2026-08' ELSE '2026-11' ).
+        DATA(lv_focus_date) = COND string( WHEN mv_month_offset = 0 THEN mv_calendar_date159 ELSE '2026-11-13' ).
+        IF mv_month_offset = 0.
+          lt_calendar_rows = VALUE #(
+            ( cell1 = '2026-08' cell2 = '31-35' cell3 = lv_focus_date cell4 = COND string( WHEN mv_calendar_marked159 = abap_true THEN 'marked' ELSE 'clear' ) )
+            ( cell1 = '2026-09' cell2 = '36-39' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2026-10' cell2 = '40-44' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2026-11' cell2 = '45-48' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2026-12' cell2 = '49-53' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-01' cell2 = '01-04' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-02' cell2 = '05-08' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-03' cell2 = '09-13' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-04' cell2 = '14-17' cell3 = '' cell4 = 'clear' ) ).
+        ELSE.
+          lt_calendar_rows = VALUE #(
+            ( cell1 = '2026-11' cell2 = '45-48' cell3 = lv_focus_date cell4 = COND string( WHEN mv_calendar_marked159 = abap_true THEN 'marked' ELSE 'clear' ) )
+            ( cell1 = '2026-12' cell2 = '49-53' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-01' cell2 = '01-04' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-02' cell2 = '05-08' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-03' cell2 = '09-13' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-04' cell2 = '14-17' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-05' cell2 = '18-22' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-06' cell2 = '23-26' cell3 = '' cell4 = 'clear' )
+            ( cell1 = '2027-07' cell2 = '27-30' cell3 = '' cell4 = 'clear' ) ).
+        ENDIF.
         zcl_gg_host_surface=>set_surface( VALUE #(
           kind          = zcl_gg_host_surface=>surface_table
           aria_label    = 'Nine month calendar'
           table_caption = |Nine-month calendar from { lv_first_month }|
-          columns       = VALUE #( ( `Month` ) ( `ISO weeks` ) ( `Focus` ) ( `Marks` ) )
-          rows          = VALUE #( ( cell1 = '2026-08' cell2 = '31-35' cell3 = COND string( WHEN mv_month_offset = 0 THEN '2026-08-30' ELSE '' ) cell4 = '1' )
-                          ( cell1 = '2026-09' cell2 = '36-39' cell3 = '' cell4 = '0' )
-                          ( cell1 = '2026-10' cell2 = '40-44' cell3 = '' cell4 = '0' )
-                          ( cell1 = '2026-11' cell2 = '45-48' cell3 = COND string( WHEN mv_month_offset = 1 THEN '2026-11-13' ELSE '' ) cell4 = '0' )
-                          ( cell1 = '2026-12' cell2 = '49-53' cell3 = '' cell4 = '0' )
-                          ( cell1 = '2027-01' cell2 = '01-04' cell3 = '' cell4 = '0' )
-                          ( cell1 = '2027-02' cell2 = '05-08' cell3 = '' cell4 = '0' )
-                          ( cell1 = '2027-03' cell2 = '09-13' cell3 = '' cell4 = '0' )
-                          ( cell1 = '2027-04' cell2 = '14-17' cell3 = '' cell4 = '0' ) )
-          text          = 'Week numbers, focus, selection, and marks are deterministic and locale-stable.'
+          columns       = VALUE #( ( `Month` ) ( `ISO weeks` ) ( `Focus / selection` ) ( `Marks` ) )
+          rows          = lt_calendar_rows
+          input_label   = 'Focus date'
+          input_name    = 'CALENDAR_DATE'
+          input_type    = 'date'
+          input_value   = mv_calendar_date159
+          data_value    = |generation={ mv_calendar_generation159 }; mode={ COND string( WHEN mv_calendar_range159 = abap_true THEN 'range' ELSE 'single' ) }; selection={ mv_calendar_date159 }; bounds=2026-08-01..2027-12-31; locale=en|
+          text          = |Week numbers, nine-month view, and selection are deterministic and locale-stable. Last event: { mv_calendar_event159 }.|
           actions       = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'PREVIOUS_MONTHS' label = 'Previous' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'NEXT_MONTHS' label = 'Next' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'TODAY' label = 'Today' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'SET_DATE' label = 'Set date' )
+                             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'READ_DATE' label = 'Read selection' )
+                             ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'TOGGLE_RANGE' label = 'Toggle range' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'MARK_DATE' label = 'Mark date' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'CLEAR_DATE' label = 'Clear marks' )
                              ( transport = zcl_gg_host_surface=>surface_action_ucomm value = 'RECREATE' label = 'Recreate' ) ) ) ).
@@ -468,15 +757,23 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
             mv_running = abap_true.
           WHEN 'STOP_TIMER'.
             mv_running = abap_false.
+            IF mo_timer IS BOUND.
+              mo_timer->cancel( ).
+            ENDIF.
           WHEN 'TICK_TIMER'.
-            IF mv_running = abap_true.
-              mv_ticks = mv_ticks + 1.
+            IF mo_timer IS BOUND.
+              mo_timer->tick( ).
+              mv_ticks = mo_timer->get_tick_count( ).
             ENDIF.
           WHEN 'FASTER'.
             mv_interval = COND #( WHEN mv_interval > 100 THEN mv_interval - 100 ELSE 100 ).
           WHEN 'SLOWER'.
             mv_interval = mv_interval + 100.
           WHEN 'REUSE_TIMER'.
+            IF mo_timer IS BOUND.
+              mo_timer->cancel( ).
+            ENDIF.
+            mo_timer = NEW cl_gui_timer( ).
             mv_timer_instance = mv_timer_instance + 1.
             mv_ticks = 0.
         ENDCASE.
@@ -567,17 +864,25 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
           WHEN 'MOVE_DIALOG'.
             mv_dialog_left = mv_dialog_left + 20.
             mv_dialog_top = mv_dialog_top + 10.
+            mv_dialog_event = 'MOVED'.
           WHEN 'RESIZE_DIALOG'.
             mv_dialog_width = mv_dialog_width + 20.
             mv_dialog_height = mv_dialog_height + 10.
+            mv_dialog_event = 'RESIZED'.
           WHEN 'FOCUS_DIALOG'.
+            mv_dialog_focus = abap_true.
+            mv_dialog_event = 'FOCUSED'.
             write_line( io_session = io_session
                         iv_text    = 'Modeless dialog focus restored without blocking the parent' ).
           WHEN 'PARENT_ACTION'.
+            mv_dialog_focus = abap_false.
+            mv_dialog_event = 'PARENT_INTERACTION'.
             write_line( io_session = io_session
                         iv_text    = 'Parent action remained available while dialog was modeless' ).
           WHEN 'CLOSE_DIALOG'.
             mv_dialog_open = abap_false.
+            mv_dialog_focus = abap_false.
+            mv_dialog_event = 'CLOSED'.
         ENDCASE.
         build_view( io_session ).
         set_status( io_session ).
@@ -613,60 +918,14 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
         build_view( io_session ).
         set_status( io_session ).
       WHEN '157'.
-        CASE iv_ucomm.
-          WHEN 'SAVE_VARIANT'.
-            mv_variant_saved = abap_true.
-            mv_variant_layout = 'Carrier, Flight, Seats (saved)'.
-          WHEN 'APPLY_VARIANT'.
-            IF mv_variant_saved = abap_true.
-              mv_variant_layout = 'Carrier, Flight, Seats (applied)'.
-            ENDIF.
-          WHEN 'SWITCH_VARIANT'.
-            mv_variant = COND string( WHEN mv_variant = 'DEFAULT' THEN 'COMPACT' ELSE 'DEFAULT' ).
-          WHEN 'DELETE_VARIANT'.
-            mv_variant_saved = abap_false.
-            mv_variant_layout = 'Carrier, Flight, Seats'.
-          WHEN 'CLEANUP_VARIANT'.
-            mv_variant_saved = abap_false.
-            mv_variant = 'DEFAULT'.
-            mv_variant_layout = 'Carrier, Flight, Seats'.
-        ENDCASE.
-        build_view( io_session ).
-        set_status( io_session ).
-        write_line( io_session = io_session
-                    iv_text    = |ALV variant action { iv_ucomm } completed in report-local memory| ).
+        handle_variant_command( io_session = io_session
+                                iv_ucomm   = iv_ucomm ).
       WHEN '158'.
-        CASE iv_ucomm.
-          WHEN 'SORT_HIERSEQ'.
-            mv_ticks = mv_ticks + 1.
-          WHEN 'SELECT_HIERSEQ'.
-            write_line( io_session = io_session
-                        iv_text    = 'Selected item LH400 under header Order 100' ).
-          WHEN 'SHOW_TOTALS'.
-            mv_ticks = mv_ticks + 1.
-        ENDCASE.
-        build_view( io_session ).
-        set_status( io_session ).
+        handle_hierseq_command( io_session = io_session
+                                iv_ucomm   = iv_ucomm ).
       WHEN '159'.
-        CASE iv_ucomm.
-          WHEN 'PREVIOUS_MONTHS'.
-            mv_month_offset = 0.
-          WHEN 'NEXT_MONTHS'.
-            mv_month_offset = 1.
-          WHEN 'TODAY'.
-            mv_month_offset = 0.
-          WHEN 'SET_DATE'.
-            write_line( io_session = io_session
-                        iv_text    = 'Selected 2026-08-30' ).
-          WHEN 'MARK_DATE'.
-            write_line( io_session = io_session
-                        iv_text    = 'Marked 2026-08-30' ).
-          WHEN 'CLEAR_DATE'.
-            write_line( io_session = io_session
-                        iv_text    = 'Calendar marks cleared' ).
-          WHEN 'RECREATE'.
-            mv_month_offset = 0.
-        ENDCASE.
+        handle_calendar_command( io_session = io_session
+                                 iv_ucomm   = iv_ucomm ).
         build_view( io_session ).
         set_status( io_session ).
     ENDCASE.
@@ -686,6 +945,20 @@ CLASS zcl_gg_plan9_examples_base IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~get_logical_database.
     RETURN.
+  ENDMETHOD.
+
+  METHOD stop_session_resources.
+    IF mo_timer IS BOUND.
+      mo_timer->cancel( ).
+      CLEAR mo_timer.
+      CLEAR mv_ticks.
+      mv_running = abap_false.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_session_lifecycle_v1~on_close.
+    stop_session_resources( ).
+    clear_view( ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~get_list_processing.

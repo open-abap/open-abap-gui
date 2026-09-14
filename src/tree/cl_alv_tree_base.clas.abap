@@ -101,6 +101,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
              text       TYPE string,
              expanded   TYPE abap_bool,
              selected   TYPE abap_bool,
+             data_row   TYPE REF TO data,
            END OF ty_html_node.
     TYPES ty_html_nodes TYPE STANDARD TABLE OF ty_html_node WITH DEFAULT KEY.
     DATA mt_html_nodes TYPE ty_html_nodes.
@@ -309,7 +310,8 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         node_key   TYPE string
         parent_key TYPE string OPTIONAL
-        text       TYPE string OPTIONAL.
+        text       TYPE string OPTIONAL
+        data_row   TYPE any OPTIONAL.
 
     METHODS refresh_tree_html.
 
@@ -667,15 +669,20 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_html_node.
+    DATA lr_data_row TYPE REF TO data.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
       WITH KEY node_key = node_key.
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
+    IF data_row IS SUPPLIED.
+      GET REFERENCE OF data_row INTO lr_data_row.
+    ENDIF.
     APPEND VALUE #( node_key   = node_key
                     parent_key = parent_key
                     text       = text
-                    expanded   = abap_true ) TO mt_html_nodes.
+                    expanded   = abap_true
+                    data_row   = lr_data_row ) TO mt_html_nodes.
     refresh_tree_html( ).
   ENDMETHOD.
 
@@ -687,7 +694,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   METHOD tree_html.
     DATA lv_depth TYPE i.
     DATA lv_parent TYPE string.
-    result = |<ul role="tree" aria-label="ALV tree">|.
+    DATA ls_parent TYPE ty_html_node.
+    result = |<section class="gg-alv-tree" aria-label="ALV tree"><ul role="tree" aria-label="ALV tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
       lv_depth = 1.
       lv_parent = ls_node-parent_key.
@@ -695,7 +703,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         IF lv_parent IS INITIAL.
           EXIT.
         ENDIF.
-        READ TABLE mt_html_nodes INTO DATA(ls_parent)
+        READ TABLE mt_html_nodes INTO ls_parent
           WITH KEY node_key = lv_parent.
         IF sy-subrc <> 0.
           EXIT.
@@ -708,9 +716,56 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
         ELSE ' aria-selected="false"' ).
       DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }>{ escape_html( ls_node-text ) }</li>|.
+      DATA(lv_visible) = abap_true.
+      lv_parent = ls_node-parent_key.
+      DO 32 TIMES.
+        IF lv_parent IS INITIAL.
+          EXIT.
+        ENDIF.
+        READ TABLE mt_html_nodes INTO ls_parent
+          WITH KEY node_key = lv_parent.
+        IF sy-subrc <> 0.
+          EXIT.
+        ENDIF.
+        IF ls_parent-expanded = abap_false.
+          lv_visible = abap_false.
+          EXIT.
+        ENDIF.
+        lv_parent = ls_parent-parent_key.
+      ENDDO.
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }{ COND string( WHEN lv_visible = abap_false THEN ' hidden' ELSE '' ) }>{ escape_html( ls_node-text ) }</li>|.
     ENDLOOP.
-    result = result && |</ul>|.
+    result = result && |</ul><div class="gg-alv-tree-columns"><table data-field-count="{ lines( mt_fieldcatalog ) }"><thead><tr><th scope="col">Hierarchy</th>|.
+    LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
+      IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
+        result = result && |<th scope="col" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ escape_html( CONV string( ls_fieldcat-inttype ) ) }">{ escape_html( COND string( WHEN ls_fieldcat-coltext IS INITIAL THEN ls_fieldcat-fieldname ELSE ls_fieldcat-coltext ) ) }</th>|.
+      ENDIF.
+    ENDLOOP.
+    result = result && '</tr></thead><tbody>'.
+    LOOP AT mt_html_nodes INTO ls_node.
+      IF ls_node-data_row IS NOT BOUND.
+        CONTINUE.
+      ENDIF.
+      ASSIGN ls_node-data_row->* TO FIELD-SYMBOL(<row>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      result = result && |<tr data-node-key="{ escape_html( ls_node-node_key ) }"><th scope="row">{ escape_html( ls_node-text ) }</th>|.
+      LOOP AT mt_fieldcatalog INTO ls_fieldcat.
+        IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
+          CONTINUE.
+        ENDIF.
+        ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO FIELD-SYMBOL(<component>).
+        IF sy-subrc = 0.
+          DATA(lv_tree_value) = cl_gui_control=>format_external_value(
+            iv_value = |{ <component> }|
+            iv_type  = CONV string( ls_fieldcat-inttype ) ).
+          result = result && |<td data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-total="{ COND string( WHEN ls_fieldcat-do_sum = 'X' THEN 'true' ELSE 'false' ) }">{ escape_html( lv_tree_value ) }</td>|.
+        ENDIF.
+      ENDLOOP.
+      result = result && '</tr>'.
+    ENDLOOP.
+    result = result && '</tbody></table></div></section>'.
   ENDMETHOD.
 
   METHOD set_html_node_state.

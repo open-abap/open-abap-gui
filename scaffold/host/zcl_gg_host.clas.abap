@@ -457,9 +457,10 @@ CLASS zcl_gg_host IMPLEMENTATION.
     lo_screen = NEW zcl_gg_host_screen( ).
     zcl_gg_host_compatibility=>clear_selection_list_values( ).
     lo_session = NEW zcl_gg_host_session(
-      io_list    = lo_list
-      iv_program = iv_program
-      iv_batch   = iv_batch ).
+      io_list           = lo_list
+      iv_program        = iv_program
+      iv_batch          = iv_batch
+      it_request_values = it_input ).
     lo_list_session = lo_session->zif_gg_session_v1~get_list( ).
 
     TRY.
@@ -761,7 +762,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
       lv_page_kind = zif_gg_host_html_v1=>page_selection.
       ls_context-processor = zif_gg_session_types_v1=>processor_selection.
       ls_context-screen = iv_selection_screen.
-      lv_title = 'Selection'.
+      lv_title = COND string(
+        WHEN iv_program CS 'ZCL_CV_' THEN |Selection: { CONV string( iv_program ) }|
+        ELSE 'Selection' ).
       cs_result-html = zcl_gg_host_renderer=>render_selection(
         iv_session_id        = iv_session_id
         iv_page_id           = iv_page_id

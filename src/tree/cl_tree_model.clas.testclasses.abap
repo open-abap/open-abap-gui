@@ -10,6 +10,7 @@ CLASS ltcl_tree_model IMPLEMENTATION.
     DATA lt_expanded TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     DATA lv_parent TYPE tm_nodekey.
     DATA ls_item TYPE treemlitem.
+    DATA lv_summary TYPE string.
 
     APPEND VALUE #( node_key  = 'ROOT'
                     relatship = cl_list_tree_model=>relat_first_child
@@ -42,6 +43,7 @@ CLASS ltcl_tree_model IMPLEMENTATION.
       node_key       = 'CHILD'
       expand_parents = abap_true ).
     lo_model->get_expanded_nodes( IMPORTING node_key_table = lt_expanded ).
+    lv_summary = lo_model->get_state_summary( ).
 
     cl_abap_unit_assert=>assert_equals(
       act = lv_parent
@@ -52,6 +54,8 @@ CLASS ltcl_tree_model IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lines( lt_expanded )
       exp = 2 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_summary CS 'model=LIST' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_summary CS 'nodes=2' ) ).
     lo_model->collapse_node( 'ROOT' ).
     lo_model->delete_node( 'ROOT' ).
     CLEAR lt_expanded.

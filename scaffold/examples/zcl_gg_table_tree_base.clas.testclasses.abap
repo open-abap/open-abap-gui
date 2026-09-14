@@ -14,6 +14,7 @@ CLASS ltcl_gg_table_tree_base DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS salv_layout FOR TESTING.
     METHODS salv_events FOR TESTING.
     METHODS bar_chart FOR TESTING.
+    METHODS bar_chart_color FOR TESTING.
     METHODS chart_engine FOR TESTING.
     METHODS rejects_undeclared_command FOR TESTING.
     METHODS check_html
@@ -121,7 +122,7 @@ CLASS ltcl_gg_table_tree_base IMPLEMENTATION.
 
   METHOD salv_events.
     check_html( io_report = NEW zcl_gg_ex_147( )
-                iv_text   = 'ROW-2' ).
+                iv_text   = 'gg-salv-tree' ).
     check_command( io_report = NEW zcl_gg_ex_147( )
                    iv_ucomm  = 'SALV_LINK'
                    iv_text   = 'SALV link event' ).
@@ -131,6 +132,21 @@ CLASS ltcl_gg_table_tree_base IMPLEMENTATION.
     DATA(ls_result) = zcl_gg_host=>run( io_report = NEW zcl_gg_ex_148( ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-control-kind="BARCHART"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'Flights by carrier' ) ).
+  ENDMETHOD.
+
+  METHOD bar_chart_color.
+    zcl_gg_host_runtime=>clear( ).
+    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_148( ) ).
+    DATA(ls_result) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'SET_CHART_COLOR'
+      values     = VALUE #( ( name = 'CHART_COLOR' value = '#FF0000' ) ) ) ).
+    cl_abap_unit_assert=>assert_true( act = ls_result-valid ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'Chart color set to #FF0000' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'type="color"' ) ).
+    zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD chart_engine.

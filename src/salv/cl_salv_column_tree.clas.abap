@@ -9,16 +9,19 @@ CLASS cl_salv_column_tree DEFINITION PUBLIC INHERITING FROM cl_salv_column.
       RETURNING
         VALUE(value) TYPE abap_bool.
 
+  PRIVATE SECTION.
+    DATA mv_icon TYPE abap_bool.
+
 ENDCLASS.
 
 CLASS cl_salv_column_tree IMPLEMENTATION.
 
   METHOD set_icon.
-    RETURN. " todo, implement method
+    mv_icon = value.
   ENDMETHOD.
 
   METHOD is_icon.
-    RETURN. " todo, implement method
+    value = mv_icon.
   ENDMETHOD.
 
 ENDCLASS.

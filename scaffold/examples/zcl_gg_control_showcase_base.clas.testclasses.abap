@@ -8,6 +8,7 @@ CLASS ltcl_gg_control_showcase_base DEFINITION FINAL FOR TESTING DURATION SHORT 
     METHODS textedit FOR TESTING.
     METHODS readonly_textedit FOR TESTING.
     METHODS picture FOR TESTING.
+    METHODS picture_actions FOR TESTING.
     METHODS toolbar FOR TESTING.
     METHODS calendar FOR TESTING.
     METHODS selector FOR TESTING.
@@ -70,6 +71,12 @@ CLASS ltcl_gg_control_showcase_base IMPLEMENTATION.
   METHOD picture.
     check_html( io_report = NEW zcl_gg_ex_124( )
                 iv_text   = 'PICTURE' ).
+  ENDMETHOD.
+
+  METHOD picture_actions.
+    check_command( io_report = NEW zcl_gg_ex_124( )
+                   iv_ucomm  = 'PICTURE_FIT'
+                   iv_text   = 'data-display-mode="4"' ).
   ENDMETHOD.
 
   METHOD toolbar.

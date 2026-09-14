@@ -6,6 +6,7 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS textedit_roundtrip FOR TESTING.
     METHODS container_and_column_state FOR TESTING.
     METHODS alv_editable_metadata FOR TESTING.
+    METHODS alv_sort_filter_total FOR TESTING.
     METHODS picture_safe_state FOR TESTING.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
@@ -77,11 +78,24 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lt_output TYPE string_table.
     DATA lv_modified TYPE i.
     DATA lv_from_line TYPE i.
+    DATA lv_from_pos TYPE i.
     DATA lv_to_line TYPE i.
+    DATA lv_to_pos TYPE i.
+    DATA lv_text TYPE string.
+    DATA lv_file_result TYPE abap_bool.
 
     cl_gui_control=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'TEXTEDIT-ROUNDTRIP' ).
     DATA(lo_editor) = NEW cl_gui_textedit( parent = lo_root ).
+    lo_editor->set_toolbar_mode( cl_gui_textedit=>true ).
+    lo_editor->set_statusbar_mode( cl_gui_textedit=>true ).
+    lo_editor->set_font_fixed( cl_gui_textedit=>true ).
+    lo_editor->set_wordwrap_behavior(
+      wordwrap_mode              = cl_gui_textedit=>wordwrap_at_fixed_position
+      wordwrap_position          = 72
+      wordwrap_to_linebreak_mode = 1 ).
+    lo_editor->protect_lines( from_line = 1
+                              to_line   = 1 ).
     lt_input = VALUE #( ( `first` ) ( `second` ) ( `third` ) ).
     lo_editor->set_text_as_r3table( lt_input ).
     lo_editor->get_text_as_r3table(
@@ -108,6 +122,51 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lv_to_line
       exp = 3 ).
+    lo_editor->set_selection_pos( from_line = 2
+                                  from_pos  = 1
+                                  to_line   = 3
+                                  to_pos    = 2 ).
+    lo_editor->get_selection_pos(
+      IMPORTING
+        from_line = lv_from_line
+        from_pos  = lv_from_pos
+        to_line   = lv_to_line
+        to_pos    = lv_to_pos ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_from_line
+      exp = 2 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_from_pos
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_to_line
+      exp = 3 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_to_pos
+      exp = 2 ).
+
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-toolbar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-statusbar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-wordwrap-position="72"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-protected-from="1"' ) ).
+
+    lo_editor->delete_text( ).
+    lo_editor->restore( ).
+    lo_editor->get_textstream(
+      IMPORTING
+        text        = lv_text
+        is_modified = lv_modified ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_text
+      exp = |first{ cl_abap_char_utilities=>newline }second{ cl_abap_char_utilities=>newline }third| ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_modified
+      exp = 0 ).
+    lv_file_result = lo_editor->load_file( filename = 'C:\\desktop\\text.txt' ).
+    cl_abap_unit_assert=>assert_false( act = lv_file_result ).
+    lv_file_result = lo_editor->save_file( filename = 'C:\\desktop\\text.txt' ).
+    cl_abap_unit_assert=>assert_false( act = lv_file_result ).
   ENDMETHOD.
 
   METHOD container_and_column_state.
@@ -170,17 +229,72 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="edit me"' ) ).
   ENDMETHOD.
 
+  METHOD alv_sort_filter_total.
+    TYPES: BEGIN OF ty_row,
+             carrier TYPE c LENGTH 3,
+             seats   TYPE i,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+    DATA lt_filtered TYPE lvc_t_fidx.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-CRITERIA' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
+    lt_rows = VALUE #( ( carrier = 'LH' seats = 180 )
+                       ( carrier = 'UA' seats = 210 )
+                       ( carrier = 'LH' seats = 160 ) ).
+    lt_fcat = VALUE #( ( fieldname = 'CARRIER' coltext = 'Carrier' )
+                       ( fieldname = 'SEATS' coltext = 'Seats' do_sum = 'X' ) ).
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    lo_grid->set_filter_criteria( VALUE #( ( fieldname = 'CARRIER'
+                                             sign      = 'I'
+                                             option    = 'CP'
+                                             low       = 'L*' ) ) ).
+    lo_grid->set_sort_criteria( VALUE #( ( fieldname = 'SEATS'
+                                           down      = 'X'
+                                           spos      = 1 ) ) ).
+    lo_grid->get_filtered_entries( IMPORTING et_filtered_entries = lt_filtered ).
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lines( lt_filtered )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>180</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>160</td>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>210</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-grid-total' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>340</td>' ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
   METHOD picture_safe_state.
+    DATA lv_result TYPE i.
     cl_gui_control=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'PICTURE-ROOT' ).
     DATA(lo_picture) = NEW cl_gui_picture( parent = lo_root ).
+    lo_picture->load_picture_from_url(
+      EXPORTING
+        url    = 'javascript:alert(1)'
+      IMPORTING
+        result = lv_result ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_result
+      exp = 4 ).
+    DATA(lv_rejected_html) = cl_gui_control=>render_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_rejected_html CS 'data-picture-state="rejected"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_rejected_html CS 'src="javascript:' ) ).
     lo_picture->load_picture_from_url_async( '/assets/icons/refresh.svg' ).
     lo_picture->set_display_mode( cl_gui_picture=>display_mode_fit_center ).
     lo_picture->set_3d_border( 1 ).
     DATA(lv_html) = cl_gui_control=>render_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'src="/assets/icons/refresh.svg"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'mode=4' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-picture-state="loaded"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-display-mode="4"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'object-fit:contain' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'javascript:' ) ).
   ENDMETHOD.
 

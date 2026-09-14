@@ -60,6 +60,24 @@ CLASS ltcl_splitter_container IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lv_width
       exp = 60 ).
+    lo_splitter->set_row_minimum(
+      EXPORTING
+        id      = 1
+        minimum = 50
+      IMPORTING
+        result  = lv_result ).
+    lo_splitter->set_row_height(
+      EXPORTING
+        id     = 1
+        height = 20
+      IMPORTING
+        result = lv_height ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_result
+      exp = 50 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_height
+      exp = 50 ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( cl_gui_control=>render_html( ) CS 'rows=2; columns=2' ) ).
   ENDMETHOD.
 

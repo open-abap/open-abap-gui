@@ -9,48 +9,64 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
     TYPES ty_surface_actions TYPE STANDARD TABLE OF ty_surface_action WITH DEFAULT KEY.
 
     TYPES: BEGIN OF ty_surface_row,
-             cell1      TYPE string,
-             cell2      TYPE string,
-             cell3      TYPE string,
-             cell4      TYPE string,
-             row_header TYPE abap_bool,
+             cell1       TYPE string,
+             cell2       TYPE string,
+             cell3       TYPE string,
+             cell4       TYPE string,
+             row_header  TYPE abap_bool,
+             row_color   TYPE string,
+             row_style   TYPE string,
+             cell1_color TYPE string,
+             cell2_color TYPE string,
+             cell3_color TYPE string,
+             cell4_color TYPE string,
+             cell1_style TYPE string,
+             cell2_style TYPE string,
+             cell3_style TYPE string,
+             cell4_style TYPE string,
            END OF ty_surface_row.
     TYPES ty_surface_rows TYPE STANDARD TABLE OF ty_surface_row WITH DEFAULT KEY.
     TYPES ty_surface_columns TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
     TYPES: BEGIN OF ty_surface_node,
-             text     TYPE string,
-             level    TYPE i,
-             node_key TYPE string,
-             expanded TYPE abap_bool,
-             selected TYPE abap_bool,
-             hidden   TYPE abap_bool,
+             text       TYPE string,
+             level      TYPE i,
+             node_key   TYPE string,
+             expanded   TYPE abap_bool,
+             selected   TYPE abap_bool,
+             hidden     TYPE abap_bool,
+             icon       TYPE string,
+             item_class TYPE string,
+             checked    TYPE abap_bool,
+             editable   TYPE abap_bool,
            END OF ty_surface_node.
     TYPES ty_surface_nodes TYPE STANDARD TABLE OF ty_surface_node WITH DEFAULT KEY.
 
     TYPES: BEGIN OF ty_surface,
-             kind          TYPE string,
-             aria_label    TYPE string,
-             title         TYPE string,
-             text          TYPE string,
-             criteria      TYPE string,
-             link_label    TYPE string,
-             link_href     TYPE string,
-             input_label   TYPE string,
-             input_name    TYPE string,
-             input_type    TYPE string,
-             input_value   TYPE string,
-             table_caption TYPE string,
-             columns       TYPE ty_surface_columns,
-             rows          TYPE ty_surface_rows,
-             nodes         TYPE ty_surface_nodes,
-             token_label   TYPE string,
-             token_value   TYPE string,
-             data_value    TYPE string,
-             control_id    TYPE string,
-             payload       TYPE string,
-             html_content  TYPE string,
-             actions       TYPE ty_surface_actions,
+             kind           TYPE string,
+             aria_label     TYPE string,
+             title          TYPE string,
+             text           TYPE string,
+             criteria       TYPE string,
+             link_label     TYPE string,
+             link_href      TYPE string,
+             input_label    TYPE string,
+             input_name     TYPE string,
+             input_type     TYPE string,
+             input_value    TYPE string,
+             table_caption  TYPE string,
+             columns        TYPE ty_surface_columns,
+             rows           TYPE ty_surface_rows,
+             nodes          TYPE ty_surface_nodes,
+             token_label    TYPE string,
+             token_value    TYPE string,
+             data_value     TYPE string,
+             control_id     TYPE string,
+             payload        TYPE string,
+             html_content   TYPE string,
+             download_href  TYPE string,
+             download_label TYPE string,
+             actions        TYPE ty_surface_actions,
            END OF ty_surface.
     TYPES ty_surfaces TYPE STANDARD TABLE OF ty_surface WITH DEFAULT KEY.
 
@@ -198,20 +214,20 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
 
   METHOD render_rows.
     LOOP AT it_rows INTO DATA(ls_row).
-      result = result && '<tr>'.
+      result = result && |<tr data-row-color="{ escape( ls_row-row_color ) }" data-row-style="{ escape( ls_row-row_style ) }">|.
       IF ls_row-row_header = abap_true.
-        result = result && |<th scope="row">{ escape( ls_row-cell1 ) }</th>|.
+        result = result && |<th scope="row" data-cell-color="{ escape( ls_row-cell1_color ) }" data-cell-style="{ escape( ls_row-cell1_style ) }">{ escape( ls_row-cell1 ) }</th>|.
       ELSE.
-        result = result && |<td>{ escape( ls_row-cell1 ) }</td>|.
+        result = result && |<td data-cell-color="{ escape( ls_row-cell1_color ) }" data-cell-style="{ escape( ls_row-cell1_style ) }">{ escape( ls_row-cell1 ) }</td>|.
       ENDIF.
       IF ls_row-cell2 IS NOT INITIAL.
-        result = result && |<td>{ escape( ls_row-cell2 ) }</td>|.
+        result = result && |<td data-cell-color="{ escape( ls_row-cell2_color ) }" data-cell-style="{ escape( ls_row-cell2_style ) }">{ escape( ls_row-cell2 ) }</td>|.
       ENDIF.
       IF ls_row-cell3 IS NOT INITIAL.
-        result = result && |<td>{ escape( ls_row-cell3 ) }</td>|.
+        result = result && |<td data-cell-color="{ escape( ls_row-cell3_color ) }" data-cell-style="{ escape( ls_row-cell3_style ) }">{ escape( ls_row-cell3 ) }</td>|.
       ENDIF.
       IF ls_row-cell4 IS NOT INITIAL.
-        result = result && |<td>{ escape( ls_row-cell4 ) }</td>|.
+        result = result && |<td data-cell-color="{ escape( ls_row-cell4_color ) }" data-cell-style="{ escape( ls_row-cell4_style ) }">{ escape( ls_row-cell4 ) }</td>|.
       ENDIF.
       result = result && '</tr>'.
     ENDLOOP.
@@ -260,9 +276,24 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
         WHEN ls_node-hidden = abap_true THEN ' hidden' ELSE '' ).
       DATA(lv_tabindex) = COND string(
         WHEN ls_node-hidden = abap_true THEN '' ELSE ' tabindex="0"' ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem"{ lv_level }{ lv_key }{ lv_expanded }{ lv_selected }{ lv_hidden }{ lv_tabindex }>{ escape( ls_node-text ) }</li>|.
+      DATA(lv_item_class) = COND string(
+        WHEN ls_node-item_class IS INITIAL THEN 'text'
+        ELSE ls_node-item_class ).
+      DATA(lv_item_role) = COND string(
+        WHEN lv_item_class = 'checkbox' THEN | role="checkbox" aria-checked="{ COND string( WHEN ls_node-checked = abap_true THEN 'true' ELSE 'false' ) }"|
+        WHEN lv_item_class = 'button' THEN ' role="button"'
+        WHEN lv_item_class = 'link' THEN ' role="link"'
+        WHEN ls_node-editable = abap_true THEN ' role="textbox" aria-readonly="true"'
+        ELSE '' ).
+      DATA(lv_icon) = COND string(
+        WHEN ls_node-icon IS INITIAL THEN ''
+        ELSE |<span class="gg-tree-icon" aria-hidden="true">{ escape( ls_node-icon ) }</span> | ).
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem"{ lv_level }{ lv_key }{ lv_expanded }{ lv_selected }{ lv_hidden }{ lv_tabindex }>{ lv_icon }<span class="gg-tree-item gg-tree-item-{ escape( lv_item_class ) }" data-item-class="{ escape( lv_item_class ) }"{ lv_item_role }>{ escape( ls_node-text ) }</span></li>|.
     ENDLOOP.
     result = result && |</ul>{ render_actions( is_surface-actions ) }|.
+    IF is_surface-text IS NOT INITIAL.
+      result = result && |<p>{ escape( is_surface-text ) }</p>|.
+    ENDIF.
     IF is_surface-token_value IS NOT INITIAL.
       result = result && |<p>{ escape( is_surface-token_label ) }: <code>{ escape( is_surface-token_value ) }</code></p>|.
     ENDIF.
@@ -270,13 +301,25 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_chart.
-    result = |<section class="gg-chart-fallback" aria-label="{ escape( is_surface-aria_label ) }"><figure><figcaption>{ escape( is_surface-title ) }</figcaption><table><thead><tr>|.
+    result = |<section class="gg-chart-fallback" aria-label="{ escape( is_surface-aria_label ) }" data-native-capability="unavailable"><figure><figcaption>{ escape( is_surface-title ) }</figcaption><table><thead><tr>|.
     LOOP AT is_surface-columns INTO DATA(lv_column).
       result = result && |<th scope="col">{ escape( lv_column ) }</th>|.
     ENDLOOP.
     result = result && |</tr></thead><tbody>{ render_rows( is_surface-rows ) }</tbody></table>|.
+    IF is_surface-input_name IS NOT INITIAL.
+      DATA(lv_chart_input_type) = COND string(
+        WHEN is_surface-input_type IS INITIAL THEN 'text'
+        ELSE is_surface-input_type ).
+      result = result && |<div class="gg-chart-controls"><label>{ escape( is_surface-input_label ) } <input type="{ escape( lv_chart_input_type ) }" name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }" aria-label="{ escape( is_surface-input_label ) }"></label>{ render_actions( is_surface-actions ) }</div>|.
+    ENDIF.
+    IF is_surface-text IS NOT INITIAL.
+      result = result && |<p>{ escape( is_surface-text ) }</p>|.
+    ENDIF.
     IF is_surface-payload IS NOT INITIAL.
       result = result && |<p data-chart-payload="{ escape( is_surface-payload ) }">Chart payload retained server-side.</p>|.
+    ENDIF.
+    IF is_surface-input_name IS INITIAL.
+      result = result && render_actions( is_surface-actions ).
     ENDIF.
     result = result && '</figure></section>'.
   ENDMETHOD.
@@ -300,9 +343,14 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
             ELSE is_surface-input_type ).
           result = result && |<label>{ escape( is_surface-input_label ) }<input type="{ escape( lv_document_input_type ) }" aria-label="{ escape( is_surface-input_label ) }" name="{ escape( is_surface-input_name ) }" value="{ escape( is_surface-input_value ) }"></label>|.
         ENDIF.
+        IF is_surface-download_href IS NOT INITIAL
+            AND safe_url( is_surface-download_href ) = abap_true.
+          result = result && |<a download href="{ escape( is_surface-download_href ) }">{ escape( COND string( WHEN is_surface-download_label IS INITIAL THEN 'Download fixture' ELSE is_surface-download_label ) ) }</a>|.
+        ENDIF.
         IF is_surface-rows IS NOT INITIAL.
           DATA(ls_document_table) = is_surface.
           ls_document_table-kind = surface_table.
+          CLEAR ls_document_table-actions.
           result = result && render_table( ls_document_table ).
         ENDIF.
         result = result && render_actions( is_surface-actions ) && '</article>'.
@@ -319,7 +367,7 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
       WHEN surface_salv_layout.
         result = render_salv_layout( is_surface ).
       WHEN surface_cockpit.
-        result = |<section class="gg-cockpit" aria-label="{ escape( is_surface-aria_label ) }"><header><h2>{ escape( is_surface-title ) }</h2><p data-filter-carrier="{ escape( is_surface-data_value ) }">Carrier: { escape( is_surface-data_value ) }</p><p>As-of: { escape( is_surface-payload ) }</p></header><p>{ escape( is_surface-text ) }</p>{ render_actions( is_surface-actions ) }</section>|.
+        result = |<section class="gg-cockpit" aria-label="{ escape( is_surface-aria_label ) }"><header><h2>{ escape( is_surface-title ) }</h2><p data-filter-carrier="{ escape( is_surface-data_value ) }">Carrier: { escape( is_surface-data_value ) }</p><p>As-of: { escape( is_surface-payload ) }</p></header><p>{ escape( is_surface-text ) }</p><footer class="gg-cockpit-actions" aria-label="Cockpit bottom actions">{ render_actions( is_surface-actions ) }</footer></section>|.
       WHEN surface_popup.
         result = render_popup( is_surface ).
       WHEN OTHERS.

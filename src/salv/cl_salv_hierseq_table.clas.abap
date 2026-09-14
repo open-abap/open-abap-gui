@@ -83,60 +83,274 @@ CLASS cl_salv_hierseq_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base
 
     METHODS refresh.
 
+  PRIVATE SECTION.
+    DATA mr_table_level1 TYPE REF TO data.
+    DATA mr_table_level2 TYPE REF TO data.
+    DATA mt_binding TYPE salv_t_hierseq_binding.
+    DATA mo_level1 TYPE REF TO cl_salv_hierseq_level.
+    DATA mo_level2 TYPE REF TO cl_salv_hierseq_level.
+    DATA mo_functions TYPE REF TO cl_salv_functions_list.
+    DATA mo_layout TYPE REF TO cl_salv_layout.
+    DATA mo_events TYPE REF TO cl_salv_events_hierseq.
+    DATA mo_display_settings TYPE REF TO cl_salv_display_settings.
+
+    METHODS render_level
+      IMPORTING
+        ir_table     TYPE REF TO data
+        iv_level     TYPE i
+      RETURNING
+        VALUE(value) TYPE string.
+
+    METHODS is_total_component
+      IMPORTING
+        iv_name         TYPE string
+      RETURNING
+        VALUE(rv_total) TYPE abap_bool.
+
+    METHODS render_total_row
+      IMPORTING
+        ir_table        TYPE REF TO data
+        io_struct_descr TYPE REF TO cl_abap_structdescr
+      RETURNING
+        VALUE(value)    TYPE string.
+
 ENDCLASS.
 
 CLASS cl_salv_hierseq_table IMPLEMENTATION.
 
   METHOD factory.
-    RETURN. " todo, implement method
+    GET REFERENCE OF t_table_level1 INTO DATA(lr_level1).
+    GET REFERENCE OF t_table_level2 INTO DATA(lr_level2).
+    r_hierseq = NEW cl_salv_hierseq_table( ).
+    r_hierseq->mr_table_level1 = lr_level1.
+    r_hierseq->mr_table_level2 = lr_level2.
+    r_hierseq->mt_binding = t_binding_level1_level2.
+    r_hierseq->mo_level1 = NEW cl_salv_hierseq_level( binding = t_binding_level1_level2 ).
+    r_hierseq->mo_level2 = NEW cl_salv_hierseq_level( binding = t_binding_level1_level2 ).
+    r_hierseq->mo_functions = NEW cl_salv_functions_list( ).
+    r_hierseq->mo_layout = NEW cl_salv_layout( ).
+    r_hierseq->mo_events = NEW cl_salv_events_hierseq( ).
+    r_hierseq->mo_display_settings = NEW cl_salv_display_settings( ).
   ENDMETHOD.
 
   METHOD get_columns.
-    RETURN. " todo, implement method
+    CASE level.
+      WHEN 1.
+        value = mo_level1->get_columns( ).
+      WHEN 2.
+        value = mo_level2->get_columns( ).
+      WHEN OTHERS.
+        RAISE EXCEPTION TYPE cx_salv_not_found.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD get_level.
-    RETURN. " todo, implement method
+    CASE level.
+      WHEN 1.
+        value = mo_level1.
+      WHEN 2.
+        value = mo_level2.
+      WHEN OTHERS.
+        RAISE EXCEPTION TYPE cx_salv_not_found.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD get_selections.
-    RETURN. " todo, implement method
+    CASE level.
+      WHEN 1.
+        value = mo_level1->get_selections( ).
+      WHEN 2.
+        value = mo_level2->get_selections( ).
+      WHEN OTHERS.
+        RAISE EXCEPTION TYPE cx_salv_not_found.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD get_functions.
-    RETURN. " todo, implement method
+    value = mo_functions.
   ENDMETHOD.
 
   METHOD get_layout.
-    RETURN. " todo, implement method
+    value = mo_layout.
   ENDMETHOD.
 
   METHOD get_sorts.
-    RETURN. " todo, implement method
+    CASE level.
+      WHEN 1.
+        value = mo_level1->get_sorts( ).
+      WHEN 2.
+        value = mo_level2->get_sorts( ).
+      WHEN OTHERS.
+        RAISE EXCEPTION TYPE cx_salv_not_found.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD get_filters.
-    RETURN. " todo, implement method
+    CASE level.
+      WHEN 1.
+        value = mo_level1->get_filters( ).
+      WHEN 2.
+        value = mo_level2->get_filters( ).
+      WHEN OTHERS.
+        RAISE EXCEPTION TYPE cx_salv_not_found.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD get_aggregations.
-    RETURN. " todo, implement method
+    CASE level.
+      WHEN 1.
+        value = mo_level1->get_aggregations( ).
+      WHEN 2.
+        value = mo_level2->get_aggregations( ).
+      WHEN OTHERS.
+        RAISE EXCEPTION TYPE cx_salv_not_found.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD get_event.
-    RETURN. " todo, implement method
+    value = mo_events.
   ENDMETHOD.
 
   METHOD get_display_settings.
-    RETURN. " todo, implement method
+    value = mo_display_settings.
   ENDMETHOD.
 
   METHOD display.
-    RETURN. " todo, implement method
+    DATA lv_level1_html TYPE string.
+    DATA lv_level2_html TYPE string.
+    DATA lv_master_name TYPE string.
+    DATA lv_slave_name TYPE string.
+    READ TABLE mt_binding INTO DATA(ls_binding) INDEX 1.
+    IF sy-subrc = 0.
+      lv_master_name = ls_binding-master.
+      lv_slave_name = ls_binding-slave.
+    ENDIF.
+    lv_level1_html = render_level(
+      ir_table = mr_table_level1
+      iv_level = 1 ).
+    lv_level2_html = render_level(
+      ir_table = mr_table_level2
+      iv_level = 2 ).
+    cl_gui_control=>set_external_html(
+      |<section class="gg-salv-hierseq" aria-label="Hierarchical sequential SALV" data-binding-master="{ cl_gui_control=>escape_html( lv_master_name ) }" data-binding-slave="{ cl_gui_control=>escape_html( lv_slave_name ) }"><div class="gg-salv-hierseq-scroll">{ lv_level1_html }{ lv_level2_html }</div></section>| ).
   ENDMETHOD.
 
   METHOD refresh.
-    RETURN. " todo, implement method
+    display( ).
+  ENDMETHOD.
+
+  METHOD render_level.
+    FIELD-SYMBOLS <table> TYPE ANY TABLE.
+    FIELD-SYMBOLS <row> TYPE any.
+    FIELD-SYMBOLS <component> TYPE any.
+    DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
+    DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
+    DATA lv_key_name TYPE string.
+    DATA lv_key_value TYPE string.
+    IF ir_table IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ASSIGN ir_table->* TO <table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( ir_table->* ).
+    lo_line_descr = lo_table_descr->get_table_line_type( ).
+    READ TABLE mt_binding INTO DATA(ls_binding) INDEX 1.
+    IF sy-subrc = 0.
+      lv_key_name = COND string( WHEN iv_level = 1 THEN ls_binding-master ELSE ls_binding-slave ).
+    ENDIF.
+    value = |<section class="gg-salv-hierseq-level" aria-label="SALV hierarchy level { iv_level }" data-level="{ iv_level }"><h3>{ COND string( WHEN iv_level = 1 THEN 'Header level' ELSE 'Item level' ) }</h3><table><caption>{ COND string( WHEN iv_level = 1 THEN 'Header records' ELSE 'Item records grouped by binding' ) }</caption><thead><tr>|.
+    IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
+      DATA(lo_struct_descr) = CAST cl_abap_structdescr( lo_line_descr ).
+      LOOP AT lo_struct_descr->get_components( ) INTO DATA(ls_component).
+        value = value && |<th scope="col">{ cl_gui_control=>escape_html( CONV string( ls_component-name ) ) }</th>|.
+      ENDLOOP.
+      value = value && '</tr></thead><tbody>'.
+      LOOP AT <table> ASSIGNING <row>.
+        CLEAR lv_key_value.
+        IF lv_key_name IS NOT INITIAL.
+          ASSIGN COMPONENT lv_key_name OF STRUCTURE <row> TO <component>.
+          IF sy-subrc = 0.
+            lv_key_value = CONV string( <component> ).
+            CONDENSE lv_key_value.
+          ENDIF.
+        ENDIF.
+        value = value && |<tr data-level="{ iv_level }"{ COND string( WHEN iv_level = 1 THEN | data-group-key="{ cl_gui_control=>escape_html( lv_key_value ) }"| ELSE | data-parent-key="{ cl_gui_control=>escape_html( lv_key_value ) }"| ) }>|.
+        LOOP AT lo_struct_descr->get_components( ) INTO ls_component.
+          ASSIGN COMPONENT ls_component-name OF STRUCTURE <row> TO <component>.
+          IF sy-subrc = 0.
+            value = value && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_component-name ) ) }">{ cl_gui_control=>escape_html( CONV string( <component> ) ) }</td>|.
+          ENDIF.
+        ENDLOOP.
+        value = value && '</tr>'.
+      ENDLOOP.
+      value = value && render_total_row(
+        ir_table        = ir_table
+        io_struct_descr = lo_struct_descr ).
+    ELSE.
+      value = value && '<th scope="col">VALUE</th></tr></thead><tbody>'.
+      LOOP AT <table> ASSIGNING <row>.
+        value = value && |<tr><td>{ cl_gui_control=>escape_html( CONV string( <row> ) ) }</td></tr>|.
+      ENDLOOP.
+    ENDIF.
+    value = value && '</tbody></table></section>'.
+  ENDMETHOD.
+
+  METHOD is_total_component.
+    DATA lv_name TYPE string.
+    lv_name = iv_name.
+    TRANSLATE lv_name TO UPPER CASE.
+    rv_total = xsdbool( lv_name CS 'PRICE'
+                        OR lv_name CS 'AMOUNT'
+                        OR lv_name CS 'TOTAL'
+                        OR lv_name CS 'QUANTITY'
+                        OR lv_name CS 'QTY'
+                        OR lv_name CS 'SEATS' ).
+  ENDMETHOD.
+
+  METHOD render_total_row.
+    FIELD-SYMBOLS <table> TYPE ANY TABLE.
+    FIELD-SYMBOLS <row> TYPE any.
+    FIELD-SYMBOLS <component> TYPE any.
+    DATA lv_has_total TYPE abap_bool.
+    DATA lv_total TYPE decfloat34.
+    DATA lv_total_text TYPE string.
+
+    ASSIGN ir_table->* TO <table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    LOOP AT io_struct_descr->get_components( ) INTO DATA(ls_component).
+      IF is_total_component( CONV string( ls_component-name ) ) = abap_true.
+        lv_has_total = abap_true.
+        EXIT.
+      ENDIF.
+    ENDLOOP.
+    IF lv_has_total = abap_false.
+      RETURN.
+    ENDIF.
+    value = '<tfoot><tr class="gg-salv-hierseq-total"><th scope="row">Total</th>'.
+    LOOP AT io_struct_descr->get_components( ) INTO ls_component.
+      CLEAR: lv_total, lv_total_text.
+      IF is_total_component( CONV string( ls_component-name ) ) = abap_true.
+        LOOP AT <table> ASSIGNING <row>.
+          ASSIGN COMPONENT ls_component-name OF STRUCTURE <row> TO <component>.
+          IF sy-subrc = 0.
+            TRY.
+                lv_total = lv_total + CONV decfloat34( <component> ).
+              CATCH cx_root.
+                CONTINUE.
+            ENDTRY.
+          ENDIF.
+        ENDLOOP.
+        lv_total_text = |{ lv_total }|.
+      ELSE.
+        lv_total_text = '-'.
+      ENDIF.
+      value = value && |<td data-total="true" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_component-name ) ) }">{ cl_gui_control=>escape_html( lv_total_text ) }</td>|.
+    ENDLOOP.
+    value = value && '</tr></tfoot>'.
   ENDMETHOD.
 
 ENDCLASS.

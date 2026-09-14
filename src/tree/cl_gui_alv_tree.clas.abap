@@ -365,7 +365,19 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD add_node.
     DATA(lv_key) = |TREE-{ lines( mt_html_nodes ) + 1 }|.
-    IF i_node_text IS NOT INITIAL.
+    IF is_outtab_line IS SUPPLIED.
+      IF i_node_text IS NOT INITIAL.
+        add_html_node( node_key   = lv_key
+                       parent_key = CONV string( i_relat_node_key )
+                       text       = CONV string( i_node_text )
+                       data_row   = is_outtab_line ).
+      ELSE.
+        add_html_node( node_key   = lv_key
+                       parent_key = CONV string( i_relat_node_key )
+                       text       = lv_key
+                       data_row   = is_outtab_line ).
+      ENDIF.
+    ELSEIF i_node_text IS NOT INITIAL.
       add_html_node( node_key   = lv_key
                      parent_key = CONV string( i_relat_node_key )
                      text       = CONV string( i_node_text ) ).

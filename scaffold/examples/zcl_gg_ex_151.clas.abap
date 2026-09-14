@@ -41,6 +41,15 @@ CLASS zcl_gg_ex_151 DEFINITION PUBLIC FINAL CREATE PUBLIC.
         stage      TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'STAGE',
         refresh    TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'REFRESH',
         go_back    TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'GO_BACK',
+        html_container TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'HTML_CONTAINER',
+        html_dialog    TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'HTML_DIALOG',
+        html_full      TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'HTML_FULL',
+        xml_string     TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'XML_STRING',
+        xml_xstring    TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'XML_XSTRING',
+        malformed      TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'MALFORMED',
+        empty          TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'EMPTY',
+        browser_back   TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'BACK',
+        print          TYPE zif_gg_session_types_v1=>ty_ucomm VALUE 'PRINT',
       END OF c_action.
 
     CONSTANTS c_page_home TYPE string VALUE 'HOME'.
@@ -73,6 +82,8 @@ CLASS zcl_gg_ex_151 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA ms_cur_page TYPE ty_page.
     DATA mt_stack TYPE ty_page_stack.
     DATA mv_staged TYPE abap_bool.
+    DATA mv_browser_action TYPE zif_gg_session_types_v1=>ty_ucomm.
+    DATA mv_print_requested TYPE abap_bool.
 * abapGit keeps its GUI services on the instance because sapevent arrives
 * without them. The host passes the execution session into every event, so the
 * current one is kept here for the sapevent path to use.
@@ -121,6 +132,8 @@ CLASS zcl_gg_ex_151 DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_title       TYPE string
         iv_body        TYPE string
+        iv_status      TYPE string OPTIONAL
+        iv_instruction TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -234,12 +247,27 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
     lv_action = iv_action.
     rs_handled-state = c_event_state-not_handled.
     CASE lv_action.
+      WHEN c_action-print.
+        mv_print_requested = abap_true.
+        rs_handled-state = c_event_state-re_render.
+      WHEN c_action-html_container OR c_action-html_dialog OR c_action-html_full
+          OR c_action-xml_string OR c_action-xml_xstring OR c_action-malformed
+          OR c_action-empty.
+        mv_browser_action = lv_action.
+        mv_print_requested = abap_false.
+        rs_handled-state = c_event_state-re_render.
+      WHEN c_action-browser_back.
+        CLEAR mv_browser_action.
+        mv_print_requested = abap_false.
+        rs_handled-state = c_event_state-re_render.
       WHEN c_action-go_back.
         rs_handled-state = c_event_state-go_back.
       WHEN c_action-stage.
         mv_staged = abap_true.
+        mv_print_requested = abap_false.
         rs_handled-state = c_event_state-re_render.
       WHEN c_action-refresh.
+        mv_print_requested = abap_false.
         rs_handled-state = c_event_state-re_render.
       WHEN OTHERS.
         lt_repositories = repositories( ).
@@ -302,7 +330,7 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
     IF ms_cur_page-name = c_page_repo.
       ls_status = VALUE #(
         status       = 'REPOSITORY'
-        active_ucomm = VALUE #( ( c_action-stage ) ( c_action-refresh ) ( c_action-go_back ) )
+        active_ucomm = VALUE #( ( c_action-stage ) ( c_action-refresh ) ( c_action-go_back ) ( c_action-print ) )
         icon_bar     = VALUE #(
           ( ucomm = c_action-stage label = 'Stage changes' icon = 'save' )
           ( ucomm = c_action-refresh label = 'Refresh page' icon = 'refresh' )
@@ -312,7 +340,11 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
             separator = abap_true ) ) ).
     ELSE.
       ls_status = VALUE #( status       = 'OVERVIEW'
-                           active_ucomm = VALUE #( ( c_action-refresh ) )
+                           active_ucomm = VALUE #( ( c_action-refresh ) ( c_action-print )
+                                                   ( c_action-html_container ) ( c_action-html_dialog )
+                                                   ( c_action-html_full ) ( c_action-xml_string )
+                                                   ( c_action-xml_xstring ) ( c_action-malformed )
+                                                   ( c_action-empty ) ( c_action-browser_back ) )
                            icon_bar     = VALUE #( ( ucomm = c_action-refresh
                                                      label = 'Refresh page'
                                                      icon  = 'refresh' ) ) ).
@@ -325,6 +357,10 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
+    IF mv_print_requested = abap_true.
+      ls_status-status = 'PRINT REQUESTED'.
+    ENDIF.
+
     mo_session->get_list( )->set_status( ls_status ).
   ENDMETHOD.
 
@@ -332,6 +368,19 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
     DATA lt_repositories TYPE ty_repositories.
     DATA ls_repository TYPE ty_repository.
     DATA lv_rows TYPE string.
+    DATA lv_action_panel TYPE string.
+    DATA lv_browser_result TYPE string.
+    DATA lv_browser_status TYPE string.
+    DATA lv_instruction TYPE string.
+    DATA lv_html_container_link TYPE string.
+    DATA lv_html_dialog_link TYPE string.
+    DATA lv_html_full_link TYPE string.
+    DATA lv_xml_string_link TYPE string.
+    DATA lv_xml_xstring_link TYPE string.
+    DATA lv_malformed_link TYPE string.
+    DATA lv_empty_link TYPE string.
+    DATA lv_browser_back_link TYPE string.
+    DATA lv_print_link TYPE string.
 
     lt_repositories = repositories( ).
     LOOP AT lt_repositories INTO ls_repository.
@@ -343,14 +392,70 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
         |<td>{ ls_repository-objects }</td></tr>|.
     ENDLOOP.
 
+    lv_browser_status = 'Overview ready'.
+    lv_instruction = 'Choose a helper action; the selected source and return state remain report-owned.'.
+    CASE mv_browser_action.
+      WHEN c_action-html_container.
+        lv_browser_status = 'HTML displayed in supplied container'.
+        lv_browser_result = '<article><h3>HTML container</h3><p>HTML supplied directly as an ABAP string in the named container.</p></article>'.
+      WHEN c_action-html_dialog.
+        lv_browser_status = 'HTML displayed in dialog'.
+        lv_browser_result = '<section role="dialog" aria-modal="true" aria-label="HTML dialog"><h3>HTML dialog</h3><p>The same document is presented in a bounded dialog surface.</p></section>'.
+      WHEN c_action-html_full.
+        lv_browser_status = 'HTML displayed full screen'.
+        lv_browser_result = '<article><h3>HTML full screen</h3><p>The document uses the default screen as its full-width host.</p></article>'.
+      WHEN c_action-xml_string.
+        lv_browser_status = 'XML string displayed'.
+        lv_browser_result = |<pre>{ cl_gui_control=>escape_html( '<?xml version="1.0"?><catalog><sample id="1">String XML</sample></catalog>' ) }</pre>|.
+      WHEN c_action-xml_xstring.
+        lv_browser_status = 'XML xstring displayed'.
+        lv_browser_result = |<pre>{ cl_gui_control=>escape_html( '<?xml version="1.0" encoding="utf-8"?><catalog><sample id="2">XSTRING XML</sample></catalog>' ) }</pre>|.
+      WHEN c_action-malformed.
+        lv_browser_status = 'Malformed XML rejected safely'.
+        lv_browser_result = '<p role="alert">Malformed XML was rejected without terminating the caller.</p>'.
+      WHEN c_action-empty.
+        lv_browser_status = 'Empty HTML accepted safely'.
+        lv_browser_result = '<p role="status">Empty HTML was accepted without terminating the caller.</p>'.
+    ENDCASE.
+    IF mv_print_requested = abap_true.
+      lv_browser_status = 'Print requested'.
+      lv_browser_result = '<p role="status">The browser print toolbutton was requested; no desktop print success is claimed.</p>'.
+    ENDIF.
+    lv_html_container_link = sapevent( iv_action = c_action-html_container
+                                       iv_label  = 'HTML container' ).
+    lv_html_dialog_link = sapevent( iv_action = c_action-html_dialog
+                                    iv_label  = 'HTML dialog' ).
+    lv_html_full_link = sapevent( iv_action = c_action-html_full
+                                  iv_label  = 'HTML full screen' ).
+    lv_xml_string_link = sapevent( iv_action = c_action-xml_string
+                                   iv_label  = 'XML string' ).
+    lv_xml_xstring_link = sapevent( iv_action = c_action-xml_xstring
+                                    iv_label  = 'XML xstring' ).
+    lv_malformed_link = sapevent( iv_action = c_action-malformed
+                                  iv_label  = 'Malformed XML' ).
+    lv_empty_link = sapevent( iv_action = c_action-empty
+                              iv_label  = 'Empty HTML' ).
+    lv_browser_back_link = sapevent( iv_action = c_action-browser_back
+                                     iv_label  = 'Back' ).
+    lv_print_link = sapevent( iv_action = c_action-print
+                              iv_label  = 'Print' ).
+    lv_action_panel = |<section aria-label="ABAP browser helper actions"><h2>ABAP browser helpers</h2><p>HTML and XML inputs remain visible with explicit capability and error states.</p><nav aria-label="Browser actions">| &&
+      |{ lv_html_container_link } | && |{ lv_html_dialog_link } | && |{ lv_html_full_link } | &&
+      |{ lv_xml_string_link } | && |{ lv_xml_xstring_link } | && |{ lv_malformed_link } | &&
+      |{ lv_empty_link } | && |{ lv_browser_back_link }</nav>{ lv_browser_result }</section>|.
+
     rv_html = page_document(
-      iv_title = 'Repositories'
-      iv_body  = |<table><caption>Repositories of this example</caption>| &&
+      iv_title       = 'Repositories'
+      iv_status      = lv_browser_status
+      iv_instruction = lv_instruction
+      iv_body        = |<table><caption>Repositories of this example</caption>| &&
                  |<thead><tr><th scope="col">Package</th>| &&
                  |<th scope="col">Branch</th><th scope="col">Objects</th></tr></thead>| &&
                  |<tbody>{ lv_rows }</tbody></table>| &&
+                 lv_action_panel &&
                  |<p>{ sapevent( iv_action = c_action-refresh
-                                 iv_label  = 'Refresh' ) }</p>| ).
+                                 iv_label  = 'Refresh' ) } | &&
+                 |<span class="gg-toolbutton">{ lv_print_link }</span></p>| ).
   ENDMETHOD.
 
   METHOD render_repository.
@@ -371,8 +476,10 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
     lv_name = cl_gui_control=>escape_html( ls_repository-name ).
     lv_state = COND string( WHEN mv_staged = abap_true THEN 'staged' ELSE 'not staged' ).
     rv_html = page_document(
-      iv_title = ls_repository-name
-      iv_body  = |<dl><dt>Branch</dt><dd>{ cl_gui_control=>escape_html( ls_repository-branch ) }</dd>| &&
+      iv_title       = ls_repository-name
+      iv_status      = COND string( WHEN mv_print_requested = abap_true THEN 'Print requested' ELSE 'Repository ready' )
+      iv_instruction = 'Stage source changes, refresh the document, or use Back to return to repository history.'
+      iv_body        = |<dl><dt>Branch</dt><dd>{ cl_gui_control=>escape_html( ls_repository-branch ) }</dd>| &&
                  |<dt>Objects</dt><dd>{ ls_repository-objects }</dd>| &&
                  |<dt>Staging</dt><dd>{ lv_state }</dd></dl>| &&
                  |<table><caption>Changed objects</caption>| &&
@@ -386,7 +493,9 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
                  |{ sapevent( iv_action = c_action-refresh
                               iv_label  = 'Refresh' ) } | &&
                  |{ sapevent( iv_action = c_action-go_back
-                              iv_label  = 'Back to repositories' ) }</p>| ).
+                              iv_label  = 'Back to repositories' ) } | &&
+                 |{ sapevent( iv_action = c_action-print
+                              iv_label  = 'Print' ) }</p>| ).
   ENDMETHOD.
 
   METHOD page_document.
@@ -401,8 +510,9 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
       |main\{padding:12px\}table\{border-collapse:collapse;margin:0 0 12px\}| &&
       |caption\{padding:0 0 4px;text-align:left;font-weight:700\}| &&
       |th,td\{padding:4px 10px;text-align:left;border:1px solid #c1d2e0\}| &&
-      |dt\{font-weight:700\}dd\{margin:0 0 6px\}| &&
+      |dt\{font-weight:700\}dd\{margin:0 0 6px\}.gg-browser-fields\{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:0 0 12px\}.gg-browser-fields dt\{font-weight:700\}.gg-browser-fields dd\{margin:0\}.gg-action\{margin-right:8px\}| &&
       |</style></head><body><header>{ cl_gui_control=>escape_html( iv_title ) }</header>| &&
+      |<dl class="gg-browser-fields"><dt>Status</dt><dd role="status">{ cl_gui_control=>escape_html( iv_status ) }</dd><dt>Instruction</dt><dd>{ cl_gui_control=>escape_html( iv_instruction ) }</dd></dl>| &&
       |<main>{ iv_body }</main></body></html>|.
   ENDMETHOD.
 

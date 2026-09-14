@@ -107,11 +107,23 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_error
         cntb_error_fcode.
 
+    METHODS press_button
+      IMPORTING
+        fcode TYPE ui_func.
+
+    METHODS press_dropdown
+      IMPORTING
+        fcode TYPE ui_func
+        posx  TYPE i DEFAULT 0
+        posy  TYPE i DEFAULT 0.
+
   PRIVATE SECTION.
     DATA mt_hidden_buttons TYPE ttb_button.
     DATA mt_context_items TYPE zcl_gg_context_menu_state=>ty_items.
     DATA mv_context_left TYPE i.
     DATA mv_context_top TYPE i.
+
+    METHODS render_context_items.
 ENDCLASS.
 
 CLASS cl_gui_toolbar IMPLEMENTATION.
@@ -170,6 +182,54 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
     cl_gui_control=>set_payload(
       control = me
       payload = |buttons={ lines( m_table_button ) }; context-items={ lines( mt_context_items ) }; context-left={ mv_context_left }; context-top={ mv_context_top }| ).
+    render_context_items( ).
+  ENDMETHOD.
+
+  METHOD press_button.
+    READ TABLE m_table_button INTO DATA(ls_button)
+      WITH KEY function = fcode.
+    IF sy-subrc = 0 AND ls_button-disabled IS INITIAL.
+      RAISE EVENT function_selected EXPORTING fcode = fcode.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD press_dropdown.
+    READ TABLE m_table_button INTO DATA(ls_button)
+      WITH KEY function = fcode.
+    IF sy-subrc = 0 AND ls_button-disabled IS INITIAL
+        AND ( ls_button-butn_type = 3 OR ls_button-butn_type = 4 ).
+      RAISE EVENT dropdown_clicked
+        EXPORTING
+          fcode = fcode
+          posx  = posx
+          posy  = posy.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_context_items.
+    DATA lv_html TYPE string.
+
+    IF mt_context_items IS INITIAL.
+      cl_gui_control=>set_html(
+        control = me
+        html    = `` ).
+      RETURN.
+    ENDIF.
+    lv_html = |<ul class="gg-toolbar-menu" id="{ control_id }-menu" role="menu" aria-label="Toolbar menu">|.
+    LOOP AT mt_context_items INTO DATA(ls_item).
+      IF ls_item-hidden = abap_true.
+        CONTINUE.
+      ENDIF.
+      IF ls_item-separator = abap_true.
+        lv_html = lv_html && '<li role="separator" class="gg-toolbar-menu-separator"></li>'.
+        CONTINUE.
+      ENDIF.
+      lv_html = lv_html && |<li role="none"><button type="submit" role="menuitem" name="gg_action" value="COMMAND:{ cl_gui_control=>escape_html( ls_item-fcode ) }"{ COND string( WHEN ls_item-disabled = abap_true THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ cl_gui_control=>escape_html( ls_item-text ) }</button></li>|.
+    ENDLOOP.
+    lv_html = lv_html && '</ul>'.
+    cl_gui_control=>set_html(
+      control = me
+      html    = lv_html ).
   ENDMETHOD.
 
   METHOD fill_buttons_data_table.
@@ -198,6 +258,7 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
       cl_gui_control=>set_payload(
         control = me
         payload = |buttons={ lines( m_table_button ) }; context-items={ lines( mt_context_items ) }| ).
+      render_context_items( ).
     ENDIF.
   ENDMETHOD.
 
@@ -247,6 +308,7 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
     cl_gui_control=>set_payload(
       control = me
       payload = |static-context={ fcode }; items={ lines( mt_context_items ) }; type={ btntype }| ).
+    render_context_items( ).
   ENDMETHOD.
 
   METHOD free.

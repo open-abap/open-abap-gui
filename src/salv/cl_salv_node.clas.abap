@@ -15,9 +15,7 @@ CLASS cl_salv_node DEFINITION PUBLIC.
       IMPORTING
         columnname   TYPE lvc_fname
       RETURNING
-        VALUE(value) TYPE REF TO cl_salv_item
-      RAISING
-        cx_salv_msg.
+        VALUE(value) TYPE REF TO cl_salv_item.
 
     METHODS get_hierarchy_item
       RETURNING
@@ -37,19 +35,19 @@ CLASS cl_salv_node DEFINITION PUBLIC.
 
     METHODS get_parent
       RETURNING
-        VALUE(value) TYPE REF TO cl_salv_node
-      RAISING
-        cx_salv_msg.
+        VALUE(value) TYPE REF TO cl_salv_node.
 
     METHODS get_children
       RETURNING
-        VALUE(value) TYPE salv_t_nodes
-      RAISING
-        cx_salv_msg.
+        VALUE(value) TYPE salv_t_nodes.
 
     METHODS get_data_row
       RETURNING
         VALUE(value) TYPE REF TO data.
+
+    METHODS get_item_states
+      RETURNING
+        VALUE(value) TYPE salv_t_cell.
 
     METHODS set_row_style
       IMPORTING
@@ -181,6 +179,14 @@ CLASS cl_salv_node IMPLEMENTATION.
     value = mr_data_row.
   ENDMETHOD.
 
+  METHOD get_item_states.
+    LOOP AT mt_items INTO DATA(ls_item).
+      APPEND VALUE #( row        = 0
+                      columnname = ls_item-columnname
+                      value      = ls_item-item->get_text( ) ) TO value.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD set_row_style.
     mv_row_style = value.
   ENDMETHOD.
@@ -205,7 +211,7 @@ CLASS cl_salv_node IMPLEMENTATION.
     mv_expanded = abap_true.
     IF subtree = abap_true.
       LOOP AT mt_children INTO DATA(lo_child).
-        lo_child->expand( subtree = abap_true ).
+        lo_child-node->expand( subtree = abap_true ).
       ENDLOOP.
     ENDIF.
   ENDMETHOD.
@@ -219,7 +225,8 @@ CLASS cl_salv_node IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_child.
-    APPEND value TO mt_children.
+    APPEND VALUE #( node_key = value->get_key( )
+                    node     = value ) TO mt_children.
   ENDMETHOD.
 
   METHOD is_expanded.

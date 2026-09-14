@@ -2,6 +2,11 @@ CLASS ltcl_salv_table_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
   PRIVATE SECTION.
     METHODS renders_structured_rows FOR TESTING.
     METHODS keeps_selection_and_functions FOR TESTING.
+    METHODS applies_filter_and_sort_state FOR TESTING
+      RAISING
+        cx_salv_data_error
+        cx_salv_existing
+        cx_salv_not_found.
 ENDCLASS.
 
 CLASS ltcl_salv_table_support IMPLEMENTATION.
@@ -74,5 +79,44 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lt_functions[ 1 ]-r_function->get_name( )
       exp = 'LOCAL' ).
+  ENDMETHOD.
+
+  METHOD applies_filter_and_sort_state.
+    TYPES: BEGIN OF ty_row,
+             carrier TYPE c LENGTH 3,
+             seats   TYPE i,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    lt_rows = VALUE #( ( carrier = 'LH' seats = 180 )
+                       ( carrier = 'UA' seats = 210 ) ).
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->get_filters( )->add_filter(
+      columnname = 'CARRIER'
+      option     = 'EQ'
+      low        = 'LH' ).
+    DATA(lo_sort) = lo_salv->get_sorts( )->add_sort(
+      columnname = 'SEATS'
+      sequence   = 1
+      subtotal   = abap_true ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lines( lo_salv->get_filters( )->get( ) )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lines( lo_salv->get_sorts( )->get( ) )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_true( act = lo_sort->is_subtotal( ) ).
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'UA' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'LH' ) ).
+    lo_salv->get_filters( )->clear( ).
+    lo_salv->get_sorts( )->clear( ).
+    cl_abap_unit_assert=>assert_initial( lo_salv->get_filters( )->get( ) ).
+    cl_abap_unit_assert=>assert_initial( lo_salv->get_sorts( )->get( ) ).
   ENDMETHOD.
 ENDCLASS.

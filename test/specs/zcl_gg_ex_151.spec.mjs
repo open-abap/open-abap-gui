@@ -21,7 +21,7 @@ test("ZCL_GG_EX_151 — carries the whole UI in one full-screen HTML viewer", as
   // The docking container is the surface, so it holds the viewer and nothing else.
   const shell = page.locator('[data-control-kind="DOCKING_CONTAINER"]');
   await expect(shell).toHaveCount(1);
-  await expect(shell).toBeEmpty();
+  await expect(shell).toContainText("extension=9999");
 });
 
 test("ZCL_GG_EX_151 — renders the page document inside the sandbox", async ({page, host}) => {
@@ -30,6 +30,38 @@ test("ZCL_GG_EX_151 — renders the page document inside the sandbox", async ({p
   await expect(document.locator("header")).toHaveText("Repositories");
   await expect(document.locator("tbody tr")).toHaveCount(3);
   await expect(document.locator("tbody tr").nth(1)).toContainText("release");
+  await expect(document.getByRole("button", {name: "HTML container"})).toBeVisible();
+  await expect(document.getByRole("button", {name: "XML xstring"})).toBeVisible();
+});
+
+test("ZCL_GG_EX_151 - exposes the eight browser helper actions and print state", async ({page, host}) => {
+  await openExample(page, host, 151);
+  const document = page.frameLocator('[title="HTML viewer"]');
+  await document.getByRole("button", {name: "HTML dialog"}).click();
+  await page.waitForLoadState("load");
+  await expect(document.locator('[role="dialog"]')).toContainText("HTML dialog");
+
+  await document.getByRole("button", {name: "XML string"}).click();
+  await page.waitForLoadState("load");
+  await expect(document.locator('[role="status"]').first()).toHaveText("XML string displayed");
+  await expect(document.locator("pre")).toContainText("String XML");
+
+  await document.getByRole("button", {name: "Malformed XML"}).click();
+  await page.waitForLoadState("load");
+  await expect(document.locator('[role="alert"]')).toContainText("rejected");
+
+  await document.getByRole("button", {name: "Empty HTML"}).click();
+  await page.waitForLoadState("load");
+  await expect(document.locator('[role="status"]').first()).toHaveText("Empty HTML accepted safely");
+
+  await document.getByRole("button", {name: "Print"}).click();
+  await page.waitForLoadState("load");
+  await expect(page.locator(".gg-list-status")).toHaveText("PRINT REQUESTED");
+  await expect(document.locator('[role="status"]').first()).toHaveText("Print requested");
+
+  await document.getByRole("button", {name: "Back"}).click();
+  await page.waitForLoadState("load");
+  await expect(document.locator('[role="status"]').first()).toHaveText("Overview ready");
 });
 
 test("ZCL_GG_EX_151 — a sapevent anchor inside the control reaches the server", async ({page, host}) => {
@@ -50,7 +82,7 @@ test("ZCL_GG_EX_151 — a sapevent anchor inside the control reaches the server"
   // Staging from inside the document too, then back out of the page stack.
   await document.getByRole("button", {name: "Stage changes"}).click();
   await page.waitForLoadState("load");
-  await expect(document.locator("dd").nth(2)).toHaveText("staged");
+  await expect(document.locator("main dl dd").nth(2)).toHaveText("staged");
 
   await document.getByRole("button", {name: "Back to repositories"}).click();
   await page.waitForLoadState("load");
@@ -94,7 +126,7 @@ test("ZCL_GG_EX_151 — opens a repository page from the declared icon bar", asy
 
   const document = page.frameLocator('[title="HTML viewer"]');
   await expect(document.locator("header")).toHaveText("$ZDEMO_BETA");
-  await expect(document.locator("dd").nth(2)).toHaveText("not staged");
+  await expect(document.locator("main dl dd").nth(2)).toHaveText("not staged");
 
   // The overview actions are no longer declared, so they are gone from the bar.
   await expect(toolbar.getByRole("button", {name: "Open $ZDEMO_BETA"})).toHaveCount(0);
@@ -110,7 +142,7 @@ test("ZCL_GG_EX_151 — stages, re-renders, and steps back to the overview", asy
   await page.waitForLoadState("load");
 
   const document = page.frameLocator('[title="HTML viewer"]');
-  await expect(document.locator("dd").nth(2)).toHaveText("staged");
+  await expect(document.locator("main dl dd").nth(2)).toHaveText("staged");
 
   await toolbar.getByRole("button", {name: "Back to repositories"}).click();
   await page.waitForLoadState("load");

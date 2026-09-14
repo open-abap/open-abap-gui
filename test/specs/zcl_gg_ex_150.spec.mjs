@@ -12,6 +12,10 @@ test("ZCL_GG_EX_150 — applies selection filters to the analytics cockpit", asy
   await expect(page.locator('[data-control-kind="ALV_GRID"]')).toHaveCount(1);
   await expect(page.locator('[data-control-kind="SIMPLE_TREE"]')).toHaveCount(1);
   await expect(page.locator('[data-control-kind="CHART_ENGINE"]')).toHaveCount(1);
+  await expect(page.locator('[data-control-kind="SPLITTER_CONTAINER"]')).toHaveCount(2);
+  await expect(page.locator('[data-toolbar-scope="control"]')).toHaveCount(2);
+  await expect(page.locator(".gg-control-toolbar")).toHaveCount(1);
+  await expect(page.locator(".gg-cockpit-actions")).toBeVisible();
   await expect(page.locator("textarea")).toHaveValue(/Detail dynpro pane/);
 });
 
@@ -32,6 +36,17 @@ test("ZCL_GG_EX_150 — opens the detail dynpro from the cockpit", async ({page,
   await page.waitForLoadState("load");
 
   await expect(page.locator(".gg-list-line").last()).toContainText("Detail dynpro opened");
+});
+
+test("ZCL_GG_EX_150 — application toolbar and bottom actions stay authorized", async ({page, host}) => {
+  await openExample(page, host, 150);
+  await submit(page);
+  await page.locator('[data-toolbar-scope="control"]').getByRole("button", {name: "Refresh cockpit"}).click();
+  await page.waitForLoadState("load");
+  await expect(page.locator(".gg-list-line").last()).toContainText("Cockpit refreshed");
+  await page.locator(".gg-cockpit-actions").getByRole("button", {name: "Select tree"}).click();
+  await page.waitForLoadState("load");
+  await expect(page.locator(".gg-list-line").last()).toContainText("Tree selection applied");
 });
 
 test("ZCL_GG_EX_150 — escapes hostile filter text at the HTML boundary", async ({page, host}) => {

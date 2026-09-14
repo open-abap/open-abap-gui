@@ -303,43 +303,45 @@ ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
   METHOD get_drive_type.
-    RETURN. " todo, implement method
+    CLEAR drive_type.
   ENDMETHOD.
 
   METHOD get_computer_name.
-    RETURN. " todo, implement method
+    CLEAR computer_name.
   ENDMETHOD.
 
   METHOD get_desktop_directory.
-    RETURN. " todo, implement method
+    CLEAR desktop_directory.
   ENDMETHOD.
 
   METHOD get_upload_download_path.
-    RETURN. " todo, implement method
+    CLEAR upload_path.
+    CLEAR download_path.
   ENDMETHOD.
 
   METHOD directory_get_current.
-    RETURN. " todo, implement method
+    CLEAR current_directory.
   ENDMETHOD.
 
   METHOD file_copy.
-    RETURN. " todo, implement method
+    RETURN.
   ENDMETHOD.
 
   METHOD directory_delete.
-    RETURN. " todo, implement method
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD file_get_size.
-    RETURN. " todo, implement method
+    CLEAR file_size.
   ENDMETHOD.
 
   METHOD registry_get_value.
-    RETURN. " todo, implement method
+    CLEAR reg_value.
   ENDMETHOD.
 
   METHOD get_temp_directory.
-    RETURN. " todo, implement method
+* This is an application namespace, not a claimed operating-system path.
+    temp_dir = '/browser/session-owned'.
   ENDMETHOD.
 
   METHOD directory_exist.
@@ -359,11 +361,11 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_sapgui_directory.
-    RETURN. " todo, implement method
+    CLEAR sapgui_directory.
   ENDMETHOD.
 
   METHOD directory_set_current.
-    RETURN. " todo, implement method
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD clipboard_import.
@@ -429,13 +431,7 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_gui_version.
-* just some dummy values
-
-* release,
-    INSERT '9999' INTO TABLE version_table.
-* sp,
-    INSERT '1' INTO TABLE version_table.
-* patch,
-    INSERT '20' INTO TABLE version_table.
+    CLEAR version_table.
+    rc = action_cancel.
   ENDMETHOD.
 ENDCLASS.

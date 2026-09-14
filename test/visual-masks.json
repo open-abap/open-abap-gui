@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "policy": "Only documented volatile regions may be masked; the report work area, controls, labels, row data, state, focus, and geometry are never maskable.",
+  "regions": []
+}

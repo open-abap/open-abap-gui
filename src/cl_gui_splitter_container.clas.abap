@@ -59,6 +59,19 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
       EXPORTING
         result TYPE i.
 
+    METHODS set_row_minimum
+      IMPORTING
+        id      TYPE i
+        minimum TYPE i
+      EXPORTING
+        result  TYPE i.
+
+    METHODS get_row_minimum
+      IMPORTING
+        id     TYPE i
+      EXPORTING
+        result TYPE i.
+
     METHODS set_column_sash
       IMPORTING
         id     TYPE i
@@ -85,6 +98,19 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
       EXCEPTIONS
         cntl_error
         cntl_system_error.
+
+    METHODS set_column_minimum
+      IMPORTING
+        id      TYPE i
+        minimum TYPE i
+      EXPORTING
+        result  TYPE i.
+
+    METHODS get_column_minimum
+      IMPORTING
+        id     TYPE i
+      EXPORTING
+        result TYPE i.
 
     METHODS set_border
       IMPORTING
@@ -114,6 +140,8 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
     DATA mv_border TYPE abap_bool.
     DATA mt_row_heights TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA mt_column_widths TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_row_minimums TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_column_minimums TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA mt_cells TYPE ty_cells.
 ENDCLASS.
 
@@ -148,12 +176,16 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_row_height.
+    DATA lv_minimum TYPE i.
+    DATA lv_height TYPE i.
     IF id < 1 OR id > mv_rows.
       result = 0.
       RETURN.
     ENDIF.
-    MODIFY mt_row_heights FROM height INDEX id.
-    result = height.
+    READ TABLE mt_row_minimums INTO lv_minimum INDEX id.
+    lv_height = COND #( WHEN height < lv_minimum THEN lv_minimum ELSE height ).
+    MODIFY mt_row_heights FROM lv_height INDEX id.
+    result = lv_height.
     cl_gui_control=>set_payload( control = me
                                  payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
@@ -177,9 +209,11 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
     mv_border = abap_true.
     DO mv_rows TIMES.
       APPEND 100 TO mt_row_heights.
+      APPEND 24 TO mt_row_minimums.
     ENDDO.
     DO mv_columns TIMES.
       APPEND 100 TO mt_column_widths.
+      APPEND 24 TO mt_column_minimums.
     ENDDO.
     DO mv_rows TIMES.
       lv_row = sy-index.
@@ -218,12 +252,16 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_column_width.
+    DATA lv_minimum TYPE i.
+    DATA lv_width TYPE i.
     IF id < 1 OR id > mv_columns.
       result = 0.
       RETURN.
     ENDIF.
-    MODIFY mt_column_widths FROM width INDEX id.
-    result = width.
+    READ TABLE mt_column_minimums INTO lv_minimum INDEX id.
+    lv_width = COND #( WHEN width < lv_minimum THEN lv_minimum ELSE width ).
+    MODIFY mt_column_widths FROM lv_width INDEX id.
+    result = lv_width.
     cl_gui_control=>set_payload( control = me
                                  payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
   ENDMETHOD.
@@ -232,6 +270,36 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
     mv_border = border.
     cl_gui_control=>set_payload( control = me
                                  payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
+  ENDMETHOD.
+
+  METHOD set_row_minimum.
+    DATA lv_minimum_value TYPE i.
+    IF id < 1 OR id > mv_rows.
+      result = 0.
+      RETURN.
+    ENDIF.
+    lv_minimum_value = COND #( WHEN minimum > 0 THEN minimum ELSE 1 ).
+    MODIFY mt_row_minimums FROM lv_minimum_value INDEX id.
+    result = lv_minimum_value.
+  ENDMETHOD.
+
+  METHOD get_row_minimum.
+    READ TABLE mt_row_minimums INTO result INDEX id.
+  ENDMETHOD.
+
+  METHOD set_column_minimum.
+    DATA lv_minimum_value TYPE i.
+    IF id < 1 OR id > mv_columns.
+      result = 0.
+      RETURN.
+    ENDIF.
+    lv_minimum_value = COND #( WHEN minimum > 0 THEN minimum ELSE 1 ).
+    MODIFY mt_column_minimums FROM lv_minimum_value INDEX id.
+    result = lv_minimum_value.
+  ENDMETHOD.
+
+  METHOD get_column_minimum.
+    READ TABLE mt_column_minimums INTO result INDEX id.
   ENDMETHOD.
 
 ENDCLASS.

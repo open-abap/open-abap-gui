@@ -23,6 +23,11 @@ CLASS ltcl_gui_timer IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lo_timer->get_tick_count( )
       exp = 1 ).
+    lo_timer->reset( ).
+    cl_abap_unit_assert=>assert_false( act = lo_timer->is_running( ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_timer->get_tick_count( )
+      exp = 0 ).
     cl_gui_control=>clear( ).
   ENDMETHOD.
 ENDCLASS.

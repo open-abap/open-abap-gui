@@ -510,6 +510,9 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
              type_class TYPE string,
              editable   TYPE abap_bool,
              checkbox   TYPE abap_bool,
+             icon       TYPE abap_bool,
+             symbol     TYPE abap_bool,
+             emphasize  TYPE string,
              f4         TYPE abap_bool,
              dropdown   TYPE i,
              total      TYPE abap_bool,
@@ -524,6 +527,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
     TYPES ty_html_rows TYPE STANDARD TABLE OF ty_html_row WITH DEFAULT KEY.
     DATA mt_fieldcatalog TYPE lvc_t_fcat.
     DATA mt_html_rows TYPE ty_html_rows.
+    DATA mt_source_rows TYPE ty_html_rows.
     DATA mt_selected_rows TYPE lvc_t_row.
     DATA mt_selected_cells_id TYPE lvc_t_ceno.
     DATA mt_selected_cells TYPE lvc_t_cell.
@@ -553,6 +557,21 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
     METHODS render_model
       RETURNING
         VALUE(result) TYPE string.
+
+    METHODS apply_criteria.
+
+    METHODS row_matches
+      IMPORTING
+        is_row        TYPE ty_html_row
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
+    METHODS row_before
+      IMPORTING
+        is_left       TYPE ty_html_row
+        is_right      TYPE ty_html_row
+      RETURNING
+        VALUE(result) TYPE abap_bool.
     DATA mt_f4 TYPE lvc_t_f4.
     DATA m_cl_variant TYPE REF TO cl_alv_variant.
     DATA mt_hyperlinks TYPE lvc_t_hype.
@@ -649,6 +668,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD set_sort_criteria.
     mt_sort = it_sort.
+    SORT mt_sort BY spos.
+    apply_criteria( ).
     refresh_table_display( ).
   ENDMETHOD.
 
@@ -658,6 +679,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD set_filter_criteria.
     mt_filter = it_filter.
+    apply_criteria( ).
     refresh_table_display( ).
   ENDMETHOD.
 
@@ -815,6 +837,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   METHOD set_ready_for_input.
     mv_ready_for_input = i_ready_for_input.
     set_enable( COND #( WHEN i_ready_for_input = 0 THEN space ELSE 'X' ) ).
+    refresh_table_display( ).
   ENDMETHOD.
 
   METHOD set_selected_rows.
@@ -837,6 +860,118 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       html    = render_model( ) ).
   ENDMETHOD.
 
+  METHOD row_matches.
+    result = abap_true.
+    LOOP AT mt_filter INTO DATA(ls_filter).
+      READ TABLE is_row-cells INTO DATA(ls_cell)
+        WITH KEY fieldname = ls_filter-fieldname.
+      IF sy-subrc <> 0.
+        result = abap_false.
+        RETURN.
+      ENDIF.
+      DATA(lv_value) = ls_cell-text.
+      DATA(lv_low) = CONV string( ls_filter-low ).
+      DATA(lv_high) = CONV string( ls_filter-high ).
+      SHIFT lv_low RIGHT DELETING TRAILING space.
+      SHIFT lv_low LEFT DELETING LEADING space.
+      SHIFT lv_high RIGHT DELETING TRAILING space.
+      SHIFT lv_high LEFT DELETING LEADING space.
+      DATA(lv_match) = abap_false.
+      CASE to_upper( CONV string( ls_filter-option ) ).
+        WHEN 'EQ'.
+          lv_match = xsdbool( lv_value = lv_low ).
+        WHEN 'NE'.
+          lv_match = xsdbool( lv_value <> lv_low ).
+        WHEN 'BT'.
+          lv_match = xsdbool( lv_value >= lv_low AND lv_value <= lv_high ).
+        WHEN 'NB'.
+          lv_match = xsdbool( lv_value < lv_low OR lv_value > lv_high ).
+        WHEN 'GE'.
+          lv_match = xsdbool( lv_value >= lv_low ).
+        WHEN 'GT'.
+          lv_match = xsdbool( lv_value > lv_low ).
+        WHEN 'LE'.
+          lv_match = xsdbool( lv_value <= lv_low ).
+        WHEN 'LT'.
+          lv_match = xsdbool( lv_value < lv_low ).
+        WHEN 'CP'.
+          lv_match = xsdbool( lv_value CP lv_low ).
+        WHEN 'NP'.
+          lv_match = xsdbool( lv_value NP lv_low ).
+        WHEN OTHERS.
+          lv_match = xsdbool( lv_value = lv_low ).
+      ENDCASE.
+      IF ls_filter-sign = 'E'.
+        lv_match = xsdbool( lv_match = abap_false ).
+      ENDIF.
+      IF lv_match = abap_false.
+        result = abap_false.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD row_before.
+    LOOP AT mt_sort INTO DATA(ls_sort).
+      READ TABLE is_left-cells INTO DATA(ls_left)
+        WITH KEY fieldname = ls_sort-fieldname.
+      READ TABLE is_right-cells INTO DATA(ls_right)
+        WITH KEY fieldname = ls_sort-fieldname.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      IF ls_left-text = ls_right-text.
+        CONTINUE.
+      ENDIF.
+      IF ls_sort-down = 'X'.
+        result = xsdbool( ls_left-text > ls_right-text ).
+      ELSE.
+        result = xsdbool( ls_left-text < ls_right-text ).
+      ENDIF.
+      RETURN.
+    ENDLOOP.
+    result = abap_false.
+  ENDMETHOD.
+
+  METHOD apply_criteria.
+    DATA lv_index TYPE i.
+    DATA lv_count TYPE i.
+    DATA ls_left TYPE ty_html_row.
+    DATA ls_right TYPE ty_html_row.
+
+    IF mt_source_rows IS INITIAL.
+      RETURN.
+    ENDIF.
+    CLEAR: mt_html_rows, mt_filtered_entries.
+    LOOP AT mt_source_rows INTO DATA(ls_source).
+      IF row_matches( ls_source ) = abap_true.
+        APPEND ls_source TO mt_html_rows.
+      ELSE.
+        APPEND ls_source-index TO mt_filtered_entries.
+      ENDIF.
+    ENDLOOP.
+    lv_count = lines( mt_html_rows ).
+    IF lv_count < 2 OR mt_sort IS INITIAL.
+      RETURN.
+    ENDIF.
+    DO lv_count TIMES.
+      LOOP AT mt_html_rows INTO ls_left.
+        lv_index = sy-tabix.
+        IF lv_index >= lv_count.
+          CONTINUE.
+        ENDIF.
+        READ TABLE mt_html_rows INTO ls_right INDEX lv_index + 1.
+        DATA(lv_swap) = row_before(
+          is_left  = ls_right
+          is_right = ls_left ).
+        IF lv_swap = abap_true.
+          MODIFY mt_html_rows FROM ls_right INDEX lv_index.
+          MODIFY mt_html_rows FROM ls_left INDEX lv_index + 1.
+        ENDIF.
+      ENDLOOP.
+    ENDDO.
+  ENDMETHOD.
+
   METHOD set_table_for_first_display.
     FIELD-SYMBOLS <row> TYPE any.
     FIELD-SYMBOLS <component> TYPE any.
@@ -845,10 +980,19 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     DATA lv_has_component TYPE abap_bool.
 
     CLEAR mt_html_rows.
+    CLEAR mt_source_rows.
     CLEAR mt_fieldcatalog.
     IF it_fieldcatalog IS SUPPLIED.
       mt_fieldcatalog = it_fieldcatalog.
     ENDIF.
+    IF it_sort IS SUPPLIED.
+      mt_sort = it_sort.
+      SORT mt_sort BY spos.
+    ENDIF.
+    IF it_filter IS SUPPLIED.
+      mt_filter = it_filter.
+    ENDIF.
+    GET REFERENCE OF it_outtab INTO mt_outtab.
     LOOP AT it_outtab ASSIGNING <row>.
       ls_row = VALUE #( index = sy-tabix ).
       IF mt_fieldcatalog IS INITIAL.
@@ -877,9 +1021,13 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
                                 ELSE `gg-type-text` )
                               editable   = xsdbool( ls_fieldcat-edit = 'X' )
                               checkbox   = xsdbool( ls_fieldcat-checkbox = 'X' )
+                              icon       = xsdbool( ls_fieldcat-icon = 'X' )
+                              symbol     = xsdbool( ls_fieldcat-symbol = 'X' )
+                              emphasize  = CONV string( ls_fieldcat-emphasize )
                               f4         = xsdbool( ls_fieldcat-f4availabl = 'X' )
                               dropdown   = ls_fieldcat-drdn_hndl
                               total      = xsdbool( ls_fieldcat-do_sum = 'X' )
+                              subtotal   = xsdbool( line_exists( mt_sort[ fieldname = ls_fieldcat-fieldname subtot = 'X' ] ) )
                               hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
               lv_has_component = abap_true.
             ENDIF.
@@ -904,15 +1052,21 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
                               ELSE `gg-type-text` )
                             editable   = xsdbool( ls_fieldcat-edit = 'X' )
                             checkbox   = xsdbool( ls_fieldcat-checkbox = 'X' )
+                            icon       = xsdbool( ls_fieldcat-icon = 'X' )
+                            symbol     = xsdbool( ls_fieldcat-symbol = 'X' )
+                            emphasize  = CONV string( ls_fieldcat-emphasize )
                             f4         = xsdbool( ls_fieldcat-f4availabl = 'X' )
                             dropdown   = ls_fieldcat-drdn_hndl
                             total      = xsdbool( ls_fieldcat-do_sum = 'X' )
+                            subtotal   = xsdbool( line_exists( mt_sort[ fieldname = ls_fieldcat-fieldname subtot = 'X' ] ) )
                             hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
           ENDIF.
         ENDIF.
       ENDIF.
       APPEND ls_row TO mt_html_rows.
     ENDLOOP.
+    mt_source_rows = mt_html_rows.
+    apply_criteria( ).
     cl_gui_control=>set_payload(
       control = me
       payload = |ALV rows: { lines( mt_html_rows ) }| ).
@@ -922,7 +1076,12 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_model.
-    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN `<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control"><button type="submit" name="gg_ucomm" value="&REFRESH">Refresh</button><button type="submit" name="gg_ucomm" value="&SORT">Sort</button><button type="submit" name="gg_ucomm" value="&FILTER">Filter</button></div>` ELSE `` ) }<table data-sortable="true"><thead><tr><th scope="col">Select</th>|.
+    DATA lv_total TYPE decfloat34.
+    DATA lv_has_total TYPE abap_bool.
+    DATA lv_total_text TYPE string.
+
+    lv_has_total = xsdbool( line_exists( mt_fieldcatalog[ do_sum = 'X' ] ) ).
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN `<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control"><button type="submit" name="gg_ucomm" value="&REFRESH">Refresh</button><button type="submit" name="gg_ucomm" value="&SORT">Sort</button><button type="submit" name="gg_ucomm" value="&FILTER">Filter</button><button type="submit" name="gg_ucomm" value="&PRINT">Print</button><button type="submit" name="gg_ucomm" value="&XML">XML export</button><button type="submit" name="gg_ucomm" value="&SAVE">Save variant</button><button type="submit" name="gg_ucomm" value="&LOAD">Load variant</button></div>` ELSE `` ) }<table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"><thead><tr><th scope="col">Select</th>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         DATA(lv_heading) = ls_fieldcat-coltext.
@@ -932,7 +1091,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         IF lv_heading IS INITIAL.
           lv_heading = ls_fieldcat-fieldname.
         ENDIF.
-        result = result && |<th class="gg-grid-column { cl_gui_control=>state_class( iv_total = xsdbool( ls_fieldcat-do_sum = 'X' ) ) }" scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-sortable="true">{ cl_gui_control=>escape_html( CONV string( lv_heading ) ) }</th>|.
+        result = result && |<th class="gg-grid-column { cl_gui_control=>state_class( iv_total = xsdbool( ls_fieldcat-do_sum = 'X' ) ) }" scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ cl_gui_control=>escape_html( CONV string( ls_fieldcat-inttype ) ) }" data-sortable="true">{ cl_gui_control=>escape_html( CONV string( lv_heading ) ) }</th>|.
       ENDIF.
     ENDLOOP.
     result = result && |</tr></thead><tbody>|.
@@ -946,7 +1105,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           iv_subtotal = ls_cell-subtotal
           iv_hotspot  = ls_cell-hotspot
           iv_readonly = xsdbool( ls_cell-editable = abap_false ) ).
-        result = result && |<td class="gg-grid-cell { lv_cell_state_class } { ls_cell-type_class }" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">|.
+        result = result && |<td class="gg-grid-cell { lv_cell_state_class } { ls_cell-type_class }" data-subtotal="{ COND string( WHEN ls_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ cl_gui_control=>escape_html( ls_cell-emphasize ) }"{ COND string( WHEN ls_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">|.
         IF ls_cell-dropdown > 0.
           result = result && |<select name="gg-alv-cell-{ ls_row-index }-{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) } row { ls_row-index }">|.
           LOOP AT mt_drop_down INTO DATA(ls_drop) WHERE handle = ls_cell-dropdown.
@@ -959,6 +1118,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           result = result && |<input type="text" name="gg-alv-cell-{ ls_row-index }-{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }" value="{ cl_gui_control=>escape_html( ls_cell-text ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) } row { ls_row-index }">|.
         ELSEIF ls_cell-hotspot = abap_true.
           result = result && |<button type="submit" name="gg_action" value="COMMAND:ALV-HOTSPOT-{ ls_row-index }-{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</button>|.
+        ELSEIF ls_cell-icon = abap_true OR ls_cell-symbol = abap_true.
+          result = result && |<span class="gg-alv-icon" role="img" aria-label="{ COND string( WHEN ls_cell-icon = abap_true THEN 'ALV icon' ELSE 'ALV symbol' ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</span>|.
         ELSE.
           result = result && cl_gui_control=>escape_html( ls_cell-text ).
         ENDIF.
@@ -966,7 +1127,36 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       ENDLOOP.
       result = result && |</tr>|.
     ENDLOOP.
-    result = result && |</tbody></table></section>|.
+    result = result && |</tbody>|.
+    IF lv_has_total = abap_true.
+      result = result && '<tfoot><tr class="gg-grid-total gg-state-total"><th scope="row">Total</th>'.
+      LOOP AT mt_fieldcatalog INTO DATA(ls_total_field).
+        IF ls_total_field-no_out IS NOT INITIAL OR ls_total_field-tech IS NOT INITIAL.
+          CONTINUE.
+        ENDIF.
+        CLEAR lv_total.
+        IF ls_total_field-do_sum = 'X'.
+          LOOP AT mt_html_rows INTO DATA(ls_total_row).
+            READ TABLE ls_total_row-cells INTO DATA(ls_total_cell)
+              WITH KEY fieldname = ls_total_field-fieldname.
+            IF sy-subrc <> 0.
+              CONTINUE.
+            ENDIF.
+            TRY.
+                lv_total = lv_total + CONV decfloat34( ls_total_cell-text ).
+              CATCH cx_root.
+                CONTINUE.
+            ENDTRY.
+          ENDLOOP.
+          lv_total_text = |{ lv_total }|.
+        ELSE.
+          lv_total_text = '-'.
+        ENDIF.
+        result = result && |<td class="gg-grid-cell gg-grid-total-cell">{ cl_gui_control=>escape_html( lv_total_text ) }</td>|.
+      ENDLOOP.
+      result = result && '</tr></tfoot>'.
+    ENDIF.
+    result = result && |</table></section>|.
   ENDMETHOD.
 
   METHOD get_selected_rows.

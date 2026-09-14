@@ -351,20 +351,26 @@ CLASS cl_salv_table IMPLEMENTATION.
     LOOP AT <table> ASSIGNING <row>.
       CLEAR ls_row.
       ls_row-index = sy-tabix.
+      DATA(lv_matches) = abap_true.
       LOOP AT mo_columns->get( ) INTO DATA(ls_column).
         DATA(lv_text) = ``.
-        IF ls_column-columnname = 'VALUE'.
+        ASSIGN COMPONENT ls_column-columnname OF STRUCTURE <row> TO <component>.
+        IF sy-subrc = 0.
+          lv_text = |{ <component> }|.
+        ELSEIF ls_column-columnname = 'VALUE'.
           lv_text = |{ <row> }|.
-        ELSE.
-          ASSIGN COMPONENT ls_column-columnname OF STRUCTURE <row> TO <component>.
-          IF sy-subrc = 0.
-            lv_text = |{ <component> }|.
-          ENDIF.
         ENDIF.
         APPEND VALUE #( columnname = ls_column-columnname
                         text       = lv_text ) TO ls_row-cells.
+        IF mo_filters IS BOUND
+            AND mo_filters->matches( columnname = ls_column-columnname
+                                     value      = lv_text ) = abap_false.
+          lv_matches = abap_false.
+        ENDIF.
       ENDLOOP.
-      APPEND ls_row TO mt_html_rows.
+      IF lv_matches = abap_true.
+        APPEND ls_row TO mt_html_rows.
+      ENDIF.
     ENDLOOP.
   ENDMETHOD.
 

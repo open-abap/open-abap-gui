@@ -3,6 +3,8 @@ CLASS cl_gui_gp_pres DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     INTERFACES if_graphic_proxy.
 
+    METHODS constructor.
+
     CONSTANTS co_prod_chart TYPE char8 VALUE 'CHART'.
     CONSTANTS co_prod_export TYPE char8 VALUE 'EXPORT'.
     CONSTANTS co_prod_sap TYPE char8 VALUE 'SAP'.
@@ -27,28 +29,47 @@ ENDCLASS.
 
 CLASS cl_gui_gp_pres IMPLEMENTATION.
 
+  METHOD constructor.
+    super->constructor( ).
+    cl_gui_control=>initialize(
+      control = me
+      kind    = 'GP_PRES' ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = 'Native GFW business-graphics proxy unavailable; use the accessible chart/table fallback' ).
+  ENDMETHOD.
+
   METHOD set_dc_names.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload(
+      control = me
+      payload = 'Native GFW business-graphics proxy unavailable; use the accessible chart/table fallback' ).
+    retval = '004'.
   ENDMETHOD.
 
   METHOD if_graphic_proxy~init.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload(
+      control = me
+      payload = 'Native GFW business-graphics proxy unavailable; audit only' ).
+    retval = '004'.
   ENDMETHOD.
 
   METHOD if_graphic_proxy~activate.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload(
+      control = me
+      payload = 'Native GFW business-graphics proxy unavailable; activate was not performed' ).
+    retval = '004'.
   ENDMETHOD.
 
   METHOD if_graphic_proxy~deactivate.
-    RETURN. " todo, implement method
+    retval = '004'.
   ENDMETHOD.
 
   METHOD if_graphic_proxy~free.
-    RETURN. " todo, implement method
+    retval = '004'.
   ENDMETHOD.
 
   METHOD if_graphic_proxy~add_cu_bundle.
-    RETURN. " todo, implement method
+    retval = '004'.
   ENDMETHOD.
 
 ENDCLASS.

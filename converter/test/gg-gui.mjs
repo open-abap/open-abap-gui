@@ -34,6 +34,18 @@ const screenshotFixture = Object.freeze({
   externalUrl: "https://example.invalid/gg-gui",
   sampleData: "gg-gui source and SAP screenshots from the pinned repository revision",
 });
+const screenshotEnvironment = Object.freeze({
+  viewport: screenshotViewport,
+  locale: "en-US",
+  timezone: screenshotFixture.timezone,
+  fonts: ["system-ui", "Segoe UI", "Tahoma", "Arial", "ui-monospace", "Consolas"],
+  animations: "disabled-by-capture-contract",
+});
+const genericPartialHeadings = Object.freeze([
+  "partial conversion",
+  "generic conversion diagnostic",
+  "no application content",
+]);
 const comparisonGateDefinitions = Object.freeze([
   {id: "semanticContent", label: "Semantic content", rule: "Report-specific labels, fields, values, control roles, and fallback text are present."},
   {id: "interactiveBehavior", label: "Interactive behavior", rule: "Report-specific actions update server-owned state and preserve navigation semantics."},
@@ -80,6 +92,17 @@ function pendingComparisonGates() {
     rule,
     evidence: "Pixel similarity alone cannot pass this gate.",
   }]));
+}
+
+function pendingSmokeTest() {
+  return {
+    status: "not-run",
+    evidence: "The report route must render a report-specific first meaningful screen.",
+  };
+}
+
+function hasGenericPartialHeading(headings) {
+  return headings.some((heading) => genericPartialHeadings.some((text) => heading.toLowerCase().includes(text)));
 }
 
 function generatedClassName(programName) {
@@ -140,6 +163,27 @@ async function waitForHost(child, baseUrl) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error("Timed out starting the ABAP HTML host");
+}
+
+async function newScreenshotPage(browser) {
+  const page = await browser.newPage({
+    viewport: screenshotEnvironment.viewport,
+    locale: screenshotEnvironment.locale,
+    timezoneId: screenshotEnvironment.timezone,
+  });
+  await page.emulateMedia({reducedMotion: "reduce"});
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent = "*, *::before, *::after { animation: none !important; transition: none !important; }";
+      document.head.append(style);
+    }, {once: true});
+  });
+  return page;
+}
+
+async function waitForDeterministicFonts(page) {
+  await page.evaluate(() => document.fonts?.ready);
 }
 
 function escapeHtml(value) {
@@ -208,7 +252,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
     <figure><figcaption>SAP GUI reference <span>${dimensionsText(reference?.dimensions)}</span></figcaption>${imageMarkup({info: reference, alt: `${result.programName} SAP GUI reference`, missingLabel: "Reference image not present"})}</figure>
     <figure><figcaption>Optional pixel diff <span>${dimensionsText(diff?.dimensions)}</span></figcaption>${imageMarkup({info: diff, alt: `${result.programName} pixel difference`, missingLabel: "No diff image generated"})}</figure>
   </div>
-  <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}</p>
+  <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}<br><strong>First-screen smoke:</strong> ${escapeHtml(result.smokeTest?.status || "not-run")}${result.smokeTest?.pageKind ? ` (${escapeHtml(result.smokeTest.pageKind)})` : ""}</p>
   ${referenceAudit ? `<section class="reference-audit" data-reference-audit="${escapeHtml(referenceAudit.status)}"><h3>Reference audit: ${escapeHtml(referenceAudit.acceptance)}</h3><p><strong>Observed:</strong> ${escapeHtml(referenceAudit.observedState)}<br><strong>Intended:</strong> ${escapeHtml(referenceAudit.intendedState)}</p></section>` : ""}
   ${fallbackAudit ? `<section class="fallback-audit" data-fallback-audit="${escapeHtml(fallbackAudit.status)}"><h3>Intentional capability boundary: ${escapeHtml(fallbackAudit.acceptance)}</h3><p><strong>Native evidence:</strong> ${escapeHtml(fallbackAudit.nativeEvidence)}<br><strong>Browser contract:</strong> ${escapeHtml(fallbackAudit.browserContract)}</p></section>` : ""}
   <section class="gate-section" aria-label="Comparison gates"><h3>Comparison gates</h3><ul>${gateMarkup}</ul><p>Pixel similarity is visual evidence only; acceptance requires all three gates to pass.</p></section>
@@ -273,7 +317,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
   </head>
   <body>
     <h1>gg-gui conversion comparison</h1>
-    <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the SAP GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, and visual-structure gates; pixel similarity is evidence only. See the <a href="../reference-audit.json">reference audit</a> and <a href="../fallback-audit.json">fallback audit</a>.</p>
+  <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}; locale ${escapeHtml(screenshotEnvironment.locale)}; timezone ${escapeHtml(screenshotEnvironment.timezone)}; animations ${escapeHtml(screenshotEnvironment.animations)}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the SAP GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, and visual-structure gates; pixel similarity is evidence only. See the <a href="../reference-audit.json">reference audit</a> and <a href="../fallback-audit.json">fallback audit</a>.</p>
     <main>
 ${cards}
     </main>
@@ -386,6 +430,7 @@ for (const filename of reportFiles) {
     transactionCode: result.manifest.transactionCode,
     supported: result.supported,
     diagnostics: result.diagnostics,
+    smokeTest: pendingSmokeTest(),
     comparisonAccepted: false,
     comparisonGates: pendingComparisonGates(),
     fallbackAudit: intentionalReferenceFallbacks[programName] || null,
@@ -418,7 +463,7 @@ await fs.writeFile(transpileConfigPath, `${JSON.stringify({
 const revision = await runCommand("git", ["-C", sourceRepository, "rev-parse", "HEAD"], {stdio: "pipe"});
 await writeReferenceAudit(revision, referenceRoot);
 await writeFallbackAudit(revision, referenceRoot);
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
 console.log(`Converted ${results.length} gg-gui reports from ${revision}`);
 
 await runCommand(repositoryTool("abap_transpile"), [path.relative(repositoryRoot, transpileConfigPath)]);
@@ -437,7 +482,7 @@ for (const result of results) {
   };
   result.applicationParityCandidate = true;
 }
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
 
 let hostProcess;
 let browser;
@@ -469,15 +514,36 @@ try {
   await waitForHost(hostProcess, baseUrl);
 
   browser = await chromium.launch({headless: true});
-  const page = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const page = await newScreenshotPage(browser);
   for (const result of results) {
     assert.equal(result.applicationParityCandidate, true, `Screenshot blocked until ${result.programName} has clean transpiler activation`);
     const response = await page.goto(`${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`, {waitUntil: "load"});
     assert.equal(response?.status(), 200, `Host failed for ${result.programName}`);
     await page.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+    const smoke = await page.locator("body").evaluate((body) => ({
+      text: body.innerText,
+      headings: [...body.querySelectorAll("h1, h2, h3")].map((heading) => heading.textContent?.trim() || ""),
+      pageKind: body.querySelector("[data-page-kind]")?.getAttribute("data-page-kind") || "",
+    }));
+    const reportSpecificNames = [result.programName, result.targetClass, result.transactionCode];
+    const reportSpecificName = reportSpecificNames.find((name) => smoke.text.includes(name));
+    const reportSpecificTokens = reportSpecificNames
+      .flatMap((name) => name.split("_"))
+      .filter((token) => token.length >= 4 && !["ZGG", "GUI", "ZCL", "CV"].includes(token));
+    const matchingTokens = [...new Set(reportSpecificTokens.filter((token) => smoke.text.toUpperCase().includes(token)))];
+    assert.ok(reportSpecificName || matchingTokens.length > 0, `${result.programName} first screen has no report-specific content`);
+    assert.equal(hasGenericPartialHeading(smoke.headings), false, `${result.programName} first screen exposes a generic partial-conversion heading`);
+    assert.ok(smoke.pageKind, `${result.programName} first screen has no page kind`);
+    result.smokeTest = {
+      status: "passed",
+      pageKind: smoke.pageKind,
+      headings: smoke.headings,
+      evidence: `Report-specific content ${reportSpecificName || matchingTokens.join(", ")} rendered on ${smoke.pageKind}; no generic partial-conversion heading found.`,
+    };
+    await waitForDeterministicFonts(page);
     await page.screenshot({path: path.join(screenshotsRoot, `${result.programName.toLowerCase()}.png`), fullPage: true});
   }
-  const variantsPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const variantsPage = await newScreenshotPage(browser);
   variantsPage.on("dialog", async (dialog) => dialog.accept());
   const variantsUrl = `${baseUrl}/transaction?tcode=${encodeURIComponent("CV_SEL_VARIANTS")}`;
   await variantsPage.goto(variantsUrl, {waitUntil: "load"});
@@ -507,7 +573,7 @@ try {
   await variantsPage.waitForLoadState("load");
   assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was deleted/);
   await variantsPage.close();
-  const freePage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const freePage = await newScreenshotPage(browser);
   const freeUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SEL_FREE");
   await freePage.goto(freeUrl, {waitUntil: "load"});
   await freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]').click();
@@ -539,7 +605,7 @@ try {
   assert.match(await freePage.locator("body").textContent(), /Range T100-SPRSL/);
   assert.match(await freePage.locator("body").textContent(), /Converted WHERE T100|WHERE T100/);
   await freePage.close();
-  const dynproPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const dynproPage = await newScreenshotPage(browser);
   const dynproUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_ELEMENTS");
   await dynproPage.goto(dynproUrl, {waitUntil: "load"});
   assert.equal(await dynproPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -570,9 +636,9 @@ try {
   assert.match(await dynproPage.locator('output[id*="GV_OUTPUT"]').textContent(), /Values reset/);
   await dynproPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await dynproPage.waitForLoadState("load");
-  assert.equal(await dynproPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await dynproPage.locator('[data-screen="0000"]').count(), 1);
   await dynproPage.close();
-  const flowPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const flowPage = await newScreenshotPage(browser);
   const flowUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_FLOW");
   await flowPage.goto(flowUrl, {waitUntil: "load"});
   assert.equal(await flowPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -617,16 +683,16 @@ try {
   assert.equal(await flowPage.locator('.gg-dynpro[data-cursor-field="GV_FIRST"]').count(), 1);
   await flowPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await flowPage.waitForLoadState("load");
-  assert.equal(await flowPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await flowPage.locator('[data-screen="0000"]').count(), 1);
   await flowPage.close();
-  const cancelPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const cancelPage = await newScreenshotPage(browser);
   await cancelPage.goto(flowUrl, {waitUntil: "load"});
   await cancelPage.locator('button[name="gg_ucomm"][value="CANCEL"]').click();
   await cancelPage.waitForLoadState("load");
-  assert.equal(await cancelPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await cancelPage.locator('[data-screen="0000"]').count(), 1);
   assert.match(await cancelPage.locator("body").textContent(), /Changes canceled/);
   await cancelPage.close();
-  const tablePage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const tablePage = await newScreenshotPage(browser);
   const tableUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABLE_CONTROL");
   await tablePage.goto(tableUrl, {waitUntil: "load"});
   assert.equal(await tablePage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -664,9 +730,9 @@ try {
   assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-5"]').inputValue(), "Conference Speaker");
   await tablePage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await tablePage.waitForLoadState("load");
-  assert.equal(await tablePage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await tablePage.locator('[data-screen="0000"]').count(), 1);
   await tablePage.close();
-  const tabPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const tabPage = await newScreenshotPage(browser);
   const tabUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABSTRIP");
   await tabPage.goto(tabUrl, {waitUntil: "load"});
   assert.equal(await tabPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -705,9 +771,9 @@ try {
   assert.equal(await tabPage.locator('[name="GV_START_DATE"]').count(), 0);
   await tabPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await tabPage.waitForLoadState("load");
-  assert.equal(await tabPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await tabPage.locator('[data-screen="0000"]').count(), 1);
   await tabPage.close();
-  const subscreenPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const subscreenPage = await newScreenshotPage(browser);
   const subscreenUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SUBSCREENS");
   await subscreenPage.goto(subscreenUrl, {waitUntil: "load"});
   assert.equal(await subscreenPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -737,9 +803,9 @@ try {
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').inputValue(), "Details variant A");
   await subscreenPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await subscreenPage.waitForLoadState("load");
-  assert.equal(await subscreenPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await subscreenPage.locator('[data-screen="0000"]').count(), 1);
   await subscreenPage.close();
-  const dialogsPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const dialogsPage = await newScreenshotPage(browser);
   const dialogsUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DIALOGS_HELP");
   await dialogsPage.goto(dialogsUrl, {waitUntil: "load"});
   assert.equal(await dialogsPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -810,9 +876,9 @@ try {
   assert.match(await dialogsPage.locator("body").textContent(), /Progress indication completed/);
   await dialogsPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await dialogsPage.waitForLoadState("load");
-  assert.equal(await dialogsPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await dialogsPage.locator('[data-screen="0000"]').count(), 1);
   await dialogsPage.close();
-  const statusPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const statusPage = await newScreenshotPage(browser);
   const statusUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_GUI_STATUS");
   await statusPage.goto(statusUrl, {waitUntil: "load"});
   assert.equal(await statusPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -863,6 +929,7 @@ try {
     diffRoot,
   ]);
   await writeScreenshotIndex(results, revision, referenceRoot);
+  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
 } finally {
   await browser?.close();
   await stopProcess(hostProcess);

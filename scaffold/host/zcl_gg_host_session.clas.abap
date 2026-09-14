@@ -18,11 +18,12 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS constructor
       IMPORTING
-        io_list      TYPE REF TO zcl_gg_host_list
-        iv_program   TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
-        iv_batch     TYPE abap_bool DEFAULT abap_false
-        iv_processor TYPE zif_gg_session_types_v1=>ty_processor DEFAULT zif_gg_session_types_v1=>processor_report
-        iv_screen    TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL.
+        io_list           TYPE REF TO zcl_gg_host_list
+        iv_program        TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
+        iv_batch          TYPE abap_bool DEFAULT abap_false
+        iv_processor      TYPE zif_gg_session_types_v1=>ty_processor DEFAULT zif_gg_session_types_v1=>processor_report
+        iv_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
+        it_request_values TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL.
 
     METHODS set_processor
       IMPORTING
@@ -86,6 +87,12 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rt_lines) TYPE zcl_gg_host_list=>ty_render_lines.
 
+    METHODS get_request_value
+      IMPORTING
+        iv_name         TYPE string
+      RETURNING
+        VALUE(rv_value) TYPE string.
+
   PRIVATE SECTION.
     DATA mo_list      TYPE REF TO zcl_gg_host_list.
     DATA mo_compatibility TYPE REF TO zif_gg_compatibility_v1.
@@ -106,6 +113,7 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA ms_continuation TYPE zif_gg_session_types_v1=>ty_continuation.
     DATA mt_memory_lines TYPE zif_gg_session_types_v1=>ty_memory_list.
     DATA mt_memory_render_lines TYPE zcl_gg_host_list=>ty_render_lines.
+    DATA mt_request_values TYPE zif_gg_selection_screen_types=>ty_values.
     DATA mt_messages  TYPE ty_messages.
 
     METHODS unsupported
@@ -123,6 +131,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     mv_batch   = iv_batch.
     mv_processor = iv_processor.
     mv_screen = iv_screen.
+    mt_request_values = it_request_values.
   ENDMETHOD.
 
   METHOD set_processor.
@@ -187,6 +196,14 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD get_list_render_from_memory.
     rt_lines = mt_memory_render_lines.
+  ENDMETHOD.
+
+  METHOD get_request_value.
+    READ TABLE mt_request_values INTO DATA(ls_value)
+      WITH KEY name = CONV zif_gg_selection_screen_types=>ty_name( iv_name ).
+    IF sy-subrc = 0.
+      rv_value = ls_value-value.
+    ENDIF.
   ENDMETHOD.
 
   METHOD unsupported.

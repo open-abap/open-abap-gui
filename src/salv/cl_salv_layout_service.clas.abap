@@ -26,15 +26,15 @@ ENDCLASS.
 
 CLASS cl_salv_layout_service IMPLEMENTATION.
   METHOD get_default_layout.
-    RETURN. " todo, implement method
+    CLEAR value.
   ENDMETHOD.
 
   METHOD get_layouts.
-    ASSERT 1 = 2.
+    CLEAR t_layout.
   ENDMETHOD.
 
   METHOD f4_layouts.
-    ASSERT 1 = 2.
+    CLEAR value.
   ENDMETHOD.
 
 ENDCLASS.

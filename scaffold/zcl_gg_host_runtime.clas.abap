@@ -49,6 +49,7 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              submit_report       TYPE REF TO zif_gg_report_v1,
              dynpro_program      TYPE REF TO zif_gg_dynpro_v1,
              resumable           TYPE REF TO zif_gg_resumable_v1,
+             lifecycle           TYPE REF TO zif_gg_session_lifecycle_v1,
              pending_popup_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm,
              pending_help        TYPE zif_gg_dynpro_types_v1=>ty_name,
              next_page           TYPE i,
@@ -119,6 +120,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lo_resumable TYPE REF TO zif_gg_resumable_v1.
     DATA lo_context TYPE REF TO zif_gg_context_menu_v1.
     DATA lo_report_dynpro TYPE REF TO zif_gg_dynpro_v1.
+    DATA lo_lifecycle TYPE REF TO zif_gg_session_lifecycle_v1.
 
     lv_session_id = next_session_id( ).
     IF io_dynpro_program IS BOUND.
@@ -160,6 +162,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         CATCH cx_root.
           CLEAR lo_context.
       ENDTRY.
+      TRY.
+          lo_lifecycle ?= io_report.
+        CATCH cx_root.
+          CLEAR lo_lifecycle.
+      ENDTRY.
       IF lo_screen_provider IS BOUND
           AND ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
         lo_report_dynpro = NEW zcl_gg_host_report_dynpro(
@@ -183,6 +190,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ls_session-report = io_report.
     ls_session-submit_report = io_submit_report.
     ls_session-resumable = lo_resumable.
+    ls_session-lifecycle = lo_lifecycle.
     IF io_dynpro_program IS BOUND.
       ls_session-dynpro_program = io_dynpro_program.
     ELSE.
@@ -634,6 +642,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD close.
+    READ TABLE mt_sessions INTO DATA(ls_session)
+      WITH KEY session_id = iv_session_id.
+    IF sy-subrc = 0 AND ls_session-lifecycle IS BOUND.
+      ls_session-lifecycle->on_close( ).
+    ENDIF.
     DELETE mt_sessions WHERE session_id = iv_session_id.
   ENDMETHOD.
 
@@ -653,6 +666,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       rv_error = 'Stale host page'.
       RETURN.
     ENDIF.
+    IF ls_session-lifecycle IS BOUND.
+      ls_session-lifecycle->on_close( ).
+    ENDIF.
     DELETE mt_sessions WHERE session_id = iv_session_id.
   ENDMETHOD.
 
@@ -670,6 +686,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD clear.
+    LOOP AT mt_sessions INTO DATA(ls_session).
+      IF ls_session-lifecycle IS BOUND.
+        ls_session-lifecycle->on_close( ).
+      ENDIF.
+    ENDLOOP.
     CLEAR mt_sessions.
     CLEAR mv_session_id.
     zcl_gg_host_compatibility=>clear_parameters( ).

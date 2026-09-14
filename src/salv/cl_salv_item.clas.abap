@@ -9,6 +9,10 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE i.
 
+    METHODS get_text
+      RETURNING
+        VALUE(value) TYPE string.
+
     METHODS set_text
       IMPORTING
         value TYPE clike.
@@ -17,13 +21,25 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       IMPORTING
         value TYPE any.
 
+    METHODS get_icon
+      RETURNING
+        VALUE(value) TYPE string.
+
     METHODS set_style
       IMPORTING
         value TYPE i.
 
+    METHODS get_style
+      RETURNING
+        VALUE(value) TYPE i.
+
     METHODS set_editable
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
+
+    METHODS is_editable
+      RETURNING
+        VALUE(value) TYPE abap_bool.
 
     METHODS set_checked
       IMPORTING
@@ -53,6 +69,10 @@ CLASS cl_salv_item IMPLEMENTATION.
     value = mv_type.
   ENDMETHOD.
 
+  METHOD get_text.
+    value = mv_text.
+  ENDMETHOD.
+
   METHOD set_text.
     mv_text = value.
   ENDMETHOD.
@@ -61,12 +81,24 @@ CLASS cl_salv_item IMPLEMENTATION.
     mv_icon = value.
   ENDMETHOD.
 
+  METHOD get_icon.
+    value = mv_icon.
+  ENDMETHOD.
+
   METHOD set_style.
     mv_style = value.
   ENDMETHOD.
 
+  METHOD get_style.
+    value = mv_style.
+  ENDMETHOD.
+
   METHOD set_editable.
     mv_editable = value.
+  ENDMETHOD.
+
+  METHOD is_editable.
+    value = mv_editable.
   ENDMETHOD.
 
   METHOD set_checked.

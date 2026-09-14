@@ -20,6 +20,7 @@ CLASS cl_simple_tree_model IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
+    mv_model_kind = 'SIMPLE'.
   ENDMETHOD.
 
   METHOD add_nodes.

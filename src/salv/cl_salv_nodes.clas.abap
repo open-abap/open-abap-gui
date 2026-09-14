@@ -62,22 +62,24 @@ CLASS cl_salv_nodes IMPLEMENTATION.
       lo_node->set_visible( visible ).
     ENDIF.
     IF related_node IS SUPPLIED AND related_node IS NOT INITIAL.
-      READ TABLE mt_nodes INTO DATA(lo_parent) WITH KEY table_line = related_node.
+      READ TABLE mt_nodes INTO DATA(ls_parent) WITH KEY node_key = related_node.
       IF sy-subrc <> 0.
         RAISE EXCEPTION TYPE cx_salv_msg.
       ENDIF.
-      lo_node->set_parent( lo_parent ).
-      lo_parent->add_child( lo_node ).
+      lo_node->set_parent( ls_parent-node ).
+      ls_parent-node->add_child( lo_node ).
     ENDIF.
-    APPEND lo_node TO mt_nodes.
+    APPEND VALUE #( node_key = lv_key
+                    node     = lo_node ) TO mt_nodes.
     node = lo_node.
   ENDMETHOD.
 
   METHOD get_node.
-    READ TABLE mt_nodes INTO value WITH KEY table_line = node_key.
+    READ TABLE mt_nodes INTO DATA(ls_node) WITH KEY node_key = node_key.
     IF sy-subrc <> 0.
       RAISE EXCEPTION TYPE cx_salv_msg.
     ENDIF.
+    value = ls_node-node.
   ENDMETHOD.
 
   METHOD get_all_nodes.
@@ -85,14 +87,14 @@ CLASS cl_salv_nodes IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD expand_all.
-    LOOP AT mt_nodes INTO DATA(lo_node).
-      lo_node->expand( subtree = abap_true ).
+    LOOP AT mt_nodes INTO DATA(ls_node).
+      ls_node-node->expand( subtree = abap_true ).
     ENDLOOP.
   ENDMETHOD.
 
   METHOD collapse_all.
-    LOOP AT mt_nodes INTO DATA(lo_node).
-      lo_node->collapse( ).
+    LOOP AT mt_nodes INTO DATA(ls_node).
+      ls_node-node->collapse( ).
     ENDLOOP.
   ENDMETHOD.
 

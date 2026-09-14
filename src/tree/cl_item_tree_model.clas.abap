@@ -115,7 +115,8 @@ ENDCLASS.
 CLASS cl_item_tree_model IMPLEMENTATION.
 
   METHOD constructor.
-    super->constructor( ).
+    super->constructor( node_selection_mode = node_selection_mode
+                        hide_selection      = hide_selection ).
     mv_node_selection_mode = node_selection_mode.
     mv_hide_selection = hide_selection.
   ENDMETHOD.

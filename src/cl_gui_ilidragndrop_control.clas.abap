@@ -118,38 +118,38 @@ CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
   METHOD show.
     set_visible( 'X' ).
     cl_gui_control=>set_payload( control = me
-                                 payload = |Legacy ActiveX drag/drop unavailable; visible=true; mode={ mv_drag_mode }| ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; visible=true; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }| ).
   ENDMETHOD.
 
   METHOD hide.
     set_visible( ' ' ).
     cl_gui_control=>set_payload( control = me
-                                 payload = |Legacy ActiveX drag/drop unavailable; visible=false; mode={ mv_drag_mode }| ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; visible=false; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }| ).
   ENDMETHOD.
 
   METHOD add_contextmenuitem.
     APPEND CONV string( str ) TO mt_context_items.
     cl_gui_control=>set_payload( control = me
-                                 payload = |Legacy ActiveX drag/drop unavailable; context-items={ lines( mt_context_items ) }| ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD show_contextmenu.
     mv_context_visible = abap_true.
     cl_gui_control=>set_payload( control = me
-                                 payload = |Legacy ActiveX drag/drop unavailable; context-menu=visible; items={ lines( mt_context_items ) }| ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-menu=visible; items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD hide_contextmenu.
     mv_context_visible = abap_false.
     cl_gui_control=>set_payload( control = me
-                                 payload = |Legacy ActiveX drag/drop unavailable; context-menu=hidden; items={ lines( mt_context_items ) }| ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-menu=hidden; items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD clear_contextmenu.
     CLEAR mt_context_items.
     mv_context_visible = abap_false.
     cl_gui_control=>set_payload( control = me
-                                 payload = `Legacy ActiveX drag/drop unavailable; context-menu=cleared` ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-menu=cleared| ).
   ENDMETHOD.
 
 ENDCLASS.

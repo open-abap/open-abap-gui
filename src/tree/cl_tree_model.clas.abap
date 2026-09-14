@@ -92,6 +92,10 @@ CLASS cl_tree_model DEFINITION PUBLIC.
 
     METHODS update_view.
 
+    METHODS get_state_summary
+      RETURNING
+        VALUE(rv_summary) TYPE string.
+
   PROTECTED SECTION.
     TYPES: BEGIN OF ty_model_node,
              node_key   TYPE string,
@@ -105,6 +109,7 @@ CLASS cl_tree_model DEFINITION PUBLIC.
     DATA mt_model_nodes TYPE ty_model_nodes.
     DATA mv_node_selection_mode TYPE i.
     DATA mv_hide_selection TYPE abap_bool.
+    DATA mv_model_kind TYPE string.
     DATA mr_tree_control TYPE REF TO cl_tree_control_base.
 
     METHODS store_node
@@ -118,6 +123,7 @@ CLASS cl_tree_model IMPLEMENTATION.
   METHOD constructor.
     mv_node_selection_mode = node_selection_mode.
     mv_hide_selection = hide_selection.
+    mv_model_kind = 'TREE'.
   ENDMETHOD.
 
   METHOD create_tree_control.
@@ -202,6 +208,16 @@ CLASS cl_tree_model IMPLEMENTATION.
 
   METHOD update_view.
     RETURN.
+  ENDMETHOD.
+
+  METHOD get_state_summary.
+    DATA(lv_expanded) = 0.
+    DATA(lv_selected) = 0.
+    LOOP AT mt_model_nodes INTO DATA(ls_node).
+      lv_expanded = lv_expanded + COND i( WHEN ls_node-expanded = abap_true THEN 1 ELSE 0 ).
+      lv_selected = lv_selected + COND i( WHEN ls_node-selected = abap_true THEN 1 ELSE 0 ).
+    ENDLOOP.
+    rv_summary = |model={ mv_model_kind };nodes={ lines( mt_model_nodes ) };expanded={ lv_expanded };selected={ lv_selected }|.
   ENDMETHOD.
 
   METHOD store_node.
