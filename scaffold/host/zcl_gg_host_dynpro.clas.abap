@@ -54,6 +54,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_screen              TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
         iv_session_id          TYPE string OPTIONAL
         iv_page_id             TYPE string OPTIONAL
+        iv_action_receipt      TYPE string OPTIONAL
       RETURNING
         VALUE(rs_result)       TYPE ty_result.
 
@@ -152,6 +153,29 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_page_id    TYPE string
       CHANGING
         cs_result     TYPE ty_result.
+
+    CLASS-METHODS render_controls_html
+      IMPORTING
+        iv_session_id  TYPE string
+        iv_page_id     TYPE string
+        it_controls    TYPE zcl_gg_host_dynpro_builder=>ty_controls
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS apply_action_receipt
+      IMPORTING
+        iv_receipt         TYPE string
+        iv_previous_status TYPE string
+      CHANGING
+        ct_values          TYPE zif_gg_dynpro_types_v1=>ty_values
+        cs_status          TYPE zif_gg_session_types_v1=>ty_gui_status
+        ct_messages        TYPE zcl_gg_host_session=>ty_messages.
+
+    CLASS-METHODS previous_status
+      IMPORTING
+        it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
+      RETURNING
+        VALUE(rv_status) TYPE string.
 
     CLASS-METHODS capture_navigation
       IMPORTING
@@ -324,6 +348,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lo_context_menu TYPE REF TO cl_ctmenu.
     DATA lv_context_menu_field TYPE zif_gg_dynpro_types_v1=>ty_name.
     DATA lv_list_page TYPE abap_bool.
+    DATA lv_controls_html TYPE string.
+    DATA(lv_previous_status) = previous_status( it_values ).
 
     lo_builder = NEW zcl_gg_host_dynpro_builder( ).
     lo_flow = NEW zcl_gg_host_dynpro_flow( ).
@@ -574,6 +600,15 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     rs_result-messages = lo_session->get_messages( ).
     rs_result-popup = lo_session->zif_gg_session_v1~get_compatibility( )->get_popup( ).
     rs_result-status = lo_session->get_status( ).
+    apply_action_receipt(
+      EXPORTING
+        iv_receipt         = iv_action_receipt
+        iv_previous_status = lv_previous_status
+      CHANGING
+        ct_values          = lt_values
+        cs_status          = rs_result-status
+        ct_messages        = rs_result-messages ).
+    rs_result-values = lt_values.
     rs_result-title = lo_session->get_title( ).
     rs_result-cursor = lo_session->get_cursor( ).
     rs_result-lines = lo_list->finish_output( ).
@@ -585,6 +620,10 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       THEN |{ lv_session_id }-1| ELSE iv_page_id ).
     rs_result-session_id = lv_session_id.
     rs_result-page_id = lv_page_id.
+    lv_controls_html = render_controls_html(
+      iv_session_id = lv_session_id
+      iv_page_id    = lv_page_id
+      it_controls   = lt_controls ).
     lv_list_page = xsdbool(
       lo_session->is_dialog_suppressed( ) = abap_true
       OR lo_list->get_context( )-level > 0 ).
@@ -629,7 +668,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         is_popup          = rs_result-popup
         it_messages       = rs_result-messages
         io_menu           = lo_context_menu
-        iv_menu_field     = CONV string( lv_context_menu_field ) ) ).
+        iv_menu_field     = CONV string( lv_context_menu_field )
+        iv_controls_html  = lv_controls_html ) ).
     render_terminal_page(
       EXPORTING
         iv_session_id = lv_session_id
@@ -1425,6 +1465,53 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_title      = 'Terminal'
         iv_text       = cs_result-terminal
         it_messages   = cs_result-messages ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_controls_html.
+    IF cl_gui_control=>has_content( ) = abap_false.
+      RETURN.
+    ENDIF.
+    READ TABLE it_controls INTO DATA(ls_custom_control)
+      WITH KEY kind = 'CUSTOM_CONTROL'.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    rv_html = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = CONV string( ls_custom_control-name )
+      is_sapevent       = zcl_gg_host_renderer=>sapevent_transport(
+        iv_session_id = iv_session_id
+        iv_page_id    = iv_page_id ) ).
+  ENDMETHOD.
+
+  METHOD apply_action_receipt.
+    FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
+
+    IF iv_receipt IS INITIAL OR cs_status-status IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+    READ TABLE ct_values ASSIGNING <ls_value>
+      WITH KEY container = `` name = 'GV_STATUS' row = 0.
+    IF sy-subrc <> 0.
+      APPEND VALUE #(
+        type = zif_gg_session_types_v1=>message_type_info
+        text = iv_receipt ) TO ct_messages.
+      cs_status-status = iv_receipt.
+      RETURN.
+    ENDIF.
+    IF <ls_value>-value <> iv_previous_status.
+      RETURN.
+    ENDIF.
+    <ls_value>-value = iv_receipt.
+    cs_status-status = iv_receipt.
+  ENDMETHOD.
+
+  METHOD previous_status.
+    READ TABLE it_values INTO DATA(ls_value)
+      WITH KEY container = `` name = 'GV_STATUS' row = 0.
+    IF sy-subrc = 0.
+      rv_status = ls_value-value.
     ENDIF.
   ENDMETHOD.
 

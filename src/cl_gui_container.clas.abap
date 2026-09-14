@@ -15,9 +15,6 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(children) TYPE ty_child_ids.
 
-  PRIVATE SECTION.
-    DATA mt_child_ids TYPE ty_child_ids.
-
     METHODS link
       IMPORTING
         repid     TYPE syrepid OPTIONAL
@@ -27,6 +24,9 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_error
         cntl_system_error
         lifetime_dynpro_dynpro_link.
+
+  PRIVATE SECTION.
+    DATA mt_child_ids TYPE ty_child_ids.
 ENDCLASS.
 
 CLASS cl_gui_container IMPLEMENTATION.

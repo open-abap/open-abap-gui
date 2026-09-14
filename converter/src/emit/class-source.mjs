@@ -1,5 +1,5 @@
 import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
-import { lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
+import { controlObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 
 const REPORT_METHODS = [
@@ -215,6 +215,9 @@ function header({ className, ir, options }) {
 function implicitSelectionLayoutMembers(ir) {
   const names = new Set();
   for (const screen of ir.selections ?? []) {
+    for (const match of String(screen.additions ?? "").matchAll(/\bTITLE\s+([A-Z][A-Z0-9_]*)/gi)) {
+      names.add(match[1].toUpperCase());
+    }
     for (const item of screen.elements ?? []) {
       if (item.kind !== "layout") continue;
       for (const value of [item.text, item.title]) {
@@ -336,15 +339,16 @@ function dataMembers(ir) {
   }
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
+    const parameterType = (parameter) => /^SY(?:-SUBRC)?$/i.test(String(parameter.type ?? "")) ? "i" : parameter.type;
     const lines = [`METHODS ${routine.methodName}`];
     const importing = parameters.filter((parameter) => parameter.direction === "IMPORTING");
     const width = Math.max("io_session".length, ...parameters.map((parameter) => parameter.name.length));
     lines.push("  IMPORTING", `    io_session${" ".repeat(width - "io_session".length)} TYPE REF TO zif_gg_session_v1`);
-    lines.push(...importing.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameter.type}`));
+    lines.push(...importing.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameterType(parameter)}`));
     for (const direction of ["CHANGING"]) {
       const items = parameters.filter((parameter) => parameter.direction === direction);
       if (!items.length) continue;
-      lines.push(`  ${direction}`, ...items.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameter.type}`));
+      lines.push(`  ${direction}`, ...items.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameterType(parameter)}`));
     }
     lines[lines.length - 1] = `${lines.at(-1)}.`;
     members.push(lines.join("\n"));
@@ -532,6 +536,13 @@ function methodContext(ir, event, qualifierOverride) {
     .filter(Boolean)
     .map(Number);
   const valueReference = (item) => ir.statePlan?.selectionState?.[item.name]?.member ?? `${mutable ? "ct_values" : "it_values"}[ name = '${item.name}' ]-${item.ranges ? "ranges" : "value"}`;
+  const valueReplacements = values.flatMap((item) => {
+    const reference = valueReference(item);
+    const fields = item.ranges
+      ? [[`${item.name}-low`, `${reference}[ 1 ]-low`], [`${item.name}-high`, `${reference}[ 1 ]-high`]]
+      : [];
+    return [...fields, [item.name, reference]];
+  });
   return {
     event,
     selections: values,
@@ -541,7 +552,7 @@ function methodContext(ir, event, qualifierOverride) {
       ...Object.entries(ir.statePlan?.renames ?? {}),
       ...Object.entries(ir.localClassRenames ?? {}),
       ...Object.entries(continuationRenames(ir)),
-      ...values.map((item) => [item.name, valueReference(item)]),
+      ...valueReplacements,
       ...(event === "at_line_selection" || event === "at_user_command" || event === "at_pf"
         ? (ir.hiddenNames ?? []).map((name) => [name, `is_line-fields[ name = '${name}' ]-value`])
         : []),
@@ -564,6 +575,7 @@ function methodContext(ir, event, qualifierOverride) {
     selectionState: ir.statePlan?.selectionState ?? {},
     dynamicWriteTargets,
     dynamicCommentNames,
+    controlObjectTypes: controlObjectTypes(ir.declarations ?? []),
     safeFieldSymbols: ir.safeFieldSymbols ?? [],
     rangeDeclarations: Object.fromEntries((ir.declarations ?? [])
       .filter((declaration) => declaration.kind === "ranges")
@@ -610,13 +622,12 @@ function nestedSelectionCaptures(ir) {
       current = field.screen;
       lines.push(`IF iv_screen = '${current}'.`);
     }
-    lines.push(`mv_${field.name.toLowerCase()} = ct_values[ name = '${field.name}' ]-value.`);
+    const ranges = ir.statePlan?.selectionState?.[field.name]?.ranges ?? field.ranges;
+    lines.push(`mv_${field.name.toLowerCase()} = ct_values[ name = '${field.name}' ]-${ranges ? "ranges" : "value"}.`);
   }
   if (current) lines.push("ENDIF.");
   return lines;
 }
-
-const SUSPENDING = /\b(CALL\s+SCREEN|CALL\s+SELECTION-SCREEN|CALL\s+TRANSACTION|SUBMIT\b.*\bAND\s+RETURN)\b/i;
 
 const CONTROL_CLOSERS = new Map([
   ["If", "ENDIF."],
@@ -626,6 +637,11 @@ const CONTROL_CLOSERS = new Map([
   ["Try", "ENDTRY."],
   ["While", "ENDWHILE."],
 ]);
+
+function isSuspendingStatement(statement) {
+  if (["CallScreen", "CallSelectionScreen", "CallTransaction"].includes(statement.kind)) return true;
+  return statement.kind === "Submit" && /\bAND\s+RETURN\b/i.test(statement.text);
+}
 
 function continuationFor(ir, statement) {
   return ir.continuations?.find((item) => item.filename === statement.filename
@@ -710,7 +726,7 @@ function resumeTail(statements, index, continuation) {
 }
 
 function suspensionIndex(statements) {
-  return statements.findIndex((statement) => SUSPENDING.test(statement.text));
+  return statements.findIndex((statement) => isSuspendingStatement(statement));
 }
 
 function terminalIndex(statements) {
@@ -1205,7 +1221,7 @@ function dynproTableFlush(bindings) {
   return lines;
 }
 
-function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg_dynpro_v1") {
+function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg_dynpro_v1", {presentationOnly = false} = {}) {
   const interfaceMethod = (name) => `${interfaceName}~${name}`;
   if (!metadata) {
     const todo = ["* TODO GGCONV-E502: supply dynpro metadata before activating this class."];
@@ -1297,6 +1313,15 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
           column: area.column,
           area,
         })),
+      ...(screen.containers ?? [])
+        .filter((container) => String(container.type ?? container.kind ?? "").toUpperCase() === "CUST_CTRL")
+        .map((container) => ({
+          kind: "custom-control",
+          name: String(container.name ?? "").toUpperCase(),
+          line: container.line,
+          column: container.column,
+          customControl: container,
+        })),
     ].sort((left, right) => Number(left.line ?? left.position?.line ?? 1) - Number(right.line ?? right.position?.line ?? 1)
       || Number(left.column ?? left.position?.column ?? 1) - Number(right.column ?? right.position?.column ?? 1));
     for (const element of items) {
@@ -1329,6 +1354,10 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
         if (element.area.subscreen) fields.push(`subscreen = '${screenNumber(element.area.subscreen)}'`);
         if (element.area.screenField) fields.push(`screen_field = '${element.area.screenField}'`);
         buildScreens.push(`io_builder->add_subscreen_area( VALUE #( ${fields.join(" ")} ) ).`);
+        continue;
+      }
+      if (element.kind === "custom-control") {
+        buildScreens.push(`io_builder->add_custom_control( VALUE #( control = ${dynproControl(element.customControl)} ) ).`);
         continue;
       }
       const control = dynproControl(element);
@@ -1474,6 +1503,13 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     statusLines.push(`io_session->get_dialog( )->set_status( VALUE #( ${fields.join(" ")} ) ).`);
     statusLines.push("ENDIF.");
   }
+  const cursorLines = screens
+    .filter((screen) => screen.cursor)
+    .flatMap((screen) => [
+      `IF is_context-screen = '${screenNumber(screen.number)}'.`,
+      `io_session->get_dialog( )->set_cursor( VALUE #( field = '${String(screen.cursor).toUpperCase()}' ) ).`,
+      "ENDIF.",
+    ]);
   const stateHydrate = dynproStateHydrate(ir);
   const stateFlush = dynproStateFlush(ir);
   const tableHydrate = dynproTableHydrate(tableBindings);
@@ -1532,15 +1568,24 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     "  rv_text = ct_values[ name = 'GV_RESULT' ]-value.",
     "ENDIF.",
   ];
-  return [
+  const methods = [
     method(interfaceMethod("get_initial_screen"), [`rv_screen = '${initial}'.`]),
     method(interfaceMethod("build_screens"), buildScreens),
     method(interfaceMethod("build_flow_logic"), buildFlow),
     method(interfaceMethod("initialization"), [...stateFlush, ...tableFlush]),
-    method(interfaceMethod("process_output_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...dispatch("OUTPUT"), ...stateFlush, ...tableFlush]),
+    method(interfaceMethod("process_output_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...cursorLines, ...dispatch("OUTPUT"), ...stateFlush, ...tableFlush]),
     method(interfaceMethod("process_input_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...dispatch("INPUT"), ...stateFlush, ...tableFlush]),
     method(interfaceMethod("process_on_value_request"), valueRequest),
     method(interfaceMethod("process_on_help_request"), helpRequest),
+  ];
+  if (!presentationOnly) return methods;
+  return [
+    ...methods.slice(0, 3),
+    method(interfaceMethod("initialization"), ["RETURN."]),
+    method(interfaceMethod("process_output_module"), cursorLines.length ? cursorLines : ["RETURN."]),
+    method(interfaceMethod("process_input_module"), ["RETURN."]),
+    method(interfaceMethod("process_on_value_request"), ["RETURN."]),
+    method(interfaceMethod("process_on_help_request"), ["RETURN."]),
   ];
 }
 
@@ -1582,9 +1627,16 @@ function helperMethodContext(ir) {
     ...Object.entries(ir.statePlan?.renames ?? {}),
     ...(ir.selections ?? []).flatMap((screen) => (screen.elements ?? [])
       .filter((item) => item.name)
-      .map((item) => [item.name, ir.statePlan?.selectionState?.[item.name]?.member ?? item.name.toLowerCase()])),
+      .flatMap((item) => {
+        const reference = ir.statePlan?.selectionState?.[item.name]?.member ?? item.name.toLowerCase();
+        const fields = item.ranges
+          ? [[`${item.name}-low`, `${reference}[ 1 ]-low`], [`${item.name}-high`, `${reference}[ 1 ]-high`]]
+          : [];
+        return [...fields, [item.name, reference]];
+      })),
     ...Object.entries(ir.localClassRenames ?? {}),
   ];
+  context.controlObjectTypes = controlObjectTypes(ir.declarations ?? []);
   return context;
 }
 
@@ -1752,9 +1804,10 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
 
 export function emitPartialApplication(ir, options, diagnostics) {
   const className = ir.targetClassName.toLowerCase();
+  const hasScreenProvider = ir.programKind === "report" && (ir.screenMetadata?.screens?.length ?? 0) > 0;
   const interfaceNames = ir.programKind === "module-pool"
     ? ["zif_gg_dynpro_v1", "zif_gg_transaction_v1"]
-    : ["zif_gg_report_v1", "zif_gg_transaction_v1"];
+    : ["zif_gg_report_v1", "zif_gg_transaction_v1", ...(hasScreenProvider ? ["zif_gg_screen_provider_v1"] : [])];
   const definition = [
     `CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC.`,
     "",
@@ -1773,6 +1826,11 @@ export function emitPartialApplication(ir, options, diagnostics) {
     `lo_writer->write_field( VALUE #( text = ${literal(label)} placement = VALUE #( new_line = abap_true ) ) ).`,
     `lo_writer->write_field( VALUE #( text = ${literal("Application content is available; unsupported optional operations remain in converter diagnostics.")} placement = VALUE #( new_line = abap_true ) ) ).`,
   ];
+  const screenBody = hasScreenProvider
+    ? [`io_session->get_dialog( )->call_screen(
+      is_call         = VALUE #( screen = '${String(ir.screenMetadata.initialScreen ?? ir.screenMetadata.screens[0]?.number ?? "0100").padStart(4, "0")}' )
+      is_continuation = VALUE #( id = 'PARTIAL_SCREEN' ) ).`]
+    : applicationBody;
   const methods = [];
   if (ir.programKind === "module-pool") {
     methods.push(
@@ -1789,9 +1847,10 @@ export function emitPartialApplication(ir, options, diagnostics) {
     for (const name of REPORT_METHODS) {
       const body = name === "build_screen"
         ? selectionBuilder(ir)
-        : name === "start_of_selection" ? applicationBody : ["RETURN."];
+        : name === "start_of_selection" ? screenBody : ["RETURN."];
       methods.push(method(`zif_gg_report_v1~${name}`, body.length ? body : ["RETURN."]));
     }
+    if (hasScreenProvider) methods.push(...dynproMethods(ir, ir.screenMetadata, "zif_gg_screen_provider_v1", {presentationOnly: true}));
   }
   const todos = diagnostics
     .filter((item) => item.severity === "error" || item.code.startsWith("GGCONV-E"))

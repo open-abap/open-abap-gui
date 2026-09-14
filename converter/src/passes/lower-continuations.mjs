@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 
-const SUSPENDING = /\b(CALL\s+SCREEN|CALL\s+SELECTION-SCREEN|CALL\s+TRANSACTION|SUBMIT\b.*\bAND\s+RETURN)\b/i;
 const CONTROL_WORDS = new Set(["CALL", "SCREEN", "SELECTION", "SUBMIT", "AND", "RETURN", "TRANSACTION", "USING", "WITH", "VALUE", "TYPE", "IF", "ELSE", "ELSEIF", "ENDIF", "DO", "ENDDO", "CASE", "WHEN", "ENDCASE"]);
 const OPENERS = new Set(["If", "Do", "Loop", "Case", "Try", "While"]);
 const BRANCHES = new Set(["Else", "ElseIf", "When", "WhenOthers", "Catch", "Cleanup"]);
@@ -12,6 +11,11 @@ const CLOSERS = new Map([
   ["Try", "EndTry"],
   ["While", "EndWhile"],
 ]);
+
+function isSuspendingStatement(statement) {
+  if (["CallScreen", "CallSelectionScreen", "CallTransaction"].includes(statement.kind)) return true;
+  return statement.kind === "Submit" && /\bAND\s+RETURN\b/i.test(statement.text);
+}
 
 function names(text) {
   return new Set([...text.replace(/'(?:''|[^'])*'/g, " ").matchAll(/\b[A-Z][A-Z0-9_]*(?:-[A-Z][A-Z0-9_]*)?\b/gi)]
@@ -34,7 +38,7 @@ export function collectContinuations(statements, knownVariables = []) {
   const known = new Set([...knownVariables, ...declared].map((name) => name.toUpperCase()));
   for (const statement of statements) {
     const contextDepth = controlStack.length;
-    if (SUSPENDING.test(statement.text)) {
+    if (isSuspendingStatement(statement)) {
       result.push({
         statement,
         contextDepth,

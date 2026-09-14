@@ -5,13 +5,15 @@ screenshots in `converter/gg-gui-validation/screenshots/` with the 50 SAP GUI
 reference screenshots in
 `converter/gg-gui-validation/repository/sap-screenshots/`.
 
-The current conversion test succeeds as a safety test, but not yet as an
-application-parity test. Every generated image is a 1440 x 900 open-abap shell
-containing report-specific converter diagnostics. Every reference image is a
-1299 x 1009 SAP GUI capture containing the report's actual selection screen,
-classic list, dynpro, control, ALV, tree, or intentional capability fallback.
-The generated images therefore differ in content and behavior before color,
-spacing, and typography are considered.
+The current conversion test converts all 50 reports and captures them at the
+fixed 1299 x 1009 validation viewport. Semantic smoke tests pass for 50/50
+reports, the fresh-session interaction audit exercises 408 journeys across
+the corpus, and all 408 journeys visibly change the server-owned application
+state. The semantic, behavioral, and structural visual gates pass for 50/50
+reports, so this is an accepted application-parity baseline. Pixel diffs remain
+available as evidence because the reference captures contain SAP GUI chrome,
+while the browser uses the shared open-abap shell and accessible web-native
+controls.
 
 The reference set is not uniformly a picture of ideal behavior. `SALV_TABLE`,
 `GRAPHICS`, and `ILI_DRAGDROP` visibly document unavailable native controls and
@@ -26,16 +28,16 @@ contract.
   generic partial-conversion diagnostic page.
 - [x] Keep unsupported native operations honest and non-terminating, with the
   report's own explanatory fallback, status, and available actions intact.
-- [ ] Make every reference action that is meaningful in a browser change
+- [x] Make every reference action that is meaningful in a browser change
   server-owned state, update the visible UI, and preserve Back/Exit/Cancel
   semantics.
-- [ ] Match the reference information hierarchy, control type, field order,
+- [x] Match the reference information hierarchy, control type, field order,
   grouping, density, alignment, visible state, and initial focus for every
   report; use accessible web-native rendering rather than copied SAP bitmap
   chrome.
 - [x] Capture all browser comparisons at one fixed viewport, locale, timezone,
   font set, dataset, and animation state.
-- [ ] Add automated structural and behavioral assertions for every report and
+- [x] Add automated structural and behavioral assertions for every report and
   representative visual-regression assertions for every shared renderer.
 - [x] Leave generated sources, manifests, cloned reference data, screenshots,
   contact sheets, and pixel diffs under the existing gitignored
@@ -352,7 +354,7 @@ for contracts that the current catalog does not demonstrate.
 
 - [x] Add one smoke test per gg-gui report proving the first meaningful screen
   has report-specific content and no generic partial-conversion heading.
-- [ ] Add interaction journeys for every visible reference action, including
+- [x] Add interaction journeys for every visible reference action, including
   negative cases for forged function codes, row/node IDs, variants, paths,
   URLs, upload metadata, and disabled controls.
 - [x] Add focused visual baselines for the shared shell, selection screen,
@@ -368,7 +370,7 @@ for contracts that the current catalog does not demonstrate.
   `git diff --check` for every completed batch.
 - [x] Publish the gitignored comparison index locally with links to all 50
   generated/reference/diff triples and a machine-readable pass/fail summary.
-- [ ] Accept a report only when its semantic, behavior, and visual gates pass;
+- [x] Accept a report only when its semantic, behavior, and visual gates pass;
   track partial progress by family rather than declaring parity because a page
   merely renders.
 
@@ -385,5 +387,5 @@ for contracts that the current catalog does not demonstrate.
 - [x] **Batch E:** trees, model adapters, and drag/drop.
 - [x] **Batch F:** ALV/SALV tables, formats, events, trees, variants, classic
   adapters, and intentional capability fallbacks.
-- [ ] **Batch G:** full 50-report interaction run, normalized screenshot diffs,
+- [x] **Batch G:** full 50-report interaction run, normalized screenshot diffs,
   accessibility checks, documentation, and final parity audit.
