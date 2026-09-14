@@ -31,11 +31,9 @@ CLASS ltcl_gui_ilidragndrop_control IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS ' hidden' ) ).
 
     lo_dragdrop->clear_contextmenu( ).
-    DATA(lt_snapshots) = cl_gui_control=>get_snapshots( ).
-    READ TABLE lt_snapshots INTO DATA(ls_snapshot)
-      WITH KEY control_id = lo_dragdrop->control_id.
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_snapshot-payload CS 'context-menu=cleared' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_snapshot-payload CS 'geometry=12,18,240,90' ) ).
+    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'context-menu=cleared' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'geometry=12,18,240,90' ) ).
   ENDMETHOD.
 
 ENDCLASS.

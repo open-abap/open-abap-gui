@@ -1,39 +1,5 @@
 CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
   PUBLIC SECTION.
-    TYPES: BEGIN OF ty_snapshot,
-             control_id             TYPE string,
-             parent_id              TYPE string,
-             kind                   TYPE string,
-             left                   TYPE i,
-             top                    TYPE i,
-             width                  TYPE i,
-             height                 TYPE i,
-             enabled                TYPE abap_bool,
-             visible                TYPE abap_bool,
-             focused                TYPE abap_bool,
-             payload                TYPE string,
-             html                   TYPE string,
-             buttons                TYPE ttb_button,
-             sapevent               TYPE abap_bool,
-             text_toolbar_mode      TYPE abap_bool,
-             text_statusbar_mode    TYPE abap_bool,
-             text_wordwrap_mode     TYPE i,
-             text_wordwrap_position TYPE i,
-             text_wrap_to_linebreak TYPE i,
-             text_fixed_font        TYPE i,
-             text_modified          TYPE i,
-             text_cursor_line       TYPE i,
-             text_cursor_pos        TYPE i,
-             text_protected_from    TYPE i,
-             text_protected_to      TYPE i,
-             text_readonly          TYPE abap_bool,
-             picture_display_mode   TYPE i,
-             picture_border         TYPE i,
-             picture_state          TYPE string,
-             picture_alt_text       TYPE string,
-            END OF ty_snapshot.
-    TYPES ty_snapshots TYPE STANDARD TABLE OF ty_snapshot WITH DEFAULT KEY.
-
     TYPES: BEGIN OF ty_field,
              name  TYPE string,
              value TYPE string,
@@ -85,9 +51,11 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         parent  TYPE REF TO cl_gui_container OPTIONAL
         kind    TYPE string DEFAULT 'CONTROL'.
 
-    CLASS-METHODS get_snapshots
+    CLASS-METHODS is_alive
+      IMPORTING
+        control       TYPE REF TO cl_gui_control
       RETURNING
-        VALUE(result) TYPE ty_snapshots.
+        VALUE(result) TYPE abap_bool.
 
     CLASS-METHODS render_html
       IMPORTING
@@ -243,6 +211,43 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         alt_text     TYPE string OPTIONAL.
 
   PRIVATE SECTION.
+* The control registry row is internal: it is only read by this class, the
+* render path, and nothing else. Keep the type private so no invented
+* structure appears in a public section.
+    TYPES: BEGIN OF ty_snapshot,
+             control_id             TYPE string,
+             parent_id              TYPE string,
+             kind                   TYPE string,
+             left                   TYPE i,
+             top                    TYPE i,
+             width                  TYPE i,
+             height                 TYPE i,
+             enabled                TYPE abap_bool,
+             visible                TYPE abap_bool,
+             focused                TYPE abap_bool,
+             payload                TYPE string,
+             html                   TYPE string,
+             buttons                TYPE ttb_button,
+             sapevent               TYPE abap_bool,
+             text_toolbar_mode      TYPE abap_bool,
+             text_statusbar_mode    TYPE abap_bool,
+             text_wordwrap_mode     TYPE i,
+             text_wordwrap_position TYPE i,
+             text_wrap_to_linebreak TYPE i,
+             text_fixed_font        TYPE i,
+             text_modified          TYPE i,
+             text_cursor_line       TYPE i,
+             text_cursor_pos        TYPE i,
+             text_protected_from    TYPE i,
+             text_protected_to      TYPE i,
+             text_readonly          TYPE abap_bool,
+             picture_display_mode   TYPE i,
+             picture_border         TYPE i,
+             picture_state          TYPE string,
+             picture_alt_text       TYPE string,
+            END OF ty_snapshot.
+    TYPES ty_snapshots TYPE STANDARD TABLE OF ty_snapshot WITH DEFAULT KEY.
+
     CLASS-DATA mv_next_id TYPE i.
     CLASS-DATA mo_focus TYPE REF TO cl_gui_control.
     CLASS-DATA mt_snapshots TYPE ty_snapshots.
@@ -464,8 +469,13 @@ CLASS cl_gui_control IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD get_snapshots.
-    result = mt_snapshots.
+  METHOD is_alive.
+    IF control IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_snapshots TRANSPORTING NO FIELDS
+      WITH KEY control_id = control->control_id.
+    result = xsdbool( sy-subrc = 0 ).
   ENDMETHOD.
 
   METHOD has_content.

@@ -212,15 +212,10 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD shell_is_alive.
-    DATA lt_snapshots TYPE cl_gui_control=>ty_snapshots.
-
     IF mo_viewer IS NOT BOUND.
       RETURN.
     ENDIF.
-    lt_snapshots = cl_gui_control=>get_snapshots( ).
-    READ TABLE lt_snapshots TRANSPORTING NO FIELDS
-      WITH KEY control_id = mo_viewer->control_id.
-    rv_alive = xsdbool( sy-subrc = 0 ).
+    rv_alive = cl_gui_control=>is_alive( mo_viewer ).
   ENDMETHOD.
 
   METHOD handle_action.

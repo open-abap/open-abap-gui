@@ -54,26 +54,16 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
       fcode     = 'TEST'
       text      = 'Updated'
       quickinfo = 'Updated button' ).
-    DATA(lt_snapshots) = cl_gui_control=>get_snapshots( ).
-    READ TABLE lt_snapshots INTO DATA(ls_snapshot)
-      WITH KEY control_id = lo_toolbar->control_id.
-
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_snapshot-buttons[ 1 ]-text
-      exp = 'Updated' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_snapshot-buttons[ 1 ]-disabled
-      exp = 'X' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_snapshot-buttons[ 1 ]-checked
-      exp = 'X' ).
+    DATA(lv_toolbar_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS 'value="COMMAND:TEST"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS '>Updated</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS 'aria-pressed="true"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS 'disabled aria-disabled="true"' ) ).
     lo_toolbar->set_button_visible(
       fcode   = 'TEST'
       visible = ' ' ).
-    lt_snapshots = cl_gui_control=>get_snapshots( ).
-    READ TABLE lt_snapshots INTO ls_snapshot
-      WITH KEY control_id = lo_toolbar->control_id.
-    cl_abap_unit_assert=>assert_initial( act = ls_snapshot-buttons ).
+    lv_toolbar_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_toolbar_html CS 'COMMAND:TEST' ) ).
     cl_gui_control=>clear( ).
   ENDMETHOD.
 
