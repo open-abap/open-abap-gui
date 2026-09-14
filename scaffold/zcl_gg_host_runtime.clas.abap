@@ -683,6 +683,16 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       CATCH cx_root.
         CLEAR ro_report.
     ENDTRY.
+    IF ro_report IS NOT BOUND.
+      lv_class_name = iv_program.
+      TRANSLATE lv_class_name TO UPPER CASE.
+      REPLACE FIRST OCCURRENCE OF 'ZGG_' IN lv_class_name WITH 'ZCL_CV_'.
+      TRY.
+          CREATE OBJECT ro_report TYPE (lv_class_name).
+        CATCH cx_root.
+          CLEAR ro_report.
+      ENDTRY.
+    ENDIF.
   ENDMETHOD.
 
   METHOD clear.

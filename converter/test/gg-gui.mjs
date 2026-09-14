@@ -186,6 +186,181 @@ async function waitForDeterministicFonts(page) {
   await page.evaluate(() => document.fonts?.ready);
 }
 
+async function applicationFingerprint(page) {
+  return page.locator("[data-page-kind]").evaluate((pageRoot) => {
+    const copy = pageRoot.cloneNode(true);
+    copy.querySelectorAll("script, input[name=session_id], input[name=page_id]").forEach((node) => node.remove());
+    copy.querySelectorAll("[data-session-id], [data-page-id]").forEach((node) => {
+      node.removeAttribute("data-session-id");
+      node.removeAttribute("data-page-id");
+    });
+    return copy.innerHTML;
+  });
+}
+
+async function inventoryReferenceActions(page) {
+  const submitControls = await page.locator(".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]").evaluateAll((elements) => {
+    const isVisible = (element) => {
+      if (element.disabled || element.hidden) return false;
+      for (let current = element; current; current = current.parentElement) {
+        if (current.hidden || current.matches("details:not([open])")) return false;
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    return elements.map((element, index) => ({
+    index,
+    name: element.getAttribute("name") || "",
+    value: element.getAttribute("value") || "",
+    label: (element.getAttribute("aria-label") || element.textContent || element.getAttribute("value") || "").trim().replace(/\s+/g, " "),
+    disabled: element.disabled,
+    visible: isVisible(element),
+  })).filter((item) => item.visible);
+  });
+  const selectionChanges = await page.locator(".wb-runtime-content [data-selection-ucomm]").evaluateAll((elements) => {
+    const isVisible = (element) => {
+      if (element.disabled || element.hidden) return false;
+      for (let current = element; current; current = current.parentElement) {
+        if (current.hidden || current.matches("details:not([open])")) return false;
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    return elements.map((element, index) => ({
+    index,
+    name: element.getAttribute("name") || "",
+    ucomm: element.getAttribute("data-selection-ucomm") || "",
+    type: element.getAttribute("type") || element.tagName.toLowerCase(),
+    label: (element.getAttribute("aria-label") || element.getAttribute("name") || "selection change").trim(),
+    checked: Boolean(element.checked),
+    optionCount: element.tagName.toLowerCase() === "select" ? element.options.length : 0,
+    disabled: element.disabled,
+    visible: isVisible(element),
+  })).filter((item) => item.visible);
+  });
+  return {submitControls, selectionChanges};
+}
+
+async function postDispatch(page, request) {
+  const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
+  const pageId = await page.locator("[data-page-kind]").getAttribute("data-page-id");
+  const response = await page.context().request.post(new URL("/dispatch", page.url()).href, {
+    headers: {"content-type": "application/json"},
+    data: {session_id: sessionId, page_id: pageId, ...request},
+  });
+  return {status: response.status(), body: await response.text()};
+}
+
+async function runReferenceInteractionAudit(browser, baseUrl, results) {
+  const actionPage = await newScreenshotPage(browser);
+  const negativePage = await newScreenshotPage(browser);
+  try {
+    for (const result of results) {
+      const url = `${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`;
+      await actionPage.goto(url, {waitUntil: "load"});
+      await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+      const inventory = await inventoryReferenceActions(actionPage);
+      const journey = [];
+
+      for (const action of inventory.submitControls.filter((item) => !item.disabled)) {
+        await actionPage.goto(url, {waitUntil: "load"});
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        const before = await applicationFingerprint(actionPage);
+        const controls = actionPage.locator(".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]");
+        const lineNumber = /^LINE:(\d+)\|/.exec(action.value)?.[1];
+        const control = lineNumber
+          ? actionPage.locator(`.wb-runtime-content [data-line-index="${lineNumber}"] button[type=submit]`)
+          : controls.nth(action.index);
+        assert.equal(await control.isVisible(), true, `${result.programName} action ${action.label} is not visible on its fresh journey`);
+        const response = await Promise.all([
+          actionPage.waitForNavigation({waitUntil: "load"}),
+          control.click(),
+        ]).then(([navigation]) => navigation);
+        assert.equal(response?.status(), 200, `${result.programName} action ${action.value || action.label} did not return HTTP 200`);
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        const after = await applicationFingerprint(actionPage);
+        assert.notEqual(afterPageId, beforePageId, `${result.programName} action ${action.value || action.label} did not create a new server-owned page state`);
+        journey.push({kind: "submit", label: action.label, ucomm: action.value, stateChanged: before !== after, pageChanged: true});
+      }
+
+      for (const action of inventory.selectionChanges.filter((item) => item.ucomm && !item.disabled && (item.type !== "select" || item.optionCount > 1) && (item.type !== "radio" || !item.checked))) {
+        await actionPage.goto(url, {waitUntil: "load"});
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        const controls = actionPage.locator(".wb-runtime-content [data-selection-ucomm]");
+        const control = controls.nth(action.index);
+        assert.equal(await control.isVisible(), true, `${result.programName} selection action ${action.ucomm} is not visible on its fresh journey`);
+        const responsePromise = actionPage.waitForNavigation({waitUntil: "load"});
+        if (action.type === "select") {
+          const options = await control.locator("option").count();
+          if (options > 1) await control.selectOption({index: 1});
+          else await control.selectOption({index: 0});
+        } else if (action.type === "checkbox" || action.type === "radio") {
+          await control.check();
+        } else {
+          await control.dispatchEvent("change");
+        }
+        let response;
+        try {
+          response = await responsePromise;
+        } catch (error) {
+          throw new Error(`${result.programName} selection action ${action.ucomm} did not dispatch: ${error.message}`);
+        }
+        assert.equal(response?.status(), 200, `${result.programName} selection action ${action.ucomm} did not return HTTP 200`);
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        assert.notEqual(afterPageId, beforePageId, `${result.programName} selection action ${action.ucomm} did not create a new server-owned page state`);
+        journey.push({kind: "selection-change", label: action.label, ucomm: action.ucomm, pageChanged: true});
+      }
+
+      await negativePage.goto(url, {waitUntil: "load"});
+      await negativePage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+      const forgedCommand = await postDispatch(negativePage, {action: "COMMAND", ucomm: "PLAN9_FORGED_FUNCTION"});
+      assert.equal(forgedCommand.status, 400, `${result.programName} accepted a forged function code: ${forgedCommand.body}`);
+      const forgedRow = await postDispatch(negativePage, {action: "LINE", row: 999, token: "PLAN9_FORGED_NODE"});
+      assert.equal(forgedRow.status, 400, `${result.programName} accepted a forged row/node id: ${forgedRow.body}`);
+      const unsafeMetadata = await postDispatch(negativePage, {
+        action: "COMMAND",
+        ucomm: "PLAN9_FORGED_METADATA",
+        variant: "../../outside",
+        path: "../../outside",
+        url: "javascript:alert(1)",
+        file_name: "../../outside.txt",
+        mime_type: "text/plain",
+      });
+      assert.equal(unsafeMetadata.status, 400, `${result.programName} accepted forged variant/path/URL/upload metadata: ${unsafeMetadata.body}`);
+      const disabled = inventory.submitControls.filter((item) => item.disabled && item.value);
+      for (const control of disabled) {
+        const disabledResult = await postDispatch(negativePage, {action: "COMMAND", ucomm: control.value});
+        assert.equal(disabledResult.status, 400, `${result.programName} accepted disabled action ${control.value}: ${disabledResult.body}`);
+      }
+      result.interactionAudit = {
+        status: "passed",
+        visibleActionCount: inventory.submitControls.length + inventory.selectionChanges.length,
+        journeyCount: journey.length,
+        journeys: journey,
+        disabledActionCount: disabled.length,
+        negativeCases: {
+          forgedFunctionCode: "passed",
+          forgedRowOrNodeId: "passed",
+          forgedVariantPathUrlUploadMetadata: "passed",
+          disabledControls: "passed",
+        },
+        evidence: `Fresh-session journeys dispatched ${journey.length} enabled visible application action(s); every forged command, row/node id, unsafe metadata request, and disabled action was rejected by the server.`,
+      };
+    }
+  } finally {
+    await actionPage.close();
+    await negativePage.close();
+  }
+}
+
 function escapeHtml(value) {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
@@ -412,7 +587,7 @@ for (const filename of reportFiles) {
     transactionCode: transactionCode(programName),
     description: `Converted gg-gui report ${programName}`,
     mode: "partial",
-     partialStrategy: ["ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP", "ZGG_GUI_GUI_STATUS", "ZGG_GUI_NAVIGATION"].includes(programName) ? "preserve" : "skeleton",
+     partialStrategy: ["ZGG_GUI_ABAP_BROWSER", "ZGG_GUI_ALV_CLASSIC", "ZGG_GUI_ALV_DYNAMIC", "ZGG_GUI_ALV_FORMAT", "ZGG_GUI_ALV_GRID", "ZGG_GUI_ALV_VARIANTS", "ZGG_GUI_CATALOG", "ZGG_GUI_CLASSIC_LIST", "ZGG_GUI_CUSTOM_CONTAINER", "ZGG_GUI_DIALOG_CONTAINER", "ZGG_GUI_DOCKING_CONTAINER", "ZGG_GUI_GRAPHICS", "ZGG_GUI_POPUPS", "ZGG_GUI_SEL_FIELDS", "ZGG_GUI_SEL_RANGES", "ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP", "ZGG_GUI_GUI_STATUS", "ZGG_GUI_NAVIGATION", "ZGG_GUI_TREE_MODELS"].includes(programName) ? "preserve" : "skeleton",
     resolveInclude,
     screenMetadata,
     ddicTypes: GG_GUI_DDIC_TYPES,
@@ -431,6 +606,7 @@ for (const filename of reportFiles) {
     supported: result.supported,
     diagnostics: result.diagnostics,
     smokeTest: pendingSmokeTest(),
+    interactionAudit: {status: "not-run"},
     comparisonAccepted: false,
     comparisonGates: pendingComparisonGates(),
     fallbackAudit: intentionalReferenceFallbacks[programName] || null,
@@ -543,6 +719,7 @@ try {
     await waitForDeterministicFonts(page);
     await page.screenshot({path: path.join(screenshotsRoot, `${result.programName.toLowerCase()}.png`), fullPage: true});
   }
+  await runReferenceInteractionAudit(browser, baseUrl, results);
   const variantsPage = await newScreenshotPage(browser);
   variantsPage.on("dialog", async (dialog) => dialog.accept());
   const variantsUrl = `${baseUrl}/transaction?tcode=${encodeURIComponent("CV_SEL_VARIANTS")}`;
@@ -910,14 +1087,15 @@ try {
   await statusPage.waitForLoadState("load");
   await statusPage.locator('[name="GV_INPUT"]').click({button: "right"});
   assert.equal(await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').isDisabled(), true);
-  await statusPage.locator('[name="GV_INPUT"]').focus();
-  await statusPage.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", {
-    key: "F14",
-    code: "F14",
-    bubbles: true,
-    cancelable: true,
-  })));
-  await statusPage.waitForLoadState("load");
+  await Promise.all([
+    statusPage.waitForNavigation({waitUntil: "load"}),
+    statusPage.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "F14",
+      code: "F14",
+      bubbles: true,
+      cancelable: true,
+    }))),
+  ]);
   assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Normal/);
   assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Apply"]').isDisabled(), false);
   await statusPage.close();
