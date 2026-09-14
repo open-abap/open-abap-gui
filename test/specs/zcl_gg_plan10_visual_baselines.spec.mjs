@@ -30,10 +30,10 @@ test("PLAN10 - fixed viewport visual baselines cover every shared renderer", asy
     await page.evaluate(() => document.fonts?.ready);
     // Chromium's rasterization differs slightly between the local Linux image
     // used to create the baselines and the GitHub-hosted Ubuntu runner. The
-    // modeless example also contains a native textarea, so allow its bounded
-    // platform-specific rendering difference while keeping other baselines at
-    // a tighter threshold.
-    const maxDiffPixelRatio = baseline.name === "modeless-dialog" ? 0.03 : 0.005;
+    // The modeless and splitter examples contain native textareas, so allow
+    // their bounded platform-specific rendering difference while keeping
+    // other baselines at a tighter threshold.
+    const maxDiffPixelRatio = ["modeless-dialog", "splitter"].includes(baseline.name) ? 0.03 : 0.005;
     await expect(page.locator(baseline.target || ".wb-runtime-content")).toHaveScreenshot(`${baseline.name}.png`, {
       animations: "disabled",
       caret: "hide",
