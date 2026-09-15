@@ -104,7 +104,7 @@ ENDCLASS.
 CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
   METHOD render_styles.
-    rv_html = ':root{--gg-work-area:#d5e6f3;--gg-work-surface:#fff;--gg-panel:#e3eff8;--gg-border-dark:#5b7790;--gg-border:#8daac4;--gg-input:#fff1a6;--gg-action:#fff3a3;--gg-row:26px;--gg-content-font:system-ui,Segoe UI,Tahoma,Arial,sans-serif;--gg-mono-font:ui-monospace,SFMono-Regular,Consolas,monospace;color-scheme:light}' &&
+    rv_html = ':root{--gg-work-area:#d5e6f3;--gg-work-surface:#fff;--gg-panel:#e3eff8;--gg-border-dark:#5b7790;--gg-border:#8daac4;--gg-input:#fff;--gg-action:#fff3a3;--gg-row:26px;--gg-content-font:system-ui,Segoe UI,Tahoma,Arial,sans-serif;--gg-mono-font:ui-monospace,SFMono-Regular,Consolas,monospace;color-scheme:light}' &&
       'html,body{margin:0;height:100%;min-height:100%;overflow:hidden;font-family:var(--gg-content-font);font-size:13px;line-height:1.25;color:#1d2d3e;background:var(--gg-work-area)}' &&
       '.wb-shell{height:100vh;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:var(--gg-work-area)}' &&
       '.wb-menubar,.wb-commandbar,.wb-appbar,.wb-toolbar,.wb-statusbar{flex:0 0 auto}' &&
@@ -123,7 +123,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-menu-action:disabled{background:#eee;color:#808080;cursor:default}' &&
       '.wb-menu-separator{display:block;height:1px;margin:3px 4px;background:#b4c8db}' &&
       '.wb-commandbar{height:38px;display:flex;align-items:center;gap:2px;padding:0 0 0 18px;background:linear-gradient(#f7faff,#e4edf7);border-bottom:1px solid var(--gg-border-dark);box-sizing:border-box}' &&
-      '.wb-command-input{width:190px;height:28px;padding:3px 9px;border:1px solid var(--gg-border-dark);border-radius:2px;background:var(--gg-input);box-sizing:border-box;color:#1d2d3e;font:inherit;box-shadow:inset 0 1px 2px #d6e0eb}' &&
+      '.wb-command-input{width:190px;height:28px;padding:3px 9px;border:1px solid var(--gg-border-dark);border-radius:2px;background:var(--gg-action);box-sizing:border-box;color:#1d2d3e;font:inherit;box-shadow:inset 0 1px 2px #d6e0eb}' &&
       '.wb-command-input:focus{outline:2px solid #8db5df;outline-offset:0}' &&
       '.wb-command-error{color:#a32121;font-weight:600;margin-left:12px;max-width:48vw}' &&
       '.wb-command-button{height:30px;min-width:28px;padding:0 5px;border:1px solid transparent;border-radius:3px;background:transparent;color:#15589a;font-weight:600;cursor:pointer}' &&

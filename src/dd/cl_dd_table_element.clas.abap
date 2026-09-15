@@ -1,7 +1,8 @@
-CLASS cl_dd_table_element DEFINITION PUBLIC.
+CLASS cl_dd_table_element DEFINITION PUBLIC FRIENDS cl_dd_area.
   PUBLIC SECTION.
 
     DATA table_of_columns TYPE sdydo_object_table.
+    DATA row_count TYPE i.
 
     METHODS set_column_style
       IMPORTING
@@ -42,23 +43,29 @@ CLASS cl_dd_table_element DEFINITION PUBLIC.
         sap_fontstyle TYPE any OPTIONAL
         sap_emphasis  TYPE any OPTIONAL.
 
+  PRIVATE SECTION.
+    DATA html_content TYPE string.
+
 ENDCLASS.
 
 CLASS cl_dd_table_element IMPLEMENTATION.
   METHOD set_row_style.
-    RETURN. " todo, implement method
+    html_content = html_content && |<tr data-row="{ row_no }" class="{ CONV string( sap_style ) }">|.
   ENDMETHOD.
 
   METHOD new_row.
-    RETURN. " todo, implement method
+    row_count = row_count + 1.
+    html_content = html_content && `<tr>`.
   ENDMETHOD.
 
   METHOD add_column.
-    RETURN. " todo, implement method
+    column = NEW cl_dd_area( ).
+    column->html_content = |<td class="{ CONV string( style_class ) }">{ cl_gui_control=>escape_html( CONV string( heading ) ) }</td>|.
+    APPEND column TO table_of_columns.
   ENDMETHOD.
 
   METHOD set_column_style.
-    RETURN. " todo, implement method
+    html_content = html_content && |<!-- column { col_no } style { CONV string( sap_style ) } -->|.
   ENDMETHOD.
 
 ENDCLASS.

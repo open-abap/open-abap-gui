@@ -303,129 +303,135 @@ ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
   METHOD get_drive_type.
-    RETURN. " todo, implement method
+    CLEAR drive_type.
   ENDMETHOD.
 
   METHOD get_computer_name.
-    RETURN. " todo, implement method
+    CLEAR computer_name.
   ENDMETHOD.
 
   METHOD get_desktop_directory.
-    RETURN. " todo, implement method
+    CLEAR desktop_directory.
   ENDMETHOD.
 
   METHOD get_upload_download_path.
-    RETURN. " todo, implement method
+    CLEAR upload_path.
+    CLEAR download_path.
   ENDMETHOD.
 
   METHOD directory_get_current.
-    RETURN. " todo, implement method
+    CLEAR current_directory.
   ENDMETHOD.
 
   METHOD file_copy.
-    RETURN. " todo, implement method
+    RETURN.
   ENDMETHOD.
 
   METHOD directory_delete.
-    RETURN. " todo, implement method
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD file_get_size.
-    RETURN. " todo, implement method
+    CLEAR file_size.
   ENDMETHOD.
 
   METHOD registry_get_value.
-    RETURN. " todo, implement method
+    CLEAR reg_value.
   ENDMETHOD.
 
   METHOD get_temp_directory.
-    RETURN. " todo, implement method
+* This is an application namespace, not a claimed operating-system path.
+    temp_dir = '/browser/session-owned'.
   ENDMETHOD.
 
   METHOD directory_exist.
-    ASSERT 1 = 'directory_exist not supported'.
+    CLEAR result.
   ENDMETHOD.
 
   METHOD get_sapgui_workdir.
-    ASSERT 1 = 'get_sapgui_workdir not supported'.
+    CLEAR sapworkdir.
   ENDMETHOD.
 
   METHOD file_exist.
-    ASSERT 1 = 'file_exist not supported'.
+    CLEAR result.
   ENDMETHOD.
 
   METHOD file_delete.
-    ASSERT 1 = 'file_delete not supported'.
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD get_sapgui_directory.
-    RETURN. " todo, implement method
+    CLEAR sapgui_directory.
   ENDMETHOD.
 
   METHOD directory_set_current.
-    RETURN. " todo, implement method
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD clipboard_import.
-    ASSERT 1 = 'clipboard_import not supported'.
+    CLEAR data.
+    CLEAR length.
   ENDMETHOD.
 
   METHOD directory_list_files.
-    ASSERT 1 = 'directory_list_files not supported'.
+    CLEAR file_table.
+    CLEAR count.
   ENDMETHOD.
 
   METHOD directory_create.
-    ASSERT 1 = 'directory_create not supported'.
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD gui_download.
-    ASSERT 1 = 'gui_download not supported'.
+    CLEAR data_tab.
   ENDMETHOD.
 
   METHOD get_file_separator.
-    ASSERT 1 = 'get_file_separator not supported'.
+    file_separator = '/'.
   ENDMETHOD.
 
   METHOD execute.
-    ASSERT 1 = 'execute not supported'.
+    RETURN.
   ENDMETHOD.
 
   METHOD directory_browse.
-    ASSERT 1 = 'directory_browse not supported'.
+    CLEAR selected_folder.
   ENDMETHOD.
 
   METHOD gui_upload.
-    ASSERT 1 = 'gui_upload not supported'.
+    CLEAR data_tab.
+    CLEAR filelength.
+    CLEAR header.
   ENDMETHOD.
 
   METHOD file_open_dialog.
-    ASSERT 1 = 'file_open_dialog not supported'.
+    CLEAR file_table.
+    rc = action_cancel.
+    user_action = action_cancel.
   ENDMETHOD.
 
   METHOD file_save_dialog.
-    ASSERT 1 = 'file_save_dialog not supported'.
+    CLEAR filename.
+    CLEAR path.
+    CLEAR fullpath.
+    user_action = action_cancel.
   ENDMETHOD.
 
   METHOD get_platform.
-    platform = platform_windowsxp.
+    CLEAR platform.
   ENDMETHOD.
 
   METHOD clipboard_export.
-    ASSERT 1 = 'clipboard_export not supported'.
+    CLEAR data.
+    rc = action_cancel.
   ENDMETHOD.
 
   METHOD get_system_directory.
-    ASSERT 1 = 'get_system_directory not supported'.
+    CLEAR system_directory.
   ENDMETHOD.
 
   METHOD get_gui_version.
-* just some dummy values
-
-* release,
-    INSERT '9999' INTO TABLE version_table.
-* sp,
-    INSERT '1' INTO TABLE version_table.
-* patch,
-    INSERT '20' INTO TABLE version_table.
+    CLEAR version_table.
+    rc = action_cancel.
   ENDMETHOD.
 ENDCLASS.

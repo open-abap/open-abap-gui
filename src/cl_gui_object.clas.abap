@@ -45,7 +45,7 @@ CLASS cl_gui_object IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD is_valid.
-    RETURN. " todo, implement method
+    result = 1.
   ENDMETHOD.
 
 ENDCLASS.

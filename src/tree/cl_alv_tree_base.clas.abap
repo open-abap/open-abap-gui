@@ -75,8 +75,10 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     DATA mr_column_tree TYPE REF TO cl_gui_column_tree.
     DATA mr_toolbar TYPE REF TO cl_gui_toolbar.
+    DATA mr_default_drop TYPE REF TO cl_dragdrop.
 
     DATA ms_exception_field TYPE lvc_s_l004.
+    DATA ms_layout TYPE lvc_s_layo.
     DATA ms_hierarchy_header TYPE treev_hhdr.
     DATA mt_calculated_items TYPE HASHED TABLE OF lvc_s_item WITH UNIQUE KEY node_key item_name.
     DATA mt_checked_items TYPE lvc_t_chit.
@@ -90,6 +92,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mt_simple_hierarchy_data TYPE HASHED TABLE OF lvc_s_item WITH UNIQUE KEY node_key item_name.
     DATA mt_sort TYPE lvc_t_sort.
     DATA mt_special_groups TYPE lvc_t_sgrp.
+    DATA mt_toolbar TYPE ttb_button.
     DATA mt_toolbar_excluding TYPE ui_functions.
 
     TYPES: BEGIN OF ty_html_node,
@@ -98,6 +101,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
              text       TYPE string,
              expanded   TYPE abap_bool,
              selected   TYPE abap_bool,
+             data_row   TYPE REF TO data,
            END OF ty_html_node.
     TYPES ty_html_nodes TYPE STANDARD TABLE OF ty_html_node WITH DEFAULT KEY.
     DATA mt_html_nodes TYPE ty_html_nodes.
@@ -306,7 +310,8 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       IMPORTING
         node_key   TYPE string
         parent_key TYPE string OPTIONAL
-        text       TYPE string OPTIONAL.
+        text       TYPE string OPTIONAL
+        data_row   TYPE any OPTIONAL.
 
     METHODS refresh_tree_html.
 
@@ -332,139 +337,327 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_column.
-    RETURN. " todo, implement method
+    READ TABLE mt_fieldcatalog TRANSPORTING NO FIELDS
+      WITH KEY fieldname = i_column.
+    IF sy-subrc <> 0.
+      APPEND VALUE #( fieldname = i_column ) TO mt_fieldcatalog.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_toolbar_buttons.
-    RETURN. " todo, implement method
+    IF mr_toolbar IS BOUND.
+      mr_toolbar->add_button_group( data_table = mt_toolbar ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_filter.
-    RETURN. " todo, implement method
+    mt_filter = it_filter.
   ENDMETHOD.
 
   METHOD set_fieldcatalog.
-    RETURN. " todo, implement method
+    mt_fieldcatalog = it_fieldcatalog.
   ENDMETHOD.
 
   METHOD set_first_fieldcatalog.
-    RETURN. " todo, implement method
+    IF it_fieldcatalog IS SUPPLIED.
+      mt_fieldcatalog = it_fieldcatalog.
+    ENDIF.
+    IF it_sort IS SUPPLIED.
+      mt_sort = it_sort.
+    ENDIF.
+    IF it_filter IS SUPPLIED.
+      mt_filter = it_filter.
+    ENDIF.
+    IF is_layout IS SUPPLIED.
+      ms_layout = is_layout.
+    ENDIF.
   ENDMETHOD.
 
   METHOD create_report_header.
-    RETURN. " todo, implement method
+    mt_list_commentary = it_list_commentary.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Report header lines={ lines( mt_list_commentary ) }| ).
   ENDMETHOD.
 
   METHOD add_model_node.
-    RETURN. " todo, implement method
+    DATA lv_parent_key TYPE string.
+    DATA lv_new_key TYPE string.
+
+    IF i_relat_node_key IS NOT INITIAL.
+      READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+        WITH KEY node_key = CONV string( i_relat_node_key ).
+      IF sy-subrc <> 0 AND i_relat_node_key <> c_virtual_root_node.
+        RAISE relat_node_not_found.
+      ENDIF.
+      lv_parent_key = CONV string( i_relat_node_key ).
+    ENDIF.
+
+    lv_new_key = |MODEL-{ lines( mt_html_nodes ) + 1 }|.
+    WHILE line_exists( mt_html_nodes[ node_key = lv_new_key ] ).
+      lv_new_key = |MODEL-{ lines( mt_html_nodes ) + 1 }-{ sy-index }|.
+    ENDWHILE.
+    add_html_node(
+      node_key   = lv_new_key
+      parent_key = lv_parent_key
+      text       = COND #( WHEN i_node_text IS SUPPLIED AND i_node_text IS NOT INITIAL
+                            THEN CONV string( i_node_text )
+                            ELSE lv_new_key ) ).
+    APPEND VALUE #( ) TO mt_index_outtab.
+    e_new_node_key = CONV lvc_nkey( lv_new_key ).
   ENDMETHOD.
 
   METHOD vroot_children_to_queue.
-    RETURN. " todo, implement method
+    CLEAR mv_html_top_node.
+    READ TABLE mt_html_nodes INTO DATA(ls_node) INDEX 1.
+    IF sy-subrc = 0.
+      mv_html_top_node = ls_node-node_key.
+    ENDIF.
   ENDMETHOD.
 
   METHOD calculate_subtree.
-    RETURN. " todo, implement method
+    DATA lt_pending TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lv_pending TYPE string.
+    DATA lv_has_child TYPE abap_bool.
+    CLEAR i_leafcount.
+    APPEND CONV string( i_node_key ) TO lt_pending.
+    WHILE lt_pending IS NOT INITIAL.
+      READ TABLE lt_pending INTO lv_pending INDEX 1.
+      DELETE lt_pending INDEX 1.
+      lv_has_child = abap_false.
+      LOOP AT mt_html_nodes INTO DATA(ls_child)
+          WHERE parent_key = lv_pending.
+        lv_has_child = abap_true.
+        APPEND ls_child-node_key TO lt_pending.
+      ENDLOOP.
+      IF lv_has_child = abap_false.
+        i_leafcount = i_leafcount + 1.
+      ENDIF.
+    ENDWHILE.
   ENDMETHOD.
 
   METHOD apply_filter.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Tree filter rows={ lines( mt_filter ) }| ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD tree_init.
-    RETURN. " todo, implement method
+    vroot_children_to_queue( ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD set_node_context_menu.
-    RETURN. " todo, implement method
+    RAISE EVENT node_context_menu_request
+      EXPORTING
+        node_key = i_node_key
+        menu     = c_menu.
   ENDMETHOD.
 
   METHOD set_hierarchy_help_fields.
-    RETURN. " todo, implement method
+    IF i_doktitle IS SUPPLIED.
+      ms_hierarchy_header-heading = i_doktitle.
+    ENDIF.
+    IF i_ref_field IS SUPPLIED.
+      ms_hierarchy_header-tooltip = i_ref_field.
+    ENDIF.
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |Hierarchy help field={ i_ref_field } title={ i_doktitle }| ).
   ENDMETHOD.
 
   METHOD handle_generic_functions.
-    RETURN. " todo, implement method
+    CLEAR e_event_handled.
+    IF i_fcode IS INITIAL.
+      RETURN.
+    ENDIF.
+    m_fcode = i_fcode.
+    e_event_handled = xsdbool(
+      i_fcode = mc_fc_calculate OR
+      i_fcode = mc_fc_calculate_avg OR
+      i_fcode = mc_fc_calculate_max OR
+      i_fcode = mc_fc_calculate_min OR
+      i_fcode = mc_fc_calculate_sum ).
+    RAISE EVENT after_user_command EXPORTING ucomm = i_fcode.
   ENDMETHOD.
 
   METHOD set_item_context_menu.
-    RETURN. " todo, implement method
+    RAISE EVENT node_context_menu_request
+      EXPORTING
+        node_key = i_node_key
+        menu     = c_menu.
   ENDMETHOD.
 
   METHOD add_children_to_control.
-    RETURN. " todo, implement method
+    CLEAR e_change.
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = CONV string( i_node ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    e_change = xsdbool( line_exists( mt_html_nodes[ parent_key = CONV string( i_node ) ] ) ).
+    IF e_change = 'X'.
+      add_subtree_to_control( i_node_key = i_node ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_children_at_front.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc <> 0.
+      RAISE node_not_found.
+    ENDIF.
+    DELETE mt_html_nodes INDEX sy-tabix.
+    INSERT ls_node INTO mt_html_nodes INDEX 1.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD update_checked_items.
-    RETURN. " todo, implement method
+    DELETE mt_checked_items WHERE nodekey = i_node_key
+                              AND fieldname = i_fieldname.
+    IF i_checked = abap_true.
+      APPEND VALUE #( nodekey   = i_node_key
+                      fieldname = i_fieldname ) TO mt_checked_items.
+    ENDIF.
   ENDMETHOD.
 
   METHOD add_subtree_to_control.
-    RETURN. " todo, implement method
+    ensure_node_in_control_int( i_node_key ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD ensure_node_in_control_int.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc <> 0.
+      RAISE node_not_found.
+    ENDIF.
   ENDMETHOD.
 
   METHOD tree_node_has_children.
-    RETURN. " todo, implement method
+    CLEAR e_has_children.
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc <> 0.
+      RAISE node_key_not_found.
+    ENDIF.
+    e_has_children = xsdbool(
+      line_exists( mt_html_nodes[ parent_key = CONV string( i_node_key ) ] ) ).
   ENDMETHOD.
 
   METHOD tree_get_first_leafe.
-    RETURN. " todo, implement method
+    DATA lt_pending TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lv_pending TYPE string.
+    DATA lv_has_child TYPE abap_bool.
+    APPEND CONV string( i_node_key ) TO lt_pending.
+    WHILE lt_pending IS NOT INITIAL.
+      READ TABLE lt_pending INTO lv_pending INDEX 1.
+      DELETE lt_pending INDEX 1.
+      READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+        WITH KEY node_key = lv_pending.
+      IF sy-subrc <> 0.
+        RAISE node_not_found.
+      ENDIF.
+      lv_has_child = abap_false.
+      LOOP AT mt_html_nodes INTO DATA(ls_child)
+          WHERE parent_key = lv_pending.
+        lv_has_child = abap_true.
+        APPEND ls_child-node_key TO lt_pending.
+      ENDLOOP.
+      IF lv_has_child = abap_false.
+        e_node_key = CONV lvc_nkey( lv_pending ).
+        RETURN.
+      ENDIF.
+    ENDWHILE.
   ENDMETHOD.
 
   METHOD tree_get_parent.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc = 0.
+      e_parent_node_key = CONV lvc_nkey( ls_node-parent_key ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD tree_get_children.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node)
+        WHERE parent_key = CONV string( i_node_key ).
+      APPEND CONV lvc_nkey( ls_node-node_key ) TO et_children.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_index_from_node_key.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc = 0.
+      e_index = sy-tabix.
+    ENDIF.
   ENDMETHOD.
 
   METHOD frontend_update.
-    RETURN. " todo, implement method
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD determine_icon_for_exception.
-    RETURN. " todo, implement method
+    e_icon_value = '@5B@'.
   ENDMETHOD.
 
   METHOD change_line.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    IF i_node_text IS SUPPLIED.
+      ls_node-text = CONV string( i_node_text ).
+    ENDIF.
+    MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_node_key_from_index.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node) INDEX i_index.
+    IF sy-subrc = 0.
+      e_node_key = CONV lvc_nkey( ls_node-node_key ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_default_drop.
-    RETURN. " todo, implement method
+    DATA lv_handle TYPE i.
+    IF i_drag_drop IS NOT BOUND.
+      RAISE invalid_drag_drop_obj.
+    ENDIF.
+    mr_default_drop = i_drag_drop.
+    i_drag_drop->get_handle( IMPORTING handle = lv_handle ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Default drag/drop handle={ lv_handle }| ).
   ENDMETHOD.
 
   METHOD get_registered_events.
-    RETURN. " todo, implement method
+    CLEAR events.
   ENDMETHOD.
 
   METHOD get_selected_columns.
-    RETURN. " todo, implement method
+    FIELD-SYMBOLS <columns> TYPE ANY TABLE.
+    ASSIGN et_sel_columns TO <columns>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    LOOP AT mt_fieldcatalog INTO DATA(ls_field).
+      APPEND ls_field-fieldname TO <columns>.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_toolbar_object.
-    RETURN. " todo, implement method
+    IF mr_toolbar IS NOT BOUND AND parent IS BOUND.
+      mr_toolbar = NEW cl_gui_toolbar( parent = parent ).
+      set_toolbar_buttons( ).
+    ENDIF.
+    er_toolbar = mr_toolbar.
   ENDMETHOD.
 
   METHOD column_optimize.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Tree columns optimized; fields={ lines( mt_fieldcatalog ) }| ).
   ENDMETHOD.
 
   METHOD update_calculations.
@@ -472,19 +665,24 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_frontend_fieldcatalog.
-    RETURN. " todo, implement method
+    et_fieldcatalog = mt_fieldcatalog.
   ENDMETHOD.
 
   METHOD add_html_node.
+    DATA lr_data_row TYPE REF TO data.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
       WITH KEY node_key = node_key.
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
+    IF data_row IS SUPPLIED.
+      GET REFERENCE OF data_row INTO lr_data_row.
+    ENDIF.
     APPEND VALUE #( node_key   = node_key
                     parent_key = parent_key
                     text       = text
-                    expanded   = abap_true ) TO mt_html_nodes.
+                    expanded   = abap_true
+                    data_row   = lr_data_row ) TO mt_html_nodes.
     refresh_tree_html( ).
   ENDMETHOD.
 
@@ -496,7 +694,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   METHOD tree_html.
     DATA lv_depth TYPE i.
     DATA lv_parent TYPE string.
-    result = |<ul role="tree" aria-label="ALV tree">|.
+    DATA ls_parent TYPE ty_html_node.
+    result = |<section class="gg-alv-tree" aria-label="ALV tree"><ul role="tree" aria-label="ALV tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
       lv_depth = 1.
       lv_parent = ls_node-parent_key.
@@ -504,7 +703,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         IF lv_parent IS INITIAL.
           EXIT.
         ENDIF.
-        READ TABLE mt_html_nodes INTO DATA(ls_parent)
+        READ TABLE mt_html_nodes INTO ls_parent
           WITH KEY node_key = lv_parent.
         IF sy-subrc <> 0.
           EXIT.
@@ -517,9 +716,56 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
         ELSE ' aria-selected="false"' ).
       DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }>{ escape_html( ls_node-text ) }</li>|.
+      DATA(lv_visible) = abap_true.
+      lv_parent = ls_node-parent_key.
+      DO 32 TIMES.
+        IF lv_parent IS INITIAL.
+          EXIT.
+        ENDIF.
+        READ TABLE mt_html_nodes INTO ls_parent
+          WITH KEY node_key = lv_parent.
+        IF sy-subrc <> 0.
+          EXIT.
+        ENDIF.
+        IF ls_parent-expanded = abap_false.
+          lv_visible = abap_false.
+          EXIT.
+        ENDIF.
+        lv_parent = ls_parent-parent_key.
+      ENDDO.
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }{ COND string( WHEN lv_visible = abap_false THEN ' hidden' ELSE '' ) }>{ escape_html( ls_node-text ) }</li>|.
     ENDLOOP.
-    result = result && |</ul>|.
+    result = result && |</ul><div class="gg-alv-tree-columns"><table data-field-count="{ lines( mt_fieldcatalog ) }"><thead><tr><th scope="col">Hierarchy</th>|.
+    LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
+      IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
+        result = result && |<th scope="col" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ escape_html( CONV string( ls_fieldcat-inttype ) ) }">{ escape_html( COND string( WHEN ls_fieldcat-coltext IS INITIAL THEN ls_fieldcat-fieldname ELSE ls_fieldcat-coltext ) ) }</th>|.
+      ENDIF.
+    ENDLOOP.
+    result = result && '</tr></thead><tbody>'.
+    LOOP AT mt_html_nodes INTO ls_node.
+      IF ls_node-data_row IS NOT BOUND.
+        CONTINUE.
+      ENDIF.
+      ASSIGN ls_node-data_row->* TO FIELD-SYMBOL(<row>).
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      result = result && |<tr data-node-key="{ escape_html( ls_node-node_key ) }"><th scope="row">{ escape_html( ls_node-text ) }</th>|.
+      LOOP AT mt_fieldcatalog INTO ls_fieldcat.
+        IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
+          CONTINUE.
+        ENDIF.
+        ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO FIELD-SYMBOL(<component>).
+        IF sy-subrc = 0.
+          DATA(lv_tree_value) = cl_gui_control=>format_external_value(
+            iv_value = |{ <component> }|
+            iv_type  = CONV string( ls_fieldcat-inttype ) ).
+          result = result && |<td data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-total="{ COND string( WHEN ls_fieldcat-do_sum = 'X' THEN 'true' ELSE 'false' ) }">{ escape_html( lv_tree_value ) }</td>|.
+        ENDIF.
+      ENDLOOP.
+      result = result && '</tr>'.
+    ENDLOOP.
+    result = result && '</tbody></table></div></section>'.
   ENDMETHOD.
 
   METHOD set_html_node_state.

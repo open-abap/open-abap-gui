@@ -22,6 +22,65 @@ const LIST_COLOR_CONSTANTS = Object.freeze({
   COL_NEGATIVE: "color_negative", COL_GROUP: "color_group",
 });
 
+// These classes are implemented by the scaffold itself. A generated report
+// may therefore keep their typed constructor and method calls inside a
+// method; unknown GUI objects must still remain explicit converter gaps.
+export const CONVERTIBLE_CONTROL_CLASSES = new Set([
+  "CL_ABAP_BROWSER", "CL_ALV_CHANGED_DATA_PROTOCOL", "CL_ALV_EVENT_DATA", "CL_ALV_EVENT_TOOLBAR_SET",
+  "CL_ALV_TABLE_CREATE", "CL_ALV_VARIANT", "CL_CTMENU", "CL_DD_DOCUMENT",
+  "CL_GUI_ALV_GRID", "CL_GUI_ALV_TREE", "CL_GUI_BARCHART", "CL_GUI_CALENDAR",
+  "CL_GUI_CFW", "CL_GUI_CHART_ENGINE", "CL_GUI_COLUMN_TREE", "CL_GUI_CONTROL",
+  "CL_GUI_CONTAINER", "CL_GUI_CUSTOM_CONTAINER", "CL_GUI_DIALOGBOX_CONTAINER", "CL_GUI_DOCKING_CONTAINER",
+  "CL_GUI_EASY_SPLITTER_CONTAINER", "CL_GUI_GP_PRES", "CL_GUI_HTML_VIEWER",
+  "CL_GUI_ILIDRAGNDROP_CONTROL", "CL_GUI_LIST_TREE", "CL_GUI_PICTURE",
+  "CL_GUI_SELECTOR", "CL_GUI_SIMPLE_TREE", "CL_GUI_SPLITTER_CONTAINER",
+  "CL_GUI_TEXTEDIT", "CL_GUI_TIMER", "CL_GUI_TOOLBAR",
+  "CL_COLUMN_TREE_MODEL", "CL_ITEM_TREE_MODEL", "CL_LIST_TREE_MODEL", "CL_SIMPLE_TREE_MODEL",
+  "CL_TREE_MODEL",
+]);
+
+export function controlObjectTypes(declarations = []) {
+  const result = {};
+  for (const declaration of declarations) {
+    for (const entry of declaration.entries ?? []) {
+      const type = /\bTYPE\s+REF\s+TO\s+([A-Z][A-Z0-9_]*)/i.exec(entry.definition ?? "")?.[1]?.toUpperCase();
+      if (type && CONVERTIBLE_CONTROL_CLASSES.has(type)) result[entry.name.toUpperCase()] = type;
+    }
+  }
+  return result;
+}
+
+function convertibleControlType(type, objectTypes) {
+  return CONVERTIBLE_CONTROL_CLASSES.has(String(type ?? "").toUpperCase())
+    || CONVERTIBLE_CONTROL_CLASSES.has(String(objectTypes?.[String(type ?? "").toUpperCase()] ?? "").toUpperCase());
+}
+
+// Return true only for a control statement whose receiver was declared with a
+// scaffold-owned class. This deliberately does not infer from a variable name
+// such as GO_GRID, because doing so could emit a call for an unrelated type.
+export function isConvertibleControlStatement(statement, objectTypes = {}) {
+  const raw = String(statement?.text ?? "").trim();
+  if (statement?.kind === "CreateObject") {
+    const target = /^CREATE\s+OBJECT\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1];
+    const explicitType = /\bTYPE\s+(?:REF\s+TO\s+)?([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1];
+    return convertibleControlType(explicitType, objectTypes) || convertibleControlType(target, objectTypes);
+  }
+  if (statement?.kind === "Call" || statement?.kind === "CallMethod") {
+    const receiver = /(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*->/i.exec(raw)?.[1];
+    const staticClass = /(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*=>/i.exec(raw)?.[1];
+    return convertibleControlType(receiver, objectTypes) || convertibleControlType(staticClass, objectTypes);
+  }
+  if (statement?.kind === "SetHandler") {
+    const receiver = /\bFOR\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1];
+    return convertibleControlType(receiver, objectTypes);
+  }
+  if (statement?.kind === "Free") {
+    const receiver = /^FREE\s*:??\s*([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1];
+    return convertibleControlType(receiver, objectTypes);
+  }
+  return false;
+}
+
 function replaceListColorConstants(value) {
   let result = value;
   for (const [name, constant] of Object.entries(LIST_COLOR_CONSTANTS)) {
@@ -279,6 +338,21 @@ function applyReplacements(text, replacements) {
   return output;
 }
 
+function screenLoopBinding(text, usedNames) {
+  const into = /\bINTO\s+(?:DATA\s*\(\s*([A-Z][A-Z0-9_]*)\s*\)|([A-Z][A-Z0-9_]*))/i.exec(text ?? "");
+  const assigning = /\bASSIGNING\s+(?:FIELD-SYMBOL\s*\(\s*<\s*([A-Z][A-Z0-9_]*)\s*>\s*\)|<\s*([A-Z][A-Z0-9_]*)\s*>)/i.exec(text ?? "");
+  const sourceName = into?.[1] ?? into?.[2] ?? assigning?.[1] ?? assigning?.[2];
+  const base = sourceName?.toLowerCase() ?? "ls_state";
+  let symbolName = base;
+  let suffix = 1;
+  while (usedNames.has(symbolName.toUpperCase())) symbolName = `${base}_${suffix++}`;
+  usedNames.add(symbolName.toUpperCase());
+  return {
+    symbol: `<${symbolName}>`,
+    replacement: into && sourceName ? [sourceName, `<${symbolName}>`] : undefined,
+  };
+}
+
 function valueExpression(expression, context) {
   let value = expression.trim();
   const replacements = [...(context.replacements ?? [])];
@@ -295,7 +369,7 @@ function valueExpression(expression, context) {
   value = value.replace(/\bsy-repid\b/gi,
     context.event === "dynpro" ? "''" : "io_session->get_context( )-program-program");
   value = value.replace(/\bsy-dynnr\b/gi,
-    "''");
+    context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''");
   value = value.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
   value = value.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
   value = value.replace(/\bsy-index\b/gi, "sy-index");
@@ -508,11 +582,18 @@ export function lowerStatement(statement, context) {
   const normalized = raw.replace(/\s+/g, " ").toUpperCase();
   const safeReplacements = [
     ...(context.replacements ?? []),
+    ["sy-ucomm", context.ucomm ?? "sy-ucomm"],
     ["sy-repid", "io_session->get_context( )-program-program"],
     ["sy-batch", "io_session->get_context( )-program-batch"],
     ["sy-dynnr", "''"],
   ];
   if (statement.kind === "Comment") return raw;
+  if (isConvertibleControlStatement(statement, context.controlObjectTypes)) {
+    const lowered = statement.kind === "Free"
+      ? raw.replace(/^FREE\s*:??\s*/i, "CLEAR ").replace(/,\s*$/, ".")
+      : raw;
+    return replaceOutsideStrings(lowered, safeReplacements);
+  }
   if (context.contextMenu && (statement.kind === "CreateObject" || statement.kind === "Call")) {
     return replaceOutsideStrings(raw, safeReplacements);
   }
@@ -842,8 +923,8 @@ export function lowerStatement(statement, context) {
   if (statement.kind === "TypePools") return "";
   if (statement.kind === "Controls") return "* CONTROLS declaration represented by dynpro metadata.";
   if (statement.kind === "LoopAtScreen") return context.event === "dynpro"
-    ? "LOOP AT ct_states ASSIGNING FIELD-SYMBOL(<ls_state>) WHERE row = is_context-row."
-    : "LOOP AT ct_states ASSIGNING FIELD-SYMBOL(<ls_state>).";
+    ? `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}) WHERE row = is_context-row.`
+    : `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}).`;
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
   if (["If", "Else", "ElseIf", "EndIf", "Do", "EndDo", "Case", "When", "WhenOthers", "EndCase", "Loop", "EndLoop", "Try", "Catch", "Cleanup", "EndTry", "Move"].includes(statement.kind)) {
     let converted = replaceListContextFields(replaceListColorConstants(replaceOutsideStrings(raw, context.replacements))).replace(/\bsy-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
@@ -851,14 +932,17 @@ export function lowerStatement(statement, context) {
     converted = converted.replace(/\bsy-repid\b/gi, "io_session->get_context( )-program-program");
     converted = converted.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
     converted = converted.replace(/\bsy-lsind\b/gi, "io_session->get_list( )->get_context( )-level");
-    converted = converted.replace(/\bscreen-name\b/gi, "<ls_state>-name");
-    converted = converted.replace(/\bscreen-group1\b/gi, "<ls_state>-modif_id");
-    converted = converted.replace(/\bscreen-group([2-4])\b/gi, "<ls_state>-group$1");
-    converted = converted.replace(/\bscreen-invisible\b/gi, context.event === "dynpro" ? "<ls_state>-no_display" : "<ls_state>-password");
-    converted = converted.replace(/\bscreen-active\b/gi, "<ls_state>-visible");
-    converted = converted.replace(/\bscreen-required\b/gi, context.event === "dynpro" ? "<ls_state>-required" : "<ls_state>-obligatory");
-    converted = converted.replace(/\bscreen-intensified\b/gi, "<ls_state>-intensified");
-    converted = converted.replace(/\bscreen-(input|output)\b/gi, "<ls_state>-$1");
+    converted = converted.replace(/\bsy-dynnr\b/gi, context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''");
+    const screenStateSymbol = context.screenStateSymbol ?? "<ls_state>";
+    converted = converted.replace(/\bscreen-name\b/gi, `${screenStateSymbol}-name`);
+    converted = converted.replace(/\bscreen-group1\b/gi, `${screenStateSymbol}-modif_id`);
+    converted = converted.replace(/\bscreen-group([2-4])\b/gi, `${screenStateSymbol}-group$1`);
+    converted = converted.replace(/\bscreen-invisible\b/gi, context.event === "dynpro" ? `${screenStateSymbol}-no_display` : `${screenStateSymbol}-password`);
+    converted = converted.replace(/\bscreen-active\b/gi, `${screenStateSymbol}-visible`);
+    converted = converted.replace(/\bscreen-required\b/gi, context.event === "dynpro" ? `${screenStateSymbol}-required` : `${screenStateSymbol}-obligatory`);
+    converted = converted.replace(/\bscreen-intensified\b/gi, `${screenStateSymbol}-intensified`);
+    converted = converted.replace(/\bscreen-(input|output)\b/gi, `${screenStateSymbol}-$1`);
+    if (context.event !== "dynpro") converted = converted.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
     if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
       return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
     }
@@ -973,6 +1057,8 @@ export function lowerStatements(statements, context) {
   let pendingHidden = [];
   let lastWriteIndex = -1;
   const rangeLoops = [];
+  const screenLoops = [];
+  const usedScreenNames = new Set();
   // An inline `FIELD-SYMBOL(<fs>)` declares the symbol where it is bound, so it
   // is available to the rest of this statement list without a declaration of
   // its own. `safeFieldSymbols` is absent when a caller lowers statements
@@ -986,9 +1072,15 @@ export function lowerStatements(statements, context) {
       pendingHidden.push(...uniqueHiddenFields(hiddenFieldEntries(statement.text, context), pendingHidden));
       continue;
     }
+    const screenBinding = statement.kind === "LoopAtScreen" ? screenLoopBinding(statement.text, usedScreenNames) : undefined;
+    const screenStateSymbol = screenBinding?.symbol ?? [...screenLoops].reverse().find((loop) => loop.kind === "screen")?.symbol;
+    const screenReplacements = [...screenLoops]
+      .filter((loop) => loop.kind === "screen" && loop.replacement)
+      .map((loop) => loop.replacement);
     const statementContext = {
       ...context,
-      replacements: [...rangeLoops, ...(context.replacements ?? []).filter(([name]) => !rangeLoops.some(([active]) => active === name))],
+      replacements: [...screenReplacements, ...rangeLoops, ...(context.replacements ?? []).filter(([name]) => !rangeLoops.some(([active]) => active === name))],
+      screenStateSymbol,
     };
     const iconAppend = statement.kind === "Move"
       ? /^([A-Z][A-Z0-9_]*)\+(\d+)\s*=\s*('(?:''|[^'])*')\.?$/i.exec(statement.text.trim())
@@ -1042,6 +1134,9 @@ export function lowerStatements(statements, context) {
         }
       }
       if (statement.kind === "EndLoop") rangeLoops.pop();
+      if (statement.kind === "LoopAtScreen") screenLoops.push({ kind: "screen", ...screenBinding });
+      if (statement.kind === "Loop") screenLoops.push({ kind: "other" });
+      if (statement.kind === "EndLoop") screenLoops.pop();
     } else output.push({ text: omitted, statement, supported: false });
   }
   if (pendingHidden.length) output.push({

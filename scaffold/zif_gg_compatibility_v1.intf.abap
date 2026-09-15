@@ -45,6 +45,7 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
            title        TYPE string,
            text_lines   TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
            fields       TYPE ty_popup_fields,
+           table_values TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
            buttons      TYPE ty_popup_buttons,
            start_column TYPE i,
            start_row    TYPE i,

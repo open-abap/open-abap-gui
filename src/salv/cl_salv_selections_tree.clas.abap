@@ -17,24 +17,28 @@ CLASS cl_salv_selections_tree DEFINITION PUBLIC.
       IMPORTING
         value TYPE REF TO cl_salv_item.
 
+  PRIVATE SECTION.
+    DATA mt_selected_nodes TYPE salv_t_nodes.
+    DATA mr_selected_item TYPE REF TO cl_salv_item.
+
 ENDCLASS.
 
 CLASS cl_salv_selections_tree IMPLEMENTATION.
 
   METHOD get_selected_nodes.
-    RETURN. " todo, implement method
+    value = mt_selected_nodes.
   ENDMETHOD.
 
   METHOD set_selected_nodes.
-    RETURN. " todo, implement method
+    mt_selected_nodes = value.
   ENDMETHOD.
 
   METHOD get_selected_item.
-    RETURN. " todo, implement method
+    value = mr_selected_item.
   ENDMETHOD.
 
   METHOD set_selected_item.
-    RETURN. " todo, implement method
+    mr_selected_item = value.
   ENDMETHOD.
 
 ENDCLASS.

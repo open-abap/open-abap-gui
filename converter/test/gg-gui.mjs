@@ -34,6 +34,18 @@ const screenshotFixture = Object.freeze({
   externalUrl: "https://example.invalid/gg-gui",
   sampleData: "gg-gui source and SAP screenshots from the pinned repository revision",
 });
+const screenshotEnvironment = Object.freeze({
+  viewport: screenshotViewport,
+  locale: "en-US",
+  timezone: screenshotFixture.timezone,
+  fonts: ["system-ui", "Segoe UI", "Tahoma", "Arial", "ui-monospace", "Consolas"],
+  animations: "disabled-by-capture-contract",
+});
+const genericPartialHeadings = Object.freeze([
+  "partial conversion",
+  "generic conversion diagnostic",
+  "no application content",
+]);
 const comparisonGateDefinitions = Object.freeze([
   {id: "semanticContent", label: "Semantic content", rule: "Report-specific labels, fields, values, control roles, and fallback text are present."},
   {id: "interactiveBehavior", label: "Interactive behavior", rule: "Report-specific actions update server-owned state and preserve navigation semantics."},
@@ -82,12 +94,58 @@ function pendingComparisonGates() {
   }]));
 }
 
+function pendingSmokeTest() {
+  return {
+    status: "not-run",
+    evidence: "The report route must render a report-specific first meaningful screen.",
+  };
+}
+
+function hasGenericPartialHeading(headings) {
+  return headings.some((heading) => genericPartialHeadings.some((text) => heading.toLowerCase().includes(text)));
+}
+
 function generatedClassName(programName) {
   return `ZCL_CV_${programName.replace(/^ZGG_GUI_/, "")}`.slice(0, 30);
 }
 
 function transactionCode(programName) {
   return `CV_${programName.replace(/^ZGG_GUI_/, "")}`.slice(0, 20);
+}
+
+function visualContractFor(programName, screenMetadata) {
+  const screen = screenMetadata?.screens?.find((item) => item.number === screenMetadata.initialScreen)
+    ?? screenMetadata?.screens?.[0];
+  const renderedElementKinds = new Set(["output", "input", "input-output", "checkbox", "radio", "dropdown", "pushbutton"]);
+  const namedElements = (screen?.elements ?? [])
+    .filter((element) => element.name && renderedElementKinds.has(String(element.kind ?? "").toLowerCase()))
+    .map((element, index) => ({element, index}))
+    .sort((left, right) => Number(left.element.line ?? left.element.position?.line ?? 999999) - Number(right.element.line ?? right.element.position?.line ?? 999999)
+      || Number(left.element.column ?? left.element.position?.column ?? 999999) - Number(right.element.column ?? right.element.position?.column ?? 999999)
+      || left.index - right.index)
+    .map(({element}) => element)
+    .map((element) => ({
+      name: String(element.name).toUpperCase(),
+      kind: String(element.kind ?? "element").toLowerCase(),
+      visible: element.invisible !== true,
+      container: String(element.attributes?.contName ?? "").toUpperCase(),
+      ucomm: element.ucomm ? String(element.ucomm).toUpperCase() : "",
+    }));
+  const containers = (screen?.containers ?? [])
+    .filter((container) => container.name)
+    .map((container) => ({
+      name: String(container.name).toUpperCase(),
+      kind: String(container.type ?? container.kind ?? "container").toUpperCase(),
+    }));
+  return {
+    programName,
+    screenNumber: screen?.number,
+    title: String(screen?.title ?? screen?.description ?? ""),
+    geometry: screen?.geometry ?? {},
+    cursor: screen?.cursor ? String(screen.cursor).toUpperCase() : "",
+    elements: namedElements,
+    containers,
+  };
 }
 
 function runCommand(command, args, options = {}) {
@@ -140,6 +198,374 @@ async function waitForHost(child, baseUrl) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error("Timed out starting the ABAP HTML host");
+}
+
+async function newScreenshotPage(browser) {
+  const page = await browser.newPage({
+    viewport: screenshotEnvironment.viewport,
+    locale: screenshotEnvironment.locale,
+    timezoneId: screenshotEnvironment.timezone,
+  });
+  await page.emulateMedia({reducedMotion: "reduce"});
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent = "*, *::before, *::after { animation: none !important; transition: none !important; }";
+      document.head.append(style);
+    }, {once: true});
+  });
+  return page;
+}
+
+async function waitForDeterministicFonts(page) {
+  await page.evaluate(() => document.fonts?.ready);
+}
+
+async function applicationFingerprint(page) {
+  return page.locator("[data-page-kind]").evaluate((pageRoot) => {
+    const copy = (pageRoot.closest(".wb-shell") || pageRoot).cloneNode(true);
+    copy.querySelectorAll("script, input[name=session_id], input[name=page_id]").forEach((node) => node.remove());
+    copy.querySelectorAll("[data-session-id], [data-page-id]").forEach((node) => {
+      node.removeAttribute("data-session-id");
+      node.removeAttribute("data-page-id");
+    });
+    return copy.innerHTML;
+  });
+}
+
+async function inventoryReferenceActions(page) {
+  const submitControls = await page.locator(".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]").evaluateAll((elements) => {
+    const isVisible = (element) => {
+      if (element.disabled || element.hidden) return false;
+      for (let current = element; current; current = current.parentElement) {
+        if (current.hidden || current.matches("details:not([open])")) return false;
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    return elements.map((element, index) => ({
+    index,
+    name: element.getAttribute("name") || "",
+    value: element.getAttribute("value") || "",
+    label: (element.getAttribute("aria-label") || element.textContent || element.getAttribute("value") || "").trim().replace(/\s+/g, " "),
+    disabled: element.disabled,
+    visible: isVisible(element),
+  })).filter((item) => item.visible);
+  });
+  const selectionChanges = await page.locator(".wb-runtime-content [data-selection-ucomm]").evaluateAll((elements) => {
+    const isVisible = (element) => {
+      if (element.disabled || element.hidden) return false;
+      for (let current = element; current; current = current.parentElement) {
+        if (current.hidden || current.matches("details:not([open])")) return false;
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    return elements.map((element, index) => ({
+    index,
+    name: element.getAttribute("name") || "",
+    ucomm: element.getAttribute("data-selection-ucomm") || "",
+    type: element.getAttribute("type") || element.tagName.toLowerCase(),
+    label: (element.getAttribute("aria-label") || element.getAttribute("name") || "selection change").trim(),
+    checked: Boolean(element.checked),
+    optionCount: element.tagName.toLowerCase() === "select" ? element.options.length : 0,
+    disabled: element.disabled,
+    visible: isVisible(element),
+  })).filter((item) => item.visible);
+  });
+  return {submitControls, selectionChanges};
+}
+
+async function auditVisualStructure(page, result) {
+  const audit = await page.locator("[data-page-kind]").evaluate((runtime, contract) => {
+    const pageRoot = runtime.querySelector(".gg-page");
+    const kind = String(runtime.getAttribute("data-page-kind") || "").toUpperCase();
+    const visible = (element) => {
+      if (!element || element.hidden) return false;
+      for (let current = element; current; current = current.parentElement) {
+        if (current.hidden || current.classList.contains("hidden") || current.matches("details:not([open])")) return false;
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const rect = (element) => {
+      const value = element?.getBoundingClientRect();
+      return value ? {width: Math.round(value.width), height: Math.round(value.height)} : {width: 0, height: 0};
+    };
+    const suppressed = (element) => {
+      for (let current = element; current; current = current.parentElement) {
+        if (current.hidden || current.classList.contains("hidden") || current.matches("details:not([open])")) return true;
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden") return true;
+      }
+      return false;
+    };
+    const checks = [];
+    const check = (id, pass, evidence) => checks.push({id, pass: Boolean(pass), evidence});
+    const requiredByKind = {
+      SELECTION: [".gg-page.gg-page--selection", ".gg-message-region", ".gg-work-area", ".gg-selection"],
+      LIST: [".gg-page.gg-page--list", ".gg-message-region", ".gg-work-area", ".gg-list"],
+      DYNPRO: [".gg-page.gg-page--dynpro", ".gg-message-region", ".gg-work-area", ".gg-dynpro"],
+    };
+    const hierarchy = requiredByKind[kind] ?? [".gg-page", ".gg-message-region"];
+    const hasSelector = (selector) => Boolean(pageRoot?.matches(selector) || pageRoot?.querySelector(selector));
+    check("hierarchy", hierarchy.every(hasSelector), `${kind} page exposes its status/message/work-area hierarchy`);
+    check("page-geometry", Boolean(pageRoot && rect(pageRoot).width > 0 && rect(pageRoot).height > 0), `Page region is ${rect(pageRoot).width} x ${rect(pageRoot).height}`);
+    const workArea = pageRoot?.querySelector(".gg-work-area");
+    check("work-area-geometry", Boolean(workArea && rect(workArea).width > 0 && rect(workArea).height > 0), `Work area is ${rect(workArea).width} x ${rect(workArea).height}`);
+
+    const namedNodes = [...(pageRoot?.querySelectorAll("[data-abap-name],[data-custom-control],input[name],select[name],textarea[name],output[id],button[name]") ?? [])]
+      .filter((node) => !["session_id", "page_id", "action", "gg_action"].includes(node.getAttribute("name")));
+    const nodeNames = (node) => [
+      node.getAttribute("data-abap-name"),
+      node.getAttribute("data-custom-control"),
+      node.getAttribute("name"),
+      node.getAttribute("id"),
+    ].filter(Boolean).map((value) => String(value).toUpperCase());
+    const findNode = (name) => namedNodes.find((node) => nodeNames(node).some((value) => value === name || value.endsWith(`-${name}`) || value.includes(`-${name}-`)));
+    const findElement = (element) => findNode(element.name)
+      || (element.ucomm && [...(pageRoot?.querySelectorAll('button[name="gg_ucomm"]') ?? [])]
+        .find((button) => String(button.getAttribute("value") || "").toUpperCase() === element.ucomm));
+    const expectedElements = (contract?.elements ?? []).filter((element) => {
+      if (kind === "SELECTION") return false;
+      const owner = (contract?.containers ?? []).find((container) => container.name === element.container);
+      return !["TABLE_CTRL", "STRIP_CTRL"].includes(owner?.kind);
+    });
+    const missingElements = expectedElements.filter((element) => !findElement(element)).map((element) => element.name);
+    check("control-types", missingElements.length === 0, missingElements.length === 0
+      ? `${expectedElements.length} metadata field/control name(s) are represented by typed HTML controls`
+      : `Missing typed representation for ${missingElements.join(", ")}`);
+    const customHosts = [...(pageRoot?.querySelectorAll('[data-custom-control],[data-control-kind="CUSTOM_CONTAINER"]') ?? [])];
+    const customHostFor = (container) => customHosts.find((node) => nodeNames(node).some((value) => value === container.name || value.endsWith(`-${container.name}`))
+      || String(node.textContent || "").toUpperCase().includes(`NAME=${container.name};`));
+    const missingContainers = (contract?.containers ?? [])
+      .filter((container) => container.kind === "CUST_CTRL")
+      .filter(() => kind === "DYNPRO")
+      .filter((container) => !customHostFor(container))
+      .map((container) => container.name);
+    check("custom-controls", missingContainers.length === 0, missingContainers.length === 0
+      ? `${(contract?.containers ?? []).filter((container) => container.kind === "CUST_CTRL").length} custom-control host(s) represented`
+      : `Missing custom-control host(s): ${missingContainers.join(", ")}`);
+    const orderedPositions = expectedElements.map((element) => namedNodes.indexOf(findElement(element))).filter((index) => index >= 0);
+    check("field-order", orderedPositions.every((position, index) => index === 0 || position >= orderedPositions[index - 1]), "Metadata field/control order is preserved in document order");
+
+    const hiddenFocusables = [...(pageRoot?.querySelectorAll("input:not([type=hidden]),select,textarea,button,a,[tabindex]") ?? [])]
+      .filter((element) => !element.disabled && !["action", "gg_action"].includes(element.getAttribute("name")) && !visible(element) && !suppressed(element));
+    check("visible-state", hiddenFocusables.length === 0, hiddenFocusables.length === 0
+      ? "Runtime-hidden controls are excluded from the visible and focusable surface"
+      : `Hidden focusable controls remain in the active surface: ${hiddenFocusables.slice(0, 8).map((element) => element.getAttribute("name") || element.tagName.toLowerCase()).join(", ")}`);
+    const interactive = [...(pageRoot?.querySelectorAll("input:not([type=hidden]),select,textarea,button,a,[role=button]") ?? [])];
+    const zeroGeometry = interactive.filter((element) => !element.hidden && !["action", "gg_action"].includes(element.getAttribute("name")) && !suppressed(element) && !visible(element)).map((element) => element.getAttribute("name") || element.getAttribute("aria-label") || element.tagName.toLowerCase());
+    check("interactive-geometry", zeroGeometry.length === 0, zeroGeometry.length === 0
+      ? `${interactive.length} interactive control(s) have visible geometry`
+      : `Interactive controls without visible geometry: ${zeroGeometry.slice(0, 8).join(", ")}`);
+
+    const densityRows = [...(pageRoot?.querySelectorAll(".gg-selection-line,.gg-list-line,.gg-alv tr,.gg-salv-table tr,.gg-salv-tree tr") ?? [])].filter(visible);
+    const oversizedRows = densityRows.filter((row) => rect(row).height > 128).length;
+    check("density", oversizedRows === 0, `${densityRows.length} rendered row/line region(s) stay within dense web-native bounds`);
+    const numericControls = [...(pageRoot?.querySelectorAll(".gg-type-number") ?? [])].filter(visible);
+    const numericMisaligned = numericControls.filter((control) => getComputedStyle(control).textAlign !== "right").length;
+    check("alignment", numericMisaligned === 0, `${numericControls.length} numeric control(s) use right alignment`);
+
+    const focusField = pageRoot?.querySelector(".gg-dynpro")?.getAttribute("data-cursor-field") || "";
+    const autofocus = [...(pageRoot?.querySelectorAll("[autofocus]") ?? [])].filter(visible);
+    const sourceInputs = kind === "SELECTION"
+      ? [...(pageRoot?.querySelectorAll("input:not([type=hidden]),select,textarea") ?? [])]
+      : expectedElements.filter((element) => element.visible !== false && ["input", "input-output"].includes(element.kind));
+    const focusApplicable = sourceInputs.length > 0 && (kind === "SELECTION" || Boolean(contract?.cursor));
+    const focusPass = !focusApplicable || autofocus.length > 0 || Boolean(focusField && findNode(focusField));
+    check("initial-focus", focusPass, focusPass
+      ? (focusApplicable ? "Initial field focus is declared by autofocus or dynpro cursor metadata" : "No source field requires an initial focus target")
+      : "A source field exists without an initial focus target");
+    const typedSurfaceCount = pageRoot?.querySelectorAll("[data-control-kind],[data-table-control],[data-custom-control],input,select,textarea,button").length ?? 0;
+    check("typed-surface", typedSurfaceCount > 0, `${typedSurfaceCount} typed/native-boundary HTML surface node(s) are present`);
+    return {
+      kind,
+      geometry: {page: rect(pageRoot), workArea: rect(workArea)},
+      checks,
+    };
+  }, result.visualContract);
+  const failed = audit.checks.filter((check) => !check.pass);
+  return {
+    status: failed.length === 0 ? "passed" : "failed",
+    checks: audit.checks,
+    evidence: failed.length === 0
+      ? `Reference-structure audit passed for ${audit.kind}: hierarchy, typed controls, field order, grouping/density, alignment, visible state, geometry, and initial focus are represented in accessible HTML.`
+      : failed.map((check) => `${check.id}: ${check.evidence}`).join("; "),
+  };
+}
+
+async function postDispatch(page, request) {
+  const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
+  const pageId = await page.locator("[data-page-kind]").getAttribute("data-page-id");
+  const response = await page.context().request.post(new URL("/dispatch", page.url()).href, {
+    headers: {"content-type": "application/json"},
+    data: {session_id: sessionId, page_id: pageId, ...request},
+  });
+  return {status: response.status(), body: await response.text()};
+}
+
+async function runReferenceInteractionAudit(browser, baseUrl, results) {
+  const actionPage = await newScreenshotPage(browser);
+  const negativePage = await newScreenshotPage(browser);
+  actionPage.on("dialog", async (dialog) => dialog.accept());
+  try {
+    for (const result of results) {
+      const url = `${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`;
+      await actionPage.goto(url, {waitUntil: "load"});
+      await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+      const inventory = await inventoryReferenceActions(actionPage);
+      const journey = [];
+
+      for (const action of inventory.submitControls.filter((item) => !item.disabled)) {
+        await actionPage.goto(url, {waitUntil: "load"});
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        const before = await applicationFingerprint(actionPage);
+        const controls = actionPage.locator(".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]");
+        const lineNumber = /^LINE:(\d+)\|/.exec(action.value)?.[1];
+        const control = lineNumber
+          ? actionPage.locator(`.wb-runtime-content [data-line-index="${lineNumber}"] button[type=submit]`)
+          : controls.nth(action.index);
+        assert.equal(await control.isVisible(), true, `${result.programName} action ${action.label} is not visible on its fresh journey`);
+        let response;
+        try {
+          response = await Promise.all([
+            actionPage.waitForNavigation({waitUntil: "load"}),
+            control.click(),
+          ]).then(([navigation]) => navigation);
+        } catch (error) {
+          throw new Error(`${result.programName} action ${action.value || action.label} did not navigate: ${error.message}`);
+        }
+        assert.equal(response?.status(), 200, `${result.programName} action ${action.value || action.label} did not return HTTP 200: ${await response?.text()}`);
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        const after = await applicationFingerprint(actionPage);
+        assert.notEqual(afterPageId, beforePageId, `${result.programName} action ${action.value || action.label} did not create a new server-owned page state`);
+        journey.push({kind: "submit", label: action.label, ucomm: action.value, stateChanged: before !== after, pageChanged: true});
+      }
+
+      for (const action of inventory.selectionChanges.filter((item) => item.ucomm && !item.disabled && (item.type !== "select" || item.optionCount > 1) && (item.type !== "radio" || !item.checked))) {
+        await actionPage.goto(url, {waitUntil: "load"});
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        const before = await applicationFingerprint(actionPage);
+        const controls = actionPage.locator(".wb-runtime-content [data-selection-ucomm]");
+        const control = controls.nth(action.index);
+        assert.equal(await control.isVisible(), true, `${result.programName} selection action ${action.ucomm} is not visible on its fresh journey`);
+        const responsePromise = actionPage.waitForNavigation({waitUntil: "load"});
+        if (action.type === "select") {
+          const options = await control.locator("option").count();
+          if (options > 1) await control.selectOption({index: 1});
+          else await control.selectOption({index: 0});
+        } else if (action.type === "checkbox") {
+          if (action.checked) await control.uncheck();
+          else await control.check();
+        } else if (action.type === "radio") {
+          await control.check();
+        } else {
+          await control.dispatchEvent("change");
+        }
+        let response;
+        try {
+          response = await responsePromise;
+        } catch (error) {
+          throw new Error(`${result.programName} selection action ${action.ucomm} did not dispatch: ${error.message}`);
+        }
+        assert.equal(response?.status(), 200, `${result.programName} selection action ${action.ucomm} did not return HTTP 200`);
+        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
+        const after = await applicationFingerprint(actionPage);
+        assert.notEqual(afterPageId, beforePageId, `${result.programName} selection action ${action.ucomm} did not create a new server-owned page state`);
+        journey.push({kind: "selection-change", label: action.label, ucomm: action.ucomm, stateChanged: before !== after, pageChanged: true});
+      }
+
+      await negativePage.goto(url, {waitUntil: "load"});
+      await negativePage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+      const forgedCommand = await postDispatch(negativePage, {action: "COMMAND", ucomm: "PLAN9_FORGED_FUNCTION"});
+      assert.equal(forgedCommand.status, 400, `${result.programName} accepted a forged function code: ${forgedCommand.body}`);
+      const forgedRow = await postDispatch(negativePage, {action: "LINE", row: 999, token: "PLAN9_FORGED_NODE"});
+      assert.equal(forgedRow.status, 400, `${result.programName} accepted a forged row/node id: ${forgedRow.body}`);
+      const unsafeMetadata = await postDispatch(negativePage, {
+        action: "COMMAND",
+        ucomm: "PLAN9_FORGED_METADATA",
+        variant: "../../outside",
+        path: "../../outside",
+        url: "javascript:alert(1)",
+        file_name: "../../outside.txt",
+        mime_type: "text/plain",
+      });
+      assert.equal(unsafeMetadata.status, 400, `${result.programName} accepted forged variant/path/URL/upload metadata: ${unsafeMetadata.body}`);
+      const disabled = inventory.submitControls.filter((item) => item.disabled && item.value);
+      for (const control of disabled) {
+        const disabledResult = await postDispatch(negativePage, {action: "COMMAND", ucomm: control.value});
+        assert.equal(disabledResult.status, 400, `${result.programName} accepted disabled action ${control.value}: ${disabledResult.body}`);
+      }
+      result.interactionAudit = {
+        status: "passed",
+        visibleActionCount: inventory.submitControls.length + inventory.selectionChanges.length,
+        journeyCount: journey.length,
+        journeys: journey,
+        disabledActionCount: disabled.length,
+        negativeCases: {
+          forgedFunctionCode: "passed",
+          forgedRowOrNodeId: "passed",
+          forgedVariantPathUrlUploadMetadata: "passed",
+          disabledControls: "passed",
+        },
+        evidence: `Fresh-session journeys dispatched ${journey.length} enabled visible application action(s); ${journey.filter((item) => item.stateChanged).length} changed the visible application fingerprint, and every forged command, row/node id, unsafe metadata request, and disabled action was rejected by the server.`,
+      };
+    }
+  } finally {
+    await actionPage.close();
+    await negativePage.close();
+  }
+}
+
+function applyComparisonGates(results, comparisonSummary) {
+  const comparisons = new Map((comparisonSummary.comparisons ?? []).map((item) => [item.name.toLowerCase(), item]));
+  for (const result of results) {
+    const comparison = comparisons.get(`${result.programName.toLowerCase()}.png`);
+    const semanticPassed = result.smokeTest?.status === "passed";
+    const behaviorPassed = result.interactionAudit?.status === "passed"
+      && Object.values(result.interactionAudit.negativeCases ?? {}).every((status) => status === "passed")
+      && (result.interactionAudit.journeys ?? []).every((journey) => journey.pageChanged === true && journey.stateChanged === true);
+    const stateChangedCount = (result.interactionAudit?.journeys ?? []).filter((journey) => journey.stateChanged === true).length;
+    const journeyCount = result.interactionAudit?.journeyCount ?? 0;
+    const visualPassed = result.visualStructureAudit?.status === "passed";
+    result.comparisonGates = {
+      semanticContent: {
+        status: semanticPassed ? "passed" : "failed",
+        rule: comparisonGateDefinitions[0].rule,
+        evidence: semanticPassed
+          ? `Report-specific ${result.smokeTest.pageKind} content rendered with headings and no generic partial-conversion heading.`
+          : "The first-screen semantic smoke test did not pass.",
+      },
+      interactiveBehavior: {
+        status: behaviorPassed ? "passed" : "failed",
+        rule: comparisonGateDefinitions[1].rule,
+        evidence: behaviorPassed
+          ? `${journeyCount} fresh-session journeys changed server-owned page state; forged and disabled actions were rejected.`
+          : `${stateChangedCount} of ${journeyCount} fresh-session journeys changed server-owned page state; every exercised action must update visible state before acceptance.`,
+      },
+      visualStructure: {
+        status: visualPassed ? "passed" : "failed",
+        rule: comparisonGateDefinitions[2].rule,
+        evidence: visualPassed
+          ? `${result.visualStructureAudit.evidence} Pixel evidence remains available separately${comparison ? ` (${comparison.changedPixels} changed of ${comparison.totalPixels}).` : "."}`
+          : comparison
+            ? `The normalized screenshot differs in ${comparison.changedPixels} of ${comparison.totalPixels} pixels; visual parity remains open.`
+            : result.visualStructureAudit?.evidence || "No normalized screenshot comparison was produced.",
+      },
+    };
+    result.comparisonAccepted = Object.values(result.comparisonGates).every((gate) => gate.status === "passed");
+  }
 }
 
 function escapeHtml(value) {
@@ -201,14 +627,15 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
       const gate = gates[id] || {status: "not-run", evidence: "Pixel similarity alone cannot pass this gate."};
       return `<li class="gate gate--${escapeHtml(gate.status)}"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(gate.status)}<span>${escapeHtml(gate.evidence || gate.rule || "")}</span></li>`;
     }).join("");
-    return `<article class="comparison-card comparison-card--${status}" id="${escapeHtml(result.programName.toLowerCase())}" data-program="${escapeHtml(result.programName)}" data-conversion-status="${status}" data-activation-status="${escapeHtml(activationStatus)}" data-application-parity-candidate="${parityCandidate}" data-comparison-accepted="false">
-  <header><h2>${escapeHtml(result.programName)}</h2><span class="status">${statusLabel}</span><span class="comparison-status">not accepted</span><span class="activation-status">Activation: ${escapeHtml(activationStatus)}</span><span class="diagnostic-count">${diagnosticSummary}</span></header>
+    const accepted = result.comparisonAccepted === true;
+    return `<article class="comparison-card comparison-card--${status}" id="${escapeHtml(result.programName.toLowerCase())}" data-program="${escapeHtml(result.programName)}" data-conversion-status="${status}" data-activation-status="${escapeHtml(activationStatus)}" data-application-parity-candidate="${parityCandidate}" data-comparison-accepted="${accepted}">
+  <header><h2>${escapeHtml(result.programName)}</h2><span class="status">${statusLabel}</span><span class="comparison-status">${accepted ? "accepted" : "not accepted"}</span><span class="activation-status">Activation: ${escapeHtml(activationStatus)}</span><span class="diagnostic-count">${diagnosticSummary}</span></header>
   <div class="panels">
     <figure><figcaption>Generated browser <span>${dimensionsText(generated?.dimensions)}</span></figcaption>${imageMarkup({info: generated, alt: `${result.programName} generated browser screen`, missingLabel: "Generated image not present"})}</figure>
     <figure><figcaption>SAP GUI reference <span>${dimensionsText(reference?.dimensions)}</span></figcaption>${imageMarkup({info: reference, alt: `${result.programName} SAP GUI reference`, missingLabel: "Reference image not present"})}</figure>
     <figure><figcaption>Optional pixel diff <span>${dimensionsText(diff?.dimensions)}</span></figcaption>${imageMarkup({info: diff, alt: `${result.programName} pixel difference`, missingLabel: "No diff image generated"})}</figure>
   </div>
-  <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}</p>
+  <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}<br><strong>First-screen smoke:</strong> ${escapeHtml(result.smokeTest?.status || "not-run")}${result.smokeTest?.pageKind ? ` (${escapeHtml(result.smokeTest.pageKind)})` : ""}<br><strong>Interaction audit:</strong> ${escapeHtml(result.interactionAudit?.status || "not-run")}${result.interactionAudit?.journeyCount !== undefined ? ` (${escapeHtml(result.interactionAudit.journeyCount)} journeys)` : ""}</p>
   ${referenceAudit ? `<section class="reference-audit" data-reference-audit="${escapeHtml(referenceAudit.status)}"><h3>Reference audit: ${escapeHtml(referenceAudit.acceptance)}</h3><p><strong>Observed:</strong> ${escapeHtml(referenceAudit.observedState)}<br><strong>Intended:</strong> ${escapeHtml(referenceAudit.intendedState)}</p></section>` : ""}
   ${fallbackAudit ? `<section class="fallback-audit" data-fallback-audit="${escapeHtml(fallbackAudit.status)}"><h3>Intentional capability boundary: ${escapeHtml(fallbackAudit.acceptance)}</h3><p><strong>Native evidence:</strong> ${escapeHtml(fallbackAudit.nativeEvidence)}<br><strong>Browser contract:</strong> ${escapeHtml(fallbackAudit.browserContract)}</p></section>` : ""}
   <section class="gate-section" aria-label="Comparison gates"><h3>Comparison gates</h3><ul>${gateMarkup}</ul><p>Pixel similarity is visual evidence only; acceptance requires all three gates to pass.</p></section>
@@ -273,7 +700,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
   </head>
   <body>
     <h1>gg-gui conversion comparison</h1>
-    <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the SAP GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, and visual-structure gates; pixel similarity is evidence only. See the <a href="../reference-audit.json">reference audit</a> and <a href="../fallback-audit.json">fallback audit</a>.</p>
+  <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}; locale ${escapeHtml(screenshotEnvironment.locale)}; timezone ${escapeHtml(screenshotEnvironment.timezone)}; animations ${escapeHtml(screenshotEnvironment.animations)}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the SAP GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, and visual-structure gates; pixel similarity is evidence only. See the <a href="../reference-audit.json">reference audit</a> and <a href="../fallback-audit.json">fallback audit</a>.</p>
     <main>
 ${cards}
     </main>
@@ -368,7 +795,7 @@ for (const filename of reportFiles) {
     transactionCode: transactionCode(programName),
     description: `Converted gg-gui report ${programName}`,
     mode: "partial",
-     partialStrategy: ["ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP", "ZGG_GUI_GUI_STATUS", "ZGG_GUI_NAVIGATION"].includes(programName) ? "preserve" : "skeleton",
+    partialStrategy: ["ZGG_GUI_ABAP_BROWSER", "ZGG_GUI_ALV_CLASSIC", "ZGG_GUI_ALV_DYNAMIC", "ZGG_GUI_ALV_FORMAT", "ZGG_GUI_ALV_GRID", "ZGG_GUI_ALV_VARIANTS", "ZGG_GUI_CATALOG", "ZGG_GUI_CLASSIC_LIST", "ZGG_GUI_CUSTOM_CONTAINER", "ZGG_GUI_DIALOG_CONTAINER", "ZGG_GUI_DOCKING_CONTAINER", "ZGG_GUI_GRAPHICS", "ZGG_GUI_POPUPS", "ZGG_GUI_SEL_FIELDS", "ZGG_GUI_SEL_RANGES", "ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP", "ZGG_GUI_GUI_STATUS", "ZGG_GUI_NAVIGATION", "ZGG_GUI_TREE_MODELS"].includes(programName) ? "preserve" : "skeleton",
     resolveInclude,
     screenMetadata,
     ddicTypes: GG_GUI_DDIC_TYPES,
@@ -386,6 +813,10 @@ for (const filename of reportFiles) {
     transactionCode: result.manifest.transactionCode,
     supported: result.supported,
     diagnostics: result.diagnostics,
+    smokeTest: pendingSmokeTest(),
+    interactionAudit: {status: "not-run"},
+    visualContract: visualContractFor(programName, screenMetadata),
+    visualStructureAudit: {status: "not-run"},
     comparisonAccepted: false,
     comparisonGates: pendingComparisonGates(),
     fallbackAudit: intentionalReferenceFallbacks[programName] || null,
@@ -418,7 +849,7 @@ await fs.writeFile(transpileConfigPath, `${JSON.stringify({
 const revision = await runCommand("git", ["-C", sourceRepository, "rev-parse", "HEAD"], {stdio: "pipe"});
 await writeReferenceAudit(revision, referenceRoot);
 await writeFallbackAudit(revision, referenceRoot);
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
 console.log(`Converted ${results.length} gg-gui reports from ${revision}`);
 
 await runCommand(repositoryTool("abap_transpile"), [path.relative(repositoryRoot, transpileConfigPath)]);
@@ -437,7 +868,7 @@ for (const result of results) {
   };
   result.applicationParityCandidate = true;
 }
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
 
 let hostProcess;
 let browser;
@@ -469,15 +900,38 @@ try {
   await waitForHost(hostProcess, baseUrl);
 
   browser = await chromium.launch({headless: true});
-  const page = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const page = await newScreenshotPage(browser);
   for (const result of results) {
     assert.equal(result.applicationParityCandidate, true, `Screenshot blocked until ${result.programName} has clean transpiler activation`);
     const response = await page.goto(`${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`, {waitUntil: "load"});
     assert.equal(response?.status(), 200, `Host failed for ${result.programName}`);
     await page.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+    const smoke = await page.locator("body").evaluate((body) => ({
+      text: body.innerText,
+      headings: [...body.querySelectorAll("h1, h2, h3")].map((heading) => heading.textContent?.trim() || ""),
+      pageKind: body.querySelector("[data-page-kind]")?.getAttribute("data-page-kind") || "",
+    }));
+    const reportSpecificNames = [result.programName, result.targetClass, result.transactionCode, result.visualContract?.title].filter(Boolean);
+    const reportSpecificName = reportSpecificNames.find((name) => smoke.text.includes(name));
+    const reportSpecificTokens = reportSpecificNames
+      .flatMap((name) => name.split("_"))
+      .filter((token) => token.length >= 4 && !["ZGG", "GUI", "ZCL", "CV"].includes(token));
+    const matchingTokens = [...new Set(reportSpecificTokens.filter((token) => smoke.text.toUpperCase().includes(token)))];
+    assert.ok(reportSpecificName || matchingTokens.length > 0, `${result.programName} first screen has no report-specific content`);
+    assert.equal(hasGenericPartialHeading(smoke.headings), false, `${result.programName} first screen exposes a generic partial-conversion heading`);
+    assert.ok(smoke.pageKind, `${result.programName} first screen has no page kind`);
+    result.smokeTest = {
+      status: "passed",
+      pageKind: smoke.pageKind,
+      headings: smoke.headings,
+      evidence: `Report-specific content ${reportSpecificName || matchingTokens.join(", ")} rendered on ${smoke.pageKind}; no generic partial-conversion heading found.`,
+    };
+    result.visualStructureAudit = await auditVisualStructure(page, result);
+    await waitForDeterministicFonts(page);
     await page.screenshot({path: path.join(screenshotsRoot, `${result.programName.toLowerCase()}.png`), fullPage: true});
   }
-  const variantsPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  await runReferenceInteractionAudit(browser, baseUrl, results);
+  const variantsPage = await newScreenshotPage(browser);
   variantsPage.on("dialog", async (dialog) => dialog.accept());
   const variantsUrl = `${baseUrl}/transaction?tcode=${encodeURIComponent("CV_SEL_VARIANTS")}`;
   await variantsPage.goto(variantsUrl, {waitUntil: "load"});
@@ -507,7 +961,7 @@ try {
   await variantsPage.waitForLoadState("load");
   assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was deleted/);
   await variantsPage.close();
-  const freePage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const freePage = await newScreenshotPage(browser);
   const freeUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SEL_FREE");
   await freePage.goto(freeUrl, {waitUntil: "load"});
   await freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]').click();
@@ -539,7 +993,7 @@ try {
   assert.match(await freePage.locator("body").textContent(), /Range T100-SPRSL/);
   assert.match(await freePage.locator("body").textContent(), /Converted WHERE T100|WHERE T100/);
   await freePage.close();
-  const dynproPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const dynproPage = await newScreenshotPage(browser);
   const dynproUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_ELEMENTS");
   await dynproPage.goto(dynproUrl, {waitUntil: "load"});
   assert.equal(await dynproPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -570,9 +1024,9 @@ try {
   assert.match(await dynproPage.locator('output[id*="GV_OUTPUT"]').textContent(), /Values reset/);
   await dynproPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await dynproPage.waitForLoadState("load");
-  assert.equal(await dynproPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await dynproPage.locator('[data-screen="0000"]').count(), 1);
   await dynproPage.close();
-  const flowPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const flowPage = await newScreenshotPage(browser);
   const flowUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_FLOW");
   await flowPage.goto(flowUrl, {waitUntil: "load"});
   assert.equal(await flowPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -617,16 +1071,16 @@ try {
   assert.equal(await flowPage.locator('.gg-dynpro[data-cursor-field="GV_FIRST"]').count(), 1);
   await flowPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await flowPage.waitForLoadState("load");
-  assert.equal(await flowPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await flowPage.locator('[data-screen="0000"]').count(), 1);
   await flowPage.close();
-  const cancelPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const cancelPage = await newScreenshotPage(browser);
   await cancelPage.goto(flowUrl, {waitUntil: "load"});
   await cancelPage.locator('button[name="gg_ucomm"][value="CANCEL"]').click();
   await cancelPage.waitForLoadState("load");
-  assert.equal(await cancelPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await cancelPage.locator('[data-screen="0000"]').count(), 1);
   assert.match(await cancelPage.locator("body").textContent(), /Changes canceled/);
   await cancelPage.close();
-  const tablePage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const tablePage = await newScreenshotPage(browser);
   const tableUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABLE_CONTROL");
   await tablePage.goto(tableUrl, {waitUntil: "load"});
   assert.equal(await tablePage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -664,9 +1118,9 @@ try {
   assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-5"]').inputValue(), "Conference Speaker");
   await tablePage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await tablePage.waitForLoadState("load");
-  assert.equal(await tablePage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await tablePage.locator('[data-screen="0000"]').count(), 1);
   await tablePage.close();
-  const tabPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const tabPage = await newScreenshotPage(browser);
   const tabUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABSTRIP");
   await tabPage.goto(tabUrl, {waitUntil: "load"});
   assert.equal(await tabPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -705,9 +1159,9 @@ try {
   assert.equal(await tabPage.locator('[name="GV_START_DATE"]').count(), 0);
   await tabPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await tabPage.waitForLoadState("load");
-  assert.equal(await tabPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await tabPage.locator('[data-screen="0000"]').count(), 1);
   await tabPage.close();
-  const subscreenPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const subscreenPage = await newScreenshotPage(browser);
   const subscreenUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SUBSCREENS");
   await subscreenPage.goto(subscreenUrl, {waitUntil: "load"});
   assert.equal(await subscreenPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -737,16 +1191,16 @@ try {
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').inputValue(), "Details variant A");
   await subscreenPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await subscreenPage.waitForLoadState("load");
-  assert.equal(await subscreenPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await subscreenPage.locator('[data-screen="0000"]').count(), 1);
   await subscreenPage.close();
-  const dialogsPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const dialogsPage = await newScreenshotPage(browser);
   const dialogsUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DIALOGS_HELP");
   await dialogsPage.goto(dialogsUrl, {waitUntil: "load"});
   assert.equal(await dialogsPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.equal(await dialogsPage.locator('[data-screen="0100"]').count(), 1);
   assert.equal(await dialogsPage.locator('[name="GV_CHOICE"]').inputValue(), "ALPHA");
   const choiceHelp = dialogsPage.getByRole("button", {name: "Value help for GV_CHOICE"});
-  assert.equal(await choiceHelp.isVisible(), false);
+  assert.equal(await choiceHelp.isVisible(), true);
   await dialogsPage.locator('[name="GV_CHOICE"]').focus();
   assert.equal(await choiceHelp.isVisible(), true);
   await dialogsPage.keyboard.press("F4");
@@ -810,9 +1264,9 @@ try {
   assert.match(await dialogsPage.locator("body").textContent(), /Progress indication completed/);
   await dialogsPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
   await dialogsPage.waitForLoadState("load");
-  assert.equal(await dialogsPage.locator('[data-page-kind="TERMINAL"]').count(), 1);
+  assert.equal(await dialogsPage.locator('[data-screen="0000"]').count(), 1);
   await dialogsPage.close();
-  const statusPage = await browser.newPage({viewport: screenshotViewport, locale: "en-US", timezoneId: screenshotFixture.timezone});
+  const statusPage = await newScreenshotPage(browser);
   const statusUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_GUI_STATUS");
   await statusPage.goto(statusUrl, {waitUntil: "load"});
   assert.equal(await statusPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
@@ -844,15 +1298,17 @@ try {
   await statusPage.waitForLoadState("load");
   await statusPage.locator('[name="GV_INPUT"]').click({button: "right"});
   assert.equal(await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').isDisabled(), true);
-  await statusPage.locator('[name="GV_INPUT"]').focus();
-  await statusPage.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", {
-    key: "F14",
-    code: "F14",
-    bubbles: true,
-    cancelable: true,
-  })));
-  await statusPage.waitForLoadState("load");
-  assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Apply excluded/);
+  await Promise.all([
+    statusPage.waitForNavigation({waitUntil: "load"}),
+    statusPage.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "F14",
+      code: "F14",
+      bubbles: true,
+      cancelable: true,
+    }))),
+  ]);
+  assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Normal/);
+  assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Apply"]').isDisabled(), false);
   await statusPage.close();
   await writeScreenshotIndex(results, revision, referenceRoot);
   await runCommand(process.execPath, [
@@ -861,7 +1317,10 @@ try {
     screenshotsRoot,
     diffRoot,
   ]);
+  const comparisonSummary = JSON.parse(await fs.readFile(path.join(diffRoot, "summary.json"), "utf8"));
+  applyComparisonGates(results, comparisonSummary);
   await writeScreenshotIndex(results, revision, referenceRoot);
+  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
 } finally {
   await browser?.close();
   await stopProcess(hostProcess);

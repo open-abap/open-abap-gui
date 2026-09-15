@@ -215,11 +215,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
 
     lv_path = server->request->get_header_field( '~path' ).
+    REPLACE FIRST OCCURRENCE OF '?' IN lv_path WITH ''.
     IF lv_path = '/assets/icons/refresh.svg'.
       send_refresh_svg( server ).
       RETURN.
     ENDIF.
     IF lv_path = '/'.
+      zcl_gg_host_runtime=>clear( ).
       lo_workbench = NEW zcl_gg_workbench( ).
       send_html( server  = server
                  iv_html = lo_workbench->get_html( ) ).

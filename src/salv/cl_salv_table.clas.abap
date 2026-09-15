@@ -86,57 +86,121 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
         VALUE(value) TYPE string.
 
   PRIVATE SECTION.
+    TYPES: BEGIN OF ty_html_cell,
+             columnname TYPE lvc_fname,
+             text       TYPE string,
+           END OF ty_html_cell.
+    TYPES ty_html_cells TYPE STANDARD TABLE OF ty_html_cell WITH DEFAULT KEY.
+    TYPES: BEGIN OF ty_html_row,
+             index TYPE i,
+             cells TYPE ty_html_cells,
+           END OF ty_html_row.
+    TYPES ty_html_rows TYPE STANDARD TABLE OF ty_html_row WITH DEFAULT KEY.
+
     DATA mv_row_count TYPE i.
     DATA mv_header TYPE string.
+    DATA mr_table TYPE REF TO data.
+    DATA mt_html_rows TYPE ty_html_rows.
+    DATA mo_selections TYPE REF TO cl_salv_selections.
+    DATA mo_layout TYPE REF TO cl_salv_layout.
+    DATA mo_columns TYPE REF TO cl_salv_columns_table.
+    DATA mo_functions TYPE REF TO cl_salv_functions_list.
+    DATA mo_events TYPE REF TO cl_salv_events_table.
+    DATA mo_display_settings TYPE REF TO cl_salv_display_settings.
+    DATA mo_aggregations TYPE REF TO cl_salv_aggregations.
+    DATA mo_filters TYPE REF TO cl_salv_filters.
+    DATA mo_sorts TYPE REF TO cl_salv_sorts.
+    DATA mo_functional_settings TYPE REF TO cl_salv_functional_settings.
+
+    METHODS build_metadata.
+    METHODS collect_rows.
+    METHODS rebuild_html
+      RETURNING
+        VALUE(value) TYPE string.
+    METHODS passes_filters
+      IMPORTING
+        columnname    TYPE lvc_fname
+        value         TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+    METHODS selopt_matches
+      IMPORTING
+        selopt        TYPE REF TO cl_salv_selopt
+        value         TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
   METHOD get_screen_status.
-    RETURN. " todo, implement method
+    report = sy-repid.
+    CLEAR pfstatus.
   ENDMETHOD.
 
   METHOD set_end_of_list.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD set_top_of_list_print.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD get_sorts.
-    RETURN.
+    IF mo_sorts IS NOT BOUND.
+      mo_sorts = NEW cl_salv_sorts( ).
+    ENDIF.
+    value = mo_sorts.
   ENDMETHOD.
 
   METHOD get_functional_settings.
-    RETURN.
+    IF mo_functional_settings IS NOT BOUND.
+      mo_functional_settings = NEW cl_salv_functional_settings( ).
+    ENDIF.
+    value = mo_functional_settings.
   ENDMETHOD.
 
   METHOD get_layout.
-    RETURN.
+    IF mo_layout IS NOT BOUND.
+      mo_layout = NEW cl_salv_layout( ).
+    ENDIF.
+    value = mo_layout.
   ENDMETHOD.
 
   METHOD to_xml.
-    RETURN.
+    DATA(lv_html) = get_html( ).
+    DATA(lo_converter) = cl_abap_conv_out_ce=>create( ).
+    lo_converter->write( data = lv_html ).
+    xml = lo_converter->get_buffer( ).
   ENDMETHOD.
 
   METHOD get_filters.
-    RETURN.
+    IF mo_filters IS NOT BOUND.
+      mo_filters = NEW cl_salv_filters( ).
+    ENDIF.
+    foo = mo_filters.
   ENDMETHOD.
 
   METHOD get_aggregations.
-    RETURN.
+    IF mo_aggregations IS NOT BOUND.
+      mo_aggregations = NEW cl_salv_aggregations( ).
+    ENDIF.
+    value = mo_aggregations.
   ENDMETHOD.
 
   METHOD get_functions.
-    RETURN.
+    IF mo_functions IS NOT BOUND.
+      mo_functions = NEW cl_salv_functions_list( ).
+    ENDIF.
+    val = mo_functions.
   ENDMETHOD.
 
   METHOD get_metadata.
-    RETURN.
+    build_metadata( ).
   ENDMETHOD.
 
   METHOD set_striped_pattern.
-    RETURN.
+    get_display_settings( )->set_striped_pattern( CONV abap_bool( value ) ).
+    cl_gui_control=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD set_list_header.
@@ -146,6 +210,18 @@ CLASS cl_salv_table IMPLEMENTATION.
   METHOD factory.
     r_salv_table = NEW cl_salv_table( ).
     r_salv_table->mv_row_count = lines( t_table ).
+    GET REFERENCE OF t_table INTO r_salv_table->mr_table.
+    r_salv_table->mo_selections = NEW cl_salv_selections( ).
+    r_salv_table->mo_layout = NEW cl_salv_layout( ).
+    r_salv_table->mo_columns = NEW cl_salv_columns_table( ).
+    r_salv_table->mo_functions = NEW cl_salv_functions_list( ).
+    r_salv_table->mo_events = NEW cl_salv_events_table( ).
+    r_salv_table->mo_display_settings = NEW cl_salv_display_settings( ).
+    r_salv_table->mo_aggregations = NEW cl_salv_aggregations( ).
+    r_salv_table->mo_filters = NEW cl_salv_filters( ).
+    r_salv_table->mo_sorts = NEW cl_salv_sorts( ).
+    r_salv_table->mo_functional_settings = NEW cl_salv_functional_settings( ).
+    r_salv_table->build_metadata( ).
   ENDMETHOD.
 
   METHOD is_offline.
@@ -153,15 +229,18 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selections.
-    RETURN.
+    IF mo_selections IS NOT BOUND.
+      mo_selections = NEW cl_salv_selections( ).
+    ENDIF.
+    val = mo_selections.
   ENDMETHOD.
 
   METHOD close_screen.
-    RETURN.
+    cl_gui_control=>clear_external_html( ).
   ENDMETHOD.
 
   METHOD refresh.
-    RETURN.
+    cl_gui_control=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD display.
@@ -169,27 +248,187 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_screen_popup.
-    RETURN.
+    cl_gui_control=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD get_event.
-    RETURN.
+    IF mo_events IS NOT BOUND.
+      mo_events = NEW cl_salv_events_table( ).
+    ENDIF.
+    val = mo_events.
   ENDMETHOD.
 
   METHOD get_display_settings.
-    RETURN.
+    IF mo_display_settings IS NOT BOUND.
+      mo_display_settings = NEW cl_salv_display_settings( ).
+    ENDIF.
+    val = mo_display_settings.
   ENDMETHOD.
 
   METHOD set_top_of_list.
-    RETURN.
+    cl_gui_control=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD get_columns.
-    RETURN.
+    IF mo_columns IS NOT BOUND.
+      mo_columns = NEW cl_salv_columns_table( ).
+    ENDIF.
+    val = mo_columns.
   ENDMETHOD.
 
   METHOD get_html.
-    value = |<section class="gg-salv-table" aria-label="SALV table"><h2>{ cl_gui_control=>escape_html( mv_header ) }</h2><p>{ mv_row_count } rows</p><table><caption>{ cl_gui_control=>escape_html( mv_header ) }</caption><tbody></tbody></table></section>|.
+    value = rebuild_html( ).
+  ENDMETHOD.
+
+  METHOD build_metadata.
+    DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
+    DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
+    DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
+
+    IF mr_table IS NOT BOUND OR mo_columns IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( mr_table->* ).
+    lo_line_descr = lo_table_descr->get_table_line_type( ).
+    IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
+      lo_struct_descr ?= lo_line_descr.
+      LOOP AT lo_struct_descr->get_components( ) INTO DATA(ls_component).
+        mo_columns->add_column( CONV lvc_fname( ls_component-name ) ).
+      ENDLOOP.
+    ELSE.
+      mo_columns->add_column( 'VALUE' ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD rebuild_html.
+    DATA ls_row TYPE ty_html_row.
+    DATA lv_select_header TYPE string.
+    DATA lv_checked TYPE string.
+    DATA lt_selected_rows TYPE salv_t_row.
+
+    IF mo_columns IS NOT BOUND.
+      mo_columns = NEW cl_salv_columns_table( ).
+      build_metadata( ).
+    ENDIF.
+    CLEAR mt_html_rows.
+    collect_rows( ).
+    mv_row_count = lines( mt_html_rows ).
+
+    DATA(lv_header) = mv_header.
+    IF lv_header IS INITIAL AND mo_display_settings IS BOUND.
+      lv_header = mo_display_settings->get_list_header( ).
+    ENDIF.
+    value = |<section class="gg-salv-table" aria-label="SALV table"><h2>{ cl_gui_control=>escape_html( lv_header ) }</h2><p>{ mv_row_count } rows</p><table><caption>{ cl_gui_control=>escape_html( lv_header ) }</caption><thead><tr>|.
+    CLEAR lv_select_header.
+    IF mo_selections IS BOUND
+        AND mo_selections->get_selection_mode( ) <> if_salv_c_selection_mode=>none.
+      lv_select_header = `<th scope="col">Select</th>`.
+      lt_selected_rows = mo_selections->get_selected_rows( ).
+    ENDIF.
+    value = value && lv_select_header.
+    LOOP AT mo_columns->get( ) INTO DATA(ls_heading).
+      value = value && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }">{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }</th>|.
+    ENDLOOP.
+    value = value && |</tr></thead><tbody>|.
+    LOOP AT mt_html_rows INTO ls_row.
+      value = value && |<tr data-row-index="{ ls_row-index }">|.
+      IF lv_select_header IS NOT INITIAL.
+        CLEAR lv_checked.
+        IF line_exists( lt_selected_rows[ table_line = ls_row-index ] ).
+          lv_checked = ` checked`.
+        ENDIF.
+        value = value && |<td><input type="checkbox" name="gg-salv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }"{ lv_checked }></td>|.
+      ENDIF.
+      LOOP AT ls_row-cells INTO DATA(ls_cell).
+        value = value && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-columnname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
+      ENDLOOP.
+      value = value && |</tr>|.
+    ENDLOOP.
+    value = value && |</tbody></table></section>|.
+  ENDMETHOD.
+
+  METHOD collect_rows.
+    FIELD-SYMBOLS <table> TYPE ANY TABLE.
+    FIELD-SYMBOLS <row> TYPE any.
+    FIELD-SYMBOLS <component> TYPE any.
+    DATA ls_row TYPE ty_html_row.
+
+    IF mr_table IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ASSIGN mr_table->* TO <table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    LOOP AT <table> ASSIGNING <row>.
+      CLEAR ls_row.
+      ls_row-index = sy-tabix.
+      DATA(lv_matches) = abap_true.
+      LOOP AT mo_columns->get( ) INTO DATA(ls_column).
+        DATA(lv_text) = ``.
+        ASSIGN COMPONENT ls_column-columnname OF STRUCTURE <row> TO <component>.
+        IF sy-subrc = 0.
+          lv_text = |{ <component> }|.
+        ELSEIF ls_column-columnname = 'VALUE'.
+          lv_text = |{ <row> }|.
+        ENDIF.
+        APPEND VALUE #( columnname = ls_column-columnname
+                        text       = lv_text ) TO ls_row-cells.
+        IF passes_filters( columnname = ls_column-columnname
+                           value      = lv_text ) = abap_false.
+          lv_matches = abap_false.
+        ENDIF.
+      ENDLOOP.
+      IF lv_matches = abap_true.
+        APPEND ls_row TO mt_html_rows.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD passes_filters.
+    result = abap_true.
+    IF mo_filters IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    LOOP AT mo_filters->get( ) INTO DATA(ls_filter) WHERE columnname = columnname.
+      LOOP AT ls_filter-r_filter->get( ) INTO DATA(lo_selopt).
+        result = selopt_matches( selopt = lo_selopt
+                                 value  = value ).
+        RETURN.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD selopt_matches.
+    DATA(lv_low) = CONV string( selopt->get_low( ) ).
+    DATA(lv_high) = CONV string( selopt->get_high( ) ).
+    CASE selopt->get_option( ).
+      WHEN 'EQ'.
+        result = xsdbool( value = lv_low ).
+      WHEN 'NE'.
+        result = xsdbool( value <> lv_low ).
+      WHEN 'BT'.
+        result = xsdbool( value >= lv_low AND value <= lv_high ).
+      WHEN 'NB'.
+        result = xsdbool( value < lv_low OR value > lv_high ).
+      WHEN 'GE'.
+        result = xsdbool( value >= lv_low ).
+      WHEN 'GT'.
+        result = xsdbool( value > lv_low ).
+      WHEN 'LE'.
+        result = xsdbool( value <= lv_low ).
+      WHEN 'LT'.
+        result = xsdbool( value < lv_low ).
+      WHEN 'CP'.
+        result = xsdbool( value CP lv_low ).
+      WHEN 'NP'.
+        result = xsdbool( value NP lv_low ).
+      WHEN OTHERS.
+        result = abap_false.
+    ENDCASE.
+    IF selopt->get_sign( ) = 'E'.
+      result = xsdbool( result = abap_false ).
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

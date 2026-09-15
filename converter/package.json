@@ -1,7 +1,6 @@
 {
-  "name": "open-abap-gui-converter",
+  "name": "@abaplint/open-abap-gui-converter",
   "version": "1.0.0",
-  "private": true,
   "description": "Deterministic, offline conversion of classic ABAP executable reports to the versioned scaffold interfaces.",
   "type": "module",
   "main": "src/index.mjs",

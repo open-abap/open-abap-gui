@@ -1,4 +1,4 @@
-CLASS cl_dd_area DEFINITION PUBLIC.
+CLASS cl_dd_area DEFINITION PUBLIC FRIENDS cl_dd_form_area cl_dd_table_area cl_dd_table_element.
   PUBLIC SECTION.
 
     CONSTANTS col_background_level2 TYPE i VALUE 35.
@@ -118,47 +118,137 @@ CLASS cl_dd_area DEFINITION PUBLIC.
       CHANGING
         document      TYPE REF TO cl_dd_document OPTIONAL.
 
+  PROTECTED SECTION.
+    DATA html_content TYPE string.
+    DATA parent_area TYPE REF TO cl_dd_area.
+
+    "! Publishes the accumulated markup through the public HTML_TABLE
+    "! attribute, which is how callers read a document's rendered content.
+    METHODS fill_html_table.
+
+    METHODS escape_html
+      IMPORTING
+        value         TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
 ENDCLASS.
 
 CLASS cl_dd_area IMPLEMENTATION.
   METHOD new_line.
-    RETURN. " todo, implement method
+    DATA lv_repeat TYPE i.
+    lv_repeat = COND #( WHEN repeat IS SUPPLIED THEN repeat ELSE 1 ).
+    DO lv_repeat TIMES.
+      html_content = html_content && `<br>`.
+    ENDDO.
   ENDMETHOD.
 
   METHOD add_table.
-    RETURN. " todo, implement method
+    DATA lv_start TYPE i.
+    DATA lv_fragment TYPE string.
+    CLEAR table.
+    table = NEW cl_dd_table_element( ).
+    tablearea = NEW cl_dd_table_area( ).
+    tablearea->parent_area = me.
+    lv_start = strlen( html_content ).
+    html_content = html_content && |<table class="gg-dd-table" aria-label="{ escape_html( a11y_label ) }" border="{ border }"><tbody>|.
+    IF with_heading IS NOT INITIAL.
+      html_content = html_content && |<tr><th colspan="{ no_of_columns }">Dynamic document table</th></tr>|.
+    ENDIF.
+    lv_fragment = substring(
+      val = html_content
+      off = lv_start ).
+    table->html_content = lv_fragment.
+    tablearea->html_content = lv_fragment.
   ENDMETHOD.
 
   METHOD add_gap.
-    RETURN. " todo, implement method
+    html_content = html_content && |<span class="gg-dd-gap" style="display:inline-block;width:{ width }px" aria-hidden="true"></span>|.
   ENDMETHOD.
 
   METHOD line_with_layout.
-    RETURN. " todo, implement method
+    IF no_leading_break = abap_false.
+      new_line( ).
+    ENDIF.
+    IF start = abap_true.
+      html_content = html_content && `<div class="gg-dd-layout">`.
+    ENDIF.
+    IF end = abap_true.
+      html_content = html_content && `</div>`.
+    ENDIF.
   ENDMETHOD.
 
   METHOD add_form.
-    RETURN. " todo, implement method
+    formarea = NEW cl_dd_form_area( ).
+    formarea->parent_area = me.
+    main_url = ``.
+    alv_offline_info = 'Dynamic document form controls are handled in the browser session.'.
+    html_content = html_content && `<form class="gg-dd-form">`.
   ENDMETHOD.
 
   METHOD add_link.
-    RETURN. " todo, implement method
+    link = NEW cl_dd_link_element( ).
+    link->name = name.
+    link->url = url.
+    link->text = text.
+    link->tooltip = tooltip.
+    html_content = html_content && |<a class="gg-dd-link" href="{ escape_html( CONV string( url ) ) }" title="{ escape_html( tooltip ) }"{ COND string( WHEN name IS INITIAL THEN `` ELSE | id="{ escape_html( CONV string( name ) ) }"| ) }>{ escape_html( CONV string( text ) ) }</a>|.
   ENDMETHOD.
 
   METHOD underline.
-    RETURN. " todo, implement method
+    html_content = html_content && `<u>`.
   ENDMETHOD.
 
   METHOD add_icon.
-    RETURN. " todo, implement method
+    html_content = html_content && |<span class="gg-dd-icon" role="img" aria-label="{ escape_html( alternative_text ) }" data-icon="{ escape_html( CONV string( sap_icon ) ) }">{ escape_html( CONV string( sap_icon ) ) }</span>|.
   ENDMETHOD.
 
   METHOD html_insert.
-    RETURN. " todo, implement method
+    html_content = html_content && contents.
+    position = strlen( html_content ).
   ENDMETHOD.
 
   METHOD add_text.
-    RETURN. " todo, implement method
+    DATA lv_text TYPE string.
+    DATA lv_start TYPE i.
+    DATA lv_fragment TYPE string.
+    lv_start = strlen( html_content ).
+    IF text_table IS SUPPLIED.
+      LOOP AT text_table INTO DATA(lv_line).
+        lv_text = lv_text && CONV string( lv_line ) && `<br>`.
+      ENDLOOP.
+    ELSE.
+      lv_text = CONV string( text ).
+    ENDIF.
+    html_content = html_content && |<span class="gg-dd-text { escape_html( CONV string( style_class ) ) }" title="{ escape_html( a11y_tooltip ) }">{ escape_html( lv_text ) }</span>|.
+    IF document IS BOUND AND document <> me.
+      lv_fragment = substring(
+        val = html_content
+        off = lv_start ).
+      document->html_content = document->html_content && lv_fragment.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD escape_html.
+    result = cl_gui_control=>escape_html( value ).
+  ENDMETHOD.
+
+  METHOD fill_html_table.
+    DATA lv_offset TYPE i.
+    DATA lv_length TYPE i.
+    DATA lv_chunk TYPE i.
+    CLEAR html_table.
+    lv_length = strlen( html_content ).
+    WHILE lv_offset < lv_length.
+      lv_chunk = lv_length - lv_offset.
+      IF lv_chunk > 255.
+        lv_chunk = 255.
+      ENDIF.
+      APPEND VALUE #( line = substring( val = html_content
+                                        off = lv_offset
+                                        len = lv_chunk ) ) TO html_table.
+      lv_offset = lv_offset + 255.
+    ENDWHILE.
   ENDMETHOD.
 
 ENDCLASS.

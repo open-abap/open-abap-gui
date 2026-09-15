@@ -1,4 +1,5 @@
-CLASS cl_dd_input_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element.
+CLASS cl_dd_input_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element
+  FRIENDS cl_dd_form_area.
   PUBLIC SECTION.
 
     DATA value TYPE sdydo_value.
@@ -14,11 +15,18 @@ CLASS cl_dd_input_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element.
     METHODS set_value
       IMPORTING
         value TYPE sdydo_value OPTIONAL.
+
+  PRIVATE SECTION.
+    DATA size TYPE i.
+    DATA maxlength TYPE i.
+    DATA tooltip TYPE string.
+    DATA a11y_label TYPE string.
 ENDCLASS.
 
 CLASS cl_dd_input_element IMPLEMENTATION.
   METHOD set_value.
-    RETURN. " todo, implement method
+    me->value = value.
+    RAISE EVENT entered EXPORTING sender = me.
   ENDMETHOD.
 
 ENDCLASS.

@@ -11,16 +11,19 @@ CLASS cl_salv_columns_hierseq DEFINITION PUBLIC INHERITING FROM cl_salv_columns_
       RETURNING
         VALUE(value) TYPE lvc_fname.
 
+  PRIVATE SECTION.
+    DATA mv_expand_column TYPE lvc_fname.
+
 ENDCLASS.
 
 CLASS cl_salv_columns_hierseq IMPLEMENTATION.
 
   METHOD set_expand_column.
-    RETURN. " todo, implement method
+    mv_expand_column = value.
   ENDMETHOD.
 
   METHOD get_expand_column.
-    RETURN. " todo, implement method
+    value = mv_expand_column.
   ENDMETHOD.
 
 ENDCLASS.

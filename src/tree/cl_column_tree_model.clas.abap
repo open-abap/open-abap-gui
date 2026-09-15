@@ -47,25 +47,47 @@ CLASS cl_column_tree_model DEFINITION PUBLIC INHERITING FROM cl_item_tree_model.
         failed
         cntl_system_error.
 
+  PRIVATE SECTION.
+    DATA mt_column_names TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+
 ENDCLASS.
 
 CLASS cl_column_tree_model IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    RETURN. " todo, implement method
+    mv_model_kind = 'COLUMN'.
   ENDMETHOD.
 
   METHOD add_column.
-    RETURN. " todo, implement method
+    IF NOT line_exists( mt_column_names[ table_line = CONV string( name ) ] ).
+      APPEND CONV string( name ) TO mt_column_names.
+    ENDIF.
   ENDMETHOD.
 
   METHOD add_nodes.
-    RETURN. " todo, implement method
+    LOOP AT node_table INTO DATA(ls_node).
+      store_node( VALUE #( node_key   = CONV string( ls_node-node_key )
+                           parent_key = CONV string( ls_node-relatkey )
+                           text       = CONV string( ls_node-text )
+                           expanded   = xsdbool( ls_node-expander IS NOT INITIAL )
+                           hidden     = xsdbool( ls_node-hidden IS NOT INITIAL ) ) ).
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD add_items.
-    RETURN. " todo, implement method
+    LOOP AT item_table INTO DATA(ls_item).
+      DELETE mt_model_items WHERE node_key = CONV string( ls_item-node_key )
+                              AND item_name = CONV string( ls_item-item_name ).
+      APPEND VALUE #( node_key  = CONV string( ls_item-node_key )
+                      item_name = CONV string( ls_item-item_name )
+                      text      = CONV string( ls_item-text )
+                      class     = ls_item-class
+                      chosen    = xsdbool( ls_item-chosen IS NOT INITIAL )
+                      style     = ls_item-style
+                      editable  = xsdbool( ls_item-editable IS NOT INITIAL )
+                      hidden    = xsdbool( ls_item-hidden IS NOT INITIAL ) ) TO mt_model_items.
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.

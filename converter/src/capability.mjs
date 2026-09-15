@@ -1,7 +1,7 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
+import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, controlObjectTypes, dynamicWriteOperand, isConvertibleControlStatement, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
 import { compatibilityAdapter } from "./function-modules.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
@@ -105,6 +105,7 @@ function isContextMenuStatement(ir, statement) {
 export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   const diagnostics = [];
   const interfaces = new Set(ir.interfaces);
+  const convertibleObjectTypes = controlObjectTypes(ir.declarations ?? []);
   for (const continuation of ir.continuations ?? []) {
     const unsafeContext = (continuation.controlStack ?? []).find((item) => ["Do", "Loop", "Try", "While"].includes(item.kind));
     if (unsafeContext) {
@@ -134,7 +135,8 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
-    const supportedSpecial = (statement.kind === "CallFunction"
+    const supportedSpecial = isConvertibleControlStatement(statement, convertibleObjectTypes)
+      || (statement.kind === "CallFunction"
       && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text)))
       || isContextMenuStatement(ir, statement);
     if (statement.kind === "CallFunction" && !supportedSpecial) {

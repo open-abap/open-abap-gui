@@ -17,6 +17,7 @@ async function auditExample(page, host, number) {
       const visible = (element) => {
         const style = getComputedStyle(element);
         return !element.hidden
+          && !element.closest("[hidden], details:not([open])")
           && style.display !== "none"
           && style.visibility !== "hidden"
           && element.getClientRects().length > 0;
@@ -53,6 +54,7 @@ async function auditExample(page, host, number) {
     const visible = (element) => {
       const style = getComputedStyle(element);
       return !element.hidden
+        && !element.closest("[hidden], details:not([open])")
         && style.display !== "none"
         && style.visibility !== "hidden"
         && element.getClientRects().length > 0;

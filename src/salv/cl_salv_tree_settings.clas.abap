@@ -41,48 +41,55 @@ CLASS cl_salv_tree_settings DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE abap_bool.
 
+  PRIVATE SECTION.
+    DATA mv_header TYPE salv_de_tree_text.
+    DATA mv_hierarchy_header TYPE salv_de_tree_text.
+    DATA mv_hierarchy_tooltip TYPE salv_de_tree_text.
+    DATA mv_hierarchy_size TYPE salv_de_header_size.
+    DATA mv_hierarchy_size_pixel TYPE abap_bool.
+
 ENDCLASS.
 
 CLASS cl_salv_tree_settings IMPLEMENTATION.
 
   METHOD set_header.
-    RETURN. " todo, implement method
+    mv_header = value.
   ENDMETHOD.
 
   METHOD get_header.
-    RETURN. " todo, implement method
+    value = mv_header.
   ENDMETHOD.
 
   METHOD set_hierarchy_header.
-    RETURN. " todo, implement method
+    mv_hierarchy_header = value.
   ENDMETHOD.
 
   METHOD get_hierarchy_header.
-    RETURN. " todo, implement method
+    value = mv_hierarchy_header.
   ENDMETHOD.
 
   METHOD set_hierarchy_tooltip.
-    RETURN. " todo, implement method
+    mv_hierarchy_tooltip = value.
   ENDMETHOD.
 
   METHOD get_hierarchy_tooltip.
-    RETURN. " todo, implement method
+    value = mv_hierarchy_tooltip.
   ENDMETHOD.
 
   METHOD set_hierarchy_size.
-    RETURN. " todo, implement method
+    mv_hierarchy_size = value.
   ENDMETHOD.
 
   METHOD get_hierarchy_size.
-    RETURN. " todo, implement method
+    value = mv_hierarchy_size.
   ENDMETHOD.
 
   METHOD set_hierarchy_size_in_pixel.
-    RETURN. " todo, implement method
+    mv_hierarchy_size_pixel = value.
   ENDMETHOD.
 
   METHOD is_hierarchy_size_in_pixel.
-    RETURN. " todo, implement method
+    value = mv_hierarchy_size_pixel.
   ENDMETHOD.
 
 ENDCLASS.

@@ -1,9 +1,15 @@
-CLASS cl_dd_link_element DEFINITION PUBLIC INHERITING FROM cl_dd_element.
+CLASS cl_dd_link_element DEFINITION PUBLIC INHERITING FROM cl_dd_element
+  FRIENDS cl_dd_area.
   PUBLIC SECTION.
 
     EVENTS clicked
       EXPORTING
         VALUE(sender) TYPE REF TO cl_dd_link_element.
+
+  PRIVATE SECTION.
+    DATA url TYPE sdydo_text_element.
+    DATA text TYPE sdydo_text_element.
+    DATA tooltip TYPE string.
 
 ENDCLASS.
 

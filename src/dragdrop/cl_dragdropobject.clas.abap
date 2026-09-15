@@ -11,7 +11,8 @@ ENDCLASS.
 
 CLASS cl_dragdropobject IMPLEMENTATION.
   METHOD abort.
-    RETURN. " todo, implement method
+    state = -1.
+    CLEAR effect.
   ENDMETHOD.
 
 ENDCLASS.

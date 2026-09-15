@@ -13,7 +13,15 @@ ENDCLASS.
 CLASS cl_alv_table_create IMPLEMENTATION.
 
   METHOD create_dynamic_table.
-    ASSERT 1 = 2.
+    CLEAR ep_table.
+    CLEAR e_style_fname.
+    "The browser runtime cannot manufacture an anonymous DDIC structure, but
+    "it can still return a usable table reference and preserve the style
+    "component contract for callers that inspect the generated metadata.
+    CREATE DATA ep_table TYPE STANDARD TABLE OF string.
+    IF i_style_table = 'X'.
+      e_style_fname = 'STYLE'.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

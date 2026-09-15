@@ -2,6 +2,12 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
 
   PRIVATE SECTION.
     METHODS test1 FOR TESTING.
+    METHODS cfw_lifecycle FOR TESTING.
+    METHODS textedit_roundtrip FOR TESTING.
+    METHODS container_and_column_state FOR TESTING.
+    METHODS alv_editable_metadata FOR TESTING.
+    METHODS alv_sort_filter_total FOR TESTING.
+    METHODS picture_safe_state FOR TESTING.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
     METHODS html_alv_structured_rows FOR TESTING.
@@ -19,6 +25,8 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
 
 ENDCLASS.
 
+CLASS cl_gui_cfw DEFINITION LOCAL FRIENDS ltcl_test.
+
 CLASS ltcl_test IMPLEMENTATION.
 
   METHOD test1.
@@ -32,6 +40,258 @@ CLASS ltcl_test IMPLEMENTATION.
       act = lv_xpixel
       exp = 1 ).
 
+  ENDMETHOD.
+
+  METHOD cfw_lifecycle.
+    DATA lv_rc TYPE i.
+    DATA lv_return_code TYPE i.
+
+    cl_gui_cfw=>reset( ).
+    cl_gui_cfw=>set_new_ok_code(
+      EXPORTING
+        new_code = 'BACK'
+      IMPORTING
+        rc       = lv_rc ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_rc
+      exp = 0 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = cl_gui_cfw=>get_new_ok_code( )
+      exp = 'BACK' ).
+    cl_gui_cfw=>dispatch( IMPORTING return_code = lv_return_code ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_return_code
+      exp = 0 ).
+    cl_gui_cfw=>dispatch( IMPORTING return_code = lv_return_code ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_return_code
+      exp = cl_gui_cfw=>rc_noevent ).
+    cl_gui_cfw=>flush( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = cl_gui_cfw=>get_flush_count( )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = cl_gui_cfw=>get_update_count( )
+      exp = 1 ).
+  ENDMETHOD.
+
+  METHOD textedit_roundtrip.
+    DATA lt_input TYPE string_table.
+    DATA lt_output TYPE string_table.
+    DATA lv_modified TYPE i.
+    DATA lv_from_line TYPE i.
+    DATA lv_from_pos TYPE i.
+    DATA lv_to_line TYPE i.
+    DATA lv_to_pos TYPE i.
+    DATA lv_text TYPE string.
+    DATA lv_file_result TYPE abap_bool.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'TEXTEDIT-ROUNDTRIP' ).
+    DATA(lo_editor) = NEW cl_gui_textedit( parent = lo_root ).
+    lo_editor->set_toolbar_mode( cl_gui_textedit=>true ).
+    lo_editor->set_statusbar_mode( cl_gui_textedit=>true ).
+    lo_editor->set_font_fixed( cl_gui_textedit=>true ).
+    lo_editor->set_wordwrap_behavior(
+      wordwrap_mode              = cl_gui_textedit=>wordwrap_at_fixed_position
+      wordwrap_position          = 72
+      wordwrap_to_linebreak_mode = 1 ).
+    lo_editor->protect_lines( from_line = 1
+                              to_line   = 1 ).
+    lt_input = VALUE #( ( `first` ) ( `second` ) ( `third` ) ).
+    lo_editor->set_text_as_r3table( lt_input ).
+    lo_editor->get_text_as_r3table(
+      IMPORTING
+        table       = lt_output
+        is_modified = lv_modified ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lines( lt_output )
+      exp = 3 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_output[ 2 ]
+      exp = 'second' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_modified
+      exp = 1 ).
+    lo_editor->go_to_line( 99 ).
+    lo_editor->get_selection_pos(
+      IMPORTING
+        from_line = lv_from_line
+        to_line   = lv_to_line ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_from_line
+      exp = 3 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_to_line
+      exp = 3 ).
+    lo_editor->set_selection_pos( from_line = 2
+                                  from_pos  = 1
+                                  to_line   = 3
+                                  to_pos    = 2 ).
+    lo_editor->get_selection_pos(
+      IMPORTING
+        from_line = lv_from_line
+        from_pos  = lv_from_pos
+        to_line   = lv_to_line
+        to_pos    = lv_to_pos ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_from_line
+      exp = 2 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_from_pos
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_to_line
+      exp = 3 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_to_pos
+      exp = 2 ).
+
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-toolbar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-statusbar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-wordwrap-position="72"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-protected-from="1"' ) ).
+
+    lo_editor->delete_text( ).
+    lo_editor->get_textstream(
+      IMPORTING
+        text        = lv_text
+        is_modified = lv_modified ).
+    cl_abap_unit_assert=>assert_initial( lv_text ).
+    lv_file_result = lo_editor->open_local_file( filename = 'C:\\desktop\\text.txt' ).
+    cl_abap_unit_assert=>assert_false( act = lv_file_result ).
+    lv_file_result = lo_editor->save_as_local_file( filename = 'C:\\desktop\\text.txt' ).
+    cl_abap_unit_assert=>assert_false( act = lv_file_result ).
+  ENDMETHOD.
+
+  METHOD container_and_column_state.
+    DATA(lv_heading) = VALUE treev_hhdr(
+      heading = 'Hierarchy'
+      tooltip = 'Tree heading'
+      width   = 180 ).
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'NAMED-ROOT' ).
+    DATA(lo_tree) = NEW cl_gui_column_tree(
+      parent                = lo_root
+      node_selection_mode   = cl_tree_control_base=>node_sel_mode_single
+      item_selection        = abap_true
+      hierarchy_column_name = 'TREE'
+      hierarchy_header      = lv_heading ).
+    lo_tree->add_column(
+      name        = 'DETAIL'
+      width       = 120
+      header_text = 'Detail' ).
+    lo_tree->hierarchy_header_set_text( 'Updated hierarchy' ).
+    lo_tree->column_set_hidden( column_name = 'DETAIL'
+                                hidden      = abap_false ).
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'name=NAMED-ROOT' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Updated hierarchy' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-column-name="DETAIL"' ) ).
+  ENDMETHOD.
+
+  METHOD alv_editable_metadata.
+    TYPES: BEGIN OF ty_row,
+             flag TYPE c LENGTH 1,
+             note TYPE string,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+    DATA lt_columns TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lt_selected_columns TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-ROOT' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
+    APPEND VALUE #( flag = 'X' note = 'edit me' ) TO lt_rows.
+    APPEND VALUE #( fieldname = 'FLAG' coltext = 'Flag' checkbox = 'X' ) TO lt_fcat.
+    APPEND VALUE #( fieldname = 'NOTE' coltext = 'Note' edit = 'X' hotspot = 'X' ) TO lt_fcat.
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    APPEND 2 TO lt_columns.
+    lo_grid->set_selected_columns( it_col_table = lt_columns ).
+    lo_grid->get_selected_columns( IMPORTING et_index_columns = lt_selected_columns ).
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_selected_columns[ 1 ]
+      exp = 2 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'type="checkbox"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="edit me"' ) ).
+  ENDMETHOD.
+
+  METHOD alv_sort_filter_total.
+    TYPES: BEGIN OF ty_row,
+             carrier TYPE c LENGTH 3,
+             seats   TYPE i,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+    DATA lt_filtered TYPE lvc_t_fidx.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-CRITERIA' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
+    lt_rows = VALUE #( ( carrier = 'LH' seats = 180 )
+                       ( carrier = 'UA' seats = 210 )
+                       ( carrier = 'LH' seats = 160 ) ).
+    lt_fcat = VALUE #( ( fieldname = 'CARRIER' coltext = 'Carrier' )
+                       ( fieldname = 'SEATS' coltext = 'Seats' do_sum = 'X' ) ).
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    lo_grid->set_filter_criteria( VALUE #( ( fieldname = 'CARRIER'
+                                             sign      = 'I'
+                                             option    = 'CP'
+                                             low       = 'L*' ) ) ).
+    lo_grid->set_sort_criteria( VALUE #( ( fieldname = 'SEATS'
+                                           down      = 'X'
+                                           spos      = 1 ) ) ).
+    lo_grid->get_filtered_entries( IMPORTING et_filtered_entries = lt_filtered ).
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lines( lt_filtered )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>180</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>160</td>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>210</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-grid-total' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>340</td>' ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD picture_safe_state.
+    DATA lv_result TYPE i.
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'PICTURE-ROOT' ).
+    DATA(lo_picture) = NEW cl_gui_picture( parent = lo_root ).
+    lo_picture->load_picture_from_url(
+      EXPORTING
+        url    = 'javascript:alert(1)'
+      IMPORTING
+        result = lv_result ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_result
+      exp = 4 ).
+    DATA(lv_rejected_html) = cl_gui_control=>render_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_rejected_html CS 'data-picture-state="rejected"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_rejected_html CS 'src="javascript:' ) ).
+    lo_picture->load_picture_from_url_async( '/assets/icons/refresh.svg' ).
+    lo_picture->set_display_mode( cl_gui_picture=>display_mode_fit_center ).
+    lo_picture->set_3d_border( 1 ).
+    DATA(lv_html) = cl_gui_control=>render_html( ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'src="/assets/icons/refresh.svg"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-picture-state="loaded"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-display-mode="4"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'object-fit:contain' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'javascript:' ) ).
   ENDMETHOD.
 
   METHOD html_control_snapshot.

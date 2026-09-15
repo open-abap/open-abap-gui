@@ -15,9 +15,6 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(children) TYPE ty_child_ids.
 
-  PRIVATE SECTION.
-    DATA mt_child_ids TYPE ty_child_ids.
-
     METHODS link
       IMPORTING
         repid     TYPE syrepid OPTIONAL
@@ -27,11 +24,14 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_error
         cntl_system_error
         lifetime_dynpro_dynpro_link.
+
+  PRIVATE SECTION.
+    DATA mt_child_ids TYPE ty_child_ids.
 ENDCLASS.
 
 CLASS cl_gui_container IMPLEMENTATION.
   METHOD add_child.
-    IF child IS BOUND.
+    IF child IS BOUND AND NOT line_exists( mt_child_ids[ table_line = child->control_id ] ).
       APPEND child->control_id TO mt_child_ids.
     ENDIF.
   ENDMETHOD.
@@ -41,6 +41,8 @@ CLASS cl_gui_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD link.
-    RETURN. " todo, implement method
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |link-repid={ repid }; dynnr={ dynnr }; container={ container }| ).
   ENDMETHOD.
 ENDCLASS.

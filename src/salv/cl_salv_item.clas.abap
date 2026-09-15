@@ -9,7 +9,11 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE i.
 
-    METHODS set_text
+    METHODS get_value
+      RETURNING
+        VALUE(value) TYPE string.
+
+    METHODS set_value
       IMPORTING
         value TYPE clike.
 
@@ -17,13 +21,25 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       IMPORTING
         value TYPE any.
 
+    METHODS get_icon
+      RETURNING
+        VALUE(value) TYPE string.
+
     METHODS set_style
       IMPORTING
         value TYPE i.
 
+    METHODS get_style
+      RETURNING
+        VALUE(value) TYPE i.
+
     METHODS set_editable
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
+
+    METHODS is_editable
+      RETURNING
+        VALUE(value) TYPE abap_bool.
 
     METHODS set_checked
       IMPORTING
@@ -33,40 +49,64 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE abap_bool.
 
+  PRIVATE SECTION.
+    DATA mv_type TYPE i.
+    DATA mv_text TYPE string.
+    DATA mv_icon TYPE string.
+    DATA mv_style TYPE i.
+    DATA mv_editable TYPE abap_bool.
+    DATA mv_checked TYPE abap_bool.
+
 ENDCLASS.
 
 CLASS cl_salv_item IMPLEMENTATION.
 
   METHOD set_type.
-    RETURN. " todo, implement method
+    mv_type = value.
   ENDMETHOD.
 
   METHOD get_type.
-    RETURN. " todo, implement method
+    value = mv_type.
   ENDMETHOD.
 
-  METHOD set_text.
-    RETURN. " todo, implement method
+  METHOD get_value.
+    value = mv_text.
+  ENDMETHOD.
+
+  METHOD set_value.
+    mv_text = value.
   ENDMETHOD.
 
   METHOD set_icon.
-    RETURN. " todo, implement method
+    mv_icon = value.
+  ENDMETHOD.
+
+  METHOD get_icon.
+    value = mv_icon.
   ENDMETHOD.
 
   METHOD set_style.
-    RETURN. " todo, implement method
+    mv_style = value.
+  ENDMETHOD.
+
+  METHOD get_style.
+    value = mv_style.
   ENDMETHOD.
 
   METHOD set_editable.
-    RETURN. " todo, implement method
+    mv_editable = value.
+  ENDMETHOD.
+
+  METHOD is_editable.
+    value = mv_editable.
   ENDMETHOD.
 
   METHOD set_checked.
-    RETURN. " todo, implement method
+    mv_checked = value.
   ENDMETHOD.
 
   METHOD is_checked.
-    RETURN. " todo, implement method
+    value = mv_checked.
   ENDMETHOD.
 
 ENDCLASS.

@@ -77,6 +77,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_popup          TYPE zif_gg_compatibility_v1=>ty_popup OPTIONAL
         io_menu           TYPE REF TO cl_ctmenu OPTIONAL
         iv_menu_field     TYPE string OPTIONAL
+        iv_controls_html  TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html)    TYPE string.
 
@@ -202,6 +203,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_screen      TYPE zif_gg_dynpro_types_v1=>ty_screen
         is_control     TYPE zcl_gg_host_dynpro_builder=>ty_control_record
         iv_style       TYPE string
+        is_cursor      TYPE zif_gg_session_types_v1=>ty_dialog_cursor OPTIONAL
         it_controls    TYPE zcl_gg_host_dynpro_builder=>ty_controls
         it_values      TYPE zif_gg_dynpro_types_v1=>ty_values
         it_states      TYPE zif_gg_dynpro_types_v1=>ty_states
@@ -219,26 +221,29 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
         it_states        TYPE zif_gg_dynpro_types_v1=>ty_states
         it_messages      TYPE zcl_gg_host_session=>ty_messages
+        iv_controls_html TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html)   TYPE string.
 
     CLASS-METHODS render_dynpro_control
       IMPORTING
-        is_screen      TYPE zif_gg_dynpro_types_v1=>ty_screen
-        is_control     TYPE zcl_gg_host_dynpro_builder=>ty_control_record
-        is_value       TYPE zif_gg_dynpro_types_v1=>ty_value
-        is_state       TYPE zif_gg_dynpro_types_v1=>ty_state
-        iv_style       TYPE string
-        iv_id          TYPE string
-        iv_attrs       TYPE string
-        iv_state_class TYPE string
-        iv_active_tab  TYPE string
-        it_controls    TYPE zcl_gg_host_dynpro_builder=>ty_controls
-        it_values      TYPE zif_gg_dynpro_types_v1=>ty_values
-        it_states      TYPE zif_gg_dynpro_types_v1=>ty_states
-        it_messages    TYPE zcl_gg_host_session=>ty_messages
+        is_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen
+        is_control       TYPE zcl_gg_host_dynpro_builder=>ty_control_record
+        is_value         TYPE zif_gg_dynpro_types_v1=>ty_value
+        is_state         TYPE zif_gg_dynpro_types_v1=>ty_state
+        iv_style         TYPE string
+        iv_id            TYPE string
+        iv_attrs         TYPE string
+        iv_state_class   TYPE string
+        iv_active_tab    TYPE string
+        is_cursor        TYPE zif_gg_session_types_v1=>ty_dialog_cursor OPTIONAL
+        it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
+        it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
+        it_states        TYPE zif_gg_dynpro_types_v1=>ty_states
+        it_messages      TYPE zcl_gg_host_session=>ty_messages
+        iv_controls_html TYPE string OPTIONAL
       RETURNING
-        VALUE(rv_html) TYPE string.
+        VALUE(rv_html)   TYPE string.
 
     CLASS-METHODS subscreen_for_area
       IMPORTING
@@ -701,7 +706,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             lv_state_attrs = state_attrs(
               is_state    = ls_state
               iv_readonly = xsdbool( ls_state-input = abap_false ) ).
-            lv_body = lv_body && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }">{ COND string( WHEN lv_range_count > 1 THEN |<span class="gg-range-index" aria-hidden="true">{ sy-index }</span>| ELSE `` ) }<input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_low_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-text ) ) } low"{ lv_type_attrs }{ lv_external_attrs }{ lv_state_attrs }>|.
+            lv_focus_attrs = COND string(
+              WHEN lv_initial_focus = abap_false
+                AND ls_state-visible = abap_true
+                AND ls_state-enabled = abap_true
+                AND ls_state-input = abap_true
+                AND ls_state-no_display = abap_false
+              THEN ` autofocus` ELSE `` ).
+            lv_initial_focus = xsdbool( lv_initial_focus = abap_true
+                                        OR lv_focus_attrs IS NOT INITIAL ).
+            lv_body = lv_body && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }">{ COND string( WHEN lv_range_count > 1 THEN |<span class="gg-range-index" aria-hidden="true">{ sy-index }</span>| ELSE `` ) }<input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_low_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-text ) ) } low"{ lv_type_attrs }{ lv_external_attrs }{ lv_state_attrs }{ lv_focus_attrs }>|.
             IF ls_element-no_intervals = abap_false.
               lv_body = lv_body && |<span class="gg-range-to" aria-hidden="true">to</span><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_high_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-text ) ) } high"{ lv_type_attrs }{ lv_high_external_attrs }{ lv_state_attrs }>|.
             ENDIF.
@@ -767,7 +781,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 * is rejected by the program's own selection-screen validation with a message
 * rather than by a native browser bubble.
     lv_body = lv_body && render_dynamic_selection( is_selection = is_dynamic_selection ).
-    lv_body = lv_body && |<div class="gg-action-row gg-field gg-actions" role="group" aria-label="Selection actions"><button type="submit" formnovalidate name="gg_ucomm" value="ONLI" data-key="F8" aria-keyshortcuts="F8">Execute</button><button type="submit" name="gg_action" value="EXIT" aria-keyshortcuts="Escape">Cancel</button></div></form></section></section>|.
+    lv_body = lv_body && |<div class="gg-action-row gg-field gg-actions" role="group" aria-label="Selection actions"><button type="submit" formnovalidate name="gg_ucomm" value="ONLI" data-key="F8" aria-keyshortcuts="F8">Execute</button><button type="submit" formnovalidate name="gg_action" value="EXIT" aria-keyshortcuts="Escape">Cancel</button></div></form></section></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
@@ -831,6 +845,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_state_class TYPE string.
     DATA lv_cell_attrs TYPE string.
     DATA lv_cell_input_attrs TYPE string.
+    DATA lv_cursor_attrs TYPE string.
     DATA lv_type_attrs TYPE string.
     DATA lv_external_attrs TYPE string.
     DATA lv_display_value TYPE string.
@@ -890,12 +905,22 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true
             THEN ` hidden` ELSE `` ).
         lv_cell_input_attrs = ``.
+        lv_cursor_attrs = ``.
         IF ls_state-enabled = abap_false
             OR ( ls_column-input = abap_true AND ls_state-input = abap_false ).
           lv_cell_input_attrs = ` disabled aria-disabled="true"`.
         ENDIF.
         IF ls_column-required = abap_true OR ls_state-required = abap_true.
           lv_cell_input_attrs = lv_cell_input_attrs && ` required aria-required="true"`.
+        ENDIF.
+        IF is_cursor-field IS NOT INITIAL
+            AND is_cursor-field CS ls_column-name
+            AND ( is_cursor-row IS INITIAL OR is_cursor-row = lv_row )
+            AND ls_column-input = abap_true
+            AND ls_state-visible = abap_true
+            AND ls_state-enabled = abap_true
+            AND ls_state-input = abap_true.
+          lv_cursor_attrs = ` autofocus`.
         ENDIF.
         lv_display_value = zcl_gg_host_html=>format_external_value(
           iv_value = lv_cell_value
@@ -909,7 +934,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_type_attrs = dynpro_type_attrs(
             is_data_type   = ls_column-data_type
             iv_extra_class = lv_state_class ).
-          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN CONV string( ls_column-name ) ELSE CONV string( ls_column-column_title ) ) ) } row { lv_row }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_cell_input_attrs }></td>|.
+          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN CONV string( ls_column-name ) ELSE CONV string( ls_column-column_title ) ) ) } row { lv_row }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_cell_input_attrs }{ lv_cursor_attrs }></td>|.
         ELSE.
           lv_output_class = data_type_class(
             iv_type        = ls_column-data_type-typ
@@ -1055,7 +1080,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       it_controls      = it_controls
       it_values        = it_values
       it_states        = it_states
-      it_messages      = it_messages ).
+      it_messages      = it_messages
+      iv_controls_html = iv_controls_html ).
     IF io_menu IS BOUND AND iv_menu_field IS NOT INITIAL.
       lv_context_menu = render_context_menu(
         io_menu  = io_menu
@@ -1202,19 +1228,21 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         lv_attrs = lv_attrs && ` autofocus`.
       ENDIF.
       rv_html = rv_html && render_dynpro_control(
-        is_screen      = is_screen
-        is_control     = ls_control
-        is_value       = ls_value
-        is_state       = ls_state
-        iv_style       = lv_style
-        iv_id          = lv_id
-        iv_attrs       = lv_attrs
-        iv_state_class = lv_state_class
-        iv_active_tab  = iv_active_tab
-        it_controls    = it_controls
-        it_values      = it_values
-        it_states      = it_states
-        it_messages    = it_messages ).
+        is_screen        = is_screen
+        is_control       = ls_control
+        is_value         = ls_value
+        is_state         = ls_state
+        iv_style         = lv_style
+        iv_id            = lv_id
+        iv_attrs         = lv_attrs
+        iv_state_class   = lv_state_class
+        iv_active_tab    = iv_active_tab
+        is_cursor        = is_cursor
+        it_controls      = it_controls
+        it_values        = it_values
+        it_states        = it_states
+        it_messages      = it_messages
+        iv_controls_html = iv_controls_html ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -1345,11 +1373,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           is_screen   = is_screen
           is_control  = is_control
           iv_style    = iv_style
+          is_cursor   = is_cursor
           it_controls = it_controls
           it_values   = it_values
           it_states   = it_states ).
       WHEN 'CUSTOM_CONTROL'.
-        rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-custom-control="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" role="region" aria-label="Custom control { zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }"></div>|.
+        rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-custom-control="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" role="region" aria-label="Custom control { zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }">{ iv_controls_html }</div>|.
       WHEN OTHERS.
         rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }">{ zcl_gg_host_html=>escape_text( is_control-text ) }</div>|.
     ENDCASE.
@@ -1539,16 +1568,25 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_prefix = COND string(
       WHEN lv_kind = 'CONFIRM' THEN 'CONFIRM'
       WHEN lv_kind = 'VALUES' THEN 'VALUE'
+      WHEN lv_kind = 'TABLE' THEN 'TABLE'
+      WHEN lv_kind = 'MONTH' THEN 'MONTH'
       ELSE 'INFORM' ).
     rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-popup-title" data-popup-kind="{ zcl_gg_host_html=>escape_attribute( lv_kind ) }" data-popup-start-row="{ is_popup-start_row }" data-popup-start-column="{ is_popup-start_column }"><div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 id="gg-popup-title">{ zcl_gg_host_html=>escape_text( is_popup-title ) }</h2></header><div class="gg-popup-body">|.
     LOOP AT is_popup-text_lines INTO DATA(lv_line).
       rv_html = rv_html && |<p>{ zcl_gg_host_html=>escape_text( lv_line ) }</p>|.
     ENDLOOP.
-    IF lv_kind = 'VALUES'.
-      LOOP AT is_popup-fields INTO DATA(ls_field).
-        rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_field-text IS INITIAL THEN ls_field-name ELSE ls_field-text ) ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_field-value ) }"></label>|.
-      ENDLOOP.
-    ENDIF.
+    CASE lv_kind.
+      WHEN 'VALUES'.
+        LOOP AT is_popup-fields INTO DATA(ls_field).
+          rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_field-text IS INITIAL THEN ls_field-name ELSE ls_field-text ) ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_field-value ) }"></label>|.
+        ENDLOOP.
+      WHEN 'TABLE'.
+        rv_html = rv_html && |<table class="gg-popup-table"><caption>Choose a row</caption><thead><tr><th scope="col">Row</th><th scope="col">Value</th></tr></thead><tbody>|.
+        LOOP AT is_popup-table_values INTO DATA(lv_table_value).
+          rv_html = rv_html && |<tr><th scope="row">{ sy-tabix }</th><td><button type="submit" name="gg_action" value="POPUP:TABLE:{ sy-tabix }" formnovalidate>{ zcl_gg_host_html=>escape_text( lv_table_value ) }</button></td></tr>|.
+        ENDLOOP.
+        rv_html = rv_html && '</tbody></table>'.
+    ENDCASE.
     rv_html = rv_html && |</div><footer class="gg-popup-actions">|.
     LOOP AT is_popup-buttons INTO DATA(ls_button).
       rv_html = rv_html && |<button type="submit" name="gg_action" value="POPUP:{ lv_prefix }:{ zcl_gg_host_html=>escape_attribute( ls_button-value ) }" formnovalidate>{ zcl_gg_host_html=>escape_text( ls_button-text ) }</button>|.

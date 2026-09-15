@@ -29,6 +29,10 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS clear_picture.
 
+    METHODS set_alt_text
+      IMPORTING
+        text TYPE string.
+
     METHODS set_display_mode
       IMPORTING
         display_mode TYPE i.
@@ -46,27 +50,52 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
     METHODS set_3d_border
       IMPORTING
         border TYPE i.
+
+  PRIVATE SECTION.
+    DATA mv_url TYPE string.
+    DATA mv_display_mode TYPE i.
+    DATA mv_border TYPE i.
+    DATA mv_state TYPE string.
+    DATA mv_alt_text TYPE string.
+
+    METHODS refresh_state.
+    METHODS is_safe_asset
+      RETURNING
+        VALUE(result) TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_gui_picture IMPLEMENTATION.
   METHOD set_3d_border.
-    RETURN. " todo, implement method
+    mv_border = border.
+    refresh_state( ).
+  ENDMETHOD.
+
+  METHOD set_alt_text.
+    mv_alt_text = text.
+    refresh_state( ).
   ENDMETHOD.
 
   METHOD load_picture_from_url.
-    cl_gui_control=>set_payload( control = me
-                                 payload = CONV string( url ) ).
-    result = 0.
+    mv_url = url.
+    IF is_safe_asset( ) = abap_true.
+      mv_state = 'loaded'.
+      result = 0.
+    ELSE.
+      mv_state = 'rejected'.
+      result = 4.
+    ENDIF.
+    refresh_state( ).
   ENDMETHOD.
 
   METHOD load_picture_from_url_async.
-    cl_gui_control=>set_payload( control = me
-                                 payload = CONV string( url ) ).
+    mv_url = url.
+    mv_state = COND #( WHEN is_safe_asset( ) = abap_true THEN 'loaded' ELSE 'rejected' ).
+    refresh_state( ).
   ENDMETHOD.
 
   METHOD clear_picture.
-    cl_gui_control=>set_payload( control = me
-                                 payload = `` ).
+    CLEAR: mv_url, mv_state.
+    refresh_state( ).
   ENDMETHOD.
 
   METHOD constructor.
@@ -78,7 +107,26 @@ CLASS cl_gui_picture IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_display_mode.
-    RETURN.
+    mv_display_mode = COND #( WHEN display_mode >= display_mode_normal
+                                AND display_mode <= display_mode_fit_center
+                              THEN display_mode ELSE display_mode_normal ).
+    refresh_state( ).
+  ENDMETHOD.
+
+  METHOD refresh_state.
+    cl_gui_control=>set_payload( control = me
+                                 payload = mv_url ).
+    cl_gui_control=>set_picture_state(
+      control      = me
+      display_mode = mv_display_mode
+      border       = mv_border
+      state        = mv_state
+      alt_text     = mv_alt_text ).
+  ENDMETHOD.
+
+  METHOD is_safe_asset.
+    DATA(lv_url) = to_lower( mv_url ).
+    result = xsdbool( lv_url CP '/assets/*' ).
   ENDMETHOD.
 
 ENDCLASS.

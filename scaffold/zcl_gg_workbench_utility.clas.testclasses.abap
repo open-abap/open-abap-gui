@@ -19,7 +19,9 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-runtime-content' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-work-area:#d5e6f3' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-row:26px' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-input:#fff1a6' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-input:#fff' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-command-input{width:190px' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'background:var(--gg-action)' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'border:1px solid var(--gg-border-dark)' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-skip-link:focus' ) ).
 * A disabled command must not react to hover or to being pressed.

@@ -1073,6 +1073,26 @@ test("lowers the finite gg-gui function-module families through typed adapters",
   assert.equal(Object.keys(COMPATIBILITY_FUNCTION_MODULES).length, 34);
 });
 
+test("keeps scaffold-owned control constructors and methods type-aware", async () => {
+  const source = [
+    "REPORT zcontrol_objects.",
+    "DATA go_host TYPE REF TO cl_gui_custom_container.",
+    "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+    "START-OF-SELECTION.",
+    "CREATE OBJECT go_host EXPORTING container_name = 'ROOT'.",
+    "CREATE OBJECT go_grid EXPORTING i_parent = go_host.",
+    "CALL METHOD go_grid->refresh_table_display.",
+    "FREE go_grid.",
+  ].join("\n");
+  const result = await convertProgram({ source, filename: "zcontrol_objects.prog.abap" });
+  assert.equal(result.supported, true);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV-E501: unsupported (?:CreateObject|Call|Free)/);
+  assert.match(result.classSource, /CREATE OBJECT go_host EXPORTING container_name = 'ROOT'\./);
+  assert.match(result.classSource, /CREATE OBJECT go_grid EXPORTING i_parent = go_host\./);
+  assert.match(result.classSource, /CALL METHOD go_grid->refresh_table_display\./);
+  assert.match(result.classSource, /CLEAR go_grid\./);
+});
+
 test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture", async () => {
   const source = await compositeFixture("plan9_minimal_constructs.prog.abap");
   const result = await convertProgram({ source, filename: "plan9_minimal_constructs.prog.abap", transactionCode: "ZPLAN9MIN" });

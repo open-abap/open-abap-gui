@@ -8,6 +8,7 @@ CLASS ltcl_gg_control_showcase_base DEFINITION FINAL FOR TESTING DURATION SHORT 
     METHODS textedit FOR TESTING.
     METHODS readonly_textedit FOR TESTING.
     METHODS picture FOR TESTING.
+    METHODS picture_actions FOR TESTING.
     METHODS toolbar FOR TESTING.
     METHODS calendar FOR TESTING.
     METHODS selector FOR TESTING.
@@ -72,6 +73,12 @@ CLASS ltcl_gg_control_showcase_base IMPLEMENTATION.
                 iv_text   = 'PICTURE' ).
   ENDMETHOD.
 
+  METHOD picture_actions.
+    check_command( io_report = NEW zcl_gg_ex_124( )
+                   iv_ucomm  = 'PICTURE_FIT'
+                   iv_text   = 'data-display-mode="4"' ).
+  ENDMETHOD.
+
   METHOD toolbar.
     check_html( io_report = NEW zcl_gg_ex_125( )
                 iv_text   = 'role="toolbar" aria-label="Control toolbar" data-toolbar-scope="control"' ).
@@ -96,8 +103,11 @@ CLASS ltcl_gg_control_showcase_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD dynamic_document.
-    check_html( io_report = NEW zcl_gg_ex_129( )
-                iv_text   = 'Dynamic document' ).
+    DATA(ls_result) = zcl_gg_host=>run( io_report = NEW zcl_gg_ex_129( ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-dd-document' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'select' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-dd-table' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'Dynamic &amp; safe document' ) ).
     check_command( io_report = NEW zcl_gg_ex_129( )
                    iv_ucomm  = 'SAVE_DOC'
       iv_text                = 'document saved by the server' ).

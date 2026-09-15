@@ -88,6 +88,7 @@ CLASS cl_gui_calendar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mv_date_begin TYPE cnca_utc_date.
     DATA mv_date_end TYPE cnca_utc_date.
     DATA mt_selection TYPE cnca_itab_selection.
+    DATA mt_day_info TYPE cnca_itab_day_info.
 
     METHODS refresh_html.
 
@@ -133,11 +134,13 @@ CLASS cl_gui_calendar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_day_info.
-    RETURN. " todo, implement method
+    mt_day_info = day_info.
+    refresh_html( ).
   ENDMETHOD.
 
   METHOD reset_day_info.
-    RETURN.
+    CLEAR mt_day_info.
+    refresh_html( ).
   ENDMETHOD.
 
   METHOD reset_selection.
@@ -149,6 +152,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
 
   METHOD refresh_html.
     DATA lv_focus_date TYPE string.
+    DATA lv_info_html TYPE string.
 
     lv_focus_date = CONV string( mv_focus_date ).
     IF strlen( lv_focus_date ) = 8.
@@ -160,9 +164,12 @@ CLASS cl_gui_calendar IMPLEMENTATION.
                                                                                       off = 6
                                                                                       len = 2 ) }|.
     ENDIF.
+    LOOP AT mt_day_info INTO DATA(ls_day_info).
+      lv_info_html = lv_info_html && |<span class="gg-calendar-day-info" data-date="{ CONV string( ls_day_info-date ) }" data-color="{ ls_day_info-color }">{ cl_gui_control=>escape_html( CONV string( ls_day_info-text ) ) }</span>|.
+    ENDLOOP.
     cl_gui_control=>set_html(
       control = me
-      html    = |<label for="{ control_id }-date">Focus date</label><input type="date" id="{ control_id }-date" name="{ control_id }-date" value="{ escape_html( lv_focus_date ) }">| ).
+      html    = |<label for="{ control_id }-date">Focus date</label><input type="date" id="{ control_id }-date" name="{ control_id }-date" value="{ escape_html( lv_focus_date ) }">{ lv_info_html }| ).
     cl_gui_control=>set_payload(
       control = me
       payload = |{ CONV string( mv_date_begin ) }/{ CONV string( mv_date_end ) }| ).

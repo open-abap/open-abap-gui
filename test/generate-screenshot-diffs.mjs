@@ -10,6 +10,7 @@ const currentDirectory = resolve(currentArgument || "build/screenshots");
 const outputDirectory = resolve(outputArgument || "build/visual-diffs");
 const diffDirectory = resolve(outputDirectory, "images");
 const contentRegion = parseContentRegion(argumentValue("--content-region"));
+const masksPath = resolve(argumentValue("--masks") || "test/visual-masks.json");
 
 function argumentValue(name) {
   const inline = rawArguments.find((argument) => argument.startsWith(`${name}=`));
@@ -29,6 +30,22 @@ function parseContentRegion(value) {
     throw new Error("--content-region must have non-negative x/y and positive width/height");
   }
   return {x, y, width, height};
+}
+
+async function loadMasks(filename) {
+  const definition = JSON.parse(await readFile(filename, "utf8"));
+  if (definition.version !== 1 || !Array.isArray(definition.regions)) {
+    throw new Error(`${filename} must contain version 1 and a regions array`);
+  }
+  for (const region of definition.regions) {
+    if (!region.id || !region.reason || !["x", "y", "width", "height"].every((key) => Number.isInteger(region[key]))) {
+      throw new Error(`${filename} contains a mask without id, reason, or integer geometry`);
+    }
+    if (region.x < 0 || region.y < 0 || region.width <= 0 || region.height <= 0) {
+      throw new Error(`${filename} contains a mask with invalid geometry: ${region.id}`);
+    }
+  }
+  return definition;
 }
 
 function escapeHtml(value) {
@@ -73,6 +90,7 @@ function imageMarkup({source, alt, dimensions}) {
 
 await rm(outputDirectory, {recursive: true, force: true});
 await mkdir(diffDirectory, {recursive: true});
+const maskDefinition = await loadMasks(masksPath);
 
 const baselineNames = await screenshotNames(baselineDirectory);
 const currentNames = await screenshotNames(currentDirectory);
@@ -108,8 +126,14 @@ try {
     }
     const width = contentRegion?.width || Math.max(baselineDimensions?.width || 0, currentDimensions?.width || 0);
     const height = contentRegion?.height || Math.max(baselineDimensions?.height || 0, currentDimensions?.height || 0);
+    const masks = maskDefinition.regions;
+    for (const mask of masks) {
+      if (mask.x + mask.width > width || mask.y + mask.height > height) {
+        throw new Error(`Mask ${mask.id} exceeds comparison image ${name} (${width} x ${height})`);
+      }
+    }
 
-    const result = await page.evaluate(async ({baselineUrl, currentUrl, width, height, contentRegion}) => {
+    const result = await page.evaluate(async ({baselineUrl, currentUrl, width, height, contentRegion, masks}) => {
       async function loadImage(url) {
         if (!url) {
           return null;
@@ -137,12 +161,28 @@ try {
         return context.getImageData(0, 0, width, height);
       }
 
+      function applyMasks(imageData) {
+        for (const mask of masks) {
+          for (let y = mask.y; y < mask.y + mask.height; y++) {
+            for (let x = mask.x; x < mask.x + mask.width; x++) {
+              const offset = (y * width + x) * 4;
+              imageData.data[offset] = 255;
+              imageData.data[offset + 1] = 255;
+              imageData.data[offset + 2] = 255;
+              imageData.data[offset + 3] = 255;
+            }
+          }
+        }
+      }
+
       const [baselineImage, currentImage] = await Promise.all([
         loadImage(baselineUrl),
         loadImage(currentUrl),
       ]);
       const baseline = pixels(baselineImage);
       const current = pixels(currentImage);
+      applyMasks(baseline);
+      applyMasks(current);
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
@@ -187,6 +227,7 @@ try {
       width,
       height,
       contentRegion,
+      masks,
     });
 
     const status = !hasBaseline ? "added" : !hasCurrent ? "removed" : result.changedPixels > 0 ? "changed" : "unchanged";
@@ -203,6 +244,7 @@ try {
       baselineDimensions,
       currentDimensions,
       contentRegion,
+      masks: masks.map(({id, reason}) => ({id, reason})),
     });
   }
 } finally {
@@ -266,7 +308,7 @@ const html = `<!doctype html>
   </head>
   <body>
     <h1>Screenshot visual diffs</h1>
-    <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Content region: ${contentRegion ? `${contentRegion.x},${contentRegion.y},${contentRegion.width},${contentRegion.height}` : "full image"}.</p>
+    <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Content region: ${contentRegion ? `${contentRegion.x},${contentRegion.y},${contentRegion.width},${contentRegion.height}` : "full image"}. Semantic masks: ${maskDefinition.regions.length === 0 ? "none" : maskDefinition.regions.map(({id}) => escapeHtml(id)).join(", ")}.</p>
     <div class="summary">
       <span>${counts.changed} changed</span><span>${counts.added} added</span><span>${counts.removed} removed</span><span>${counts.unchanged} unchanged</span>
     </div>
@@ -281,7 +323,7 @@ await writeFile(resolve(outputDirectory, "index.html"), html, "utf8");
 
 // Keep this deterministic (no timestamps): the preview deployment only commits when
 // the generated files actually change.
-const summary = {compared: comparisons.length, differences: differences.length, contentRegion, ...counts, comparisons};
+const summary = {compared: comparisons.length, differences: differences.length, contentRegion, masks: maskDefinition, ...counts, comparisons};
 await writeFile(resolve(outputDirectory, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 
 console.log(`Compared ${comparisons.length} screenshots: ${differences.length} visual differences`);

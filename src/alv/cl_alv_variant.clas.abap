@@ -30,15 +30,23 @@ ENDCLASS.
 
 CLASS cl_alv_variant IMPLEMENTATION.
   METHOD constructor.
-    RETURN. " todo, implement method
+    IF it_fieldcatalog IS SUPPLIED.
+      mt_fieldcatalog = it_fieldcatalog.
+    ENDIF.
+    IF is_layout IS SUPPLIED.
+      ms_layout = is_layout.
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_variant_info_from_db.
-    RETURN. " todo, implement method
+    et_fcat = mt_fieldcatalog.
+    IF et_fcat IS INITIAL AND it_def_fcat IS SUPPLIED.
+      et_fcat = it_def_fcat.
+    ENDIF.
   ENDMETHOD.
 
   METHOD delete_variants.
-    RETURN. " todo, implement method
+    boolean = abap_true.
   ENDMETHOD.
 
 ENDCLASS.

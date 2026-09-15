@@ -221,39 +221,67 @@ ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
   METHOD set_hierarchy_header.
-    RETURN. " todo, implement method
+    ms_hierarchy_header = is_hierarchy_header.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |Hierarchy column: { is_hierarchy_header-heading }| ).
   ENDMETHOD.
 
   METHOD get_parent.
-    RETURN. " todo, implement method
+    tree_get_parent( EXPORTING i_node_key        = i_node_key
+                     IMPORTING e_parent_node_key = e_parent_node_key ).
   ENDMETHOD.
 
   METHOD change_item.
-    RETURN. " todo, implement method
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc = 0 AND i_fieldname = c_hierarchy_column_name.
+      ls_node-text = CONV string( i_data ).
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      refresh_tree_html( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD unselect_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      IF line_exists( it_node_key[ table_line = ls_node-node_key ] ).
+        ls_node-selected = abap_false.
+        MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      ENDIF.
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_checked_items.
-    RETURN. " todo, implement method
+    et_checked_items = mt_checked_items.
   ENDMETHOD.
 
   METHOD get_subtree.
-    RETURN. " todo, implement method
+    DATA lt_pending TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    APPEND CONV string( i_node_key ) TO lt_pending.
+    WHILE lt_pending IS NOT INITIAL.
+      READ TABLE lt_pending INTO DATA(lv_pending) INDEX 1.
+      DELETE lt_pending INDEX 1.
+      APPEND CONV lvc_nkey( lv_pending ) TO et_subtree_nodes.
+      LOOP AT mt_html_nodes INTO DATA(ls_child)
+          WHERE parent_key = lv_pending.
+        APPEND ls_child-node_key TO lt_pending.
+      ENDLOOP.
+    ENDWHILE.
   ENDMETHOD.
 
   METHOD collapse_subtree.
-    RETURN. " todo, implement method
+    set_html_node_state( node_key = CONV string( i_node_key )
+                         expanded = abap_false ).
   ENDMETHOD.
 
   METHOD get_expanded_nodes.
-    RETURN. " todo, implement method
+    LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE expanded = abap_true.
+      APPEND CONV lvc_nkey( ls_node-node_key ) TO ct_expanded_nodes.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_top_node.
-    RETURN. " todo, implement method
+    e_node_key = CONV lvc_nkey( mv_html_top_node ).
   ENDMETHOD.
 
   METHOD constructor.
@@ -282,17 +310,35 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_selected_nodes.
+    FIELD-SYMBOLS <selected_nodes> TYPE ANY TABLE.
+    FIELD-SYMBOLS <selected_node> TYPE any.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      set_html_node_state( node_key = ls_node-node_key
-                           selected = abap_false ).
+      ls_node-selected = abap_false.
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
     ENDLOOP.
+    ASSIGN it_selected_nodes TO <selected_nodes>.
+    IF sy-subrc = 0.
+      LOOP AT <selected_nodes> ASSIGNING <selected_node>.
+        READ TABLE mt_html_nodes INTO ls_node
+          WITH KEY node_key = CONV string( <selected_node> ).
+        IF sy-subrc = 0.
+          ls_node-selected = abap_true.
+          MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD expand_nodes.
-    LOOP AT mt_html_nodes INTO DATA(ls_node).
-      set_html_node_state( node_key = ls_node-node_key
-                           expanded = abap_true ).
-    ENDLOOP.
+    FIELD-SYMBOLS <node_keys> TYPE ANY TABLE.
+    ASSIGN it_node_key TO <node_keys>.
+    IF sy-subrc = 0.
+      LOOP AT <node_keys> ASSIGNING FIELD-SYMBOL(<node_key>).
+        set_html_node_state( node_key = CONV string( <node_key> )
+                             expanded = abap_true ).
+      ENDLOOP.
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_selected_item.
@@ -303,7 +349,13 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selected_nodes.
-    RETURN.
+    FIELD-SYMBOLS <selected_nodes> TYPE ANY TABLE.
+    ASSIGN ct_selected_nodes TO <selected_nodes>.
+    IF sy-subrc = 0.
+      LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE selected = abap_true.
+        APPEND CONV lvc_nkey( ls_node-node_key ) TO <selected_nodes>.
+      ENDLOOP.
+    ENDIF.
   ENDMETHOD.
 
   METHOD expand_node.
@@ -313,7 +365,19 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD add_node.
     DATA(lv_key) = |TREE-{ lines( mt_html_nodes ) + 1 }|.
-    IF i_node_text IS NOT INITIAL.
+    IF is_outtab_line IS SUPPLIED.
+      IF i_node_text IS NOT INITIAL.
+        add_html_node( node_key   = lv_key
+                       parent_key = CONV string( i_relat_node_key )
+                       text       = CONV string( i_node_text )
+                       data_row   = is_outtab_line ).
+      ELSE.
+        add_html_node( node_key   = lv_key
+                       parent_key = CONV string( i_relat_node_key )
+                       text       = lv_key
+                       data_row   = is_outtab_line ).
+      ENDIF.
+    ELSEIF i_node_text IS NOT INITIAL.
       add_html_node( node_key   = lv_key
                      parent_key = CONV string( i_relat_node_key )
                      text       = CONV string( i_node_text ) ).
@@ -326,7 +390,16 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD delete_subtree.
-    RETURN. " todo, implement method
+    DATA lt_subtree TYPE lvc_t_nkey.
+    get_subtree(
+      EXPORTING
+        i_node_key       = i_node_key
+      IMPORTING
+        et_subtree_nodes = lt_subtree ).
+    LOOP AT lt_subtree INTO DATA(lv_node_key).
+      DELETE mt_html_nodes WHERE node_key = CONV string( lv_node_key ).
+    ENDLOOP.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD delete_all_nodes.
@@ -334,13 +407,37 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_table_for_first_display.
+    GET REFERENCE OF it_outtab INTO mt_outtab.
+    IF it_fieldcatalog IS SUPPLIED.
+      mt_fieldcatalog = it_fieldcatalog.
+    ENDIF.
     cl_gui_control=>set_payload( control = me
                                  payload = |Tree rows: { lines( it_outtab ) }| ).
     refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_outtab_line.
-    RETURN.
+    FIELD-SYMBOLS <outtab> TYPE ANY TABLE.
+    FIELD-SYMBOLS <outtab_line> TYPE any.
+    ASSIGN mt_outtab->* TO <outtab>.
+    IF sy-subrc <> 0.
+      RAISE EXCEPTION TYPE cx_sy_ref_is_initial.
+    ENDIF.
+    DATA(lv_index) = 0.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = CONV string( i_node_key ).
+    IF sy-subrc = 0.
+      DATA(lv_key) = CONV string( i_node_key ).
+      REPLACE FIRST OCCURRENCE OF 'TREE-' IN lv_key WITH ``.
+      lv_index = CONV i( lv_key ).
+      e_node_text = ls_node-text.
+    ENDIF.
+    READ TABLE <outtab> ASSIGNING <outtab_line> INDEX lv_index.
+    IF sy-subrc = 0.
+      e_outtab_line = <outtab_line>.
+    ELSE.
+      RAISE EXCEPTION TYPE cx_sy_itab_line_not_found.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

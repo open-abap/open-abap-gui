@@ -70,6 +70,12 @@ CLASS cl_gui_docking_container DEFINITION PUBLIC INHERITING FROM cl_gui_containe
         cntl_error
         cntl_system_error.
 
+  PRIVATE SECTION.
+    DATA mv_side TYPE i.
+    DATA mv_extension TYPE i.
+    DATA mv_caption TYPE string.
+    DATA mv_floating TYPE abap_bool.
+
 ENDCLASS.
 
 CLASS cl_gui_docking_container IMPLEMENTATION.
@@ -80,33 +86,48 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'DOCKING_CONTAINER' ).
+    mv_side = side.
+    mv_extension = COND #( WHEN extension > 0 THEN extension ELSE 1 ).
+    mv_caption = CONV string( caption ).
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }; floating={ mv_floating }| ).
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.
   ENDMETHOD.
 
   METHOD dock_at.
-    RETURN. " todo, implement method
+    mv_side = side.
+    mv_floating = abap_false.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }| ).
   ENDMETHOD.
 
   METHOD get_docking_side.
-    RETURN. " todo, implement method
+    docking_side = mv_side.
   ENDMETHOD.
 
   METHOD set_extension.
-    RETURN. " todo, implement method
+    mv_extension = extension.
+    cl_gui_control=>set_payload( control = me
+                                 payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }| ).
   ENDMETHOD.
 
   METHOD get_extension.
-    RETURN. " todo, implement method
+    extension = mv_extension.
   ENDMETHOD.
 
   METHOD set_caption.
-    RETURN. " todo, implement method
+    mv_caption = CONV string( caption ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }| ).
   ENDMETHOD.
 
   METHOD float.
-    RETURN. " todo, implement method
+    mv_floating = xsdbool( do_float <> 0 ).
+    cl_gui_control=>set_payload( control = me
+                                 payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }; floating={ mv_floating }| ).
   ENDMETHOD.
 
 ENDCLASS.

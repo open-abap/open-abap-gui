@@ -18,11 +18,29 @@ ENDCLASS.
 CLASS cl_dd_table_area IMPLEMENTATION.
 
   METHOD add_heading.
-    RETURN. " todo, implement method
+    DATA lv_start TYPE i.
+    DATA lv_fragment TYPE string.
+    lv_start = strlen( html_content ).
+    html_content = html_content && |<th>{ cl_gui_control=>escape_html( CONV string( text ) ) }</th>|.
+    IF parent_area IS BOUND.
+      lv_fragment = substring(
+        val = html_content
+        off = lv_start ).
+      parent_area->html_content = parent_area->html_content && lv_fragment.
+    ENDIF.
   ENDMETHOD.
 
   METHOD new_row.
-    RETURN. " todo, implement method
+    DATA lv_start TYPE i.
+    DATA lv_fragment TYPE string.
+    lv_start = strlen( html_content ).
+    html_content = html_content && `<tr>`.
+    IF parent_area IS BOUND.
+      lv_fragment = substring(
+        val = html_content
+        off = lv_start ).
+      parent_area->html_content = parent_area->html_content && lv_fragment.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

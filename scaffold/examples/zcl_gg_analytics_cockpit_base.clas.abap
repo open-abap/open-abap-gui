@@ -127,17 +127,53 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
     DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     DATA lt_fcat TYPE lvc_t_fcat.
     DATA lt_nodes TYPE string_table.
+    DATA lt_html TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
     io_session->get_list( )->set_title( 'ZCL_GG_EX_150 Analytics cockpit' ).
     io_session->get_list( )->set_status( VALUE #(
       status       = COND #( WHEN mv_saved = abap_true THEN 'FILTERS SAVED' ELSE 'COCKPIT READY' )
-      active_ucomm = VALUE #( ( 'SAVE_FILTERS' ) ( 'OPEN_DETAIL' ) )
+      active_ucomm = VALUE #( ( 'SAVE_FILTERS' ) ( 'OPEN_DETAIL' ) ( 'RUN_LAYOUT' )
+                              ( 'REFRESH_COCKPIT' ) ( 'SELECT_TREE' ) )
       icon_bar     = VALUE #(
         ( ucomm = 'SAVE_FILTERS' label = 'Save filters' icon = 'save' )
-        ( ucomm = 'OPEN_DETAIL' label = 'Open detail' icon = 'display' ) ) ) ).
+        ( ucomm = 'OPEN_DETAIL' label = 'Open detail' icon = 'display' )
+        ( ucomm = 'REFRESH_COCKPIT' label = 'Refresh cockpit' icon = 'refresh' ) ) ) ).
 
     lo_root = NEW cl_gui_custom_container( container_name = 'COCKPIT150' ).
-    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
+    DATA(lo_layout) = NEW cl_gui_splitter_container( parent  = lo_root
+                                                     rows    = 2
+                                                     columns = 1 ).
+    lo_layout->set_position( left   = 8
+                             top    = 8
+                             width  = 980
+                             height = 360 ).
+    DATA(lo_upper) = lo_layout->get_container(
+      row    = 1
+      column = 1 ).
+    DATA(lo_lower) = lo_layout->get_container(
+      row    = 2
+      column = 1 ).
+    DATA(lo_application_toolbar) = NEW cl_gui_toolbar( parent = lo_upper ).
+    lo_application_toolbar->add_button(
+      fcode     = 'RUN_LAYOUT'
+      icon      = '@'
+      butn_type = 0
+      text      = 'Run layout' ).
+    lo_application_toolbar->add_button(
+      fcode     = 'REFRESH_COCKPIT'
+      icon      = '@'
+      butn_type = 0
+      text      = 'Refresh cockpit' ).
+    lo_application_toolbar->add_button(
+      fcode     = 'SELECT_TREE'
+      icon      = '@'
+      butn_type = 0
+      text      = 'Select tree' ).
+    lo_application_toolbar->set_position( left   = 8
+                                          top    = 8
+                                          width  = 360
+                                          height = 28 ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_upper ).
     APPEND |{ mv_carrier }| TO lt_rows.
     APPEND 'United' TO lt_rows.
     APPEND VALUE #( fieldname = 'VALUE' coltext = 'Carrier result' outputlen = 24 ) TO lt_fcat.
@@ -146,34 +182,61 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
       CHANGING
         it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat ).
+    lo_grid->set_position( left   = 8
+                           top    = 44
+                           width  = 360
+                           height = 110 ).
 
-    DATA(lo_tree) = NEW cl_gui_simple_tree( parent = lo_root ).
+    DATA(lo_tree) = NEW cl_gui_simple_tree( parent = lo_upper ).
     lt_nodes = VALUE #( ( `Summary` ) ( `Capacity` ) ( `Details` ) ).
     lo_tree->add_nodes( table_structure_name = 'TREEV_NODE'
                         node_table           = lt_nodes ).
+    lo_tree->set_position( left   = 390
+                           top    = 44
+                           width  = 220
+                           height = 110 ).
 
-    DATA(lo_chart) = NEW cl_gui_chart_engine( parent = lo_root ).
+    DATA(lo_chart) = NEW cl_gui_chart_engine( parent = lo_upper ).
     lo_chart->set_data( data = |carrier={ mv_carrier };date={ mv_date };load=82| ).
     lo_chart->render( ).
+    lo_chart->set_position( left   = 630
+                            top    = 44
+                            width  = 280
+                            height = 110 ).
 
-    DATA(lo_detail) = NEW cl_gui_textedit( parent                     = lo_root
+    DATA(lo_detail_split) = NEW cl_gui_splitter_container( parent  = lo_lower
+                                                           rows    = 1
+                                                           columns = 2 ).
+    DATA(lo_detail_pane) = lo_detail_split->get_container(
+      row    = 1
+      column = 1 ).
+    DATA(lo_detail_view) = lo_detail_split->get_container(
+      row    = 1
+      column = 2 ).
+    DATA(lo_detail) = NEW cl_gui_textedit( parent                     = lo_detail_pane
                                            wordwrap_to_linebreak_mode = 0 ).
     lo_detail->set_textstream( |Detail dynpro pane{ cl_abap_char_utilities=>newline }{ mv_carrier } / { mv_date }| ).
     lo_detail->set_position( left   = 20
                              top    = 220
                              width  = 420
                              height = 80 ).
+    DATA(lo_detail_viewer) = NEW cl_gui_html_viewer( parent = lo_detail_view ).
+    lt_html = VALUE #( ( CONV string( '<h3>Detail viewer</h3><p>Nested cockpit content remains available.</p>' ) ) ).
+    lo_detail_viewer->load_data( CHANGING data_table = lt_html ).
 
     zcl_gg_host_surface=>set_surface( VALUE #(
       kind       = zcl_gg_host_surface=>surface_cockpit
       aria_label = 'Analytics cockpit'
       title      = 'Analytics cockpit'
-      text       = 'ALV table, tree navigation, chart summary, and detail dynpro pane share server-owned state.'
+      text       = 'Application toolbar, ALV table, tree navigation, chart summary, nested editor/viewer panes, and bottom actions share server-owned state.'
       data_value = mv_carrier
       payload    = mv_date
       actions    = VALUE #(
         ( transport = zcl_gg_host_surface=>surface_action_command value = 'SAVE_FILTERS' label = 'Save filters' )
-        ( transport = zcl_gg_host_surface=>surface_action_command value = 'OPEN_DETAIL' label = 'Open detail dynpro' ) ) ) ).
+        ( transport = zcl_gg_host_surface=>surface_action_command value = 'OPEN_DETAIL' label = 'Open detail dynpro' )
+        ( transport = zcl_gg_host_surface=>surface_action_command value = 'RUN_LAYOUT' label = 'Run layout' )
+        ( transport = zcl_gg_host_surface=>surface_action_command value = 'REFRESH_COCKPIT' label = 'Refresh cockpit' )
+        ( transport = zcl_gg_host_surface=>surface_action_command value = 'SELECT_TREE' label = 'Select tree' ) ) ) ).
     write_line( io_session = io_session
                 iv_text    = |Cockpit filters: { mv_carrier } / { mv_date }| ).
   ENDMETHOD.
@@ -221,6 +284,15 @@ CLASS zcl_gg_analytics_cockpit_base IMPLEMENTATION.
       WHEN 'OPEN_DETAIL'.
         write_line( io_session = io_session
                     iv_text    = 'Detail dynpro opened from cockpit' ).
+      WHEN 'RUN_LAYOUT'.
+        write_line( io_session = io_session
+                    iv_text    = 'Composite layout run completed with nested panes' ).
+      WHEN 'REFRESH_COCKPIT'.
+        write_line( io_session = io_session
+                    iv_text    = 'Cockpit refreshed without losing tree or editor state' ).
+      WHEN 'SELECT_TREE'.
+        write_line( io_session = io_session
+                    iv_text    = 'Tree selection applied to the ALV detail context' ).
     ENDCASE.
   ENDMETHOD.
 

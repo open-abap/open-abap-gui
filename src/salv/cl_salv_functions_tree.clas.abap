@@ -10,7 +10,8 @@ ENDCLASS.
 CLASS cl_salv_functions_tree IMPLEMENTATION.
 
   METHOD set_help.
-    RETURN. " todo, implement method
+    set_named_visibility( name  = 'HELP'
+                          value = value ).
   ENDMETHOD.
 
 ENDCLASS.

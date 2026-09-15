@@ -35,6 +35,7 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_popup_input TYPE zif_gg_dynpro_types_v1=>ty_values.
     DATA ms_popup TYPE zif_gg_compatibility_v1=>ty_popup.
     DATA mt_value_help_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    DATA mt_classic_blocks TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
     METHODS append_parameter
       IMPORTING
@@ -73,6 +74,20 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS capture_popup_fields
       IMPORTING it_fields TYPE STANDARD TABLE.
+
+    METHODS render_classic_table
+      IMPORTING
+        is_request     TYPE zif_gg_compatibility_v1=>ty_alv_request
+      CHANGING
+        ct_outtab      TYPE STANDARD TABLE
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    METHODS append_classic_event
+      IMPORTING
+        iv_name   TYPE string
+      CHANGING
+        ct_events TYPE STANDARD TABLE.
 ENDCLASS.
 
 CLASS zcl_gg_host_compatibility IMPLEMENTATION.
@@ -177,12 +192,74 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_with_table_display.
-    CLEAR rv_choice.
+    DATA lv_action TYPE string.
+    DATA lv_choice TYPE string.
+
+    IF mv_popup_interactive = abap_false.
+      CLEAR rv_choice.
+      RETURN.
+    ENDIF.
+    SPLIT mv_popup_action AT ':' INTO lv_action lv_choice.
+    IF lv_action = 'TABLE'.
+      IF lv_choice IS INITIAL OR lv_choice CN '0123456789'.
+        CLEAR rv_choice.
+        sy-subrc = 4.
+      ELSE.
+        rv_choice = CONV i( lv_choice ).
+        sy-subrc = 0.
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    ms_popup = VALUE #(
+      kind         = 'TABLE'
+      title        = is_request-title
+      start_column = is_request-start_column
+      start_row    = is_request-start_row ).
+    LOOP AT ct_values ASSIGNING FIELD-SYMBOL(<lv_value>).
+      APPEND CONV string( <lv_value> ) TO ms_popup-table_values.
+      APPEND VALUE #( value = |{ sy-tabix }|
+                      text  = |Select row { sy-tabix }| ) TO ms_popup-buttons.
+    ENDLOOP.
+    APPEND VALUE #( value = '0' text = 'Cancel' ) TO ms_popup-buttons.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_popup
+      iv_operation = 'POPUP WITH TABLE DISPLAY' ).
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_to_select_month.
-    CLEAR cv_return_code.
-    cv_selected_month = is_request-actual_month.
+    DATA lv_action TYPE string.
+    DATA lv_month TYPE string.
+
+    IF mv_popup_interactive = abap_false.
+      CLEAR cv_return_code.
+      cv_selected_month = is_request-actual_month.
+      RETURN.
+    ENDIF.
+    SPLIT mv_popup_action AT ':' INTO lv_action lv_month.
+    IF lv_action = 'MONTH'.
+      IF lv_month = 'CANCEL'.
+        cv_return_code = 1.
+        sy-subrc = 1.
+      ELSE.
+        CLEAR cv_return_code.
+        cv_selected_month = is_request-actual_month.
+        sy-subrc = 0.
+      ENDIF.
+      RETURN.
+    ENDIF.
+    ms_popup = VALUE #(
+      kind         = 'MONTH'
+      title        = 'Select month'
+      text_lines   = VALUE #( ( |Current month: { is_request-actual_month }| )
+                              ( |Language: { is_request-language }| ) )
+      buttons      = VALUE #( ( value = 'APPLY' text = 'Use month' )
+                              ( value = 'CANCEL' text = 'Cancel' ) )
+      start_column = is_request-start_column
+      start_row    = is_request-start_row ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_popup
+      iv_operation = 'POPUP TO SELECT MONTH' ).
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~f4_table_value_request.
@@ -249,36 +326,165 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_fieldcatalog_merge.
+    IF ct_fieldcat IS INITIAL.
+      APPEND INITIAL LINE TO ct_fieldcat ASSIGNING FIELD-SYMBOL(<ls_fieldcat>).
+      ASSIGN COMPONENT 'FIELDNAME' OF STRUCTURE <ls_fieldcat> TO FIELD-SYMBOL(<lv_fieldname>).
+      IF sy-subrc = 0.
+        <lv_fieldname> = 'FIELD1'.
+      ENDIF.
+      ASSIGN COMPONENT 'TABNAME' OF STRUCTURE <ls_fieldcat> TO FIELD-SYMBOL(<lv_tabname>).
+      IF sy-subrc = 0.
+        <lv_tabname> = is_request-tabname_header.
+      ENDIF.
+      ASSIGN COMPONENT 'COLTEXT' OF STRUCTURE <ls_fieldcat> TO FIELD-SYMBOL(<lv_coltext>).
+      IF sy-subrc = 0.
+        <lv_coltext> = COND string( WHEN is_request-title IS INITIAL THEN 'Field 1' ELSE is_request-title ).
+      ENDIF.
+      ASSIGN COMPONENT 'SELTEXT_L' OF STRUCTURE <ls_fieldcat> TO FIELD-SYMBOL(<lv_seltext>).
+      IF sy-subrc = 0.
+        <lv_seltext> = COND string( WHEN is_request-title IS INITIAL THEN 'Field 1' ELSE is_request-title ).
+      ENDIF.
+      ASSIGN COMPONENT 'INTTYPE' OF STRUCTURE <ls_fieldcat> TO FIELD-SYMBOL(<lv_inttype>).
+      IF sy-subrc = 0.
+        <lv_inttype> = 'C'.
+      ENDIF.
+      ASSIGN COMPONENT 'OUTPUTLEN' OF STRUCTURE <ls_fieldcat> TO FIELD-SYMBOL(<lv_outputlen>).
+      IF sy-subrc = 0.
+        <lv_outputlen> = 20.
+      ENDIF.
+    ENDIF.
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_display.
+    cl_gui_control=>set_external_html(
+      |<section class="gg-classic-alv" aria-label="Classic ALV" data-list-type="{ is_request-list_type }"><header><h2>{ cl_gui_control=>escape_html( COND string( WHEN is_request-grid_title IS INITIAL THEN is_request-title ELSE is_request-grid_title ) ) }</h2><p>Classic function-module ALV routed through the semantic renderer; callbacks remain server-owned.</p></header>{ render_classic_table( EXPORTING is_request = is_request CHANGING ct_outtab = ct_outtab ) }</section>| ).
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_display_hierseq.
+    DATA lo_hierseq TYPE REF TO cl_salv_hierseq_table.
+    DATA lt_binding TYPE salv_t_hierseq_binding.
+    TRY.
+        cl_salv_hierseq_table=>factory(
+          EXPORTING
+            t_binding_level1_level2 = lt_binding
+          IMPORTING
+            r_hierseq               = lo_hierseq
+          CHANGING
+            t_table_level1          = ct_header
+            t_table_level2          = ct_item ).
+        lo_hierseq->display( ).
+      CATCH cx_root INTO DATA(lx_error).
+        cl_gui_control=>set_external_html(
+          |<section class="gg-classic-alv gg-classic-alv-hierseq" aria-label="Classic hierarchical ALV"><h2>{ cl_gui_control=>escape_html( is_request-title ) }</h2><p>Hierarchical ALV fallback: { cl_gui_control=>escape_html( lx_error->get_text( ) ) }</p><p>Header and item tables remain separate; no native success is claimed.</p></section>| ).
+    ENDTRY.
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_block_init.
+    CLEAR mt_classic_blocks.
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_block_append.
+    DATA(lv_html) = render_classic_table(
+      EXPORTING
+        is_request = is_request
+      CHANGING
+        ct_outtab  = ct_outtab ).
+    APPEND |<section class="gg-classic-alv-block" aria-label="Classic ALV block { lines( mt_classic_blocks ) + 1 }"><h2>{ cl_gui_control=>escape_html( is_request-title ) }</h2>{ lv_html }</section>| TO mt_classic_blocks.
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_block_display.
+    DATA lv_html TYPE string.
+    CONCATENATE LINES OF mt_classic_blocks INTO lv_html.
+    IF lv_html IS INITIAL.
+      lv_html = '<p data-native-capability="unavailable">No classic ALV block was appended.</p>'.
+    ENDIF.
+    cl_gui_control=>set_external_html(
+      |<section class="gg-classic-alv-blocks" aria-label="Classic ALV blocks"><h2>Classic block list</h2><div class="gg-classic-alv-scroll">{ lv_html }</div></section>| ).
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_popup_to_select.
-    CLEAR cv_exit.
-    CLEAR cs_selfield.
+    DATA lv_action TYPE string.
+    DATA lv_choice TYPE string.
+    IF mv_popup_interactive = abap_true.
+      SPLIT mv_popup_action AT ':' INTO lv_action lv_choice.
+      IF lv_action = 'ALV'.
+        IF lv_choice IS INITIAL OR lv_choice CN '0123456789'.
+          CLEAR cv_exit.
+          sy-subrc = 4.
+        ELSE.
+          ASSIGN COMPONENT 'TABINDEX' OF STRUCTURE cs_selfield TO FIELD-SYMBOL(<lv_tabindex>).
+          IF sy-subrc = 0.
+            <lv_tabindex> = CONV i( lv_choice ).
+          ENDIF.
+          ASSIGN COMPONENT 'SEL_TABIX' OF STRUCTURE cs_selfield TO FIELD-SYMBOL(<lv_sel_tabix>).
+          IF sy-subrc = 0.
+            <lv_sel_tabix> = CONV i( lv_choice ).
+          ENDIF.
+          CLEAR cv_exit.
+          sy-subrc = 0.
+        ENDIF.
+        RETURN.
+      ENDIF.
+    ENDIF.
+    CLEAR ms_popup.
+    ms_popup-kind = 'ALV_SELECT'.
+    ms_popup-title = COND string( WHEN is_request-title IS INITIAL THEN 'Select ALV row' ELSE is_request-title ).
+    LOOP AT ct_outtab ASSIGNING FIELD-SYMBOL(<ls_row>).
+      APPEND |Row { sy-tabix }| TO ms_popup-table_values.
+      APPEND VALUE #( value = |{ sy-tabix }| text = |Select row { sy-tabix }| ) TO ms_popup-buttons.
+    ENDLOOP.
+    APPEND VALUE #( value = '0' text = 'Cancel' ) TO ms_popup-buttons.
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_popup
+      iv_operation = 'CLASSIC ALV POPUP TO SELECT' ).
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_events_get.
+    append_classic_event( EXPORTING iv_name = 'PF_STATUS_SET' CHANGING ct_events = ct_events ).
+    append_classic_event( EXPORTING iv_name = 'USER_COMMAND' CHANGING ct_events = ct_events ).
+    append_classic_event( EXPORTING iv_name = 'TOP_OF_PAGE' CHANGING ct_events = ct_events ).
+    append_classic_event( EXPORTING iv_name = 'END_OF_LIST' CHANGING ct_events = ct_events ).
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_variant_f4.
+    ASSIGN COMPONENT 'REPORT' OF STRUCTURE cs_variant TO FIELD-SYMBOL(<lv_report>).
+    IF sy-subrc = 0 AND <lv_report> IS INITIAL.
+      <lv_report> = is_request-report.
+    ENDIF.
+    ASSIGN COMPONENT 'VARIANT' OF STRUCTURE cs_variant TO FIELD-SYMBOL(<lv_variant>).
+    IF sy-subrc = 0.
+      <lv_variant> = 'DEFAULT'.
+    ENDIF.
+    ASSIGN COMPONENT 'USERNAME' OF STRUCTURE cs_variant TO FIELD-SYMBOL(<lv_username>).
+    IF sy-subrc = 0.
+      <lv_username> = 'GG_BROWSER'.
+    ENDIF.
     CLEAR cv_exit.
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_commentary_write.
+    APPEND INITIAL LINE TO ct_list_commentary ASSIGNING FIELD-SYMBOL(<ls_commentary>).
+    ASSIGN COMPONENT 'TYP' OF STRUCTURE <ls_commentary> TO FIELD-SYMBOL(<lv_type>).
+    IF sy-subrc = 0.
+      <lv_type> = 'H'.
+    ENDIF.
+    ASSIGN COMPONENT 'KEY' OF STRUCTURE <ls_commentary> TO FIELD-SYMBOL(<lv_key>).
+    IF sy-subrc = 0.
+      <lv_key> = 'gg-gui'.
+    ENDIF.
+    ASSIGN COMPONENT 'INFO' OF STRUCTURE <ls_commentary> TO FIELD-SYMBOL(<lv_info>).
+    IF sy-subrc = 0.
+      <lv_info> = 'Classic ALV semantic renderer'.
+    ENDIF.
+    sy-subrc = 0.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~select_options_restrict.
@@ -780,6 +986,43 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
         <ls_value>-value = lv_low.
       ENDIF.
     ENDLOOP.
+  ENDMETHOD.
+
+  METHOD render_classic_table.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+    DATA lv_title TYPE string.
+    lv_title = COND string( WHEN is_request-grid_title IS INITIAL
+                            THEN is_request-title
+                            ELSE is_request-grid_title ).
+    TRY.
+        cl_salv_table=>factory(
+          EXPORTING
+            list_display = abap_true
+          IMPORTING
+            r_salv_table = lo_salv
+          CHANGING
+            t_table      = ct_outtab ).
+        lo_salv->set_list_header( lv_title ).
+        rv_html = lo_salv->get_html( ).
+      CATCH cx_root INTO DATA(lx_error).
+        rv_html = |<p data-native-capability="unavailable">Classic ALV semantic renderer failed safely: { cl_gui_control=>escape_html( lx_error->get_text( ) ) }</p>|.
+    ENDTRY.
+  ENDMETHOD.
+
+  METHOD append_classic_event.
+    APPEND INITIAL LINE TO ct_events ASSIGNING FIELD-SYMBOL(<ls_event>).
+    ASSIGN COMPONENT 'NAME' OF STRUCTURE <ls_event> TO FIELD-SYMBOL(<lv_name>).
+    IF sy-subrc = 0.
+      <lv_name> = iv_name.
+    ENDIF.
+    ASSIGN COMPONENT 'EVENT' OF STRUCTURE <ls_event> TO FIELD-SYMBOL(<lv_event>).
+    IF sy-subrc = 0.
+      <lv_event> = iv_name.
+    ENDIF.
+    ASSIGN COMPONENT 'FORM' OF STRUCTURE <ls_event> TO FIELD-SYMBOL(<lv_form>).
+    IF sy-subrc = 0.
+      <lv_form> = iv_name.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~xstring_to_binary.
