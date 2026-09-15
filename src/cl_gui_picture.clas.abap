@@ -31,7 +31,7 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS set_alt_text
       IMPORTING
-        alt_text TYPE string.
+        text TYPE string.
 
     METHODS set_display_mode
       IMPORTING
@@ -39,11 +39,11 @@ CLASS cl_gui_picture DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 
     METHODS load_picture_from_url_async
       IMPORTING
-        url TYPE string.
+        url TYPE c.
 
     METHODS load_picture_from_url
       IMPORTING
-        url    TYPE string
+        url    TYPE c
       EXPORTING
         result TYPE i.
 
@@ -71,7 +71,7 @@ CLASS cl_gui_picture IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_alt_text.
-    mv_alt_text = alt_text.
+    mv_alt_text = text.
     refresh_state( ).
   ENDMETHOD.
 

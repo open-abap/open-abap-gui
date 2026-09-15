@@ -12,6 +12,7 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
     DATA lo_link TYPE REF TO cl_dd_link_element.
     DATA lv_url TYPE string.
     DATA lv_offline TYPE string.
+    DATA lv_document_html TYPE string.
 
     cl_gui_control=>clear( ).
     DATA(lo_document) = NEW cl_dd_document( background_color = 35 ).
@@ -63,10 +64,13 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_bound( lo_input ).
     cl_abap_unit_assert=>assert_bound( lo_select ).
     cl_abap_unit_assert=>assert_bound( lo_button ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lo_document->html_content CS '&lt;unsafe&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lo_document->html_content CS 'role="img"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lo_document->html_content CS 'name="CARRIER"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lo_document->html_content CS 'Economy' ) ).
+    LOOP AT lo_document->html_table INTO DATA(ls_line).
+      lv_document_html = lv_document_html && ls_line-line.
+    ENDLOOP.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document_html CS '&lt;unsafe&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document_html CS 'role="img"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document_html CS 'name="CARRIER"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document_html CS 'Economy' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( cl_gui_control=>has_content( ) ) ).
   ENDMETHOD.
 ENDCLASS.

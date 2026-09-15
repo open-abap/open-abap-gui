@@ -29,14 +29,6 @@ CLASS cl_gui_easy_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_co
       RETURNING
         VALUE(sash_position) TYPE i.
 
-    METHODS set_minimum_size
-      IMPORTING
-        minimum_size TYPE i.
-
-    METHODS get_minimum_size
-      RETURNING
-        VALUE(minimum_size) TYPE i.
-
   PRIVATE SECTION.
     DATA mv_orientation TYPE i.
     DATA mv_sash_position TYPE i.
@@ -80,17 +72,6 @@ CLASS cl_gui_easy_splitter_container IMPLEMENTATION.
 
   METHOD get_sash_position.
     sash_position = mv_sash_position.
-  ENDMETHOD.
-
-  METHOD set_minimum_size.
-    mv_minimum_size = COND #( WHEN minimum_size > 0 THEN minimum_size ELSE 1 ).
-    cl_gui_control=>set_payload(
-      control = me
-      payload = |orientation={ mv_orientation }; sash={ mv_sash_position }; minimum={ mv_minimum_size }; border={ mv_border }| ).
-  ENDMETHOD.
-
-  METHOD get_minimum_size.
-    minimum_size = mv_minimum_size.
   ENDMETHOD.
 
 ENDCLASS.

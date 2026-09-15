@@ -28,6 +28,7 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
       EXPORTING
         return_code TYPE i.
 
+  PRIVATE SECTION.
     CLASS-METHODS get_new_ok_code
       RETURNING
         VALUE(new_code) TYPE string.
@@ -42,7 +43,6 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
 
     CLASS-METHODS reset.
 
-  PRIVATE SECTION.
     CLASS-DATA mv_ok_code TYPE string.
     CLASS-DATA mv_update_count TYPE i.
     CLASS-DATA mv_flush_count TYPE i.

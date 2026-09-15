@@ -1,8 +1,6 @@
 CLASS cl_dd_form_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
   PUBLIC SECTION.
 
-    DATA parent_area TYPE REF TO cl_dd_area.
-
     METHODS add_button
       IMPORTING
         label    TYPE string OPTIONAL

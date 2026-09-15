@@ -35,6 +35,8 @@ CLASS ltcl_gui_toolbar DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HA
     METHODS renders_toolbar_overflow FOR TESTING.
 ENDCLASS.
 
+CLASS cl_gui_toolbar DEFINITION LOCAL FRIENDS ltcl_gui_toolbar.
+
 CLASS ltcl_gui_toolbar IMPLEMENTATION.
   METHOD updates_button_state.
     cl_gui_control=>clear( ).

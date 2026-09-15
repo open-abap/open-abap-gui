@@ -1,6 +1,5 @@
-CLASS cl_salv_columns DEFINITION PUBLIC.
+CLASS cl_salv_columns DEFINITION PUBLIC FRIENDS cl_salv_table cl_salv_tree.
   PUBLIC SECTION.
-    TYPES ty_column_names TYPE STANDARD TABLE OF lvc_fname WITH DEFAULT KEY.
 
     METHODS set_column_position
       IMPORTING
@@ -23,15 +22,11 @@ CLASS cl_salv_columns DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE salv_t_column_ref.
 
+  PROTECTED SECTION.
     METHODS add_column
       IMPORTING
         columnname TYPE lvc_fname.
 
-    METHODS set_column_names
-      IMPORTING
-        columnnames TYPE ty_column_names.
-
-  PROTECTED SECTION.
     TYPES: BEGIN OF ty_column_state,
              columnname TYPE lvc_fname,
              column     TYPE REF TO cl_salv_column,
@@ -84,17 +79,8 @@ CLASS cl_salv_columns IMPLEMENTATION.
     IF line_exists( mt_columns[ columnname = columnname ] ).
       RETURN.
     ENDIF.
-    DATA(lo_column) = NEW cl_salv_column( ).
-    lo_column->set_columnname( columnname ).
     APPEND VALUE #( columnname = columnname
-                    column     = lo_column ) TO mt_columns.
-  ENDMETHOD.
-
-  METHOD set_column_names.
-    CLEAR mt_columns.
-    LOOP AT columnnames INTO DATA(lv_columnname).
-      add_column( lv_columnname ).
-    ENDLOOP.
+                    column     = NEW cl_salv_column( columnname ) ) TO mt_columns.
   ENDMETHOD.
 
 ENDCLASS.

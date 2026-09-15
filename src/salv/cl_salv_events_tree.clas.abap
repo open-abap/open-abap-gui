@@ -1,4 +1,4 @@
-CLASS cl_salv_events_tree DEFINITION PUBLIC INHERITING FROM cl_salv_events.
+CLASS cl_salv_events_tree DEFINITION PUBLIC INHERITING FROM cl_salv_events FRIENDS cl_salv_tree.
   PUBLIC SECTION.
 
     INTERFACES if_salv_events_tree.
@@ -28,6 +28,8 @@ CLASS cl_salv_events_tree DEFINITION PUBLIC INHERITING FROM cl_salv_events.
     EVENTS expand_empty_folder
       EXPORTING
         VALUE(node_key) TYPE salv_de_node_key.
+
+  PRIVATE SECTION.
 
     METHODS raise_link_click
       IMPORTING

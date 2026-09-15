@@ -3,6 +3,8 @@ CLASS ltcl_gui_timer DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARM
     METHODS lifecycle_is_explicit FOR TESTING.
 ENDCLASS.
 
+CLASS cl_gui_timer DEFINITION LOCAL FRIENDS ltcl_gui_timer.
+
 CLASS ltcl_gui_timer IMPLEMENTATION.
   METHOD lifecycle_is_explicit.
     cl_gui_control=>clear( ).

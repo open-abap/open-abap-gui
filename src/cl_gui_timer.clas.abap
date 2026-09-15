@@ -18,13 +18,13 @@ CLASS cl_gui_timer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(tick_count) TYPE i.
 
+    EVENTS finished.
+
+  PRIVATE SECTION.
     METHODS is_running
       RETURNING
         VALUE(running) TYPE abap_bool.
 
-    EVENTS finished.
-
-  PRIVATE SECTION.
     DATA mv_running TYPE abap_bool.
     DATA mv_tick_count TYPE i.
 ENDCLASS.

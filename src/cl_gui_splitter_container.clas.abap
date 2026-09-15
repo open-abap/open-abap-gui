@@ -59,19 +59,6 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
       EXPORTING
         result TYPE i.
 
-    METHODS set_row_minimum
-      IMPORTING
-        id      TYPE i
-        minimum TYPE i
-      EXPORTING
-        result  TYPE i.
-
-    METHODS get_row_minimum
-      IMPORTING
-        id     TYPE i
-      EXPORTING
-        result TYPE i.
-
     METHODS set_column_sash
       IMPORTING
         id     TYPE i
@@ -98,19 +85,6 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
       EXCEPTIONS
         cntl_error
         cntl_system_error.
-
-    METHODS set_column_minimum
-      IMPORTING
-        id      TYPE i
-        minimum TYPE i
-      EXPORTING
-        result  TYPE i.
-
-    METHODS get_column_minimum
-      IMPORTING
-        id     TYPE i
-      EXPORTING
-        result TYPE i.
 
     METHODS set_border
       IMPORTING
@@ -270,36 +244,6 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
     mv_border = border.
     cl_gui_control=>set_payload( control = me
                                  payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
-  ENDMETHOD.
-
-  METHOD set_row_minimum.
-    DATA lv_minimum_value TYPE i.
-    IF id < 1 OR id > mv_rows.
-      result = 0.
-      RETURN.
-    ENDIF.
-    lv_minimum_value = COND #( WHEN minimum > 0 THEN minimum ELSE 1 ).
-    MODIFY mt_row_minimums FROM lv_minimum_value INDEX id.
-    result = lv_minimum_value.
-  ENDMETHOD.
-
-  METHOD get_row_minimum.
-    READ TABLE mt_row_minimums INTO result INDEX id.
-  ENDMETHOD.
-
-  METHOD set_column_minimum.
-    DATA lv_minimum_value TYPE i.
-    IF id < 1 OR id > mv_columns.
-      result = 0.
-      RETURN.
-    ENDIF.
-    lv_minimum_value = COND #( WHEN minimum > 0 THEN minimum ELSE 1 ).
-    MODIFY mt_column_minimums FROM lv_minimum_value INDEX id.
-    result = lv_minimum_value.
-  ENDMETHOD.
-
-  METHOD get_column_minimum.
-    READ TABLE mt_column_minimums INTO result INDEX id.
   ENDMETHOD.
 
 ENDCLASS.

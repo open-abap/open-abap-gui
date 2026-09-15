@@ -12,13 +12,13 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS set_visible IMPORTING value TYPE abap_bool.
     METHODS set_zero IMPORTING value TYPE abap_bool DEFAULT abap_true.
 
+    METHODS constructor
+      IMPORTING
+        columnname TYPE lvc_fname.
+
     METHODS get_columnname
       RETURNING
         VALUE(value) TYPE lvc_fname.
-
-    METHODS set_columnname
-      IMPORTING
-        value TYPE lvc_fname.
 
     METHODS get_short_text
       RETURNING
@@ -145,8 +145,8 @@ CLASS cl_salv_column IMPLEMENTATION.
     value = mv_columnname.
   ENDMETHOD.
 
-  METHOD set_columnname.
-    mv_columnname = value.
+  METHOD constructor.
+    mv_columnname = columnname.
   ENDMETHOD.
 
   METHOD get_short_text.

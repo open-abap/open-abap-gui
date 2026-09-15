@@ -117,6 +117,18 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
     METHODS rebuild_html
       RETURNING
         VALUE(value) TYPE string.
+    METHODS passes_filters
+      IMPORTING
+        columnname    TYPE lvc_fname
+        value         TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+    METHODS selopt_matches
+      IMPORTING
+        selopt        TYPE REF TO cl_salv_selopt
+        value         TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
@@ -362,9 +374,8 @@ CLASS cl_salv_table IMPLEMENTATION.
         ENDIF.
         APPEND VALUE #( columnname = ls_column-columnname
                         text       = lv_text ) TO ls_row-cells.
-        IF mo_filters IS BOUND
-            AND mo_filters->matches( columnname = ls_column-columnname
-                                     value      = lv_text ) = abap_false.
+        IF passes_filters( columnname = ls_column-columnname
+                           value      = lv_text ) = abap_false.
           lv_matches = abap_false.
         ENDIF.
       ENDLOOP.
@@ -372,6 +383,52 @@ CLASS cl_salv_table IMPLEMENTATION.
         APPEND ls_row TO mt_html_rows.
       ENDIF.
     ENDLOOP.
+  ENDMETHOD.
+
+  METHOD passes_filters.
+    result = abap_true.
+    IF mo_filters IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    LOOP AT mo_filters->get( ) INTO DATA(ls_filter) WHERE columnname = columnname.
+      LOOP AT ls_filter-r_filter->get( ) INTO DATA(lo_selopt).
+        result = selopt_matches( selopt = lo_selopt
+                                 value  = value ).
+        RETURN.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD selopt_matches.
+    DATA(lv_low) = CONV string( selopt->get_low( ) ).
+    DATA(lv_high) = CONV string( selopt->get_high( ) ).
+    CASE selopt->get_option( ).
+      WHEN 'EQ'.
+        result = xsdbool( value = lv_low ).
+      WHEN 'NE'.
+        result = xsdbool( value <> lv_low ).
+      WHEN 'BT'.
+        result = xsdbool( value >= lv_low AND value <= lv_high ).
+      WHEN 'NB'.
+        result = xsdbool( value < lv_low OR value > lv_high ).
+      WHEN 'GE'.
+        result = xsdbool( value >= lv_low ).
+      WHEN 'GT'.
+        result = xsdbool( value > lv_low ).
+      WHEN 'LE'.
+        result = xsdbool( value <= lv_low ).
+      WHEN 'LT'.
+        result = xsdbool( value < lv_low ).
+      WHEN 'CP'.
+        result = xsdbool( value CP lv_low ).
+      WHEN 'NP'.
+        result = xsdbool( value NP lv_low ).
+      WHEN OTHERS.
+        result = abap_false.
+    ENDCASE.
+    IF selopt->get_sign( ) = 'E'.
+      result = xsdbool( result = abap_false ).
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

@@ -136,6 +136,8 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
     DATA lo_viewer128 TYPE REF TO cl_gui_html_viewer.
     DATA lo_viewer134 TYPE REF TO cl_gui_html_viewer.
     DATA lv_picture_result124 TYPE i.
+    DATA lv_picture_url124 TYPE c LENGTH 255.
+    DATA lv_document_html129 TYPE string.
     DATA lo_link129 TYPE REF TO cl_dd_link_element.
     DATA lo_form129 TYPE REF TO cl_dd_form_area.
     DATA lo_input129 TYPE REF TO cl_dd_input_element.
@@ -202,12 +204,6 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
             height = mv_split_row118
           IMPORTING
             result = DATA(lv_split_row_result118) ).
-        lo_split118->set_row_minimum(
-          EXPORTING
-            id      = 1
-            minimum = 30
-          IMPORTING
-            result  = DATA(lv_split_min_result118) ).
         DATA(lo_outer_first118) = lo_split118->get_container(
           row    = 1
           column = 1 ).
@@ -260,7 +256,6 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
         DATA(lo_easy119) = NEW cl_gui_easy_splitter_container( parent        = lo_root
                                                                orientation   = cl_gui_easy_splitter_container=>orientation_horizontal
                                                                sash_position = mv_easy_sash119 ).
-        lo_easy119->set_minimum_size( 24 ).
         lo_easy119->set_position( left   = 10
                                   top    = 10
                                   width  = 500
@@ -361,15 +356,16 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
         lo_picture124->set_display_mode( mv_picture_mode124 ).
         lo_picture124->set_3d_border( mv_picture_border124 ).
         lo_picture124->set_alt_text( mv_picture_alt124 ).
+        lv_picture_url124 = mv_picture_url124.
         IF mv_picture_url124 IS INITIAL.
           mv_picture_state124 = 'empty'.
         ELSEIF mv_picture_async124 = abap_true.
-          lo_picture124->load_picture_from_url_async( mv_picture_url124 ).
+          lo_picture124->load_picture_from_url_async( lv_picture_url124 ).
           mv_picture_state124 = COND #( WHEN mv_picture_url124 CP '/assets/*' THEN 'loaded' ELSE 'rejected' ).
         ELSE.
           lo_picture124->load_picture_from_url(
             EXPORTING
-              url    = mv_picture_url124
+              url    = lv_picture_url124
             IMPORTING
               result = lv_picture_result124 ).
           mv_picture_state124 = COND #( WHEN lv_picture_result124 = 0 THEN 'loaded' ELSE 'rejected' ).
@@ -555,12 +551,16 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
           CHANGING
             position = lv_document_position129 ).
         lo_document129->merge_document( ).
+        CLEAR lv_document_html129.
+        LOOP AT lo_document129->html_table INTO DATA(ls_document_line129).
+          lv_document_html129 = lv_document_html129 && ls_document_line129-line.
+        ENDLOOP.
         zcl_gg_host_surface=>set_surface( VALUE #(
           kind         = zcl_gg_host_surface=>surface_document
           aria_label   = 'Dynamic document'
           title        = 'Dynamic & safe document'
           text         = 'Escaped text & attributes'
-          html_content = lo_document129->html_content
+          html_content = lv_document_html129
           actions      = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm
                                    value = 'SAVE_DOC' label = 'Save' ) ) ) ).
       WHEN '130'.
@@ -683,7 +683,7 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
             mv_split_row118 = 45.
             mv_split_column118 = 60.
             write_line( io_session = io_session
-                        iv_text    = 'Nested splitter ratios and minimum sizes restored' ).
+                        iv_text    = 'Nested splitter ratios restored' ).
         ENDCASE.
       WHEN '119'.
         CASE iv_ucomm.
@@ -694,7 +694,7 @@ CLASS zcl_gg_control_showcase_base IMPLEMENTATION.
           WHEN 'RESET_EASY_SPLITTER'.
             mv_easy_sash119 = 40.
             write_line( io_session = io_session
-                        iv_text    = 'Easy splitter sash and minimum pane size restored' ).
+                        iv_text    = 'Easy splitter sash restored' ).
         ENDCASE.
     ENDCASE.
     build_controls( io_session ).

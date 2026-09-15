@@ -1,4 +1,4 @@
-CLASS cl_salv_node DEFINITION PUBLIC.
+CLASS cl_salv_node DEFINITION PUBLIC FRIENDS cl_salv_nodes cl_salv_tree.
   PUBLIC SECTION.
 
     METHODS constructor
@@ -15,7 +15,9 @@ CLASS cl_salv_node DEFINITION PUBLIC.
       IMPORTING
         columnname   TYPE lvc_fname
       RETURNING
-        VALUE(value) TYPE REF TO cl_salv_item.
+        VALUE(value) TYPE REF TO cl_salv_item
+      RAISING
+        cx_salv_msg.
 
     METHODS get_hierarchy_item
       RETURNING
@@ -35,19 +37,19 @@ CLASS cl_salv_node DEFINITION PUBLIC.
 
     METHODS get_parent
       RETURNING
-        VALUE(value) TYPE REF TO cl_salv_node.
+        VALUE(value) TYPE REF TO cl_salv_node
+      RAISING
+        cx_salv_msg.
 
     METHODS get_children
       RETURNING
-        VALUE(value) TYPE salv_t_nodes.
+        VALUE(value) TYPE salv_t_nodes
+      RAISING
+        cx_salv_msg.
 
     METHODS get_data_row
       RETURNING
         VALUE(value) TYPE REF TO data.
-
-    METHODS get_item_states
-      RETURNING
-        VALUE(value) TYPE salv_t_cell.
 
     METHODS set_row_style
       IMPORTING
@@ -74,18 +76,6 @@ CLASS cl_salv_node DEFINITION PUBLIC.
         subtree TYPE abap_bool OPTIONAL.
 
     METHODS collapse.
-
-    METHODS set_parent
-      IMPORTING
-        value TYPE REF TO cl_salv_node.
-
-    METHODS add_child
-      IMPORTING
-        value TYPE REF TO cl_salv_node.
-
-    METHODS is_expanded
-      RETURNING
-        VALUE(value) TYPE abap_bool.
 
     METHODS is_folder
       RETURNING
@@ -119,6 +109,18 @@ CLASS cl_salv_node DEFINITION PUBLIC.
     DATA mv_expanded TYPE abap_bool.
     DATA mv_visible TYPE abap_bool.
 
+    METHODS set_parent
+      IMPORTING
+        value TYPE REF TO cl_salv_node.
+
+    METHODS add_child
+      IMPORTING
+        value TYPE REF TO cl_salv_node.
+
+    METHODS is_expanded
+      RETURNING
+        VALUE(value) TYPE abap_bool.
+
 ENDCLASS.
 
 CLASS cl_salv_node IMPLEMENTATION.
@@ -151,7 +153,11 @@ CLASS cl_salv_node IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_hierarchy_item.
-    value = get_item( columnname = '&Hierarchy' ).
+    TRY.
+        value = get_item( columnname = '&Hierarchy' ).
+      CATCH cx_salv_msg.
+        RETURN.
+    ENDTRY.
     value->set_value( mv_text ).
   ENDMETHOD.
 
@@ -177,14 +183,6 @@ CLASS cl_salv_node IMPLEMENTATION.
 
   METHOD get_data_row.
     value = mr_data_row.
-  ENDMETHOD.
-
-  METHOD get_item_states.
-    LOOP AT mt_items INTO DATA(ls_item).
-      APPEND VALUE #( row        = 0
-                      columnname = ls_item-columnname
-                      value      = ls_item-item->get_value( ) ) TO value.
-    ENDLOOP.
   ENDMETHOD.
 
   METHOD set_row_style.

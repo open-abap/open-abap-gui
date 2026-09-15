@@ -1,8 +1,6 @@
 CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
   PUBLIC SECTION.
 
-    DATA parent_area TYPE REF TO cl_dd_area.
-
     METHODS new_row
       IMPORTING
         sap_style     TYPE any OPTIONAL

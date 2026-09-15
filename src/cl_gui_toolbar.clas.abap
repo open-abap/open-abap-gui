@@ -107,6 +107,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_error
         cntb_error_fcode.
 
+  PRIVATE SECTION.
     METHODS press_button
       IMPORTING
         fcode TYPE ui_func.
@@ -117,7 +118,6 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         posx  TYPE i DEFAULT 0
         posy  TYPE i DEFAULT 0.
 
-  PRIVATE SECTION.
     DATA mt_hidden_buttons TYPE ttb_button.
     DATA mt_context_items TYPE zcl_gg_context_menu_state=>ty_items.
     DATA mv_context_left TYPE i.

@@ -35,32 +35,6 @@ CLASS cl_gui_dialogbox_container DEFINITION PUBLIC INHERITING FROM cl_gui_contai
         cntl_error
         cntl_system_error.
 
-    METHODS move
-      IMPORTING
-        left TYPE i
-        top  TYPE i.
-
-    METHODS resize
-      IMPORTING
-        width  TYPE i
-        height TYPE i.
-
-    METHODS focus_dialog.
-
-    METHODS close_dialog.
-
-    EVENTS moved
-      EXPORTING
-        VALUE(left) TYPE i
-        VALUE(top)  TYPE i.
-
-    EVENTS resized
-      EXPORTING
-        VALUE(width)  TYPE i
-        VALUE(height) TYPE i.
-
-    EVENTS focused.
-
 ENDCLASS.
 
 CLASS cl_gui_dialogbox_container IMPLEMENTATION.
@@ -85,34 +59,6 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
   METHOD set_caption.
     cl_gui_control=>set_payload( control = me
                                  payload = CONV string( caption ) ).
-  ENDMETHOD.
-
-  METHOD move.
-    set_position( left = left
-                  top  = top ).
-    RAISE EVENT moved
-      EXPORTING
-        left = left
-        top  = top.
-  ENDMETHOD.
-
-  METHOD resize.
-    set_position( width  = width
-                  height = height ).
-    RAISE EVENT resized
-      EXPORTING
-        width  = width
-        height = height.
-  ENDMETHOD.
-
-  METHOD focus_dialog.
-    cl_gui_control=>set_focus( me ).
-    RAISE EVENT focused.
-  ENDMETHOD.
-
-  METHOD close_dialog.
-    free( ).
-    RAISE EVENT close EXPORTING sender = me.
   ENDMETHOD.
 
 ENDCLASS.

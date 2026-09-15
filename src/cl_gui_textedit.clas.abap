@@ -100,8 +100,6 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
         to_line   TYPE i
         to_pos    TYPE i.
 
-    METHODS restore.
-
     METHODS open_local_file
       IMPORTING
         filename      TYPE string
@@ -336,15 +334,6 @@ CLASS cl_gui_textedit IMPLEMENTATION.
       RETURN.
     ENDIF.
     text = mv_text.
-  ENDMETHOD.
-
-  METHOD restore.
-    mv_text = mv_saved_text.
-    mv_modified = 0.
-    cl_gui_control=>set_payload( control = me
-                                 payload = mv_text ).
-    cl_gui_control=>set_text_state( control  = me
-                                    modified = mv_modified ).
   ENDMETHOD.
 
   METHOD open_local_file.

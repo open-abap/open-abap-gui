@@ -66,8 +66,12 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Leaf &lt;safe&gt;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-level="2"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-selected="true"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="true"' ) ).
     lo_tree->get_nodes( )->collapse_all( ).
-    cl_abap_unit_assert=>assert_false( act = lo_root->is_expanded( ) ).
+    cl_gui_control=>clear( ).
+    lo_tree->display( ).
+    lv_html = cl_gui_control=>render_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
   ENDMETHOD.
 
   METHOD renders_typed_items_and_events.

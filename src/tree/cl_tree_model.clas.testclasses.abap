@@ -3,6 +3,8 @@ CLASS ltcl_tree_model DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HAR
     METHODS keeps_tree_state FOR TESTING.
 ENDCLASS.
 
+CLASS cl_tree_model DEFINITION LOCAL FRIENDS ltcl_tree_model.
+
 CLASS ltcl_tree_model IMPLEMENTATION.
   METHOD keeps_tree_state.
     DATA lt_nodes TYPE treemlnota.

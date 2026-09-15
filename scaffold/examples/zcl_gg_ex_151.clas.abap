@@ -215,7 +215,7 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
     IF mo_viewer IS NOT BOUND.
       RETURN.
     ENDIF.
-    rv_alive = cl_gui_control=>is_alive( mo_viewer ).
+    rv_alive = xsdbool( mo_viewer->is_alive( ) = cl_gui_control=>state_alive ).
   ENDMETHOD.
 
   METHOD handle_action.

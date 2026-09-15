@@ -92,11 +92,11 @@ CLASS cl_tree_model DEFINITION PUBLIC.
 
     METHODS update_view.
 
+  PROTECTED SECTION.
     METHODS get_state_summary
       RETURNING
         VALUE(rv_summary) TYPE string.
 
-  PROTECTED SECTION.
     TYPES: BEGIN OF ty_model_node,
              node_key   TYPE string,
              parent_key TYPE string,

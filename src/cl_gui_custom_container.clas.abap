@@ -1,10 +1,5 @@
 CLASS cl_gui_custom_container DEFINITION PUBLIC INHERITING FROM cl_gui_container.
   PUBLIC SECTION.
-    DATA mv_container_name TYPE string READ-ONLY.
-    DATA mv_repid TYPE sy-repid READ-ONLY.
-    DATA mv_dynnr TYPE sy-dynnr READ-ONLY.
-    DATA mv_lifetime TYPE i READ-ONLY.
-
     METHODS constructor
       IMPORTING
         container_name          TYPE c
@@ -13,6 +8,12 @@ CLASS cl_gui_custom_container DEFINITION PUBLIC INHERITING FROM cl_gui_container
         no_autodef_progid_dynnr TYPE abap_bool OPTIONAL
         lifetime                TYPE i OPTIONAL
         dynnr                   TYPE sy-dynnr OPTIONAL.
+
+  PRIVATE SECTION.
+    DATA mv_container_name TYPE string.
+    DATA mv_repid TYPE sy-repid.
+    DATA mv_dynnr TYPE sy-dynnr.
+    DATA mv_lifetime TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_custom_container IMPLEMENTATION.

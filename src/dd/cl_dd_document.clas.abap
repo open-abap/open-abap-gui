@@ -71,11 +71,13 @@ CLASS cl_dd_document IMPLEMENTATION.
 
   METHOD merge_document.
     html_content = html_content && `</section>`.
+    fill_html_table( ).
   ENDMETHOD.
 
   METHOD display_document.
     DATA lt_html TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
+    fill_html_table( ).
     IF parent IS BOUND AND html_control IS NOT BOUND.
       html_control = NEW cl_gui_html_viewer( parent = parent ).
     ENDIF.

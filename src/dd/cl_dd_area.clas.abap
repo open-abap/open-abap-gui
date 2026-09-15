@@ -1,4 +1,4 @@
-CLASS cl_dd_area DEFINITION PUBLIC.
+CLASS cl_dd_area DEFINITION PUBLIC FRIENDS cl_dd_form_area cl_dd_table_area cl_dd_table_element.
   PUBLIC SECTION.
 
     CONSTANTS col_background_level2 TYPE i VALUE 35.
@@ -36,7 +36,6 @@ CLASS cl_dd_area DEFINITION PUBLIC.
 
     DATA html_table TYPE sdydo_html_table.
     CLASS-DATA act_gui_properties TYPE sdydo_act_gui_properties.
-    DATA html_content TYPE string.
 
     METHODS new_line
       IMPORTING
@@ -120,6 +119,13 @@ CLASS cl_dd_area DEFINITION PUBLIC.
         document      TYPE REF TO cl_dd_document OPTIONAL.
 
   PROTECTED SECTION.
+    DATA html_content TYPE string.
+    DATA parent_area TYPE REF TO cl_dd_area.
+
+    "! Publishes the accumulated markup through the public HTML_TABLE
+    "! attribute, which is how callers read a document's rendered content.
+    METHODS fill_html_table.
+
     METHODS escape_html
       IMPORTING
         value         TYPE string
@@ -225,6 +231,24 @@ CLASS cl_dd_area IMPLEMENTATION.
 
   METHOD escape_html.
     result = cl_gui_control=>escape_html( value ).
+  ENDMETHOD.
+
+  METHOD fill_html_table.
+    DATA lv_offset TYPE i.
+    DATA lv_length TYPE i.
+    DATA lv_chunk TYPE i.
+    CLEAR html_table.
+    lv_length = strlen( html_content ).
+    WHILE lv_offset < lv_length.
+      lv_chunk = lv_length - lv_offset.
+      IF lv_chunk > 255.
+        lv_chunk = 255.
+      ENDIF.
+      APPEND VALUE #( line = substring( val = html_content
+                                        off = lv_offset
+                                        len = lv_chunk ) ) TO html_table.
+      lv_offset = lv_offset + 255.
+    ENDWHILE.
   ENDMETHOD.
 
 ENDCLASS.

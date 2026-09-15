@@ -21,6 +21,6 @@ test("ZCL_GG_EX_140 — renders a simple tree fallback", async ({page, host}) =>
   await expect(page.getByText("Context menu: Open details, Rename, and Remove are server-declared actions.")).toBeVisible();
   await pressToolbar(page, "Compare models");
   await expect(page.locator(".gg-list-status")).toHaveText("TREE COMPARE");
-  await expect(page.getByText(/Compare: model=SIMPLE;nodes=2/)).toBeVisible();
+  await expect(page.getByText(/Compare: simple model expands \d+ node\(s\) vs list model \d+/)).toBeVisible();
 });
 

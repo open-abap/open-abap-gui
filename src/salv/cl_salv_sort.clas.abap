@@ -5,7 +5,6 @@ CLASS cl_salv_sort DEFINITION PUBLIC.
       IMPORTING
         columnname TYPE lvc_fname
         sequence   TYPE i
-        position   TYPE i
         subtotal   TYPE abap_bool
         group      TYPE i
         obligatory TYPE abap_bool.
@@ -15,10 +14,6 @@ CLASS cl_salv_sort DEFINITION PUBLIC.
         VALUE(value) TYPE lvc_fname.
 
     METHODS get_sequence
-      RETURNING
-        VALUE(value) TYPE i.
-
-    METHODS get_position
       RETURNING
         VALUE(value) TYPE i.
 
@@ -35,7 +30,6 @@ CLASS cl_salv_sort DEFINITION PUBLIC.
   PRIVATE SECTION.
     DATA mv_columnname TYPE lvc_fname.
     DATA mv_sequence TYPE i.
-    DATA mv_position TYPE i.
     DATA mv_subtotal TYPE abap_bool.
     DATA mv_group TYPE i.
     DATA mv_obligatory TYPE abap_bool.
@@ -47,7 +41,6 @@ CLASS cl_salv_sort IMPLEMENTATION.
   METHOD constructor.
     mv_columnname = columnname.
     mv_sequence = sequence.
-    mv_position = position.
     mv_subtotal = subtotal.
     mv_group = group.
     mv_obligatory = obligatory.
@@ -59,10 +52,6 @@ CLASS cl_salv_sort IMPLEMENTATION.
 
   METHOD get_sequence.
     value = mv_sequence.
-  ENDMETHOD.
-
-  METHOD get_position.
-    value = mv_position.
   ENDMETHOD.
 
   METHOD is_subtotalled.

@@ -65,18 +65,6 @@ CLASS cl_salv_tree DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
         node_key   TYPE salv_de_node_key
         columnname TYPE lvc_fname.
 
-    METHODS trigger_checkbox_change
-      IMPORTING
-        node_key   TYPE salv_de_node_key
-        columnname TYPE lvc_fname
-        checked    TYPE abap_bool.
-
-    METHODS trigger_keypress
-      IMPORTING
-        node_key   TYPE salv_de_node_key
-        columnname TYPE lvc_fname
-        key        TYPE salv_de_constant.
-
   PRIVATE SECTION.
     DATA mr_table TYPE REF TO data.
     DATA mo_nodes TYPE REF TO cl_salv_nodes.
@@ -190,18 +178,6 @@ CLASS cl_salv_tree IMPLEMENTATION.
                                    node_key   = node_key ).
   ENDMETHOD.
 
-  METHOD trigger_checkbox_change.
-    mo_events->raise_checkbox_change( columnname = columnname
-                                      node_key   = node_key
-                                      checked    = checked ).
-  ENDMETHOD.
-
-  METHOD trigger_keypress.
-    mo_events->raise_keypress( columnname = columnname
-                               node_key   = node_key
-                               key        = key ).
-  ENDMETHOD.
-
   METHOD build_metadata.
     DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
     DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
@@ -235,11 +211,15 @@ CLASS cl_salv_tree IMPLEMENTATION.
     LOOP AT lt_nodes INTO DATA(ls_node_ref).
       DATA(lo_node) = ls_node_ref-node.
       DATA(lv_level) = 1.
-      DATA(lo_parent) = lo_node->get_parent( ).
-      WHILE lo_parent IS BOUND.
-        lv_level = lv_level + 1.
-        lo_parent = lo_parent->get_parent( ).
-      ENDWHILE.
+      TRY.
+          DATA(lo_parent) = lo_node->get_parent( ).
+          WHILE lo_parent IS BOUND.
+            lv_level = lv_level + 1.
+            lo_parent = lo_parent->get_parent( ).
+          ENDWHILE.
+        CATCH cx_salv_msg.
+          CLEAR lo_parent.
+      ENDTRY.
       DATA(lv_selected) = xsdbool( line_exists( lt_selected[ node_key = ls_node_ref-node_key ] ) ).
       DATA(lv_selected_attr) = COND string(
         WHEN lv_selected = abap_true THEN ' aria-selected="true"'
@@ -289,19 +269,28 @@ CLASS cl_salv_tree IMPLEMENTATION.
     IF value = abap_false.
       RETURN.
     ENDIF.
-    DATA(lo_parent) = node->get_parent( ).
-    WHILE lo_parent IS BOUND.
-      IF lo_parent->is_folder( ) = abap_true
-          AND lo_parent->is_expanded( ) = abap_false.
-        value = abap_false.
+    TRY.
+        DATA(lo_parent) = node->get_parent( ).
+        WHILE lo_parent IS BOUND.
+          IF lo_parent->is_folder( ) = abap_true
+              AND lo_parent->is_expanded( ) = abap_false.
+            value = abap_false.
+            RETURN.
+          ENDIF.
+          lo_parent = lo_parent->get_parent( ).
+        ENDWHILE.
+      CATCH cx_salv_msg.
         RETURN.
-      ENDIF.
-      lo_parent = lo_parent->get_parent( ).
-    ENDWHILE.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD render_item.
-    DATA(lo_item) = node->get_item( columnname ).
+    DATA lo_item TYPE REF TO cl_salv_item.
+    TRY.
+        lo_item = node->get_item( columnname ).
+      CATCH cx_salv_msg.
+        RETURN.
+    ENDTRY.
     DATA(lv_text) = lo_item->get_value( ).
     IF lv_text IS INITIAL.
       lv_text = node_cell_value( node       = node

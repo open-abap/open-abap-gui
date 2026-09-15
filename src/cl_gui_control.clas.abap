@@ -51,12 +51,6 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         parent  TYPE REF TO cl_gui_container OPTIONAL
         kind    TYPE string DEFAULT 'CONTROL'.
 
-    CLASS-METHODS is_alive
-      IMPORTING
-        control       TYPE REF TO cl_gui_control
-      RETURNING
-        VALUE(result) TYPE abap_bool.
-
     CLASS-METHODS render_html
       IMPORTING
         iv_document       TYPE abap_bool DEFAULT abap_true
@@ -122,6 +116,10 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         control TYPE REF TO cl_gui_control.
 
     METHODS is_valid REDEFINITION.
+
+    METHODS is_alive
+      RETURNING
+        VALUE(state) TYPE i.
 
     METHODS free.
 
@@ -470,12 +468,12 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD is_alive.
-    IF control IS NOT BOUND.
-      RETURN.
-    ENDIF.
+    state = state_dead.
     READ TABLE mt_snapshots TRANSPORTING NO FIELDS
-      WITH KEY control_id = control->control_id.
-    result = xsdbool( sy-subrc = 0 ).
+      WITH KEY control_id = control_id.
+    IF sy-subrc = 0.
+      state = state_alive.
+    ENDIF.
   ENDMETHOD.
 
   METHOD has_content.

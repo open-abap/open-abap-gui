@@ -1,8 +1,7 @@
-CLASS cl_dd_table_element DEFINITION PUBLIC.
+CLASS cl_dd_table_element DEFINITION PUBLIC FRIENDS cl_dd_area.
   PUBLIC SECTION.
 
     DATA table_of_columns TYPE sdydo_object_table.
-    DATA html_content TYPE string.
     DATA row_count TYPE i.
 
     METHODS set_column_style
@@ -43,6 +42,9 @@ CLASS cl_dd_table_element DEFINITION PUBLIC.
         sap_fontsize  TYPE any OPTIONAL
         sap_fontstyle TYPE any OPTIONAL
         sap_emphasis  TYPE any OPTIONAL.
+
+  PRIVATE SECTION.
+    DATA html_content TYPE string.
 
 ENDCLASS.
 

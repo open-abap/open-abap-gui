@@ -552,6 +552,8 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
     DATA lo_root_graphic TYPE REF TO cl_gui_custom_container.
     DATA lo_alv_grid TYPE REF TO cl_gui_alv_grid.
     DATA ls_surface TYPE zcl_gg_host_surface=>ty_surface.
+    DATA lt_simple_expanded140 TYPE STANDARD TABLE OF tm_nodekey WITH DEFAULT KEY.
+    DATA lt_list_expanded140 TYPE STANDARD TABLE OF tm_nodekey WITH DEFAULT KEY.
 
     lt_rows = VALUE #( ( carrier = 'Lufthansa' flight = 'LH400' seats = 180 active = 'X' inspect = 'Inspect' )
                        ( carrier = 'United' flight = 'UA901' seats = 210 active = 'X' inspect = 'Inspect' )
@@ -725,7 +727,10 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
           lo_list_model140->add_nodes( VALUE treemlnota(
             ( node_key = 'NODE-ROOT' isfolder = abap_true expander = abap_true )
             ( node_key = 'NODE-LH400' relatkey = 'NODE-ROOT' ) ) ).
-          lv_tree_text = |Compare: { lo_simple_model140->get_state_summary( ) } vs { lo_list_model140->get_state_summary( ) }; opaque key NODE-LH400 retained.|.
+          lo_simple_model140->get_expanded_nodes( IMPORTING node_key_table = lt_simple_expanded140 ).
+          lo_list_model140->get_expanded_nodes( IMPORTING node_key_table = lt_list_expanded140 ).
+          lv_tree_text = |Compare: simple model expands { lines( lt_simple_expanded140 ) } node(s) vs | &&
+                         |list model { lines( lt_list_expanded140 ) }; opaque key NODE-LH400 retained.|.
         ELSEIF mv_tree_menu140 = abap_true.
           lv_tree_text = 'Context menu: Open details, Rename, and Remove are server-declared actions.'.
         ENDIF.

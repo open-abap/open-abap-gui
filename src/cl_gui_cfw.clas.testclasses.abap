@@ -25,6 +25,8 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
 
 ENDCLASS.
 
+CLASS cl_gui_cfw DEFINITION LOCAL FRIENDS ltcl_test.
+
 CLASS ltcl_test IMPLEMENTATION.
 
   METHOD test1.
@@ -152,17 +154,11 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-protected-from="1"' ) ).
 
     lo_editor->delete_text( ).
-    lo_editor->restore( ).
     lo_editor->get_textstream(
       IMPORTING
         text        = lv_text
         is_modified = lv_modified ).
-    cl_abap_unit_assert=>assert_equals(
-      act = lv_text
-      exp = |first{ cl_abap_char_utilities=>newline }second{ cl_abap_char_utilities=>newline }third| ).
-    cl_abap_unit_assert=>assert_equals(
-      act = lv_modified
-      exp = 0 ).
+    cl_abap_unit_assert=>assert_initial( lv_text ).
     lv_file_result = lo_editor->open_local_file( filename = 'C:\\desktop\\text.txt' ).
     cl_abap_unit_assert=>assert_false( act = lv_file_result ).
     lv_file_result = lo_editor->save_as_local_file( filename = 'C:\\desktop\\text.txt' ).
