@@ -5,7 +5,7 @@ CLASS cl_salv_columns_list DEFINITION PUBLIC INHERITING FROM cl_salv_columns.
       IMPORTING
         value TYPE abap_bool DEFAULT abap_true.
 
-    METHODS is_key_fixated
+    METHODS has_key_fixation
       RETURNING
         VALUE(value) TYPE abap_bool.
 
@@ -19,7 +19,7 @@ CLASS cl_salv_columns_list IMPLEMENTATION.
     mv_key_fixation = value.
   ENDMETHOD.
 
-  METHOD is_key_fixated.
+  METHOD has_key_fixation.
     value = mv_key_fixation.
   ENDMETHOD.
 

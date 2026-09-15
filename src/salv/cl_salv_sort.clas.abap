@@ -22,7 +22,7 @@ CLASS cl_salv_sort DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE i.
 
-    METHODS is_subtotal
+    METHODS is_subtotalled
       RETURNING
         VALUE(value) TYPE abap_bool.
 
@@ -65,7 +65,7 @@ CLASS cl_salv_sort IMPLEMENTATION.
     value = mv_position.
   ENDMETHOD.
 
-  METHOD is_subtotal.
+  METHOD is_subtotalled.
     value = mv_subtotal.
   ENDMETHOD.
 

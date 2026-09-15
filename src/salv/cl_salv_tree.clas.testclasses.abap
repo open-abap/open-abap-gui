@@ -100,7 +100,7 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
       data_row     = ls_leaf
       text         = 'Leaf' ).
     lo_leaf->get_item( 'NAME' )->set_type( if_salv_c_cell_type=>link ).
-    lo_leaf->get_item( 'NAME' )->set_text( 'Open leaf' ).
+    lo_leaf->get_item( 'NAME' )->set_value( 'Open leaf' ).
     lo_root->get_item( 'ID' )->set_type( if_salv_c_cell_type=>checkbox ).
     lo_root->get_item( 'ID' )->set_checked( abap_true ).
     lo_events = lo_tree->get_event( ).

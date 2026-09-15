@@ -110,7 +110,7 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lines( lo_salv->get_sorts( )->get( ) )
       exp = 1 ).
-    cl_abap_unit_assert=>assert_true( act = lo_sort->is_subtotal( ) ).
+    cl_abap_unit_assert=>assert_true( act = lo_sort->is_subtotalled( ) ).
     DATA(lv_html) = lo_salv->get_html( ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'UA' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'LH' ) ).

@@ -181,25 +181,25 @@ CLASS cl_salv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD trigger_link_click.
-    mo_events->fire_link_click( columnname = columnname
-                                node_key   = node_key ).
+    mo_events->raise_link_click( columnname = columnname
+                                 node_key   = node_key ).
   ENDMETHOD.
 
   METHOD trigger_double_click.
-    mo_events->fire_double_click( columnname = columnname
-                                  node_key   = node_key ).
+    mo_events->raise_double_click( columnname = columnname
+                                   node_key   = node_key ).
   ENDMETHOD.
 
   METHOD trigger_checkbox_change.
-    mo_events->fire_checkbox_change( columnname = columnname
-                                     node_key   = node_key
-                                     checked    = checked ).
+    mo_events->raise_checkbox_change( columnname = columnname
+                                      node_key   = node_key
+                                      checked    = checked ).
   ENDMETHOD.
 
   METHOD trigger_keypress.
-    mo_events->fire_keypress( columnname = columnname
-                              node_key   = node_key
-                              key        = key ).
+    mo_events->raise_keypress( columnname = columnname
+                               node_key   = node_key
+                               key        = key ).
   ENDMETHOD.
 
   METHOD build_metadata.
@@ -302,7 +302,7 @@ CLASS cl_salv_tree IMPLEMENTATION.
 
   METHOD render_item.
     DATA(lo_item) = node->get_item( columnname ).
-    DATA(lv_text) = lo_item->get_text( ).
+    DATA(lv_text) = lo_item->get_value( ).
     IF lv_text IS INITIAL.
       lv_text = node_cell_value( node       = node
                                  columnname = columnname ).

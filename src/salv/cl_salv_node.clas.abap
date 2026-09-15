@@ -152,7 +152,7 @@ CLASS cl_salv_node IMPLEMENTATION.
 
   METHOD get_hierarchy_item.
     value = get_item( columnname = '&Hierarchy' ).
-    value->set_text( mv_text ).
+    value->set_value( mv_text ).
   ENDMETHOD.
 
   METHOD set_text.
@@ -183,7 +183,7 @@ CLASS cl_salv_node IMPLEMENTATION.
     LOOP AT mt_items INTO DATA(ls_item).
       APPEND VALUE #( row        = 0
                       columnname = ls_item-columnname
-                      value      = ls_item-item->get_text( ) ) TO value.
+                      value      = ls_item-item->get_value( ) ) TO value.
     ENDLOOP.
   ENDMETHOD.
 

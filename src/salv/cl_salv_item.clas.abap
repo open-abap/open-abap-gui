@@ -9,11 +9,11 @@ CLASS cl_salv_item DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE i.
 
-    METHODS get_text
+    METHODS get_value
       RETURNING
         VALUE(value) TYPE string.
 
-    METHODS set_text
+    METHODS set_value
       IMPORTING
         value TYPE clike.
 
@@ -69,11 +69,11 @@ CLASS cl_salv_item IMPLEMENTATION.
     value = mv_type.
   ENDMETHOD.
 
-  METHOD get_text.
+  METHOD get_value.
     value = mv_text.
   ENDMETHOD.
 
-  METHOD set_text.
+  METHOD set_value.
     mv_text = value.
   ENDMETHOD.
 

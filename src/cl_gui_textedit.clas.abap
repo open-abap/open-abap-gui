@@ -100,17 +100,15 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
         to_line   TYPE i
         to_pos    TYPE i.
 
-    METHODS clear_text.
-
     METHODS restore.
 
-    METHODS load_file
+    METHODS open_local_file
       IMPORTING
         filename      TYPE string
       RETURNING
         VALUE(result) TYPE abap_bool.
 
-    METHODS save_file
+    METHODS save_as_local_file
       IMPORTING
         filename      TYPE string
       RETURNING
@@ -340,10 +338,6 @@ CLASS cl_gui_textedit IMPLEMENTATION.
     text = mv_text.
   ENDMETHOD.
 
-  METHOD clear_text.
-    delete_text( ).
-  ENDMETHOD.
-
   METHOD restore.
     mv_text = mv_saved_text.
     mv_modified = 0.
@@ -353,12 +347,12 @@ CLASS cl_gui_textedit IMPLEMENTATION.
                                     modified = mv_modified ).
   ENDMETHOD.
 
-  METHOD load_file.
+  METHOD open_local_file.
     result = abap_false.
     RETURN.
   ENDMETHOD.
 
-  METHOD save_file.
+  METHOD save_as_local_file.
     result = abap_false.
     RETURN.
   ENDMETHOD.

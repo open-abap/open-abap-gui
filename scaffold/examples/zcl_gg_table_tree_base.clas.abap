@@ -498,11 +498,11 @@ CLASS zcl_gg_table_tree_base IMPLEMENTATION.
         lo_salv_root->get_item( 'ACTIVE' )->set_type( if_salv_c_cell_type=>checkbox ).
         lo_salv_root->get_item( 'ACTIVE' )->set_checked( abap_true ).
         lo_salv_leaf->get_item( 'FLIGHT' )->set_type( if_salv_c_cell_type=>link ).
-        lo_salv_leaf->get_item( 'FLIGHT' )->set_text( 'Open LH400' ).
+        lo_salv_leaf->get_item( 'FLIGHT' )->set_value( 'Open LH400' ).
         lo_salv_leaf->get_item( 'ACTIVE' )->set_type( if_salv_c_cell_type=>checkbox ).
         lo_salv_leaf->get_item( 'ACTIVE' )->set_checked( abap_true ).
         lo_salv_leaf->get_item( 'INSPECT' )->set_type( if_salv_c_cell_type=>button ).
-        lo_salv_leaf->get_item( 'INSPECT' )->set_text( 'Inspect' ).
+        lo_salv_leaf->get_item( 'INSPECT' )->set_value( 'Inspect' ).
         IF mv_salv_tree_lazy147 = abap_true.
           lo_salv_tree->get_nodes( )->add_node(
             related_node = lo_salv_root->get_key( )

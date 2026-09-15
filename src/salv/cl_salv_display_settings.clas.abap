@@ -24,7 +24,7 @@ CLASS cl_salv_display_settings DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE lvc_title.
 
-    METHODS get_striped_pattern
+    METHODS is_striped_pattern
       RETURNING
         VALUE(value) TYPE abap_bool.
 
@@ -57,7 +57,7 @@ CLASS cl_salv_display_settings IMPLEMENTATION.
     value = mv_list_header.
   ENDMETHOD.
 
-  METHOD get_striped_pattern.
+  METHOD is_striped_pattern.
     value = mv_striped_pattern.
   ENDMETHOD.
 

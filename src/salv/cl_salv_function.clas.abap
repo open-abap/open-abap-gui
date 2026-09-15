@@ -37,7 +37,7 @@ CLASS cl_salv_function DEFINITION PUBLIC.
       IMPORTING
         value TYPE abap_bool.
 
-    METHODS is_visible
+    METHODS get_visible
       RETURNING
         VALUE(value) TYPE abap_bool.
 
@@ -86,7 +86,7 @@ CLASS cl_salv_function IMPLEMENTATION.
     value = mv_tooltip.
   ENDMETHOD.
 
-  METHOD is_visible.
+  METHOD get_visible.
     value = mv_visible.
   ENDMETHOD.
 

@@ -163,9 +163,9 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lv_modified
       exp = 0 ).
-    lv_file_result = lo_editor->load_file( filename = 'C:\\desktop\\text.txt' ).
+    lv_file_result = lo_editor->open_local_file( filename = 'C:\\desktop\\text.txt' ).
     cl_abap_unit_assert=>assert_false( act = lv_file_result ).
-    lv_file_result = lo_editor->save_file( filename = 'C:\\desktop\\text.txt' ).
+    lv_file_result = lo_editor->save_as_local_file( filename = 'C:\\desktop\\text.txt' ).
     cl_abap_unit_assert=>assert_false( act = lv_file_result ).
   ENDMETHOD.
 
