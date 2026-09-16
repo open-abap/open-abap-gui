@@ -49,7 +49,7 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS show_url
       IMPORTING
         in_place TYPE abap_bool OPTIONAL
-        url      TYPE c.
+        url      TYPE clike.
 
     METHODS set_ui_flag
       IMPORTING
@@ -108,9 +108,9 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
 
   METHOD show_url.
     mv_current_url = url.
-    mv_payload = CONV string( url ).
+    mv_payload = url.
     cl_gui_control=>set_payload( control = me
-                                 payload = CONV string( url ) ).
+                                 payload = url ).
     remember_current( ).
   ENDMETHOD.
 

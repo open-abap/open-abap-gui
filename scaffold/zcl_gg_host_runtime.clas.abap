@@ -122,6 +122,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lo_report_dynpro TYPE REF TO zif_gg_dynpro_v1.
     DATA lo_lifecycle TYPE REF TO zif_gg_session_lifecycle_v1.
 
+    " A new host session starts with a fresh browser control surface. The
+    " control classes keep their snapshots statically, so leaving a prior
+    " session in place would let old controls overlay the next page.
+    cl_gui_control=>clear( ).
+    zcl_gg_host_surface=>clear( ).
     lv_session_id = next_session_id( ).
     IF io_dynpro_program IS BOUND.
       TRY.

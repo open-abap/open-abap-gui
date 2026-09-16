@@ -160,15 +160,33 @@ function elementKind(record) {
   return type ? type.toLowerCase() : "element";
 }
 
+const SCREEN_PAINTER_TEXT_TYPES = new Set([
+  "TEXT", "PUSH", "CHECK", "RADIO", "RADIOBUTTON", "RADIOGROUP",
+  "LISTBOX", "DROPDOWN", "COMBO",
+]);
+
+function decodeScreenPainterText(value, record) {
+  const raw = String(value ?? "");
+  const limit = integer(record.VISLENGTH) ?? integer(record.LENGTH);
+  const bounded = limit === undefined ? raw : raw.slice(0, limit);
+  const withoutPadding = bounded.replace(/_+$/, "");
+  return withoutPadding.replace(/_/g, " ");
+}
+
 function parseElement(node) {
   const attributes = leafRecord(node);
   const position = positionAndGeometry(attributes);
   const kind = elementKind(attributes);
+  const type = recordValue(attributes, "TYPE");
+  const sourceText = recordValue(attributes, "TEXT");
+  const screenPainterText = type && SCREEN_PAINTER_TEXT_TYPES.has(type.toUpperCase()) && sourceText !== undefined
+    ? decodeScreenPainterText(sourceText, attributes)
+    : sourceText;
   return {
     kind,
-    type: recordValue(attributes, "TYPE"),
+    type,
     name: recordValue(attributes, "NAME"),
-    text: recordValue(attributes, "TEXT"),
+    text: screenPainterText,
     line: position.line,
     column: position.column,
     length: position.width,

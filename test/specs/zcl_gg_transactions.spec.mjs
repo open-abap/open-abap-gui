@@ -30,14 +30,12 @@ test("F3 activates the green Back button", async ({page, host}) => {
   await expect(page.locator("[data-page-kind]")).toHaveCount(0);
 });
 
-test("F1 reports that field help is still to be built", async ({page, host}) => {
+test("F1 stays silent until a focused field exposes real help", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   const feedback = page.locator(".wb-status-feedback");
   await expect(feedback).toBeEmpty();
   await page.keyboard.press("F1");
-  await expect(feedback).toHaveText("F1: help todo");
-  await expect(feedback).toHaveClass(/wb-status-success/);
-  await expect(feedback).toHaveAttribute("role", "status");
+  await expect(feedback).toBeEmpty();
   await expect(page.locator("[data-page-kind]")).toHaveCount(1);
 });
 

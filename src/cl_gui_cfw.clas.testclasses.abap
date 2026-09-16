@@ -10,6 +10,7 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS picture_safe_state FOR TESTING.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
+    METHODS alv_tree_outtab_roundtrip FOR TESTING.
     METHODS html_alv_structured_rows FOR TESTING.
     METHODS html_typed_surface FOR TESTING.
     METHODS html_viewer_sapevent FOR TESTING.
@@ -366,6 +367,48 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-salv-table' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<root>' ) ).
     cl_gui_control=>clear_external_html( ).
+  ENDMETHOD.
+
+  METHOD alv_tree_outtab_roundtrip.
+    DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lt_fieldcat TYPE lvc_t_fcat.
+    DATA lv_root TYPE lvc_nkey.
+    DATA lv_leaf TYPE lvc_nkey.
+    DATA lv_row TYPE string.
+    DATA lv_outtab_line TYPE string.
+    DATA(lo_tree) = NEW cl_gui_alv_tree( ).
+
+    APPEND 'row' TO lt_rows.
+    lo_tree->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fieldcat ).
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = space
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        i_node_text      = 'Root'
+      IMPORTING
+        e_new_node_key   = lv_root ).
+    lv_row = 'Row data'.
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = lv_root
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        is_outtab_line   = lv_row
+        i_node_text      = 'Leaf'
+      IMPORTING
+        e_new_node_key   = lv_leaf ).
+
+    lo_tree->get_outtab_line(
+      EXPORTING
+        i_node_key    = lv_leaf
+      IMPORTING
+        e_outtab_line = lv_outtab_line ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_outtab_line
+      exp = lv_row ).
   ENDMETHOD.
 
   METHOD html_alv_structured_rows.

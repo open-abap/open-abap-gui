@@ -240,7 +240,7 @@ function lowerFrontend(raw, name) {
   }
   if (name === "SCMS_XSTRING_TO_BINARY") return call("xstring_to_binary", `EXPORTING iv_buffer = ${functionParameter(raw, "buffer") ?? "VALUE #( )"} CHANGING cv_output_length = ${functionParameter(raw, "output_length") ?? "VALUE #( )"} ct_binary = ${functionParameter(raw, "binary_tab") ?? "VALUE #( )"}`);
   if (name === "DP_CREATE_URL") return call("create_url", `EXPORTING is_request = ${requestFields(raw, { type: "type", subtype: "subtype", size: "size", lifetime: "lifetime" })} CHANGING cv_url = ${functionParameter(raw, "url") ?? "VALUE #( )"} ct_data = ${functionParameter(raw, "data") ?? "VALUE #( )"}`);
-  return returningCall(functionParameter(raw, "url"), "publish_url", `iv_object = ${functionParameter(raw, "objid") ?? "''"} iv_lifetime = ${functionParameter(raw, "lifetime") ?? "''"}`);
+  return returningCall(functionParameter(raw, "url"), "publish_url", `iv_object = ${functionParameter(raw, "objid") ?? "''"} iv_lifetime = CONV string( ${functionParameter(raw, "lifetime") ?? "''"} )`);
 }
 
 export function lowerCompatibilityFunction(raw) {

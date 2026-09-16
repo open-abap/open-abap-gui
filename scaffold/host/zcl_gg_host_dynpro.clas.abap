@@ -1469,42 +1469,28 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_controls_html.
-    IF cl_gui_control=>has_content( ) = abap_false.
-      RETURN.
-    ENDIF.
     READ TABLE it_controls INTO DATA(ls_custom_control)
       WITH KEY kind = 'CUSTOM_CONTROL'.
-    IF sy-subrc <> 0.
-      RETURN.
+    IF sy-subrc = 0.
+      rv_html = cl_gui_control=>render_html(
+        iv_document       = abap_false
+        iv_container_name = CONV string( ls_custom_control-name )
+        is_sapevent       = zcl_gg_host_renderer=>sapevent_transport(
+          iv_session_id = iv_session_id
+          iv_page_id    = iv_page_id ) ).
+    ELSE.
+      rv_html = cl_gui_control=>render_html(
+        iv_document = abap_false
+        is_sapevent = zcl_gg_host_renderer=>sapevent_transport(
+          iv_session_id = iv_session_id
+          iv_page_id    = iv_page_id ) ).
     ENDIF.
-    rv_html = cl_gui_control=>render_html(
-      iv_document       = abap_false
-      iv_container_name = CONV string( ls_custom_control-name )
-      is_sapevent       = zcl_gg_host_renderer=>sapevent_transport(
-        iv_session_id = iv_session_id
-        iv_page_id    = iv_page_id ) ).
   ENDMETHOD.
 
   METHOD apply_action_receipt.
-    FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
-
-    IF iv_receipt IS INITIAL OR cs_status-status IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-    READ TABLE ct_values ASSIGNING <ls_value>
-      WITH KEY container = `` name = 'GV_STATUS' row = 0.
-    IF sy-subrc <> 0.
-      APPEND VALUE #(
-        type = zif_gg_session_types_v1=>message_type_info
-        text = iv_receipt ) TO ct_messages.
-      cs_status-status = iv_receipt.
-      RETURN.
-    ENDIF.
-    IF <ls_value>-value <> iv_previous_status.
-      RETURN.
-    ENDIF.
-    <ls_value>-value = iv_receipt.
-    cs_status-status = iv_receipt.
+    " Action receipts are host chrome, not application effects. The program
+    " must own any status or message returned after a dispatch.
+    RETURN.
   ENDMETHOD.
 
   METHOD previous_status.

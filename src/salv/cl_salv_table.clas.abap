@@ -352,6 +352,7 @@ CLASS cl_salv_table IMPLEMENTATION.
     FIELD-SYMBOLS <row> TYPE any.
     FIELD-SYMBOLS <component> TYPE any.
     DATA ls_row TYPE ty_html_row.
+    DATA lo_component_type TYPE REF TO cl_abap_typedescr.
 
     IF mr_table IS NOT BOUND.
       RETURN.
@@ -368,7 +369,16 @@ CLASS cl_salv_table IMPLEMENTATION.
         DATA(lv_text) = ``.
         ASSIGN COMPONENT ls_column-columnname OF STRUCTURE <row> TO <component>.
         IF sy-subrc = 0.
-          lv_text = |{ <component> }|.
+          TRY.
+              lo_component_type = cl_abap_typedescr=>describe_by_data( <component> ).
+              IF lo_component_type->kind <> cl_abap_typedescr=>kind_table
+                  AND lo_component_type->kind <> cl_abap_typedescr=>kind_struct
+                  AND lo_component_type->kind <> cl_abap_typedescr=>kind_ref.
+                lv_text = |{ <component> }|.
+              ENDIF.
+            CATCH cx_root.
+              CLEAR lv_text.
+          ENDTRY.
         ELSEIF ls_column-columnname = 'VALUE'.
           lv_text = |{ <row> }|.
         ENDIF.

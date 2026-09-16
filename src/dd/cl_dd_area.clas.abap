@@ -149,6 +149,7 @@ CLASS cl_dd_area IMPLEMENTATION.
     CLEAR table.
     table = NEW cl_dd_table_element( ).
     tablearea = NEW cl_dd_table_area( ).
+    tablearea->column_count = no_of_columns.
     tablearea->parent_area = me.
     lv_start = strlen( html_content ).
     html_content = html_content && |<table class="gg-dd-table" aria-label="{ escape_html( a11y_label ) }" border="{ border }"><tbody>|.
@@ -226,6 +227,9 @@ CLASS cl_dd_area IMPLEMENTATION.
         val = html_content
         off = lv_start ).
       document->html_content = document->html_content && lv_fragment.
+    ENDIF.
+    IF parent_area IS BOUND.
+      parent_area->html_content = parent_area->html_content && lv_fragment.
     ENDIF.
   ENDMETHOD.
 

@@ -4,6 +4,7 @@ CLASS ltcl_gg_workbench_utility DEFINITION FINAL FOR TESTING DURATION SHORT RISK
     METHODS renders_styles FOR TESTING.
     METHODS renders_top FOR TESTING.
     METHODS renders_status_owned_icon_bar FOR TESTING.
+    METHODS routes_back_when_active FOR TESTING.
     METHODS renders_bottom FOR TESTING.
     METHODS renders_bottom_message_types FOR TESTING.
 
@@ -61,6 +62,24 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<svg on' ) ).
   ENDMETHOD.
 
+  METHOD routes_back_when_active.
+    DATA(lv_program_html) = zcl_gg_workbench_utility=>render_top(
+      iv_runtime    = abap_true
+      iv_session_id = `S1`
+      iv_page_id    = `P1`
+      is_status     = VALUE #( active_ucomm = VALUE #( ( `BACK` ) ) ) ).
+    DATA(lv_workbench_html) = zcl_gg_workbench_utility=>render_top(
+      iv_runtime    = abap_true
+      iv_session_id = `S1`
+      iv_page_id    = `P1`
+      is_status     = VALUE #( active_ucomm = VALUE #( ( `NEXT` ) ) ) ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_program_html CS 'value="COMMAND:BACK"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_program_html CS 'aria-label="Back"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_workbench_html CS 'form="wb-command-workbench"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_workbench_html CS 'value="COMMAND:BACK"' ) ).
+  ENDMETHOD.
+
   METHOD renders_top.
     DATA(lv_html) = zcl_gg_workbench_utility=>render_top( ).
     DATA(lv_custom_html) = zcl_gg_workbench_utility=>render_top( iv_title = `<Example & title>` ).
@@ -111,7 +130,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.gg-dynpro-field,.gg-field,.gg-range' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-help-button:not(:disabled)' ) ).
 * F1 posts field help when the focused field has an ABAP name.
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F1"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key==="F1"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'post(field,"gg_action","HELP:"+name)' ) ).
 * F8, Enter, Escape, arrow navigation and modal focus trapping are explicit
 * browser parity hooks rather than browser-default behavior.
@@ -122,6 +141,8 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
 * Feedback set while the page is open replays the entry animation and drops
 * the error colour, so a neutral message is never painted as a failure.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'function announce(text,type)' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'F1: help todo' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'announce((button.getAttribute' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'void feedback.offsetWidth' ) ).
 * Announcing drops whichever colour the previous message wore before it paints
 * its own, so a success never keeps an error's red.

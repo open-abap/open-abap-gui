@@ -614,6 +614,16 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals( act = ls_next-current_page-screen
                                         exp = '0200' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_next-html CS 'data-screen="0200"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_next-html CS 'value="COMMAND:BACK"' ) ).
+
+    DATA(ls_back_command) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_next-session_id
+      page_id    = ls_next-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'BACK' ) ).
+    cl_abap_unit_assert=>assert_true( ls_back_command-valid ).
+    cl_abap_unit_assert=>assert_equals( act = ls_back_command-current_page-screen
+                                        exp = '0000' ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 

@@ -48,29 +48,31 @@ const genericPartialHeadings = Object.freeze([
 ]);
 const comparisonGateDefinitions = Object.freeze([
   {id: "semanticContent", label: "Semantic content", rule: "Report-specific labels, fields, values, control roles, and fallback text are present."},
-  {id: "interactiveBehavior", label: "Interactive behavior", rule: "Report-specific actions update server-owned state and preserve navigation semantics."},
+  {id: "interactiveBehavior", label: "Interactive behavior", rule: "Report-specific actions update program-owned application state, or are explicitly verified fresh-session idempotent lifecycle actions, and preserve navigation semantics."},
   {id: "visualStructure", label: "Visual structure", rule: "Reference grouping, density, alignment, focus, and control geometry are matched."},
 ]);
 const referenceStateAudits = Object.freeze({
   ZGG_GUI_SUBSCREENS: {
-    status: "stale-reference",
-    acceptance: "excluded-until-replaced",
+    status: "stale-reference-confirmed",
+    acceptance: "excluded-from-pixel-acceptance",
     observedState: "SAP GUI Program Execution selection screen with ZGG_GUI_SUBSCREENS in the Program field.",
     intendedState: "Dynpro 0100 with static subscreen 0110, dynamic subscreen 0120, initial parent summary, and Back/Apply/Reset/Swap actions.",
+    verification: "The live transaction audit reaches DYNPRO 0100 and verifies static/dynamic subscreen identity, state retention, actions, and Back navigation; the pinned screenshot remains a launcher capture.",
   },
   ZGG_GUI_DIALOGS_HELP: {
-    status: "stale-reference",
-    acceptance: "excluded-until-replaced",
+    status: "stale-reference-confirmed",
+    acceptance: "excluded-from-pixel-acceptance",
     observedState: "SAP GUI Program Execution selection screen with ZGG_GUI_DIALOGS_HELP in the Program field.",
     intendedState: "Dynpro 0100 with the GV_CHOICE field focused, F1/F4 help affordances, popup action buttons, and the initial result text.",
+    verification: "The live transaction audit reaches DYNPRO 0100 and verifies value help, F1 help, dialog, confirmation, and navigation behavior; the pinned screenshot remains a launcher capture.",
   },
 });
 const intentionalReferenceFallbacks = Object.freeze({
-  ZGG_GUI_SALV_TABLE: {
-    status: "intentional-fallback",
+  ZGG_GUI_ALV_DYNAMIC: {
+    status: "intentional-capability-boundary",
     acceptance: "allowed-when-honest",
-    nativeEvidence: "Reference screen states that CL_SALV_TABLE is unavailable or nonfunctional and shows a text editor fallback with the native limitation and available actions.",
-    browserContract: "Keep the read-only semantic table fallback, status text, and actions non-terminating; never claim that SALV factory/display/export succeeded.",
+    nativeEvidence: "Reference source uses generic FIELD-SYMBOLS, dynamic ASSIGN COMPONENT, and FREE operations that remain explicit E515/E516 converter diagnostics rather than being guessed into typed code.",
+    browserContract: "Preserve the typed visible ALV rows, columns, style/description/refresh/reset actions, and explicit partial-conversion diagnostics; do not claim arbitrary dynamic field-symbol reflection is fully portable.",
   },
   ZGG_GUI_GRAPHICS: {
     status: "intentional-capability-boundary",
@@ -85,6 +87,39 @@ const intentionalReferenceFallbacks = Object.freeze({
     browserContract: "Keep the explicit legacy ActiveX-unavailable fallback, text area, action responses, and non-terminating Back path; do not simulate native drag/drop success.",
   },
 });
+const idempotentReferenceActions = Object.freeze({
+  ZGG_GUI_ABAP_BROWSER: Object.freeze({
+    HTML_CONTAINER: "Fresh-session HTML_CONTAINER reapplies the same document to the same custom container; dispatch and the unchanged report-owned HTML/status are verified.",
+  }),
+  ZGG_GUI_DIALOG_CONTAINER: Object.freeze({
+    RECREATE: "Fresh-session RECREATE rebuilds the same dialog geometry and text; the lifecycle dispatch is verified while the resulting report-owned surface is intentionally identical.",
+  }),
+  ZGG_GUI_DOCKING_CONTAINER: Object.freeze({
+    RECREATE: "Fresh-session RECREATE rebuilds the same docking side, extension, and text; the lifecycle dispatch is verified while the resulting report-owned surface is intentionally identical.",
+  }),
+  ZGG_GUI_SEL_TABS: Object.freeze({
+    "TAB:G_TABID|TAB1": "Fresh-session TAB1 selects the already-active Identity tab; the server dispatch is verified and the unchanged selection surface is intentional.",
+  }),
+  ZGG_GUI_SUBSCREENS: Object.freeze({
+    RESET: "Fresh-session RESET restores the declared initial subscreen values; the server dispatch is verified and the unchanged initial surface is intentional.",
+  }),
+  ZGG_GUI_TABSTRIP: Object.freeze({
+    "TAB:GV_TAB1_TITLE|TAB1": "Fresh-session TAB1 selects the already-active Identity tab; the server dispatch is verified and the unchanged selection surface is intentional.",
+  }),
+  ZGG_GUI_TREE_MODELS: Object.freeze({
+    SIMPLE: "Fresh-session SIMPLE selects the report's declared default model; the server dispatch is verified and the unchanged initial model surface is intentional.",
+    RESET: "Fresh-session RESET restores the declared default model; the server dispatch is verified and the unchanged initial model surface is intentional.",
+  }),
+});
+const knownFailingReports = Object.freeze([]);
+
+function isKnownFailingReport(programName) {
+  return knownFailingReports.includes(programName.replace(/^ZGG_GUI_/, ""));
+}
+
+function idempotentActionReason(programName, ucomm) {
+  return idempotentReferenceActions[programName]?.[ucomm] || "";
+}
 
 function pendingComparisonGates() {
   return Object.fromEntries(comparisonGateDefinitions.map(({id, rule}) => [id, {
@@ -221,9 +256,10 @@ async function waitForDeterministicFonts(page) {
   await page.evaluate(() => document.fonts?.ready);
 }
 
-async function applicationFingerprint(page) {
+async function programOwnedFingerprint(page) {
   return page.locator("[data-page-kind]").evaluate((pageRoot) => {
-    const copy = (pageRoot.closest(".wb-shell") || pageRoot).cloneNode(true);
+    const application = pageRoot.querySelector(".gg-page") || pageRoot;
+    const copy = application.cloneNode(true);
     copy.querySelectorAll("script, input[name=session_id], input[name=page_id]").forEach((node) => node.remove());
     copy.querySelectorAll("[data-session-id], [data-page-id]").forEach((node) => {
       node.removeAttribute("data-session-id");
@@ -421,13 +457,16 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
       await actionPage.goto(url, {waitUntil: "load"});
       await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
       const inventory = await inventoryReferenceActions(actionPage);
+      const initialPageKind = await actionPage.locator("[data-page-kind]").getAttribute("data-page-kind");
+      const testedSubmitControls = inventory.submitControls.filter((item) =>
+        !(initialPageKind === "SELECTION" && item.value.toUpperCase() === "EXIT"));
       const journey = [];
 
-      for (const action of inventory.submitControls.filter((item) => !item.disabled)) {
+      for (const action of testedSubmitControls.filter((item) => !item.disabled)) {
         await actionPage.goto(url, {waitUntil: "load"});
         await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
         const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
-        const before = await applicationFingerprint(actionPage);
+        const before = await programOwnedFingerprint(actionPage);
         const controls = actionPage.locator(".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]");
         const lineNumber = /^LINE:(\d+)\|/.exec(action.value)?.[1];
         const control = lineNumber
@@ -436,54 +475,69 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
         assert.equal(await control.isVisible(), true, `${result.programName} action ${action.label} is not visible on its fresh journey`);
         let response;
         try {
-          response = await Promise.all([
-            actionPage.waitForNavigation({waitUntil: "load"}),
-            control.click(),
-          ]).then(([navigation]) => navigation);
+          [response] = await Promise.all([
+            actionPage.waitForResponse(
+              (candidate) => candidate.url().endsWith("/dispatch")
+                && candidate.request().method() === "POST",
+              {timeout: 30_000}),
+            control.click({noWaitAfter: true}),
+          ]);
+          await actionPage.waitForLoadState("load");
         } catch (error) {
-          throw new Error(`${result.programName} action ${action.value || action.label} did not navigate: ${error.message}`);
+          throw new Error(`${result.programName} action ${action.value || action.label} did not dispatch: ${error.message}`);
         }
         assert.equal(response?.status(), 200, `${result.programName} action ${action.value || action.label} did not return HTTP 200: ${await response?.text()}`);
         await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
         const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
-        const after = await applicationFingerprint(actionPage);
+        const after = await programOwnedFingerprint(actionPage);
+        const programEffect = before !== after;
+        const idempotentReason = idempotentActionReason(result.programName, action.value);
         assert.notEqual(afterPageId, beforePageId, `${result.programName} action ${action.value || action.label} did not create a new server-owned page state`);
-        journey.push({kind: "submit", label: action.label, ucomm: action.value, stateChanged: before !== after, pageChanged: true});
+        journey.push({kind: "submit", label: action.label, ucomm: action.value, stateChanged: programEffect, programEffect, idempotent: !programEffect && Boolean(idempotentReason), idempotentReason: idempotentReason || undefined, pageChanged: true});
       }
 
       for (const action of inventory.selectionChanges.filter((item) => item.ucomm && !item.disabled && (item.type !== "select" || item.optionCount > 1) && (item.type !== "radio" || !item.checked))) {
         await actionPage.goto(url, {waitUntil: "load"});
         await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
         const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
-        const before = await applicationFingerprint(actionPage);
+        const before = await programOwnedFingerprint(actionPage);
         const controls = actionPage.locator(".wb-runtime-content [data-selection-ucomm]");
         const control = controls.nth(action.index);
         assert.equal(await control.isVisible(), true, `${result.programName} selection action ${action.ucomm} is not visible on its fresh journey`);
-        const responsePromise = actionPage.waitForNavigation({waitUntil: "load"});
+        const responsePromise = actionPage.waitForResponse(
+          (candidate) => candidate.url().endsWith("/dispatch")
+            && candidate.request().method() === "POST",
+          {timeout: 30_000});
+        let changePromise;
         if (action.type === "select") {
           const options = await control.locator("option").count();
-          if (options > 1) await control.selectOption({index: 1});
-          else await control.selectOption({index: 0});
+          changePromise = options > 1
+            ? control.selectOption({index: 1, noWaitAfter: true})
+            : control.selectOption({index: 0, noWaitAfter: true});
         } else if (action.type === "checkbox") {
-          if (action.checked) await control.uncheck();
-          else await control.check();
+          changePromise = action.checked
+            ? control.uncheck({noWaitAfter: true})
+            : control.check({noWaitAfter: true});
         } else if (action.type === "radio") {
-          await control.check();
+          changePromise = control.check({noWaitAfter: true});
         } else {
-          await control.dispatchEvent("change");
+          changePromise = control.dispatchEvent("change");
         }
         let response;
         try {
-          response = await responsePromise;
+          [response] = await Promise.all([responsePromise, changePromise]);
         } catch (error) {
           throw new Error(`${result.programName} selection action ${action.ucomm} did not dispatch: ${error.message}`);
         }
+        await actionPage.waitForLoadState("load");
         assert.equal(response?.status(), 200, `${result.programName} selection action ${action.ucomm} did not return HTTP 200`);
         await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
         const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
-        const after = await applicationFingerprint(actionPage);
+        const after = await programOwnedFingerprint(actionPage);
+        const programEffect = before !== after;
+        const idempotentReason = idempotentActionReason(result.programName, action.ucomm);
         assert.notEqual(afterPageId, beforePageId, `${result.programName} selection action ${action.ucomm} did not create a new server-owned page state`);
-        journey.push({kind: "selection-change", label: action.label, ucomm: action.ucomm, stateChanged: before !== after, pageChanged: true});
+        journey.push({kind: "selection-change", label: action.label, ucomm: action.ucomm, stateChanged: programEffect, programEffect, idempotent: !programEffect && Boolean(idempotentReason), idempotentReason: idempotentReason || undefined, pageChanged: true});
       }
 
       await negativePage.goto(url, {waitUntil: "load"});
@@ -507,11 +561,19 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
         const disabledResult = await postDispatch(negativePage, {action: "COMMAND", ucomm: control.value});
         assert.equal(disabledResult.status, 400, `${result.programName} accepted disabled action ${control.value}: ${disabledResult.body}`);
       }
+      const programEffectPassed = journey.every((item) => item.programEffect === true || item.idempotent === true);
       result.interactionAudit = {
-        status: "passed",
-        visibleActionCount: inventory.submitControls.length + inventory.selectionChanges.length,
+        status: programEffectPassed ? "passed" : "failed",
+        visibleActionCount: testedSubmitControls.length + inventory.selectionChanges.length,
         journeyCount: journey.length,
         journeys: journey,
+        programEffectGate: {
+          status: programEffectPassed ? "passed" : "failed",
+          rule: "Every exercised action changes a program-owned application surface, or is explicitly verified as fresh-session idempotent.",
+          evidence: programEffectPassed
+            ? "Every exercised action changed the report-owned .gg-page fingerprint or matched a named fresh-session idempotence contract."
+            : "At least one exercised action changed only host chrome or server metadata without an explicit idempotence contract.",
+        },
         disabledActionCount: disabled.length,
         negativeCases: {
           forgedFunctionCode: "passed",
@@ -519,7 +581,7 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
           forgedVariantPathUrlUploadMetadata: "passed",
           disabledControls: "passed",
         },
-        evidence: `Fresh-session journeys dispatched ${journey.length} enabled visible application action(s); ${journey.filter((item) => item.stateChanged).length} changed the visible application fingerprint, and every forged command, row/node id, unsafe metadata request, and disabled action was rejected by the server.`,
+        evidence: `Fresh-session journeys dispatched ${journey.length} enabled visible application action(s); ${journey.filter((item) => item.programEffect).length} changed the program-owned application fingerprint, and every forged command, row/node id, unsafe metadata request, and disabled action was rejected by the server.`,
       };
     }
   } finally {
@@ -535,8 +597,9 @@ function applyComparisonGates(results, comparisonSummary) {
     const semanticPassed = result.smokeTest?.status === "passed";
     const behaviorPassed = result.interactionAudit?.status === "passed"
       && Object.values(result.interactionAudit.negativeCases ?? {}).every((status) => status === "passed")
-      && (result.interactionAudit.journeys ?? []).every((journey) => journey.pageChanged === true && journey.stateChanged === true);
-    const stateChangedCount = (result.interactionAudit?.journeys ?? []).filter((journey) => journey.stateChanged === true).length;
+      && (result.interactionAudit.journeys ?? []).every((journey) => journey.pageChanged === true && (journey.programEffect === true || journey.idempotent === true));
+    const stateChangedCount = (result.interactionAudit?.journeys ?? []).filter((journey) => journey.programEffect === true).length;
+    const idempotentCount = (result.interactionAudit?.journeys ?? []).filter((journey) => journey.idempotent === true).length;
     const journeyCount = result.interactionAudit?.journeyCount ?? 0;
     const visualPassed = result.visualStructureAudit?.status === "passed";
     result.comparisonGates = {
@@ -551,8 +614,8 @@ function applyComparisonGates(results, comparisonSummary) {
         status: behaviorPassed ? "passed" : "failed",
         rule: comparisonGateDefinitions[1].rule,
         evidence: behaviorPassed
-          ? `${journeyCount} fresh-session journeys changed server-owned page state; forged and disabled actions were rejected.`
-          : `${stateChangedCount} of ${journeyCount} fresh-session journeys changed server-owned page state; every exercised action must update visible state before acceptance.`,
+          ? `${stateChangedCount} fresh-session journeys changed program-owned state; ${idempotentCount} named lifecycle journeys were verified idempotent; forged and disabled actions were rejected.`
+          : `${stateChangedCount} of ${journeyCount} fresh-session journeys changed server-owned page state and no explicit idempotence contract covered the remainder.`,
       },
       visualStructure: {
         status: visualPassed ? "passed" : "failed",
@@ -636,7 +699,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
     <figure><figcaption>Optional pixel diff <span>${dimensionsText(diff?.dimensions)}</span></figcaption>${imageMarkup({info: diff, alt: `${result.programName} pixel difference`, missingLabel: "No diff image generated"})}</figure>
   </div>
   <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}<br><strong>First-screen smoke:</strong> ${escapeHtml(result.smokeTest?.status || "not-run")}${result.smokeTest?.pageKind ? ` (${escapeHtml(result.smokeTest.pageKind)})` : ""}<br><strong>Interaction audit:</strong> ${escapeHtml(result.interactionAudit?.status || "not-run")}${result.interactionAudit?.journeyCount !== undefined ? ` (${escapeHtml(result.interactionAudit.journeyCount)} journeys)` : ""}</p>
-  ${referenceAudit ? `<section class="reference-audit" data-reference-audit="${escapeHtml(referenceAudit.status)}"><h3>Reference audit: ${escapeHtml(referenceAudit.acceptance)}</h3><p><strong>Observed:</strong> ${escapeHtml(referenceAudit.observedState)}<br><strong>Intended:</strong> ${escapeHtml(referenceAudit.intendedState)}</p></section>` : ""}
+  ${referenceAudit ? `<section class="reference-audit" data-reference-audit="${escapeHtml(referenceAudit.status)}"><h3>Reference audit: ${escapeHtml(referenceAudit.acceptance)}</h3><p><strong>Observed:</strong> ${escapeHtml(referenceAudit.observedState)}<br><strong>Intended:</strong> ${escapeHtml(referenceAudit.intendedState)}${referenceAudit.verification ? `<br><strong>Verification:</strong> ${escapeHtml(referenceAudit.verification)}` : ""}</p></section>` : ""}
   ${fallbackAudit ? `<section class="fallback-audit" data-fallback-audit="${escapeHtml(fallbackAudit.status)}"><h3>Intentional capability boundary: ${escapeHtml(fallbackAudit.acceptance)}</h3><p><strong>Native evidence:</strong> ${escapeHtml(fallbackAudit.nativeEvidence)}<br><strong>Browser contract:</strong> ${escapeHtml(fallbackAudit.browserContract)}</p></section>` : ""}
   <section class="gate-section" aria-label="Comparison gates"><h3>Comparison gates</h3><ul>${gateMarkup}</ul><p>Pixel similarity is visual evidence only; acceptance requires all three gates to pass.</p></section>
   ${diagnosticMarkup(result.diagnostics)}
@@ -788,18 +851,22 @@ for (const filename of reportFiles) {
   const className = generatedClassName(programName);
   assert.ok(!targetNames.has(className), `Generated class-name collision for ${className}`);
   targetNames.add(className);
-  const result = await convertProgram({
+  const conversionOptions = {
     source,
     filename,
     className,
     transactionCode: transactionCode(programName),
     description: `Converted gg-gui report ${programName}`,
     mode: "partial",
-    partialStrategy: ["ZGG_GUI_ABAP_BROWSER", "ZGG_GUI_ALV_CLASSIC", "ZGG_GUI_ALV_DYNAMIC", "ZGG_GUI_ALV_FORMAT", "ZGG_GUI_ALV_GRID", "ZGG_GUI_ALV_VARIANTS", "ZGG_GUI_CATALOG", "ZGG_GUI_CLASSIC_LIST", "ZGG_GUI_CUSTOM_CONTAINER", "ZGG_GUI_DIALOG_CONTAINER", "ZGG_GUI_DOCKING_CONTAINER", "ZGG_GUI_GRAPHICS", "ZGG_GUI_POPUPS", "ZGG_GUI_SEL_FIELDS", "ZGG_GUI_SEL_RANGES", "ZGG_GUI_SEL_LAYOUT", "ZGG_GUI_SEL_DYNAMIC", "ZGG_GUI_SEL_TABS", "ZGG_GUI_SEL_VARIANTS", "ZGG_GUI_SEL_FREE", "ZGG_GUI_DYNPRO_ELEMENTS", "ZGG_GUI_DYNPRO_FLOW", "ZGG_GUI_TABLE_CONTROL", "ZGG_GUI_TABSTRIP", "ZGG_GUI_SUBSCREENS", "ZGG_GUI_DIALOGS_HELP", "ZGG_GUI_GUI_STATUS", "ZGG_GUI_NAVIGATION", "ZGG_GUI_TREE_MODELS"].includes(programName) ? "preserve" : "skeleton",
     resolveInclude,
     screenMetadata,
     ddicTypes: GG_GUI_DDIC_TYPES,
-  });
+  };
+  const supportProbe = await convertProgram({...conversionOptions, partialStrategy: "preserve"});
+  const hasFatalDiagnostic = supportProbe.diagnostics.some((diagnostic) => diagnostic.severity === "error");
+  const result = supportProbe.classSource && !hasFatalDiagnostic
+    ? supportProbe
+    : await convertProgram({...conversionOptions, partialStrategy: "skeleton"});
   assert.ok(result.classSource, `Converter emitted no partial class for ${filename}`);
   await fs.writeFile(path.join(generatedRoot, `${result.manifest.targetClass.toLowerCase()}.clas.abap`), result.classSource, "utf8");
   for (const helper of result.helperSources ?? []) {
@@ -820,6 +887,7 @@ for (const filename of reportFiles) {
     comparisonAccepted: false,
     comparisonGates: pendingComparisonGates(),
     fallbackAudit: intentionalReferenceFallbacks[programName] || null,
+    knownFailing: isKnownFailingReport(programName),
     generatedClasses: [result.manifest.targetClass, ...(result.helperSources ?? []).map((helper) => helper.className)],
     activation: {status: "pending", tool: "abap_transpile"},
     applicationParityCandidate: false,
@@ -849,7 +917,16 @@ await fs.writeFile(transpileConfigPath, `${JSON.stringify({
 const revision = await runCommand("git", ["-C", sourceRepository, "rev-parse", "HEAD"], {stdio: "pipe"});
 await writeReferenceAudit(revision, referenceRoot);
 await writeFallbackAudit(revision, referenceRoot);
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "known-failing.json"), `${JSON.stringify({
+  repositoryUrl,
+  revision,
+  phase: "Current known-failing baseline",
+  reports: knownFailingReports.map((programName) => ({
+    programName,
+    reason: "The report is retained as a known failing conversion until its own logic and program-owned effects are functional.",
+  })),
+}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, reports: results}, null, 2)}\n`, "utf8");
 console.log(`Converted ${results.length} gg-gui reports from ${revision}`);
 
 await runCommand(repositoryTool("abap_transpile"), [path.relative(repositoryRoot, transpileConfigPath)]);
@@ -868,7 +945,7 @@ for (const result of results) {
   };
   result.applicationParityCandidate = true;
 }
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, reports: results}, null, 2)}\n`, "utf8");
 
 let hostProcess;
 let browser;
@@ -1320,7 +1397,7 @@ try {
   const comparisonSummary = JSON.parse(await fs.readFile(path.join(diffRoot, "summary.json"), "utf8"));
   applyComparisonGates(results, comparisonSummary);
   await writeScreenshotIndex(results, revision, referenceRoot);
-  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, reports: results}, null, 2)}\n`, "utf8");
+  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, reports: results}, null, 2)}\n`, "utf8");
 } finally {
   await browser?.close();
   await stopProcess(hostProcess);

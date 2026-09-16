@@ -246,6 +246,14 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-list .gg-color-group\{font-weight:600;border-top:1px solid #9eb5c8;\}|.
     rv_html = rv_html && |.gg-page\{display:flex;flex-direction:column;gap:8px;max-width:100%;\}|.
     rv_html = rv_html && |.gg-status-region,.gg-message-region,.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-controls-standalone\{pointer-events:none;\}|.
+    rv_html = rv_html && |.gg-controls-standalone>.gg-control\{pointer-events:none;\}|.
+    rv_html = rv_html && |.gg-controls-standalone>.gg-control[title="HTML viewer"]\{pointer-events:auto;\}|.
+    rv_html = rv_html && |.gg-controls-standalone>.gg-control input,.gg-controls-standalone>.gg-control select,.gg-controls-standalone>.gg-control textarea,.gg-controls-standalone>.gg-control button,.gg-controls-standalone>.gg-control a,.gg-controls-standalone>.gg-control iframe,.gg-controls-standalone>.gg-control [role=button],.gg-controls-standalone>.gg-control [tabindex]\{pointer-events:auto;\}|.
+    rv_html = rv_html && |.gg-controls-standalone .gg-external\{position:relative;z-index:1;pointer-events:auto;\}|.
+    rv_html = rv_html && |.gg-controls-standalone .gg-control-toolbar\{z-index:2;\}|.
+    rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless\{z-index:2;pointer-events:none;\}|.
+    rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless *\{pointer-events:auto;\}|.
     rv_html = rv_html && |.gg-message-region,.gg-instruction-region\{display:flex;flex-direction:column;gap:4px;\}|.
     rv_html = rv_html && |.gg-action-row\{display:flex;align-items:center;gap:8px;min-height:28px;padding:4px 0;border-top:1px solid var(--gg-border);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-state-focused:focus,.gg-state-focused:focus-visible\{outline:2px solid #2668a3;outline-offset:2px;\}|.

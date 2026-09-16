@@ -45,6 +45,17 @@
       <RPY_DYFATC>
        <CONT_TYPE>SCREEN</CONT_TYPE>
        <CONT_NAME>SCREEN</CONT_NAME>
+       <TYPE>TEXT</TYPE>
+       <NAME>LABEL_EXPORT</NAME>
+       <TEXT>Export_XML____</TEXT>
+       <LINE>003</LINE>
+       <COLUMN>004</COLUMN>
+       <LENGTH>014</LENGTH>
+       <VISLENGTH>014</VISLENGTH>
+      </RPY_DYFATC>
+      <RPY_DYFATC>
+       <CONT_TYPE>SCREEN</CONT_TYPE>
+       <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>GV_INPUT</NAME>
        <TEXT>__________</TEXT>
@@ -125,6 +136,12 @@
      <KEY>GV_INPUT</KEY>
      <ENTRY>Input value</ENTRY>
      <LENGTH>011</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>UNDERSCORE</KEY>
+     <ENTRY>File_name</ENTRY>
+     <LENGTH>009</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

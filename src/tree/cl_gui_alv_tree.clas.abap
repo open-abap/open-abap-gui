@@ -427,10 +427,17 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
       WITH KEY node_key = CONV string( i_node_key ).
     IF sy-subrc = 0.
+      e_node_text = ls_node-text.
+      IF ls_node-data_row IS BOUND.
+        ASSIGN ls_node-data_row->* TO <outtab_line>.
+        IF sy-subrc = 0.
+          e_outtab_line = <outtab_line>.
+          RETURN.
+        ENDIF.
+      ENDIF.
       DATA(lv_key) = CONV string( i_node_key ).
       REPLACE FIRST OCCURRENCE OF 'TREE-' IN lv_key WITH ``.
       lv_index = CONV i( lv_key ).
-      e_node_text = ls_node-text.
     ENDIF.
     READ TABLE <outtab> ASSIGNING <outtab_line> INDEX lv_index.
     IF sy-subrc = 0.

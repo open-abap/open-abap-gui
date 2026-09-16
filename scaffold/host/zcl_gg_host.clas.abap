@@ -434,16 +434,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD apply_action_receipt.
-    IF iv_receipt IS INITIAL.
-      RETURN.
-    ENDIF.
-    IF cs_status-status IS INITIAL.
-      cs_status-status = iv_receipt.
-      RETURN.
-    ENDIF.
-    APPEND VALUE #(
-      type = zif_gg_session_types_v1=>message_type_info
-      text = iv_receipt ) TO ct_messages.
+    " Action receipts are host chrome, not application effects. The report
+    " must own any status or message returned after a dispatch.
+    RETURN.
   ENDMETHOD.
 
   METHOD run.

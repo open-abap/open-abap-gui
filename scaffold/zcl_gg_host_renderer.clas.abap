@@ -1082,6 +1082,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       it_states        = it_states
       it_messages      = it_messages
       iv_controls_html = iv_controls_html ).
+    IF iv_controls_html IS NOT INITIAL
+        AND NOT line_exists( it_controls[ kind = 'CUSTOM_CONTROL' ] ).
+      lv_body = lv_body && iv_controls_html.
+    ENDIF.
     IF io_menu IS BOUND AND iv_menu_field IS NOT INITIAL.
       lv_context_menu = render_context_menu(
         io_menu  = io_menu

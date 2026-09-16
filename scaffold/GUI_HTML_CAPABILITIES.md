@@ -25,9 +25,10 @@ activates a function code through its CUA status, so
 `COMMAND:<function code>`, and the program receives it like any other user
 command. The runtime repeats the active/excluded check server-side before it
 dispatches a callback. `active_pf_keys` similarly declares the AT PFnn events
-that the runtime accepts; undeclared PF keys are rejected. Back is the one
-command the program does not own: it is always enabled and leaves the program
-for the workbench.
+that the runtime accepts; undeclared PF keys are rejected. Back is always
+available as the shell escape hatch; when the running program activates BACK
+in its CUA status, the same command is dispatched to that program first,
+otherwise it leaves the program for the workbench.
 
 The application icon bar is owned solely by the running report or dynpro's
 status. Each `ty_gui_status-icon_bar` entry supplies a non-empty function code,
@@ -84,7 +85,7 @@ class name is never passed to dynamic construction.
 | `cl_gui_alv_tree` | hierarchy nodes, typed field catalog rows, expanded/selected state | accessible hierarchy plus typed semantic columns and totals | lazy child loading, add/collapse/expand/select, calculation and toolbar actions | hierarchy remains usable when the native tree widget is unavailable |
 | Classic ALV function modules | field-catalog merge, grid/list display, header/item display, blocks, popup/events, variants, commentary | semantic SALV/table output with explicit classic wrappers and grouped block sections | metadata, event names, safe default variant, popup selection, and callback state are server-owned | renderer failure remains an explicit capability message |
 | Tree controls | node key, parent, text, expanded, selected, hidden | accessible `ul`/`li` tree with parent metadata | selection/expansion state is retained | flat ordered tree when a native tree widget is unavailable |
-| SALV table | row count, header | semantic table section via `get_html` | model methods remain safe no-ops | row-count table when generic row reflection is unavailable |
+| SALV table | row count, header, columns, functions, formatting, rows | semantic table section via `get_html` | model methods, toolbar actions, and callbacks retain server-owned state | row-count table when generic row reflection is unavailable |
 | SALV tree | hierarchy nodes, typed item cells, selection | full-width semantic tree table with links, checkboxes, buttons, and dropdowns | link/double-click/checkbox/key events plus add/expand/collapse actions | API failure is surfaced as an explicit semantic fallback |
 | Graphics/chart | payload, control identity, capability state | labelled figure with semantic data table and optional color input | data/render calls and color updates are server-owned | native bar/chart-engine/GFW controls are explicitly unavailable; no raw untrusted SVG |
 | browser/progress/timer/frontend services | last requested content or lifecycle intent | host-owned state only | explicit capability result and user-activated action | no desktop operation is reported as successful without browser evidence |

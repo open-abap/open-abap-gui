@@ -80,7 +80,7 @@ CLASS cl_salv_columns IMPLEMENTATION.
       RETURN.
     ENDIF.
     APPEND VALUE #( columnname = columnname
-                    column     = NEW cl_salv_column( columnname ) ) TO mt_columns.
+                    column     = NEW cl_salv_column_list( columnname = columnname ) ) TO mt_columns.
   ENDMETHOD.
 
 ENDCLASS.
