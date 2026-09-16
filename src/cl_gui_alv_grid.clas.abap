@@ -558,6 +558,16 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
       RETURNING
         VALUE(result) TYPE string.
 
+    "! Turns one output field of one row into the cell the renderer reads. The
+    "! field catalogue decides how the value is formatted and which of the cell
+    "! flags are set; IV_VALUE is the raw value as it was read from the row.
+    METHODS build_cell
+      IMPORTING
+        is_fieldcat   TYPE lvc_s_fcat
+        iv_value      TYPE string
+      RETURNING
+        VALUE(result) TYPE ty_html_cell.
+
     METHODS apply_criteria.
 
     METHODS row_matches
@@ -869,41 +879,19 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         result = abap_false.
         RETURN.
       ENDIF.
-      DATA(lv_value) = ls_cell-text.
       DATA(lv_low) = CONV string( ls_filter-low ).
       DATA(lv_high) = CONV string( ls_filter-high ).
       SHIFT lv_low RIGHT DELETING TRAILING space.
       SHIFT lv_low LEFT DELETING LEADING space.
       SHIFT lv_high RIGHT DELETING TRAILING space.
       SHIFT lv_high LEFT DELETING LEADING space.
-      DATA(lv_match) = abap_false.
-      CASE to_upper( CONV string( ls_filter-option ) ).
-        WHEN 'EQ'.
-          lv_match = xsdbool( lv_value = lv_low ).
-        WHEN 'NE'.
-          lv_match = xsdbool( lv_value <> lv_low ).
-        WHEN 'BT'.
-          lv_match = xsdbool( lv_value >= lv_low AND lv_value <= lv_high ).
-        WHEN 'NB'.
-          lv_match = xsdbool( lv_value < lv_low OR lv_value > lv_high ).
-        WHEN 'GE'.
-          lv_match = xsdbool( lv_value >= lv_low ).
-        WHEN 'GT'.
-          lv_match = xsdbool( lv_value > lv_low ).
-        WHEN 'LE'.
-          lv_match = xsdbool( lv_value <= lv_low ).
-        WHEN 'LT'.
-          lv_match = xsdbool( lv_value < lv_low ).
-        WHEN 'CP'.
-          lv_match = xsdbool( lv_value CP lv_low ).
-        WHEN 'NP'.
-          lv_match = xsdbool( lv_value NP lv_low ).
-        WHEN OTHERS.
-          lv_match = xsdbool( lv_value = lv_low ).
-      ENDCASE.
-      IF ls_filter-sign = 'E'.
-        lv_match = xsdbool( lv_match = abap_false ).
-      ENDIF.
+      DATA(lv_match) = cl_gui_control=>compare_option(
+        iv_value         = ls_cell-text
+        iv_option        = CONV string( ls_filter-option )
+        iv_low           = lv_low
+        iv_high          = lv_high
+        iv_sign          = CONV string( ls_filter-sign )
+        iv_unknown_as_eq = abap_true ).
       IF lv_match = abap_false.
         result = abap_false.
         RETURN.
@@ -972,10 +960,38 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     ENDDO.
   ENDMETHOD.
 
+  METHOD build_cell.
+    result = VALUE #(
+      fieldname  = is_fieldcat-fieldname
+      text       = cl_gui_control=>format_external_value(
+                     iv_value = iv_value
+                     iv_type  = CONV string( is_fieldcat-inttype ) )
+      type_class = COND string(
+        WHEN is_fieldcat-inttype = 'I'
+          OR is_fieldcat-inttype = 'P'
+          OR is_fieldcat-inttype = 'N'
+          OR is_fieldcat-inttype = 'F'
+          THEN `gg-type-number`
+        WHEN is_fieldcat-inttype = 'D' THEN `gg-type-date`
+        WHEN is_fieldcat-inttype = 'T' THEN `gg-type-time`
+        ELSE `gg-type-text` )
+      editable   = xsdbool( is_fieldcat-edit = 'X' )
+      checkbox   = xsdbool( is_fieldcat-checkbox = 'X' )
+      icon       = xsdbool( is_fieldcat-icon = 'X' )
+      symbol     = xsdbool( is_fieldcat-symbol = 'X' )
+      emphasize  = CONV string( is_fieldcat-emphasize )
+      f4         = xsdbool( is_fieldcat-f4availabl = 'X' )
+      dropdown   = is_fieldcat-drdn_hndl
+      total      = xsdbool( is_fieldcat-do_sum = 'X' )
+      subtotal   = xsdbool( line_exists( mt_sort[ fieldname = is_fieldcat-fieldname subtot = 'X' ] ) )
+      hotspot    = xsdbool( is_fieldcat-hotspot = 'X' ) ).
+  ENDMETHOD.
+
   METHOD set_table_for_first_display.
     FIELD-SYMBOLS <row> TYPE any.
     FIELD-SYMBOLS <component> TYPE any.
     DATA ls_row TYPE ty_html_row.
+    DATA ls_cell TYPE ty_html_cell.
     DATA ls_fieldcat TYPE lvc_s_fcat.
     DATA lv_has_component TYPE abap_bool.
 
@@ -1004,62 +1020,21 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
             ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO <component>.
             IF sy-subrc = 0.
-              DATA(lv_cell_raw) = |{ <component> }|.
-              DATA(lv_cell_text) = cl_gui_control=>format_external_value(
-                iv_value = lv_cell_raw
-                iv_type  = CONV string( ls_fieldcat-inttype ) ).
-              APPEND VALUE #( fieldname  = ls_fieldcat-fieldname
-                              text       = lv_cell_text
-                              type_class = COND string(
-                                WHEN ls_fieldcat-inttype = 'I'
-                                  OR ls_fieldcat-inttype = 'P'
-                                  OR ls_fieldcat-inttype = 'N'
-                                  OR ls_fieldcat-inttype = 'F'
-                                  THEN `gg-type-number`
-                                WHEN ls_fieldcat-inttype = 'D' THEN `gg-type-date`
-                                WHEN ls_fieldcat-inttype = 'T' THEN `gg-type-time`
-                                ELSE `gg-type-text` )
-                              editable   = xsdbool( ls_fieldcat-edit = 'X' )
-                              checkbox   = xsdbool( ls_fieldcat-checkbox = 'X' )
-                              icon       = xsdbool( ls_fieldcat-icon = 'X' )
-                              symbol     = xsdbool( ls_fieldcat-symbol = 'X' )
-                              emphasize  = CONV string( ls_fieldcat-emphasize )
-                              f4         = xsdbool( ls_fieldcat-f4availabl = 'X' )
-                              dropdown   = ls_fieldcat-drdn_hndl
-                              total      = xsdbool( ls_fieldcat-do_sum = 'X' )
-                              subtotal   = xsdbool( line_exists( mt_sort[ fieldname = ls_fieldcat-fieldname subtot = 'X' ] ) )
-                              hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
+              ls_cell = build_cell( is_fieldcat = ls_fieldcat
+                                    iv_value    = |{ <component> }| ).
+              APPEND ls_cell TO ls_row-cells.
               lv_has_component = abap_true.
             ENDIF.
           ENDIF.
         ENDLOOP.
         IF lv_has_component = abap_false.
+* No component of the row matched the catalogue, so the row is rendered as a
+* single cell described by the first field.
           READ TABLE mt_fieldcatalog INTO ls_fieldcat INDEX 1.
           IF sy-subrc = 0.
-            DATA(lv_row_text) = cl_gui_control=>format_external_value(
-              iv_value = |{ <row> }|
-              iv_type  = CONV string( ls_fieldcat-inttype ) ).
-            APPEND VALUE #( fieldname  = ls_fieldcat-fieldname
-                            text       = lv_row_text
-                            type_class = COND string(
-                              WHEN ls_fieldcat-inttype = 'I'
-                                OR ls_fieldcat-inttype = 'P'
-                                OR ls_fieldcat-inttype = 'N'
-                                OR ls_fieldcat-inttype = 'F'
-                                THEN `gg-type-number`
-                              WHEN ls_fieldcat-inttype = 'D' THEN `gg-type-date`
-                              WHEN ls_fieldcat-inttype = 'T' THEN `gg-type-time`
-                              ELSE `gg-type-text` )
-                            editable   = xsdbool( ls_fieldcat-edit = 'X' )
-                            checkbox   = xsdbool( ls_fieldcat-checkbox = 'X' )
-                            icon       = xsdbool( ls_fieldcat-icon = 'X' )
-                            symbol     = xsdbool( ls_fieldcat-symbol = 'X' )
-                            emphasize  = CONV string( ls_fieldcat-emphasize )
-                            f4         = xsdbool( ls_fieldcat-f4availabl = 'X' )
-                            dropdown   = ls_fieldcat-drdn_hndl
-                            total      = xsdbool( ls_fieldcat-do_sum = 'X' )
-                            subtotal   = xsdbool( line_exists( mt_sort[ fieldname = ls_fieldcat-fieldname subtot = 'X' ] ) )
-                            hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
+            ls_cell = build_cell( is_fieldcat = ls_fieldcat
+                                  iv_value    = |{ <row> }| ).
+            APPEND ls_cell TO ls_row-cells.
           ENDIF.
         ENDIF.
       ENDIF.

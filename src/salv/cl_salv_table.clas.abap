@@ -410,35 +410,12 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD selopt_matches.
-    DATA(lv_low) = CONV string( selopt->get_low( ) ).
-    DATA(lv_high) = CONV string( selopt->get_high( ) ).
-    CASE selopt->get_option( ).
-      WHEN 'EQ'.
-        result = xsdbool( value = lv_low ).
-      WHEN 'NE'.
-        result = xsdbool( value <> lv_low ).
-      WHEN 'BT'.
-        result = xsdbool( value >= lv_low AND value <= lv_high ).
-      WHEN 'NB'.
-        result = xsdbool( value < lv_low OR value > lv_high ).
-      WHEN 'GE'.
-        result = xsdbool( value >= lv_low ).
-      WHEN 'GT'.
-        result = xsdbool( value > lv_low ).
-      WHEN 'LE'.
-        result = xsdbool( value <= lv_low ).
-      WHEN 'LT'.
-        result = xsdbool( value < lv_low ).
-      WHEN 'CP'.
-        result = xsdbool( value CP lv_low ).
-      WHEN 'NP'.
-        result = xsdbool( value NP lv_low ).
-      WHEN OTHERS.
-        result = abap_false.
-    ENDCASE.
-    IF selopt->get_sign( ) = 'E'.
-      result = xsdbool( result = abap_false ).
-    ENDIF.
+    result = cl_gui_control=>compare_option(
+      iv_value  = value
+      iv_option = CONV string( selopt->get_option( ) )
+      iv_low    = CONV string( selopt->get_low( ) )
+      iv_high   = CONV string( selopt->get_high( ) )
+      iv_sign   = CONV string( selopt->get_sign( ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

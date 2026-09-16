@@ -211,7 +211,6 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
     DATA lv_heading TYPE string.
     DATA lv_width TYPE string.
     DATA lv_html TYPE string.
-    DATA lv_depth TYPE i.
     DATA lv_indent TYPE i.
 
     lv_heading = ms_hierarchy_header-heading.
@@ -229,21 +228,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
     ENDLOOP.
     lv_html = lv_html && |</tr></thead><tbody>|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      lv_depth = 1.
-      DATA(lv_parent_key) = ls_node-parent_key.
-      DO 32 TIMES.
-        IF lv_parent_key IS INITIAL.
-          EXIT.
-        ENDIF.
-        READ TABLE mt_html_nodes INTO DATA(ls_parent)
-          WITH KEY node_key = lv_parent_key.
-        IF sy-subrc <> 0.
-          EXIT.
-        ENDIF.
-        lv_depth = lv_depth + 1.
-        lv_parent_key = ls_parent-parent_key.
-      ENDDO.
-      lv_indent = ( lv_depth - 1 ) * 18.
+      lv_indent = ( node_level( ls_node-node_key ) - 1 ) * 18.
       DATA(lv_tree_marker) = COND string( WHEN ls_node-expanded = abap_true THEN 'v' ELSE '>' ).
       lv_html = lv_html && |<tr data-node-key="{ escape_html( ls_node-node_key ) }"><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px">{ lv_tree_marker } { escape_html( ls_node-text ) }</span></th>|.
       LOOP AT mt_columns INTO DATA(ls_extra_column) FROM 2 WHERE hidden = abap_false.

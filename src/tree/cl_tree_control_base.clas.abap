@@ -292,6 +292,14 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS refresh_tree_html.
 
+    "! Nesting level of a node: 1 for a root node, one more per ancestor that
+    "! is still present in the node table.
+    METHODS node_level
+      IMPORTING
+        node_key      TYPE string
+      RETURNING
+        VALUE(result) TYPE i.
+
     METHODS tree_html
       RETURNING
         VALUE(result) TYPE string.
@@ -556,25 +564,36 @@ CLASS cl_tree_control_base IMPLEMENTATION.
       html    = tree_html( ) ).
   ENDMETHOD.
 
-  METHOD tree_html.
-    DATA lv_depth TYPE i.
+  METHOD node_level.
     DATA lv_parent TYPE string.
+
+    result = 1.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lv_parent = ls_node-parent_key.
+* A node cannot be its own ancestor, but nothing stops a caller from building a
+* cyclic parent chain, so the walk is bounded by the nesting the control shows.
+    DO 32 TIMES.
+      IF lv_parent IS INITIAL.
+        RETURN.
+      ENDIF.
+      READ TABLE mt_html_nodes INTO DATA(ls_parent)
+        WITH KEY node_key = lv_parent.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      result = result + 1.
+      lv_parent = ls_parent-parent_key.
+    ENDDO.
+  ENDMETHOD.
+
+  METHOD tree_html.
     result = |<ul role="tree" aria-label="Tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      lv_depth = 1.
-      lv_parent = ls_node-parent_key.
-      DO 32 TIMES.
-        IF lv_parent IS INITIAL.
-          EXIT.
-        ENDIF.
-        READ TABLE mt_html_nodes INTO DATA(ls_parent)
-          WITH KEY node_key = lv_parent.
-        IF sy-subrc <> 0.
-          EXIT.
-        ENDIF.
-        lv_depth = lv_depth + 1.
-        lv_parent = ls_parent-parent_key.
-      ENDDO.
+      DATA(lv_depth) = node_level( ls_node-node_key ).
       DATA(lv_state_class) = cl_gui_control=>state_class( iv_selected = ls_node-selected ).
       DATA(lv_selected) = COND string(
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'

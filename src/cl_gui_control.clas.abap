@@ -77,6 +77,22 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       RETURNING
         VALUE(result) TYPE string.
 
+* Compares a value against one row of a select-option style range, the way an
+* ALV grid filter and a SALV filter both do. Public rather than protected
+* because the SALV classes filter the same way without inheriting from the
+* control framework. The caller converts and trims its own operands, since the
+* two filter sources disagree on whether trailing blanks are significant.
+    CLASS-METHODS compare_option
+      IMPORTING
+        iv_value         TYPE string
+        iv_option        TYPE string
+        iv_low           TYPE string
+        iv_high          TYPE string OPTIONAL
+        iv_sign          TYPE string OPTIONAL
+        iv_unknown_as_eq TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(result)    TYPE abap_bool.
+
     CLASS-METHODS set_focus
       IMPORTING
         control TYPE REF TO cl_gui_control.
@@ -387,6 +403,39 @@ CLASS cl_gui_control IMPLEMENTATION.
 
   METHOD escape_html.
     result = escape( text ).
+  ENDMETHOD.
+
+  METHOD compare_option.
+    CASE to_upper( iv_option ).
+      WHEN 'EQ'.
+        result = xsdbool( iv_value = iv_low ).
+      WHEN 'NE'.
+        result = xsdbool( iv_value <> iv_low ).
+      WHEN 'BT'.
+        result = xsdbool( iv_value >= iv_low AND iv_value <= iv_high ).
+      WHEN 'NB'.
+        result = xsdbool( iv_value < iv_low OR iv_value > iv_high ).
+      WHEN 'GE'.
+        result = xsdbool( iv_value >= iv_low ).
+      WHEN 'GT'.
+        result = xsdbool( iv_value > iv_low ).
+      WHEN 'LE'.
+        result = xsdbool( iv_value <= iv_low ).
+      WHEN 'LT'.
+        result = xsdbool( iv_value < iv_low ).
+      WHEN 'CP'.
+        result = xsdbool( iv_value CP iv_low ).
+      WHEN 'NP'.
+        result = xsdbool( iv_value NP iv_low ).
+      WHEN OTHERS.
+* The two filter sources read an unrecognised option differently: an ALV grid
+* falls back to equality, a SALV filter rejects the row. Each keeps its own
+* reading instead of one being quietly changed to the other.
+        result = xsdbool( iv_unknown_as_eq = abap_true AND iv_value = iv_low ).
+    ENDCASE.
+    IF iv_sign = 'E'.
+      result = xsdbool( result = abap_false ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD state_class.

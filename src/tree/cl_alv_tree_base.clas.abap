@@ -323,6 +323,17 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS clear_html_nodes.
 
+    "! Walks the ancestor chain of NODE_KEY once and answers both questions the
+    "! rendered tree asks about a node: LEVEL is 1 for a root node and one more
+    "! per ancestor still present in the node table, VISIBLE is false when any
+    "! of those ancestors is collapsed.
+    METHODS node_position
+      IMPORTING
+        node_key TYPE string
+      EXPORTING
+        level    TYPE i
+        visible  TYPE abap_bool.
+
     METHODS tree_html
       RETURNING
         VALUE(result) TYPE string.
@@ -691,48 +702,52 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
                               html    = tree_html( ) ).
   ENDMETHOD.
 
+  METHOD node_position.
+    DATA lv_parent TYPE string.
+
+    level = 1.
+    visible = abap_true.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lv_parent = ls_node-parent_key.
+* A node cannot be its own ancestor, but nothing stops a caller from building a
+* cyclic parent chain, so the walk is bounded by the nesting the control shows.
+    DO 32 TIMES.
+      IF lv_parent IS INITIAL.
+        RETURN.
+      ENDIF.
+      READ TABLE mt_html_nodes INTO DATA(ls_parent)
+        WITH KEY node_key = lv_parent.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      level = level + 1.
+      IF ls_parent-expanded = abap_false.
+        visible = abap_false.
+      ENDIF.
+      lv_parent = ls_parent-parent_key.
+    ENDDO.
+  ENDMETHOD.
+
   METHOD tree_html.
     DATA lv_depth TYPE i.
-    DATA lv_parent TYPE string.
-    DATA ls_parent TYPE ty_html_node.
+    DATA lv_visible TYPE abap_bool.
     result = |<section class="gg-alv-tree" aria-label="ALV tree"><ul role="tree" aria-label="ALV tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      lv_depth = 1.
-      lv_parent = ls_node-parent_key.
-      DO 32 TIMES.
-        IF lv_parent IS INITIAL.
-          EXIT.
-        ENDIF.
-        READ TABLE mt_html_nodes INTO ls_parent
-          WITH KEY node_key = lv_parent.
-        IF sy-subrc <> 0.
-          EXIT.
-        ENDIF.
-        lv_depth = lv_depth + 1.
-        lv_parent = ls_parent-parent_key.
-      ENDDO.
+      node_position(
+        EXPORTING
+          node_key = ls_node-node_key
+        IMPORTING
+          level    = lv_depth
+          visible  = lv_visible ).
       DATA(lv_state_class) = cl_gui_control=>state_class( iv_selected = ls_node-selected ).
       DATA(lv_selected) = COND string(
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
         ELSE ' aria-selected="false"' ).
       DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
-      DATA(lv_visible) = abap_true.
-      lv_parent = ls_node-parent_key.
-      DO 32 TIMES.
-        IF lv_parent IS INITIAL.
-          EXIT.
-        ENDIF.
-        READ TABLE mt_html_nodes INTO ls_parent
-          WITH KEY node_key = lv_parent.
-        IF sy-subrc <> 0.
-          EXIT.
-        ENDIF.
-        IF ls_parent-expanded = abap_false.
-          lv_visible = abap_false.
-          EXIT.
-        ENDIF.
-        lv_parent = ls_parent-parent_key.
-      ENDDO.
       result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }{ COND string( WHEN lv_visible = abap_false THEN ' hidden' ELSE '' ) }>{ escape_html( ls_node-text ) }</li>|.
     ENDLOOP.
     result = result && |</ul><div class="gg-alv-tree-columns"><table data-field-count="{ lines( mt_fieldcatalog ) }"><thead><tr><th scope="col">Hierarchy</th>|.
