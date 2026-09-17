@@ -222,8 +222,6 @@ ENDCLASS.
 CLASS cl_gui_alv_tree IMPLEMENTATION.
   METHOD set_hierarchy_header.
     ms_hierarchy_header = is_hierarchy_header.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |Hierarchy column: { is_hierarchy_header-heading }| ).
   ENDMETHOD.
 
   METHOD get_parent.
@@ -285,6 +283,10 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    m_node_selection_mode = node_selection_mode.
+    m_item_selection = item_selection.
+    m_no_toolbar = no_toolbar.
+    m_no_html_header = no_html_header.
     cl_gui_control=>initialize(
       control = me
       parent  = parent
@@ -411,8 +413,6 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     IF it_fieldcatalog IS SUPPLIED.
       mt_fieldcatalog = it_fieldcatalog.
     ENDIF.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |Tree rows: { lines( it_outtab ) }| ).
     refresh_tree_html( ).
   ENDMETHOD.
 

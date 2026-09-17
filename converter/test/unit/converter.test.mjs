@@ -129,6 +129,19 @@ test("applies report metadata text symbols to selection labels and transaction h
   assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W101"), false);
 });
 
+test("keeps the TPOOL report title for page headings when a harness description is supplied", async () => {
+  const filename = path.join(repositoryRoot, "converter", "test", "fixtures", "text_metadata.prog.abap");
+  const result = await convertProgram({
+    source: await fs.readFile(filename, "utf8"),
+    filename,
+    description: "Harness description",
+  });
+  assert.equal(result.reportIR.reportTitle, "Metadata-backed selection");
+  assert.equal(result.reportIR.description, "Harness description");
+  assert.match(result.classSource, /METHOD zif_gg_report_v1~load_of_program\.[\s\S]*set_title\( 'Metadata-backed selection' \)/);
+  assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\.[\s\S]*set_title\( 'Metadata-backed selection' \)/);
+});
+
 test("strict mode reports an unsupported program kind without emitting", async () => {
   const result = await convertProgram({ source: "PROGRAM zpool.\nMODULE x INPUT.\nENDMODULE.\n", filename: "zpool.prog.abap" });
   assert.equal(result.supported, false);
@@ -811,6 +824,8 @@ test("loads report-owned dynpro XML and every matching screen flow file", async 
   assert.equal(metadata.screens[0].elements[2].kind, "input-output");
   assert.equal(metadata.screens[0].elements[2].required, true);
   assert.equal(metadata.screens[0].elements[3].ucomm, "APPLY");
+  assert.equal(metadata.screens[0].elements[4].kind, "frame");
+  assert.equal(metadata.screens[0].elements[4].text, "Input elements");
   assert.equal(metadata.screens[1].modal, true);
   assert.equal(metadata.screens[1].nextScreen, "0000");
   assert.deepEqual(metadata.flowLogic[0].pbo.map((item) => item.name), ["STATUS_0100"]);
@@ -922,6 +937,35 @@ test("lowers method-local field symbols only when static binding is provable", a
   assert.deepEqual(dereferenced.reportIR.safeFieldSymbols, ["VALUE"]);
   assert.match(dereferenced.classSource, /ASSIGN lr_value->\* TO <value>/);
   assert.doesNotMatch(dereferenced.classSource, /TODO GGCONV/);
+});
+
+test("renders an honest boundary for an unsupported dynamic ALV table", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zdynamic_grid.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "DATA gv_status TYPE string.",
+      "DATA gv_detail TYPE string.",
+      "FIELD-SYMBOLS <gt_output> TYPE STANDARD TABLE.",
+      "FORM display.",
+      "  CREATE OBJECT go_grid.",
+      "  go_grid->set_table_for_first_display( CHANGING it_outtab = <gt_output> ).",
+      "ENDFORM.",
+      "FORM append.",
+      "  APPEND INITIAL LINE TO <gt_output>.",
+      "  gv_status = 'A row was appended'.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zdynamic_grid.prog.abap",
+    mode: "partial",
+  });
+
+  assert.match(result.classSource, /go_grid->show_capability_boundary/);
+  assert.match(result.classSource, /Dynamic ALV output unavailable/);
+  assert.match(result.classSource, /browser converter cannot safely reproduce/);
+  assert.match(result.classSource, /Dynamic ALV action not applied: generic field-symbol table operations are unsupported/);
+  assert.match(result.classSource, /No table rows or cell styles were changed/);
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E515"));
 });
 
 test("preserves chained and table-shaped global declarations", async () => {

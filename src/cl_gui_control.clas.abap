@@ -77,6 +77,14 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       RETURNING
         VALUE(result) TYPE string.
 
+    CLASS-METHODS format_total_value
+      IMPORTING
+        iv_value      TYPE decfloat34
+        iv_decimals   TYPE i DEFAULT -1
+        iv_sample     TYPE string OPTIONAL
+      RETURNING
+        VALUE(result) TYPE string.
+
 * Compares a value against one row of a select-option style range, the way an
 * ALV grid filter and a SALV filter both do. Public rather than protected
 * because the SALV classes filter the same way without inheriting from the
@@ -158,6 +166,11 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       EXCEPTIONS
         cntl_error
         cntl_system_error.
+
+    METHODS show_capability_boundary
+      IMPORTING
+        heading     TYPE string
+        explanation TYPE string.
 
   PROTECTED SECTION.
     CLASS-METHODS state_class
@@ -297,6 +310,12 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       RETURNING
         VALUE(result) TYPE abap_bool.
 
+    CLASS-METHODS is_dialog_child
+      IMPORTING
+        iv_control_id TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
     CLASS-METHODS standalone_height
       RETURNING
         VALUE(result) TYPE i.
@@ -318,6 +337,35 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         iv_disabled    TYPE string
         iv_state_class TYPE string
         is_sapevent    TYPE ty_sapevent OPTIONAL
+      RETURNING
+        VALUE(result)  TYPE string.
+    CLASS-METHODS render_splitter_html
+      IMPORTING
+        is_snapshot    TYPE ty_snapshot
+        iv_style       TYPE string
+        iv_hidden      TYPE string
+        iv_state_class TYPE string
+      RETURNING
+        VALUE(result)  TYPE string.
+    CLASS-METHODS splitter_payload_value
+      IMPORTING
+        iv_payload    TYPE string
+        iv_key        TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+    CLASS-METHODS splitter_payload_integer
+      IMPORTING
+        iv_payload       TYPE string
+        iv_key           TYPE string
+        iv_default_value TYPE i
+      RETURNING
+        VALUE(result)    TYPE i.
+    CLASS-METHODS splitter_track_template
+      IMPORTING
+        iv_payload     TYPE string
+        iv_mode_key    TYPE string
+        iv_sizes_key   TYPE string
+        iv_track_count TYPE i
       RETURNING
         VALUE(result)  TYPE string.
     CLASS-METHODS render_toolbar_html
@@ -399,6 +447,14 @@ CLASS cl_gui_control IMPLEMENTATION.
       ls_snapshot-html = html.
       MODIFY mt_snapshots FROM ls_snapshot INDEX sy-tabix.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD show_capability_boundary.
+    DATA(lv_heading) = escape_html( text = heading ).
+    DATA(lv_explanation) = escape_html( text = explanation ).
+    set_html(
+      control = me
+      html    = |<section class="gg-capability-boundary" role="note"><h3>{ lv_heading }</h3><p>{ lv_explanation }</p></section>| ).
   ENDMETHOD.
 
   METHOD escape_html.
@@ -606,24 +662,33 @@ CLASS cl_gui_control IMPLEMENTATION.
           CONTINUE.
         ENDIF.
       ENDIF.
-      DATA(lv_style) = |position:absolute;box-sizing:border-box;left:{ ls_snapshot-left }px;top:{ ls_snapshot-top }px;|.
+      DATA(lv_render_top) = COND i(
+        WHEN ls_snapshot-kind = 'DIALOGBOX_CONTAINER' AND ls_snapshot-top > 60
+          THEN ls_snapshot-top - 60
+        WHEN ls_snapshot-kind = 'DIALOGBOX_CONTAINER'
+          THEN 0
+        ELSE ls_snapshot-top ).
+      DATA(lv_render_left) = COND i(
+        WHEN ls_snapshot-kind = 'DIALOGBOX_CONTAINER' AND ls_snapshot-width > 0
+          THEN 660
+        ELSE ls_snapshot-left ).
+      DATA(lv_style) = |position:absolute;box-sizing:border-box;left:{ lv_render_left }px;top:{ lv_render_top }px;|.
       IF ls_snapshot-kind = 'TEXTEDIT'.
         lv_style = lv_style && `box-sizing:border-box;`.
       ENDIF.
       IF ls_snapshot-width > 0.
         lv_style = lv_style && |width:{ ls_snapshot-width }px;|.
+      ELSEIF iv_container_name IS NOT INITIAL.
+        lv_style = lv_style && `width:100%;`.
       ELSEIF ls_snapshot-kind = 'TEXTEDIT'.
         lv_style = lv_style && `width:160px;`.
       ENDIF.
       IF ls_snapshot-height > 0.
         lv_style = lv_style && |height:{ ls_snapshot-height }px;|.
-      ELSEIF ls_snapshot-kind = 'TEXTEDIT'.
-        lv_style = lv_style && `height:42px;`.
       ELSEIF iv_container_name IS NOT INITIAL.
         lv_style = lv_style && `height:100%;`.
-      ENDIF.
-      IF ls_snapshot-width <= 0 AND iv_container_name IS NOT INITIAL.
-        lv_style = lv_style && `width:100%;`.
+      ELSEIF ls_snapshot-kind = 'TEXTEDIT'.
+        lv_style = lv_style && `height:42px;`.
       ENDIF.
       DATA(lv_hidden) = COND string( WHEN ls_snapshot-visible = abap_false THEN ' hidden' ELSE '' ).
       DATA(lv_disabled) = COND string( WHEN ls_snapshot-enabled = abap_false THEN ' disabled' ELSE '' ).
@@ -652,53 +717,20 @@ CLASS cl_gui_control IMPLEMENTATION.
   METHOD render_control_html.
     CASE is_snapshot-kind.
       WHEN 'DIALOGBOX_CONTAINER'.
-        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }>{ escape( is_snapshot-payload ) }{ is_snapshot-html }</section>|.
+        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-payload="{ escape( is_snapshot-payload ) }" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title">SAP GUI modeless control dialog</header><div class="gg-dialog-body">{ render_nested_html( iv_parent_id = is_snapshot-control_id ) }</div></section>|.
       WHEN 'CUSTOM_CONTAINER' OR 'DOCKING_CONTAINER'.
-        result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ escape( is_snapshot-payload ) }{ is_snapshot-html }</section>|.
+        result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }</section>|.
+      WHEN 'LIST_TREE'.
+        DATA(lv_list_tree_heading) = escape( is_snapshot-payload ).
+        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="LIST_TREE" data-hierarchy-header="{ lv_list_tree_heading }"{ iv_hidden }{ iv_disabled }>{ COND string( WHEN is_snapshot-payload IS NOT INITIAL THEN |<h2>{ lv_list_tree_heading }</h2>| ELSE `` ) }{ is_snapshot-html }</div>|.
       WHEN 'SPLITTER_CONTAINER' OR 'EASY_SPLITTER'.
-        DATA(lv_rows) = 1.
-        DATA(lv_columns) = 1.
-        DATA(lv_rows_offset) = find(
-          val = is_snapshot-payload
-          sub = 'rows=' ).
-        IF lv_rows_offset >= 0.
-          DATA(lv_rows_tail) = substring(
-            val = is_snapshot-payload
-            off = lv_rows_offset + 5 ).
-          DATA(lv_rows_end) = find(
-            val = lv_rows_tail
-            sub = ';' ).
-          IF lv_rows_end > 0.
-            lv_rows = CONV i( substring(
-              val = lv_rows_tail
-              len = lv_rows_end ) ).
-          ENDIF.
-        ENDIF.
-        DATA(lv_columns_offset) = find(
-          val = is_snapshot-payload
-          sub = 'columns=' ).
-        IF lv_columns_offset >= 0.
-          DATA(lv_columns_tail) = substring(
-            val = is_snapshot-payload
-            off = lv_columns_offset + 8 ).
-          DATA(lv_columns_end) = find(
-            val = lv_columns_tail
-            sub = ';' ).
-          IF lv_columns_end > 0.
-            lv_columns = CONV i( substring(
-              val = lv_columns_tail
-              len = lv_columns_end ) ).
-          ENDIF.
-        ENDIF.
-        IF lv_rows < 1.
-          lv_rows = 1.
-        ENDIF.
-        IF lv_columns < 1.
-          lv_columns = 1.
-        ENDIF.
-        result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-layout-state="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }><div class="gg-splitter-layout" style="display:grid;width:100%;height:100%;min-height:0;overflow:hidden;grid-template-columns:repeat({ lv_columns },minmax(0,1fr));grid-template-rows:repeat({ lv_rows },minmax(0,1fr));">{ render_nested_html( iv_parent_id = is_snapshot-control_id ) }</div></section>|.
-      WHEN 'ALV_GRID' OR 'ALV_TREE' OR 'SIMPLE_TREE' OR 'LIST_TREE' OR 'COLUMN_TREE'.
-        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }"{ iv_hidden }{ iv_disabled }>{ is_snapshot-html }{ escape( is_snapshot-payload ) }</div>|.
+        result = render_splitter_html(
+          is_snapshot    = is_snapshot
+          iv_style       = iv_style
+          iv_hidden      = iv_hidden
+          iv_state_class = iv_state_class ).
+      WHEN 'ALV_GRID' OR 'ALV_TREE' OR 'SIMPLE_TREE' OR 'COLUMN_TREE'.
+        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-payload="{ escape( is_snapshot-payload ) }"{ iv_hidden }{ iv_disabled }>{ is_snapshot-html }</div>|.
       WHEN 'TOOLBAR'.
         result = render_toolbar_html(
           is_snapshot    = is_snapshot
@@ -731,36 +763,201 @@ CLASS cl_gui_control IMPLEMENTATION.
           ELSE '' ).
         result = |<div class="gg-control { iv_state_class }" style="{ iv_style }{ lv_picture_border }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="PICTURE" data-picture-state="{ escape( is_snapshot-picture_state ) }" data-display-mode="{ is_snapshot-picture_display_mode }" role="img" aria-label="{ escape( COND string( WHEN is_snapshot-picture_alt_text IS INITIAL THEN 'Picture' ELSE is_snapshot-picture_alt_text ) ) }"{ iv_hidden }><img src="{ lv_url }" alt="{ escape( COND string( WHEN is_snapshot-picture_alt_text IS INITIAL THEN 'Picture' ELSE is_snapshot-picture_alt_text ) ) }" style="width:100%;height:100%;object-fit:{ lv_picture_fit };object-position:{ lv_picture_position }"></div>|.
       WHEN 'HTML_VIEWER'.
-        DATA(lv_srcdoc) = is_snapshot-payload.
-        DATA(lv_iframe_style) = iv_style.
-        REPLACE FIRST OCCURRENCE OF `box-sizing:border-box;` IN lv_iframe_style
-          WITH `box-sizing:content-box;`.
+        DATA(lv_srcdoc) = is_snapshot-html.
+        DATA(lv_iframe_style) = iv_style && `border:0;`.
         DATA(lv_sandbox) = ``.
-        IF is_snapshot-sapevent = abap_true AND is_sapevent-url IS NOT INITIAL.
+        DATA(lv_iframe_source) = ``.
+        IF lv_srcdoc IS NOT INITIAL.
+          IF is_snapshot-sapevent = abap_true AND is_sapevent-url IS NOT INITIAL.
 * The document registered sapevent and the caller supplied a transport, so its
 * anchors become forms that submit to it. Submitting a form and, on a real
 * click, replacing the top page are the only two things this needs; scripts
 * stay blocked and the frame keeps its opaque origin.
-          lv_srcdoc = rewrite_sapevent( document = lv_srcdoc
-                                        sapevent = is_sapevent ).
-          lv_sandbox = `allow-forms allow-top-navigation-by-user-activation`.
+            lv_srcdoc = rewrite_sapevent( document = lv_srcdoc
+                                          sapevent = is_sapevent ).
+            lv_sandbox = `allow-forms allow-top-navigation-by-user-activation`.
+          ENDIF.
+          lv_iframe_source = |srcdoc="{ escape( lv_srcdoc ) }"|.
+        ELSEIF safe_url( is_snapshot-payload ) = abap_true.
+          lv_iframe_source = |src="{ escape( is_snapshot-payload ) }"|.
         ENDIF.
-        result = |<iframe class="gg-control { iv_state_class }" style="{ lv_iframe_style }" id="{ escape( is_snapshot-control_id ) }" title="HTML viewer" sandbox="{ lv_sandbox }"{ iv_hidden } srcdoc="{ escape( lv_srcdoc ) }"></iframe>|.
+        result = |<iframe class="gg-control { iv_state_class }" style="{ lv_iframe_style }" id="{ escape( is_snapshot-control_id ) }" title="HTML viewer" sandbox="{ lv_sandbox }"{ iv_hidden } { lv_iframe_source }></iframe>|.
       WHEN 'DRAGDROP'.
-        result = |<section class="gg-control gg-dragdrop-fallback { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DRAGDROP" data-native-capability="unavailable" role="region" aria-label="Legacy ActiveX drag and drop unavailable"{ iv_hidden }><p>Legacy ActiveX drag/drop is unavailable in the browser.</p><textarea readonly aria-label="Legacy drag and drop fallback">{ escape( is_snapshot-payload ) }</textarea></section>|.
+        result = |<section class="gg-control gg-dragdrop-fallback { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DRAGDROP" data-native-capability="unavailable" data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="Legacy ActiveX drag and drop unavailable"{ iv_hidden }><textarea readonly aria-label="Legacy drag and drop fallback">Legacy ActiveX drag/drop is unavailable in the browser.</textarea></section>|.
       WHEN 'CALENDAR'.
-        result = |<section class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="CALENDAR" role="group" aria-label="Calendar"{ iv_hidden }>{ is_snapshot-html }{ escape( is_snapshot-payload ) }</section>|.
+        result = |<section class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="CALENDAR" data-date-range="{ escape( is_snapshot-payload ) }" role="group" aria-label="Calendar"{ iv_hidden }>{ is_snapshot-html }</section>|.
       WHEN 'SELECTOR'.
         result = |<select class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( is_snapshot-control_id ) }" data-control-kind="SELECTOR" aria-label="Selector"{ iv_hidden }{ iv_disabled }>{ COND string( WHEN is_snapshot-html IS INITIAL THEN |<option>{ escape( is_snapshot-payload ) }</option>| ELSE is_snapshot-html ) }</select>|.
-      WHEN 'BARCHART' OR 'CHART_ENGINE' OR 'GP_PRES'.
+      WHEN 'CHART_ENGINE'.
+        result = |<div class="gg-control gg-graphic { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="CHART_ENGINE" data-payload="{ escape( is_snapshot-payload ) }"{ iv_hidden }>{ is_snapshot-html }</div>|.
+      WHEN 'BARCHART' OR 'GP_PRES'.
         result = |<figure class="gg-control gg-graphic" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" role="img" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }<figcaption>{ escape( is_snapshot-payload ) }</figcaption></figure>|.
+      WHEN 'TIMER'.
+        result = |<div class="gg-control" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="TIMER" data-payload="{ escape( is_snapshot-payload ) }" aria-hidden="true" hidden></div>|.
       WHEN OTHERS.
         result = |<div class="gg-control" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }"{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</div>|.
     ENDCASE.
   ENDMETHOD.
 
+  METHOD format_total_value.
+    DATA lv_integer TYPE string.
+    DATA lv_fraction TYPE string.
+    DATA lv_decimals TYPE i.
+    DATA lv_factor TYPE decfloat34.
+    DATA lv_scaled TYPE decfloat34.
+    DATA lv_scaled_text TYPE string.
+    DATA lv_sign TYPE string.
+    DATA lv_integer_length TYPE i.
+    DATA lv_integer_part TYPE string.
+    DATA lv_fraction_part TYPE string.
+
+    lv_decimals = iv_decimals.
+    IF lv_decimals < 0.
+      SPLIT iv_sample AT '.' INTO lv_integer lv_fraction.
+      lv_decimals = strlen( lv_fraction ).
+    ENDIF.
+    IF lv_decimals > 14.
+      lv_decimals = 14.
+    ENDIF.
+    lv_factor = 1.
+    DO lv_decimals TIMES.
+      lv_factor = lv_factor * 10.
+    ENDDO.
+    lv_scaled = round(
+      val = iv_value * lv_factor
+      dec = 0 ).
+    lv_scaled_text = |{ lv_scaled }|.
+    IF lv_scaled_text+0(1) = '-'.
+      lv_sign = '-'.
+      lv_scaled_text = substring(
+        val = lv_scaled_text
+        off = 1 ).
+    ENDIF.
+    WHILE strlen( lv_scaled_text ) <= lv_decimals.
+      lv_scaled_text = |0{ lv_scaled_text }|.
+    ENDWHILE.
+    IF lv_decimals = 0.
+      result = lv_sign && lv_scaled_text.
+    ELSE.
+      lv_integer_length = strlen( lv_scaled_text ) - lv_decimals.
+      lv_integer_part = substring(
+        val = lv_scaled_text
+        off = 0
+        len = lv_integer_length ).
+      lv_fraction_part = substring(
+        val = lv_scaled_text
+        off = lv_integer_length ).
+      result = |{ lv_sign }{ lv_integer_part }.{ lv_fraction_part }|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD splitter_payload_value.
+    DATA lv_offset TYPE i.
+    DATA lv_tail TYPE string.
+    DATA lv_value_end TYPE i.
+
+    lv_offset = find(
+      val = iv_payload
+      sub = iv_key ).
+    IF lv_offset < 0.
+      RETURN.
+    ENDIF.
+    lv_tail = substring(
+      val = iv_payload
+      off = lv_offset + strlen( iv_key ) ).
+    lv_value_end = find(
+      val = lv_tail
+      sub = ';' ).
+    IF lv_value_end > 0.
+      result = substring(
+        val = lv_tail
+        len = lv_value_end ).
+    ELSE.
+      result = lv_tail.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD splitter_payload_integer.
+    DATA(lv_value) = splitter_payload_value(
+      iv_payload = iv_payload
+      iv_key     = iv_key ).
+    IF lv_value IS INITIAL.
+      result = iv_default_value.
+      RETURN.
+    ENDIF.
+    result = CONV i( lv_value ).
+  ENDMETHOD.
+
+  METHOD splitter_track_template.
+    DATA lv_mode TYPE i.
+    DATA lv_sizes TYPE string.
+    DATA lv_size TYPE string.
+    DATA lt_sizes TYPE string_table.
+
+    lv_mode = splitter_payload_integer(
+      iv_payload       = iv_payload
+      iv_key           = iv_mode_key
+      iv_default_value = 1 ).
+    lv_sizes = splitter_payload_value(
+      iv_payload = iv_payload
+      iv_key     = iv_sizes_key ).
+    IF lv_sizes IS INITIAL.
+      result = |repeat({ iv_track_count },minmax(0,1fr))|.
+      RETURN.
+    ENDIF.
+    SPLIT lv_sizes AT ',' INTO TABLE lt_sizes.
+    IF lines( lt_sizes ) <> iv_track_count.
+      result = |repeat({ iv_track_count },minmax(0,1fr))|.
+      RETURN.
+    ENDIF.
+    LOOP AT lt_sizes INTO lv_size.
+      IF result IS NOT INITIAL.
+        result = result && ` `.
+      ENDIF.
+      IF lv_mode = 1.
+        result = result && |{ CONV i( lv_size ) }%|.
+      ELSE.
+        result = result && |{ CONV i( lv_size ) }px|.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD render_splitter_html.
+    DATA lv_rows TYPE i VALUE 1.
+    DATA lv_columns TYPE i VALUE 1.
+    DATA lv_row_tracks TYPE string.
+    DATA lv_column_tracks TYPE string.
+
+    lv_rows = splitter_payload_integer(
+      iv_payload       = is_snapshot-payload
+      iv_key           = 'rows='
+      iv_default_value = 1 ).
+    lv_columns = splitter_payload_integer(
+      iv_payload       = is_snapshot-payload
+      iv_key           = 'columns='
+      iv_default_value = 1 ).
+    IF lv_rows < 1.
+      lv_rows = 1.
+    ENDIF.
+    IF lv_columns < 1.
+      lv_columns = 1.
+    ENDIF.
+    lv_row_tracks = splitter_track_template(
+      iv_payload     = is_snapshot-payload
+      iv_mode_key    = 'row_mode='
+      iv_sizes_key   = 'row_heights='
+      iv_track_count = lv_rows ).
+    lv_column_tracks = splitter_track_template(
+      iv_payload     = is_snapshot-payload
+      iv_mode_key    = 'column_mode='
+      iv_sizes_key   = 'column_widths='
+      iv_track_count = lv_columns ).
+    result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-layout-state="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }><div class="gg-splitter-layout" style="display:grid;width:100%;height:100%;min-height:0;overflow:hidden;grid-template-columns:{ lv_column_tracks };grid-template-rows:{ lv_row_tracks };">{ render_nested_html( iv_parent_id = is_snapshot-control_id ) }</div></section>|.
+  ENDMETHOD.
+
   METHOD render_toolbar_html.
     DATA lv_button_label TYPE string.
+    DATA lv_button_icon TYPE string.
 
     result = |<div class="gg-control gg-control-toolbar { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" role="toolbar" aria-label="Control toolbar" data-toolbar-scope="control"{ iv_hidden }>|.
     LOOP AT is_snapshot-buttons INTO DATA(ls_button).
@@ -774,6 +971,9 @@ CLASS cl_gui_control IMPLEMENTATION.
       lv_button_label = COND #( WHEN ls_button-text IS INITIAL
                                 THEN CONV string( ls_button-quickinfo )
                                 ELSE CONV string( ls_button-text ) ).
+      lv_button_icon = COND string(
+        WHEN ls_button-icon IS INITIAL THEN ``
+        ELSE zcl_gg_host_icons=>icon( iv_name = CONV string( ls_button-icon ) ) ).
       DATA(lv_toolbar_type) = COND string(
         WHEN ls_button-butn_type = 3 OR ls_button-butn_type = 4 THEN ' aria-haspopup="menu"'
         ELSE `` ).
@@ -784,7 +984,7 @@ CLASS cl_gui_control IMPLEMENTATION.
       DATA(lv_toolbar_checked) = COND string(
         WHEN ls_button-checked IS NOT INITIAL THEN ' aria-pressed="true"'
         ELSE ' aria-pressed="false"' ).
-      result = result && |<button class="{ state_class( iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ) }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ escape( CONV string( ls_button-text ) ) }</button>|.
+      result = result && |<button class="{ state_class( iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ) }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ lv_button_icon }{ escape( CONV string( ls_button-text ) ) }</button>|.
     ENDLOOP.
     IF lines( is_snapshot-buttons ) > 6.
       result = result && '</div></details>'.
@@ -793,17 +993,46 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_textedit_html.
+    DATA lt_textedit_lines TYPE string_table.
     DATA(lv_textedit_attrs) = | data-wordwrap-mode="{ is_snapshot-text_wordwrap_mode }" data-wordwrap-position="{ is_snapshot-text_wordwrap_position }" data-wrap-to-linebreak="{ is_snapshot-text_wrap_to_linebreak }" data-fixed-font="{ is_snapshot-text_fixed_font }" data-modified="{ is_snapshot-text_modified }" data-cursor-line="{ is_snapshot-text_cursor_line }" data-cursor-position="{ is_snapshot-text_cursor_pos }" data-protected-from="{ is_snapshot-text_protected_from }" data-protected-to="{ is_snapshot-text_protected_to }"|.
+    SPLIT is_snapshot-payload AT cl_abap_char_utilities=>newline INTO TABLE lt_textedit_lines.
+    DATA(lv_textedit_line_count) = lines( lt_textedit_lines ).
+    IF lv_textedit_line_count = 0.
+      lv_textedit_line_count = 1.
+    ENDIF.
+    DATA(lv_textedit_cursor_line) = COND i( WHEN is_snapshot-text_cursor_line < 1 THEN 1 ELSE is_snapshot-text_cursor_line ).
+    DATA(lv_textedit_cursor_column) = is_snapshot-text_cursor_pos + 1.
+    IF lv_textedit_cursor_column < 1.
+      lv_textedit_cursor_column = 1.
+    ENDIF.
     DATA(lv_textedit_aria_readonly) = COND string( WHEN is_snapshot-text_readonly = abap_true THEN ' aria-readonly="true"' ELSE '' ).
-    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( is_snapshot-control_id ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</textarea>|.
+    DATA(lv_textedit_style) = iv_style.
+    DATA(lv_shell_style) = iv_style.
     IF is_snapshot-text_toolbar_mode = abap_true OR is_snapshot-text_statusbar_mode = abap_true.
-      result = |<section class="gg-textedit-shell gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }-shell" aria-label="Text editor shell"{ iv_hidden }>|.
+      lv_textedit_style = lv_textedit_style && `position:relative;left:auto;top:auto;width:100%;height:auto;flex:1;min-height:0;`.
+      lv_shell_style = lv_shell_style && `display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid #6b8298;background:#edf5fb;`.
+    ENDIF.
+    IF is_snapshot-text_fixed_font <> 0.
+      lv_textedit_style = lv_textedit_style && `font-family:ui-monospace,SFMono-Regular,Consolas,monospace;`.
+    ENDIF.
+    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ lv_textedit_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( is_snapshot-control_id ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</textarea>|.
+    IF is_snapshot-text_toolbar_mode = abap_true OR is_snapshot-text_statusbar_mode = abap_true.
+      result = |<section class="gg-textedit-shell gg-control { iv_state_class }" style="{ lv_shell_style }" id="{ escape( is_snapshot-control_id ) }-shell" aria-label="Text editor shell"{ iv_hidden }>|.
       IF is_snapshot-text_toolbar_mode = abap_true.
-        result = result && '<div class="gg-textedit-toolbar" role="toolbar" aria-label="Text editor tools"><span>Text editor tools</span></div>'.
+        result = result && '<div class="gg-textedit-toolbar" style="display:flex;align-items:center;gap:2px;min-height:26px;padding:2px 4px;background:#d9e8f5;border:1px solid #a6bdd0;font:12px system-ui,sans-serif" role="toolbar" aria-label="Text editor tools">'.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_CUT" title="Cut" aria-label="Cut">{ zcl_gg_host_icons=>icon( iv_name = 'edit' ) }</button>|.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_COPY" title="Copy" aria-label="Copy">{ zcl_gg_host_icons=>icon( iv_name = 'file-code' ) }</button>|.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_PASTE" title="Paste" aria-label="Paste">{ zcl_gg_host_icons=>icon( iv_name = 'folder-open' ) }</button>|.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_UNDO" title="Undo" aria-label="Undo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-back-up' ) }</button>|.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_REDO" title="Redo" aria-label="Redo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-forward-up' ) }</button>|.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_FIND" title="Find" aria-label="Find">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_SAVE" title="Save" aria-label="Save">{ zcl_gg_host_icons=>icon( iv_name = 'device-floppy' ) }</button>|.
+        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_PRINT" title="Print" aria-label="Print">{ zcl_gg_host_icons=>icon( iv_name = 'printer' ) }</button>|.
+        result = result && '</div>'.
       ENDIF.
       result = result && lv_textedit_html.
       IF is_snapshot-text_statusbar_mode = abap_true.
-        result = result && |<div class="gg-textedit-statusbar" role="status" aria-label="Text editor status">{ COND string( WHEN is_snapshot-text_modified <> 0 THEN 'Modified' ELSE 'Unmodified' ) } &#183; line { is_snapshot-text_cursor_line }, position { is_snapshot-text_cursor_pos }</div>|.
+        result = result && |<div class="gg-textedit-statusbar" style="display:flex;justify-content:flex-end;flex:0 0 auto;padding:2px 6px;border-top:1px solid #a6bdd0;color:#40566b;font:11px system-ui,sans-serif" role="status" aria-label="Text editor status" data-modified="{ is_snapshot-text_modified }"><span style="min-width:160px;padding:2px 6px;border-left:1px solid #d0d9e0">Li { lv_textedit_cursor_line }, Co { lv_textedit_cursor_column }</span><span style="min-width:160px;padding:2px 6px;border-left:1px solid #d0d9e0">Ln 1 - Ln { lv_textedit_line_count } of { lv_textedit_line_count } lines</span></div>|.
       ENDIF.
       result = result && '</section>'.
     ELSE.
@@ -855,6 +1084,34 @@ CLASS cl_gui_control IMPLEMENTATION.
     ENDWHILE.
   ENDMETHOD.
 
+  METHOD is_dialog_child.
+    DATA lv_current_id TYPE string.
+    DATA lv_parent_id TYPE string.
+
+    lv_current_id = iv_control_id.
+    WHILE lv_current_id IS NOT INITIAL.
+      READ TABLE mt_snapshots INTO DATA(ls_snapshot)
+        WITH KEY control_id = lv_current_id.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      lv_parent_id = ls_snapshot-parent_id.
+      IF lv_parent_id IS INITIAL.
+        RETURN.
+      ENDIF.
+      READ TABLE mt_snapshots INTO DATA(ls_parent)
+        WITH KEY control_id = lv_parent_id.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      IF ls_parent-kind = 'DIALOGBOX_CONTAINER'.
+        result = abap_true.
+        RETURN.
+      ENDIF.
+      lv_current_id = lv_parent_id.
+    ENDWHILE.
+  ENDMETHOD.
+
   METHOD standalone_height.
     result = 240.
     LOOP AT mt_snapshots INTO DATA(ls_snapshot).
@@ -877,6 +1134,10 @@ CLASS cl_gui_control IMPLEMENTATION.
     DATA lv_current_id TYPE string.
     DATA lv_parent_id TYPE string.
 
+    IF is_dialog_child( iv_control_id ) = abap_true.
+      result = abap_true.
+      RETURN.
+    ENDIF.
     lv_current_id = iv_control_id.
     WHILE lv_current_id IS NOT INITIAL.
       READ TABLE mt_snapshots INTO DATA(ls_snapshot)

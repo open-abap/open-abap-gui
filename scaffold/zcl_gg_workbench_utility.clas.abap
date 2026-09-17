@@ -111,6 +111,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-menubar{height:32px;display:flex;align-items:center;gap:8px;padding:0 14px;background:linear-gradient(#fff,#e7eef7);border-bottom:1px solid var(--gg-border-dark);box-sizing:border-box}' &&
       '.wb-brand{font-weight:700;font-size:14px;color:#174a80;margin-right:12px;letter-spacing:-.2px}' &&
       '.wb-menu-items{display:flex;align-self:stretch;align-items:center;gap:2px}' &&
+      '.wb-status-menu-items{min-height:32px;padding:0 14px;background:linear-gradient(#fff,#e7eef7);border-bottom:1px solid var(--gg-border-dark);box-sizing:border-box}' &&
       '.wb-menu{border:0;border-radius:3px;background:transparent;height:30px;padding:0 10px;color:#163e6b;font:inherit;cursor:pointer;text-decoration:none;display:flex;align-items:center}' &&
       '.wb-menu:hover,.wb-menu:focus{background:#d7e5f4;color:#092f5b;outline:0}' &&
       '.wb-menu-dropdown{position:relative;display:flex;align-items:center;align-self:stretch}' &&
@@ -143,7 +144,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-app-title{margin:0;font-size:16px;font-weight:600;letter-spacing:-.2px}' &&
       '.wb-toolbar{margin:0;padding:4px 14px;display:flex;gap:5px;background:#dce8f3;border:0;border-bottom:1px solid var(--gg-border-dark);border-radius:0}' &&
       '.wb-toolbar-separator{height:24px;border-left:1px solid #b8c9dc;margin:0 4px}' &&
-      '.wb-toolbar-button{height:26px;min-width:32px;border:1px solid var(--gg-border);border-radius:2px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
+      '.wb-toolbar-button{height:26px;min-width:32px;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--gg-border);border-radius:2px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-toolbar-button:hover,.wb-toolbar-button:focus{background:#fff;border-color:#5e8fbd;outline:0}' &&
       'button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible{outline:2px solid #2668a3;outline-offset:2px}' &&
       '.wb-runtime-content{flex:1 1 auto;min-height:0;margin:8px 16px 0;padding:14px 18px;box-sizing:border-box;overflow:auto;background:var(--gg-work-surface);border:1px solid var(--gg-border-dark);border-radius:2px;box-shadow:0 1px 4px rgba(34,67,102,.12)}' &&
@@ -196,10 +197,14 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && |<header class="wb-appbar"><h1 id="wb-page-title" class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       |</h1></header>| &&
-      render_application_menus(
-        iv_runtime      = iv_runtime
-        iv_content_form = lv_content_form
-        is_status       = is_status ) &&
+      COND string(
+        WHEN is_status-menus IS INITIAL THEN ``
+        ELSE |<nav class="wb-menu-items wb-status-menu-items" role="menubar" aria-label="Application menu">| &&
+          render_application_menus(
+            iv_runtime      = iv_runtime
+            iv_content_form = lv_content_form
+            is_status       = is_status ) &&
+          `</nav>` ) &&
       render_iconbar(
         iv_runtime      = iv_runtime
         iv_content_form = lv_content_form
@@ -291,6 +296,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       lv_buttons = lv_buttons &&
         |<button class="wb-toolbar-button" type="{ lv_type }"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" title="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" data-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"{ lv_state }>| &&
         zcl_gg_host_icons=>icon( iv_name = ls_icon-icon ) &&
+        |<span class="wb-toolbar-label">{ zcl_gg_host_html=>escape_text( lv_label ) }</span>| &&
         '</button>'.
     ENDLOOP.
 

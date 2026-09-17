@@ -264,9 +264,39 @@ CLASS cl_item_tree_control IMPLEMENTATION.
         IF sy-subrc = 0.
           lv_parent_key = CONV string( <parent_key> ).
         ENDIF.
+        DATA(lv_folder) = abap_false.
+        DATA(lv_expander) = abap_false.
+        DATA(lv_hidden) = abap_false.
+        DATA(lv_node_image) = ``.
+        DATA(lv_open_image) = ``.
+        ASSIGN COMPONENT 'ISFOLDER' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<is_folder>).
+        IF sy-subrc = 0.
+          lv_folder = xsdbool( <is_folder> IS NOT INITIAL ).
+        ENDIF.
+        ASSIGN COMPONENT 'EXPANDER' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<node_expander>).
+        IF sy-subrc = 0.
+          lv_expander = xsdbool( <node_expander> IS NOT INITIAL ).
+        ENDIF.
+        ASSIGN COMPONENT 'HIDDEN' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<node_hidden>).
+        IF sy-subrc = 0.
+          lv_hidden = xsdbool( <node_hidden> IS NOT INITIAL ).
+        ENDIF.
+        ASSIGN COMPONENT 'N_IMAGE' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<node_image>).
+        IF sy-subrc = 0.
+          lv_node_image = CONV string( <node_image> ).
+        ENDIF.
+        ASSIGN COMPONENT 'EXP_IMAGE' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<open_image>).
+        IF sy-subrc = 0.
+          lv_open_image = CONV string( <open_image> ).
+        ENDIF.
         APPEND VALUE #( node_key   = lv_node_key
                         parent_key = lv_parent_key
-                        expanded   = abap_true ) TO mt_html_nodes.
+                        expanded   = abap_false
+                        hidden     = lv_hidden
+                        folder     = lv_folder
+                        expander   = lv_expander
+                        node_image = lv_node_image
+                        open_image = lv_open_image ) TO mt_html_nodes.
       ENDIF.
     ENDLOOP.
 
@@ -313,17 +343,9 @@ CLASS cl_item_tree_control IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
     refresh_item_html( ).
-    cl_gui_control=>set_payload(
-      control = me
-      payload = |nodes={ lines( node_table ) }; items={ lines( item_table ) }; structure={ item_table_structure_name }| ).
   ENDMETHOD.
 
   METHOD update_nodes_and_items.
-    DATA lv_node_count TYPE i.
-
-    IF node_table IS SUPPLIED.
-      lv_node_count = lines( node_table ).
-    ENDIF.
     IF item_table IS SUPPLIED.
       add_nodes_and_items(
         item_table                = item_table
@@ -331,9 +353,6 @@ CLASS cl_item_tree_control IMPLEMENTATION.
     ELSE.
       refresh_item_html( ).
     ENDIF.
-    cl_gui_control=>set_payload(
-      control = me
-      payload = |nodes={ lv_node_count }; items={ lines( item_table ) }; structure={ item_table_structure_name }; updated=true| ).
   ENDMETHOD.
 
   METHOD delete_all_items_of_nodes.

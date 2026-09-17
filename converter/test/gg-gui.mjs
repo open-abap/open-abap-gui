@@ -52,6 +52,13 @@ const comparisonGateDefinitions = Object.freeze([
   {id: "visualStructure", label: "Visual structure", rule: "Reference grouping, density, alignment, focus, and control geometry are matched."},
 ]);
 const referenceStateAudits = Object.freeze({
+  ZGG_GUI_SALV_TABLE: {
+    status: "stale-reference-confirmed",
+    acceptance: "excluded-from-pixel-acceptance",
+    observedState: "The pinned SAP capture shows CL_SALV_TABLE unavailable or nonfunctional in this runtime and displays a text-editor fallback with the corresponding fallback status and detail text.",
+    intendedState: "The report's read-only SALV table with five demo rows, generated columns, toolbar actions, and the live table status and detail text.",
+    verification: "PLAN10 Phase 3 made the generated SALV factory functional; the current browser page renders the five-row table and its own success status. Keep semantic, interactive, and visual-structure gates active, and exclude only the stale pixel comparison until the SAP reference is recaptured.",
+  },
   ZGG_GUI_SUBSCREENS: {
     status: "stale-reference-confirmed",
     acceptance: "excluded-from-pixel-acceptance",
@@ -72,19 +79,22 @@ const intentionalReferenceFallbacks = Object.freeze({
     status: "intentional-capability-boundary",
     acceptance: "allowed-when-honest",
     nativeEvidence: "Reference source uses generic FIELD-SYMBOLS, dynamic ASSIGN COMPONENT, and FREE operations that remain explicit E515/E516 converter diagnostics rather than being guessed into typed code.",
-    browserContract: "Preserve the typed visible ALV rows, columns, style/description/refresh/reset actions, and explicit partial-conversion diagnostics; do not claim arbitrary dynamic field-symbol reflection is fully portable.",
+    browserContract: "Render an accessible CC_MAIN boundary explaining that generic field-symbol table bindings prevent the ALV rows from being reproduced. Keep E515/E516 diagnostics visible in the conversion audit, report row/style actions as unapplied, and preserve Back navigation.",
+    verification: "Focused CV_ALV_DYNAMIC browser audit shows one capability boundary, six report actions, explicit not-applied status/detail text after row/style/describe/refresh/reset actions, and available Back navigation; no dynamic rows or cell styles are claimed.",
   },
   ZGG_GUI_GRAPHICS: {
     status: "intentional-capability-boundary",
     acceptance: "allowed-when-honest",
     nativeEvidence: "Reference screen is the Runtime capability audit for optional SAP graphics controls; installation-dependent classes are reported and construction failures are nonfatal.",
     browserContract: "Preserve the capability audit and status text, provide accessible chart/table alternatives, and label native graphics implementations unavailable when they are not actually performed.",
+    verification: "Focused CV_GRAPHICS browser audit shows the read-only capability audit, browser-safe graphic control surfaces, an accessible Chart Engine role=img surface, and release-dependent status/detail text for optional controls; no raw SVG or unverified desktop rendering is exposed.",
   },
   ZGG_GUI_ILI_DRAGDROP: {
     status: "intentional-fallback",
     acceptance: "allowed-when-honest",
     nativeEvidence: "Reference screen states that the CL_GUI_ILIDRAGNDROP_CONTROL ActiveX control is unavailable or nonfunctional and shows a text fallback with geometry/menu actions.",
     browserContract: "Keep the explicit legacy ActiveX-unavailable fallback, text area, action responses, and non-terminating Back path; do not simulate native drag/drop success.",
+    verification: "Focused CV_ILI_DRAGDROP browser audit shows the ActiveX-unavailable fallback text, keeps the hidden compatibility control's mode/geometry/menu state behind that fallback, reports each action without native drag/drop, and leaves Back available.",
   },
 });
 const idempotentReferenceActions = Object.freeze({
@@ -112,6 +122,18 @@ const idempotentReferenceActions = Object.freeze({
   }),
 });
 const knownFailingReports = Object.freeze([]);
+const knownFailingEmptyContainerReports = Object.freeze([]);
+const knownFailingOverlapReports = Object.freeze([
+  "ZGG_GUI_DOCKING_CONTAINER",
+]);
+const knownFailingClippingReports = Object.freeze([
+  "ZGG_GUI_CATALOG",
+  "ZGG_GUI_COMPOSITE",
+  "ZGG_GUI_SALV_HIERSEQ",
+  "ZGG_GUI_SALV_TABLE",
+  "ZGG_GUI_SALV_TREE",
+  "ZGG_GUI_SPLITTER_CONTAINER",
+]);
 
 function isKnownFailingReport(programName) {
   return knownFailingReports.includes(programName.replace(/^ZGG_GUI_/, ""));
@@ -151,6 +173,8 @@ function transactionCode(programName) {
 function visualContractFor(programName, screenMetadata) {
   const screen = screenMetadata?.screens?.find((item) => item.number === screenMetadata.initialScreen)
     ?? screenMetadata?.screens?.[0];
+  const screenTitle = String(screen?.title ?? screen?.description ?? "").trim();
+  const reportTitle = String(screenMetadata?.reportTitle ?? "").trim();
   const renderedElementKinds = new Set(["output", "input", "input-output", "checkbox", "radio", "dropdown", "pushbutton"]);
   const namedElements = (screen?.elements ?? [])
     .filter((element) => element.name && renderedElementKinds.has(String(element.kind ?? "").toLowerCase()))
@@ -175,7 +199,8 @@ function visualContractFor(programName, screenMetadata) {
   return {
     programName,
     screenNumber: screen?.number,
-    title: String(screen?.title ?? screen?.description ?? ""),
+    title: screenTitle || reportTitle,
+    titleSource: screenTitle ? "DYNPRO screen metadata" : reportTitle ? "TPOOL R report title" : "not recorded",
     geometry: screen?.geometry ?? {},
     cursor: screen?.cursor ? String(screen.cursor).toUpperCase() : "",
     elements: namedElements,
@@ -316,14 +341,64 @@ async function inventoryReferenceActions(page) {
   return {submitControls, selectionChanges};
 }
 
-async function auditVisualStructure(page, result) {
-  const audit = await page.locator("[data-page-kind]").evaluate((runtime, contract) => {
+async function auditVisualStructure(page, result, recordedFallback) {
+  const fallbackAllowsEmptyHosts = Boolean(recordedFallback
+    && ["intentional-capability-boundary", "intentional-fallback"].includes(recordedFallback.status)
+    && recordedFallback.acceptance === "allowed-when-honest");
+  const auditContract = {
+    ...result.visualContract,
+    emptyContainerExceptions: fallbackAllowsEmptyHosts ? recordedFallback.emptyContainerExceptions ?? {} : {},
+  };
+  const frameTextRegions = [];
+  for (const frame of page.frames()) {
+    if (frame === page.mainFrame()) continue;
+    let frameElement;
+    try {
+      frameElement = await frame.frameElement();
+    } catch {
+      continue;
+    }
+    const bounds = await frameElement.boundingBox();
+    if (!bounds) continue;
+    const regions = await frame.locator("body").evaluate((body) => {
+      const regions = [];
+      const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const text = String(node.textContent || "").replace(/\s+/g, " ").trim();
+        const parent = node.parentElement;
+        if (!text || !parent || parent.closest("script,style,template,textarea,select")) continue;
+        let suppressed = false;
+        for (let current = parent; current; current = current.parentElement) {
+          const style = getComputedStyle(current);
+          if (current.hidden || current.classList.contains("gg-visually-hidden") || style.display === "none" || style.visibility === "hidden") {
+            suppressed = true;
+            break;
+          }
+        }
+        if (suppressed) continue;
+        const range = document.createRange();
+        range.selectNode(node);
+        const rects = [...range.getClientRects()]
+          .filter((rect) => rect.width > 0 && rect.height > 0)
+          .map((rect) => ({x: rect.x, y: rect.y, width: rect.width, height: rect.height}));
+        if (rects.length > 0) regions.push({text, rects});
+      }
+      return regions;
+    }).catch(() => []);
+    frameTextRegions.push(...regions.map((region) => ({
+      ...region,
+      rects: region.rects.map((rect) => ({...rect, x: rect.x + bounds.x, y: rect.y + bounds.y})),
+    })));
+  }
+  const audit = await page.locator("[data-page-kind]").evaluate((runtime, input) => {
+    const {contract, frameTextRegions = []} = input;
     const pageRoot = runtime.querySelector(".gg-page");
     const kind = String(runtime.getAttribute("data-page-kind") || "").toUpperCase();
     const visible = (element) => {
       if (!element || element.hidden) return false;
       for (let current = element; current; current = current.parentElement) {
-        if (current.hidden || current.classList.contains("hidden") || current.matches("details:not([open])")) return false;
+        if (current.hidden || current.classList.contains("hidden") || current.classList.contains("gg-visually-hidden") || current.matches("details:not([open])")) return false;
         const style = getComputedStyle(current);
         if (style.display === "none" || style.visibility === "hidden") return false;
       }
@@ -334,9 +409,32 @@ async function auditVisualStructure(page, result) {
       const value = element?.getBoundingClientRect();
       return value ? {width: Math.round(value.width), height: Math.round(value.height)} : {width: 0, height: 0};
     };
+    const clipTextRects = (element, rects) => rects.map((bounds) => {
+      let left = bounds.x;
+      let top = bounds.y;
+      let right = bounds.x + bounds.width;
+      let bottom = bounds.y + bounds.height;
+      for (let current = element; current; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        const currentBounds = current.getBoundingClientRect();
+        const clipLeft = currentBounds.left + current.clientLeft;
+        const clipTop = currentBounds.top + current.clientTop;
+        const clipRight = clipLeft + current.clientWidth;
+        const clipBottom = clipTop + current.clientHeight;
+        if (["hidden", "clip", "auto", "scroll"].includes(style.overflowX)) {
+          left = Math.max(left, clipLeft);
+          right = Math.min(right, clipRight);
+        }
+        if (["hidden", "clip", "auto", "scroll"].includes(style.overflowY)) {
+          top = Math.max(top, clipTop);
+          bottom = Math.min(bottom, clipBottom);
+        }
+      }
+      return {x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top)};
+    }).filter((bounds) => bounds.width > 0 && bounds.height > 0);
     const suppressed = (element) => {
       for (let current = element; current; current = current.parentElement) {
-        if (current.hidden || current.classList.contains("hidden") || current.matches("details:not([open])")) return true;
+        if (current.hidden || current.classList.contains("hidden") || current.classList.contains("gg-visually-hidden") || current.matches("details:not([open])")) return true;
         const style = getComputedStyle(current);
         if (style.display === "none" || style.visibility === "hidden") return true;
       }
@@ -378,8 +476,13 @@ async function auditVisualStructure(page, result) {
       ? `${expectedElements.length} metadata field/control name(s) are represented by typed HTML controls`
       : `Missing typed representation for ${missingElements.join(", ")}`);
     const customHosts = [...(pageRoot?.querySelectorAll('[data-custom-control],[data-control-kind="CUSTOM_CONTAINER"]') ?? [])];
+    const directTextOf = (node) => [...node.childNodes]
+      .filter((child) => child.nodeType === Node.TEXT_NODE)
+      .map((child) => child.textContent || "")
+      .join(" ")
+      .trim();
     const customHostFor = (container) => customHosts.find((node) => nodeNames(node).some((value) => value === container.name || value.endsWith(`-${container.name}`))
-      || String(node.textContent || "").toUpperCase().includes(`NAME=${container.name};`));
+      || directTextOf(node).toUpperCase().includes(`NAME=${container.name};`));
     const missingContainers = (contract?.containers ?? [])
       .filter((container) => container.kind === "CUST_CTRL")
       .filter(() => kind === "DYNPRO")
@@ -388,6 +491,168 @@ async function auditVisualStructure(page, result) {
     check("custom-controls", missingContainers.length === 0, missingContainers.length === 0
       ? `${(contract?.containers ?? []).filter((container) => container.kind === "CUST_CTRL").length} custom-control host(s) represented`
       : `Missing custom-control host(s): ${missingContainers.join(", ")}`);
+    const diagnosticText = (value) => /^(?:name=[^;]*;\s*repid=.*|nodes=\d+;\s*items=\d+;\s*structure=.*|ALV border=\d+;\s*rows=\d+|ALV rows:\s*\d+|Tree rows:.*|Hierarchy column:.*)$/i.test(value.trim());
+    const contentSelectors = "tr,img,video,audio,canvas,svg,form,input,select,textarea,button,iframe,object,embed";
+    const insideToolbar = (element) => Boolean(element.closest('[role="toolbar"],.gg-control-toolbar,.gg-textedit-toolbar'));
+    const unobscured = (element) => {
+      const bounds = element.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) return false;
+      const top = document.elementFromPoint(bounds.left + Math.min(bounds.width / 2, 8), bounds.top + Math.min(bounds.height / 2, 8));
+      if (top?.getAttribute("data-control-kind") === "CUSTOM_CONTAINER") return true;
+      return Boolean(top && (top === element || element.contains(top) || top.contains(element)));
+    };
+    const hasMediaContent = (element) => {
+      switch (element.tagName.toLowerCase()) {
+        case "iframe": {
+          const body = element.contentDocument?.body;
+          const source = element.getAttribute("srcdoc") || "";
+          if (source.trim()) {
+            const parsed = new DOMParser().parseFromString(source, "text/html");
+            return Boolean(parsed.body.innerText.trim() || parsed.body.querySelector("tr,img,video,audio,canvas,svg,form,input,select,textarea,button,object,embed"));
+          }
+          return Boolean(body && (body.innerText.trim() || body.querySelector("*")));
+        }
+        case "img":
+          return element.naturalWidth > 0 || Boolean(element.getAttribute("alt")?.trim());
+        case "video":
+        case "audio":
+          return Boolean(element.currentSrc || element.getAttribute("src") || element.querySelector("source"));
+        case "form":
+          return Boolean(element.querySelector("input:not([type=hidden]),select,textarea,button"));
+        default:
+          return element.tagName.toLowerCase() !== "object" && element.tagName.toLowerCase() !== "embed"
+            || Boolean(element.getAttribute("data") || element.getAttribute("src"));
+      }
+    };
+    const hasRenderedContent = (root) => {
+      const hasText = [...root.querySelectorAll("*")].some((element) => {
+        if (!visible(element) || insideToolbar(element) || !unobscured(element)) return false;
+        const directText = directTextOf(element);
+        return directText.length > 0 && !diagnosticText(directText);
+      });
+      const hasContentNode = [...root.querySelectorAll(contentSelectors)].some((element) =>
+        visible(element) && !insideToolbar(element) && unobscured(element) && hasMediaContent(element));
+      if (hasText || hasContentNode) return true;
+      const nonContainerControl = [...root.querySelectorAll("[data-control-kind]")].some((element) =>
+        !["CUSTOM_CONTAINER", "DOCKING_CONTAINER", "SPLITTER_CONTAINER", "EASY_SPLITTER", "SPLITTER_CELL"].includes(String(element.getAttribute("data-control-kind")).toUpperCase()));
+      const toolbarButtons = [...root.querySelectorAll('.gg-control-toolbar button')]
+        .some((button) => visible(button) && unobscured(button) && Boolean((button.innerText || button.getAttribute("aria-label") || "").trim()));
+      return !nonContainerControl && toolbarButtons;
+    };
+    const emptyContainers = (contract?.containers ?? [])
+      .filter((container) => container.kind === "CUST_CTRL")
+      .filter((container) => kind === "DYNPRO")
+      .filter((container) => {
+        const host = customHostFor(container);
+        const exception = contract?.emptyContainerExceptions?.[container.name];
+        if (exception) return false;
+        if (!host) return true;
+        return !hasRenderedContent(host);
+      })
+      .map((container) => container.name);
+    const emptySplitterCells = [...(pageRoot?.querySelectorAll(".gg-splitter-cell") ?? [])]
+      .filter((cell) => visible(cell) && cell.querySelector('iframe[title="HTML viewer"]'))
+      .map((cell, index) => ({cell, key: cell.id || `SPLITTER_CELL_${index + 1}`, index: index + 1}))
+      .filter(({cell, key}) => !contract?.emptyContainerExceptions?.[key] && !hasRenderedContent(cell))
+      .map(({key, index}) => `${key} (splitter cell ${index})`);
+    const emptyHostIssues = [
+      ...emptyContainers.filter((name) => !contract?.emptyContainerExceptions?.[name]),
+      ...emptySplitterCells,
+    ];
+    check("empty-containers", emptyHostIssues.length === 0,
+      emptyHostIssues.length === 0
+        ? `${(contract?.containers ?? []).filter((container) => container.kind === "CUST_CTRL").length} custom-control host(s) and rendered splitter cells contain visible text, rows, or media/form content`
+        : `Empty custom-control host(s) or splitter cells: ${emptyHostIssues.join(", ")}`);
+    const textRegions = [];
+    const walker = document.createTreeWalker(pageRoot, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const text = String(node.textContent || "").replace(/\s+/g, " ").trim();
+      const parent = node.parentElement;
+      if (!text || !parent || parent.closest("script,style,template,textarea,select")) continue;
+      if (!visible(parent)) continue;
+      const range = document.createRange();
+      range.selectNode(node);
+      const rects = clipTextRects(parent, [...range.getClientRects()]
+        .filter((bounds) => bounds.width > 0 && bounds.height > 0)
+        .map((bounds) => ({x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height})));
+      if (rects.length > 0) textRegions.push({text, rects});
+    }
+    for (const control of pageRoot?.querySelectorAll("input:not([type=hidden]),textarea,select") ?? []) {
+      if (control.tagName === "INPUT" && ["checkbox", "radio", "button", "submit", "reset", "image", "color", "range", "file"].includes(control.type)) continue;
+      const text = control.tagName === "SELECT"
+        ? [...control.selectedOptions].map((option) => option.textContent || "").join(" ").trim()
+        : String(control.value || "").trim();
+      if (!text || !visible(control)) continue;
+      const bounds = control.getBoundingClientRect();
+      const rects = clipTextRects(control, [{x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height}]);
+      if (rects.length > 0) textRegions.push({text: text.replace(/\s+/g, " "), rects});
+    }
+    textRegions.push(...frameTextRegions);
+    const overlapToleranceArea = 4;
+    const overlappingText = [];
+    for (let leftIndex = 0; leftIndex < textRegions.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < textRegions.length; rightIndex += 1) {
+        let overlapArea = 0;
+        for (const left of textRegions[leftIndex].rects) {
+          for (const right of textRegions[rightIndex].rects) {
+            const width = Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x);
+            const height = Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y);
+            overlapArea = Math.max(overlapArea, width > 0 && height > 0 ? width * height : 0);
+          }
+        }
+        if (overlapArea > overlapToleranceArea) overlappingText.push({
+          first: textRegions[leftIndex].text.slice(0, 72),
+          second: textRegions[rightIndex].text.slice(0, 72),
+          area: Math.round(overlapArea),
+        });
+      }
+    }
+    check("overlapping-text", overlappingText.length === 0,
+      overlappingText.length === 0
+        ? `${textRegions.length} visible program text run(s) have no intersecting bounding boxes above ${overlapToleranceArea}px²`
+        : `${overlappingText.length} overlapping program text pair(s): ${overlappingText.slice(0, 3).map((pair) => `“${pair.first}” / “${pair.second}” (${pair.area}px²)`).join(", ")}`);
+    const hasScrollableRegion = (element, axis) => {
+      for (let current = element; current && current !== pageRoot; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        const overflow = axis === "y" ? style.overflowY : style.overflowX;
+        if (["hidden", "clip"].includes(overflow)) return false;
+        if (["auto", "scroll"].includes(overflow)) {
+          const scrollSize = axis === "y" ? current.scrollHeight : current.scrollWidth;
+          const clientSize = axis === "y" ? current.clientHeight : current.clientWidth;
+          if (scrollSize > clientSize + 2) return true;
+        }
+      }
+      return false;
+    };
+    const clippingIssues = [];
+    const clippingCandidates = [...(pageRoot?.querySelectorAll("[data-control-kind],.gg-dynpro-control,table,textarea") ?? [])]
+      .filter(visible);
+    for (const element of clippingCandidates) {
+      const label = element.getAttribute("aria-label")
+        || element.getAttribute("data-control-kind")
+        || element.getAttribute("data-abap-name")
+        || element.id
+        || element.tagName.toLowerCase();
+      const excess = element.scrollHeight - element.clientHeight;
+      if (excess > 2 && !hasScrollableRegion(element, "y")) {
+        clippingIssues.push(`${label} exceeds its height by ${excess}px without a scrollable region`);
+      }
+    }
+    const listOutput = pageRoot?.querySelector(".gg-list");
+    if (listOutput && kind === "LIST") {
+      const listBounds = listOutput.getBoundingClientRect();
+      const captureBounds = runtime.getBoundingClientRect();
+      const captureBottom = Math.min(captureBounds.bottom, captureBounds.top + runtime.clientHeight);
+      const belowCapture = Math.ceil(listBounds.bottom - captureBottom);
+      if (belowCapture > 2 && !hasScrollableRegion(listOutput, "y")) {
+        clippingIssues.push(`list output extends ${belowCapture}px below the captured work area without an in-page scrollable region`);
+      }
+    }
+    check("unscrollable-clipping", clippingIssues.length === 0,
+      clippingIssues.length === 0
+      ? `${clippingCandidates.length} visible controls/tables fit their client area or have a scrollable region`
+        : `${clippingIssues.length} clipped control/table region(s): ${clippingIssues.slice(0, 4).join(", ")}`);
     const orderedPositions = expectedElements.map((element) => namedNodes.indexOf(findElement(element))).filter((index) => index >= 0);
     check("field-order", orderedPositions.every((position, index) => index === 0 || position >= orderedPositions[index - 1]), "Metadata field/control order is preserved in document order");
 
@@ -425,12 +690,21 @@ async function auditVisualStructure(page, result) {
       kind,
       geometry: {page: rect(pageRoot), workArea: rect(workArea)},
       checks,
+      metrics: {
+        emptyContainerCount: emptyHostIssues.length,
+        emptyContainerNames: emptyHostIssues,
+        overlapCount: overlappingText.length,
+        clippingCount: clippingIssues.length,
+        clippingIssues,
+        visibleTextRunCount: textRegions.length,
+      },
     };
-  }, result.visualContract);
+  }, {contract: auditContract, frameTextRegions});
   const failed = audit.checks.filter((check) => !check.pass);
   return {
     status: failed.length === 0 ? "passed" : "failed",
     checks: audit.checks,
+    metrics: audit.metrics,
     evidence: failed.length === 0
       ? `Reference-structure audit passed for ${audit.kind}: hierarchy, typed controls, field order, grouping/density, alignment, visible state, geometry, and initial focus are represented in accessible HTML.`
       : failed.map((check) => `${check.id}: ${check.evidence}`).join("; "),
@@ -488,6 +762,15 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
         }
         assert.equal(response?.status(), 200, `${result.programName} action ${action.value || action.label} did not return HTTP 200: ${await response?.text()}`);
         await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        if (result.programName === "ZGG_GUI_ALV_DYNAMIC" && action.value !== "BACK") {
+          const bodyText = await actionPage.locator("body").textContent();
+          assert.match(bodyText, /Dynamic ALV action not applied/,
+            `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} did not report the capability boundary`);
+          assert.match(bodyText, /No table rows or cell styles were changed/,
+            `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} implied an unperformed table change`);
+          assert.doesNotMatch(bodyText, /appended row|toggled the ACTIVE cell|rows and generated cell-style entries reset/i,
+            `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} reported an unperformed table change`);
+        }
         const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
         const after = await programOwnedFingerprint(actionPage);
         const programEffect = before !== after;
@@ -601,7 +884,19 @@ function applyComparisonGates(results, comparisonSummary) {
     const stateChangedCount = (result.interactionAudit?.journeys ?? []).filter((journey) => journey.programEffect === true).length;
     const idempotentCount = (result.interactionAudit?.journeys ?? []).filter((journey) => journey.idempotent === true).length;
     const journeyCount = result.interactionAudit?.journeyCount ?? 0;
-    const visualPassed = result.visualStructureAudit?.status === "passed";
+    const visualAudit = result.visualStructureAudit;
+    const visualChecks = new Map((visualAudit?.checks ?? []).map((check) => [check.id, check]));
+    const realContentChecksPassed = ["typed-surface", "control-types", "empty-containers"]
+      .every((id) => visualChecks.get(id)?.pass === true);
+    const phase0ChecksPassed = ["empty-containers", "overlapping-text", "unscrollable-clipping"]
+      .every((id) => visualChecks.get(id)?.pass === true);
+    const visualMetrics = visualAudit?.metrics;
+    const visualPassed = visualAudit?.status === "passed"
+      && realContentChecksPassed
+      && phase0ChecksPassed
+      && visualMetrics?.emptyContainerCount === 0
+      && visualMetrics?.overlapCount === 0
+      && visualMetrics?.clippingCount === 0;
     result.comparisonGates = {
       semanticContent: {
         status: semanticPassed ? "passed" : "failed",
@@ -621,10 +916,10 @@ function applyComparisonGates(results, comparisonSummary) {
         status: visualPassed ? "passed" : "failed",
         rule: comparisonGateDefinitions[2].rule,
         evidence: visualPassed
-          ? `${result.visualStructureAudit.evidence} Pixel evidence remains available separately${comparison ? ` (${comparison.changedPixels} changed of ${comparison.totalPixels}).` : "."}`
+          ? `${visualAudit.evidence} Real control content and all Phase 0 checks passed. Pixel evidence remains available separately${comparison ? ` (${comparison.changedPixels} changed of ${comparison.totalPixels}).` : "."}`
           : comparison
             ? `The normalized screenshot differs in ${comparison.changedPixels} of ${comparison.totalPixels} pixels; visual parity remains open.`
-            : result.visualStructureAudit?.evidence || "No normalized screenshot comparison was produced.",
+            : visualAudit?.evidence || "No normalized screenshot comparison was produced.",
       },
     };
     result.comparisonAccepted = Object.values(result.comparisonGates).every((gate) => gate.status === "passed");
@@ -690,6 +985,18 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
       const gate = gates[id] || {status: "not-run", evidence: "Pixel similarity alone cannot pass this gate."};
       return `<li class="gate gate--${escapeHtml(gate.status)}"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(gate.status)}<span>${escapeHtml(gate.evidence || gate.rule || "")}</span></li>`;
     }).join("");
+    const renderingCheck = (id) => (result.visualStructureAudit?.checks ?? []).find((check) => check.id === id);
+    const renderingCheckStatus = (check) => check ? (check.pass ? "pass" : "fail") : "not-run";
+    const renderingMetrics = result.visualStructureAudit?.metrics ?? {};
+    const emptyCheck = renderingCheck("empty-containers");
+    const overlapCheck = renderingCheck("overlapping-text");
+    const clippingCheck = renderingCheck("unscrollable-clipping");
+    const emptyCount = Number.isFinite(renderingMetrics.emptyContainerCount) ? renderingMetrics.emptyContainerCount : "not recorded";
+    const overlapCount = Number.isFinite(renderingMetrics.overlapCount) ? renderingMetrics.overlapCount : "not recorded";
+    const clippingCount = Number.isFinite(renderingMetrics.clippingCount) ? renderingMetrics.clippingCount : "not recorded";
+    const title = result.visualContract?.title || "not recorded";
+    const titleSource = result.visualContract?.titleSource || "not recorded";
+    const renderingEvidenceMarkup = `<section class="rendering-evidence" aria-label="Per-report rendering evidence" data-empty-containers="${escapeHtml(emptyCount)}" data-overlap-count="${escapeHtml(overlapCount)}" data-clipping-count="${escapeHtml(clippingCount)}" data-title-source="${escapeHtml(titleSource)}"><h3>Per-report rendering evidence</h3><dl><dt>Container emptiness</dt><dd class="evidence-${renderingCheckStatus(emptyCheck)}"><strong>${escapeHtml(renderingCheckStatus(emptyCheck))}</strong> — ${escapeHtml(emptyCount)} empty container(s)${emptyCheck?.evidence ? `; ${escapeHtml(emptyCheck.evidence)}` : ""}</dd><dt>Overlap count</dt><dd class="evidence-${renderingCheckStatus(overlapCheck)}"><strong>${escapeHtml(renderingCheckStatus(overlapCheck))}</strong> — ${escapeHtml(overlapCount)} overlapping text pair(s)${overlapCheck?.evidence ? `; ${escapeHtml(overlapCheck.evidence)}` : ""}</dd><dt>Clipping count</dt><dd class="evidence-${renderingCheckStatus(clippingCheck)}"><strong>${escapeHtml(renderingCheckStatus(clippingCheck))}</strong> — ${escapeHtml(clippingCount)} unscrollable clipped region(s)${clippingCheck?.evidence ? `; ${escapeHtml(clippingCheck.evidence)}` : ""}</dd><dt>Title source</dt><dd><strong>${escapeHtml(titleSource)}</strong> — ${escapeHtml(title)}</dd></dl></section>`;
     const accepted = result.comparisonAccepted === true;
     return `<article class="comparison-card comparison-card--${status}" id="${escapeHtml(result.programName.toLowerCase())}" data-program="${escapeHtml(result.programName)}" data-conversion-status="${status}" data-activation-status="${escapeHtml(activationStatus)}" data-application-parity-candidate="${parityCandidate}" data-comparison-accepted="${accepted}">
   <header><h2>${escapeHtml(result.programName)}</h2><span class="status">${statusLabel}</span><span class="comparison-status">${accepted ? "accepted" : "not accepted"}</span><span class="activation-status">Activation: ${escapeHtml(activationStatus)}</span><span class="diagnostic-count">${diagnosticSummary}</span></header>
@@ -699,8 +1006,9 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
     <figure><figcaption>Optional pixel diff <span>${dimensionsText(diff?.dimensions)}</span></figcaption>${imageMarkup({info: diff, alt: `${result.programName} pixel difference`, missingLabel: "No diff image generated"})}</figure>
   </div>
   <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}<br><strong>First-screen smoke:</strong> ${escapeHtml(result.smokeTest?.status || "not-run")}${result.smokeTest?.pageKind ? ` (${escapeHtml(result.smokeTest.pageKind)})` : ""}<br><strong>Interaction audit:</strong> ${escapeHtml(result.interactionAudit?.status || "not-run")}${result.interactionAudit?.journeyCount !== undefined ? ` (${escapeHtml(result.interactionAudit.journeyCount)} journeys)` : ""}</p>
+  ${renderingEvidenceMarkup}
   ${referenceAudit ? `<section class="reference-audit" data-reference-audit="${escapeHtml(referenceAudit.status)}"><h3>Reference audit: ${escapeHtml(referenceAudit.acceptance)}</h3><p><strong>Observed:</strong> ${escapeHtml(referenceAudit.observedState)}<br><strong>Intended:</strong> ${escapeHtml(referenceAudit.intendedState)}${referenceAudit.verification ? `<br><strong>Verification:</strong> ${escapeHtml(referenceAudit.verification)}` : ""}</p></section>` : ""}
-  ${fallbackAudit ? `<section class="fallback-audit" data-fallback-audit="${escapeHtml(fallbackAudit.status)}"><h3>Intentional capability boundary: ${escapeHtml(fallbackAudit.acceptance)}</h3><p><strong>Native evidence:</strong> ${escapeHtml(fallbackAudit.nativeEvidence)}<br><strong>Browser contract:</strong> ${escapeHtml(fallbackAudit.browserContract)}</p></section>` : ""}
+  ${fallbackAudit ? `<section class="fallback-audit" data-fallback-audit="${escapeHtml(fallbackAudit.status)}"><h3>Intentional capability boundary: ${escapeHtml(fallbackAudit.acceptance)}</h3><p><strong>Native evidence:</strong> ${escapeHtml(fallbackAudit.nativeEvidence)}<br><strong>Browser contract:</strong> ${escapeHtml(fallbackAudit.browserContract)}${fallbackAudit.verification ? `<br><strong>Verification:</strong> ${escapeHtml(fallbackAudit.verification)}` : ""}</p></section>` : ""}
   <section class="gate-section" aria-label="Comparison gates"><h3>Comparison gates</h3><ul>${gateMarkup}</ul><p>Pixel similarity is visual evidence only; acceptance requires all three gates to pass.</p></section>
   ${diagnosticMarkup(result.diagnostics)}
 </article>`;
@@ -733,6 +1041,14 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
       img { display: block; width: 100%; height: auto; border: 1px solid #ccd6e0; background: #fff; }
       .missing { display: grid; min-height: 10rem; place-items: center; border: 1px dashed #aebfd2; color: #6d7f90; background: #f6f8fa; text-align: center; }
       .metadata { margin: .8rem 0 0; color: #52677c; font-size: .9rem; }
+      .rendering-evidence { margin-top: .8rem; border: 1px solid #b7c5d3; border-radius: 4px; padding: .6rem .75rem; background: #f7fafc; }
+      .rendering-evidence h3 { margin: 0 0 .35rem; font-size: .9rem; }
+      .rendering-evidence dl { display: grid; grid-template-columns: minmax(10rem, max-content) 1fr; gap: .25rem .75rem; margin: 0; font-size: .85rem; }
+      .rendering-evidence dt { color: #52677c; font-weight: 650; }
+      .rendering-evidence dd { margin: 0; color: #52677c; }
+      .rendering-evidence .evidence-pass strong { color: #155c25; }
+      .rendering-evidence .evidence-fail strong { color: #9a1f1f; }
+      .rendering-evidence .evidence-not-run strong { color: #704900; }
       .reference-audit { margin-top: .8rem; border: 1px solid #e0b45c; border-radius: 4px; padding: .6rem .75rem; color: #704900; background: #fff7df; }
       .reference-audit h3 { margin: 0 0 .35rem; font-size: .9rem; }
       .reference-audit p { margin: 0; font-size: .85rem; }
@@ -856,7 +1172,6 @@ for (const filename of reportFiles) {
     filename,
     className,
     transactionCode: transactionCode(programName),
-    description: `Converted gg-gui report ${programName}`,
     mode: "partial",
     resolveInclude,
     screenMetadata,
@@ -868,6 +1183,10 @@ for (const filename of reportFiles) {
     ? supportProbe
     : await convertProgram({...conversionOptions, partialStrategy: "skeleton"});
   assert.ok(result.classSource, `Converter emitted no partial class for ${filename}`);
+  if (screenMetadata?.reportTitle) {
+    assert.equal(result.reportIR?.reportTitle, screenMetadata.reportTitle, `${filename} report title should come from TPOOL R`);
+    assert.equal(result.reportIR?.description, screenMetadata.reportTitle, `${filename} metadata title should remain the conversion description`);
+  }
   await fs.writeFile(path.join(generatedRoot, `${result.manifest.targetClass.toLowerCase()}.clas.abap`), result.classSource, "utf8");
   for (const helper of result.helperSources ?? []) {
     await fs.writeFile(path.join(generatedRoot, `${helper.className.toLowerCase()}.clas.abap`), helper.source, "utf8");
@@ -917,6 +1236,7 @@ await fs.writeFile(transpileConfigPath, `${JSON.stringify({
 const revision = await runCommand("git", ["-C", sourceRepository, "rev-parse", "HEAD"], {stdio: "pipe"});
 await writeReferenceAudit(revision, referenceRoot);
 await writeFallbackAudit(revision, referenceRoot);
+const recordedFallbackAudit = JSON.parse(await fs.readFile(path.join(validationRoot, "fallback-audit.json"), "utf8"));
 await fs.writeFile(path.join(validationRoot, "known-failing.json"), `${JSON.stringify({
   repositoryUrl,
   revision,
@@ -925,8 +1245,28 @@ await fs.writeFile(path.join(validationRoot, "known-failing.json"), `${JSON.stri
     programName,
     reason: "The report is retained as a known failing conversion until its own logic and program-owned effects are functional.",
   })),
+  visualGates: [
+    {
+      id: "empty-containers",
+      reports: knownFailingEmptyContainerReports,
+    },
+    {
+      id: "overlapping-text",
+      reports: knownFailingOverlapReports.map((programName) => ({
+        programName,
+        reason: "Visible program text regions intersect above the 4px² tolerance.",
+      })),
+    },
+    {
+      id: "unscrollable-clipping",
+      reports: knownFailingClippingReports.map((programName) => ({
+        programName,
+      reason: "Visible control content exceeds its height by more than 2px without a scrollable region.",
+      })),
+    },
+  ],
 }, null, 2)}\n`, "utf8");
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
 console.log(`Converted ${results.length} gg-gui reports from ${revision}`);
 
 await runCommand(repositoryTool("abap_transpile"), [path.relative(repositoryRoot, transpileConfigPath)]);
@@ -945,7 +1285,7 @@ for (const result of results) {
   };
   result.applicationParityCandidate = true;
 }
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
 
 let hostProcess;
 let browser;
@@ -1003,10 +1343,33 @@ try {
       headings: smoke.headings,
       evidence: `Report-specific content ${reportSpecificName || matchingTokens.join(", ")} rendered on ${smoke.pageKind}; no generic partial-conversion heading found.`,
     };
-    result.visualStructureAudit = await auditVisualStructure(page, result);
+    if (result.programName === "ZGG_GUI_ALV_DYNAMIC") {
+      const boundary = page.locator(".gg-capability-boundary");
+      assert.equal(await boundary.count(), 1, "ZGG_GUI_ALV_DYNAMIC must show its one explicit ALV capability boundary");
+      const boundaryText = await boundary.textContent();
+      assert.match(boundaryText, /Dynamic ALV output unavailable/);
+      assert.match(boundaryText, /Its rows and row changes are not displayed\./);
+    }
+    result.visualStructureAudit = await auditVisualStructure(page, result, recordedFallbackAudit.fallbacks[result.programName]);
     await waitForDeterministicFonts(page);
     await page.screenshot({path: path.join(screenshotsRoot, `${result.programName.toLowerCase()}.png`), fullPage: true});
   }
+  const actualEmptyContainerFailures = [...new Set(results
+    .filter((result) => result.visualStructureAudit.checks.some((check) => check.id === "empty-containers" && !check.pass))
+    .map((result) => result.programName))].sort();
+  const expectedEmptyContainerFailures = knownFailingEmptyContainerReports.map((item) => item.programName).sort();
+  assert.deepEqual(actualEmptyContainerFailures, expectedEmptyContainerFailures,
+    "The empty-container gate red set changed; update knownFailingEmptyContainerReports after reviewing the rendered hosts.");
+  const actualOverlapFailures = [...new Set(results
+    .filter((result) => result.visualStructureAudit.checks.some((check) => check.id === "overlapping-text" && !check.pass))
+    .map((result) => result.programName))].sort();
+  assert.deepEqual(actualOverlapFailures, [...knownFailingOverlapReports].sort(),
+    `The overlapping-text gate red set changed; update knownFailingOverlapReports after reviewing the text rectangles. ${JSON.stringify(results.filter((result) => actualOverlapFailures.includes(result.programName)).map((result) => ({programName: result.programName, evidence: result.visualStructureAudit.checks.find((check) => check.id === "overlapping-text")?.evidence})))}`);
+  const actualClippingFailures = [...new Set(results
+    .filter((result) => result.visualStructureAudit.checks.some((check) => check.id === "unscrollable-clipping" && !check.pass))
+    .map((result) => result.programName))].sort();
+  assert.deepEqual(actualClippingFailures, [...knownFailingClippingReports].sort(),
+    `The unscrollable-clipping gate red set changed; review the clipped regions before updating knownFailingClippingReports. ${JSON.stringify(results.filter((result) => actualClippingFailures.includes(result.programName)).map((result) => ({programName: result.programName, evidence: result.visualStructureAudit.checks.find((check) => check.id === "unscrollable-clipping")?.evidence})))}`);
   await runReferenceInteractionAudit(browser, baseUrl, results);
   const variantsPage = await newScreenshotPage(browser);
   variantsPage.on("dialog", async (dialog) => dialog.accept());
@@ -1397,7 +1760,7 @@ try {
   const comparisonSummary = JSON.parse(await fs.readFile(path.join(diffRoot, "summary.json"), "utf8"));
   applyComparisonGates(results, comparisonSummary);
   await writeScreenshotIndex(results, revision, referenceRoot);
-  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, reports: results}, null, 2)}\n`, "utf8");
+  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
 } finally {
   await browser?.close();
   await stopProcess(hostProcess);

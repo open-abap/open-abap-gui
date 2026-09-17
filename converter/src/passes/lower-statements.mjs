@@ -1289,6 +1289,19 @@ function unboundFieldSymbols(statement, bound) {
   return [...new Set(referencedFieldSymbols(statement.text))].filter((name) => !bound.has(name));
 }
 
+function unsupportedAlvTableBoundary(statement, unbound, context) {
+  if (!unbound.length) return undefined;
+  const match = /^\s*(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*->\s*SET_TABLE_FOR_FIRST_DISPLAY\b/i.exec(statement.text.trim());
+  if (!match) return undefined;
+  const receiver = replaceOutsideStrings(match[1].toLowerCase(), context.replacements ?? []);
+  const omitted = `* TODO GGCONV-E515: statement omitted, field symbol${unbound.length > 1 ? "s" : ""} ${unbound.map((name) => `<${name.toLowerCase()}>`).join(" ")} ${unbound.length > 1 ? "have" : "has"} no convertible binding: ${statement.text.trim().replace(/\s+/g, " ")}`;
+  return [
+    omitted,
+    `${receiver}->show_capability_boundary( heading = 'Dynamic ALV output unavailable' explanation = 'This report depends on generic field-symbol table bindings that the browser converter cannot safely reproduce. Its rows and row changes are not displayed.' ).`,
+    "RETURN.",
+  ].join("\n");
+}
+
 function isCommentOnly(lowered) {
   return lowered === undefined || lowered.split("\n").every((line) => line.trim().startsWith("*"));
 }
@@ -1370,7 +1383,9 @@ export function lowerStatements(statements, context) {
       ? { ...statement, text: statement.text.replace(/^\s*WRITE\s*\/\s*/i, "WRITE ") }
       : statement;
     const unbound = bound ? unboundFieldSymbols(statement, bound) : [];
-    const lowered = unbound.length ? undefined : lowerStatement(lowerInput, statementContext);
+    const lowered = unbound.length
+      ? unsupportedAlvTableBoundary(statement, unbound, statementContext)
+      : lowerStatement(lowerInput, statementContext);
     const omitted = unbound.length
       ? `* TODO GGCONV-E515: statement omitted, field symbol${unbound.length > 1 ? "s" : ""} ${unbound.map((name) => `<${name.toLowerCase()}>`).join(" ")} ${unbound.length > 1 ? "have" : "has"} no convertible binding: ${statement.text.trim().replace(/\s+/g, " ")}`
       : `* TODO GGCONV-E501: unsupported statement omitted: ${statement.text.trim().replace(/\s+/g, " ")}`;

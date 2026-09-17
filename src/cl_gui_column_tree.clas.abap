@@ -91,6 +91,7 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
              disabled     TYPE abap_bool,
              alignment    TYPE i,
              width        TYPE i,
+             width_pix    TYPE abap_bool,
              header_image TYPE string,
              header_text  TYPE string,
              tooltip      TYPE string,
@@ -109,6 +110,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
     READ TABLE mt_columns ASSIGNING FIELD-SYMBOL(<column>) INDEX 1.
     IF sy-subrc = 0.
       <column>-width = width.
+      <column>-width_pix = xsdbool( width_pix = abap_true ).
     ENDIF.
     refresh_column_html( ).
   ENDMETHOD.
@@ -148,8 +150,13 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
           OR ( end_column IS SUPPLIED AND <column>-name <= CONV string( end_column ) ).
         <column>-width = COND #( WHEN include_heading = abap_true
                                   AND strlen( <column>-header_text ) > 0
-                                 THEN strlen( <column>-header_text ) * 8
+                                  THEN strlen( <column>-header_text ) * 8
                                  ELSE COND #( WHEN <column>-width > 0 THEN <column>-width ELSE 80 ) ).
+        IF include_heading = abap_true AND strlen( <column>-header_text ) > 0.
+          <column>-width_pix = abap_true.
+        ELSEIF <column>-width <= 0.
+          <column>-width_pix = abap_true.
+        ENDIF.
       ENDIF.
     ENDLOOP.
     refresh_column_html( ).
@@ -175,6 +182,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
     ms_hierarchy_header = hierarchy_header.
     APPEND VALUE #( name         = CONV string( hierarchy_column_name )
                     width        = hierarchy_header-width
+                    width_pix    = xsdbool( hierarchy_header-width_pix = abap_true )
                     header_image = hierarchy_header-t_image
                     header_text  = hierarchy_header-heading
                     tooltip      = hierarchy_header-tooltip ) TO mt_columns.
@@ -197,6 +205,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
                     disabled     = disabled
                     alignment    = alignment
                     width        = width
+                    width_pix    = width_pix
                     header_image = CONV string( header_image )
                     header_text  = CONV string( header_text )
                     tooltip      = CONV string( header_tooltip ) ) TO mt_columns.
@@ -223,14 +232,59 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
       IF lv_column_heading IS INITIAL.
         lv_column_heading = ls_column-name.
       ENDIF.
-      lv_width = COND string( WHEN ls_column-width > 0 THEN | style="width:{ ls_column-width }px"| ELSE `` ).
+      lv_width = COND string(
+        WHEN ls_column-width > 0 AND ls_column-width_pix = abap_true
+          THEN | style="width:{ ls_column-width }px"|
+        WHEN ls_column-width > 0
+          THEN | style="width:{ ls_column-width }ch"|
+        ELSE `` ).
       lv_html = lv_html && |<th scope="col" data-column-name="{ escape_html( ls_column-name ) }"{ lv_width } title="{ escape_html( ls_column-tooltip ) }">{ escape_html( lv_column_heading ) }</th>|.
     ENDLOOP.
     lv_html = lv_html && |</tr></thead><tbody>|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      lv_indent = ( node_level( ls_node-node_key ) - 1 ) * 18.
-      DATA(lv_tree_marker) = COND string( WHEN ls_node-expanded = abap_true THEN 'v' ELSE '>' ).
-      lv_html = lv_html && |<tr data-node-key="{ escape_html( ls_node-node_key ) }"><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px">{ lv_tree_marker } { escape_html( ls_node-text ) }</span></th>|.
+      DATA(lv_tree_level) = node_level( ls_node-node_key ).
+      lv_indent = ( lv_tree_level - 1 ) * 18.
+      DATA(lv_has_children) = node_has_children( ls_node-node_key ).
+      DATA(lv_is_expanded) = xsdbool( lv_has_children = abap_true
+                                      AND ls_node-expanded = abap_true
+                                      AND line_exists( mt_html_nodes[ parent_key = ls_node-node_key ] ) ).
+      DATA(lv_expanded_attr) = COND string(
+        WHEN lv_has_children = abap_true
+          THEN | aria-expanded="{ COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) }"|
+        ELSE `` ).
+      DATA(lv_tree_marker) = COND string(
+        WHEN lv_has_children = abap_false THEN ``
+        WHEN lv_is_expanded = abap_true THEN '&#9662;'
+        ELSE '&#9656;' ).
+      DATA(lv_icon_name) = COND string(
+        WHEN ls_node-folder = abap_true OR lv_has_children = abap_true
+          THEN COND string( WHEN lv_is_expanded = abap_true THEN 'folder-open' ELSE 'folder' )
+        ELSE 'file-code' ).
+      DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name = lv_icon_name ).
+      DATA(lv_node_image) = COND string(
+        WHEN lv_is_expanded = abap_true AND ls_node-open_image IS NOT INITIAL THEN ls_node-open_image
+        ELSE ls_node-node_image ).
+      DATA(lv_visible) = xsdbool( ls_node-hidden = abap_false ).
+      DATA(lv_parent_key) = ls_node-parent_key.
+      DO 32 TIMES.
+        IF lv_parent_key IS INITIAL.
+          EXIT.
+        ENDIF.
+        READ TABLE mt_html_nodes INTO DATA(ls_parent)
+          WITH KEY node_key = lv_parent_key.
+        IF sy-subrc <> 0.
+          EXIT.
+        ENDIF.
+        IF ls_parent-expanded = abap_false.
+          lv_visible = abap_false.
+        ENDIF.
+        lv_parent_key = ls_parent-parent_key.
+      ENDDO.
+      DATA(lv_hidden_attr) = COND string( WHEN lv_visible = abap_false THEN ' hidden' ELSE `` ).
+      DATA(lv_node_image_attr) = COND string(
+        WHEN lv_node_image IS INITIAL THEN ``
+        ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ).
+      lv_html = lv_html && |<tr class="gg-column-tree-node" role="treeitem" tabindex="0" aria-level="{ lv_tree_level }" data-tree-level="{ lv_tree_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_expanded_attr }{ lv_hidden_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ lv_node_image_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
       LOOP AT mt_columns INTO DATA(ls_extra_column) FROM 2 WHERE hidden = abap_false.
         DATA(ls_item) = VALUE ty_html_item( ).
         READ TABLE mt_html_items INTO ls_item

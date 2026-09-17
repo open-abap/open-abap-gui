@@ -20,6 +20,10 @@ CLASS cl_salv_column DEFINITION PUBLIC.
       RETURNING
         VALUE(value) TYPE lvc_fname.
 
+    METHODS is_technical
+      RETURNING
+        VALUE(value) TYPE abap_bool.
+
     METHODS get_short_text
       RETURNING
         VALUE(value) TYPE string.
@@ -145,8 +149,13 @@ CLASS cl_salv_column IMPLEMENTATION.
     value = mv_columnname.
   ENDMETHOD.
 
+  METHOD is_technical.
+    value = mv_technical.
+  ENDMETHOD.
+
   METHOD constructor.
     mv_columnname = columnname.
+    mv_visible = abap_true.
   ENDMETHOD.
 
   METHOD get_short_text.

@@ -27,7 +27,9 @@ CLASS cl_simple_tree_model IMPLEMENTATION.
     LOOP AT node_table INTO DATA(ls_input).
       store_node( VALUE #( node_key   = CONV string( ls_input-node_key )
                            parent_key = CONV string( ls_input-relatkey )
-                           text       = CONV string( ls_input-node_key )
+                           text       = COND string( WHEN ls_input-text IS INITIAL
+                                                    THEN CONV string( ls_input-node_key )
+                                                    ELSE CONV string( ls_input-text ) )
                            expanded   = xsdbool( ls_input-expander IS NOT INITIAL )
                            hidden     = xsdbool( ls_input-hidden IS NOT INITIAL ) ) ).
     ENDLOOP.

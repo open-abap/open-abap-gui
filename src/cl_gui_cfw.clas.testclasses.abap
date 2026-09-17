@@ -7,11 +7,19 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS container_and_column_state FOR TESTING.
     METHODS alv_editable_metadata FOR TESTING.
     METHODS alv_sort_filter_total FOR TESTING.
+    METHODS alv_total_decimal_places FOR TESTING.
+    METHODS alv_subtotals FOR TESTING.
+    METHODS calendar_week_navigator FOR TESTING.
+    METHODS dialogbox_nested_surface FOR TESTING.
     METHODS picture_safe_state FOR TESTING.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
     METHODS alv_tree_outtab_roundtrip FOR TESTING.
+    METHODS simple_tree_renders_nodes FOR TESTING.
+    METHODS column_tree_renders_hierarchy FOR TESTING.
     METHODS html_alv_structured_rows FOR TESTING.
+    METHODS html_alv_formatting FOR TESTING.
+    METHODS control_capability_boundary FOR TESTING.
     METHODS html_typed_surface FOR TESTING.
     METHODS html_viewer_sapevent FOR TESTING.
     METHODS html_viewer_without_sapevent FOR TESTING.
@@ -150,9 +158,20 @@ CLASS ltcl_test IMPLEMENTATION.
 
     DATA(lv_html) = cl_gui_control=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-toolbar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-tool-button' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'COMMAND:TEXTEDIT_CUT' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-statusbar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Li 3, Co 3' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Ln 1 - Ln 3 of 3 lines' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-wordwrap-position="72"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-protected-from="1"' ) ).
+
+    DATA(lv_host_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'TEXTEDIT-ROUNDTRIP' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_host_html CS 'gg-textedit-shell' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_host_html CS 'height:100%' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_host_html CS 'height:42px' ) ).
 
     lo_editor->delete_text( ).
     lo_editor->get_textstream(
@@ -264,6 +283,9 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>210</td>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-grid-total' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>340</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-tool-button' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Refresh"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Sort ascending"' ) ).
     cl_gui_control=>clear( ).
   ENDMETHOD.
 
@@ -354,7 +376,8 @@ CLASS ltcl_test IMPLEMENTATION.
     lo_salv->display( ).
     DATA(lv_html) = cl_gui_control=>render_html( ).
 
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'type="date"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-calendar-week-grid' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'type="date"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'role="tree"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-tree-node gg-state' ) ).
@@ -369,14 +392,78 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_gui_control=>clear_external_html( ).
   ENDMETHOD.
 
+  METHOD calendar_week_navigator.
+    DATA lv_april_offset TYPE i.
+    DATA lv_january_offset TYPE i.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'CALENDAR-WEEK-NAVIGATOR' ).
+    DATA(lo_calendar) = NEW cl_gui_calendar(
+      parent         = lo_root
+      view_style     = 4
+      focus_date     = '20260824'
+      display_months = 3
+      week_begin_day = 1 ).
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'CALENDAR-WEEK-NAVIGATOR' ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-month-count="10"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'rowspan="2">WN</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>2026/4</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>2027/1</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>MO</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>SU</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-date="20260824" aria-selected="true"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'type="date"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-date-range="/"' ) ).
+    FIND FIRST OCCURRENCE OF '>2026/4</th>' IN lv_html MATCH OFFSET lv_april_offset.
+    FIND FIRST OCCURRENCE OF '>2027/1</th>' IN lv_html MATCH OFFSET lv_january_offset.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_april_offset < lv_january_offset ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD dialogbox_nested_surface.
+    DATA lv_html TYPE string.
+    DATA lv_textedit_count TYPE i.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'DIALOG-HOST' ).
+    DATA(lo_dialog) = NEW cl_gui_dialogbox_container(
+      parent  = lo_root
+      left    = 80
+      top     = 60
+      width   = 600
+      height  = 320
+      caption = 'SAP GUI modeless control dialog' ).
+    DATA(lo_editor) = NEW cl_gui_textedit( parent = lo_dialog ).
+    lo_editor->set_textstream( 'The owning dynpro remains active.' ).
+    lv_html = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'DIALOG-HOST' ).
+    FIND ALL OCCURRENCES OF 'data-control-kind="TEXTEDIT"' IN lv_html MATCH COUNT lv_textedit_count.
+
+    cl_abap_unit_assert=>assert_equals(
+      exp = 1
+      act = lv_textedit_count ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-dialog-title">SAP GUI modeless control dialog</header>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-dialog-body"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-dialog-width="600"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-dialog-height="320"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'The owning dynpro remains active.' ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
   METHOD alv_tree_outtab_roundtrip.
     DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     DATA lt_fieldcat TYPE lvc_t_fcat.
+    DATA lo_toolbar TYPE REF TO cl_gui_toolbar.
     DATA lv_root TYPE lvc_nkey.
     DATA lv_leaf TYPE lvc_nkey.
     DATA lv_row TYPE string.
     DATA lv_outtab_line TYPE string.
-    DATA(lo_tree) = NEW cl_gui_alv_tree( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV_TREE_OUTTAB' ).
+    DATA(lo_tree) = NEW cl_gui_alv_tree( parent = lo_container ).
 
     APPEND 'row' TO lt_rows.
     lo_tree->set_table_for_first_display(
@@ -399,6 +486,15 @@ CLASS ltcl_test IMPLEMENTATION.
         i_node_text      = 'Leaf'
       IMPORTING
         e_new_node_key   = lv_leaf ).
+    lo_tree->get_toolbar_object( IMPORTING er_toolbar = lo_toolbar ).
+    lo_toolbar->add_button( fcode     = 'TEST'
+                            icon      = '@00@'
+                            butn_type = 0
+                            text      = 'Tree action' ).
+    lo_tree->frontend_update( ).
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'ALV_TREE_OUTTAB' ).
 
     lo_tree->get_outtab_line(
       EXPORTING
@@ -409,6 +505,162 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lv_outtab_line
       exp = lv_row ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Tree action' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-toolbar-button-type="0"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-icon"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-tree-toolbar-spacer' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'height:32px' ) ).
+  ENDMETHOD.
+
+  METHOD simple_tree_renders_nodes.
+    DATA lt_nodes TYPE string_table.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'SIMPLE-TREE-TEST' ).
+    DATA(lo_tree) = NEW cl_gui_simple_tree( parent = lo_root ).
+    lt_nodes = VALUE #( ( `Root` ) ( `Editor` ) ).
+    lo_tree->add_nodes( table_structure_name = 'TREEV_NODE'
+                        node_table           = lt_nodes ).
+
+    DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Root</li>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Editor</li>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'Tree nodes:' ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD alv_subtotals.
+    TYPES: BEGIN OF ty_row,
+             category TYPE c LENGTH 10,
+             quantity TYPE i,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+    DATA lt_sort TYPE lvc_t_sort.
+    DATA lv_audio_offset TYPE i.
+    DATA lv_display_offset TYPE i.
+    DATA lv_input_offset TYPE i.
+    DATA lv_total_offset TYPE i.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-SUBTOTALS' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_container ).
+    lt_rows = VALUE #(
+      ( category = 'Display' quantity = 7 )
+      ( category = 'Input' quantity = 11 )
+      ( category = 'Audio' quantity = 2 )
+      ( category = 'Audio' quantity = 3 ) ).
+    lt_fcat = VALUE #(
+      ( fieldname = 'CATEGORY' coltext = 'Category' )
+      ( fieldname = 'QUANTITY' coltext = 'Quantity' do_sum = 'X' ) ).
+    lt_sort = VALUE #(
+      ( spos = 1 fieldname = 'CATEGORY' up = 'X' subtot = 'X' ) ).
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat
+        it_sort         = lt_sort ).
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'ALV-SUBTOTALS' ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-subtotal-value="Audio"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-subtotal-value="Display"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-subtotal-value="Input"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="QUANTITY">5</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="QUANTITY">7</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="QUANTITY">11</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-grid-total gg-state-total' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="QUANTITY">23</td>' ) ).
+    FIND FIRST OCCURRENCE OF 'data-subtotal-value="Audio"' IN lv_html MATCH OFFSET lv_audio_offset.
+    FIND FIRST OCCURRENCE OF 'data-subtotal-value="Display"' IN lv_html MATCH OFFSET lv_display_offset.
+    FIND FIRST OCCURRENCE OF 'data-subtotal-value="Input"' IN lv_html MATCH OFFSET lv_input_offset.
+    FIND FIRST OCCURRENCE OF '<tfoot>' IN lv_html MATCH OFFSET lv_total_offset.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_audio_offset < lv_display_offset ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_display_offset < lv_input_offset ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_input_offset < lv_total_offset ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD alv_total_decimal_places.
+    TYPES: BEGIN OF ty_row,
+             explicit_price TYPE p LENGTH 8 DECIMALS 2,
+             inferred_price TYPE p LENGTH 8 DECIMALS 2,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-TOTAL-DECIMALS' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_container ).
+    lt_rows = VALUE #(
+      ( explicit_price = '10.10' inferred_price = '1.20' )
+      ( explicit_price = '2.30' inferred_price = '0.40' ) ).
+    lt_fcat = VALUE #(
+      ( fieldname = 'EXPLICIT_PRICE' do_sum = 'X' decimals_o = 2 )
+      ( fieldname = 'INFERRED_PRICE' do_sum = 'X' ) ).
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'ALV-TOTAL-DECIMALS' ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="EXPLICIT_PRICE">12.40</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="INFERRED_PRICE">1.60</td>' ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD column_tree_renders_hierarchy.
+    TYPES: BEGIN OF ty_item,
+             node_key  TYPE tv_nodekey,
+             item_name TYPE tv_itmname,
+             class     TYPE i,
+             text      TYPE string,
+           END OF ty_item.
+    DATA lt_nodes TYPE treev_ntab.
+    DATA lt_items TYPE STANDARD TABLE OF ty_item WITH DEFAULT KEY.
+    DATA ls_header TYPE treev_hhdr.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_host) = NEW cl_gui_custom_container( container_name = 'COLUMN-TREE-HIERARCHY' ).
+    ls_header-heading = 'Hierarchy'.
+    ls_header-width = 220.
+    DATA(lo_tree) = NEW cl_gui_column_tree(
+      parent                = lo_host
+      node_selection_mode   = cl_gui_column_tree=>node_sel_mode_single
+      item_selection        = abap_false
+      hierarchy_column_name = 'NODE'
+      hierarchy_header      = ls_header ).
+    lt_nodes = VALUE #(
+      ( node_key = 'ROOT' isfolder = abap_true n_image = '@04@' exp_image = '@05@' )
+      ( node_key = 'CORE' relatkey = 'ROOT' isfolder = abap_true n_image = '@04@' exp_image = '@05@' )
+      ( node_key = 'LEAF' relatkey = 'CORE' n_image = '@3Y@' )
+      ( node_key = 'LAZY' relatkey = 'ROOT' isfolder = abap_true expander = abap_true n_image = '@04@' exp_image = '@05@' ) ).
+    lt_items = VALUE #(
+      ( node_key = 'ROOT' item_name = 'NODE' class = cl_gui_column_tree=>item_class_text text = 'Tree controls' )
+      ( node_key = 'CORE' item_name = 'NODE' class = cl_gui_column_tree=>item_class_text text = 'Core API' )
+      ( node_key = 'LEAF' item_name = 'NODE' class = cl_gui_column_tree=>item_class_text text = 'Containers' )
+      ( node_key = 'LAZY' item_name = 'NODE' class = cl_gui_column_tree=>item_class_text text = 'Lazy children' ) ).
+    lo_tree->add_nodes_and_items(
+      node_table                = lt_nodes
+      item_table                = lt_items
+      item_table_structure_name = 'TREEMCITAC' ).
+    lo_tree->expand_root_nodes( level_count = 2 ).
+
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'COLUMN-TREE-HIERARCHY' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-tree-level="2"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-tree-level="3"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:18px' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:36px' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-node-key="LAZY"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-folder-open"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-file-code"' ) ).
+    cl_gui_control=>clear( ).
   ENDMETHOD.
 
   METHOD html_alv_structured_rows.
@@ -435,6 +687,92 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CARRIER">AA</td>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CONNECTION">17</td>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="NOTE">&lt;unsafe&gt;</td>' ) ).
+  ENDMETHOD.
+
+  METHOD html_alv_formatting.
+    TYPES: BEGIN OF ty_row,
+             name        TYPE c LENGTH 10,
+             category    TYPE c LENGTH 10,
+             quantity    TYPE i,
+             action      TYPE c LENGTH 12,
+             icon        TYPE c LENGTH 4,
+             symbol      TYPE c LENGTH 1,
+             exception   TYPE i,
+             row_color   TYPE c LENGTH 4,
+             cell_colors TYPE lvc_t_scol,
+             styles      TYPE lvc_t_styl,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-FORMATTING' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_container ).
+    lt_rows = VALUE #(
+      ( name = 'Primary' category = 'Audio' quantity = 7 action = 'Inspect'
+        icon = '@01@' symbol = '+' exception = 3 row_color = 'C210'
+        cell_colors = VALUE #( ( fname = 'CATEGORY' color = VALUE #( col = 5 ) ) )
+        styles = VALUE #( ( fieldname = 'ACTION' style = cl_gui_alv_grid=>mc_style_button )
+                          ( fieldname = 'QUANTITY' style = cl_gui_alv_grid=>mc_style_disabled ) ) )
+      ( name = 'Backup' category = 'Storage' quantity = 0 action = 'Inspect'
+        icon = '@02@' symbol = '-' exception = 1
+        cell_colors = VALUE #( ( fname = 'CATEGORY' color = VALUE #( col = 6 inv = 1 ) ) ) ) ).
+    lt_fcat = VALUE #(
+      ( fieldname = 'NAME' coltext = 'Name' emphasize = 'C510' )
+      ( fieldname = 'CATEGORY' coltext = 'Category' )
+      ( fieldname = 'QUANTITY' coltext = 'Quantity' )
+      ( fieldname = 'ACTION' coltext = 'Action' )
+      ( fieldname = 'ICON' coltext = 'Icon' icon = abap_true )
+      ( fieldname = 'SYMBOL' coltext = 'Symbol' symbol = abap_true )
+      ( fieldname = 'EXCEPTION' coltext = 'Light' ) ).
+    lo_grid->set_table_for_first_display(
+      EXPORTING
+        is_layout       = VALUE lvc_s_layo(
+          ctab_fname = 'CELL_COLORS'
+          info_fname = 'ROW_COLOR'
+          stylefname = 'STYLES'
+          excp_fname = 'EXCEPTION'
+          excp_led   = abap_true )
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'ALV-FORMATTING' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-circle-check"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-circle-x"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Green traffic light"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Red traffic light"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-symbol-positive' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&#x25C6;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-symbol-negative' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-lvc-color="C210"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-lvc-color="500"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-lvc-color="C510"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-lvc-style="button"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-style-button' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-lvc-style="disabled"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '@01@' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '@02@' ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD control_capability_boundary.
+    cl_gui_control=>clear( ).
+    DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-BOUNDARY' ).
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
+    lo_grid->show_capability_boundary(
+      heading     = 'Dynamic table <unavailable>'
+      explanation = 'No rows & styles were changed.' ).
+
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'ALV-BOUNDARY' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-capability-boundary' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Dynamic table &lt;unavailable&gt;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'No rows &amp; styles were changed.' ) ).
+    cl_gui_control=>clear( ).
   ENDMETHOD.
 
   METHOD html_typed_surface.

@@ -13,9 +13,12 @@ test("ZCL_GG_EX_141 — renders list and column tree headers", async ({page, hos
   await expect(items.locator('[data-item-class="checkbox"]')).toHaveAttribute("aria-checked", "true");
   await expect(items.locator('[data-item-class="link"]')).toHaveAttribute("role", "link");
   await expect(items.locator('[data-item-class="button"]')).toHaveAttribute("role", "button");
-  await expect(page.locator('[data-control-kind="LIST_TREE"]')).toHaveCount(1);
+  const listTree = page.locator('[data-control-kind="LIST_TREE"]');
+  await expect(listTree).toHaveCount(1);
+  await expect(listTree).toHaveAttribute("data-hierarchy-header", "Flight hierarchy");
+  await expect(listTree).toContainText("Flight hierarchy");
   await expect(page.locator('[data-control-kind="COLUMN_TREE"]')).toHaveCount(1);
-  await expect(page.locator('[data-control-kind="LIST_TREE"]')).toBeHidden();
+  await expect(listTree).toBeHidden();
   await expect(page.locator('[data-control-kind="COLUMN_TREE"]')).toBeHidden();
   await pressToolbar(page, "Toggle status column");
   await expect(table).not.toContainText("On time");

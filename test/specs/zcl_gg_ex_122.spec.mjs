@@ -4,7 +4,10 @@ test("ZCL_GG_EX_122 — keeps multiline editor text intact", async ({page, host}
   await openExample(page, host, 122);
   const editor = page.locator("textarea");
   await expect(page.getByRole("toolbar", {name: "Text editor tools"})).toBeVisible();
-  await expect(page.getByRole("status", {name: "Text editor status"})).toContainText("Modified");
+  const status = page.getByRole("status", {name: "Text editor status"});
+  await expect(status).toHaveAttribute("data-modified", "1");
+  await expect(status).toContainText("Li 2, Co 1");
+  await expect(status).toContainText("Ln 1 - Ln 3 of 3 lines");
   await expect(editor).toHaveAttribute("data-wordwrap-position", "72");
   await expect(editor).toHaveAttribute("data-fixed-font", "1");
   await expect(editor).toHaveAttribute("data-cursor-line", "2");

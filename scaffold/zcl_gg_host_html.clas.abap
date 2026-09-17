@@ -233,10 +233,13 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-error\{color:#b00020;border-color:#b00020;\}|.
     rv_html = rv_html && |.gg-warning\{color:#8a5700;border-color:#8a5700;\}|.
     rv_html = rv_html && |.gg-success\{color:#146c2e;border-color:#146c2e;\}|.
-    rv_html = rv_html && |.gg-list\{font-family:var(--gg-mono-font);font-size:12px;white-space:pre;overflow:auto;\}|.
+    rv_html = rv_html && |.gg-list\{font-family:var(--gg-mono-font);font-size:18px;white-space:pre;overflow:auto;\}|.
     rv_html = rv_html && |.gg-list-line\{display:block;min-height:22px;line-height:22px;\}|.
     rv_html = rv_html && |.gg-list-line button\{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;\}|.
     rv_html = rv_html && |.gg-list-page\{break-after:page;margin-bottom:1rem;\}|.
+    rv_html = rv_html && |.gg-list-page-header\{display:flex;justify-content:space-between;gap:1rem;min-height:22px;margin:0;padding:0;border-bottom:1px solid var(--gg-border-dark);box-sizing:border-box;color:#075e9a;font:inherit;font-weight:400;line-height:22px;\}|.
+    rv_html = rv_html && |.gg-list-page-title\{min-width:0;overflow:hidden;text-overflow:ellipsis;\}|.
+    rv_html = rv_html && |.gg-list-page-number\{flex:0 0 auto;\}|.
     rv_html = rv_html && |.gg-list-fragment\{white-space:pre;\}|.
     rv_html = rv_html && |.gg-list .gg-color-heading\{background:#c7eaf2;color:#123b64;font-weight:700;\}|.
     rv_html = rv_html && |.gg-list .gg-color-key\{color:#075e9a;text-decoration:underline;text-decoration-style:dotted;\}|.
@@ -254,8 +257,12 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-controls-standalone .gg-control-toolbar\{z-index:2;\}|.
     rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless\{z-index:2;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless *\{pointer-events:auto;\}|.
+    rv_html = rv_html && |.gg-dialog-modeless\{z-index:20;display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #526b91;box-shadow:4px 5px 14px rgba(24,48,78,.28);pointer-events:none;\}|.
+    rv_html = rv_html && |.gg-dialog-title\{flex:0 0 25px;display:flex;align-items:center;padding:0 8px;background:linear-gradient(#8197bb,#657da9);color:#fff;font-size:12px;font-weight:600;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dialog-body\{flex:1;min-height:0;overflow:hidden;padding:4px;background:#fff;box-sizing:border-box;pointer-events:none;\}|.
+    rv_html = rv_html && |.gg-dialog-body>.gg-control\{position:relative!important;left:0!important;top:0!important;width:100%!important;height:100%!important;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-message-region,.gg-instruction-region\{display:flex;flex-direction:column;gap:4px;\}|.
-    rv_html = rv_html && |.gg-action-row\{display:flex;align-items:center;gap:8px;min-height:28px;padding:4px 0;border-top:1px solid var(--gg-border);box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-action-row\{position:relative;z-index:30;display:flex;align-items:center;gap:8px;min-height:28px;padding:4px 0;border-top:1px solid var(--gg-border);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-state-focused:focus,.gg-state-focused:focus-visible\{outline:2px solid #2668a3;outline-offset:2px;\}|.
     rv_html = rv_html && |.gg-state-selected,[aria-selected=true],[aria-current=true]\{background:#c7dced;color:#102f4d;\}|.
     rv_html = rv_html && |.gg-state-changed,[data-state~="changed"]\{box-shadow:inset 3px 0 #d4a000;\}|.
@@ -278,12 +285,26 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-alv .gg-grid-row.gg-state-selected td\{background:#c7dced;color:#102f4d;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-total\{background:#e3eff8;font-weight:700;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-hotspot\{color:#075e9a;text-decoration:underline;text-decoration-style:dotted;\}|.
+    rv_html = rv_html && |.gg-calendar-week-scroll\{max-width:100%;overflow:auto;border:1px solid #9ab0c4;background:#fff;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid\{border-collapse:collapse;table-layout:fixed;min-width:max-content;font:12px Arial,sans-serif;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid th,.gg-calendar-week-grid td\{min-width:30px;height:24px;padding:2px 4px;border:1px solid #c5d3df;text-align:center;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-month-heading\{min-width:0;background:#e2edf6;color:#173c5e;font-weight:700;white-space:nowrap;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-week-number\{background:#f0f4f7;color:#4b647a;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-weekday\{position:sticky;left:0;z-index:1;min-width:34px;background:#e8eef3;color:#3d586f;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-weekend\{background:#f5f7f9;color:#748392;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-selected\{background:#c5e3f7;color:#123b64;font-weight:700;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-marked\{box-shadow:inset 0 -3px #e0a126;\}|.
+    rv_html = rv_html && |.gg-calendar-day-info\{display:none;\}|.
     rv_html = rv_html && |[role=tree]\{margin:0;padding:4px 8px;list-style:none;\}|.
     rv_html = rv_html && |.gg-tree-node\{display:block;min-height:22px;padding:2px 6px;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-tree-node[hidden]\{display:none;\}|.
     rv_html = rv_html && |.gg-tree-node.gg-state-selected\{background:#c7dced;color:#102f4d;font-weight:600;\}|.
     rv_html = rv_html && |.gg-control-toolbar,.gg-alv-toolbar\{display:flex;align-items:center;gap:4px;min-height:26px;padding:2px 4px;background:linear-gradient(var(--gg-panel),var(--gg-work-area));border:1px solid var(--gg-border-dark);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button\{min-height:22px;padding:2px 8px;border:1px solid var(--gg-border);border-radius:1px;background:linear-gradient(#fff,var(--gg-panel));color:#123b64;font:inherit;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button,.gg-textedit-tool-button\{display:inline-flex;align-items:center;justify-content:center;gap:3px;\}|.
+    rv_html = rv_html && |.gg-alv-toolbar .gg-alv-tool-button\{width:26px;padding:2px;\}|.
+    rv_html = rv_html && |.gg-textedit-tool-button\{min-width:24px;min-height:22px;padding:2px 4px;border:1px solid #8daac4;border-radius:1px;background:linear-gradient(#fff,#dceaf5);color:#123b64;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-control-toolbar .wb-icon,.gg-alv-toolbar .wb-icon,.gg-textedit-toolbar .wb-icon\{width:16px;height:16px;flex:0 0 16px;\}|.
     rv_html = rv_html && |.gg-modal-backdrop\{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(19,45,72,.48);backdrop-filter:blur(2px);\}|.
     rv_html = rv_html && |.gg-modal-panel\{display:flex;flex-direction:column;width:min(760px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#fff;border:1px solid #7594b2;border-radius:4px;box-shadow:0 18px 48px rgba(18,52,84,.34);color:#1d2d3e;\}|.
     rv_html = rv_html && |.gg-modal-header\{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 14px;background:linear-gradient(#f8fbfe,#e2edf7);border-bottom:1px solid #b4c8db;color:#174a80;font-size:14px;font-weight:650;\}|.
@@ -413,6 +434,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro>form>button.gg-dynpro-control .wb-icon\{width:16px;height:16px;\}|.
     rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>label\{display:block;width:100%;height:100%;\}|.
     rv_html = rv_html && |.gg-dynpro .gg-dynpro-field>label>input\{width:100%;\}|.
+    rv_html = rv_html && |.gg-dynpro>form>output.gg-dynpro-control\{display:block;overflow:hidden;white-space:nowrap;padding:2px 6px;border:1px solid #8daac4;background:#e4eff8;color:#123b64;box-sizing:border-box;\}|.
     rv_html = rv_html && |button.gg-help-button\{display:inline-flex;align-items:center;justify-content:center;min-height:0;width:22px;height:22px;padding:0;border:1px solid #7f9bb5;border-radius:50%;background:#fff;color:#123b64;cursor:pointer;box-shadow:0 1px 3px rgba(18,59,100,.35);opacity:0;visibility:hidden;transition:opacity .08s linear;\}|.
     rv_html = rv_html && |button.gg-help-button:hover,button.gg-help-button:focus\{background:#d9eaf9;border-color:#3c74a6;outline:0;\}|.
     rv_html = rv_html && |button.gg-help-button .wb-icon\{width:14px;height:14px;\}|.
@@ -464,7 +486,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro [data-table-control] tbody tr:nth-child(even) td\{background:#f3f8fc;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] td output\{display:block;white-space:nowrap;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] td input\{width:100%;box-sizing:border-box;\}|.
-    rv_html = rv_html && |.gg-dynpro [role=tablist]\{display:flex;align-items:flex-end;gap:2px;padding:0 4px;border-bottom:2px solid #6f9ac1;background:#d0e1ef;\}|.
+    rv_html = rv_html && |.gg-dynpro [role=tablist]\{display:flex;align-items:flex-start;gap:2px;padding:0 4px;border-bottom:2px solid #6f9ac1;background:#d0e1ef;\}|.
     rv_html = rv_html && |.gg-dynpro [role=tab]\{min-height:28px;margin:0;padding:3px 15px;border:1px solid #8eacc8;border-bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(#e8f2fa,#bfd5e8);color:#163e6b;white-space:nowrap;\}|.
     rv_html = rv_html && |.gg-dynpro [role=tab][aria-selected=true]\{background:#e3eff8;color:#102f4d;font-weight:600;position:relative;top:2px;\}|.
     rv_html = rv_html && |.gg-dynpro .gg-field\{margin:0;\}|.

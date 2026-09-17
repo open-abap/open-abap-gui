@@ -187,6 +187,10 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
       item_selection        = abap_true
       hierarchy_column_name = 'HIER'
       hierarchy_header      = VALUE treev_hhdr( heading = 'Hierarchy' width = 30 ) ).
+    lo_tree->add_column(
+      name        = 'VALUE'
+      width       = 24
+      header_text = 'Description' ).
 
     lt_nodes = VALUE #( ( node_key = 'R' )
                         ( node_key = 'C' relatkey = 'R' )
@@ -204,12 +208,30 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
 
     DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
 * Root at level 1 gets no indent, its child 18px, the grandchild 36px.
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:0px">v root' )
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-tree-level="1" data-has-children="true" data-node-key="R"' )
+                                      msg = 'root level' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:0px' )
                                       msg = 'root indent' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:18px">v child' )
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:18px' )
                                       msg = 'child indent' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:36px">v grand' )
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:36px' )
                                       msg = 'grandchild indent' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-tree-node-label">root</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-tree-node-label">child</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-tree-node-label">grand</span>' ) ).
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( lv_html CS 'style="width:30ch"' )
+      msg = 'hierarchy width uses SAP character units' ).
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( lv_html CS 'style="width:24ch"' )
+      msg = 'item column width uses SAP character units' ).
+    lo_tree->hierarchy_header_set_width(
+      width     = 210
+      width_pix = abap_true ).
+    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( lv_html CS 'style="width:210px"' )
+      msg = 'pixel widths stay in pixels' ).
     cl_gui_control=>clear( ).
   ENDMETHOD.
 

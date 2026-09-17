@@ -83,12 +83,16 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS 'nonce="nonce"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS 'href="#gg-main-content">Skip to application</a>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '<main id="gg-main-content" aria-labelledby="wb-page-title">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-list{font-family:var(--gg-mono-font);font-size:18px;white-space:pre;overflow:auto;}' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-list-line{display:block;min-height:22px;line-height:22px;}' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-list-page-header{display:flex;justify-content:space-between;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-list-page-number{flex:0 0 auto;}' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-selection>form>button.gg-selection-button{align-self:flex-start;width:auto;background:linear-gradient(#fffbd2,var(--gg-action))' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-control-toolbar,.gg-alv-toolbar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-alv{max-width:100%;overflow:auto;}' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '@media(max-width:720px)' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-dynpro{min-width:640px}' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-dynpro [role=tablist]{display:flex;align-items:flex-start;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-page{display:flex;flex-direction:column;gap:8px;max-width:100%;}' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-focused:focus' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-selected' ) ).

@@ -878,7 +878,7 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   if (event === "start_of_selection" && context.activePFKeys?.length && !statements.some((statement) => statement.kind === "SetPFStatus")) {
     body.unshift(`io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_pf_keys = VALUE #( ${context.activePFKeys.map((key) => `( ${key} )`).join(" ")} ) ) ).`);
   }
-  if (event === "start_of_selection" && body.length) body.unshift(`io_session->get_list( )->set_title( '${ir.targetClassName}' ).`);
+  if (event === "start_of_selection" && body.length) body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
   if (hasWriter) body = addWriterDeclaration(body);
   return { body, lowered, suspension: index >= 0 ? { statement: statements[index], tail: statements.slice(index + 1) } : undefined };
 }
@@ -929,6 +929,9 @@ function reportMethods(ir) {
       methods.push(method(`zif_gg_report_v1~${event}`, bodiesFor(event)));
     } else {
       const body = [...bodiesFor(event)];
+      if (event === "load_of_program" && ir.reportTitle) {
+        body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
+      }
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
       methods.push(method(`zif_gg_report_v1~${event}`, body));
     }
@@ -1049,7 +1052,33 @@ function dynproStateFlush(ir, valuesName = "ct_values") {
   ]);
 }
 
+function unsupportedDynamicTableAction(ir, routine) {
+  const tableSymbols = new Set((ir.declarations ?? [])
+    .filter((declaration) => declaration.kind === "field-symbol"
+      && declaration.statement?.scope !== "local"
+      && /\bTYPE\s+STANDARD\s+TABLE\b/i.test(declaration.raw ?? ""))
+    .flatMap((declaration) => (declaration.names ?? []).map((name) => String(name).toUpperCase())));
+  if (!tableSymbols.size) return undefined;
+  const statements = routine.statements ?? [];
+  const source = statements.map((statement) => statement.text ?? "").join("\n");
+  if (/\bSET_TABLE_FOR_FIRST_DISPLAY\b/i.test(source)) return undefined;
+  const usesDynamicTable = [...tableSymbols].some((name) => new RegExp(`<${name}>`, "i").test(source));
+  const writesFeedback = /\bGV_(?:STATUS|DETAIL)\s*=/i.test(source);
+  if (!usesDynamicTable || !writesFeedback) return undefined;
+  const members = globalMemberNames(ir);
+  const body = [];
+  if (members.GV_STATUS) {
+    body.push(`${members.GV_STATUS} = ${literal("Dynamic ALV action not applied: generic field-symbol table operations are unsupported.")}.`);
+  }
+  if (members.GV_DETAIL) {
+    body.push(`${members.GV_DETAIL} = ${literal("No table rows or cell styles were changed.")}.`);
+  }
+  return body.length ? [...body, "RETURN."] : undefined;
+}
+
 function routineBody(ir, routine) {
+  const dynamicTableAction = unsupportedDynamicTableAction(ir, routine);
+  if (dynamicTableAction) return dynamicTableAction;
   const statements = truncateTerminalPaths(routine.statements ?? []);
   const index = suspensionIndex(statements);
   const active = index >= 0 ? statements.slice(0, index + 1) : statements;
@@ -1902,7 +1931,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     .map((item) => `${item.code}: ${item.construct}`)
     .filter((value, index, values) => values.indexOf(value) === index);
   const startBody = [
-    `io_session->get_list( )->set_title( ${literal(ir.programName ?? ir.targetClassName)} ).`,
+    `io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.programName ?? ir.targetClassName)} ).`,
     "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
     `lo_writer->write_field( VALUE #( text = ${literal("Partial conversion preview")} placement = VALUE #( new_line = abap_true ) ) ).`,
     `lo_writer->write_field( VALUE #( text = ${literal(`Source report: ${ir.programName ?? "UNKNOWN"}`)} placement = VALUE #( new_line = abap_true ) ) ).`,
@@ -1911,7 +1940,9 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
   ];
   const methods = REPORT_METHODS.map((name) => method(
     `zif_gg_report_v1~${name}`,
-    name === "start_of_selection" ? startBody : ["RETURN."],
+    name === "load_of_program" && ir.reportTitle
+      ? [`io_session->get_list( )->set_title( ${literal(ir.reportTitle)} ).`]
+      : name === "start_of_selection" ? startBody : ["RETURN."],
   ));
   const todos = diagnostics
     .filter((item) => item.severity === "error" || item.code.startsWith("GGCONV-E"))
@@ -1954,7 +1985,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
     `CLASS ${className} IMPLEMENTATION.`,
     "",
   ];
-  const label = ir.description ?? ir.programName ?? ir.targetClassName;
+  const label = ir.reportTitle ?? ir.description ?? ir.programName ?? ir.targetClassName;
   const applicationBody = [
     `io_session->get_list( )->set_title( ${literal(label)} ).`,
     "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
@@ -1982,6 +2013,8 @@ export function emitPartialApplication(ir, options, diagnostics) {
     for (const name of REPORT_METHODS) {
       const body = name === "build_screen"
         ? selectionBuilder(ir)
+        : name === "load_of_program" && ir.reportTitle
+          ? [`io_session->get_list( )->set_title( ${literal(ir.reportTitle)} ).`]
         : name === "start_of_selection" ? screenBody : ["RETURN."];
       methods.push(method(`zif_gg_report_v1~${name}`, body.length ? body : ["RETURN."]));
     }

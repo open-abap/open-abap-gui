@@ -659,8 +659,9 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_toolbar_object.
-    IF mr_toolbar IS NOT BOUND AND parent IS BOUND.
+    IF mr_toolbar IS NOT BOUND AND parent IS BOUND AND m_no_toolbar = abap_false.
       mr_toolbar = NEW cl_gui_toolbar( parent = parent ).
+      mr_toolbar->set_position( height = 32 ).
       set_toolbar_buttons( ).
     ENDIF.
     er_toolbar = mr_toolbar.
@@ -735,7 +736,11 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   METHOD tree_html.
     DATA lv_depth TYPE i.
     DATA lv_visible TYPE abap_bool.
-    result = |<section class="gg-alv-tree" aria-label="ALV tree"><ul role="tree" aria-label="ALV tree">|.
+    DATA(lv_toolbar_spacer) = COND string(
+      WHEN mr_toolbar IS BOUND AND m_no_toolbar = abap_false
+        THEN '<div class="gg-alv-tree-toolbar-spacer" aria-hidden="true" style="height:32px"></div>'
+      ELSE `` ).
+    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }<ul role="tree" aria-label="ALV tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
       node_position(
         EXPORTING

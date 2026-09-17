@@ -161,7 +161,7 @@ function elementKind(record) {
 }
 
 const SCREEN_PAINTER_TEXT_TYPES = new Set([
-  "TEXT", "PUSH", "CHECK", "RADIO", "RADIOBUTTON", "RADIOGROUP",
+  "TEXT", "FRAME", "PUSH", "CHECK", "RADIO", "RADIOBUTTON", "RADIOGROUP",
   "LISTBOX", "DROPDOWN", "COMBO",
 ]);
 
@@ -380,7 +380,11 @@ function parseGuiStatus(values) {
     text: recordValue(record, "FUN_TEXT"),
     type: recordValue(record, "TYPE"),
     textType: recordValue(record, "TEXT_TYPE"),
-    textName: recordValue(record, "TEXT_NAME"),
+    // SAP GUI status exports use TEXT_NAME for catalog names in some
+    // systems, but classic list statuses commonly carry the equivalent
+    // icon identifier in ICON_ID. Keep the raw identifier so the host can
+    // resolve both forms through its shared icon catalog.
+    textName: recordValue(record, "TEXT_NAME") || recordValue(record, "ICON_ID"),
     iconId: recordValue(record, "ICON_ID"),
     iconText: recordValue(record, "ICON_TEXT"),
     infoText: recordValue(record, "INFO_TEXT"),

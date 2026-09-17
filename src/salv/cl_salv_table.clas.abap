@@ -327,6 +327,9 @@ CLASS cl_salv_table IMPLEMENTATION.
     ENDIF.
     value = value && lv_select_header.
     LOOP AT mo_columns->get( ) INTO DATA(ls_heading).
+      IF ls_heading-r_column->is_technical( ) = abap_true.
+        CONTINUE.
+      ENDIF.
       value = value && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }">{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }</th>|.
     ENDLOOP.
     value = value && |</tr></thead><tbody>|.
@@ -340,6 +343,13 @@ CLASS cl_salv_table IMPLEMENTATION.
         value = value && |<td><input type="checkbox" name="gg-salv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }"{ lv_checked }></td>|.
       ENDIF.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
+        TRY.
+            IF mo_columns->get_column( ls_cell-columnname )->is_technical( ) = abap_true.
+              CONTINUE.
+            ENDIF.
+          CATCH cx_salv_not_found.
+            CONTINUE.
+        ENDTRY.
         value = value && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-columnname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
       ENDLOOP.
       value = value && |</tr>|.

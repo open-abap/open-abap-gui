@@ -811,6 +811,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ls_context-processor = zif_gg_session_types_v1=>processor_selection.
       ls_context-screen = iv_selection_screen.
       lv_title = COND string(
+        WHEN cs_result-title IS NOT INITIAL THEN cs_result-title
         WHEN iv_program CS 'ZCL_CV_' THEN |Selection: { CONV string( iv_program ) }|
         ELSE 'Selection' ).
       cs_result-html = zcl_gg_host_renderer=>render_selection(
@@ -858,12 +859,17 @@ CLASS zcl_gg_host IMPLEMENTATION.
       IF lv_title IS INITIAL.
         lv_title = 'ABAP list'.
       ENDIF.
-      IF iv_can_back = abap_true.
+      IF iv_can_back = abap_true AND cs_result-status-icon_bar IS INITIAL.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO lt_actions.
       ENDIF.
       LOOP AT cs_result-status-active_ucomm INTO DATA(lv_active_ucomm).
         IF line_exists( cs_result-status-excluded_ucomm[ table_line = lv_active_ucomm ] )
-            OR line_exists( cs_result-status-icon_bar[ ucomm = lv_active_ucomm ] ).
+            OR line_exists( cs_result-status-icon_bar[ ucomm = lv_active_ucomm ] )
+            OR ( cs_result-status-icon_bar IS NOT INITIAL
+                 AND ( lv_active_ucomm = 'BACK'
+                       OR lv_active_ucomm = 'CANCEL'
+                       OR lv_active_ucomm = 'EXIT'
+                       OR lv_active_ucomm = 'PRINT' ) ).
           CONTINUE.
         ENDIF.
         APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_command
@@ -913,12 +919,17 @@ CLASS zcl_gg_host IMPLEMENTATION.
                         ucomm = 'ECAN' ) TO ls_page-actions.
       WHEN zif_gg_host_html_v1=>page_list.
         APPEND VALUE #( kind = zif_gg_host_html_v1=>action_line ) TO ls_page-actions.
-        IF iv_can_back = abap_true.
+        IF iv_can_back = abap_true AND cs_result-status-icon_bar IS INITIAL.
           APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO ls_page-actions.
         ENDIF.
         LOOP AT cs_result-status-active_ucomm INTO DATA(lv_page_ucomm).
           IF line_exists( cs_result-status-excluded_ucomm[ table_line = lv_page_ucomm ] )
-              OR line_exists( cs_result-status-icon_bar[ ucomm = lv_page_ucomm ] ).
+              OR line_exists( cs_result-status-icon_bar[ ucomm = lv_page_ucomm ] )
+              OR ( cs_result-status-icon_bar IS NOT INITIAL
+                   AND ( lv_page_ucomm = 'BACK'
+                         OR lv_page_ucomm = 'CANCEL'
+                         OR lv_page_ucomm = 'EXIT'
+                         OR lv_page_ucomm = 'PRINT' ) ).
             CONTINUE.
           ENDIF.
           APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_command

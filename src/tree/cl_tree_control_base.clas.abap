@@ -39,6 +39,10 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
              expanded   TYPE abap_bool,
              selected   TYPE abap_bool,
              hidden     TYPE abap_bool,
+             folder     TYPE abap_bool,
+             expander   TYPE abap_bool,
+             node_image TYPE string,
+             open_image TYPE string,
            END OF ty_html_node.
     TYPES ty_html_nodes TYPE STANDARD TABLE OF ty_html_node WITH DEFAULT KEY.
 
@@ -300,6 +304,12 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(result) TYPE i.
 
+    METHODS node_has_children
+      IMPORTING
+        node_key      TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
     METHODS tree_html
       RETURNING
         VALUE(result) TYPE string.
@@ -445,9 +455,15 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD expand_root_nodes.
-    LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE parent_key IS INITIAL.
-      ls_node-expanded = abap_true.
-      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    DATA(lv_level_count) = COND i( WHEN level_count > 0 THEN level_count ELSE 1 ).
+    DATA lv_node_index TYPE sy-tabix.
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      lv_node_index = sy-tabix.
+      IF node_level( ls_node-node_key ) <= lv_level_count
+          AND line_exists( mt_html_nodes[ parent_key = ls_node-node_key ] ).
+        ls_node-expanded = abap_true.
+      ENDIF.
+      MODIFY mt_html_nodes FROM ls_node INDEX lv_node_index.
     ENDLOOP.
     refresh_tree_html( ).
   ENDMETHOD.
@@ -588,6 +604,17 @@ CLASS cl_tree_control_base IMPLEMENTATION.
       result = result + 1.
       lv_parent = ls_parent-parent_key.
     ENDDO.
+  ENDMETHOD.
+
+  METHOD node_has_children.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    result = xsdbool(
+      line_exists( mt_html_nodes[ parent_key = node_key ] )
+      OR ls_node-expander = abap_true ).
   ENDMETHOD.
 
   METHOD tree_html.

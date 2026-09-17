@@ -16,6 +16,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     DATA(lv_html) = zcl_gg_workbench_utility=>render_styles( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-menubar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-status-menu-items{min-height:32px' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-statusbar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-runtime-content' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-work-area:#d5e6f3' ) ).
@@ -90,6 +91,11 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
       iv_title        = `Dynpro`
       iv_content_form = `gg-dynpro-form`
       is_status       = VALUE #( status = `STATUS` ) ).
+    DATA(lv_menu_html) = zcl_gg_workbench_utility=>render_top(
+      iv_runtime = abap_true
+      is_status  = VALUE #( menus = VALUE #(
+        ( code = `SAMPLE` text = `Sample` )
+        ( code = `OPTIONS` text = `Options` ) ) ) ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-menubar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-commandbar' ) ).
@@ -101,6 +107,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'title="Refresh"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'title="Refresh"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'wb-icon-refresh' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'wb-toolbar-label">Refresh</span>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Workbench</h1>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_custom_html CS '&lt;Example &amp; title&gt;</h1>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_untrusted_html CS '&lt;/h1&gt;&lt;style&gt;.wb-appbar{display:none}&lt;/style&gt;' ) ).
@@ -109,6 +116,9 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'id="wb-page-title"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="shell-menu"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="standard-command"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '<nav class="wb-menu-items wb-status-menu-items" role="menubar" aria-label="Application menu"><details' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Sample</summary>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Options</summary>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Applications</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1>' ) ).
 * The app bar shows the title only, so the CUA status name never reaches the page.

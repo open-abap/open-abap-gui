@@ -1,4 +1,4 @@
-CLASS cl_salv_columns DEFINITION PUBLIC FRIENDS cl_salv_table cl_salv_tree.
+CLASS cl_salv_columns DEFINITION PUBLIC FRIENDS cl_salv_table cl_salv_tree cl_salv_hierseq_level.
   PUBLIC SECTION.
 
     METHODS set_column_position

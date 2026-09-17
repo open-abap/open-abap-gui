@@ -7,6 +7,9 @@ CLASS ltcl_salv_table_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
         cx_salv_data_error
         cx_salv_existing
         cx_salv_not_found.
+    METHODS hides_technical_columns FOR TESTING
+      RAISING
+        cx_salv_not_found.
 ENDCLASS.
 
 CLASS ltcl_salv_table_support IMPLEMENTATION.
@@ -118,5 +121,41 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     lo_salv->get_sorts( )->clear( ).
     cl_abap_unit_assert=>assert_initial( lo_salv->get_filters( )->get( ) ).
     cl_abap_unit_assert=>assert_initial( lo_salv->get_sorts( )->get( ) ).
+  ENDMETHOD.
+
+  METHOD hides_technical_columns.
+    TYPES: BEGIN OF ty_row,
+             id           TYPE i,
+             name         TYPE string,
+             exception    TYPE i,
+             technical    TYPE string,
+             cell_colors  TYPE string,
+             cell_types   TYPE string,
+             link_handles TYPE string,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    lt_rows = VALUE #( ( id = 1 name = 'visible' exception = 3 technical = 'TECH'
+                         cell_colors = 'COLORS' cell_types = 'TYPES' link_handles = 'LINK' ) ).
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->get_columns( )->set_exception_column( 'EXCEPTION' ).
+    lo_salv->get_columns( )->set_color_column( 'CELL_COLORS' ).
+    lo_salv->get_columns( )->set_cell_type_column( 'CELL_TYPES' ).
+    lo_salv->get_columns( )->set_hyperlink_entry_column( 'LINK_HANDLES' ).
+    lo_salv->get_columns( )->get_column( 'TECHNICAL' )->set_technical( abap_true ).
+
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="ID"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="NAME"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="EXCEPTION"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="TECHNICAL"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="CELL_COLORS"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="CELL_TYPES"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="LINK_HANDLES"' ) ).
   ENDMETHOD.
 ENDCLASS.

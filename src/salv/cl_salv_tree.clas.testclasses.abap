@@ -65,6 +65,10 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-salv-tree' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Leaf &lt;safe&gt;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-level="2"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-tree-level="2"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:18px' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-folder-open"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-file-code"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-selected="true"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="true"' ) ).
     lo_tree->get_nodes( )->collapse_all( ).
@@ -72,6 +76,7 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
     lo_tree->display( ).
     lv_html = cl_gui_control=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'Leaf &lt;safe&gt;' ) ).
   ENDMETHOD.
 
   METHOD renders_typed_items_and_events.

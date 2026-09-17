@@ -21,7 +21,8 @@ test("ZCL_GG_EX_151 — carries the whole UI in one full-screen HTML viewer", as
   // The docking container is the surface, so it holds the viewer and nothing else.
   const shell = page.locator('[data-control-kind="DOCKING_CONTAINER"]');
   await expect(shell).toHaveCount(1);
-  await expect(shell).toContainText("extension=9999");
+  await expect(shell).toHaveAttribute("data-payload", /extension=9999/);
+  await expect(shell).not.toContainText("extension=9999");
 });
 
 test("ZCL_GG_EX_151 — renders the page document inside the sandbox", async ({page, host}) => {

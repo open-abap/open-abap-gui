@@ -88,13 +88,19 @@ CLASS cl_dd_form_area IMPLEMENTATION.
   METHOD add_button.
     DATA lv_start TYPE i.
     DATA lv_fragment TYPE string.
+    DATA lv_icon_html TYPE string.
     lv_start = strlen( html_content ).
     button = NEW cl_dd_button_element( ).
     button->name = name.
     button->label = label.
     button->tooltip = tooltip.
     button->a11y_label = label.
-    html_content = html_content && |<button type="submit" name="{ escape_html( CONV string( name ) ) }" title="{ escape_html( tooltip ) }">{ escape_html( label ) }</button>|.
+    IF sap_icon IS SUPPLIED AND sap_icon IS NOT INITIAL.
+      lv_icon_html = render_icon_html(
+        sap_icon         = sap_icon
+        alternative_text = tooltip ).
+    ENDIF.
+    html_content = html_content && |<button type="submit" name="{ escape_html( CONV string( name ) ) }" title="{ escape_html( tooltip ) }">{ lv_icon_html }<span>{ escape_html( label ) }</span></button>|.
     lv_fragment = substring(
       val = html_content
       off = lv_start ).

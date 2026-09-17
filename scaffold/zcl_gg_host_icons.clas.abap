@@ -69,7 +69,7 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
     TRANSLATE lv_name TO LOWER CASE.
     REPLACE ALL OCCURRENCES OF '@' IN lv_name WITH ``.
     CASE lv_name.
-      WHEN 'go' OR 'execute' OR 'icon_execute' OR 'player-play'.
+      WHEN 'go' OR 'execute' OR 'icon_execute' OR 'icon_execute_object' OR 'player-play'.
         lv_name = 'player-play'.
       WHEN 'back' OR 'icon_back' OR 'arrow-left'.
         lv_name = 'arrow-left'.
@@ -93,13 +93,13 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
         lv_name = 'search-plus'.
       WHEN 'help' OR 'icon_help' OR 'help-circle'.
         lv_name = 'help-circle'.
-      WHEN 'first-page' OR 'arrow-bar-to-up'.
+      WHEN 'first-page' OR 'arrow-bar-to-up' OR '0p'.
         lv_name = 'arrow-bar-to-up'.
       WHEN 'previous-page' OR 'file-arrow-up'.
         lv_name = 'file-arrow-up'.
       WHEN 'next-page' OR 'file-arrow-down'.
         lv_name = 'file-arrow-down'.
-      WHEN 'last-page' OR 'arrow-bar-to-down'.
+      WHEN 'last-page' OR 'arrow-bar-to-down' OR '0q'.
         lv_name = 'arrow-bar-to-down'.
       WHEN 'create' OR 'plus' OR 'icon_create'.
         lv_name = 'plus'.
@@ -115,13 +115,13 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
         lv_name = 'device-desktop'.
       WHEN 'database' OR 'icon_database'.
         lv_name = 'database'.
-      WHEN 'refresh' OR 'icon_refresh'.
+      WHEN 'refresh' OR 'icon_refresh' OR '42'.
         lv_name = 'refresh'.
-      WHEN 'edit' OR 'icon_change'.
+      WHEN 'edit' OR 'icon_change' OR '0z'.
         lv_name = 'edit'.
       WHEN 'delete' OR 'trash' OR 'icon_delete'.
         lv_name = 'trash'.
-      WHEN 'success' OR 'circle-check' OR 'icon_green_light'.
+      WHEN 'success' OR 'circle-check' OR 'icon_okay' OR 'icon_green_light'.
         lv_name = 'circle-check'.
       WHEN 'error' OR 'circle-x' OR 'icon_red_light'.
         lv_name = 'circle-x'.

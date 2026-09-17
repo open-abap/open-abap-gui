@@ -110,6 +110,8 @@ CLASS cl_item_tree_model DEFINITION PUBLIC INHERITING FROM cl_tree_model.
     DATA mt_model_items TYPE ty_model_items.
     DATA mt_registered_events TYPE cntl_simple_events.
 
+    METHODS get_node_display_text REDEFINITION.
+
 ENDCLASS.
 
 CLASS cl_item_tree_model IMPLEMENTATION.
@@ -136,6 +138,7 @@ CLASS cl_item_tree_model IMPLEMENTATION.
                item_name = item_name.
     IF sy-subrc = 0.
       <item>-chosen = chosen.
+      update_view( ).
     ENDIF.
   ENDMETHOD.
 
@@ -145,6 +148,7 @@ CLASS cl_item_tree_model IMPLEMENTATION.
                item_name = item_name.
     IF sy-subrc = 0.
       <item>-text = text.
+      update_view( ).
     ENDIF.
   ENDMETHOD.
 
@@ -154,7 +158,31 @@ CLASS cl_item_tree_model IMPLEMENTATION.
                item_name = item_name.
     IF sy-subrc = 0.
       <item>-style = style.
+      update_view( ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD get_node_display_text.
+    READ TABLE mt_model_nodes INTO DATA(ls_node)
+      WITH KEY node_key = iv_node_key.
+    IF sy-subrc = 0.
+      rv_text = ls_node-text.
+    ELSE.
+      rv_text = iv_node_key.
+    ENDIF.
+
+    READ TABLE mt_model_items INTO DATA(ls_hierarchy_item)
+      WITH KEY node_key  = iv_node_key
+               item_name = 'NODE'.
+    IF sy-subrc = 0 AND ls_hierarchy_item-text IS NOT INITIAL.
+      rv_text = ls_hierarchy_item-text.
+    ENDIF.
+    LOOP AT mt_model_items INTO DATA(ls_item)
+        WHERE node_key = iv_node_key.
+      IF ls_item-item_name <> 'NODE' AND ls_item-text IS NOT INITIAL.
+        rv_text = |{ rv_text } { ls_item-text }|.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.

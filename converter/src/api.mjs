@@ -417,6 +417,7 @@ function validateNames(ir, options, diagnostics) {
   ir.targetClassName = className;
   ir.transactionCode = transactionCode;
   const metadataDescription = ir.screenMetadata?.reportTitle ?? ir.dynproMetadata?.reportTitle;
+  ir.reportTitle = metadataDescription;
   ir.description = !options.descriptionProvided && metadataDescription ? metadataDescription : options.description;
 }
 

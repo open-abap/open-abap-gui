@@ -13,18 +13,34 @@ ENDCLASS.
 
 CLASS cl_salv_columns_table IMPLEMENTATION.
   METHOD set_hyperlink_entry_column.
-    RETURN.
+    TRY.
+        get_column( CONV lvc_fname( value ) )->set_technical( abap_true ).
+      CATCH cx_root.
+        RETURN.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD set_exception_column.
-    RETURN.
+    TRY.
+        get_column( CONV lvc_fname( value ) )->set_technical( abap_true ).
+      CATCH cx_root.
+        RETURN.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD set_cell_type_column.
-    RETURN.
+    TRY.
+        get_column( CONV lvc_fname( value ) )->set_technical( abap_true ).
+      CATCH cx_root.
+        RETURN.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD set_color_column.
-    RETURN.
+    TRY.
+        get_column( CONV lvc_fname( value ) )->set_technical( abap_true ).
+      CATCH cx_root.
+        RETURN.
+    ENDTRY.
   ENDMETHOD.
 ENDCLASS.

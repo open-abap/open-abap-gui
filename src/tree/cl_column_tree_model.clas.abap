@@ -88,6 +88,7 @@ CLASS cl_column_tree_model IMPLEMENTATION.
                       editable  = xsdbool( ls_item-editable IS NOT INITIAL )
                       hidden    = xsdbool( ls_item-hidden IS NOT INITIAL ) ) TO mt_model_items.
     ENDLOOP.
+    update_view( ).
   ENDMETHOD.
 
 ENDCLASS.

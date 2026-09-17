@@ -77,6 +77,17 @@
        <LENGTH>012</LENGTH>
        <PUSH_FCODE>APPLY</PUSH_FCODE>
       </RPY_DYFATC>
+      <RPY_DYFATC>
+       <CONT_TYPE>SCREEN</CONT_TYPE>
+       <CONT_NAME>SCREEN</CONT_NAME>
+       <TYPE>FRAME</TYPE>
+       <NAME>BOX_INPUT</NAME>
+       <TEXT>Input_elements________</TEXT>
+       <LINE>007</LINE>
+       <COLUMN>002</COLUMN>
+       <LENGTH>021</LENGTH>
+       <HEIGHT>003</HEIGHT>
+      </RPY_DYFATC>
      </FIELDS>
     </item>
     <item>
