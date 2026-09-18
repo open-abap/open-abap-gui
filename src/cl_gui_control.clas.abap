@@ -326,6 +326,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
     CLASS-METHODS render_nested_html
       IMPORTING
         iv_parent_id  TYPE string
+        is_sapevent   TYPE ty_sapevent OPTIONAL
       RETURNING
         VALUE(result) TYPE string.
     CLASS-METHODS standalone_external_script
@@ -349,6 +350,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         iv_style       TYPE string
         iv_hidden      TYPE string
         iv_state_class TYPE string
+        is_sapevent    TYPE ty_sapevent OPTIONAL
       RETURNING
         VALUE(result)  TYPE string.
     CLASS-METHODS splitter_payload_value
@@ -731,9 +733,18 @@ CLASS cl_gui_control IMPLEMENTATION.
   METHOD render_control_html.
     CASE is_snapshot-kind.
       WHEN 'DIALOGBOX_CONTAINER'.
-        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-payload="{ escape( is_snapshot-payload ) }" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title">SAP GUI modeless control dialog</header><div class="gg-dialog-body">{ render_nested_html( iv_parent_id = is_snapshot-control_id ) }</div></section>|.
+        DATA(lv_dialog_html) = render_nested_html(
+          iv_parent_id = is_snapshot-control_id
+          is_sapevent  = is_sapevent ).
+        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-payload="{ escape( is_snapshot-payload ) }" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title">SAP GUI modeless control dialog</header><div class="gg-dialog-body">{ lv_dialog_html }</div></section>|.
       WHEN 'CUSTOM_CONTAINER' OR 'DOCKING_CONTAINER'.
-        result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }{ COND string( WHEN is_snapshot-kind = 'DOCKING_CONTAINER' THEN render_nested_html( iv_parent_id = is_snapshot-control_id ) ELSE `` ) }</section>|.
+        DATA(lv_container_html) = ``.
+        IF is_snapshot-kind = 'DOCKING_CONTAINER'.
+          lv_container_html = render_nested_html(
+            iv_parent_id = is_snapshot-control_id
+            is_sapevent  = is_sapevent ).
+        ENDIF.
+        result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }{ lv_container_html }</section>|.
       WHEN 'LIST_TREE'.
         DATA(lv_list_tree_heading) = escape( is_snapshot-payload ).
         result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="LIST_TREE" data-hierarchy-header="{ lv_list_tree_heading }"{ iv_hidden }{ iv_disabled }>{ COND string( WHEN is_snapshot-payload IS NOT INITIAL THEN |<h2>{ lv_list_tree_heading }</h2>| ELSE `` ) }{ is_snapshot-html }</div>|.
@@ -742,7 +753,8 @@ CLASS cl_gui_control IMPLEMENTATION.
           is_snapshot    = is_snapshot
           iv_style       = iv_style
           iv_hidden      = iv_hidden
-          iv_state_class = iv_state_class ).
+          iv_state_class = iv_state_class
+          is_sapevent    = is_sapevent ).
       WHEN 'ALV_GRID' OR 'ALV_TREE' OR 'SIMPLE_TREE' OR 'COLUMN_TREE'.
         result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-payload="{ escape( is_snapshot-payload ) }"{ iv_hidden }{ iv_disabled }>{ is_snapshot-html }</div>|.
       WHEN 'TOOLBAR'.
@@ -1006,7 +1018,10 @@ CLASS cl_gui_control IMPLEMENTATION.
       iv_mode_key    = 'column_mode='
       iv_sizes_key   = 'column_widths='
       iv_track_count = lv_columns ).
-    result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-layout-state="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }><div class="gg-splitter-layout" style="display:grid;width:100%;height:100%;min-height:0;overflow:hidden;grid-template-columns:{ lv_column_tracks };grid-template-rows:{ lv_row_tracks };">{ render_nested_html( iv_parent_id = is_snapshot-control_id ) }</div></section>|.
+    DATA(lv_splitter_html) = render_nested_html(
+      iv_parent_id = is_snapshot-control_id
+      is_sapevent  = is_sapevent ).
+    result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-layout-state="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }><div class="gg-splitter-layout" style="display:grid;width:100%;height:100%;min-height:0;overflow:hidden;grid-template-columns:{ lv_column_tracks };grid-template-rows:{ lv_row_tracks };">{ lv_splitter_html }</div></section>|.
   ENDMETHOD.
 
   METHOD render_toolbar_html.
@@ -1239,11 +1254,23 @@ CLASS cl_gui_control IMPLEMENTATION.
           AND lv_parent_found = abap_true
           AND ( ls_parent-kind = 'SPLITTER_CONTAINER'
             OR ls_parent-kind = 'EASY_SPLITTER' ).
-        DATA(lv_cell_html) = render_nested_html( iv_parent_id = ls_snapshot-control_id ).
+        DATA(lv_cell_html) = render_nested_html(
+          iv_parent_id = ls_snapshot-control_id
+          is_sapevent  = is_sapevent ).
         result = result && |<div class="gg-splitter-cell" style="position:relative;min-width:0;min-height:0;box-sizing:border-box;overflow:auto;border:1px solid #b2c7d8;background:#f7fbff" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="SPLITTER_CELL" aria-label="Splitter cell">{ lv_cell_html }</div>|.
         CONTINUE.
       ENDIF.
-      DATA(lv_style) = `position:relative;left:0;top:0;width:100%;height:100%;box-sizing:border-box;`.
+      DATA(lv_style) = `position:relative;left:0;top:0;box-sizing:border-box;`.
+      IF ls_snapshot-width > 0.
+        lv_style = lv_style && |width:{ ls_snapshot-width }px;|.
+      ELSE.
+        lv_style = lv_style && `width:100%;`.
+      ENDIF.
+      IF ls_snapshot-height > 0.
+        lv_style = lv_style && |height:{ ls_snapshot-height }px;|.
+      ELSE.
+        lv_style = lv_style && `height:100%;`.
+      ENDIF.
       DATA(lv_hidden) = COND string( WHEN ls_snapshot-visible = abap_false THEN ' hidden' ELSE '' ).
       DATA(lv_disabled) = COND string( WHEN ls_snapshot-enabled = abap_false THEN ' disabled' ELSE '' ).
       DATA(lv_state_class) = state_class(
@@ -1255,7 +1282,8 @@ CLASS cl_gui_control IMPLEMENTATION.
         iv_style       = lv_style
         iv_hidden      = lv_hidden
         iv_disabled    = lv_disabled
-        iv_state_class = lv_state_class ).
+        iv_state_class = lv_state_class
+        is_sapevent    = is_sapevent ).
     ENDLOOP.
   ENDMETHOD.
 

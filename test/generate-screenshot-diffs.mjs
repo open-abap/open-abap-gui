@@ -321,7 +321,7 @@ const html = `<!doctype html>
   </head>
   <body>
     <h1>Screenshot visual diffs</h1>
-    <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Native content region: ${baselineRegion ? `${baselineRegion.x},${baselineRegion.y},${baselineRegion.width},${baselineRegion.height}` : "full image"}; browser content region: ${currentRegion ? `${currentRegion.x},${currentRegion.y},${currentRegion.width},${currentRegion.height}` : "full image"}. Semantic masks: ${maskDefinition.regions.length === 0 ? "none" : maskDefinition.regions.map(({id}) => escapeHtml(id)).join(", ")}.</p>
+    <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Content region: ${contentRegion ? `${contentRegion.x},${contentRegion.y},${contentRegion.width},${contentRegion.height}` : "separate native/browser regions"}; native content region: ${baselineRegion ? `${baselineRegion.x},${baselineRegion.y},${baselineRegion.width},${baselineRegion.height}` : "full image"}; browser content region: ${currentRegion ? `${currentRegion.x},${currentRegion.y},${currentRegion.width},${currentRegion.height}` : "full image"}. Semantic masks: ${maskDefinition.regions.length === 0 ? "none" : maskDefinition.regions.map(({id}) => escapeHtml(id)).join(", ")}.</p>
     <div class="summary">
       <span>${counts.changed} changed</span><span>${counts.added} added</span><span>${counts.removed} removed</span><span>${counts.unchanged} unchanged</span>
     </div>
