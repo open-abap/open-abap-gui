@@ -134,6 +134,14 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "dynamic or unproven ASSIGN cannot be lowered safely", "Use a method-local elementary field symbol with a static ASSIGN target, or convert it manually.", "GGCONV-E501");
       continue;
     }
+    if (statement.kind === "Free") {
+      const supportedDynamicReference = ir.dynamicAlv
+        && new RegExp(`\\b${ir.dynamicAlv.referenceMember}\\b`, "i").test(statement.text);
+      if (!supportedDynamicReference && !convertibleFreeChains.has(freeChainKey(statement))) {
+        addStatementDiagnostic(diagnostics, statement, "FREE is only lowered for the supported dynamic-ALV reference pattern", "Use CLEAR for data owned by the generated class or provide a dedicated FREE lowering rule.", "GGCONV-E516");
+      }
+      continue;
+    }
     if (statement.kind === "CreateData" && /\b(?:TYPE|LIKE)\s*\(/i.test(statement.text)) {
       addStatementDiagnostic(diagnostics, statement, "dynamic CREATE DATA type cannot be resolved safely", "Use a statically named TYPE or LIKE target, or provide a typed dynamic-data lowering rule.", "GGCONV-E515");
       continue;

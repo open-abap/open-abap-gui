@@ -951,6 +951,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 
   METHOD render_dynpro.
     DATA lv_body TYPE string.
+    DATA lv_work_area_class TYPE string.
     DATA lv_height TYPE i.
     DATA lv_header_height TYPE i.
     DATA lv_render_height TYPE i.
@@ -1023,7 +1024,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF is_screen-modal = abap_true AND is_screen-width <= 0.
       lv_modal_style = lv_modal_style && |width:640px;|.
     ENDIF.
-    lv_body = lv_body && |<section class="gg-work-area" aria-label="Dynpro work area"><section class="gg-dynpro" aria-label="Dynpro { zcl_gg_host_html=>escape_text( lv_title ) }" data-screen="{ is_screen-number }" data-modal="{ COND string( WHEN is_screen-modal = abap_true THEN `true` ELSE `false` ) }" data-cursor-field="{ zcl_gg_host_html=>escape_attribute( CONV string( is_cursor-field ) ) }" data-cursor-row="{ is_cursor-row }" style="{ lv_modal_style }">|.
+    IF iv_controls_html CS `data-control-kind="DOCKING_CONTAINER"`.
+      lv_work_area_class = ` gg-work-area--docking`.
+    ENDIF.
+    lv_body = lv_body && |<section class="gg-work-area{ lv_work_area_class }" aria-label="Dynpro work area"><section class="gg-dynpro" aria-label="Dynpro { zcl_gg_host_html=>escape_text( lv_title ) }" data-screen="{ is_screen-number }" data-modal="{ COND string( WHEN is_screen-modal = abap_true THEN `true` ELSE `false` ) }" data-cursor-field="{ zcl_gg_host_html=>escape_attribute( CONV string( is_cursor-field ) ) }" data-cursor-row="{ is_cursor-row }" style="{ lv_modal_style }">|.
     IF it_help_values IS NOT INITIAL.
       lv_body = lv_body && |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_help_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
       LOOP AT it_help_values INTO DATA(ls_help_value).

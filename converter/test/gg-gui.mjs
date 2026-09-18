@@ -50,6 +50,7 @@ const comparisonGateDefinitions = Object.freeze([
   {id: "semanticContent", label: "Semantic content", rule: "Report-specific labels, fields, values, control roles, and fallback text are present."},
   {id: "interactiveBehavior", label: "Interactive behavior", rule: "Report-specific actions update program-owned application state, or are explicitly verified fresh-session idempotent lifecycle actions, and preserve navigation semantics."},
   {id: "visualStructure", label: "Visual structure", rule: "Reference grouping, density, alignment, focus, and control geometry are matched."},
+  {id: "browserChromeInvariance", label: "Browser chrome invariance", rule: "Global browser-host chrome keeps the same geometry and computed visual contract across every transaction capture."},
 ]);
 const referenceStateAudits = Object.freeze({
   ZGG_GUI_SALV_TABLE: {
@@ -75,13 +76,6 @@ const referenceStateAudits = Object.freeze({
   },
 });
 const intentionalReferenceFallbacks = Object.freeze({
-  ZGG_GUI_ALV_DYNAMIC: {
-    status: "intentional-capability-boundary",
-    acceptance: "allowed-when-honest",
-    nativeEvidence: "Reference source uses generic FIELD-SYMBOLS, dynamic ASSIGN COMPONENT, and FREE operations that remain explicit E515/E516 converter diagnostics rather than being guessed into typed code.",
-    browserContract: "Render an accessible CC_MAIN boundary explaining that generic field-symbol table bindings prevent the ALV rows from being reproduced. Keep E515/E516 diagnostics visible in the conversion audit, report row/style actions as unapplied, and preserve Back navigation.",
-    verification: "Focused CV_ALV_DYNAMIC browser audit shows one capability boundary, six report actions, explicit not-applied status/detail text after row/style/describe/refresh/reset actions, and available Back navigation; no dynamic rows or cell styles are claimed.",
-  },
   ZGG_GUI_GRAPHICS: {
     status: "intentional-capability-boundary",
     acceptance: "allowed-when-honest",
@@ -123,17 +117,8 @@ const idempotentReferenceActions = Object.freeze({
 });
 const knownFailingReports = Object.freeze([]);
 const knownFailingEmptyContainerReports = Object.freeze([]);
-const knownFailingOverlapReports = Object.freeze([
-  "ZGG_GUI_DOCKING_CONTAINER",
-]);
-const knownFailingClippingReports = Object.freeze([
-  "ZGG_GUI_CATALOG",
-  "ZGG_GUI_COMPOSITE",
-  "ZGG_GUI_SALV_HIERSEQ",
-  "ZGG_GUI_SALV_TABLE",
-  "ZGG_GUI_SALV_TREE",
-  "ZGG_GUI_SPLITTER_CONTAINER",
-]);
+const knownFailingOverlapReports = Object.freeze([]);
+const knownFailingClippingReports = Object.freeze([]);
 
 function isKnownFailingReport(programName) {
   return knownFailingReports.includes(programName.replace(/^ZGG_GUI_/, ""));
@@ -466,15 +451,31 @@ async function auditVisualStructure(page, result, recordedFallback) {
     const findElement = (element) => findNode(element.name)
       || (element.ucomm && [...(pageRoot?.querySelectorAll('button[name="gg_ucomm"]') ?? [])]
         .find((button) => String(button.getAttribute("value") || "").toUpperCase() === element.ucomm));
-    const expectedElements = (contract?.elements ?? []).filter((element) => {
-      if (kind === "SELECTION") return false;
-      const owner = (contract?.containers ?? []).find((container) => container.name === element.container);
-      return !["TABLE_CTRL", "STRIP_CTRL"].includes(owner?.kind);
-    });
+  const expectedElements = (contract?.elements ?? []).filter((element) => {
+    if (kind === "SELECTION") return false;
+    if (element.visible === false) return false;
+    const owner = (contract?.containers ?? []).find((container) => container.name === element.container);
+    return !["TABLE_CTRL", "STRIP_CTRL"].includes(owner?.kind);
+  });
     const missingElements = expectedElements.filter((element) => !findElement(element)).map((element) => element.name);
     check("control-types", missingElements.length === 0, missingElements.length === 0
       ? `${expectedElements.length} metadata field/control name(s) are represented by typed HTML controls`
       : `Missing typed representation for ${missingElements.join(", ")}`);
+    const anchorFailures = expectedElements.filter((element) => {
+      const node = findElement(element);
+      if (!node) return true;
+      if (suppressed(node)) return false;
+      if (!visible(node)) return true;
+      const bounds = node.getBoundingClientRect();
+      return bounds.width <= 0 || bounds.height <= 0;
+    }).map((element) => element.name);
+    check("anchor-geometry", anchorFailures.length === 0, anchorFailures.length === 0
+      ? `${expectedElements.length} source anchors have visible geometry`
+      : `Source anchors without visible geometry: ${anchorFailures.join(", ")}`);
+    const matchedElementCount = expectedElements.filter((element) => Boolean(findElement(element))).length;
+    check("content-cardinality", matchedElementCount === expectedElements.length, matchedElementCount === expectedElements.length
+      ? `Expected ${expectedElements.length} metadata content anchor(s); rendered ${matchedElementCount}`
+      : `Expected ${expectedElements.length} metadata content anchor(s); rendered ${matchedElementCount}`);
     const customHosts = [...(pageRoot?.querySelectorAll('[data-custom-control],[data-control-kind="CUSTOM_CONTAINER"]') ?? [])];
     const directTextOf = (node) => [...node.childNodes]
       .filter((child) => child.nodeType === Node.TEXT_NODE)
@@ -697,6 +698,9 @@ async function auditVisualStructure(page, result, recordedFallback) {
         clippingCount: clippingIssues.length,
         clippingIssues,
         visibleTextRunCount: textRegions.length,
+        anchorCount: expectedElements.length - anchorFailures.length,
+        expectedAnchorCount: expectedElements.length,
+        contentCardinality: matchedElementCount,
       },
     };
   }, {contract: auditContract, frameTextRegions});
@@ -719,6 +723,25 @@ async function postDispatch(page, request) {
     data: {session_id: sessionId, page_id: pageId, ...request},
   });
   return {status: response.status(), body: await response.text()};
+}
+
+async function browserChromeSnapshot(page) {
+  return page.locator(".wb-shell").evaluate((shell) => {
+    const selectors = [".wb-menubar", ".wb-commandbar", ".wb-appbar", ".wb-statusbar"];
+    const styleProperties = ["display", "position", "box-sizing", "height", "min-height", "margin", "padding", "border", "background-color", "color", "font-size", "line-height"];
+    return selectors.map((selector) => {
+      const element = shell.querySelector(selector);
+      if (!element) return {selector, present: false};
+      const bounds = element.getBoundingClientRect();
+      const computed = getComputedStyle(element);
+      return {
+        selector,
+        present: true,
+        bounds: {x: Math.round(bounds.x), y: Math.round(bounds.y), width: Math.round(bounds.width), height: Math.round(bounds.height)},
+        style: Object.fromEntries(styleProperties.map((property) => [property, computed.getPropertyValue(property)])),
+      };
+    });
+  });
 }
 
 async function runAlvTreeBrowserRegression(page, baseUrl, result) {
@@ -810,13 +833,19 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
         assert.equal(response?.status(), 200, `${result.programName} action ${action.value || action.label} did not return HTTP 200: ${await response?.text()}`);
         await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
         if (result.programName === "ZGG_GUI_ALV_DYNAMIC" && action.value !== "BACK") {
+          const grid = actionPage.locator('[data-control-kind="ALV_GRID"]');
+          assert.equal(await grid.count(), 1, `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} lost the ALV grid`);
           const bodyText = await actionPage.locator("body").textContent();
-          assert.match(bodyText, /Dynamic ALV action not applied/,
-            `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} did not report the capability boundary`);
-          assert.match(bodyText, /No table rows or cell styles were changed/,
-            `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} implied an unperformed table change`);
-          assert.doesNotMatch(bodyText, /appended row|toggled the ACTIVE cell|rows and generated cell-style entries reset/i,
-            `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} reported an unperformed table change`);
+          assert.doesNotMatch(bodyText, /Dynamic ALV action not applied|Dynamic ALV output unavailable/i,
+            `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} exposed a retired capability boundary`);
+          if (action.value === "APPEND") {
+            assert.equal(await grid.locator("tbody tr").count(), 4, "ZGG_GUI_ALV_DYNAMIC APPEND must add one typed row");
+          } else if (action.value === "RESET") {
+            assert.equal(await grid.locator("tbody tr").count(), 3, "ZGG_GUI_ALV_DYNAMIC RESET must restore the initial typed rows");
+          } else {
+            assert.match(bodyText, /Dynamic table|style|describe|refreshed|reset/i,
+              `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} did not report a program-owned ALV result`);
+          }
         }
         const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
         const after = await programOwnedFingerprint(actionPage);
@@ -944,6 +973,7 @@ function applyComparisonGates(results, comparisonSummary) {
       && visualMetrics?.emptyContainerCount === 0
       && visualMetrics?.overlapCount === 0
       && visualMetrics?.clippingCount === 0;
+    const chromePassed = result.chromeInvariance?.status === "passed";
     result.comparisonGates = {
       semanticContent: {
         status: semanticPassed ? "passed" : "failed",
@@ -967,6 +997,13 @@ function applyComparisonGates(results, comparisonSummary) {
           : comparison
             ? `The normalized screenshot differs in ${comparison.changedPixels} of ${comparison.totalPixels} pixels; visual parity remains open.`
             : visualAudit?.evidence || "No normalized screenshot comparison was produced.",
+      },
+      browserChromeInvariance: {
+        status: chromePassed ? "passed" : "failed",
+        rule: comparisonGateDefinitions[3].rule,
+        evidence: chromePassed
+          ? result.chromeInvariance.evidence
+          : result.chromeInvariance?.evidence || "Global browser chrome invariance was not verified.",
       },
     };
     result.comparisonAccepted = Object.values(result.comparisonGates).every((gate) => gate.status === "passed");
@@ -1056,7 +1093,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
   ${renderingEvidenceMarkup}
   ${referenceAudit ? `<section class="reference-audit" data-reference-audit="${escapeHtml(referenceAudit.status)}"><h3>Reference audit: ${escapeHtml(referenceAudit.acceptance)}</h3><p><strong>Observed:</strong> ${escapeHtml(referenceAudit.observedState)}<br><strong>Intended:</strong> ${escapeHtml(referenceAudit.intendedState)}${referenceAudit.verification ? `<br><strong>Verification:</strong> ${escapeHtml(referenceAudit.verification)}` : ""}</p></section>` : ""}
   ${fallbackAudit ? `<section class="fallback-audit" data-fallback-audit="${escapeHtml(fallbackAudit.status)}"><h3>Intentional capability boundary: ${escapeHtml(fallbackAudit.acceptance)}</h3><p><strong>Native evidence:</strong> ${escapeHtml(fallbackAudit.nativeEvidence)}<br><strong>Browser contract:</strong> ${escapeHtml(fallbackAudit.browserContract)}${fallbackAudit.verification ? `<br><strong>Verification:</strong> ${escapeHtml(fallbackAudit.verification)}` : ""}</p></section>` : ""}
-  <section class="gate-section" aria-label="Comparison gates"><h3>Comparison gates</h3><ul>${gateMarkup}</ul><p>Pixel similarity is visual evidence only; acceptance requires all three gates to pass.</p></section>
+  <section class="gate-section" aria-label="Comparison gates"><h3>Comparison gates</h3><ul>${gateMarkup}</ul><p>Pixel similarity is visual evidence only; acceptance requires all four gates to pass.</p></section>
   ${diagnosticMarkup(result.diagnostics)}
 </article>`;
   }))).join("\n");
@@ -1126,7 +1163,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
   </head>
   <body>
     <h1>gg-gui conversion comparison</h1>
-  <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}; locale ${escapeHtml(screenshotEnvironment.locale)}; timezone ${escapeHtml(screenshotEnvironment.timezone)}; animations ${escapeHtml(screenshotEnvironment.animations)}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the SAP GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, and visual-structure gates; pixel similarity is evidence only. See the <a href="../reference-audit.json">reference audit</a> and <a href="../fallback-audit.json">fallback audit</a>.</p>
+  <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}; locale ${escapeHtml(screenshotEnvironment.locale)}; timezone ${escapeHtml(screenshotEnvironment.timezone)}; animations ${escapeHtml(screenshotEnvironment.animations)}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the SAP GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, visual-structure, and browser-chrome-invariance gates; pixel similarity is evidence only. See the <a href="../reference-manifest.json">reference manifest</a>, <a href="../reference-audit.json">reference audit</a>, and <a href="../fallback-audit.json">fallback audit</a>.</p>
     <main>
 ${cards}
     </main>
@@ -1176,6 +1213,51 @@ async function writeFallbackAudit(revision, referenceRoot) {
   }, null, 2)}\n`, "utf8");
 }
 
+async function writeReferenceManifest(revision, referenceRoot, contracts, reportFiles) {
+  const referenceNames = (await fs.readdir(referenceRoot))
+    .filter((name) => name.toLowerCase().endsWith(".png"))
+    .sort((left, right) => left.localeCompare(right));
+  const expectedNames = [...contracts.values()]
+    .map((contract) => `${contract.programName.toLowerCase()}.png`)
+    .sort((left, right) => left.localeCompare(right));
+  assert.deepEqual(referenceNames, expectedNames, "Pinned SAP screenshot set must contain exactly one reference per gg-gui report");
+  assert.equal(contracts.size, reportFiles.length, "Reference manifest contract count must match source report count");
+  const reports = [];
+  for (const filename of reportFiles) {
+    const contract = [...contracts.values()].find((item) => item.sourceFile === filename);
+    assert.ok(contract, `Missing reference contract for ${filename}`);
+    const imageName = `${contract.programName.toLowerCase()}.png`;
+    const imagePath = path.join(referenceRoot, imageName);
+    const data = await fs.readFile(imagePath);
+    const dimensions = await imageDimensions(imagePath);
+    assert.deepEqual(dimensions, screenshotViewport, `Reference ${imageName} must use the deterministic ${screenshotViewport.width} x ${screenshotViewport.height} viewport`);
+    reports.push({
+      ...contract,
+      referenceFile: imageName,
+      dimensions,
+      sha256: createHash("sha256").update(data).digest("hex"),
+      status: referenceStateAudits[contract.programName]?.status ?? "authoritative",
+      acceptance: referenceStateAudits[contract.programName]?.acceptance ?? "included-in-visual-evidence",
+    });
+  }
+  const manifest = {
+    schemaVersion: 1,
+    repositoryUrl,
+    revision,
+    sourceDirectory: path.relative(validationRoot, sourceRoot).split(path.sep).join("/"),
+    referenceDirectory: path.relative(validationRoot, referenceRoot).split(path.sep).join("/"),
+    reportCount: reportFiles.length,
+    screenshotViewport,
+    launcherValidation: {
+      rule: "Every report is mapped to one pinned SAP screenshot and an expected first-screen contract; stale launcher captures are explicitly classified.",
+      staleReports: Object.keys(referenceStateAudits),
+    },
+    reports,
+  };
+  await fs.writeFile(path.join(validationRoot, "reference-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  return manifest;
+}
+
 await fs.mkdir(validationRoot, {recursive: true});
 
 const sourceRepository = path.resolve(process.env.GG_GUI_REPOSITORY ?? checkoutRoot);
@@ -1200,6 +1282,7 @@ await fs.mkdir(screenshotsRoot, {recursive: true});
 
 const results = [];
 const targetNames = new Set();
+const referenceContracts = new Map();
 const resolveInclude = async (name) => {
   const includePath = path.join(sourceRoot, `${String(name).toLowerCase()}.prog.abap`);
   if (!await exists(includePath)) return undefined;
@@ -1239,6 +1322,13 @@ for (const filename of reportFiles) {
     await fs.writeFile(path.join(generatedRoot, `${helper.className.toLowerCase()}.clas.abap`), helper.source, "utf8");
   }
   await fs.writeFile(path.join(manifestsRoot, `${result.manifest.targetClass.toLowerCase()}.manifest.json`), `${JSON.stringify(result.manifest, null, 2)}\n`, "utf8");
+  const visualContract = visualContractFor(programName, screenMetadata);
+  referenceContracts.set(programName, {
+    programName,
+    sourceFile: filename,
+    expectedFirstScreen: visualContract.screenNumber ?? "SELECTION_OR_LIST",
+    expectedTitle: visualContract.title,
+  });
   results.push({
     filename,
     programName,
@@ -1248,8 +1338,9 @@ for (const filename of reportFiles) {
     diagnostics: result.diagnostics,
     smokeTest: pendingSmokeTest(),
     interactionAudit: {status: "not-run"},
-    visualContract: visualContractFor(programName, screenMetadata),
+    visualContract,
     visualStructureAudit: {status: "not-run"},
+    chromeInvariance: {status: "not-run"},
     comparisonAccepted: false,
     comparisonGates: pendingComparisonGates(),
     fallbackAudit: intentionalReferenceFallbacks[programName] || null,
@@ -1281,6 +1372,7 @@ await fs.writeFile(transpileConfigPath, `${JSON.stringify({
 }, null, 2)}\n`, "utf8");
 
 const revision = await runCommand("git", ["-C", sourceRepository, "rev-parse", "HEAD"], {stdio: "pipe"});
+const referenceManifest = await writeReferenceManifest(revision, referenceRoot, referenceContracts, reportFiles);
 await writeReferenceAudit(revision, referenceRoot);
 await writeFallbackAudit(revision, referenceRoot);
 const recordedFallbackAudit = JSON.parse(await fs.readFile(path.join(validationRoot, "fallback-audit.json"), "utf8"));
@@ -1313,7 +1405,7 @@ await fs.writeFile(path.join(validationRoot, "known-failing.json"), `${JSON.stri
     },
   ],
 }, null, 2)}\n`, "utf8");
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, referenceManifest: {path: "reference-manifest.json", reportCount: referenceManifest.reportCount}, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
 console.log(`Converted ${results.length} gg-gui reports from ${revision}`);
 
 await runCommand(repositoryTool("abap_transpile"), [path.relative(repositoryRoot, transpileConfigPath)]);
@@ -1332,10 +1424,11 @@ for (const result of results) {
   };
   result.applicationParityCandidate = true;
 }
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
+await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, referenceManifest: {path: "reference-manifest.json", reportCount: referenceManifest.reportCount}, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
 
 let hostProcess;
 let browser;
+let browserChromeBaseline;
 try {
   const port = await freePort();
   hostProcess = spawn(process.execPath, ["test/start-server.mjs"], {
@@ -1384,6 +1477,23 @@ try {
     assert.ok(reportSpecificName || matchingTokens.length > 0, `${result.programName} first screen has no report-specific content`);
     assert.equal(hasGenericPartialHeading(smoke.headings), false, `${result.programName} first screen exposes a generic partial-conversion heading`);
     assert.ok(smoke.pageKind, `${result.programName} first screen has no page kind`);
+    const chromeSnapshot = await browserChromeSnapshot(page);
+    if (!browserChromeBaseline) {
+      browserChromeBaseline = chromeSnapshot;
+      result.chromeInvariance = {
+        status: "passed",
+        baseline: "first-report-capture",
+        evidence: "Global shell chrome geometry and computed styles established from the first deterministic report capture.",
+      };
+    } else {
+      const invariant = JSON.stringify(chromeSnapshot) === JSON.stringify(browserChromeBaseline);
+      assert.equal(invariant, true, `${result.programName} changed the global browser chrome geometry or computed style contract`);
+      result.chromeInvariance = {
+        status: "passed",
+        baseline: "first-report-capture",
+        evidence: "Global shell chrome geometry and computed styles match the first deterministic report capture.",
+      };
+    }
     result.smokeTest = {
       status: "passed",
       pageKind: smoke.pageKind,
@@ -1391,11 +1501,12 @@ try {
       evidence: `Report-specific content ${reportSpecificName || matchingTokens.join(", ")} rendered on ${smoke.pageKind}; no generic partial-conversion heading found.`,
     };
     if (result.programName === "ZGG_GUI_ALV_DYNAMIC") {
-      const boundary = page.locator(".gg-capability-boundary");
-      assert.equal(await boundary.count(), 1, "ZGG_GUI_ALV_DYNAMIC must show its one explicit ALV capability boundary");
-      const boundaryText = await boundary.textContent();
-      assert.match(boundaryText, /Dynamic ALV output unavailable/);
-      assert.match(boundaryText, /Its rows and row changes are not displayed\./);
+      const grid = page.locator('[data-control-kind="ALV_GRID"]');
+      assert.equal(await grid.count(), 1, "ZGG_GUI_ALV_DYNAMIC must render one ALV grid");
+      assert.equal(await grid.locator("table").count(), 1, "ZGG_GUI_ALV_DYNAMIC must render the ALV table");
+      assert.equal(await grid.locator("table").getAttribute("data-field-count"), "6", "ZGG_GUI_ALV_DYNAMIC must preserve its six catalog fields");
+      assert.equal(await grid.locator("tbody tr").count(), 3, "ZGG_GUI_ALV_DYNAMIC must render its three initial rows");
+      assert.equal(await page.locator(".gg-capability-boundary").count(), 0, "ZGG_GUI_ALV_DYNAMIC must not expose the retired capability boundary");
     }
     result.visualStructureAudit = await auditVisualStructure(page, result, recordedFallbackAudit.fallbacks[result.programName]);
     await waitForDeterministicFonts(page);
@@ -1814,11 +1925,13 @@ try {
     referenceRoot,
     screenshotsRoot,
     diffRoot,
+    "--baseline-region=25,93,1248,856",
+    "--current-region=16,113,1248,856",
   ]);
   const comparisonSummary = JSON.parse(await fs.readFile(path.join(diffRoot, "summary.json"), "utf8"));
   applyComparisonGates(results, comparisonSummary);
   await writeScreenshotIndex(results, revision, referenceRoot);
-  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
+  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, referenceManifest: {path: "reference-manifest.json", reportCount: referenceManifest.reportCount}, browserChromeBaseline, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
 } finally {
   await browser?.close();
   await stopProcess(hostProcess);

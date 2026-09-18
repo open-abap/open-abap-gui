@@ -19,11 +19,13 @@ import { resolveTypes } from "./passes/resolve-types.mjs";
 import { analyzeReferences } from "./passes/analyze-references.mjs";
 import { buildControlFlowGraphs } from "./passes/control-flow.mjs";
 import { analyzeFieldSymbols } from "./passes/analyze-field-symbols.mjs";
+import { detectDynamicAlv } from "./passes/analyze-dynamic-alv.mjs";
 import { scanCapabilities } from "./capability.mjs";
 import { emitClassSource, emitHelperSources, emitPartialApplication, emitPartialSkeleton, lowerToScaffoldIR } from "./emit/class-source.mjs";
 import { createManifest } from "./emit/manifest.mjs";
 import { dynproProgramIR } from "./ir/dynpro-ir.mjs";
 import { loadDynproMetadata } from "./dynpro-metadata.mjs";
+import { withoutLiteralTemplateText } from "./passes/lower-statements.mjs";
 
 const SAFE_ENTRY_FAILURE_CODES = new Set([
   "GGCONV-E100", "GGCONV-E101", "GGCONV-E102", "GGCONV-E103", "GGCONV-E104",
@@ -43,7 +45,7 @@ export function undeclaredFieldSymbols(source) {
   let declaring = false;
   for (let index = 0; index < lines.length; index++) {
     if (/^\s*\*/.test(lines[index])) continue;
-    const code = lines[index].replace(/'(?:''|[^'])*'/g, " ").split('"')[0];
+    const code = withoutLiteralTemplateText(lines[index].replace(/'(?:''|[^'])*'/g, " ")).split('"')[0];
     for (const match of code.matchAll(/\bFIELD-SYMBOL\s*\(\s*<([A-Z][A-Z0-9_]*)>\s*\)/gi)) declared.add(match[1].toUpperCase());
     // A chained FIELD-SYMBOLS declaration keeps declaring across lines until
     // the statement is terminated.
@@ -186,8 +188,12 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
   collectEvents(ir, allStatements);
   collectRoutines(ir);
   ir.declarations = collectDeclarations(allStatements);
+  ir.dynamicAlv = detectDynamicAlv(ir);
   ir.selections = collectSelectionScreens(ir.declarations);
-  ir.safeFieldSymbols = [...analyzeFieldSymbols(ir)].sort();
+  ir.safeFieldSymbols = [...new Set([
+    ...analyzeFieldSymbols(ir),
+    ...(ir.dynamicAlv?.fieldSymbols ?? []),
+  ])].sort();
   ir.modules = collectModules(allStatements);
   ir.sourceIndex = buildSourceIndex(ir);
   ir.statePlan = buildStatePlan(ir);

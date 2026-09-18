@@ -150,7 +150,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-runtime-content{flex:1 1 auto;min-height:0;margin:8px 16px 0;padding:14px 18px;box-sizing:border-box;overflow:auto;background:var(--gg-work-surface);border:1px solid var(--gg-border-dark);border-radius:2px;box-shadow:0 1px 4px rgba(34,67,102,.12)}' &&
       '.wb-runtime-content--dynpro{margin:6px 16px 0;padding:0;background:var(--gg-work-area);border:1px solid var(--gg-border-dark);border-radius:2px;box-shadow:0 1px 4px rgba(34,67,102,.18)}' &&
       '.wb-runtime-content--dynpro main{height:100%;overflow:scroll}' &&
-      '.wb-runtime-content main{max-width:100%;overflow:auto}' &&
+      '.wb-runtime-content main{height:100%;max-width:100%;overflow:auto;box-sizing:border-box}' &&
 * The bar keeps one height whether or not it carries a message, so a message
 * never reflows the page. Its padding is horizontal only; the fixed height
 * leaves the message room to sit inside it.

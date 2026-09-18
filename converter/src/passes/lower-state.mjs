@@ -24,6 +24,9 @@ export function buildStatePlan(ir) {
   }
   const selectionState = {};
   for (const name of [...new Set(selections)].sort()) {
+    const selection = ir.selections
+      .flatMap((screen) => screen.elements ?? [])
+      .find((item) => item.name?.toUpperCase() === name);
     const base = `MV_${name}`;
     let candidate = base;
     let suffix = 1;
@@ -32,6 +35,7 @@ export function buildStatePlan(ir) {
     selectionState[name] = {
       member: candidate.toLowerCase(),
       ranges: ir.selections.flatMap((screen) => screen.elements).some((item) => item.name === name && item.kind === "select-option"),
+      dataType: selection?.dataType,
     };
   }
   return {
