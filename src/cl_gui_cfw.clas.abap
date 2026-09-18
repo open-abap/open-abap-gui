@@ -1,4 +1,4 @@
-CLASS cl_gui_cfw DEFINITION PUBLIC.
+CLASS cl_gui_cfw DEFINITION PUBLIC FRIENDS zcl_gg_host_dynpro zcl_gg_host_runtime.
   PUBLIC SECTION.
     CONSTANTS rc_noevent TYPE i VALUE -1.
 
@@ -28,6 +28,7 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
       EXPORTING
         return_code TYPE i.
 
+  PRIVATE SECTION.
     CLASS-METHODS queue_browser_event
       IMPORTING
         event     TYPE string
@@ -40,7 +41,6 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
       RETURNING
         VALUE(new_code) TYPE string.
 
-  PRIVATE SECTION.
     CLASS-METHODS get_new_ok_code
       RETURNING
         VALUE(new_code) TYPE string.

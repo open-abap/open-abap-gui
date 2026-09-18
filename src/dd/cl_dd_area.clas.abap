@@ -37,10 +37,6 @@ CLASS cl_dd_area DEFINITION PUBLIC FRIENDS cl_dd_form_area cl_dd_table_area cl_d
     DATA html_table TYPE sdydo_html_table.
     CLASS-DATA act_gui_properties TYPE sdydo_act_gui_properties.
 
-    METHODS get_html_content
-      RETURNING
-        VALUE(result) TYPE string.
-
     METHODS new_line
       IMPORTING
         repeat TYPE i OPTIONAL.
@@ -128,6 +124,12 @@ CLASS cl_dd_area DEFINITION PUBLIC FRIENDS cl_dd_form_area cl_dd_table_area cl_d
     DATA mv_table_area TYPE REF TO cl_dd_table_area.
     DATA mv_form_open TYPE abap_bool.
 
+    METHODS get_html_content
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS finish_open_table.
+
     "! Publishes the accumulated markup through the public HTML_TABLE
     "! attribute, which is how callers read a document's rendered content.
     METHODS fill_html_table.
@@ -205,9 +207,7 @@ CLASS cl_dd_area IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_form.
-    IF mv_table_area IS BOUND.
-      mv_table_area->finish_table( ).
-    ENDIF.
+    finish_open_table( ).
     formarea = NEW cl_dd_form_area( ).
     formarea->parent_area = me.
     main_url = ``.
@@ -339,6 +339,12 @@ CLASS cl_dd_area IMPLEMENTATION.
 
   METHOD get_html_content.
     result = html_content.
+  ENDMETHOD.
+
+  METHOD finish_open_table.
+    IF mv_table_area IS BOUND.
+      mv_table_area->finish_table( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD fill_html_table.

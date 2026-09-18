@@ -77,30 +77,6 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
       RETURNING
         VALUE(result) TYPE string.
 
-    CLASS-METHODS format_total_value
-      IMPORTING
-        iv_value      TYPE decfloat34
-        iv_decimals   TYPE i DEFAULT -1
-        iv_sample     TYPE string OPTIONAL
-      RETURNING
-        VALUE(result) TYPE string.
-
-* Compares a value against one row of a select-option style range, the way an
-* ALV grid filter and a SALV filter both do. Public rather than protected
-* because the SALV classes filter the same way without inheriting from the
-* control framework. The caller converts and trims its own operands, since the
-* two filter sources disagree on whether trailing blanks are significant.
-    CLASS-METHODS compare_option
-      IMPORTING
-        iv_value         TYPE string
-        iv_option        TYPE string
-        iv_low           TYPE string
-        iv_high          TYPE string OPTIONAL
-        iv_sign          TYPE string OPTIONAL
-        iv_unknown_as_eq TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(result)    TYPE abap_bool.
-
     CLASS-METHODS set_focus
       IMPORTING
         control TYPE REF TO cl_gui_control.
@@ -167,12 +143,35 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         cntl_error
         cntl_system_error.
 
+  PROTECTED SECTION.
+    CLASS-METHODS format_total_value
+      IMPORTING
+        iv_value      TYPE decfloat34
+        iv_decimals   TYPE i DEFAULT -1
+        iv_sample     TYPE string OPTIONAL
+      RETURNING
+        VALUE(result) TYPE string.
+
+* Compares a value against one row of a select-option style range, the way an
+* ALV grid filter and a SALV filter both do. The SALV implementation keeps its
+* own fallback behavior in a private helper because SALV classes do not inherit
+* from the control framework.
+    CLASS-METHODS compare_option
+      IMPORTING
+        iv_value         TYPE string
+        iv_option        TYPE string
+        iv_low           TYPE string
+        iv_high          TYPE string OPTIONAL
+        iv_sign          TYPE string OPTIONAL
+        iv_unknown_as_eq TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(result)    TYPE abap_bool.
+
     METHODS show_capability_boundary
       IMPORTING
         heading     TYPE string
         explanation TYPE string.
 
-  PROTECTED SECTION.
     CLASS-METHODS state_class
       IMPORTING
         iv_focused    TYPE abap_bool DEFAULT abap_false

@@ -129,6 +129,17 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
         value         TYPE string
       RETURNING
         VALUE(result) TYPE abap_bool.
+
+    METHODS compare_option
+      IMPORTING
+        iv_value         TYPE string
+        iv_option        TYPE string
+        iv_low           TYPE string
+        iv_high          TYPE string OPTIONAL
+        iv_sign          TYPE string OPTIONAL
+        iv_unknown_as_eq TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(result)    TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
@@ -420,12 +431,42 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD selopt_matches.
-    result = cl_gui_control=>compare_option(
+    result = compare_option(
       iv_value  = value
       iv_option = CONV string( selopt->get_option( ) )
       iv_low    = CONV string( selopt->get_low( ) )
       iv_high   = CONV string( selopt->get_high( ) )
       iv_sign   = CONV string( selopt->get_sign( ) ) ).
+  ENDMETHOD.
+
+  METHOD compare_option.
+    CASE to_upper( iv_option ).
+      WHEN 'EQ'.
+        result = xsdbool( iv_value = iv_low ).
+      WHEN 'NE'.
+        result = xsdbool( iv_value <> iv_low ).
+      WHEN 'BT'.
+        result = xsdbool( iv_value >= iv_low AND iv_value <= iv_high ).
+      WHEN 'NB'.
+        result = xsdbool( iv_value < iv_low OR iv_value > iv_high ).
+      WHEN 'GE'.
+        result = xsdbool( iv_value >= iv_low ).
+      WHEN 'GT'.
+        result = xsdbool( iv_value > iv_low ).
+      WHEN 'LE'.
+        result = xsdbool( iv_value <= iv_low ).
+      WHEN 'LT'.
+        result = xsdbool( iv_value < iv_low ).
+      WHEN 'CP'.
+        result = xsdbool( iv_value CP iv_low ).
+      WHEN 'NP'.
+        result = xsdbool( iv_value NP iv_low ).
+      WHEN OTHERS.
+        result = xsdbool( iv_unknown_as_eq = abap_true AND iv_value = iv_low ).
+    ENDCASE.
+    IF iv_sign = 'E'.
+      result = xsdbool( result = abap_false ).
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

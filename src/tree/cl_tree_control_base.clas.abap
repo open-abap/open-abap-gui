@@ -39,10 +39,6 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
              expanded   TYPE abap_bool,
              selected   TYPE abap_bool,
              hidden     TYPE abap_bool,
-             folder     TYPE abap_bool,
-             expander   TYPE abap_bool,
-             node_image TYPE string,
-             open_image TYPE string,
            END OF ty_html_node.
     TYPES ty_html_nodes TYPE STANDARD TABLE OF ty_html_node WITH DEFAULT KEY.
 
@@ -277,7 +273,21 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_system_error.
 
   PROTECTED SECTION.
-    DATA mt_html_nodes TYPE ty_html_nodes.
+    TYPES: BEGIN OF ty_html_node_state,
+             node_key   TYPE string,
+             parent_key TYPE string,
+             text       TYPE string,
+             expanded   TYPE abap_bool,
+             selected   TYPE abap_bool,
+             hidden     TYPE abap_bool,
+             folder     TYPE abap_bool,
+             expander   TYPE abap_bool,
+             node_image TYPE string,
+             open_image TYPE string,
+           END OF ty_html_node_state.
+    TYPES ty_html_node_states TYPE STANDARD TABLE OF ty_html_node_state WITH DEFAULT KEY.
+
+    DATA mt_html_nodes TYPE ty_html_node_states.
     DATA mv_html_top_node TYPE string.
 
     METHODS add_html_node

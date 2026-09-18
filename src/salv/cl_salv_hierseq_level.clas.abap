@@ -5,9 +5,10 @@ CLASS cl_salv_hierseq_level DEFINITION PUBLIC.
       IMPORTING
         binding TYPE salv_t_hierseq_binding OPTIONAL.
 
-    METHODS set_table
+    METHODS set_data
       IMPORTING
-        ir_table TYPE REF TO data.
+        value     TYPE REF TO data
+        t_binding TYPE salv_t_hierseq_binding.
 
     METHODS get_columns
       RETURNING
@@ -67,12 +68,13 @@ CLASS cl_salv_hierseq_level IMPLEMENTATION.
     value = mo_columns.
   ENDMETHOD.
 
-  METHOD set_table.
+  METHOD set_data.
     DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
     DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
     DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
 
-    mr_table = ir_table.
+    mt_binding = t_binding.
+    mr_table = value.
     mo_columns = NEW cl_salv_columns_hierseq( ).
     IF mr_table IS NOT BOUND.
       RETURN.

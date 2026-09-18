@@ -1,4 +1,5 @@
-CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
+CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
+  FRIENDS cl_gui_cfw cl_gui_alv_tree zcl_gg_host_runtime.
   PUBLIC SECTION.
     CONSTANTS c_hierarchy_column_name TYPE lvc_fname VALUE '&Hierarchy'.
     CONSTANTS c_virtual_root_node TYPE lvc_nkey VALUE '&VIRTUALROOT'.
@@ -65,26 +66,6 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS frontend_update.
 
     METHODS free REDEFINITION.
-
-    CLASS-METHODS register_instance
-      IMPORTING
-        control TYPE REF TO cl_alv_tree_base.
-
-    CLASS-METHODS unregister_instance
-      IMPORTING
-        control TYPE REF TO cl_alv_tree_base.
-
-    CLASS-METHODS clear_instances.
-
-    CLASS-METHODS dispatch_browser_event
-      IMPORTING
-        event         TYPE string
-        node_key      TYPE string OPTIONAL
-        fieldname     TYPE string OPTIONAL
-        value         TYPE string OPTIONAL
-        checked       TYPE abap_bool OPTIONAL
-      RETURNING
-        VALUE(result) TYPE abap_bool.
 
   PROTECTED SECTION.
 
@@ -390,6 +371,26 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         VALUE(result) TYPE abap_bool.
 
   PRIVATE SECTION.
+
+    CLASS-METHODS register_instance
+      IMPORTING
+        control TYPE REF TO cl_alv_tree_base.
+
+    CLASS-METHODS unregister_instance
+      IMPORTING
+        control TYPE REF TO cl_alv_tree_base.
+
+    CLASS-METHODS clear_instances.
+
+    CLASS-METHODS dispatch_browser_event
+      IMPORTING
+        event         TYPE string
+        node_key      TYPE string OPTIONAL
+        fieldname     TYPE string OPTIONAL
+        value         TYPE string OPTIONAL
+        checked       TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(result) TYPE abap_bool.
 
     CLASS-DATA mt_instances TYPE STANDARD TABLE OF REF TO cl_alv_tree_base
       WITH DEFAULT KEY.

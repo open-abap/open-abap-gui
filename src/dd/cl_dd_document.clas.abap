@@ -93,9 +93,7 @@ CLASS cl_dd_document IMPLEMENTATION.
   METHOD merge_document.
     DATA lv_raw_html TYPE string.
 
-    IF mv_table_area IS BOUND.
-      mv_table_area->finish_table( ).
-    ENDIF.
+    finish_open_table( ).
     mv_document_html = html_content.
     IF mv_form_open = abap_true.
       mv_document_html = mv_document_html && '</form>'.

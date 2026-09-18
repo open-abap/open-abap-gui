@@ -17,7 +17,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS add_button
       IMPORTING
         fcode       TYPE clike
-        icon        TYPE clike
+        icon        TYPE c
         is_disabled TYPE abap_bool OPTIONAL
         butn_type   TYPE i
         text        TYPE char40 OPTIONAL
@@ -72,7 +72,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CLASS-METHODS fill_buttons_data_table
       IMPORTING
         fcode      TYPE ui_func
-        icon       TYPE clike
+        icon       TYPE c
         disabled   TYPE c OPTIONAL
         butn_type  TYPE i
         text       TYPE clike OPTIONAL

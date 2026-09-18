@@ -49,7 +49,7 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS show_url
       IMPORTING
         in_place TYPE abap_bool OPTIONAL
-        url      TYPE clike.
+        url      TYPE c.
 
     METHODS set_ui_flag
       IMPORTING

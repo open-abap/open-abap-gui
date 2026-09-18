@@ -1,4 +1,4 @@
-CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
+CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area FRIENDS cl_dd_area.
   PUBLIC SECTION.
 
     METHODS new_row
@@ -15,11 +15,12 @@ CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area.
 
     METHODS add_text REDEFINITION.
     METHODS add_icon REDEFINITION.
+
+  PRIVATE SECTION.
     METHODS finish_table.
 
     DATA column_count TYPE i.
 
-  PRIVATE SECTION.
     DATA mv_row_open TYPE abap_bool.
     DATA mv_header_open TYPE abap_bool.
     DATA mv_table_closed TYPE abap_bool.

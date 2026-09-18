@@ -36,6 +36,22 @@ ENDCLASS.
 
 CLASS cl_gui_cfw DEFINITION LOCAL FRIENDS ltcl_test.
 
+CLASS lcl_test_grid DEFINITION INHERITING FROM cl_gui_alv_grid.
+  PUBLIC SECTION.
+    METHODS show_boundary
+      IMPORTING
+        heading     TYPE string
+        explanation TYPE string.
+ENDCLASS.
+
+CLASS lcl_test_grid IMPLEMENTATION.
+  METHOD show_boundary.
+    show_capability_boundary(
+      heading     = heading
+      explanation = explanation ).
+  ENDMETHOD.
+ENDCLASS.
+
 CLASS ltcl_test IMPLEMENTATION.
 
   METHOD test1.
@@ -770,8 +786,8 @@ CLASS ltcl_test IMPLEMENTATION.
   METHOD control_capability_boundary.
     cl_gui_control=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-BOUNDARY' ).
-    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
-    lo_grid->show_capability_boundary(
+    DATA(lo_grid) = NEW lcl_test_grid( i_parent = lo_root ).
+    lo_grid->show_boundary(
       heading     = 'Dynamic table <unavailable>'
       explanation = 'No rows & styles were changed.' ).
 

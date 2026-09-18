@@ -120,6 +120,14 @@ CLASS cl_salv_hierseq_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base
       RETURNING
         VALUE(value)    TYPE string.
 
+    METHODS format_total_value
+      IMPORTING
+        iv_value      TYPE decfloat34
+        iv_decimals   TYPE i DEFAULT -1
+        iv_sample     TYPE string OPTIONAL
+      RETURNING
+        VALUE(result) TYPE string.
+
 ENDCLASS.
 
 CLASS cl_salv_hierseq_table IMPLEMENTATION.
@@ -133,8 +141,12 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
     r_hierseq->mt_binding = t_binding_level1_level2.
     r_hierseq->mo_level1 = NEW cl_salv_hierseq_level( binding = t_binding_level1_level2 ).
     r_hierseq->mo_level2 = NEW cl_salv_hierseq_level( binding = t_binding_level1_level2 ).
-    r_hierseq->mo_level1->set_table( lr_level1 ).
-    r_hierseq->mo_level2->set_table( lr_level2 ).
+    r_hierseq->mo_level1->set_data(
+      value     = lr_level1
+      t_binding = t_binding_level1_level2 ).
+    r_hierseq->mo_level2->set_data(
+      value     = lr_level2
+      t_binding = t_binding_level1_level2 ).
     r_hierseq->mo_functions = NEW cl_salv_functions_list( ).
     r_hierseq->mo_layout = NEW cl_salv_layout( ).
     r_hierseq->mo_events = NEW cl_salv_events_hierseq( ).
@@ -395,7 +407,7 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
             ENDTRY.
           ENDIF.
         ENDLOOP.
-        lv_total_text = cl_gui_control=>format_total_value(
+        lv_total_text = format_total_value(
           iv_value  = lv_total
           iv_sample = lv_total_sample ).
       ELSE.
@@ -404,6 +416,58 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
       value = value && |<td data-total="true" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_component-name ) ) }">{ cl_gui_control=>escape_html( lv_total_text ) }</td>|.
     ENDLOOP.
     value = value && '</tr></tfoot>'.
+  ENDMETHOD.
+
+  METHOD format_total_value.
+    DATA lv_integer TYPE string.
+    DATA lv_fraction TYPE string.
+    DATA lv_decimals TYPE i.
+    DATA lv_factor TYPE decfloat34.
+    DATA lv_scaled TYPE decfloat34.
+    DATA lv_scaled_text TYPE string.
+    DATA lv_sign TYPE string.
+    DATA lv_integer_length TYPE i.
+    DATA lv_integer_part TYPE string.
+    DATA lv_fraction_part TYPE string.
+
+    lv_decimals = iv_decimals.
+    IF lv_decimals < 0.
+      SPLIT iv_sample AT '.' INTO lv_integer lv_fraction.
+      lv_decimals = strlen( lv_fraction ).
+    ENDIF.
+    IF lv_decimals > 14.
+      lv_decimals = 14.
+    ENDIF.
+    lv_factor = 1.
+    DO lv_decimals TIMES.
+      lv_factor = lv_factor * 10.
+    ENDDO.
+    lv_scaled = round(
+      val = iv_value * lv_factor
+      dec = 0 ).
+    lv_scaled_text = |{ lv_scaled }|.
+    IF lv_scaled_text+0(1) = '-'.
+      lv_sign = '-'.
+      lv_scaled_text = substring(
+        val = lv_scaled_text
+        off = 1 ).
+    ENDIF.
+    WHILE strlen( lv_scaled_text ) <= lv_decimals.
+      lv_scaled_text = |0{ lv_scaled_text }|.
+    ENDWHILE.
+    IF lv_decimals = 0.
+      result = lv_sign && lv_scaled_text.
+    ELSE.
+      lv_integer_length = strlen( lv_scaled_text ) - lv_decimals.
+      lv_integer_part = substring(
+        val = lv_scaled_text
+        off = 0
+        len = lv_integer_length ).
+      lv_fraction_part = substring(
+        val = lv_scaled_text
+        off = lv_integer_length ).
+      result = |{ lv_sign }{ lv_integer_part }.{ lv_fraction_part }|.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
