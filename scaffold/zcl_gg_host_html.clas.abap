@@ -249,7 +249,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-list .gg-color-group\{font-weight:600;border-top:1px solid #9eb5c8;\}|.
     rv_html = rv_html && |.gg-page\{display:flex;flex-direction:column;gap:8px;max-width:100%;\}|.
     rv_html = rv_html && |.gg-status-region,.gg-message-region,.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
-    rv_html = rv_html && |.gg-controls-standalone\{pointer-events:none;\}|.
+    rv_html = rv_html && |.gg-controls-standalone\{display:flow-root;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control\{pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control[title="HTML viewer"]\{pointer-events:auto;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control input,.gg-controls-standalone>.gg-control select,.gg-controls-standalone>.gg-control textarea,.gg-controls-standalone>.gg-control button,.gg-controls-standalone>.gg-control a,.gg-controls-standalone>.gg-control iframe,.gg-controls-standalone>.gg-control [role=button],.gg-controls-standalone>.gg-control [tabindex]\{pointer-events:auto;\}|.

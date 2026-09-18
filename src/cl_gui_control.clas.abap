@@ -329,6 +329,11 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         iv_parent_id  TYPE string
       RETURNING
         VALUE(result) TYPE string.
+    CLASS-METHODS standalone_external_script
+      IMPORTING
+        iv_container_name TYPE string
+      RETURNING
+        VALUE(result)     TYPE string.
     CLASS-METHODS render_control_html
       IMPORTING
         is_snapshot    TYPE ty_snapshot
@@ -639,7 +644,7 @@ CLASS cl_gui_control IMPLEMENTATION.
     ELSEIF iv_container_name IS NOT INITIAL.
       result = |<section class="gg-controls gg-control-host" aria-label="GUI controls" data-control-host="{ escape( iv_container_name ) }" style="position:relative;width:100%;height:100%;min-height:0">|.
     ELSE.
-      result = |<section class="gg-controls gg-controls-standalone" aria-label="GUI controls" style="position:relative;min-height:{ lv_standalone_height }px">|.
+      result = |<section class="gg-controls gg-controls-standalone" aria-label="GUI controls" style="display:flow-root;position:relative;min-height:{ lv_standalone_height }px">|.
     ENDIF.
     LOOP AT mt_snapshots INTO DATA(ls_snapshot).
       IF iv_container_name IS NOT INITIAL
@@ -706,6 +711,7 @@ CLASS cl_gui_control IMPLEMENTATION.
     ENDLOOP.
     IF mv_external_html IS NOT INITIAL.
       result = result && |<section class="gg-external" aria-label="External GUI content">{ mv_external_html }</section>|.
+      result = result && standalone_external_script( iv_container_name = iv_container_name ).
     ENDIF.
     IF iv_document = abap_true.
       result = result && |</main></body></html>|.
@@ -797,6 +803,12 @@ CLASS cl_gui_control IMPLEMENTATION.
       WHEN OTHERS.
         result = |<div class="gg-control" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }"{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</div>|.
     ENDCASE.
+  ENDMETHOD.
+
+  METHOD standalone_external_script.
+    IF iv_container_name IS INITIAL.
+      result = `<script>(function(){var place=function(){var roots=document.querySelectorAll(".gg-controls-standalone");for(var i=0;i<roots.length;i++){var root=roots[i],external=null,children=root.children;for(var j=0;j<children.length;j++){if(children[j].classList.contains("gg-external")){external=children[j];break;}}if(!external){continue;}var rootBounds=root.getBoundingClientRect(),bottom=0;for(var k=0;k<children.length;k++){var child=children[k];if(child===external||child.hidden||window.getComputedStyle(child).position!=="absolute"){continue;}var bounds=child.getBoundingClientRect();bottom=Math.max(bottom,bounds.bottom-rootBounds.top);}external.style.marginTop=Math.ceil(bottom+8)+"px";}};place();window.addEventListener("resize",place);})();</script>`.
+    ENDIF.
   ENDMETHOD.
 
   METHOD format_total_value.
