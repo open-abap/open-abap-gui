@@ -840,6 +840,9 @@ test("loads report-owned dynpro XML and every matching screen flow file", async 
   assert.equal(metadata.textPool.UNDERSCORE, "File_name");
   assert.equal(metadata.files.screens.length, 2);
 
+  metadata.screens[0].elements[2].visibleLength = 8;
+  metadata.screens[0].elements[2].position.visibleWidth = 8;
+
   const converted = await convertProgram({
     source: "PROGRAM zdynpro_metadata.\nMODULE user_command_0100 INPUT.\nENDMODULE.\n",
     filename: metadataFilename.replace(/\.prog\.xml$/i, ".prog.abap"),
@@ -858,6 +861,7 @@ test("loads report-owned dynpro XML and every matching screen flow file", async 
   assert.doesNotMatch(report.classSource, /INTERFACES zif_gg_dynpro_v1/);
   assert.match(report.classSource, /METHOD zif_gg_screen_provider_v1~build_screens\./);
   assert.match(report.classSource, /METHOD zif_gg_screen_provider_v1~process_input_module\.[\s\S]*WHEN 'USER_COMMAND'\.[\s\S]*gv_value = 1\./);
+  assert.match(report.classSource, /name = 'GV_INPUT' position = VALUE #\( row = 36 column = 115 width = 80 height = 26 \)/);
   assert.equal(report.diagnostics.some((item) => item.code === "GGCONV-E501" && item.construct.includes("MODULE")), false);
   assert.equal(report.manifest.metadataInputs.screenProvider, true);
 });

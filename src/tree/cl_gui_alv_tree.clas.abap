@@ -217,6 +217,9 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         is_item_layout TYPE lvc_s_laci OPTIONAL
       EXCEPTIONS
         node_not_found.
+
+  PROTECTED SECTION.
+    METHODS handle_browser_event REDEFINITION.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
@@ -292,9 +295,88 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'ALV_TREE' ).
+    cl_alv_tree_base=>register_instance( me ).
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD handle_browser_event.
+    DATA lv_checked TYPE c LENGTH 1.
+    DATA lo_menu TYPE REF TO cl_ctmenu.
+    DATA lo_drag_drop TYPE REF TO cl_dragdropobject.
+    result = super->handle_browser_event(
+      event     = event
+      node_key  = node_key
+      fieldname = fieldname
+      value     = value
+      checked   = checked ).
+    IF result = abap_true.
+      IF event = 'TREE_TOGGLE'
+          AND ( value = 'true' OR value = 'X' OR value = '1' ).
+        RAISE EVENT expand_nc
+          EXPORTING
+            node_key = CONV lvc_nkey( node_key ).
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    CASE event.
+      WHEN 'TREE_CHECKBOX'.
+        update_checked_items(
+          i_node_key  = CONV lvc_nkey( node_key )
+          i_fieldname = CONV lvc_fname( fieldname )
+          i_checked   = checked ).
+        IF checked = abap_true.
+          lv_checked = 'X'.
+        ENDIF.
+        RAISE EVENT checkbox_change
+          EXPORTING
+            checked   = lv_checked
+            fieldname = CONV lvc_fname( fieldname )
+            node_key  = CONV lvc_nkey( node_key ).
+        refresh_tree_html( ).
+        result = abap_true.
+      WHEN 'TREE_LINK'.
+        RAISE EVENT link_click
+          EXPORTING
+            fieldname = fieldname
+            node_key  = node_key.
+        result = abap_true.
+      WHEN 'TREE_ITEM_DOUBLE'.
+        RAISE EVENT item_double_click
+          EXPORTING
+            fieldname = fieldname
+            node_key  = node_key.
+        result = abap_true.
+      WHEN 'TREE_NODE_DOUBLE'.
+        RAISE EVENT node_double_click
+          EXPORTING
+            node_key = node_key.
+        result = abap_true.
+      WHEN 'TREE_CONTEXT'.
+        CREATE OBJECT lo_menu.
+        RAISE EVENT node_context_menu_request
+          EXPORTING
+            node_key = CONV lvc_nkey( node_key )
+            menu     = lo_menu.
+        result = abap_true.
+      WHEN 'TREE_DRAG_START'.
+        CREATE OBJECT lo_drag_drop.
+        RAISE EVENT on_drag
+          EXPORTING
+            drag_drop_object = lo_drag_drop
+            fieldname        = CONV lvc_fname( fieldname )
+            node_key         = CONV lvc_nkey( node_key ).
+        result = abap_true.
+      WHEN 'TREE_DROP'.
+        CREATE OBJECT lo_drag_drop.
+        RAISE EVENT on_drop
+          EXPORTING
+            drag_drop_object = lo_drag_drop
+            node_key         = CONV lvc_nkey( node_key ).
+        result = abap_true.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD set_top_node.

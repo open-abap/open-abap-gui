@@ -721,6 +721,52 @@ async function postDispatch(page, request) {
   return {status: response.status(), body: await response.text()};
 }
 
+async function runAlvTreeBrowserRegression(page, baseUrl, result) {
+  if (result.programName !== "ZGG_GUI_ALV_TREE") return;
+  const url = `${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`;
+  const tree = page.locator('[data-control-kind="ALV_TREE"] .gg-alv-tree table[role="tree"]');
+  const waitForTreeEvent = async (control, clickOptions = {}) => {
+    const responsePromise = page.waitForResponse(
+      (candidate) => candidate.url().endsWith("/dispatch") && candidate.request().method() === "POST",
+      {timeout: 30_000});
+    const requestPromise = page.waitForRequest(
+      (candidate) => candidate.url().endsWith("/dispatch") && candidate.method() === "POST",
+      {timeout: 30_000});
+    await control.click({noWaitAfter: true, ...clickOptions});
+    const [response, request] = await Promise.all([responsePromise, requestPromise]);
+    assert.equal(response.status(), 200, `ZGG_GUI_ALV_TREE interaction returned HTTP ${response.status()}`);
+    await page.waitForLoadState("load");
+    await page.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+    return request.postData() || "";
+  };
+
+  const folder = tree.locator('tbody tr[data-has-children="true"]').first();
+  await waitForTreeEvent(folder.locator('[data-tree-action="toggle"]'));
+  assert.equal(await tree.locator('tbody tr[data-has-children="true"]').first().getAttribute("aria-expanded"), "false",
+    "ZGG_GUI_ALV_TREE collapse did not round-trip through CFW");
+
+  const collapsedFolder = tree.locator('tbody tr[data-has-children="true"]').first();
+  await waitForTreeEvent(collapsedFolder.locator('[data-tree-action="toggle"]'));
+  const expandedFolder = tree.locator('tbody tr[data-has-children="true"]').first();
+  await waitForTreeEvent(expandedFolder.locator(".gg-tree-node-label"));
+  assert.equal(await tree.locator('tbody tr[data-has-children="true"]').first().getAttribute("aria-selected"), "true",
+    "ZGG_GUI_ALV_TREE selection did not round-trip through CFW");
+
+  const link = tree.locator(".gg-tree-item-link").first();
+  await waitForTreeEvent(link);
+  assert.match(await page.locator("body").textContent(), /LINK_CLICK node/i,
+    "ZGG_GUI_ALV_TREE link event did not reach the ABAP handler");
+
+  const contextRow = tree.locator('tbody tr[data-has-children="true"]').first();
+  const contextRequest = await waitForTreeEvent(contextRow, {button: "right"});
+  assert.match(await page.locator("body").textContent(), /NODE_CONTEXT_MENU_REQUEST extended/i,
+    `ZGG_GUI_ALV_TREE context request did not reach the ABAP handler (${contextRequest})`);
+
+  const unsupported = await page.locator('[data-control-kind="ALV_TREE"] button[value^="COMMAND:&"]').evaluateAll(
+    (buttons) => buttons.filter((button) => !button.disabled).map((button) => button.value));
+  assert.deepEqual(unsupported, [], "ZGG_GUI_ALV_TREE exposes unsupported standard toolbar commands as active");
+}
+
 async function runReferenceInteractionAudit(browser, baseUrl, results) {
   const actionPage = await newScreenshotPage(browser);
   const negativePage = await newScreenshotPage(browser);
@@ -730,6 +776,7 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
       const url = `${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`;
       await actionPage.goto(url, {waitUntil: "load"});
       await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+      await runAlvTreeBrowserRegression(actionPage, baseUrl, result);
       const inventory = await inventoryReferenceActions(actionPage);
       const initialPageKind = await actionPage.locator("[data-page-kind]").getAttribute("data-page-kind");
       const testedSubmitControls = inventory.submitControls.filter((item) =>
@@ -1445,6 +1492,17 @@ try {
   assert.equal(await dynproPage.locator('[name="GV_LIST"]').inputValue(), "ONE");
   assert.equal(await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').isChecked(), true);
   assert.equal(await dynproPage.locator('input[type="radio"][data-abap-name="GV_RADIO_A"]').isChecked(), true);
+  const frameOverflow = await dynproPage.locator(".gg-dynpro").evaluate((root) => [...root.querySelectorAll("input[name],select[name],textarea[name],output[id]")]
+    .map((field) => {
+      const frame = field.closest("fieldset");
+      if (!frame) return null;
+      const fieldBounds = field.getBoundingClientRect();
+      const frameBounds = frame.getBoundingClientRect();
+      return fieldBounds.left < frameBounds.left - 1 || fieldBounds.right > frameBounds.right + 1
+        ? field.getAttribute("name") || field.getAttribute("data-abap-name") || field.id
+        : null;
+    }).filter(Boolean));
+  assert.deepEqual(frameOverflow, [], "Dynpro fields must remain inside their containing frames");
   assert.ok((await dynproPage.locator('input[name="GV_DATE"]').inputValue()).length > 0);
   assert.ok((await dynproPage.locator('input[name="GV_TIME"]').inputValue()).length > 0);
   await dynproPage.locator('[name="GV_TEXT"]').fill("Changed text");

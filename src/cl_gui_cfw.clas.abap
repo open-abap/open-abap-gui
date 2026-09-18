@@ -28,6 +28,18 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
       EXPORTING
         return_code TYPE i.
 
+    CLASS-METHODS queue_browser_event
+      IMPORTING
+        event     TYPE string
+        node_key  TYPE string OPTIONAL
+        fieldname TYPE string OPTIONAL
+        value     TYPE string OPTIONAL
+        checked   TYPE abap_bool OPTIONAL.
+
+    CLASS-METHODS consume_new_ok_code
+      RETURNING
+        VALUE(new_code) TYPE string.
+
   PRIVATE SECTION.
     CLASS-METHODS get_new_ok_code
       RETURNING
@@ -46,6 +58,11 @@ CLASS cl_gui_cfw DEFINITION PUBLIC.
     CLASS-DATA mv_ok_code TYPE string.
     CLASS-DATA mv_update_count TYPE i.
     CLASS-DATA mv_flush_count TYPE i.
+    CLASS-DATA mv_browser_event TYPE string.
+    CLASS-DATA mv_browser_node TYPE string.
+    CLASS-DATA mv_browser_field TYPE string.
+    CLASS-DATA mv_browser_value TYPE string.
+    CLASS-DATA mv_browser_checked TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_gui_cfw IMPLEMENTATION.
@@ -55,12 +72,35 @@ CLASS cl_gui_cfw IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD dispatch.
-    IF mv_ok_code IS INITIAL.
+    IF mv_browser_event IS NOT INITIAL.
+      DATA(lv_handled) = cl_alv_tree_base=>dispatch_browser_event(
+        event     = mv_browser_event
+        node_key  = mv_browser_node
+        fieldname = mv_browser_field
+        value     = mv_browser_value
+        checked   = mv_browser_checked ).
+      CLEAR: mv_browser_event, mv_browser_node, mv_browser_field,
+             mv_browser_value, mv_browser_checked.
+      return_code = COND #( WHEN lv_handled = abap_true THEN 0 ELSE rc_noevent ).
+    ELSEIF mv_ok_code IS INITIAL.
       return_code = rc_noevent.
     ELSE.
       return_code = 0.
       CLEAR mv_ok_code.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD queue_browser_event.
+    mv_browser_event = event.
+    mv_browser_node = node_key.
+    mv_browser_field = fieldname.
+    mv_browser_value = value.
+    mv_browser_checked = checked.
+  ENDMETHOD.
+
+  METHOD consume_new_ok_code.
+    new_code = mv_ok_code.
+    CLEAR mv_ok_code.
   ENDMETHOD.
 
 
@@ -95,6 +135,8 @@ CLASS cl_gui_cfw IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD reset.
-    CLEAR: mv_ok_code, mv_update_count, mv_flush_count.
+    CLEAR: mv_ok_code, mv_update_count, mv_flush_count,
+           mv_browser_event, mv_browser_node, mv_browser_field,
+           mv_browser_value, mv_browser_checked.
   ENDMETHOD.
 ENDCLASS.

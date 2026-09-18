@@ -22,6 +22,7 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
   CONSTANTS action_screen       TYPE string VALUE 'SCREEN'.
   CONSTANTS action_tab          TYPE string VALUE 'TAB'.
   CONSTANTS action_back         TYPE string VALUE 'BACK'.
+  CONSTANTS action_tree_event   TYPE string VALUE 'TREE_EVENT'.
 
   TYPES: BEGIN OF ty_action,
            kind   TYPE string,
@@ -92,6 +93,11 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
            token          TYPE string,
            cursor_field   TYPE string,
            cursor_value   TYPE string,
+           tree_event     TYPE string,
+           tree_node      TYPE string,
+           tree_field     TYPE string,
+           tree_value     TYPE string,
+           tree_checked   TYPE abap_bool,
            values         TYPE zif_gg_selection_screen_types=>ty_values,
            dynamic_action TYPE string,
            dynamic_values TYPE zif_gg_selection_screen_types=>ty_values,

@@ -64,6 +64,28 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS frontend_update.
 
+    METHODS free REDEFINITION.
+
+    CLASS-METHODS register_instance
+      IMPORTING
+        control TYPE REF TO cl_alv_tree_base.
+
+    CLASS-METHODS unregister_instance
+      IMPORTING
+        control TYPE REF TO cl_alv_tree_base.
+
+    CLASS-METHODS clear_instances.
+
+    CLASS-METHODS dispatch_browser_event
+      IMPORTING
+        event         TYPE string
+        node_key      TYPE string OPTIONAL
+        fieldname     TYPE string OPTIONAL
+        value         TYPE string OPTIONAL
+        checked       TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
   PROTECTED SECTION.
 
     DATA m_batch_mode TYPE sy-batch.
@@ -357,11 +379,107 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(result) TYPE ty_html_column_widths.
 
+    METHODS handle_browser_event
+      IMPORTING
+        event         TYPE string
+        node_key      TYPE string OPTIONAL
+        fieldname     TYPE string OPTIONAL
+        value         TYPE string OPTIONAL
+        checked       TYPE abap_bool OPTIONAL
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
   PRIVATE SECTION.
+
+    CLASS-DATA mt_instances TYPE STANDARD TABLE OF REF TO cl_alv_tree_base
+      WITH DEFAULT KEY.
 
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD register_instance.
+    IF control IS BOUND.
+      APPEND control TO mt_instances.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD unregister_instance.
+    DELETE mt_instances WHERE table_line = control.
+  ENDMETHOD.
+
+  METHOD clear_instances.
+    CLEAR mt_instances.
+  ENDMETHOD.
+
+  METHOD dispatch_browser_event.
+    DATA lv_handled TYPE abap_bool.
+    CLEAR result.
+    DATA(lv_instance_index) = lines( mt_instances ).
+    WHILE lv_instance_index > 0.
+      READ TABLE mt_instances INTO DATA(lo_instance) INDEX lv_instance_index.
+      IF lo_instance IS BOUND.
+        lv_handled = lo_instance->handle_browser_event(
+          event     = event
+          node_key  = node_key
+          fieldname = fieldname
+          value     = value
+          checked   = checked ).
+        IF lv_handled = abap_true.
+          result = abap_true.
+        ENDIF.
+      ENDIF.
+      lv_instance_index = lv_instance_index - 1.
+    ENDWHILE.
+  ENDMETHOD.
+
+  METHOD free.
+    unregister_instance( me ).
+    super->free( ).
+  ENDMETHOD.
+
+  METHOD handle_browser_event.
+    DATA lt_selected_keys TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    CLEAR result.
+    CASE event.
+      WHEN 'TREE_SELECT'.
+        LOOP AT mt_html_nodes INTO DATA(ls_selected_node).
+          ls_selected_node-selected = abap_false.
+          MODIFY mt_html_nodes FROM ls_selected_node INDEX sy-tabix.
+        ENDLOOP.
+        IF value IS INITIAL.
+          APPEND node_key TO lt_selected_keys.
+        ELSE.
+          SPLIT value AT ',' INTO TABLE lt_selected_keys.
+        ENDIF.
+        LOOP AT lt_selected_keys INTO DATA(lv_selected_key).
+          IF lv_selected_key IS INITIAL.
+            CONTINUE.
+          ENDIF.
+          READ TABLE mt_html_nodes INTO ls_selected_node
+            WITH KEY node_key = lv_selected_key.
+          IF sy-subrc = 0.
+            ls_selected_node-selected = abap_true.
+            MODIFY mt_html_nodes FROM ls_selected_node INDEX sy-tabix.
+          ENDIF.
+        ENDLOOP.
+        refresh_tree_html( ).
+        result = abap_true.
+      WHEN 'TREE_TOGGLE'.
+        set_html_node_state(
+          node_key = node_key
+          expanded = xsdbool( value = 'true' OR value = 'X' OR value = '1' ) ).
+        result = abap_true.
+      WHEN 'COMMAND'.
+        CASE value.
+          WHEN '&REFRESH'.
+            refresh_tree_html( ).
+            result = abap_true.
+          WHEN OTHERS.
+            RETURN.
+        ENDCASE.
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD authority_check.
     RETURN. " todo, implement method
   ENDMETHOD.
@@ -378,23 +496,13 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF mr_toolbar IS BOUND.
       IF mt_toolbar IS INITIAL.
         mt_toolbar = VALUE #(
-          ( function = '&REFRESH' icon = 'refresh' butn_type = 0 quickinfo = 'Refresh tree' )
-          ( function = '&SORT_ASC' icon = 'arrow-bar-to-up' butn_type = 0 quickinfo = 'Sort ascending' )
-          ( function = '&SORT_DSC' icon = 'arrow-bar-to-down' butn_type = 0 quickinfo = 'Sort descending' )
-          ( function = '&FIND' icon = 'binoculars' butn_type = 0 quickinfo = 'Find' )
+          ( function = '&FILTER' icon = 'search-plus' butn_type = 0 disabled = abap_true quickinfo = 'Filter unavailable in browser' )
+          ( function = '&SORT_ASC' icon = 'arrow-bar-to-up' butn_type = 0 disabled = abap_true quickinfo = 'Sort unavailable for hierarchical rows' )
+          ( function = '&FIND' icon = 'binoculars' butn_type = 0 disabled = abap_true quickinfo = 'Find unavailable in browser' )
+          ( function = '&SUMC' icon = 'database' butn_type = 0 disabled = abap_true quickinfo = 'Use the report calculation action' )
           ( function = '&&SEP' icon = `` butn_type = 2 )
-          ( function = '&FILTER' icon = 'search-plus' butn_type = 0 quickinfo = 'Filter' )
-          ( function = '&SUMC' icon = 'database' butn_type = 0 quickinfo = 'Sum' )
-          ( function = '&SUBTOT' icon = 'folder' butn_type = 0 quickinfo = 'Subtotals' )
-          ( function = '&&SEP2' icon = `` butn_type = 2 )
-          ( function = '&PRINT' icon = 'printer' butn_type = 0 quickinfo = 'Print' )
-          ( function = '&XML' icon = 'file-arrow-down' butn_type = 0 quickinfo = 'XML export' )
-          ( function = '&PC' icon = 'file-arrow-down' butn_type = 0 quickinfo = 'Export to file' )
-          ( function = '&SAVE' icon = 'device-floppy' butn_type = 0 quickinfo = 'Save variant' )
-          ( function = '&LOAD' icon = 'folder-open' butn_type = 0 quickinfo = 'Load variant' )
-          ( function = '&VIEW' icon = 'device-desktop' butn_type = 0 quickinfo = 'Change layout' )
-          ( function = '&ALL' icon = 'circle-check' butn_type = 0 quickinfo = 'Select all' )
-          ( function = '&HELP' icon = 'help-circle' butn_type = 0 quickinfo = 'Help' ) ).
+          ( function = '&PRINT' icon = 'printer' butn_type = 0 disabled = abap_true quickinfo = 'Print unavailable in browser' )
+          ( function = '&VIEW' icon = 'device-desktop' butn_type = 0 disabled = abap_true quickinfo = 'Layout variants unavailable in browser' ) ).
         LOOP AT mt_toolbar INTO DATA(ls_toolbar_button).
           IF line_exists( mt_toolbar_excluding[ table_line = ls_toolbar_button-function ] ).
             DELETE mt_toolbar INDEX sy-tabix.
@@ -891,7 +999,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF lv_heading IS INITIAL.
       lv_heading = 'Hierarchy'.
     ENDIF.
-    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }<div class="gg-alv-tree-columns"><table role="tree" aria-label="ALV tree" data-field-count="{ lines( mt_fieldcatalog ) }" style="width:{ lv_table_width }px;table-layout:fixed"><colgroup><col{ lv_hierarchy_style }/>|.
+    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }<div class="gg-alv-tree-columns"><table role="tree" aria-label="ALV tree" data-field-count="{ lines( mt_fieldcatalog ) }" style="width:100%;min-width:{ lv_table_width }px;table-layout:fixed"><colgroup><col{ lv_hierarchy_style }/>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_col_fieldcat).
       IF ls_col_fieldcat-no_out IS INITIAL AND ls_col_fieldcat-tech IS INITIAL.
         READ TABLE lt_html_column_width INTO DATA(ls_col_width)
@@ -903,7 +1011,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         ENDIF.
       ENDIF.
     ENDLOOP.
-    result = result && |</colgroup><thead><tr><th scope="col"{ lv_hierarchy_style }>{ escape_html( CONV string( lv_heading ) ) }</th>|.
+    result = result && |<col style="width:auto"/></colgroup><thead><tr><th scope="col"{ lv_hierarchy_style }>{ escape_html( CONV string( lv_heading ) ) }</th>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         result = result && |<th scope="col" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ escape_html( CONV string( ls_fieldcat-inttype ) ) }">{ escape_html( COND string( WHEN ls_fieldcat-coltext IS INITIAL THEN ls_fieldcat-fieldname ELSE ls_fieldcat-coltext ) ) }</th>|.
@@ -936,14 +1044,21 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         WHEN lv_is_expanded = abap_true AND ls_node-open_image IS NOT INITIAL
           THEN ls_node-open_image
         ELSE ls_node-node_image ).
-      DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name = lv_icon_name ).
+      DATA(lv_node_icon) = COND string(
+        WHEN lv_node_image IS NOT INITIAL
+          THEN zcl_gg_host_icons=>icon( iv_name = lv_node_image )
+        ELSE zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) ).
       DATA(lv_selected) = COND string(
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
         ELSE ' aria-selected="false"' ).
       DATA(lv_hidden) = COND string(
         WHEN lv_visible = abap_false THEN ' hidden' ELSE `` ).
       DATA(lv_indent) = ( lv_depth - 1 ) * 18.
-      result = result && |<tr class="gg-tree-node { cl_gui_control=>state_class( iv_selected = ls_node-selected ) }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ COND string( WHEN lv_has_children = abap_true THEN COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) ELSE `` ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }"{ lv_selected }{ lv_hidden }><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ COND string( WHEN lv_node_image IS INITIAL THEN `` ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ) }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
+      DATA(lv_tree_toggle) = COND string(
+        WHEN lv_has_children = abap_true
+          THEN |<button type="button" class="gg-tree-disclosure" data-tree-action="toggle" aria-label="{ COND string( WHEN lv_is_expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { escape_html( ls_node-text ) }">{ lv_tree_marker }</button>|
+        ELSE '<span class="gg-tree-disclosure" aria-hidden="true"></span>' ).
+      result = result && |<tr class="gg-tree-node { cl_gui_control=>state_class( iv_selected = ls_node-selected ) }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ COND string( WHEN lv_has_children = abap_true THEN COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) ELSE `` ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-tree-selection="{ COND string( WHEN m_node_selection_mode = cl_gui_column_tree=>node_sel_mode_multiple THEN 'multiple' ELSE 'single' ) }"{ lv_selected }{ lv_hidden }><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px">{ lv_tree_toggle }<span class="gg-tree-node-icon" aria-hidden="true"{ COND string( WHEN lv_node_image IS INITIAL THEN `` ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ) }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
       LOOP AT mt_fieldcatalog INTO ls_fieldcat.
         IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
           CONTINUE.
@@ -974,9 +1089,9 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
             WHEN lv_tree_value IS INITIAL THEN ``
             ELSE |<input type="checkbox" aria-label="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }"{ lv_checked }>| ).
         ELSEIF ls_item_layout-class = 5.
-          lv_item_markup = |<a href="#" class="gg-tree-item-link" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</a>|.
+          lv_item_markup = |<a href="#" class="gg-tree-item-link" data-tree-action="link" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</a>|.
         ELSEIF ls_item_layout-class = 4.
-          lv_item_markup = |<button type="button" class="gg-tree-item-button" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</button>|.
+          lv_item_markup = |<button type="button" class="gg-tree-item-button" data-tree-action="button" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</button>|.
         ENDIF.
         DATA(lv_cell_class) = COND string(
           WHEN ls_fieldcat-fieldname = 'QUANTITY' OR ls_fieldcat-fieldname = 'PRICE'
@@ -984,7 +1099,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
           ELSE 'gg-alv-tree-cell' ).
         result = result && |<td class="{ lv_cell_class }" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-total="{ COND string( WHEN ls_fieldcat-do_sum = 'X' THEN 'true' ELSE 'false' ) }">{ lv_item_markup }</td>|.
       ENDLOOP.
-      result = result && '</tr>'.
+      result = result && '<td class="gg-alv-tree-filler" aria-hidden="true"></td></tr>'.
     ENDLOOP.
     result = result && '</tbody></table></div></section>'.
   ENDMETHOD.

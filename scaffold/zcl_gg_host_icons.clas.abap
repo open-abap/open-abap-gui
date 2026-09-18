@@ -46,6 +46,8 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       '<symbol id="wb-icon-file-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M12 11v6" /><path d="M9 14l3 3l3 -3" /></symbol>' &&
       '<symbol id="wb-icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l0 14" /><path d="M5 12l14 0" /></symbol>' &&
       '<symbol id="wb-icon-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2" /></symbol>' &&
+      '<symbol id="wb-icon-folder-tree" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h6l2 2h9a1 1 0 0 1 1 1v9a2 2 0 0 1 -2 2h-15a1 1 0 0 1 -1 -1z" /><path d="M7 10v7" /><path d="M7 12h4v3h3" /><path d="M11 12l2 -2h3" /></symbol>' &&
+      '<symbol id="wb-icon-folder-tree-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h6l2 2h9a1 1 0 0 1 1 1l-2 8a2 2 0 0 1 -2 2h-13a1 1 0 0 1 -1 -1z" /><path d="M7 11v6" /><path d="M7 13h4v3h3" /><path d="M11 13l2 -2h3" /></symbol>' &&
       '<symbol id="wb-icon-folder-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19l2.757 -7.351a1 1 0 0 1 .936 -.649h12.307a1 1 0 0 1 .986 1.164l-.996 5.211a2 2 0 0 1 -1.964 1.625h-14.026a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v2" /></symbol>' &&
       '<symbol id="wb-icon-file-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M10 13l-1 2l1 2" /><path d="M14 13l1 2l-1 2" /></symbol>' &&
       '<symbol id="wb-icon-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873l-6.158 -3.245" /></symbol>' &&
@@ -105,6 +107,10 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
         lv_name = 'plus'.
       WHEN 'folder' OR 'icon_folder'.
         lv_name = 'folder'.
+      WHEN '3y'.
+        lv_name = 'folder-tree'.
+      WHEN '3w'.
+        lv_name = 'folder-tree-open'.
       WHEN 'folder-open' OR 'icon_open_folder'.
         lv_name = 'folder-open'.
       WHEN 'program' OR 'file-code' OR 'icon_program'.

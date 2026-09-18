@@ -95,6 +95,10 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 
+    CLASS-METHODS queue_control_event
+      IMPORTING
+        is_request TYPE zif_gg_host_html_v1=>ty_request.
+
     CLASS-METHODS dispatch_report
       IMPORTING
         is_request         TYPE zif_gg_host_html_v1=>ty_request
@@ -126,6 +130,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     " control classes keep their snapshots statically, so leaving a prior
     " session in place would let old controls overlay the next page.
     cl_gui_control=>clear( ).
+    cl_alv_tree_base=>clear_instances( ).
     zcl_gg_host_surface=>clear( ).
     lv_session_id = next_session_id( ).
     IF io_dynpro_program IS BOUND.
@@ -254,8 +259,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     IF is_request-action IS INITIAL
         OR ( ls_session-dynpro_program IS BOUND
         AND is_request-action <> zif_gg_host_html_v1=>action_submit
-        AND is_request-action <> zif_gg_host_html_v1=>action_command
-        AND is_request-action <> zif_gg_host_html_v1=>action_pf
+         AND is_request-action <> zif_gg_host_html_v1=>action_command
+         AND is_request-action <> zif_gg_host_html_v1=>action_tree_event
+         AND is_request-action <> zif_gg_host_html_v1=>action_pf
         AND is_request-action <> zif_gg_host_html_v1=>action_tab
         AND is_request-action <> zif_gg_host_html_v1=>action_screen
         AND is_request-action <> zif_gg_host_html_v1=>action_back
@@ -365,6 +371,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         AND ls_session-last_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
       lv_resume_continuation = ls_session-last_dynpro-navigation-continuation.
     ENDIF.
+    queue_control_event( is_request ).
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
     ls_dynpro = zcl_gg_host_dynpro=>run(
       io_program             = ls_session-dynpro_program
@@ -455,6 +462,32 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       MODIFY mt_sessions FROM ls_session INDEX lv_index.
     ENDIF.
     rs_response = response_for( ls_session ).
+  ENDMETHOD.
+
+  METHOD queue_control_event.
+    IF is_request-action = zif_gg_host_html_v1=>action_tree_event.
+      cl_gui_cfw=>queue_browser_event(
+        event     = is_request-tree_event
+        node_key  = is_request-tree_node
+        fieldname = is_request-tree_field
+        value     = is_request-tree_value
+        checked   = is_request-tree_checked ).
+      IF is_request-tree_event = 'TREE_SELECT'
+          OR is_request-tree_event = 'TREE_TOGGLE'.
+        cl_alv_tree_base=>dispatch_browser_event(
+          event     = is_request-tree_event
+          node_key  = is_request-tree_node
+          fieldname = is_request-tree_field
+          value     = is_request-tree_value
+          checked   = is_request-tree_checked ).
+      ENDIF.
+    ELSEIF is_request-action = zif_gg_host_html_v1=>action_command
+        AND ( is_request-ucomm = '&REFRESH'
+          OR is_request-ucomm = '&SUMC' ).
+      cl_gui_cfw=>queue_browser_event(
+        event = 'COMMAND'
+        value = is_request-ucomm ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD dispatch_report.
@@ -786,6 +819,13 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   METHOD action_error.
     DATA lv_ucomm TYPE zif_gg_session_types_v1=>ty_ucomm.
     DATA lv_control_action TYPE abap_bool.
+
+    IF is_request-action = zif_gg_host_html_v1=>action_tree_event.
+      IF is_request-tree_event IS INITIAL OR is_request-tree_node IS INITIAL.
+        rv_error = 'Tree event is missing its event or node key'.
+      ENDIF.
+      RETURN.
+    ENDIF.
 
     IF is_request-action = zif_gg_host_html_v1=>action_command.
       lv_ucomm = CONV #( is_request-ucomm ).

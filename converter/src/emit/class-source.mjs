@@ -1127,7 +1127,7 @@ function dynproPosition(element) {
   const position = element.position ?? {};
   const line = Number(position.line ?? element.line ?? 1);
   const column = Number(position.column ?? element.column ?? 1);
-  const width = Number(position.width ?? element.length ?? 1);
+  const width = Number(position.visibleWidth ?? element.visibleLength ?? position.width ?? element.length ?? 1);
   const height = Number(position.height ?? element.height ?? 1);
   const safeLine = Number.isFinite(line) ? line : 1;
   const safeColumn = Number.isFinite(column) ? column : 1;
