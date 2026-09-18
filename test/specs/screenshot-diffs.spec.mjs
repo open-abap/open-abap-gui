@@ -1,7 +1,6 @@
 import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
-import {pathToFileURL} from "node:url";
 import {test, expect} from "playwright/test";
 
 test("generates a visual report for changed, added, and removed screenshots", async ({page}) => {
@@ -44,13 +43,16 @@ test("generates a visual report for changed, added, and removed screenshots", as
     expect(html).toContain("1 unchanged");
     expect(html).toContain('width="40" height="30"');
     expect(html).toContain("Content region: 5,4,20,10");
-    expect(html).toContain(`href="${pathToFileURL(resolve(baseline, "changed.png")).href}"`);
+    expect(html).toContain('href="baseline/changed.png"');
+    expect(html).not.toContain("file:///");
     expect(html).toContain('href="../screenshots/changed.png"');
     expect(summary.contentRegion).toEqual({x: 5, y: 4, width: 20, height: 10});
     expect(summary.comparisons[0].dimensions).toEqual({width: 20, height: 10});
     await expect(readFile(resolve(output, "images", "changed.png"))).resolves.toBeTruthy();
     await expect(readFile(resolve(output, "images", "added.png"))).resolves.toBeTruthy();
     await expect(readFile(resolve(output, "images", "removed.png"))).resolves.toBeTruthy();
+    await expect(readFile(resolve(output, "baseline", "changed.png"))).resolves.toBeTruthy();
+    await expect(readFile(resolve(output, "baseline", "removed.png"))).resolves.toBeTruthy();
   } finally {
     await rm(root, {recursive: true, force: true});
   }
