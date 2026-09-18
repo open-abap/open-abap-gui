@@ -285,6 +285,23 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-alv .gg-grid-row.gg-state-selected td\{background:#c7dced;color:#102f4d;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-total\{background:#e3eff8;font-weight:700;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-hotspot\{color:#075e9a;text-decoration:underline;text-decoration-style:dotted;\}|.
+    rv_html = rv_html && |.gg-alv-tree\{display:flex;flex-direction:column;height:100%;min-height:0;max-width:100%;overflow:hidden;background:#e5eff7;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-alv-tree-columns\{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid #9eb7cd;background:#e5eff7;\}|.
+    rv_html = rv_html && |.gg-alv-tree table\{width:auto;min-width:0;border-collapse:collapse;table-layout:auto;background:#e5eff7;color:#123b64;font-size:13px;\}|.
+    rv_html = rv_html && |.gg-alv-tree th,.gg-alv-tree td\{height:22px;padding:2px 6px;border:1px solid #a9bfd3;white-space:nowrap;text-align:left;\}|.
+    rv_html = rv_html && |.gg-alv-tree thead th\{height:22px;background:linear-gradient(#e9f3fa,#c7dae9);border-color:#8daac4;font-weight:700;\}|.
+    rv_html = rv_html && |.gg-alv-tree tbody tr:nth-child(even) td\{background:#edf4fa;\}|.
+    rv_html = rv_html && |.gg-alv-tree tbody tr.gg-state-selected td\{background:#c7dced;color:#102f4d;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-alv-tree tbody th\{font-weight:400;\}|.
+    rv_html = rv_html && |.gg-alv-tree input[type=checkbox]\{accent-color:#6f9fc5;width:14px;height:14px;margin:0;vertical-align:middle;\}|.
+    rv_html = rv_html && |.gg-alv-tree-toolbar-spacer\{flex:0 0 32px;\}|.
+    rv_html = rv_html && |.gg-alv-tree [role=tree]\{margin:0;padding:0;list-style:none;\}|.
+    rv_html = rv_html && |.gg-alv-tree .gg-tree-indent\{display:flex;align-items:center;gap:3px;min-height:18px;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-alv-tree .gg-tree-disclosure\{display:inline-block;width:12px;text-align:center;color:#1f4f73;\}|.
+    rv_html = rv_html && |.gg-alv-tree .gg-tree-node-icon\{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:#2a6b9a;\}|.
+    rv_html = rv_html && |.gg-alv-tree .gg-tree-item-link\{color:#075e9a;text-decoration:underline;text-decoration-style:dotted;\}|.
+    rv_html = rv_html && |.gg-alv-tree .gg-tree-item-button\{min-height:20px;padding:1px 8px;border:1px solid #bca848;background:#fff2a8;color:#25384a;border-radius:2px;\}|.
+    rv_html = rv_html && |.gg-alv-tree .gg-alv-tree-cell--number\{text-align:right;\}|.
     rv_html = rv_html && |.gg-calendar-week-scroll\{max-width:100%;overflow:auto;border:1px solid #9ab0c4;background:#fff;color:#123b64;\}|.
     rv_html = rv_html && |.gg-calendar-week-grid\{border-collapse:collapse;table-layout:fixed;min-width:max-content;font:12px Arial,sans-serif;\}|.
     rv_html = rv_html && |.gg-calendar-week-grid th,.gg-calendar-week-grid td\{min-width:30px;height:24px;padding:2px 4px;border:1px solid #c5d3df;text-align:center;box-sizing:border-box;\}|.

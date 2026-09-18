@@ -462,14 +462,18 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lv_leaf TYPE lvc_nkey.
     DATA lv_row TYPE string.
     DATA lv_outtab_line TYPE string.
+    DATA ls_header TYPE treev_hhdr.
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV_TREE_OUTTAB' ).
     DATA(lo_tree) = NEW cl_gui_alv_tree( parent = lo_container ).
 
     APPEND 'row' TO lt_rows.
+    ls_header = VALUE #( heading = 'Product hierarchy' width = 34 ).
     lo_tree->set_table_for_first_display(
+      EXPORTING
+        is_hierarchy_header = ls_header
       CHANGING
-        it_outtab       = lt_rows
-        it_fieldcatalog = lt_fieldcat ).
+        it_outtab           = lt_rows
+        it_fieldcatalog     = lt_fieldcat ).
     lo_tree->add_node(
       EXPORTING
         i_relat_node_key = space
@@ -510,6 +514,11 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-icon"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-tree-toolbar-spacer' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'height:32px' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<table role="tree" aria-label="ALV tree"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<ul role="tree"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-node-key="TREE-1"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Product hierarchy</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'style="width:221px;min-width:221px;max-width:221px"' ) ).
   ENDMETHOD.
 
   METHOD simple_tree_renders_nodes.

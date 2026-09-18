@@ -96,16 +96,26 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mt_toolbar_excluding TYPE ui_functions.
 
     TYPES: BEGIN OF ty_html_node,
-             node_key   TYPE string,
-             parent_key TYPE string,
-             text       TYPE string,
-             expanded   TYPE abap_bool,
-             selected   TYPE abap_bool,
-             data_row   TYPE REF TO data,
+             node_key     TYPE string,
+             parent_key   TYPE string,
+             text         TYPE string,
+             expanded     TYPE abap_bool,
+             selected     TYPE abap_bool,
+             has_children TYPE abap_bool,
+             is_folder    TYPE abap_bool,
+             node_image   TYPE string,
+             open_image   TYPE string,
+             item_layout  TYPE lvc_t_layi,
+             data_row     TYPE REF TO data,
            END OF ty_html_node.
     TYPES ty_html_nodes TYPE STANDARD TABLE OF ty_html_node WITH DEFAULT KEY.
     DATA mt_html_nodes TYPE ty_html_nodes.
     DATA mv_html_top_node TYPE string.
+    TYPES: BEGIN OF ty_html_column_width,
+             fieldname TYPE string,
+             width     TYPE i,
+           END OF ty_html_column_width.
+    TYPES ty_html_column_widths TYPE STANDARD TABLE OF ty_html_column_width WITH DEFAULT KEY.
 
     EVENTS after_user_command
       EXPORTING
@@ -308,10 +318,15 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS add_html_node
       IMPORTING
-        node_key   TYPE string
-        parent_key TYPE string OPTIONAL
-        text       TYPE string OPTIONAL
-        data_row   TYPE any OPTIONAL.
+        node_key       TYPE string
+        parent_key     TYPE string OPTIONAL
+        text           TYPE string OPTIONAL
+        data_row       TYPE any OPTIONAL
+        has_children   TYPE abap_bool OPTIONAL
+        is_folder      TYPE abap_bool OPTIONAL
+        node_image     TYPE string OPTIONAL
+        open_image     TYPE string OPTIONAL
+        it_item_layout TYPE lvc_t_layi OPTIONAL.
 
     METHODS refresh_tree_html.
 
@@ -338,6 +353,10 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(result) TYPE string.
 
+    METHODS html_column_widths
+      RETURNING
+        VALUE(result) TYPE ty_html_column_widths.
+
   PRIVATE SECTION.
 
 ENDCLASS.
@@ -357,6 +376,31 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD set_toolbar_buttons.
     IF mr_toolbar IS BOUND.
+      IF mt_toolbar IS INITIAL.
+        mt_toolbar = VALUE #(
+          ( function = '&REFRESH' icon = 'refresh' butn_type = 0 quickinfo = 'Refresh tree' )
+          ( function = '&SORT_ASC' icon = 'arrow-bar-to-up' butn_type = 0 quickinfo = 'Sort ascending' )
+          ( function = '&SORT_DSC' icon = 'arrow-bar-to-down' butn_type = 0 quickinfo = 'Sort descending' )
+          ( function = '&FIND' icon = 'binoculars' butn_type = 0 quickinfo = 'Find' )
+          ( function = '&&SEP' icon = `` butn_type = 2 )
+          ( function = '&FILTER' icon = 'search-plus' butn_type = 0 quickinfo = 'Filter' )
+          ( function = '&SUMC' icon = 'database' butn_type = 0 quickinfo = 'Sum' )
+          ( function = '&SUBTOT' icon = 'folder' butn_type = 0 quickinfo = 'Subtotals' )
+          ( function = '&&SEP2' icon = `` butn_type = 2 )
+          ( function = '&PRINT' icon = 'printer' butn_type = 0 quickinfo = 'Print' )
+          ( function = '&XML' icon = 'file-arrow-down' butn_type = 0 quickinfo = 'XML export' )
+          ( function = '&PC' icon = 'file-arrow-down' butn_type = 0 quickinfo = 'Export to file' )
+          ( function = '&SAVE' icon = 'device-floppy' butn_type = 0 quickinfo = 'Save variant' )
+          ( function = '&LOAD' icon = 'folder-open' butn_type = 0 quickinfo = 'Load variant' )
+          ( function = '&VIEW' icon = 'device-desktop' butn_type = 0 quickinfo = 'Change layout' )
+          ( function = '&ALL' icon = 'circle-check' butn_type = 0 quickinfo = 'Select all' )
+          ( function = '&HELP' icon = 'help-circle' butn_type = 0 quickinfo = 'Help' ) ).
+        LOOP AT mt_toolbar INTO DATA(ls_toolbar_button).
+          IF line_exists( mt_toolbar_excluding[ table_line = ls_toolbar_button-function ] ).
+            DELETE mt_toolbar INDEX sy-tabix.
+          ENDIF.
+        ENDLOOP.
+      ENDIF.
       mr_toolbar->add_button_group( data_table = mt_toolbar ).
     ENDIF.
   ENDMETHOD.
@@ -465,7 +509,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_hierarchy_help_fields.
-    IF i_doktitle IS SUPPLIED.
+    IF i_doktitle IS SUPPLIED AND ms_hierarchy_header-heading IS INITIAL.
       ms_hierarchy_header-heading = i_doktitle.
     ENDIF.
     IF i_ref_field IS SUPPLIED.
@@ -682,6 +726,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD add_html_node.
     DATA lr_data_row TYPE REF TO data.
+    DATA ls_new_node TYPE ty_html_node.
+    DATA lv_insert_index TYPE i.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
       WITH KEY node_key = node_key.
     IF sy-subrc = 0.
@@ -690,11 +736,53 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF data_row IS SUPPLIED.
       GET REFERENCE OF data_row INTO lr_data_row.
     ENDIF.
-    APPEND VALUE #( node_key   = node_key
-                    parent_key = parent_key
-                    text       = text
-                    expanded   = abap_true
-                    data_row   = lr_data_row ) TO mt_html_nodes.
+    ls_new_node = VALUE #( node_key     = node_key
+                           parent_key   = parent_key
+                           text         = text
+                           expanded     = xsdbool( has_children = abap_false )
+                           has_children = has_children
+                           is_folder    = is_folder
+                           node_image   = node_image
+                           open_image   = open_image
+                           item_layout  = it_item_layout
+                           data_row     = lr_data_row ).
+    IF parent_key IS INITIAL.
+      APPEND ls_new_node TO mt_html_nodes.
+    ELSE.
+      READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
+        WITH KEY node_key = parent_key.
+      IF sy-subrc <> 0.
+        APPEND ls_new_node TO mt_html_nodes.
+      ELSE.
+        lv_insert_index = sy-tabix + 1.
+        WHILE lv_insert_index <= lines( mt_html_nodes ).
+          READ TABLE mt_html_nodes INTO DATA(ls_candidate)
+            INDEX lv_insert_index.
+          DATA(lv_candidate_parent) = ls_candidate-parent_key.
+          DATA(lv_is_descendant) = abap_false.
+          DO 32 TIMES.
+            IF lv_candidate_parent IS INITIAL.
+              EXIT.
+            ENDIF.
+            IF lv_candidate_parent = parent_key.
+              lv_is_descendant = abap_true.
+              EXIT.
+            ENDIF.
+            READ TABLE mt_html_nodes INTO DATA(ls_ancestor)
+              WITH KEY node_key = lv_candidate_parent.
+            IF sy-subrc <> 0.
+              EXIT.
+            ENDIF.
+            lv_candidate_parent = ls_ancestor-parent_key.
+          ENDDO.
+          IF lv_is_descendant = abap_false.
+            EXIT.
+          ENDIF.
+          lv_insert_index = lv_insert_index + 1.
+        ENDWHILE.
+        INSERT ls_new_node INTO mt_html_nodes INDEX lv_insert_index.
+      ENDIF.
+    ENDIF.
     refresh_tree_html( ).
   ENDMETHOD.
 
@@ -733,29 +821,89 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     ENDDO.
   ENDMETHOD.
 
+  METHOD html_column_widths.
+    FIELD-SYMBOLS <column_row> TYPE any.
+    FIELD-SYMBOLS <column_value> TYPE any.
+
+    LOOP AT mt_fieldcatalog INTO DATA(ls_width_fieldcat).
+      IF ls_width_fieldcat-no_out IS NOT INITIAL OR ls_width_fieldcat-tech IS NOT INITIAL.
+        CONTINUE.
+      ENDIF.
+      DATA(lv_width_heading) = COND string(
+        WHEN ls_width_fieldcat-coltext IS INITIAL
+          THEN CONV string( ls_width_fieldcat-fieldname )
+        ELSE CONV string( ls_width_fieldcat-coltext ) ).
+      DATA(lv_max_chars) = strlen( lv_width_heading ).
+      LOOP AT mt_html_nodes INTO DATA(ls_width_node).
+        IF ls_width_node-data_row IS NOT BOUND.
+          CONTINUE.
+        ENDIF.
+        ASSIGN ls_width_node-data_row->* TO <column_row>.
+        IF sy-subrc <> 0.
+          CONTINUE.
+        ENDIF.
+        ASSIGN COMPONENT ls_width_fieldcat-fieldname OF STRUCTURE <column_row>
+          TO <column_value>.
+        IF sy-subrc <> 0.
+          CONTINUE.
+        ENDIF.
+        DATA(lv_width_value) = |{ <column_value> }|.
+        IF strlen( lv_width_value ) > lv_max_chars.
+          lv_max_chars = strlen( lv_width_value ).
+        ENDIF.
+      ENDLOOP.
+      DATA(lv_column_width) = lv_max_chars * 7 + 20.
+      IF lv_column_width < 48.
+        lv_column_width = 48.
+      ENDIF.
+      APPEND VALUE #( fieldname = CONV string( ls_width_fieldcat-fieldname )
+                      width     = lv_column_width ) TO result.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD tree_html.
     DATA lv_depth TYPE i.
     DATA lv_visible TYPE abap_bool.
+    DATA ls_node TYPE ty_html_node.
+    DATA(lt_html_column_width) = html_column_widths( ).
+    DATA(lv_hierarchy_width) = COND i(
+      WHEN ms_hierarchy_header-width > 0
+        THEN ( ms_hierarchy_header-width * 13 ) / 2
+      ELSE 0 ).
+    DATA(lv_hierarchy_style) = COND string(
+      WHEN lv_hierarchy_width > 0 THEN | style="width:{ lv_hierarchy_width }px;min-width:{ lv_hierarchy_width }px;max-width:{ lv_hierarchy_width }px"|
+      ELSE `` ).
+    DATA(lv_table_width) = COND i(
+      WHEN lv_hierarchy_width > 0 THEN lv_hierarchy_width ELSE 180 ).
+    LOOP AT lt_html_column_width INTO DATA(ls_table_column_width).
+      lv_table_width = lv_table_width + ls_table_column_width-width.
+    ENDLOOP.
+    IF mr_toolbar IS BOUND AND m_no_toolbar = abap_false.
+      cl_gui_control=>set_payload(
+        control = mr_toolbar
+        payload = |toolbar-kind=ALV; buttons={ lines( mr_toolbar->m_table_button ) }| ).
+    ENDIF.
     DATA(lv_toolbar_spacer) = COND string(
       WHEN mr_toolbar IS BOUND AND m_no_toolbar = abap_false
         THEN '<div class="gg-alv-tree-toolbar-spacer" aria-hidden="true" style="height:32px"></div>'
       ELSE `` ).
-    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }<ul role="tree" aria-label="ALV tree">|.
-    LOOP AT mt_html_nodes INTO DATA(ls_node).
-      node_position(
-        EXPORTING
-          node_key = ls_node-node_key
-        IMPORTING
-          level    = lv_depth
-          visible  = lv_visible ).
-      DATA(lv_state_class) = cl_gui_control=>state_class( iv_selected = ls_node-selected ).
-      DATA(lv_selected) = COND string(
-        WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
-        ELSE ' aria-selected="false"' ).
-      DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }{ COND string( WHEN lv_visible = abap_false THEN ' hidden' ELSE '' ) }>{ escape_html( ls_node-text ) }</li>|.
+    DATA(lv_heading) = ms_hierarchy_header-heading.
+    IF lv_heading IS INITIAL.
+      lv_heading = 'Hierarchy'.
+    ENDIF.
+    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }<div class="gg-alv-tree-columns"><table role="tree" aria-label="ALV tree" data-field-count="{ lines( mt_fieldcatalog ) }" style="width:{ lv_table_width }px;table-layout:fixed"><colgroup><col{ lv_hierarchy_style }/>|.
+    LOOP AT mt_fieldcatalog INTO DATA(ls_col_fieldcat).
+      IF ls_col_fieldcat-no_out IS INITIAL AND ls_col_fieldcat-tech IS INITIAL.
+        READ TABLE lt_html_column_width INTO DATA(ls_col_width)
+          WITH KEY fieldname = CONV string( ls_col_fieldcat-fieldname ).
+        IF sy-subrc = 0.
+          result = result && |<col style="width:{ ls_col_width-width }px;min-width:{ ls_col_width-width }px"/>|.
+        ELSE.
+          result = result && '<col />'.
+        ENDIF.
+      ENDIF.
     ENDLOOP.
-    result = result && |</ul><div class="gg-alv-tree-columns"><table data-field-count="{ lines( mt_fieldcatalog ) }"><thead><tr><th scope="col">Hierarchy</th>|.
+    result = result && |</colgroup><thead><tr><th scope="col"{ lv_hierarchy_style }>{ escape_html( CONV string( lv_heading ) ) }</th>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         result = result && |<th scope="col" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ escape_html( CONV string( ls_fieldcat-inttype ) ) }">{ escape_html( COND string( WHEN ls_fieldcat-coltext IS INITIAL THEN ls_fieldcat-fieldname ELSE ls_fieldcat-coltext ) ) }</th>|.
@@ -763,25 +911,78 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     ENDLOOP.
     result = result && '</tr></thead><tbody>'.
     LOOP AT mt_html_nodes INTO ls_node.
-      IF ls_node-data_row IS NOT BOUND.
-        CONTINUE.
-      ENDIF.
-      ASSIGN ls_node-data_row->* TO FIELD-SYMBOL(<row>).
-      IF sy-subrc <> 0.
-        CONTINUE.
-      ENDIF.
-      result = result && |<tr data-node-key="{ escape_html( ls_node-node_key ) }"><th scope="row">{ escape_html( ls_node-text ) }</th>|.
+      node_position(
+        EXPORTING
+          node_key = ls_node-node_key
+        IMPORTING
+          level    = lv_depth
+          visible  = lv_visible ).
+      DATA(lv_has_children) = xsdbool(
+        ls_node-has_children = abap_true
+        OR line_exists( mt_html_nodes[ parent_key = ls_node-node_key ] ) ).
+      DATA(lv_is_expanded) = xsdbool(
+        lv_has_children = abap_true
+        AND ls_node-expanded = abap_true
+        AND line_exists( mt_html_nodes[ parent_key = ls_node-node_key ] ) ).
+      DATA(lv_tree_marker) = COND string(
+        WHEN lv_has_children = abap_false THEN ``
+        WHEN lv_is_expanded = abap_true THEN '&#9662;'
+        ELSE '&#9656;' ).
+      DATA(lv_icon_name) = COND string(
+        WHEN ls_node-is_folder = abap_true OR lv_has_children = abap_true
+          THEN COND string( WHEN lv_is_expanded = abap_true THEN 'folder-open' ELSE 'folder' )
+        ELSE 'file-code' ).
+      DATA(lv_node_image) = COND string(
+        WHEN lv_is_expanded = abap_true AND ls_node-open_image IS NOT INITIAL
+          THEN ls_node-open_image
+        ELSE ls_node-node_image ).
+      DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name = lv_icon_name ).
+      DATA(lv_selected) = COND string(
+        WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
+        ELSE ' aria-selected="false"' ).
+      DATA(lv_hidden) = COND string(
+        WHEN lv_visible = abap_false THEN ' hidden' ELSE `` ).
+      DATA(lv_indent) = ( lv_depth - 1 ) * 18.
+      result = result && |<tr class="gg-tree-node { cl_gui_control=>state_class( iv_selected = ls_node-selected ) }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ COND string( WHEN lv_has_children = abap_true THEN COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) ELSE `` ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }"{ lv_selected }{ lv_hidden }><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ COND string( WHEN lv_node_image IS INITIAL THEN `` ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ) }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
       LOOP AT mt_fieldcatalog INTO ls_fieldcat.
         IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
           CONTINUE.
         ENDIF.
-        ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO FIELD-SYMBOL(<component>).
-        IF sy-subrc = 0.
-          DATA(lv_tree_value) = cl_gui_control=>format_external_value(
-            iv_value = |{ <component> }|
-            iv_type  = CONV string( ls_fieldcat-inttype ) ).
-          result = result && |<td data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-total="{ COND string( WHEN ls_fieldcat-do_sum = 'X' THEN 'true' ELSE 'false' ) }">{ escape_html( lv_tree_value ) }</td>|.
+        DATA(lv_tree_value) = ``.
+        IF ls_node-data_row IS BOUND.
+          ASSIGN ls_node-data_row->* TO FIELD-SYMBOL(<row>).
+          IF sy-subrc = 0.
+            ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO FIELD-SYMBOL(<component>).
+            IF sy-subrc = 0.
+              lv_tree_value = cl_gui_control=>format_external_value(
+                iv_value = |{ <component> }|
+                iv_type  = CONV string( ls_fieldcat-inttype ) ).
+            ENDIF.
+          ENDIF.
+        ELSEIF ls_fieldcat-do_sum = abap_true.
+          lv_tree_value = '0'.
         ENDIF.
+        DATA(ls_item_layout) = VALUE lvc_s_layi( ).
+        READ TABLE ls_node-item_layout INTO ls_item_layout
+          WITH KEY fieldname = ls_fieldcat-fieldname.
+        DATA(lv_item_markup) = escape_html( lv_tree_value ).
+        IF ls_item_layout-class = 3 OR ls_fieldcat-checkbox = abap_true.
+          DATA(lv_checked) = COND string(
+            WHEN lv_tree_value = 'X' OR lv_tree_value = '1' THEN ' checked'
+            ELSE `` ).
+          lv_item_markup = COND string(
+            WHEN lv_tree_value IS INITIAL THEN ``
+            ELSE |<input type="checkbox" aria-label="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }"{ lv_checked }>| ).
+        ELSEIF ls_item_layout-class = 5.
+          lv_item_markup = |<a href="#" class="gg-tree-item-link" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</a>|.
+        ELSEIF ls_item_layout-class = 4.
+          lv_item_markup = |<button type="button" class="gg-tree-item-button" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</button>|.
+        ENDIF.
+        DATA(lv_cell_class) = COND string(
+          WHEN ls_fieldcat-fieldname = 'QUANTITY' OR ls_fieldcat-fieldname = 'PRICE'
+            THEN 'gg-alv-tree-cell gg-alv-tree-cell--number'
+          ELSE 'gg-alv-tree-cell' ).
+        result = result && |<td class="{ lv_cell_class }" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-total="{ COND string( WHEN ls_fieldcat-do_sum = 'X' THEN 'true' ELSE 'false' ) }">{ lv_item_markup }</td>|.
       ENDLOOP.
       result = result && '</tr>'.
     ENDLOOP.

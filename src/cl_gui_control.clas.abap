@@ -970,10 +970,15 @@ CLASS cl_gui_control IMPLEMENTATION.
   METHOD render_toolbar_html.
     DATA lv_button_label TYPE string.
     DATA lv_button_icon TYPE string.
+    DATA(lv_is_alv_toolbar) = xsdbool( is_snapshot-payload CS 'toolbar-kind=ALV' ).
+    DATA(lv_toolbar_class) = COND string(
+      WHEN lv_is_alv_toolbar = abap_true
+        THEN 'gg-control-toolbar gg-alv-toolbar'
+      ELSE 'gg-control-toolbar' ).
 
-    result = |<div class="gg-control gg-control-toolbar { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" role="toolbar" aria-label="Control toolbar" data-toolbar-scope="control"{ iv_hidden }>|.
+    result = |<div class="gg-control { lv_toolbar_class } { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" role="toolbar" aria-label="{ COND string( WHEN lv_is_alv_toolbar = abap_true THEN 'ALV toolbar' ELSE 'Control toolbar' ) }" data-toolbar-scope="control"{ iv_hidden }>|.
     LOOP AT is_snapshot-buttons INTO DATA(ls_button).
-      IF lines( is_snapshot-buttons ) > 6 AND sy-tabix = 7.
+      IF lv_is_alv_toolbar = abap_false AND lines( is_snapshot-buttons ) > 6 AND sy-tabix = 7.
         result = result && '<details class="gg-toolbar-overflow"><summary>More toolbar actions</summary><div role="toolbar" aria-label="More control toolbar actions">'.
       ENDIF.
       IF ls_button-butn_type = 2 OR ls_button-function IS INITIAL.
@@ -996,9 +1001,15 @@ CLASS cl_gui_control IMPLEMENTATION.
       DATA(lv_toolbar_checked) = COND string(
         WHEN ls_button-checked IS NOT INITIAL THEN ' aria-pressed="true"'
         ELSE ' aria-pressed="false"' ).
-      result = result && |<button class="{ state_class( iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ) }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ lv_button_icon }{ escape( CONV string( ls_button-text ) ) }</button>|.
+      DATA(lv_toolbar_button_class) = state_class(
+        iv_disabled = xsdbool( ls_button-disabled IS NOT INITIAL ) ).
+      IF lv_is_alv_toolbar = abap_true AND ls_button-text IS INITIAL
+          AND ls_button-function IS NOT INITIAL.
+        lv_toolbar_button_class = lv_toolbar_button_class && ` gg-alv-tool-button`.
+      ENDIF.
+      result = result && |<button class="{ lv_toolbar_button_class }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ lv_button_icon }{ escape( CONV string( ls_button-text ) ) }</button>|.
     ENDLOOP.
-    IF lines( is_snapshot-buttons ) > 6.
+    IF lv_is_alv_toolbar = abap_false AND lines( is_snapshot-buttons ) > 6.
       result = result && '</div></details>'.
     ENDIF.
     result = result && |{ is_snapshot-html }</div>|.

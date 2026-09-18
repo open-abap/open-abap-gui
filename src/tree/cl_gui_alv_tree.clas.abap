@@ -222,6 +222,7 @@ ENDCLASS.
 CLASS cl_gui_alv_tree IMPLEMENTATION.
   METHOD set_hierarchy_header.
     ms_hierarchy_header = is_hierarchy_header.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_parent.
@@ -361,32 +362,79 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD expand_node.
-    set_html_node_state( node_key = CONV string( i_node_key )
-                         expanded = abap_true ).
+    TYPES: BEGIN OF ty_pending_node,
+             node_key TYPE string,
+             level    TYPE i,
+           END OF ty_pending_node.
+    DATA lt_pending TYPE STANDARD TABLE OF ty_pending_node WITH DEFAULT KEY.
+
+    APPEND VALUE #( node_key = CONV string( i_node_key ) level = 1 ) TO lt_pending.
+    WHILE lt_pending IS NOT INITIAL.
+      READ TABLE lt_pending INTO DATA(ls_pending) INDEX 1.
+      DELETE lt_pending INDEX 1.
+      READ TABLE mt_html_nodes INTO DATA(ls_node)
+        WITH KEY node_key = ls_pending-node_key.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      ls_node-expanded = abap_true.
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      IF i_level_count > 0 AND ls_pending-level >= i_level_count.
+        CONTINUE.
+      ENDIF.
+      LOOP AT mt_html_nodes INTO DATA(ls_child)
+          WHERE parent_key = ls_pending-node_key.
+        APPEND VALUE #( node_key = ls_child-node_key
+                        level    = ls_pending-level + 1 ) TO lt_pending.
+      ENDLOOP.
+    ENDWHILE.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD add_node.
     DATA(lv_key) = |TREE-{ lines( mt_html_nodes ) + 1 }|.
+    DATA(lv_is_folder) = xsdbool( is_node_layout-isfolder = abap_true ).
+    DATA(lv_has_children) = xsdbool( is_node_layout-expander = abap_true ).
     IF is_outtab_line IS SUPPLIED.
       IF i_node_text IS NOT INITIAL.
-        add_html_node( node_key   = lv_key
-                       parent_key = CONV string( i_relat_node_key )
-                       text       = CONV string( i_node_text )
-                       data_row   = is_outtab_line ).
+        add_html_node( node_key       = lv_key
+                       parent_key     = CONV string( i_relat_node_key )
+                       text           = CONV string( i_node_text )
+                       data_row       = is_outtab_line
+                       has_children   = lv_has_children
+                       is_folder      = lv_is_folder
+                       node_image     = CONV string( is_node_layout-n_image )
+                       open_image     = CONV string( is_node_layout-exp_image )
+                       it_item_layout = it_item_layout ).
       ELSE.
-        add_html_node( node_key   = lv_key
-                       parent_key = CONV string( i_relat_node_key )
-                       text       = lv_key
-                       data_row   = is_outtab_line ).
+        add_html_node( node_key       = lv_key
+                       parent_key     = CONV string( i_relat_node_key )
+                       text           = lv_key
+                       data_row       = is_outtab_line
+                       has_children   = lv_has_children
+                       is_folder      = lv_is_folder
+                       node_image     = CONV string( is_node_layout-n_image )
+                       open_image     = CONV string( is_node_layout-exp_image )
+                       it_item_layout = it_item_layout ).
       ENDIF.
     ELSEIF i_node_text IS NOT INITIAL.
-      add_html_node( node_key   = lv_key
-                     parent_key = CONV string( i_relat_node_key )
-                     text       = CONV string( i_node_text ) ).
+      add_html_node( node_key       = lv_key
+                     parent_key     = CONV string( i_relat_node_key )
+                     text           = CONV string( i_node_text )
+                     has_children   = lv_has_children
+                     is_folder      = lv_is_folder
+                     node_image     = CONV string( is_node_layout-n_image )
+                     open_image     = CONV string( is_node_layout-exp_image )
+                     it_item_layout = it_item_layout ).
     ELSE.
-      add_html_node( node_key   = lv_key
-                     parent_key = CONV string( i_relat_node_key )
-                     text       = lv_key ).
+      add_html_node( node_key       = lv_key
+                     parent_key     = CONV string( i_relat_node_key )
+                     text           = lv_key
+                     has_children   = lv_has_children
+                     is_folder      = lv_is_folder
+                     node_image     = CONV string( is_node_layout-n_image )
+                     open_image     = CONV string( is_node_layout-exp_image )
+                     it_item_layout = it_item_layout ).
     ENDIF.
     e_new_node_key = lv_key.
   ENDMETHOD.
@@ -410,6 +458,9 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD set_table_for_first_display.
     GET REFERENCE OF it_outtab INTO mt_outtab.
+    IF is_hierarchy_header IS SUPPLIED.
+      ms_hierarchy_header = is_hierarchy_header.
+    ENDIF.
     IF it_fieldcatalog IS SUPPLIED.
       mt_fieldcatalog = it_fieldcatalog.
     ENDIF.

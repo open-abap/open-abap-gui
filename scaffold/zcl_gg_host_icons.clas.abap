@@ -88,7 +88,7 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       WHEN 'find' OR 'search' OR 'icon_find'.
         lv_name = 'search'.
       WHEN 'binoculars' OR 'find-more' OR 'icon_find_more'.
-        lv_name = 'search'.
+        lv_name = 'binoculars'.
       WHEN 'search-plus' OR 'binoculars-plus' OR 'find-next' OR 'icon_find_next'.
         lv_name = 'search-plus'.
       WHEN 'help' OR 'icon_help' OR 'help-circle'.
@@ -117,6 +117,10 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
         lv_name = 'database'.
       WHEN 'refresh' OR 'icon_refresh' OR '42'.
         lv_name = 'refresh'.
+      WHEN '17'.
+        lv_name = 'refresh'.
+      WHEN '15'.
+        lv_name = 'database'.
       WHEN 'edit' OR 'icon_change' OR '0z'.
         lv_name = 'edit'.
       WHEN 'delete' OR 'trash' OR 'icon_delete'.
