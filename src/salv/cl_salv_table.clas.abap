@@ -129,6 +129,17 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
         value         TYPE string
       RETURNING
         VALUE(result) TYPE abap_bool.
+
+    METHODS compare_option
+      IMPORTING
+        iv_value         TYPE string
+        iv_option        TYPE string
+        iv_low           TYPE string
+        iv_high          TYPE string OPTIONAL
+        iv_sign          TYPE string OPTIONAL
+        iv_unknown_as_eq TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(result)    TYPE abap_bool.
 ENDCLASS.
 
 CLASS cl_salv_table IMPLEMENTATION.
@@ -327,6 +338,9 @@ CLASS cl_salv_table IMPLEMENTATION.
     ENDIF.
     value = value && lv_select_header.
     LOOP AT mo_columns->get( ) INTO DATA(ls_heading).
+      IF ls_heading-r_column->is_technical( ) = abap_true.
+        CONTINUE.
+      ENDIF.
       value = value && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }">{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }</th>|.
     ENDLOOP.
     value = value && |</tr></thead><tbody>|.
@@ -340,6 +354,13 @@ CLASS cl_salv_table IMPLEMENTATION.
         value = value && |<td><input type="checkbox" name="gg-salv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }"{ lv_checked }></td>|.
       ENDIF.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
+        TRY.
+            IF mo_columns->get_column( ls_cell-columnname )->is_technical( ) = abap_true.
+              CONTINUE.
+            ENDIF.
+          CATCH cx_salv_not_found.
+            CONTINUE.
+        ENDTRY.
         value = value && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-columnname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
       ENDLOOP.
       value = value && |</tr>|.
@@ -352,6 +373,7 @@ CLASS cl_salv_table IMPLEMENTATION.
     FIELD-SYMBOLS <row> TYPE any.
     FIELD-SYMBOLS <component> TYPE any.
     DATA ls_row TYPE ty_html_row.
+    DATA lo_component_type TYPE REF TO cl_abap_typedescr.
 
     IF mr_table IS NOT BOUND.
       RETURN.
@@ -368,7 +390,16 @@ CLASS cl_salv_table IMPLEMENTATION.
         DATA(lv_text) = ``.
         ASSIGN COMPONENT ls_column-columnname OF STRUCTURE <row> TO <component>.
         IF sy-subrc = 0.
-          lv_text = |{ <component> }|.
+          TRY.
+              lo_component_type = cl_abap_typedescr=>describe_by_data( <component> ).
+              IF lo_component_type->kind <> cl_abap_typedescr=>kind_table
+                  AND lo_component_type->kind <> cl_abap_typedescr=>kind_struct
+                  AND lo_component_type->kind <> cl_abap_typedescr=>kind_ref.
+                lv_text = |{ <component> }|.
+              ENDIF.
+            CATCH cx_root.
+              CLEAR lv_text.
+          ENDTRY.
         ELSEIF ls_column-columnname = 'VALUE'.
           lv_text = |{ <row> }|.
         ENDIF.
@@ -400,33 +431,40 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD selopt_matches.
-    DATA(lv_low) = CONV string( selopt->get_low( ) ).
-    DATA(lv_high) = CONV string( selopt->get_high( ) ).
-    CASE selopt->get_option( ).
+    result = compare_option(
+      iv_value  = value
+      iv_option = CONV string( selopt->get_option( ) )
+      iv_low    = CONV string( selopt->get_low( ) )
+      iv_high   = CONV string( selopt->get_high( ) )
+      iv_sign   = CONV string( selopt->get_sign( ) ) ).
+  ENDMETHOD.
+
+  METHOD compare_option.
+    CASE to_upper( iv_option ).
       WHEN 'EQ'.
-        result = xsdbool( value = lv_low ).
+        result = xsdbool( iv_value = iv_low ).
       WHEN 'NE'.
-        result = xsdbool( value <> lv_low ).
+        result = xsdbool( iv_value <> iv_low ).
       WHEN 'BT'.
-        result = xsdbool( value >= lv_low AND value <= lv_high ).
+        result = xsdbool( iv_value >= iv_low AND iv_value <= iv_high ).
       WHEN 'NB'.
-        result = xsdbool( value < lv_low OR value > lv_high ).
+        result = xsdbool( iv_value < iv_low OR iv_value > iv_high ).
       WHEN 'GE'.
-        result = xsdbool( value >= lv_low ).
+        result = xsdbool( iv_value >= iv_low ).
       WHEN 'GT'.
-        result = xsdbool( value > lv_low ).
+        result = xsdbool( iv_value > iv_low ).
       WHEN 'LE'.
-        result = xsdbool( value <= lv_low ).
+        result = xsdbool( iv_value <= iv_low ).
       WHEN 'LT'.
-        result = xsdbool( value < lv_low ).
+        result = xsdbool( iv_value < iv_low ).
       WHEN 'CP'.
-        result = xsdbool( value CP lv_low ).
+        result = xsdbool( iv_value CP iv_low ).
       WHEN 'NP'.
-        result = xsdbool( value NP lv_low ).
+        result = xsdbool( iv_value NP iv_low ).
       WHEN OTHERS.
-        result = abap_false.
+        result = xsdbool( iv_unknown_as_eq = abap_true AND iv_value = iv_low ).
     ENDCASE.
-    IF selopt->get_sign( ) = 'E'.
+    IF iv_sign = 'E'.
       result = xsdbool( result = abap_false ).
     ENDIF.
   ENDMETHOD.

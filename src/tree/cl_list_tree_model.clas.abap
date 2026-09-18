@@ -103,6 +103,7 @@ CLASS cl_list_tree_model IMPLEMENTATION.
                         hidden    = xsdbool( ls_item-hidden IS NOT INITIAL ) ) TO mt_model_items.
       ENDLOOP.
     ENDIF.
+    update_view( ).
   ENDMETHOD.
 
   METHOD add_nodes.
@@ -137,6 +138,7 @@ CLASS cl_list_tree_model IMPLEMENTATION.
                       editable  = xsdbool( ls_item-editable IS NOT INITIAL )
                       hidden    = xsdbool( ls_item-hidden IS NOT INITIAL ) ) TO mt_model_items.
     ENDLOOP.
+    update_view( ).
   ENDMETHOD.
 
   METHOD node_get_item.

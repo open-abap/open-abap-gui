@@ -16,6 +16,12 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
     TYPES ty_messages TYPE STANDARD TABLE OF zif_gg_session_types_v1=>ty_message
       WITH DEFAULT KEY.
 
+    TYPES: BEGIN OF ty_memory_entry,
+             id    TYPE string,
+             name  TYPE string,
+             value TYPE REF TO data,
+           END OF ty_memory_entry.
+
     METHODS constructor
       IMPORTING
         io_list           TYPE REF TO zcl_gg_host_list
@@ -113,6 +119,7 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA ms_continuation TYPE zif_gg_session_types_v1=>ty_continuation.
     DATA mt_memory_lines TYPE zif_gg_session_types_v1=>ty_memory_list.
     DATA mt_memory_render_lines TYPE zcl_gg_host_list=>ty_render_lines.
+    DATA mt_memory TYPE STANDARD TABLE OF ty_memory_entry WITH DEFAULT KEY.
     DATA mt_request_values TYPE zif_gg_selection_screen_types=>ty_values.
     DATA mt_messages  TYPE ty_messages.
 
@@ -204,6 +211,34 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     IF sy-subrc = 0.
       rv_value = ls_value-value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_session_v1~export_memory.
+    FIELD-SYMBOLS <lv_value> TYPE any.
+    DATA lr_value TYPE REF TO data.
+    CREATE DATA lr_value LIKE iv_value.
+    ASSIGN lr_value->* TO <lv_value>.
+    <lv_value> = iv_value.
+    DELETE mt_memory WHERE id = iv_id AND name = iv_name.
+    INSERT VALUE #( id = iv_id name = iv_name value = lr_value ) INTO TABLE mt_memory.
+  ENDMETHOD.
+
+  METHOD zif_gg_session_v1~import_memory.
+    FIELD-SYMBOLS <lv_value> TYPE any.
+    READ TABLE mt_memory REFERENCE INTO DATA(lr_entry)
+      WITH KEY id = iv_id name = iv_name.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    ASSIGN lr_entry->value->* TO <lv_value>.
+    IF sy-subrc = 0.
+      cv_value = <lv_value>.
+      rv_found = abap_true.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_session_v1~free_memory.
+    DELETE mt_memory WHERE id = iv_id.
   ENDMETHOD.
 
   METHOD unsupported.

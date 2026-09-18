@@ -1,4 +1,4 @@
-CLASS cl_salv_columns DEFINITION PUBLIC FRIENDS cl_salv_table cl_salv_tree.
+CLASS cl_salv_columns DEFINITION PUBLIC FRIENDS cl_salv_table cl_salv_tree cl_salv_hierseq_level.
   PUBLIC SECTION.
 
     METHODS set_column_position
@@ -80,7 +80,7 @@ CLASS cl_salv_columns IMPLEMENTATION.
       RETURN.
     ENDIF.
     APPEND VALUE #( columnname = columnname
-                    column     = NEW cl_salv_column( columnname ) ) TO mt_columns.
+                    column     = NEW cl_salv_column_list( columnname = columnname ) ) TO mt_columns.
   ENDMETHOD.
 
 ENDCLASS.

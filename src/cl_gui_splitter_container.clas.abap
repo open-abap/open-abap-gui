@@ -114,9 +114,18 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
     DATA mv_border TYPE abap_bool.
     DATA mt_row_heights TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA mt_column_widths TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_row_height_explicit TYPE STANDARD TABLE OF abap_bool WITH DEFAULT KEY.
+    DATA mt_column_width_explicit TYPE STANDARD TABLE OF abap_bool WITH DEFAULT KEY.
+    DATA mt_row_sash_movable TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_row_sash_visible TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_column_sash_movable TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mt_column_sash_visible TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA mt_row_minimums TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA mt_column_minimums TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA mt_cells TYPE ty_cells.
+    METHODS normalize_row_heights.
+    METHODS normalize_column_widths.
+    METHODS sync_layout_payload.
 ENDCLASS.
 
 CLASS cl_gui_splitter_container IMPLEMENTATION.
@@ -129,24 +138,48 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_row_sash.
+    IF id < 1 OR id > mv_rows.
+      result = 0.
+      RETURN.
+    ENDIF.
     result = value.
-    set_row_height(
-      id     = id
-      height = value ).
+    CASE type.
+      WHEN type_movable.
+        MODIFY mt_row_sash_movable FROM value INDEX id.
+      WHEN type_sashvisible.
+        MODIFY mt_row_sash_visible FROM value INDEX id.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD set_column_sash.
+    IF id < 1 OR id > mv_columns.
+      result = 0.
+      RETURN.
+    ENDIF.
     result = value.
-    set_column_width(
-      id    = id
-      width = value ).
+    CASE type.
+      WHEN type_movable.
+        MODIFY mt_column_sash_movable FROM value INDEX id.
+      WHEN type_sashvisible.
+        MODIFY mt_column_sash_visible FROM value INDEX id.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD set_row_mode.
+    DATA lv_default_height TYPE i VALUE 100.
+
     mv_row_mode = mode.
+    IF mv_row_mode = mode_relative.
+      normalize_row_heights( ).
+    ELSE.
+      LOOP AT mt_row_height_explicit INTO DATA(lv_explicit_height).
+        IF lv_explicit_height = abap_false.
+          MODIFY mt_row_heights FROM lv_default_height INDEX sy-tabix.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
     result = mode.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
+    sync_layout_payload( ).
   ENDMETHOD.
 
   METHOD set_row_height.
@@ -157,11 +190,20 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
       RETURN.
     ENDIF.
     READ TABLE mt_row_minimums INTO lv_minimum INDEX id.
-    lv_height = COND #( WHEN height < lv_minimum THEN lv_minimum ELSE height ).
+    IF mv_row_mode = mode_relative.
+      lv_height = COND #( WHEN height < 0 THEN 0
+                          WHEN height > 100 THEN 100
+                          ELSE height ).
+    ELSE.
+      lv_height = COND #( WHEN height < lv_minimum THEN lv_minimum ELSE height ).
+    ENDIF.
     MODIFY mt_row_heights FROM lv_height INDEX id.
+    IF mv_row_mode = mode_relative.
+      MODIFY mt_row_height_explicit FROM abap_true INDEX id.
+      normalize_row_heights( ).
+    ENDIF.
     result = lv_height.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
+    sync_layout_payload( ).
   ENDMETHOD.
 
   METHOD constructor.
@@ -184,11 +226,19 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
     DO mv_rows TIMES.
       APPEND 100 TO mt_row_heights.
       APPEND 24 TO mt_row_minimums.
+      APPEND abap_false TO mt_row_height_explicit.
+      APPEND true TO mt_row_sash_movable.
+      APPEND true TO mt_row_sash_visible.
     ENDDO.
     DO mv_columns TIMES.
       APPEND 100 TO mt_column_widths.
       APPEND 24 TO mt_column_minimums.
+      APPEND abap_false TO mt_column_width_explicit.
+      APPEND true TO mt_column_sash_movable.
+      APPEND true TO mt_column_sash_visible.
     ENDDO.
+    normalize_row_heights( ).
+    normalize_column_widths( ).
     DO mv_rows TIMES.
       lv_row = sy-index.
       DO mv_columns TIMES.
@@ -202,15 +252,24 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
         APPEND ls_cell TO mt_cells.
       ENDDO.
     ENDDO.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
+    sync_layout_payload( ).
   ENDMETHOD.
 
   METHOD set_column_mode.
+    DATA lv_default_width TYPE i VALUE 100.
+
     mv_column_mode = mode.
+    IF mv_column_mode = mode_relative.
+      normalize_column_widths( ).
+    ELSE.
+      LOOP AT mt_column_width_explicit INTO DATA(lv_explicit_width).
+        IF lv_explicit_width = abap_false.
+          MODIFY mt_column_widths FROM lv_default_width INDEX sy-tabix.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
     result = mode.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
+    sync_layout_payload( ).
   ENDMETHOD.
 
   METHOD free.
@@ -233,17 +292,134 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
       RETURN.
     ENDIF.
     READ TABLE mt_column_minimums INTO lv_minimum INDEX id.
-    lv_width = COND #( WHEN width < lv_minimum THEN lv_minimum ELSE width ).
+    IF mv_column_mode = mode_relative.
+      lv_width = COND #( WHEN width < 0 THEN 0
+                         WHEN width > 100 THEN 100
+                         ELSE width ).
+    ELSE.
+      lv_width = COND #( WHEN width < lv_minimum THEN lv_minimum ELSE width ).
+    ENDIF.
     MODIFY mt_column_widths FROM lv_width INDEX id.
+    IF mv_column_mode = mode_relative.
+      MODIFY mt_column_width_explicit FROM abap_true INDEX id.
+      normalize_column_widths( ).
+    ENDIF.
     result = lv_width.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
+    sync_layout_payload( ).
   ENDMETHOD.
 
   METHOD set_border.
     mv_border = border.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }| ).
+    sync_layout_payload( ).
+  ENDMETHOD.
+
+  METHOD normalize_row_heights.
+    DATA lv_fixed_total TYPE i.
+    DATA lv_unset_weight_total TYPE i.
+    DATA lv_unset_count TYPE i.
+    DATA lv_last_unset TYPE i.
+    DATA lv_remaining TYPE i.
+    DATA lv_assigned TYPE i.
+
+    LOOP AT mt_row_heights INTO DATA(lv_height).
+      DATA(lv_index) = sy-tabix.
+      READ TABLE mt_row_height_explicit INTO DATA(lv_explicit) INDEX lv_index.
+      IF lv_explicit = abap_true.
+        lv_fixed_total = lv_fixed_total + lv_height.
+      ELSE.
+        lv_unset_count = lv_unset_count + 1.
+        lv_unset_weight_total = lv_unset_weight_total + lv_height.
+        lv_last_unset = lv_index.
+      ENDIF.
+    ENDLOOP.
+    IF lv_unset_count = 0.
+      RETURN.
+    ENDIF.
+    lv_remaining = 100 - lv_fixed_total.
+    IF lv_remaining < 0.
+      lv_remaining = 0.
+    ENDIF.
+    LOOP AT mt_row_height_explicit INTO lv_explicit.
+      DATA(lv_current_index) = sy-tabix.
+      IF lv_explicit = abap_false.
+        READ TABLE mt_row_heights INTO DATA(lv_old_height) INDEX lv_current_index.
+        DATA(lv_new_height) = 0.
+        IF lv_current_index = lv_last_unset.
+          lv_new_height = lv_remaining - lv_assigned.
+        ELSEIF lv_unset_weight_total > 0.
+          lv_new_height = lv_remaining * lv_old_height / lv_unset_weight_total.
+        ELSE.
+          lv_new_height = lv_remaining / lv_unset_count.
+        ENDIF.
+        lv_assigned = lv_assigned + lv_new_height.
+        MODIFY mt_row_heights FROM lv_new_height INDEX lv_current_index.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD normalize_column_widths.
+    DATA lv_fixed_total TYPE i.
+    DATA lv_unset_weight_total TYPE i.
+    DATA lv_unset_count TYPE i.
+    DATA lv_last_unset TYPE i.
+    DATA lv_remaining TYPE i.
+    DATA lv_assigned TYPE i.
+
+    LOOP AT mt_column_widths INTO DATA(lv_width).
+      DATA(lv_index) = sy-tabix.
+      READ TABLE mt_column_width_explicit INTO DATA(lv_explicit) INDEX lv_index.
+      IF lv_explicit = abap_true.
+        lv_fixed_total = lv_fixed_total + lv_width.
+      ELSE.
+        lv_unset_count = lv_unset_count + 1.
+        lv_unset_weight_total = lv_unset_weight_total + lv_width.
+        lv_last_unset = lv_index.
+      ENDIF.
+    ENDLOOP.
+    IF lv_unset_count = 0.
+      RETURN.
+    ENDIF.
+    lv_remaining = 100 - lv_fixed_total.
+    IF lv_remaining < 0.
+      lv_remaining = 0.
+    ENDIF.
+    LOOP AT mt_column_width_explicit INTO lv_explicit.
+      DATA(lv_current_index) = sy-tabix.
+      IF lv_explicit = abap_false.
+        READ TABLE mt_column_widths INTO DATA(lv_old_width) INDEX lv_current_index.
+        DATA(lv_new_width) = 0.
+        IF lv_current_index = lv_last_unset.
+          lv_new_width = lv_remaining - lv_assigned.
+        ELSEIF lv_unset_weight_total > 0.
+          lv_new_width = lv_remaining * lv_old_width / lv_unset_weight_total.
+        ELSE.
+          lv_new_width = lv_remaining / lv_unset_count.
+        ENDIF.
+        lv_assigned = lv_assigned + lv_new_width.
+        MODIFY mt_column_widths FROM lv_new_width INDEX lv_current_index.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD sync_layout_payload.
+    DATA lv_row_heights TYPE string.
+    DATA lv_column_widths TYPE string.
+
+    LOOP AT mt_row_heights INTO DATA(lv_height).
+      IF lv_row_heights IS NOT INITIAL.
+        lv_row_heights = lv_row_heights && ','.
+      ENDIF.
+      lv_row_heights = lv_row_heights && |{ lv_height }|.
+    ENDLOOP.
+    LOOP AT mt_column_widths INTO DATA(lv_width).
+      IF lv_column_widths IS NOT INITIAL.
+        lv_column_widths = lv_column_widths && ','.
+      ENDIF.
+      lv_column_widths = lv_column_widths && |{ lv_width }|.
+    ENDLOOP.
+    cl_gui_control=>set_payload(
+      control = me
+      payload = |rows={ mv_rows }; columns={ mv_columns }; row_mode={ mv_row_mode }; column_mode={ mv_column_mode }; border={ mv_border }; row_heights={ lv_row_heights }; column_widths={ lv_column_widths };| ).
   ENDMETHOD.
 
 ENDCLASS.

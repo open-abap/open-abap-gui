@@ -12,6 +12,7 @@ CLASS ltcl_gg_integration_dyn DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS returns_html_page FOR TESTING.
     METHODS skips_pai_when_not_submitted FOR TESTING.
     METHODS renders_control_families FOR TESTING.
+    METHODS renders_empty_output_field FOR TESTING.
     METHODS maps_module_context FOR TESTING.
     METHODS drives_pov_and_poh FOR TESTING.
     METHODS retains_builder_flow_ops FOR TESTING.
@@ -173,6 +174,32 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'autofocus' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '</form></section>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<form method="post"><section' ) ).
+  ENDMETHOD.
+
+  METHOD renders_empty_output_field.
+    DATA ls_screen TYPE zif_gg_dynpro_types_v1=>ty_screen.
+    DATA lt_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
+    DATA lt_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    ls_screen-number = '0100'.
+    ls_screen-title = 'Empty output'.
+    ls_screen-height = 120.
+    APPEND VALUE #( screen = '0100' kind = 'OUTPUT' name = 'STATUS'
+                    position = VALUE #( column = 1 row = 20 width = 160 height = 26 ) ) TO lt_controls.
+    APPEND VALUE #( screen = '0100' kind = 'PUSHBUTTON' name = 'BACK'
+                    ucomm = 'BACK' text = 'Back'
+                    position = VALUE #( column = 1 row = 52 ) ) TO lt_controls.
+    INSERT VALUE #( name = 'STATUS' value = `` ) INTO TABLE lt_values.
+    DATA(lv_html) = zcl_gg_host_renderer=>render_dynpro(
+      iv_session_id = 'S'
+      iv_page_id    = 'P'
+      is_screen     = ls_screen
+      it_controls   = lt_controls
+      it_values     = lt_values
+      it_states     = VALUE #( )
+      is_cursor     = VALUE #( ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<output class="gg-dynpro-control' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'id="gg-dynpro-control-n-STATUS"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'top:20px;width:160px;height:26px' ) ).
   ENDMETHOD.
 
   METHOD maps_module_context.

@@ -41,7 +41,7 @@ CLASS cl_gui_list_tree IMPLEMENTATION.
 
   METHOD hierarchy_header_set_text.
     cl_gui_control=>set_payload( control = me
-                                 payload = |hierarchy-header={ cl_gui_control=>escape_html( CONV string( text ) ) }| ).
+                                 payload = CONV string( text ) ).
   ENDMETHOD.
 
 ENDCLASS.

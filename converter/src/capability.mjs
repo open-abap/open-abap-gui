@@ -1,7 +1,7 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, controlObjectTypes, dynamicWriteOperand, isConvertibleControlStatement, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
+import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, controlObjectTypes, convertibleFreeChainKeys, dynamicWriteOperand, freeChainKey, isConvertibleControlStatement, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
 import { compatibilityAdapter } from "./function-modules.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
@@ -51,7 +51,9 @@ const SUPPORTED_STATEMENTS = new Set([
   "Try", "Catch", "Cleanup", "EndTry",
   "Submit", "CallTransaction", "Include", "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable", "Assign",
   "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
-  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
+  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase", "TypePools",
+  "Export", "Import", "FreeMemory",
+  "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
 ]);
 
 function addStatementDiagnostic(diagnostics, statement, message, suggestion, code = "GGCONV-E501") {
@@ -105,7 +107,11 @@ function isContextMenuStatement(ir, statement) {
 export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   const diagnostics = [];
   const interfaces = new Set(ir.interfaces);
-  const convertibleObjectTypes = controlObjectTypes(ir.declarations ?? []);
+  const convertibleObjectTypes = controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
+    parameters: (ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),
+    statements,
+  });
+  const convertibleFreeChains = convertibleFreeChainKeys(statements, convertibleObjectTypes);
   for (const continuation of ir.continuations ?? []) {
     const unsafeContext = (continuation.controlStack ?? []).find((item) => ["Do", "Loop", "Try", "While"].includes(item.kind));
     if (unsafeContext) {
@@ -128,6 +134,10 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "dynamic or unproven ASSIGN cannot be lowered safely", "Use a method-local elementary field symbol with a static ASSIGN target, or convert it manually.", "GGCONV-E501");
       continue;
     }
+    if (statement.kind === "CreateData" && /\b(?:TYPE|LIKE)\s*\(/i.test(statement.text)) {
+      addStatementDiagnostic(diagnostics, statement, "dynamic CREATE DATA type cannot be resolved safely", "Use a statically named TYPE or LIKE target, or provide a typed dynamic-data lowering rule.", "GGCONV-E515");
+      continue;
+    }
     if (OPEN_SQL_STATEMENTS.has(statement.kind) && !isStaticOpenSql(statement)) {
       addStatementDiagnostic(diagnostics, statement, "dynamic Open SQL cannot be preserved safely inside the generated method", "Use a statically named table and fields or provide a dedicated data-access lowering rule.", "GGCONV-E501");
       continue;
@@ -136,6 +146,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
     const supportedSpecial = isConvertibleControlStatement(statement, convertibleObjectTypes)
+      || statement.kind === "Free" && convertibleFreeChains.has(freeChainKey(statement))
       || (statement.kind === "CallFunction"
       && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text)))
       || isContextMenuStatement(ir, statement);

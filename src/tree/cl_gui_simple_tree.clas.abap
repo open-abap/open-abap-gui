@@ -57,13 +57,48 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_nodes.
+    FIELD-SYMBOLS <node_row> TYPE any.
+    FIELD-SYMBOLS <component> TYPE any.
+    DATA lv_node_index TYPE i.
+
     clear_html_nodes( ).
-    add_html_node(
-      node_key = 'TREE-ROOT'
-      text     = |Tree nodes: { lines( node_table ) }| ).
-    cl_gui_control=>set_payload(
-      control = me
-      payload = |Tree nodes: { lines( node_table ) }| ).
+    LOOP AT node_table ASSIGNING <node_row>.
+      lv_node_index = sy-tabix.
+      DATA(lv_node_key) = |NODE-{ lv_node_index }|.
+      DATA(lv_parent_key) = ``.
+      DATA(lv_text) = ``.
+
+      ASSIGN COMPONENT 'NODE_KEY' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0 AND <component> IS NOT INITIAL.
+        lv_node_key = CONV string( <component> ).
+      ENDIF.
+
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'RELATKEY' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc <> 0.
+        UNASSIGN <component>.
+        ASSIGN COMPONENT 'PARENT_KEY' OF STRUCTURE <node_row> TO <component>.
+      ENDIF.
+      IF sy-subrc = 0.
+        lv_parent_key = CONV string( <component> ).
+      ENDIF.
+
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'TEXT' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        lv_text = CONV string( <component> ).
+      ELSE.
+        lv_text = CONV string( <node_row> ).
+      ENDIF.
+      IF lv_text IS INITIAL.
+        lv_text = lv_node_key.
+      ENDIF.
+
+      add_html_node(
+        node_key   = lv_node_key
+        parent_key = lv_parent_key
+        text       = lv_text ).
+    ENDLOOP.
     refresh_tree_html( ).
   ENDMETHOD.
 

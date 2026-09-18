@@ -139,6 +139,10 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         ct_values   TYPE zif_gg_dynpro_types_v1=>ty_values.
 
+    CLASS-METHODS apply_cfw_ok_code
+      CHANGING
+        ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+
     CLASS-METHODS command_on_active_subscreen
       IMPORTING
         it_controls       TYPE zcl_gg_host_dynpro_builder=>ty_controls
@@ -904,6 +908,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
               io_session = io_session
             CHANGING
               ct_values  = ct_values ).
+          apply_cfw_ok_code( CHANGING ct_values = ct_values ).
         ENDLOOP.
       ENDIF.
     ENDIF.
@@ -1078,6 +1083,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           io_session = io_session
         CHANGING
           ct_values  = ct_values ).
+      apply_cfw_ok_code( CHANGING ct_values = ct_values ).
     ELSEIF iv_table_end >= iv_table_start.
       lv_table_row = iv_table_start.
       WHILE lv_table_row <= iv_table_end.
@@ -1091,6 +1097,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             io_session = io_session
           CHANGING
             ct_values  = ct_values ).
+        apply_cfw_ok_code( CHANGING ct_values = ct_values ).
         lv_table_row = lv_table_row + 1.
       ENDWHILE.
     ENDIF.
@@ -1336,6 +1343,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA(ls_status) = io_session->get_status( ).
     rv_allowed = abap_true.
     IF iv_submitted = abap_true
+        AND iv_ucomm <> 'GG_TREE_EVENT'
         AND io_menu IS BOUND
         AND context_command_present(
           io_menu  = io_menu
@@ -1350,6 +1358,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF iv_submitted = abap_true
+        AND iv_ucomm <> 'GG_TREE_EVENT'
         AND iv_ucomm <> 'BACK'
         AND line_exists( ls_status-excluded_ucomm[ table_line = iv_ucomm ] ).
       rv_allowed = abap_false.
@@ -1359,6 +1368,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF iv_submitted = abap_true
+        AND iv_ucomm <> 'GG_TREE_EVENT'
         AND iv_ucomm <> 'BACK'
         AND NOT line_exists( it_controls[ screen = iv_screen ucomm = iv_ucomm ] )
         AND NOT line_exists( ls_status-active_ucomm[ table_line = iv_ucomm ] )
@@ -1469,42 +1479,42 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_controls_html.
-    IF cl_gui_control=>has_content( ) = abap_false.
-      RETURN.
-    ENDIF.
     READ TABLE it_controls INTO DATA(ls_custom_control)
       WITH KEY kind = 'CUSTOM_CONTROL'.
-    IF sy-subrc <> 0.
+    IF sy-subrc = 0.
+      rv_html = cl_gui_control=>render_html(
+        iv_document       = abap_false
+        iv_container_name = CONV string( ls_custom_control-name )
+        is_sapevent       = zcl_gg_host_renderer=>sapevent_transport(
+          iv_session_id = iv_session_id
+          iv_page_id    = iv_page_id ) ).
+    ELSE.
+      rv_html = cl_gui_control=>render_html(
+        iv_document = abap_false
+        is_sapevent = zcl_gg_host_renderer=>sapevent_transport(
+          iv_session_id = iv_session_id
+          iv_page_id    = iv_page_id ) ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD apply_cfw_ok_code.
+    DATA(lv_new_code) = cl_gui_cfw=>consume_new_ok_code( ).
+    IF lv_new_code IS INITIAL.
       RETURN.
     ENDIF.
-    rv_html = cl_gui_control=>render_html(
-      iv_document       = abap_false
-      iv_container_name = CONV string( ls_custom_control-name )
-      is_sapevent       = zcl_gg_host_renderer=>sapevent_transport(
-        iv_session_id = iv_session_id
-        iv_page_id    = iv_page_id ) ).
+    READ TABLE ct_values ASSIGNING FIELD-SYMBOL(<ls_value>)
+      WITH KEY container = `` name = 'GV_OK_CODE' row = 0.
+    IF sy-subrc = 0.
+      <ls_value>-value = lv_new_code.
+    ELSE.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = lv_new_code ) INTO TABLE ct_values.
+    ENDIF.
   ENDMETHOD.
 
   METHOD apply_action_receipt.
-    FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
-
-    IF iv_receipt IS INITIAL OR cs_status-status IS NOT INITIAL.
-      RETURN.
-    ENDIF.
-    READ TABLE ct_values ASSIGNING <ls_value>
-      WITH KEY container = `` name = 'GV_STATUS' row = 0.
-    IF sy-subrc <> 0.
-      APPEND VALUE #(
-        type = zif_gg_session_types_v1=>message_type_info
-        text = iv_receipt ) TO ct_messages.
-      cs_status-status = iv_receipt.
-      RETURN.
-    ENDIF.
-    IF <ls_value>-value <> iv_previous_status.
-      RETURN.
-    ENDIF.
-    <ls_value>-value = iv_receipt.
-    cs_status-status = iv_receipt.
+    " Action receipts are host chrome, not application effects. The program
+    " must own any status or message returned after a dispatch.
+    RETURN.
   ENDMETHOD.
 
   METHOD previous_status.

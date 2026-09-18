@@ -25,9 +25,10 @@ activates a function code through its CUA status, so
 `COMMAND:<function code>`, and the program receives it like any other user
 command. The runtime repeats the active/excluded check server-side before it
 dispatches a callback. `active_pf_keys` similarly declares the AT PFnn events
-that the runtime accepts; undeclared PF keys are rejected. Back is the one
-command the program does not own: it is always enabled and leaves the program
-for the workbench.
+that the runtime accepts; undeclared PF keys are rejected. Back is always
+available as the shell escape hatch; when the running program activates BACK
+in its CUA status, the same command is dispatched to that program first,
+otherwise it leaves the program for the workbench.
 
 The application icon bar is owned solely by the running report or dynpro's
 status. Each `ty_gui_status-icon_bar` entry supplies a non-empty function code,
@@ -84,10 +85,32 @@ class name is never passed to dynamic construction.
 | `cl_gui_alv_tree` | hierarchy nodes, typed field catalog rows, expanded/selected state | accessible hierarchy plus typed semantic columns and totals | lazy child loading, add/collapse/expand/select, calculation and toolbar actions | hierarchy remains usable when the native tree widget is unavailable |
 | Classic ALV function modules | field-catalog merge, grid/list display, header/item display, blocks, popup/events, variants, commentary | semantic SALV/table output with explicit classic wrappers and grouped block sections | metadata, event names, safe default variant, popup selection, and callback state are server-owned | renderer failure remains an explicit capability message |
 | Tree controls | node key, parent, text, expanded, selected, hidden | accessible `ul`/`li` tree with parent metadata | selection/expansion state is retained | flat ordered tree when a native tree widget is unavailable |
-| SALV table | row count, header | semantic table section via `get_html` | model methods remain safe no-ops | row-count table when generic row reflection is unavailable |
+| SALV table | row data, header, visible/technical columns, functions, formatting, selections | semantic table section via `get_html`, with headings and visible fields | model methods, toolbar actions, selections, and callbacks retain server-owned state | an explicit row-count table remains available when generic row reflection is unavailable |
 | SALV tree | hierarchy nodes, typed item cells, selection | full-width semantic tree table with links, checkboxes, buttons, and dropdowns | link/double-click/checkbox/key events plus add/expand/collapse actions | API failure is surfaced as an explicit semantic fallback |
-| Graphics/chart | payload, control identity, capability state | labelled figure with semantic data table and optional color input | data/render calls and color updates are server-owned | native bar/chart-engine/GFW controls are explicitly unavailable; no raw untrusted SVG |
+| Graphics/chart | payload, control identity, capability state | labelled figure or semantic data table, with optional color input | data/render calls and color updates are server-owned | desktop bar/chart-engine/GFW controls remain unavailable; browser-safe surfaces never emit raw untrusted SVG |
 | browser/progress/timer/frontend services | last requested content or lifecycle intent | host-owned state only | explicit capability result and user-activated action | no desktop operation is reported as successful without browser evidence |
+
+## Verified gg-gui capability boundaries
+
+The converter validation audit records the browser contract for the three
+gg-gui surfaces whose native desktop behavior is unavailable or cannot be
+represented safely. Their fallback text and state responses are content, not
+renderer diagnostics:
+
+- `ZGG_GUI_ALV_DYNAMIC` renders one accessible `CC_MAIN` capability boundary
+  explaining why generic field-symbol table bindings are not reproduced. Its
+  append, style, describe, refresh, and reset actions report that they were
+  not applied, while Back remains available. The converter keeps the related
+  `E515`/`E516` diagnostics in the audit.
+- `ZGG_GUI_GRAPHICS` keeps the read-only optional-control availability audit.
+  Browser-safe graphic surfaces expose their accessible content where the
+  compatibility layer can provide it, including the Chart Engine's labelled
+  `role="img"` surface. Native desktop rendering is never claimed when the
+  corresponding data or engine operation was not performed.
+- `ZGG_GUI_ILI_DRAGDROP` renders an explicit ActiveX-unavailable text area.
+  The hidden compatibility control retains geometry, visibility, mode, and
+  context-menu state for the report's action responses; no native drag/drop
+  success is fabricated, and Back remains usable.
 
 Security invariant: payloads are escaped at the registry boundary, URLs are
 allow-listed, HTML viewer content is sandboxed, and no HIDE or continuation

@@ -211,24 +211,50 @@ CLASS cl_salv_tree IMPLEMENTATION.
     LOOP AT lt_nodes INTO DATA(ls_node_ref).
       DATA(lo_node) = ls_node_ref-node.
       DATA(lv_level) = 1.
+      DATA(lv_parent_key) = ``.
       TRY.
           DATA(lo_parent) = lo_node->get_parent( ).
-          WHILE lo_parent IS BOUND.
+          IF lo_parent IS BOUND.
+            lv_parent_key = CONV string( lo_parent->get_key( ) ).
+          ENDIF.
+          DO 32 TIMES.
+            IF lo_parent IS NOT BOUND.
+              EXIT.
+            ENDIF.
             lv_level = lv_level + 1.
             lo_parent = lo_parent->get_parent( ).
-          ENDWHILE.
+          ENDDO.
         CATCH cx_salv_msg.
           CLEAR lo_parent.
       ENDTRY.
+      DATA(lv_has_children) = xsdbool( lines( lo_node->mt_children ) > 0 OR lo_node->mv_expander = abap_true ).
+      DATA(lv_expanded) = xsdbool( lo_node->is_expanded( ) = abap_true AND lv_has_children = abap_true ).
       DATA(lv_selected) = xsdbool( line_exists( lt_selected[ node_key = ls_node_ref-node_key ] ) ).
       DATA(lv_selected_attr) = COND string(
         WHEN lv_selected = abap_true THEN ' aria-selected="true"'
         ELSE ' aria-selected="false"' ).
       DATA(lv_expanded_attr) = COND string(
-        WHEN lo_node->is_folder( ) = abap_true THEN | aria-expanded="{ COND string( WHEN lo_node->is_expanded( ) = abap_true THEN 'true' ELSE 'false' ) }"|
+        WHEN lv_has_children = abap_true THEN | aria-expanded="{ COND string( WHEN lv_expanded = abap_true THEN 'true' ELSE 'false' ) }"|
         ELSE `` ).
       IF node_is_visible( lo_node ) = abap_true.
-        value = value && |<tr role="treeitem" tabindex="0" aria-level="{ lv_level }" data-node-key="{ cl_gui_control=>escape_html( CONV string( lo_node->get_key( ) ) ) }"{ lv_selected_attr }{ lv_expanded_attr }><th scope="row">{ cl_gui_control=>escape_html( CONV string( lo_node->get_text( ) ) ) }</th>|.
+        DATA(lv_indent) = ( lv_level - 1 ) * 18.
+        DATA(lv_tree_marker) = COND string(
+          WHEN lv_has_children = abap_false THEN ``
+          WHEN lv_expanded = abap_true THEN '&#9662;'
+          ELSE '&#9656;' ).
+        DATA(lv_icon_name) = COND string(
+          WHEN lo_node->is_folder( ) = abap_true OR lv_has_children = abap_true
+            THEN COND string( WHEN lv_expanded = abap_true THEN 'folder-open' ELSE 'folder' )
+          ELSE 'file-code' ).
+        DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name = lv_icon_name ).
+        DATA(lv_icon_code) = COND string(
+          WHEN lv_expanded = abap_true AND lo_node->mv_expanded_icon IS NOT INITIAL
+            THEN lo_node->mv_expanded_icon
+          ELSE lo_node->mv_collapsed_icon ).
+        DATA(lv_icon_code_attr) = COND string(
+          WHEN lv_icon_code IS INITIAL THEN ``
+          ELSE | data-sap-image="{ cl_gui_control=>escape_html( lv_icon_code ) }"| ).
+        value = value && |<tr role="treeitem" tabindex="0" aria-level="{ lv_level }" data-tree-level="{ lv_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ cl_gui_control=>escape_html( CONV string( lo_node->get_key( ) ) ) }" data-parent-key="{ cl_gui_control=>escape_html( lv_parent_key ) }"{ lv_selected_attr }{ lv_expanded_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ lv_icon_code_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ cl_gui_control=>escape_html( CONV string( lo_node->get_text( ) ) ) }</span></span></th>|.
         LOOP AT mo_columns->get( ) INTO ls_column_ref.
           DATA(lv_item_html) = render_item(
             node       = lo_node

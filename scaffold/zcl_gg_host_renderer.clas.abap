@@ -385,7 +385,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         ENDIF.
         lv_page = ls_line-page.
         lv_body = lv_body && |<section class="gg-list-page" data-page="{ ls_line-page }">|.
-        lv_body = lv_body && |<h2 class="gg-visually-hidden">Page { ls_line-page }</h2><div>|.
+        lv_body = lv_body && |<h2 class="gg-list-page-header" aria-label="List page { ls_line-page }"><span class="gg-list-page-title">{ zcl_gg_host_html=>escape_text( iv_title ) }</span><span class="gg-list-page-number" aria-label="Page { ls_line-page }">{ ls_line-page }</span></h2><div>|.
       ENDIF.
 
       DATA(lv_line) = ``.
@@ -466,7 +466,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
       is_status     = is_status
-      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><header class="gg-status-region" aria-label="List status"><p class="gg-list-status" role="status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav></form></section>| ).
+      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><header class="gg-status-region" aria-label="List status"><p class="gg-list-status" role="status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN is_status-icon_bar IS INITIAL OR lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
   ENDMETHOD.
 
   METHOD render_selection.
@@ -1082,6 +1082,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       it_states        = it_states
       it_messages      = it_messages
       iv_controls_html = iv_controls_html ).
+    IF iv_controls_html IS NOT INITIAL
+        AND NOT line_exists( it_controls[ kind = 'CUSTOM_CONTROL' ] ).
+      lv_body = lv_body && iv_controls_html.
+    ENDIF.
     IF io_menu IS BOUND AND iv_menu_field IS NOT INITIAL.
       lv_context_menu = render_context_menu(
         io_menu  = io_menu

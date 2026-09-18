@@ -11,6 +11,7 @@ export function emptyReportIR({ filename, source, sourceHash, newline }) {
   return {
     kind: "report",
     programName: undefined,
+    reportTitle: undefined,
     header: { raw: "", lineSize: undefined, lineCount: undefined, footerLines: undefined, noStandardPageHeading: false },
     source: { filename, source, sourceHash, newline },
     units: [],

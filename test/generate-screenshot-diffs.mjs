@@ -1,4 +1,4 @@
-import {mkdir, readdir, readFile, rm, writeFile} from "node:fs/promises";
+import {copyFile, mkdir, readdir, readFile, rm, writeFile} from "node:fs/promises";
 import {basename, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {chromium} from "playwright";
@@ -9,6 +9,7 @@ const baselineDirectory = resolve(baselineArgument || "deployment/main/screensho
 const currentDirectory = resolve(currentArgument || "build/screenshots");
 const outputDirectory = resolve(outputArgument || "build/visual-diffs");
 const diffDirectory = resolve(outputDirectory, "images");
+const baselineOutputDirectory = resolve(outputDirectory, "baseline");
 const contentRegion = parseContentRegion(argumentValue("--content-region"));
 const masksPath = resolve(argumentValue("--masks") || "test/visual-masks.json");
 
@@ -90,6 +91,7 @@ function imageMarkup({source, alt, dimensions}) {
 
 await rm(outputDirectory, {recursive: true, force: true});
 await mkdir(diffDirectory, {recursive: true});
+await mkdir(baselineOutputDirectory, {recursive: true});
 const maskDefinition = await loadMasks(masksPath);
 
 const baselineNames = await screenshotNames(baselineDirectory);
@@ -254,15 +256,19 @@ try {
 const counts = Object.fromEntries(["added", "removed", "changed", "unchanged"]
   .map((status) => [status, comparisons.filter((comparison) => comparison.status === status).length]));
 const differences = comparisons.filter((comparison) => comparison.status !== "unchanged");
+await Promise.all(differences
+  .filter((comparison) => comparison.baselineDimensions)
+  .map((comparison) => copyFile(
+    resolve(baselineDirectory, comparison.name),
+    resolve(baselineOutputDirectory, comparison.name),
+  )));
 const cards = differences.map((comparison) => {
   const label = escapeHtml(basename(comparison.name, ".png"));
   const filename = urlSegment(comparison.name);
   const percentage = comparison.totalPixels === 0
     ? "0.00"
     : (comparison.changedPixels / comparison.totalPixels * 100).toFixed(2);
-  // These paths are relative to the deployed preview repository, not to the
-  // workspace paths used while generating the report.
-  const baselineSource = comparison.baselineDimensions ? `../../main/screenshots/${filename}` : null;
+  const baselineSource = comparison.baselineDimensions ? `baseline/${filename}` : null;
   const currentSource = comparison.currentDimensions ? `../screenshots/${filename}` : null;
   const diffSource = comparison.changedPixels > 0 ? `images/${filename}` : null;
 

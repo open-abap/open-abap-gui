@@ -5,6 +5,11 @@ CLASS cl_salv_hierseq_level DEFINITION PUBLIC.
       IMPORTING
         binding TYPE salv_t_hierseq_binding OPTIONAL.
 
+    METHODS set_data
+      IMPORTING
+        value     TYPE REF TO data
+        t_binding TYPE salv_t_hierseq_binding.
+
     METHODS get_columns
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_columns_hierseq.
@@ -45,6 +50,7 @@ CLASS cl_salv_hierseq_level DEFINITION PUBLIC.
     DATA mo_aggregations TYPE REF TO cl_salv_aggregations.
     DATA mt_binding TYPE salv_t_hierseq_binding.
     DATA mv_items_expanded TYPE abap_bool.
+    DATA mr_table TYPE REF TO data.
 
 ENDCLASS.
 
@@ -60,6 +66,33 @@ CLASS cl_salv_hierseq_level IMPLEMENTATION.
       mo_columns = NEW cl_salv_columns_hierseq( ).
     ENDIF.
     value = mo_columns.
+  ENDMETHOD.
+
+  METHOD set_data.
+    DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
+    DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
+    DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
+
+    mt_binding = t_binding.
+    mr_table = value.
+    mo_columns = NEW cl_salv_columns_hierseq( ).
+    IF mr_table IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    TRY.
+        lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( mr_table->* ).
+        lo_line_descr = lo_table_descr->get_table_line_type( ).
+        IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
+          lo_struct_descr ?= lo_line_descr.
+          LOOP AT lo_struct_descr->get_components( ) INTO DATA(ls_component).
+            mo_columns->add_column( CONV lvc_fname( ls_component-name ) ).
+          ENDLOOP.
+        ELSE.
+          mo_columns->add_column( 'VALUE' ).
+        ENDIF.
+      CATCH cx_root.
+        CLEAR mo_columns.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD get_selections.

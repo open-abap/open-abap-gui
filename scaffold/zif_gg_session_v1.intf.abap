@@ -35,6 +35,26 @@ INTERFACE zif_gg_session_v1 PUBLIC.
     IMPORTING
       is_message TYPE zif_gg_session_types_v1=>ty_message.
 
+  "! Session-scoped replacement for classic EXPORT/IMPORT ... MEMORY ID.
+  METHODS export_memory
+    IMPORTING
+      iv_id    TYPE string
+      iv_name  TYPE string
+      iv_value TYPE any.
+
+  METHODS import_memory
+    IMPORTING
+      iv_id           TYPE string
+      iv_name         TYPE string
+    CHANGING
+      cv_value        TYPE any
+    RETURNING
+      VALUE(rv_found) TYPE abap_bool.
+
+  METHODS free_memory
+    IMPORTING
+      iv_id TYPE string.
+
   "! Execute STOP. This ends logical-database processing and continues with
   "! END-OF-SELECTION; the call does not return to the current callback.
   METHODS stop.

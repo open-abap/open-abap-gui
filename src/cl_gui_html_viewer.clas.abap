@@ -70,13 +70,15 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_history,
-             url     TYPE string,
-             payload TYPE string,
+             url         TYPE string,
+             payload     TYPE string,
+             is_external TYPE abap_bool,
            END OF ty_history.
     TYPES ty_history_tab TYPE STANDARD TABLE OF ty_history WITH DEFAULT KEY.
     DATA mv_document TYPE string.
     DATA mv_current_url TYPE string.
     DATA mv_payload TYPE string.
+    DATA mv_external_url TYPE abap_bool.
     DATA mv_ui_flag TYPE i.
     DATA mt_history TYPE ty_history_tab.
     DATA mv_history_index TYPE i.
@@ -100,17 +102,35 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
 
   METHOD show_data.
     mv_current_url = url.
+    mv_external_url = abap_false.
     mv_payload = mv_document.
     cl_gui_control=>set_payload( control = me
-                                 payload = mv_document ).
+                                 payload = mv_current_url ).
+    cl_gui_control=>set_html( control = me
+                              html    = COND string( WHEN mv_document IS INITIAL
+                                                    THEN '<!doctype html><html><body></body></html>'
+                                                    ELSE mv_document ) ).
     remember_current( ).
   ENDMETHOD.
 
   METHOD show_url.
-    mv_current_url = url.
-    mv_payload = CONV string( url ).
+    IF url <> mv_current_url OR mv_external_url = abap_true.
+      mv_current_url = url.
+      CLEAR mv_document.
+      mv_payload = url.
+      mv_external_url = abap_true.
+    ELSE.
+      mv_payload = mv_document.
+    ENDIF.
     cl_gui_control=>set_payload( control = me
-                                 payload = CONV string( url ) ).
+                                 payload = mv_current_url ).
+    cl_gui_control=>set_html( control = me
+                              html    = COND string( WHEN mv_external_url = abap_false
+                                                    AND mv_document IS INITIAL
+                                                    THEN '<!doctype html><html><body></body></html>'
+                                                    WHEN mv_external_url = abap_false
+                                                    THEN mv_document
+                                                    ELSE `` ) ).
     remember_current( ).
   ENDMETHOD.
 
@@ -121,9 +141,14 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
     ENDLOOP.
     assigned_url = url.
     mv_current_url = url.
+    mv_external_url = abap_false.
     mv_payload = mv_document.
     cl_gui_control=>set_payload( control = me
-                                 payload = mv_document ).
+                                 payload = mv_current_url ).
+    cl_gui_control=>set_html( control = me
+                              html    = COND string( WHEN mv_document IS INITIAL
+                                                    THEN '<!doctype html><html><body></body></html>'
+                                                    ELSE mv_document ) ).
     remember_current( ).
   ENDMETHOD.
 
@@ -132,9 +157,12 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD close_document.
-    CLEAR: mv_document, mv_current_url, mv_payload, mt_history, mv_history_index.
+    CLEAR: mv_document, mv_current_url, mv_payload, mv_external_url,
+           mt_history, mv_history_index.
     cl_gui_control=>set_payload( control = me
                                  payload = `` ).
+    cl_gui_control=>set_html( control = me
+                              html    = `` ).
   ENDMETHOD.
 
   METHOD go_back.
@@ -164,13 +192,15 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
       ENDWHILE.
       READ TABLE mt_history INTO ls_history INDEX mv_history_index.
       IF sy-subrc = 0 AND ls_history-url = mv_current_url
-          AND ls_history-payload = mv_payload.
+          AND ls_history-payload = mv_payload
+          AND ls_history-is_external = mv_external_url.
         RETURN.
       ENDIF.
     ENDIF.
 
     ls_history-url = mv_current_url.
     ls_history-payload = mv_payload.
+    ls_history-is_external = mv_external_url.
     APPEND ls_history TO mt_history.
     mv_history_index = lines( mt_history ).
   ENDMETHOD.
@@ -182,13 +212,21 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
     ENDIF.
     mv_current_url = ls_history-url.
     mv_payload = ls_history-payload.
-    IF ls_history-payload = ls_history-url AND ls_history-url IS NOT INITIAL.
+    mv_external_url = ls_history-is_external.
+    IF mv_external_url = abap_true.
       CLEAR mv_document.
     ELSE.
       mv_document = ls_history-payload.
     ENDIF.
     cl_gui_control=>set_payload( control = me
-                                 payload = ls_history-payload ).
+                                 payload = mv_current_url ).
+    cl_gui_control=>set_html(
+      control = me
+      html    = COND string( WHEN mv_external_url = abap_false AND mv_document IS INITIAL
+                              THEN '<!doctype html><html><body></body></html>'
+                              WHEN mv_external_url = abap_true
+                              THEN ``
+                              ELSE mv_document ) ).
   ENDMETHOD.
 
   METHOD constructor.

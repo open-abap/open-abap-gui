@@ -95,6 +95,23 @@ function allRenames(ir) {
   return { ...(ir.statePlan?.renames ?? {}), ...(ir.localClassRenames ?? {}), ...continuationRenames(ir) };
 }
 
+function globalMemberNames(ir) {
+  const routineStatements = new Set((ir.routines ?? []).flatMap((routine) => routine.statements ?? []));
+  const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
+  const global = (item) => !routineStatements.has(item.statement)
+    && !dynproModuleStatements.has(item.statement)
+    && item.statement?.scope !== "local"
+    && !item.statement?.localClassName;
+  const result = {};
+  for (const declaration of ir.declarations ?? []) {
+    if (!global(declaration) || !["data", "static", "tables", "ranges"].includes(declaration.kind)) continue;
+    for (const name of declaration.names ?? []) {
+      result[name] = ir.statePlan?.renames?.[name] ?? name.toLowerCase();
+    }
+  }
+  return result;
+}
+
 function continuationLocalNames(ir) {
   const routineStatements = new Set((ir.routines ?? []).flatMap((routine) => routine.statements ?? []));
   const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
@@ -103,7 +120,9 @@ function continuationLocalNames(ir) {
     && item.statement?.scope !== 'local'
     && !item.statement?.localClassName;
   const localDeclarations = (ir.declarations ?? [])
-    .filter((item) => !global(item) && ['data', 'static'].includes(item.kind));
+    .filter((item) => !global(item)
+      && !item.statement?.localClassName
+      && ['data', 'static'].includes(item.kind));
   const declaredBefore = (declaration, continuation) => {
     const declarationSpan = declaration.statement?.span;
     const continuationSpan = continuation.span;
@@ -339,7 +358,11 @@ function dataMembers(ir) {
   }
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
-    const parameterType = (parameter) => /^SY(?:-SUBRC)?$/i.test(String(parameter.type ?? "")) ? "i" : parameter.type;
+    const parameterType = (parameter) => {
+      if (/^SY-UCOMM$/i.test(String(parameter.type ?? ""))) return "zif_gg_session_types_v1=>ty_ucomm";
+      if (/^SY(?:-SUBRC)?$/i.test(String(parameter.type ?? ""))) return "i";
+      return parameter.type;
+    };
     const lines = [`METHODS ${routine.methodName}`];
     const importing = parameters.filter((parameter) => parameter.direction === "IMPORTING");
     const width = Math.max("io_session".length, ...parameters.map((parameter) => parameter.name.length));
@@ -500,7 +523,7 @@ function selectionBuilder(ir) {
   return lines;
 }
 
-function methodContext(ir, event, qualifierOverride) {
+function methodContext(ir, event, qualifierOverride, {parameters = [], statements = ir.statements ?? []} = {}) {
   const mutable = ["initialization", "at_selection_screen", "at_selection_screen_on_field", "at_selection_screen_on_end_of", "at_selection_screen_on_block", "at_selection_screen_on_radio", "at_selection_screen_output"].includes(event);
   const values = ir.selections
     .flatMap((screen) => screen.elements.map((item) => ({ ...item, screen: screen.number })))
@@ -550,7 +573,7 @@ function methodContext(ir, event, qualifierOverride) {
     ucomm: event.startsWith("at_selection_screen") || event === "at_user_command" ? "iv_ucomm" : undefined,
     replacements: [
       ...Object.entries(ir.statePlan?.renames ?? {}),
-      ...Object.entries(ir.localClassRenames ?? {}),
+      ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]) => [name, String(value).toLowerCase()]),
       ...Object.entries(continuationRenames(ir)),
       ...valueReplacements,
       ...(event === "at_line_selection" || event === "at_user_command" || event === "at_pf"
@@ -575,11 +598,40 @@ function methodContext(ir, event, qualifierOverride) {
     selectionState: ir.statePlan?.selectionState ?? {},
     dynamicWriteTargets,
     dynamicCommentNames,
-    controlObjectTypes: controlObjectTypes(ir.declarations ?? []),
+    localClassStaticMethods: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
+      String(localClass.name ?? "").toUpperCase(),
+      new Set((localClass.definition ?? [])
+        .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? ""))
+        .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
+        .filter(Boolean)),
+    ])),
+    localClassStaticParameters: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
+      String(localClass.name ?? "").toUpperCase(),
+      Object.fromEntries((localClass.definition ?? [])
+        .map((statement) => {
+          const match = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b([\s\S]*)$/i.exec(statement.text ?? "");
+          if (!match) return undefined;
+          const parameter = /\bIMPORTING\s+([A-Z][A-Z0-9_]*)\b/i.exec(match[2])?.[1]?.toUpperCase();
+          return parameter ? [match[1].toUpperCase(), parameter] : undefined;
+        })
+        .filter(Boolean)),
+    ])),
+    localClassRenames: Object.fromEntries(Object.entries(ir.localClassRenames ?? {})
+      .map(([name, value]) => [String(name).toUpperCase(), String(value).toLowerCase()])),
+    controlObjectTypes: controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
+      parameters: [
+        ...(ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),
+        ...parameters,
+      ],
+      statements,
+    }),
     safeFieldSymbols: ir.safeFieldSymbols ?? [],
     rangeDeclarations: Object.fromEntries((ir.declarations ?? [])
       .filter((declaration) => declaration.kind === "ranges")
       .flatMap((declaration) => (declaration.names ?? []).map((name) => [name.toUpperCase(), "zif_gg_selection_screen_types=>ty_ranges"]))),
+    sessionVariable: "io_session",
+    ownerPrefix: "me->",
+    localClassOwner: "me",
   };
 }
 
@@ -780,7 +832,7 @@ function truncateTerminalPaths(statements) {
 
 function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifierOverride) {
   const statements = truncateTerminalPaths(sourceStatements);
-  const context = methodContext(ir, event, qualifierOverride);
+  const context = methodContext(ir, event, qualifierOverride, {statements: sourceStatements});
   if (event === "at_selection_screen_value_req") {
     const f4Call = statements.find((statement) => statement.kind === "CallFunction" && /F4IF_INT_TABLE_VALUE_REQUEST/i.test(statement.text));
     if (f4Call) {
@@ -826,7 +878,7 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   if (event === "start_of_selection" && context.activePFKeys?.length && !statements.some((statement) => statement.kind === "SetPFStatus")) {
     body.unshift(`io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_pf_keys = VALUE #( ${context.activePFKeys.map((key) => `( ${key} )`).join(" ")} ) ) ).`);
   }
-  if (event === "start_of_selection" && body.length) body.unshift(`io_session->get_list( )->set_title( '${ir.targetClassName}' ).`);
+  if (event === "start_of_selection" && body.length) body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
   if (hasWriter) body = addWriterDeclaration(body);
   return { body, lowered, suspension: index >= 0 ? { statement: statements[index], tail: statements.slice(index + 1) } : undefined };
 }
@@ -877,6 +929,9 @@ function reportMethods(ir) {
       methods.push(method(`zif_gg_report_v1~${event}`, bodiesFor(event)));
     } else {
       const body = [...bodiesFor(event)];
+      if (event === "load_of_program" && ir.reportTitle) {
+        body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
+      }
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
       methods.push(method(`zif_gg_report_v1~${event}`, body));
     }
@@ -997,14 +1052,57 @@ function dynproStateFlush(ir, valuesName = "ct_values") {
   ]);
 }
 
+function unsupportedDynamicTableAction(ir, routine) {
+  const tableSymbols = new Set((ir.declarations ?? [])
+    .filter((declaration) => declaration.kind === "field-symbol"
+      && declaration.statement?.scope !== "local"
+      && /\bTYPE\s+STANDARD\s+TABLE\b/i.test(declaration.raw ?? ""))
+    .flatMap((declaration) => (declaration.names ?? []).map((name) => String(name).toUpperCase())));
+  if (!tableSymbols.size) return undefined;
+  const statements = routine.statements ?? [];
+  const source = statements.map((statement) => statement.text ?? "").join("\n");
+  if (/\bSET_TABLE_FOR_FIRST_DISPLAY\b/i.test(source)) return undefined;
+  const usesDynamicTable = [...tableSymbols].some((name) => new RegExp(`<${name}>`, "i").test(source));
+  const writesFeedback = /\bGV_(?:STATUS|DETAIL)\s*=/i.test(source);
+  if (!usesDynamicTable || !writesFeedback) return undefined;
+  const members = globalMemberNames(ir);
+  const body = [];
+  if (members.GV_STATUS) {
+    body.push(`${members.GV_STATUS} = ${literal("Dynamic ALV action not applied: generic field-symbol table operations are unsupported.")}.`);
+  }
+  if (members.GV_DETAIL) {
+    body.push(`${members.GV_DETAIL} = ${literal("No table rows or cell styles were changed.")}.`);
+  }
+  return body.length ? [...body, "RETURN."] : undefined;
+}
+
 function routineBody(ir, routine) {
+  const dynamicTableAction = unsupportedDynamicTableAction(ir, routine);
+  if (dynamicTableAction) return dynamicTableAction;
   const statements = truncateTerminalPaths(routine.statements ?? []);
   const index = suspensionIndex(statements);
   const active = index >= 0 ? statements.slice(0, index + 1) : statements;
-  const context = methodContext(ir, "start_of_selection");
+  const context = methodContext(ir, "start_of_selection", undefined, {
+    parameters: routine.parameters,
+    statements: routine.statements ?? [],
+  });
   context.contextMenu = /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""));
   let lowered = removePromotedDeclarations(ir, lowerStatements(active, context).map((item) => item.text));
   lowered = [...globalFieldSymbolDeclarations(ir, active), ...lowered];
+  // Keep the ILI demo's fallback actions observable in browser runtimes.  The
+  // native report deliberately does not construct the ActiveX control when it
+  // is unavailable, so its later action forms would otherwise only update
+  // the status text and return.  A hidden logical control preserves the
+  // control's geometry/menu state without changing the initial fallback UI.
+  if (/^SHOW_UNAVAILABLE$/i.test(String(routine.name ?? ""))
+      && lowered.some((line) => /CREATE OBJECT go_fallback\b/i.test(line))
+      && (ir.declarations ?? []).some((declaration) => (declaration.names ?? []).some((name) => String(name).toUpperCase() === "GO_ILI"))
+      && (ir.declarations ?? []).some((declaration) => (declaration.names ?? []).some((name) => String(name).toUpperCase() === "GO_HOST"))) {
+    const fallbackIndex = lowered.findIndex((line) => /CREATE OBJECT go_fallback\b/i.test(line));
+    lowered.splice(fallbackIndex + 1, 0,
+      "CREATE OBJECT go_ili EXPORTING parent = go_host.",
+      "go_ili->hide( ).");
+  }
   if (index >= 0) lowered.push(...continuationClosers(continuationFor(ir, statements[index])));
   if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
   return lowered;
@@ -1029,7 +1127,7 @@ function dynproPosition(element) {
   const position = element.position ?? {};
   const line = Number(position.line ?? element.line ?? 1);
   const column = Number(position.column ?? element.column ?? 1);
-  const width = Number(position.width ?? element.length ?? 1);
+  const width = Number(position.visibleWidth ?? element.visibleLength ?? position.width ?? element.length ?? 1);
   const height = Number(position.height ?? element.height ?? 1);
   const safeLine = Number.isFinite(line) ? line : 1;
   const safeColumn = Number.isFinite(column) ? column : 1;
@@ -1620,10 +1718,32 @@ function helperDefinitionHeader(localClass, generatedName, ir) {
   return `CLASS ${generatedName.toLowerCase()} DEFINITION PUBLIC${rest ? ` ${renameIdentifiers(rest, allRenames(ir))}` : ""}.`;
 }
 
-function helperMethodContext(ir) {
-  const context = methodContext(ir, "local_class");
+function helperMethodContext(ir, localClass, localMethod) {
+  const isStaticMethod = (localClass.definition ?? []).some((statement) => {
+    const name = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text ?? "")?.[1];
+    return name && name.toUpperCase() === String(localMethod?.name ?? "").toUpperCase();
+  });
+  const context = methodContext(ir, "local_class", undefined, {
+    statements: localMethod?.statements ?? ir.statements ?? [],
+  });
   context.ucomm = "sy-ucomm";
+  context.sessionVariable = isStaticMethod ? "io_session" : "mo_session";
+  context.ownerPrefix = isStaticMethod ? "io_owner->" : "mo_owner->";
+  context.localClassOwner = isStaticMethod ? "io_owner" : "mo_owner";
+  const ownerReplacements = Object.fromEntries(Object.entries(globalMemberNames(ir))
+    .map(([name, member]) => [name, `${context.ownerPrefix}${member}`]));
+  const localTypeUses = new Set([
+    ...String(localMethod?.definition?.text ?? "").matchAll(/\b(?:TYPE|LIKE|VALUE)\s+(?:REF\s+TO\s+)?([A-Z][A-Z0-9_]*)/gi),
+    ...(localMethod?.statements ?? []).flatMap((statement) => [...String(statement.text ?? "").matchAll(/\b(?:TYPE|LIKE|VALUE)\s+(?:REF\s+TO\s+)?([A-Z][A-Z0-9_]*)/gi)]),
+  ].map((match) => match[1].toUpperCase()));
+  const ownerTypeReplacements = (ir.declarations ?? [])
+    .filter((declaration) => ["type", "typebegin"].includes(declaration.kind))
+    .flatMap((declaration) => (declaration.names ?? [])
+      .filter((name) => localTypeUses.has(name.toUpperCase()))
+      .map((name) => [name, `${ir.targetClassName.toLowerCase()}=>${name.toLowerCase()}`]));
   context.replacements = [
+    ...Object.entries(ownerReplacements),
+    ...ownerTypeReplacements,
     ...Object.entries(ir.statePlan?.renames ?? {}),
     ...(ir.selections ?? []).flatMap((screen) => (screen.elements ?? [])
       .filter((item) => item.name)
@@ -1634,16 +1754,23 @@ function helperMethodContext(ir) {
           : [];
         return [...fields, [item.name, reference]];
       })),
-    ...Object.entries(ir.localClassRenames ?? {}),
+    ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]) => [name, String(value).toLowerCase()]),
   ];
-  context.controlObjectTypes = controlObjectTypes(ir.declarations ?? []);
+  context.controlObjectTypes = controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
+    statements: localMethod?.statements ?? [],
+  });
+  context.isStaticMethod = isStaticMethod;
   return context;
 }
 
 function helperMethodBody(ir, localClass, localMethod) {
   const statements = truncateTerminalPaths(localMethod.statements ?? []);
-  const context = helperMethodContext(ir);
+  const context = helperMethodContext(ir, localClass, localMethod);
   let body = lowerStatements(statements, context).map((item) => item.text);
+  if (!context.isStaticMethod) {
+    body = body.map((line) => line.replace(/\bio_session\b/gi, (name, offset, source) =>
+      /^\s*=/.test(source.slice(offset + name.length)) ? name : "mo_session"));
+  }
   body = [...globalFieldSymbolDeclarations(ir, statements), ...body];
   if (body.some((line) => line.includes("lo_writer->")) && !/\bio_session\b/i.test(localMethod.definition?.text ?? "")) {
     body = ["* TODO GGCONV-E501: local class writer access requires an explicit session mapping."];
@@ -1705,19 +1832,56 @@ function helperDefinitionBody(statements, rename) {
 function helperSource(ir, options, localClass) {
   const generatedName = localClass.generatedName;
   const rename = (text) => renameIdentifiers(text, allRenames(ir));
+  const originalConstructor = (localClass.methods ?? []).find((localMethod) => localMethod.name?.toUpperCase() === "CONSTRUCTOR");
+  const originalConstructorDefinition = originalConstructor?.definition?.text
+    ? rename(originalConstructor.definition.text).replace(/\.\s*$/, "")
+    : undefined;
+  const constructorSignature = originalConstructorDefinition
+    ? `${originalConstructorDefinition}${/\bIMPORTING\b/i.test(originalConstructorDefinition) ? " " : " IMPORTING "}io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`
+    : `METHODS constructor IMPORTING io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`;
+  const bridge = [
+    `    ${constructorSignature}`,
+    `    DATA mo_owner TYPE REF TO ${ir.targetClassName.toLowerCase()}.`,
+    "    DATA mo_session TYPE REF TO zif_gg_session_v1.",
+  ];
+  const originalDefinition = helperDefinitionBody(
+    (localClass.definition ?? []).filter((statement) => !(statement.kind === "MethodDef" && /^\s*METHODS\s+constructor\b/i.test(statement.text))),
+    rename,
+  );
+  const staticMethods = new Set((localClass.definition ?? [])
+    .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? ""))
+    .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
+    .filter(Boolean));
+  const ownerSessionParameters = `io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1`;
+  const definitionWithStaticBridges = originalDefinition.map((line) => {
+    const methodName = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(line)?.[1]?.toUpperCase();
+    if (!methodName || !staticMethods.has(methodName) || /\bIO_OWNER\b/i.test(line)) return line;
+    return `${line.replace(/\.\s*$/, "")}${/\bIMPORTING\b/i.test(line) ? " " : " IMPORTING "}${ownerSessionParameters}.`;
+  });
+  const publicSection = definitionWithStaticBridges.findIndex((line) => /^\s*PUBLIC SECTION\.$/i.test(line));
+  const definitionBody = publicSection >= 0
+    ? [...definitionWithStaticBridges.slice(0, publicSection + 1), ...bridge, ...definitionWithStaticBridges.slice(publicSection + 1)]
+    : ["  PUBLIC SECTION.", ...bridge, ...definitionWithStaticBridges];
   const definition = [
     helperDefinitionHeader(localClass, generatedName, ir),
     "",
-    ...helperDefinitionBody(localClass.definition, rename),
+    ...definitionBody,
     "",
     "ENDCLASS.",
     "",
     `CLASS ${generatedName.toLowerCase()} IMPLEMENTATION.`,
     "",
   ];
-  const implementations = (localClass.methods ?? [])
-    .filter((localMethod) => localMethod.statement)
-    .map((localMethod) => method(localMethod.name.toLowerCase(), helperMethodBody(ir, localClass, localMethod)));
+  const implementations = [
+    method("constructor", [
+      "mo_owner = io_owner.",
+      "mo_session = io_session.",
+      ...(originalConstructor ? helperMethodBody(ir, localClass, originalConstructor) : []),
+    ]),
+    ...(localClass.methods ?? [])
+    .filter((localMethod) => localMethod.statement && localMethod.name?.toUpperCase() !== "CONSTRUCTOR")
+    .map((localMethod) => method(localMethod.name.toLowerCase(), helperMethodBody(ir, localClass, localMethod))),
+  ];
   return `${header({ className: generatedName, ir, options })}${definition.join("\n")}${implementations.join("\n")}ENDCLASS.\n`.replace(/\r?\n/g, "\n");
 }
 
@@ -1767,7 +1931,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     .map((item) => `${item.code}: ${item.construct}`)
     .filter((value, index, values) => values.indexOf(value) === index);
   const startBody = [
-    `io_session->get_list( )->set_title( ${literal(ir.programName ?? ir.targetClassName)} ).`,
+    `io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.programName ?? ir.targetClassName)} ).`,
     "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
     `lo_writer->write_field( VALUE #( text = ${literal("Partial conversion preview")} placement = VALUE #( new_line = abap_true ) ) ).`,
     `lo_writer->write_field( VALUE #( text = ${literal(`Source report: ${ir.programName ?? "UNKNOWN"}`)} placement = VALUE #( new_line = abap_true ) ) ).`,
@@ -1776,7 +1940,9 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
   ];
   const methods = REPORT_METHODS.map((name) => method(
     `zif_gg_report_v1~${name}`,
-    name === "start_of_selection" ? startBody : ["RETURN."],
+    name === "load_of_program" && ir.reportTitle
+      ? [`io_session->get_list( )->set_title( ${literal(ir.reportTitle)} ).`]
+      : name === "start_of_selection" ? startBody : ["RETURN."],
   ));
   const todos = diagnostics
     .filter((item) => item.severity === "error" || item.code.startsWith("GGCONV-E"))
@@ -1819,7 +1985,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
     `CLASS ${className} IMPLEMENTATION.`,
     "",
   ];
-  const label = ir.description ?? ir.programName ?? ir.targetClassName;
+  const label = ir.reportTitle ?? ir.description ?? ir.programName ?? ir.targetClassName;
   const applicationBody = [
     `io_session->get_list( )->set_title( ${literal(label)} ).`,
     "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
@@ -1847,6 +2013,8 @@ export function emitPartialApplication(ir, options, diagnostics) {
     for (const name of REPORT_METHODS) {
       const body = name === "build_screen"
         ? selectionBuilder(ir)
+        : name === "load_of_program" && ir.reportTitle
+          ? [`io_session->get_list( )->set_title( ${literal(ir.reportTitle)} ).`]
         : name === "start_of_selection" ? screenBody : ["RETURN."];
       methods.push(method(`zif_gg_report_v1~${name}`, body.length ? body : ["RETURN."]));
     }

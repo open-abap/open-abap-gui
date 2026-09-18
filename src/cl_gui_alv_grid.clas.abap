@@ -505,24 +505,31 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_html_cell,
-             fieldname  TYPE lvc_fname,
-             text       TYPE string,
-             type_class TYPE string,
-             editable   TYPE abap_bool,
-             checkbox   TYPE abap_bool,
-             icon       TYPE abap_bool,
-             symbol     TYPE abap_bool,
-             emphasize  TYPE string,
-             f4         TYPE abap_bool,
-             dropdown   TYPE i,
-             total      TYPE abap_bool,
-             subtotal   TYPE abap_bool,
-             hotspot    TYPE abap_bool,
+             fieldname       TYPE lvc_fname,
+             text            TYPE string,
+             type_class      TYPE string,
+             editable        TYPE abap_bool,
+             checkbox        TYPE abap_bool,
+             icon            TYPE abap_bool,
+             symbol          TYPE abap_bool,
+             exception_light TYPE abap_bool,
+             emphasize       TYPE string,
+             color_code      TYPE string,
+             color_style     TYPE string,
+             style_button    TYPE abap_bool,
+             style_disabled  TYPE abap_bool,
+             f4              TYPE abap_bool,
+             dropdown        TYPE i,
+             total           TYPE abap_bool,
+             subtotal        TYPE abap_bool,
+             hotspot         TYPE abap_bool,
            END OF ty_html_cell.
     TYPES ty_html_cells TYPE STANDARD TABLE OF ty_html_cell WITH DEFAULT KEY.
     TYPES: BEGIN OF ty_html_row,
-             index TYPE i,
-             cells TYPE ty_html_cells,
+             index       TYPE i,
+             color_code  TYPE string,
+             color_style TYPE string,
+             cells       TYPE ty_html_cells,
            END OF ty_html_row.
     TYPES ty_html_rows TYPE STANDARD TABLE OF ty_html_row WITH DEFAULT KEY.
     DATA mt_fieldcatalog TYPE lvc_t_fcat.
@@ -555,6 +562,100 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
     DATA mv_gridtitle TYPE lvc_title.
 
     METHODS render_model
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS render_cell
+      IMPORTING
+        is_row        TYPE ty_html_row
+        is_cell       TYPE ty_html_cell
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS render_cell_content
+      IMPORTING
+        iv_row_index  TYPE i
+        is_cell       TYPE ty_html_cell
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS render_aggregate_row
+      IMPORTING
+        it_rows           TYPE ty_html_rows
+        iv_subtotal_field TYPE lvc_fname OPTIONAL
+        iv_subtotal_value TYPE string OPTIONAL
+      RETURNING
+        VALUE(result)     TYPE string.
+
+    "! Turns one output field of one row into the cell the renderer reads. The
+    "! field catalogue decides how the value is formatted and which of the cell
+    "! flags are set; IV_VALUE is the raw value as it was read from the row.
+    METHODS build_cell
+      IMPORTING
+        is_fieldcat   TYPE lvc_s_fcat
+        iv_value      TYPE string
+      RETURNING
+        VALUE(result) TYPE ty_html_cell.
+
+    METHODS apply_row_display
+      IMPORTING
+        is_source_row TYPE any
+      CHANGING
+        cs_row        TYPE ty_html_row.
+
+    METHODS apply_row_colors
+      IMPORTING
+        is_source_row TYPE any
+      CHANGING
+        cs_row        TYPE ty_html_row.
+
+    METHODS apply_cell_color
+      IMPORTING
+        is_color_row TYPE any
+      CHANGING
+        ct_cells     TYPE ty_html_cells.
+
+    METHODS apply_row_styles
+      IMPORTING
+        is_source_row TYPE any
+      CHANGING
+        cs_row        TYPE ty_html_row.
+
+    METHODS apply_cell_style
+      IMPORTING
+        is_style_row TYPE any
+      CHANGING
+        ct_cells     TYPE ty_html_cells.
+
+    METHODS lvc_color_style
+      IMPORTING
+        iv_color      TYPE i
+        iv_intensity  TYPE i
+        iv_inverse    TYPE i
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS color_code_style
+      IMPORTING
+        iv_code       TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS alv_icon_html
+      IMPORTING
+        iv_code       TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS alv_light_html
+      IMPORTING
+        iv_value      TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS alv_symbol_html
+      IMPORTING
+        iv_value      TYPE string
       RETURNING
         VALUE(result) TYPE string.
 
@@ -634,9 +735,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_3d_border.
-    cl_gui_control=>set_payload(
-      control = me
-      payload = |ALV border={ border }; rows={ lines( mt_html_rows ) }| ).
+    RETURN.
   ENDMETHOD.
 
   METHOD set_selected_cells.
@@ -869,41 +968,19 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         result = abap_false.
         RETURN.
       ENDIF.
-      DATA(lv_value) = ls_cell-text.
       DATA(lv_low) = CONV string( ls_filter-low ).
       DATA(lv_high) = CONV string( ls_filter-high ).
       SHIFT lv_low RIGHT DELETING TRAILING space.
       SHIFT lv_low LEFT DELETING LEADING space.
       SHIFT lv_high RIGHT DELETING TRAILING space.
       SHIFT lv_high LEFT DELETING LEADING space.
-      DATA(lv_match) = abap_false.
-      CASE to_upper( CONV string( ls_filter-option ) ).
-        WHEN 'EQ'.
-          lv_match = xsdbool( lv_value = lv_low ).
-        WHEN 'NE'.
-          lv_match = xsdbool( lv_value <> lv_low ).
-        WHEN 'BT'.
-          lv_match = xsdbool( lv_value >= lv_low AND lv_value <= lv_high ).
-        WHEN 'NB'.
-          lv_match = xsdbool( lv_value < lv_low OR lv_value > lv_high ).
-        WHEN 'GE'.
-          lv_match = xsdbool( lv_value >= lv_low ).
-        WHEN 'GT'.
-          lv_match = xsdbool( lv_value > lv_low ).
-        WHEN 'LE'.
-          lv_match = xsdbool( lv_value <= lv_low ).
-        WHEN 'LT'.
-          lv_match = xsdbool( lv_value < lv_low ).
-        WHEN 'CP'.
-          lv_match = xsdbool( lv_value CP lv_low ).
-        WHEN 'NP'.
-          lv_match = xsdbool( lv_value NP lv_low ).
-        WHEN OTHERS.
-          lv_match = xsdbool( lv_value = lv_low ).
-      ENDCASE.
-      IF ls_filter-sign = 'E'.
-        lv_match = xsdbool( lv_match = abap_false ).
-      ENDIF.
+      DATA(lv_match) = cl_gui_control=>compare_option(
+        iv_value         = ls_cell-text
+        iv_option        = CONV string( ls_filter-option )
+        iv_low           = lv_low
+        iv_high          = lv_high
+        iv_sign          = CONV string( ls_filter-sign )
+        iv_unknown_as_eq = abap_true ).
       IF lv_match = abap_false.
         result = abap_false.
         RETURN.
@@ -972,16 +1049,283 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     ENDDO.
   ENDMETHOD.
 
+  METHOD build_cell.
+    result = VALUE #(
+      fieldname       = is_fieldcat-fieldname
+      text            = cl_gui_control=>format_external_value(
+                     iv_value = iv_value
+                     iv_type  = CONV string( is_fieldcat-inttype ) )
+      type_class      = COND string(
+        WHEN is_fieldcat-inttype = 'I'
+          OR is_fieldcat-inttype = 'P'
+          OR is_fieldcat-inttype = 'N'
+          OR is_fieldcat-inttype = 'F'
+          THEN `gg-type-number`
+        WHEN is_fieldcat-inttype = 'D' THEN `gg-type-date`
+        WHEN is_fieldcat-inttype = 'T' THEN `gg-type-time`
+        ELSE `gg-type-text` )
+      editable        = xsdbool( is_fieldcat-edit = 'X' )
+      checkbox        = xsdbool( is_fieldcat-checkbox = 'X' )
+      icon            = xsdbool( is_fieldcat-icon = 'X' )
+      symbol          = xsdbool( is_fieldcat-symbol = 'X' )
+      exception_light = xsdbool( ms_layout-excp_led = 'X'
+                                AND ms_layout-excp_fname = is_fieldcat-fieldname )
+      emphasize       = CONV string( is_fieldcat-emphasize )
+      f4              = xsdbool( is_fieldcat-f4availabl = 'X' )
+      dropdown        = is_fieldcat-drdn_hndl
+      total           = xsdbool( is_fieldcat-do_sum = 'X' )
+      subtotal        = xsdbool( line_exists( mt_sort[ fieldname = is_fieldcat-fieldname subtot = 'X' ] ) )
+      hotspot         = xsdbool( is_fieldcat-hotspot = 'X' ) ).
+  ENDMETHOD.
+
+  METHOD apply_row_display.
+    apply_row_colors(
+      EXPORTING is_source_row = is_source_row
+      CHANGING  cs_row        = cs_row ).
+    apply_row_styles(
+      EXPORTING is_source_row = is_source_row
+      CHANGING  cs_row        = cs_row ).
+  ENDMETHOD.
+
+  METHOD apply_row_colors.
+    FIELD-SYMBOLS <value> TYPE any.
+    FIELD-SYMBOLS <color_rows> TYPE ANY TABLE.
+    FIELD-SYMBOLS <color_row> TYPE any.
+
+    IF ms_layout-info_fname IS NOT INITIAL.
+      ASSIGN COMPONENT ms_layout-info_fname OF STRUCTURE is_source_row TO <value>.
+      IF sy-subrc = 0.
+        cs_row-color_code = CONV string( <value> ).
+        cs_row-color_style = color_code_style( cs_row-color_code ).
+      ENDIF.
+    ENDIF.
+    IF ms_layout-ctab_fname IS INITIAL.
+      RETURN.
+    ENDIF.
+    ASSIGN COMPONENT ms_layout-ctab_fname OF STRUCTURE is_source_row TO <color_rows>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    LOOP AT <color_rows> ASSIGNING <color_row>.
+      apply_cell_color(
+        EXPORTING is_color_row = <color_row>
+        CHANGING  ct_cells     = cs_row-cells ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD apply_cell_color.
+    FIELD-SYMBOLS <fieldname> TYPE any.
+    FIELD-SYMBOLS <color> TYPE any.
+    FIELD-SYMBOLS <color_value> TYPE any.
+    FIELD-SYMBOLS <cell> TYPE ty_html_cell.
+    DATA lv_color TYPE i.
+    DATA lv_intensity TYPE i.
+    DATA lv_inverse TYPE i.
+
+    ASSIGN COMPONENT 'FNAME' OF STRUCTURE is_color_row TO <fieldname>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    READ TABLE ct_cells ASSIGNING <cell> WITH KEY fieldname = <fieldname>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    ASSIGN COMPONENT 'COLOR' OF STRUCTURE is_color_row TO <color>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    ASSIGN COMPONENT 'COL' OF STRUCTURE <color> TO <color_value>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lv_color = <color_value>.
+    ASSIGN COMPONENT 'INT' OF STRUCTURE <color> TO <color_value>.
+    IF sy-subrc = 0.
+      lv_intensity = <color_value>.
+    ENDIF.
+    ASSIGN COMPONENT 'INV' OF STRUCTURE <color> TO <color_value>.
+    IF sy-subrc = 0.
+      lv_inverse = <color_value>.
+    ENDIF.
+    <cell>-color_code = |{ lv_color }{ lv_intensity }{ lv_inverse }|.
+    <cell>-color_style = lvc_color_style(
+      iv_color     = lv_color
+      iv_intensity = lv_intensity
+      iv_inverse   = lv_inverse ).
+  ENDMETHOD.
+
+  METHOD apply_row_styles.
+    FIELD-SYMBOLS <style_rows> TYPE ANY TABLE.
+    FIELD-SYMBOLS <style_row> TYPE any.
+
+    IF ms_layout-stylefname IS INITIAL.
+      RETURN.
+    ENDIF.
+    ASSIGN COMPONENT ms_layout-stylefname OF STRUCTURE is_source_row TO <style_rows>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    LOOP AT <style_rows> ASSIGNING <style_row>.
+      apply_cell_style(
+        EXPORTING is_style_row = <style_row>
+        CHANGING  ct_cells     = cs_row-cells ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD apply_cell_style.
+    FIELD-SYMBOLS <fieldname> TYPE any.
+    FIELD-SYMBOLS <style_value> TYPE any.
+    FIELD-SYMBOLS <cell> TYPE ty_html_cell.
+    DATA lv_style TYPE x LENGTH 4.
+
+    ASSIGN COMPONENT 'FIELDNAME' OF STRUCTURE is_style_row TO <fieldname>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    READ TABLE ct_cells ASSIGNING <cell> WITH KEY fieldname = <fieldname>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    ASSIGN COMPONENT 'STYLE' OF STRUCTURE is_style_row TO <style_value>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lv_style = <style_value>.
+    CASE lv_style.
+      WHEN mc_style_button.
+        <cell>-style_button = abap_true.
+      WHEN mc_style_disabled.
+        <cell>-style_disabled = abap_true.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD lvc_color_style.
+    DATA lv_background TYPE string.
+    DATA lv_foreground TYPE string.
+
+    CASE iv_color.
+      WHEN 0.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#edf5fb' ELSE '#d2dce5' ).
+        lv_foreground = '#263b4d'.
+      WHEN 1.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#d9e8f5' ELSE '#aac8de' ).
+        lv_foreground = '#17415f'.
+      WHEN 2.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#e6ecf1' ELSE '#cbd5de' ).
+        lv_foreground = '#33414c'.
+      WHEN 3.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#fff3c4' ELSE '#f2dc86' ).
+        lv_foreground = '#634d00'.
+      WHEN 4.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#ddf1f2' ELSE '#a8dadd' ).
+        lv_foreground = '#14545a'.
+      WHEN 5.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#e2f3e5' ELSE '#b9e0c1' ).
+        lv_foreground = '#1d6136'.
+      WHEN 6.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#fbe1de' ELSE '#f0b9b3' ).
+        lv_foreground = '#8d231b'.
+      WHEN 7.
+        lv_background = COND string( WHEN iv_intensity = 0 THEN '#fbead6' ELSE '#f0d0a7' ).
+        lv_foreground = '#73410a'.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+    IF iv_inverse <> 0.
+      result = |color:{ lv_foreground }|.
+    ELSE.
+      result = |background-color:{ lv_background };color:{ lv_foreground }|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD color_code_style.
+    DATA lv_code TYPE string.
+
+    lv_code = iv_code.
+    SHIFT lv_code RIGHT DELETING TRAILING space.
+    IF strlen( lv_code ) < 4 OR lv_code+0(1) <> 'C'
+        OR lv_code+1(1) CN `01234567`
+        OR lv_code+2(1) CN `01`
+        OR lv_code+3(1) CN `01`.
+      RETURN.
+    ENDIF.
+    result = lvc_color_style(
+      iv_color     = CONV i( lv_code+1(1) )
+      iv_intensity = CONV i( lv_code+2(1) )
+      iv_inverse   = CONV i( lv_code+3(1) ) ).
+  ENDMETHOD.
+
+  METHOD alv_icon_html.
+    DATA lv_icon_name TYPE string.
+    DATA lv_label TYPE string.
+    DATA lv_color TYPE string.
+
+    CASE iv_code.
+      WHEN '@01@'.
+        lv_icon_name = 'success'.
+        lv_label = 'Active'.
+        lv_color = '#218342'.
+      WHEN '@02@'.
+        lv_icon_name = 'error'.
+        lv_label = 'Inactive'.
+        lv_color = '#b3261e'.
+      WHEN OTHERS.
+        result = |<span class="gg-alv-icon" role="img" aria-label="ALV icon">{ cl_gui_control=>escape_html( iv_code ) }</span>|.
+        RETURN.
+    ENDCASE.
+    result = |<span class="gg-alv-icon" role="img" aria-label="{ lv_label }" style="color:{ lv_color };display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) }</span>|.
+  ENDMETHOD.
+
+  METHOD alv_light_html.
+    DATA lv_icon_name TYPE string.
+    DATA lv_label TYPE string.
+    DATA lv_color TYPE string.
+
+    CASE iv_value.
+      WHEN '1'.
+        lv_icon_name = 'error'.
+        lv_label = 'Red traffic light'.
+        lv_color = '#b3261e'.
+      WHEN '2'.
+        lv_icon_name = 'warning'.
+        lv_label = 'Yellow traffic light'.
+        lv_color = '#a56300'.
+      WHEN '3'.
+        lv_icon_name = 'success'.
+        lv_label = 'Green traffic light'.
+        lv_color = '#218342'.
+      WHEN OTHERS.
+        result = cl_gui_control=>escape_html( iv_value ).
+        RETURN.
+    ENDCASE.
+    result = |<span class="gg-alv-light" role="img" aria-label="{ lv_label }" data-light="{ iv_value }" style="color:{ lv_color };display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) }</span>|.
+  ENDMETHOD.
+
+  METHOD alv_symbol_html.
+    CASE iv_value.
+      WHEN '+'.
+        result = '<span class="gg-alv-symbol gg-alv-symbol-positive" role="img" aria-label="Positive symbol">&#x25C6;</span>'.
+      WHEN '-'.
+        result = '<span class="gg-alv-symbol gg-alv-symbol-negative" role="img" aria-label="Negative symbol">&#x25AF;</span>'.
+      WHEN OTHERS.
+        result = |<span class="gg-alv-symbol" role="img" aria-label="{ cl_gui_control=>escape_html( iv_value ) }">{ cl_gui_control=>escape_html( iv_value ) }</span>|.
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD set_table_for_first_display.
     FIELD-SYMBOLS <row> TYPE any.
     FIELD-SYMBOLS <component> TYPE any.
     DATA ls_row TYPE ty_html_row.
+    DATA ls_cell TYPE ty_html_cell.
     DATA ls_fieldcat TYPE lvc_s_fcat.
     DATA lv_has_component TYPE abap_bool.
 
     CLEAR mt_html_rows.
     CLEAR mt_source_rows.
     CLEAR mt_fieldcatalog.
+    IF is_layout IS SUPPLIED.
+      ms_layout = is_layout.
+    ENDIF.
     IF it_fieldcatalog IS SUPPLIED.
       mt_fieldcatalog = it_fieldcatalog.
     ENDIF.
@@ -1004,84 +1348,189 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
             ASSIGN COMPONENT ls_fieldcat-fieldname OF STRUCTURE <row> TO <component>.
             IF sy-subrc = 0.
-              DATA(lv_cell_raw) = |{ <component> }|.
-              DATA(lv_cell_text) = cl_gui_control=>format_external_value(
-                iv_value = lv_cell_raw
-                iv_type  = CONV string( ls_fieldcat-inttype ) ).
-              APPEND VALUE #( fieldname  = ls_fieldcat-fieldname
-                              text       = lv_cell_text
-                              type_class = COND string(
-                                WHEN ls_fieldcat-inttype = 'I'
-                                  OR ls_fieldcat-inttype = 'P'
-                                  OR ls_fieldcat-inttype = 'N'
-                                  OR ls_fieldcat-inttype = 'F'
-                                  THEN `gg-type-number`
-                                WHEN ls_fieldcat-inttype = 'D' THEN `gg-type-date`
-                                WHEN ls_fieldcat-inttype = 'T' THEN `gg-type-time`
-                                ELSE `gg-type-text` )
-                              editable   = xsdbool( ls_fieldcat-edit = 'X' )
-                              checkbox   = xsdbool( ls_fieldcat-checkbox = 'X' )
-                              icon       = xsdbool( ls_fieldcat-icon = 'X' )
-                              symbol     = xsdbool( ls_fieldcat-symbol = 'X' )
-                              emphasize  = CONV string( ls_fieldcat-emphasize )
-                              f4         = xsdbool( ls_fieldcat-f4availabl = 'X' )
-                              dropdown   = ls_fieldcat-drdn_hndl
-                              total      = xsdbool( ls_fieldcat-do_sum = 'X' )
-                              subtotal   = xsdbool( line_exists( mt_sort[ fieldname = ls_fieldcat-fieldname subtot = 'X' ] ) )
-                              hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
+              ls_cell = build_cell( is_fieldcat = ls_fieldcat
+                                    iv_value    = |{ <component> }| ).
+              APPEND ls_cell TO ls_row-cells.
               lv_has_component = abap_true.
             ENDIF.
           ENDIF.
         ENDLOOP.
         IF lv_has_component = abap_false.
+* No component of the row matched the catalogue, so the row is rendered as a
+* single cell described by the first field.
           READ TABLE mt_fieldcatalog INTO ls_fieldcat INDEX 1.
           IF sy-subrc = 0.
-            DATA(lv_row_text) = cl_gui_control=>format_external_value(
-              iv_value = |{ <row> }|
-              iv_type  = CONV string( ls_fieldcat-inttype ) ).
-            APPEND VALUE #( fieldname  = ls_fieldcat-fieldname
-                            text       = lv_row_text
-                            type_class = COND string(
-                              WHEN ls_fieldcat-inttype = 'I'
-                                OR ls_fieldcat-inttype = 'P'
-                                OR ls_fieldcat-inttype = 'N'
-                                OR ls_fieldcat-inttype = 'F'
-                                THEN `gg-type-number`
-                              WHEN ls_fieldcat-inttype = 'D' THEN `gg-type-date`
-                              WHEN ls_fieldcat-inttype = 'T' THEN `gg-type-time`
-                              ELSE `gg-type-text` )
-                            editable   = xsdbool( ls_fieldcat-edit = 'X' )
-                            checkbox   = xsdbool( ls_fieldcat-checkbox = 'X' )
-                            icon       = xsdbool( ls_fieldcat-icon = 'X' )
-                            symbol     = xsdbool( ls_fieldcat-symbol = 'X' )
-                            emphasize  = CONV string( ls_fieldcat-emphasize )
-                            f4         = xsdbool( ls_fieldcat-f4availabl = 'X' )
-                            dropdown   = ls_fieldcat-drdn_hndl
-                            total      = xsdbool( ls_fieldcat-do_sum = 'X' )
-                            subtotal   = xsdbool( line_exists( mt_sort[ fieldname = ls_fieldcat-fieldname subtot = 'X' ] ) )
-                            hotspot    = xsdbool( ls_fieldcat-hotspot = 'X' ) ) TO ls_row-cells.
+            ls_cell = build_cell( is_fieldcat = ls_fieldcat
+                                  iv_value    = |{ <row> }| ).
+            APPEND ls_cell TO ls_row-cells.
           ENDIF.
         ENDIF.
       ENDIF.
+      apply_row_display(
+        EXPORTING is_source_row = <row>
+        CHANGING  cs_row        = ls_row ).
       APPEND ls_row TO mt_html_rows.
     ENDLOOP.
     mt_source_rows = mt_html_rows.
     apply_criteria( ).
-    cl_gui_control=>set_payload(
-      control = me
-      payload = |ALV rows: { lines( mt_html_rows ) }| ).
     cl_gui_control=>set_html(
       control = me
       html    = render_model( ) ).
   ENDMETHOD.
 
-  METHOD render_model.
+  METHOD render_cell.
+    DATA(lv_cell_state_class) = cl_gui_control=>state_class(
+      iv_total    = is_cell-total
+      iv_subtotal = is_cell-subtotal
+      iv_hotspot  = is_cell-hotspot
+      iv_readonly = xsdbool( is_cell-editable = abap_false ) ).
+    DATA(lv_cell_color_style) = is_cell-color_style.
+    DATA(lv_cell_color_code) = is_cell-color_code.
+    IF lv_cell_color_style IS INITIAL AND is_cell-emphasize IS NOT INITIAL.
+      lv_cell_color_style = color_code_style( is_cell-emphasize ).
+      lv_cell_color_code = is_cell-emphasize.
+    ENDIF.
+    IF lv_cell_color_style IS INITIAL.
+      lv_cell_color_style = is_row-color_style.
+      lv_cell_color_code = is_row-color_code.
+    ENDIF.
+    DATA(lv_disabled_class) = COND string(
+      WHEN is_cell-style_disabled = abap_true THEN ` gg-state-disabled` ELSE `` ).
+    DATA(lv_lvc_style) = COND string(
+      WHEN is_cell-style_button = abap_true THEN `button`
+      WHEN is_cell-style_disabled = abap_true THEN `disabled`
+      ELSE `standard` ).
+    DATA(lv_cell_content) = render_cell_content(
+      iv_row_index = is_row-index
+      is_cell      = is_cell ).
+    result = |<td class="gg-grid-cell { lv_cell_state_class } { is_cell-type_class }{ lv_disabled_class }" data-subtotal="{ COND string( WHEN is_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ cl_gui_control=>escape_html( is_cell-emphasize ) }" data-lvc-color="{ cl_gui_control=>escape_html( lv_cell_color_code ) }" data-lvc-style="{ lv_lvc_style }" style="{ lv_cell_color_style }"{ COND string( WHEN is_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }">{ lv_cell_content }</td>|.
+  ENDMETHOD.
+
+  METHOD render_cell_content.
+    IF is_cell-dropdown > 0.
+      result = |<select name="gg-alv-cell-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+      LOOP AT mt_drop_down INTO DATA(ls_drop) WHERE handle = is_cell-dropdown.
+        result = result && |<option value="{ cl_gui_control=>escape_html( CONV string( ls_drop-value ) ) }"{ COND string( WHEN ls_drop-value = is_cell-text THEN ` selected` ELSE `` ) }>{ cl_gui_control=>escape_html( CONV string( ls_drop-value ) ) }</option>|.
+      ENDLOOP.
+      result = result && `</select>`.
+    ELSEIF is_cell-checkbox = abap_true.
+      result = |<input type="checkbox" name="gg-alv-cell-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-text = 'X' OR is_cell-text = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+    ELSEIF is_cell-editable = abap_true.
+      result = |<input type="text" name="gg-alv-cell-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }" value="{ cl_gui_control=>escape_html( is_cell-text ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+    ELSEIF is_cell-style_button = abap_true.
+      result = |<button type="button" class="gg-alv-style-button" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }" style="background:#fff2a8;border:1px solid #bca848;padding:2px 10px;color:#25384a;border-radius:2px">{ cl_gui_control=>escape_html( is_cell-text ) }</button>|.
+    ELSEIF is_cell-hotspot = abap_true.
+      result = |<button type="submit" name="gg_action" value="COMMAND:ALV-HOTSPOT-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( is_cell-text ) }</button>|.
+    ELSEIF is_cell-exception_light = abap_true.
+      result = alv_light_html( is_cell-text ).
+    ELSEIF is_cell-icon = abap_true.
+      result = alv_icon_html( is_cell-text ).
+    ELSEIF is_cell-symbol = abap_true.
+      result = alv_symbol_html( is_cell-text ).
+    ELSE.
+      result = cl_gui_control=>escape_html( is_cell-text ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_aggregate_row.
     DATA lv_total TYPE decfloat34.
+    DATA lv_total_decimals TYPE i.
+    DATA lv_total_sample TYPE string.
+    DATA lv_value TYPE string.
+    DATA lv_is_subtotal TYPE abap_bool.
+    DATA lv_cell_state_class TYPE string.
+    DATA lv_data_subtotal TYPE string.
+
+    lv_is_subtotal = xsdbool( iv_subtotal_field IS NOT INITIAL ).
+    IF lv_is_subtotal = abap_true.
+      result = |<tr class="gg-grid-subtotal gg-state-subtotal" data-subtotal-field="{ cl_gui_control=>escape_html( CONV string( iv_subtotal_field ) ) }" data-subtotal-value="{ cl_gui_control=>escape_html( iv_subtotal_value ) }"><th scope="row">Subtotal</th>|.
+    ELSE.
+      result = '<tr class="gg-grid-total gg-state-total"><th scope="row">Total</th>'.
+    ENDIF.
+    LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
+      IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
+        CONTINUE.
+      ENDIF.
+      CLEAR lv_value.
+      IF lv_is_subtotal = abap_true
+          AND ls_fieldcat-fieldname = iv_subtotal_field.
+        lv_value = iv_subtotal_value.
+      ELSEIF ls_fieldcat-do_sum = 'X'.
+        CLEAR: lv_total, lv_total_sample.
+        LOOP AT it_rows INTO DATA(ls_row).
+          READ TABLE ls_row-cells INTO DATA(ls_cell)
+            WITH KEY fieldname = ls_fieldcat-fieldname.
+          IF sy-subrc <> 0.
+            CONTINUE.
+          ENDIF.
+          IF lv_total_sample IS INITIAL.
+            lv_total_sample = ls_cell-text.
+          ENDIF.
+          TRY.
+              lv_total = lv_total + CONV decfloat34( ls_cell-text ).
+            CATCH cx_root.
+              CONTINUE.
+          ENDTRY.
+        ENDLOOP.
+        IF ls_fieldcat-qfieldname IS NOT INITIAL.
+          lv_total_decimals = 0.
+        ELSEIF ls_fieldcat-decimals_o IS NOT INITIAL.
+          lv_total_decimals = CONV i( ls_fieldcat-decimals_o ).
+        ELSE.
+          lv_total_decimals = -1.
+        ENDIF.
+        lv_value = cl_gui_control=>format_total_value(
+          iv_value    = lv_total
+          iv_decimals = lv_total_decimals
+          iv_sample   = lv_total_sample ).
+      ELSE.
+        lv_value = '-'.
+      ENDIF.
+      lv_cell_state_class = cl_gui_control=>state_class(
+        iv_total    = xsdbool( lv_is_subtotal = abap_false )
+        iv_subtotal = lv_is_subtotal ).
+      lv_data_subtotal = COND string(
+        WHEN lv_is_subtotal = abap_true THEN 'true'
+        ELSE 'false' ).
+      result = result && |<td class="gg-grid-cell { lv_cell_state_class } gg-grid-total-cell" data-subtotal="{ lv_data_subtotal }" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ cl_gui_control=>escape_html( lv_value ) }</td>|.
+    ENDLOOP.
+    result = result && '</tr>'.
+  ENDMETHOD.
+
+  METHOD render_model.
     DATA lv_has_total TYPE abap_bool.
-    DATA lv_total_text TYPE string.
+    DATA lv_subtotal_field TYPE lvc_fname.
+    DATA lv_subtotal_value TYPE string.
+    DATA lt_subtotal_rows TYPE ty_html_rows.
+    DATA ls_subtotal_sort TYPE lvc_s_sort.
+    DATA lv_toolbar TYPE string.
 
     lv_has_total = xsdbool( line_exists( mt_fieldcatalog[ do_sum = 'X' ] ) ).
-    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN `<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control"><button type="submit" name="gg_ucomm" value="&REFRESH">Refresh</button><button type="submit" name="gg_ucomm" value="&SORT">Sort</button><button type="submit" name="gg_ucomm" value="&FILTER">Filter</button><button type="submit" name="gg_ucomm" value="&PRINT">Print</button><button type="submit" name="gg_ucomm" value="&XML">XML export</button><button type="submit" name="gg_ucomm" value="&SAVE">Save variant</button><button type="submit" name="gg_ucomm" value="&LOAD">Load variant</button></div>` ELSE `` ) }<table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"><thead><tr><th scope="col">Select</th>|.
+    READ TABLE mt_sort INTO ls_subtotal_sort WITH KEY subtot = 'X'.
+    IF sy-subrc = 0.
+      lv_subtotal_field = ls_subtotal_sort-fieldname.
+    ENDIF.
+    lv_toolbar = '<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control">'.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&REFRESH" title="Refresh" aria-label="Refresh">{ zcl_gg_host_icons=>icon( iv_name = 'refresh' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SORT_ASC" title="Sort ascending" aria-label="Sort ascending">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-up' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SORT_DSC" title="Sort descending" aria-label="Sort descending">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-down' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&FIND" title="Find" aria-label="Find">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&FILTER" title="Filter" aria-label="Filter">{ zcl_gg_host_icons=>icon( iv_name = 'search-plus' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SUMC" title="Sum" aria-label="Sum">{ zcl_gg_host_icons=>icon( iv_name = 'database' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SUBTOT" title="Subtotals" aria-label="Subtotals">{ zcl_gg_host_icons=>icon( iv_name = 'folder' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&PRINT" title="Print" aria-label="Print">{ zcl_gg_host_icons=>icon( iv_name = 'printer' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&XML" title="XML export" aria-label="XML export">{ zcl_gg_host_icons=>icon( iv_name = 'file-arrow-down' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&PC" title="Export to file" aria-label="Export to file">{ zcl_gg_host_icons=>icon( iv_name = 'file-arrow-down' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SAVE" title="Save variant" aria-label="Save variant">{ zcl_gg_host_icons=>icon( iv_name = 'device-floppy' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&LOAD" title="Load variant" aria-label="Load variant">{ zcl_gg_host_icons=>icon( iv_name = 'folder-open' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&VIEW" title="Change layout" aria-label="Change layout">{ zcl_gg_host_icons=>icon( iv_name = 'screen' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&ALL" title="Select all" aria-label="Select all">{ zcl_gg_host_icons=>icon( iv_name = 'circle-check' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&LOCAL&APPEND" title="Insert row" aria-label="Insert row">{ zcl_gg_host_icons=>icon( iv_name = 'plus' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&LOCAL&DELETE_ROW" title="Delete row" aria-label="Delete row">{ zcl_gg_host_icons=>icon( iv_name = 'trash' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&UNDO" title="Undo" aria-label="Undo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-back-up' ) }</button>|.
+    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&HELP" title="Help" aria-label="Help">{ zcl_gg_host_icons=>icon( iv_name = 'help-circle' ) }</button>|.
+    lv_toolbar = lv_toolbar && '</div>'.
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }<table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"><thead><tr><th scope="col">Select</th>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         DATA(lv_heading) = ls_fieldcat-coltext.
@@ -1096,65 +1545,44 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     ENDLOOP.
     result = result && |</tr></thead><tbody>|.
     LOOP AT mt_html_rows INTO DATA(ls_row).
+      IF lv_subtotal_field IS NOT INITIAL.
+        READ TABLE ls_row-cells INTO DATA(ls_subtotal_cell)
+          WITH KEY fieldname = lv_subtotal_field.
+        IF sy-subrc = 0.
+          IF lt_subtotal_rows IS NOT INITIAL
+              AND ls_subtotal_cell-text <> lv_subtotal_value.
+            result = result && render_aggregate_row(
+              it_rows           = lt_subtotal_rows
+              iv_subtotal_field = lv_subtotal_field
+              iv_subtotal_value = lv_subtotal_value ).
+            CLEAR lt_subtotal_rows.
+          ENDIF.
+          lv_subtotal_value = ls_subtotal_cell-text.
+          APPEND ls_row TO lt_subtotal_rows.
+        ENDIF.
+      ENDIF.
       DATA(lv_selected) = xsdbool( line_exists( mt_selected_rows[ index = ls_row-index ] ) ).
       DATA(lv_row_state_class) = cl_gui_control=>state_class( iv_selected = lv_selected ).
-      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }><td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
+      DATA(lv_row_color_attr) = COND string(
+        WHEN ls_row-color_style IS INITIAL THEN ``
+        ELSE | style="{ ls_row-color_style }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }"| ).
+      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }{ lv_row_color_attr }><td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }" style="{ ls_row-color_style }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
-        DATA(lv_cell_state_class) = cl_gui_control=>state_class(
-          iv_total    = ls_cell-total
-          iv_subtotal = ls_cell-subtotal
-          iv_hotspot  = ls_cell-hotspot
-          iv_readonly = xsdbool( ls_cell-editable = abap_false ) ).
-        result = result && |<td class="gg-grid-cell { lv_cell_state_class } { ls_cell-type_class }" data-subtotal="{ COND string( WHEN ls_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ cl_gui_control=>escape_html( ls_cell-emphasize ) }"{ COND string( WHEN ls_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">|.
-        IF ls_cell-dropdown > 0.
-          result = result && |<select name="gg-alv-cell-{ ls_row-index }-{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) } row { ls_row-index }">|.
-          LOOP AT mt_drop_down INTO DATA(ls_drop) WHERE handle = ls_cell-dropdown.
-            result = result && |<option value="{ cl_gui_control=>escape_html( CONV string( ls_drop-value ) ) }"{ COND string( WHEN ls_drop-value = ls_cell-text THEN ` selected` ELSE `` ) }>{ cl_gui_control=>escape_html( CONV string( ls_drop-value ) ) }</option>|.
-          ENDLOOP.
-          result = result && |</select>|.
-        ELSEIF ls_cell-checkbox = abap_true.
-          result = result && |<input type="checkbox" name="gg-alv-cell-{ ls_row-index }-{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) } row { ls_row-index }"{ COND string( WHEN ls_cell-text = 'X' OR ls_cell-text = '1' THEN ` checked` ELSE `` ) }>|.
-        ELSEIF ls_cell-editable = abap_true.
-          result = result && |<input type="text" name="gg-alv-cell-{ ls_row-index }-{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }" value="{ cl_gui_control=>escape_html( ls_cell-text ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) } row { ls_row-index }">|.
-        ELSEIF ls_cell-hotspot = abap_true.
-          result = result && |<button type="submit" name="gg_action" value="COMMAND:ALV-HOTSPOT-{ ls_row-index }-{ cl_gui_control=>escape_html( CONV string( ls_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</button>|.
-        ELSEIF ls_cell-icon = abap_true OR ls_cell-symbol = abap_true.
-          result = result && |<span class="gg-alv-icon" role="img" aria-label="{ COND string( WHEN ls_cell-icon = abap_true THEN 'ALV icon' ELSE 'ALV symbol' ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</span>|.
-        ELSE.
-          result = result && cl_gui_control=>escape_html( ls_cell-text ).
-        ENDIF.
-        result = result && |</td>|.
+        result = result && render_cell(
+          is_row  = ls_row
+          is_cell = ls_cell ).
       ENDLOOP.
       result = result && |</tr>|.
     ENDLOOP.
+    IF lt_subtotal_rows IS NOT INITIAL.
+      result = result && render_aggregate_row(
+        it_rows           = lt_subtotal_rows
+        iv_subtotal_field = lv_subtotal_field
+        iv_subtotal_value = lv_subtotal_value ).
+    ENDIF.
     result = result && |</tbody>|.
     IF lv_has_total = abap_true.
-      result = result && '<tfoot><tr class="gg-grid-total gg-state-total"><th scope="row">Total</th>'.
-      LOOP AT mt_fieldcatalog INTO DATA(ls_total_field).
-        IF ls_total_field-no_out IS NOT INITIAL OR ls_total_field-tech IS NOT INITIAL.
-          CONTINUE.
-        ENDIF.
-        CLEAR lv_total.
-        IF ls_total_field-do_sum = 'X'.
-          LOOP AT mt_html_rows INTO DATA(ls_total_row).
-            READ TABLE ls_total_row-cells INTO DATA(ls_total_cell)
-              WITH KEY fieldname = ls_total_field-fieldname.
-            IF sy-subrc <> 0.
-              CONTINUE.
-            ENDIF.
-            TRY.
-                lv_total = lv_total + CONV decfloat34( ls_total_cell-text ).
-              CATCH cx_root.
-                CONTINUE.
-            ENDTRY.
-          ENDLOOP.
-          lv_total_text = |{ lv_total }|.
-        ELSE.
-          lv_total_text = '-'.
-        ENDIF.
-        result = result && |<td class="gg-grid-cell gg-grid-total-cell">{ cl_gui_control=>escape_html( lv_total_text ) }</td>|.
-      ENDLOOP.
-      result = result && '</tr></tfoot>'.
+      result = result && '<tfoot>' && render_aggregate_row( it_rows = mt_html_rows ) && '</tfoot>'.
     ENDIF.
     result = result && |</table></section>|.
   ENDMETHOD.

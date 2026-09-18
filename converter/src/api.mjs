@@ -75,6 +75,48 @@ function requiresDiagnosticShell(diagnostics) {
   return diagnostics.some((item) => SAFE_ENTRY_FAILURE_CODES.has(item.code));
 }
 
+function escapedRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function generatedMethodBody(source, methodName) {
+  const match = new RegExp(
+    `^\\s*METHOD\\s+${escapedRegExp(methodName)}\\s*\\.([\\s\\S]*?)^\\s*ENDMETHOD\\s*\\.`,
+    "im",
+  ).exec(source);
+  if (!match) return undefined;
+  return match[1]
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("*"));
+}
+
+function conversionCompletenessDiagnostics(ir, classSource, filename) {
+  const metadata = ir.programKind === "module-pool" ? ir.dynproMetadata : ir.screenMetadata;
+  if (!metadata || !classSource) return [];
+  const interfaceName = ir.programKind === "module-pool" ? "zif_gg_dynpro_v1" : "zif_gg_screen_provider_v1";
+  const phases = [
+    {key: "pbo", method: "process_output_module", label: "PBO"},
+    {key: "pai", method: "process_input_module", label: "PAI"},
+  ];
+  return phases.flatMap(({key, method, label}) => {
+    const screens = (metadata.flowLogic ?? []).filter((flow) => (flow[key] ?? []).length > 0);
+    if (!screens.length) return [];
+    const body = generatedMethodBody(classSource, `${interfaceName}~${method}`);
+    const executable = body?.some((line) => !/^RETURN\.$/i.test(line)) ?? false;
+    if (executable) return [];
+    const declared = screens.flatMap((flow) => (flow[key] ?? []).map((entry) => String(entry.name ?? entry).toUpperCase()));
+    return [diagnostic({
+      code: "GGCONV-E517",
+      filename,
+      construct: `${label} modules ${declared.join(", ")}`,
+      message: `${label} screen modules are declared but the generated ${method} body is empty`,
+      suggestion: "Preserve the declared module statements or keep the report on the known-failing conversion list until the lowering rule is implemented.",
+      phase: "validate-generated",
+    })];
+  });
+}
+
 function headerSettings(raw) {
   const text = raw?.replace(/\s+/g, " ").toUpperCase() ?? "";
   const lineSize = /LINE-SIZE\s+(\d+)/.exec(text)?.[1];
@@ -375,6 +417,7 @@ function validateNames(ir, options, diagnostics) {
   ir.targetClassName = className;
   ir.transactionCode = transactionCode;
   const metadataDescription = ir.screenMetadata?.reportTitle ?? ir.dynproMetadata?.reportTitle;
+  ir.reportTitle = metadataDescription;
   ir.description = !options.descriptionProvided && metadataDescription ? metadataDescription : options.description;
 }
 
@@ -572,6 +615,7 @@ export async function convertProgram(input = {}) {
     ? emitPartialSkeleton(ir, options, sorted)
     : usePartialApplication ? emitPartialApplication(ir, options, sorted)
     : emitClassSource(ir, options);
+  diagnostics.push(...conversionCompletenessDiagnostics(ir, classSource, options.filename));
   const helperSources = !useDiagnosticShell && !usePartialApplication
     ? emitHelperSources(ir, options)
     : [];

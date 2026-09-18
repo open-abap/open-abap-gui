@@ -89,7 +89,7 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
         ct_values[ name = 'P_STATE' ]-value = 'SCREEN_0200'.
         io_session->get_dialog( )->set_status( VALUE #(
           status       = 'FLIGHT RESULT'
-          active_ucomm = VALUE #( ( 'EXIT' ) ) ) ).
+          active_ucomm = VALUE #( ( 'EXIT' ) ( 'BACK' ) ) ) ).
         io_session->get_list( )->get_writer( )->write_field(
           VALUE #( text      = 'Dynpro list after navigation'
                    placement = VALUE #( new_line = abap_true ) ) ).
@@ -99,9 +99,12 @@ CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~process_input_module.
     IF is_context-screen = '0200'.
       ct_values[ name = 'PAI_0200' ]-value = 'X'.
-      IF is_context-ucomm = 'EXIT'.
-        io_session->get_navigation( )->leave_program( ).
-      ENDIF.
+      CASE is_context-ucomm.
+        WHEN 'EXIT'.
+          io_session->get_navigation( )->leave_program( ).
+        WHEN 'BACK'.
+          io_session->get_dialog( )->leave_to_screen( '0000' ).
+      ENDCASE.
       RETURN.
     ENDIF.
 

@@ -1,6 +1,32 @@
 import { diagnostic } from "../diagnostics.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const ELEMENTARY = new Set(["C", "N", "D", "T", "I", "P", "F", "X", "STRING", "ABAP_BOOL"]);
+
+function shippedTypePoolFiles(directory) {
+  if (!fs.existsSync(directory)) return [];
+  const result = [];
+  const visit = (current) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const filename = path.join(current, entry.name);
+      if (entry.isDirectory()) visit(filename);
+      else if (/\.type\.abap$/i.test(entry.name)) result.push(filename);
+    }
+  };
+  visit(directory);
+  return result;
+}
+
+const SHIPPED_TYPE_POOL_TYPES = new Set();
+const TYPE_POOL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../src");
+for (const filename of shippedTypePoolFiles(TYPE_POOL_ROOT)) {
+  const source = fs.readFileSync(filename, "utf8");
+  for (const match of source.matchAll(/\bTYPES\s+(?:BEGIN\s+OF\s+)?([A-Z][A-Z0-9_]*)\b/gi)) {
+    SHIPPED_TYPE_POOL_TYPES.add(match[1].toUpperCase());
+  }
+}
 
 function metadataMap(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -49,7 +75,8 @@ export function resolveTypes(ir, options, diagnostics) {
   }
   const localOrDictionaryType = (name) => {
     const upper = String(name ?? "").toUpperCase();
-    return ELEMENTARY.has(upper) || localTypes.has(upper) || localClasses.has(upper) || Boolean(lookup(dictionary, upper));
+    return ELEMENTARY.has(upper) || SHIPPED_TYPE_POOL_TYPES.has(upper)
+      || localTypes.has(upper) || localClasses.has(upper) || Boolean(lookup(dictionary, upper));
   };
   ir.resolvedTypes = {};
   const scalarTypes = new Map();

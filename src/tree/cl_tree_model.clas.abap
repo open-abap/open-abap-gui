@@ -106,15 +106,26 @@ CLASS cl_tree_model DEFINITION PUBLIC.
              hidden     TYPE abap_bool,
            END OF ty_model_node.
     TYPES ty_model_nodes TYPE STANDARD TABLE OF ty_model_node WITH DEFAULT KEY.
+    TYPES: BEGIN OF ty_control_node,
+             node_key TYPE string,
+             relatkey TYPE string,
+             text     TYPE string,
+           END OF ty_control_node.
+    TYPES ty_control_nodes TYPE STANDARD TABLE OF ty_control_node WITH DEFAULT KEY.
     DATA mt_model_nodes TYPE ty_model_nodes.
     DATA mv_node_selection_mode TYPE i.
     DATA mv_hide_selection TYPE abap_bool.
     DATA mv_model_kind TYPE string.
-    DATA mr_tree_control TYPE REF TO cl_tree_control_base.
+    DATA mr_tree_control TYPE REF TO cl_gui_simple_tree.
 
     METHODS store_node
       IMPORTING
         is_node TYPE ty_model_node.
+    METHODS get_node_display_text
+      IMPORTING
+        iv_node_key    TYPE string
+      RETURNING
+        VALUE(rv_text) TYPE string.
 
 ENDCLASS.
 
@@ -128,6 +139,9 @@ CLASS cl_tree_model IMPLEMENTATION.
 
   METHOD create_tree_control.
     IF parent IS BOUND.
+      IF mr_tree_control IS BOUND.
+        mr_tree_control->free( ).
+      ENDIF.
       mr_tree_control = NEW cl_gui_simple_tree(
         parent              = parent
         node_selection_mode = mv_node_selection_mode
@@ -135,6 +149,7 @@ CLASS cl_tree_model IMPLEMENTATION.
         shellstyle          = shellstyle
         lifetime            = lifetime
         name                = name ).
+      update_view( ).
     ENDIF.
   ENDMETHOD.
 
@@ -160,6 +175,7 @@ CLASS cl_tree_model IMPLEMENTATION.
         lv_parent = <parent>-parent_key.
       ENDDO.
     ENDIF.
+    update_view( ).
   ENDMETHOD.
 
   METHOD collapse_node.
@@ -167,6 +183,7 @@ CLASS cl_tree_model IMPLEMENTATION.
       WITH KEY node_key = node_key.
     IF sy-subrc = 0.
       <node>-expanded = abap_false.
+      update_view( ).
     ENDIF.
   ENDMETHOD.
 
@@ -188,6 +205,7 @@ CLASS cl_tree_model IMPLEMENTATION.
 
   METHOD delete_all_nodes.
     CLEAR mt_model_nodes.
+    update_view( ).
   ENDMETHOD.
 
   METHOD delete_node.
@@ -204,10 +222,29 @@ CLASS cl_tree_model IMPLEMENTATION.
     LOOP AT lt_delete INTO DATA(lv_delete_key).
       DELETE mt_model_nodes WHERE node_key = lv_delete_key.
     ENDLOOP.
+    update_view( ).
   ENDMETHOD.
 
   METHOD update_view.
-    RETURN.
+    DATA lt_control_nodes TYPE ty_control_nodes.
+    DATA lt_collapsed_nodes TYPE treev_nks.
+
+    IF mr_tree_control IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    LOOP AT mt_model_nodes INTO DATA(ls_node).
+      APPEND VALUE #( node_key = ls_node-node_key
+                      relatkey = ls_node-parent_key
+                      text     = get_node_display_text( ls_node-node_key ) )
+        TO lt_control_nodes.
+    ENDLOOP.
+    mr_tree_control->add_nodes(
+      table_structure_name = 'TREE_MODEL_NODE'
+      node_table           = lt_control_nodes ).
+    LOOP AT mt_model_nodes INTO ls_node WHERE expanded = abap_false.
+      APPEND CONV tv_nodekey( ls_node-node_key ) TO lt_collapsed_nodes.
+    ENDLOOP.
+    mr_tree_control->collapse_nodes( node_key_table = lt_collapsed_nodes ).
   ENDMETHOD.
 
   METHOD get_state_summary.
@@ -223,6 +260,18 @@ CLASS cl_tree_model IMPLEMENTATION.
   METHOD store_node.
     DELETE mt_model_nodes WHERE node_key = is_node-node_key.
     APPEND is_node TO mt_model_nodes.
+    update_view( ).
+  ENDMETHOD.
+
+  METHOD get_node_display_text.
+    READ TABLE mt_model_nodes INTO DATA(ls_node)
+      WITH KEY node_key = iv_node_key.
+    IF sy-subrc = 0.
+      rv_text = ls_node-text.
+    ENDIF.
+    IF rv_text IS INITIAL.
+      rv_text = iv_node_key.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

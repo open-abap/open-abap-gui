@@ -224,6 +224,10 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
         lv_html = lv_html && '<li role="separator" class="gg-toolbar-menu-separator"></li>'.
         CONTINUE.
       ENDIF.
+      IF ls_item-fcode IS INITIAL.
+        lv_html = lv_html && |<li role="none" class="gg-toolbar-menu-label">{ cl_gui_control=>escape_html( ls_item-text ) }</li>|.
+        CONTINUE.
+      ENDIF.
       lv_html = lv_html && |<li role="none"><button type="submit" role="menuitem" name="gg_action" value="COMMAND:{ cl_gui_control=>escape_html( ls_item-fcode ) }"{ COND string( WHEN ls_item-disabled = abap_true THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ cl_gui_control=>escape_html( ls_item-text ) }</button></li>|.
     ENDLOOP.
     lv_html = lv_html && '</ul>'.

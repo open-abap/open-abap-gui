@@ -1,4 +1,7 @@
 import { lowerCompatibilityFunction } from "../function-modules.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
 
 const TYPE_CODES = new Map([
   ["C", "C"], ["N", "N"], ["D", "D"], ["T", "T"], ["I", "I"], ["INT4", "I"],
@@ -22,37 +25,193 @@ const LIST_COLOR_CONSTANTS = Object.freeze({
   COL_NEGATIVE: "color_negative", COL_GROUP: "color_group",
 });
 
-// These classes are implemented by the scaffold itself. A generated report
-// may therefore keep their typed constructor and method calls inside a
-// method; unknown GUI objects must still remain explicit converter gaps.
-export const CONVERTIBLE_CONTROL_CLASSES = new Set([
-  "CL_ABAP_BROWSER", "CL_ALV_CHANGED_DATA_PROTOCOL", "CL_ALV_EVENT_DATA", "CL_ALV_EVENT_TOOLBAR_SET",
-  "CL_ALV_TABLE_CREATE", "CL_ALV_VARIANT", "CL_CTMENU", "CL_DD_DOCUMENT",
-  "CL_GUI_ALV_GRID", "CL_GUI_ALV_TREE", "CL_GUI_BARCHART", "CL_GUI_CALENDAR",
-  "CL_GUI_CFW", "CL_GUI_CHART_ENGINE", "CL_GUI_COLUMN_TREE", "CL_GUI_CONTROL",
-  "CL_GUI_CONTAINER", "CL_GUI_CUSTOM_CONTAINER", "CL_GUI_DIALOGBOX_CONTAINER", "CL_GUI_DOCKING_CONTAINER",
-  "CL_GUI_EASY_SPLITTER_CONTAINER", "CL_GUI_GP_PRES", "CL_GUI_HTML_VIEWER",
-  "CL_GUI_ILIDRAGNDROP_CONTROL", "CL_GUI_LIST_TREE", "CL_GUI_PICTURE",
-  "CL_GUI_SELECTOR", "CL_GUI_SIMPLE_TREE", "CL_GUI_SPLITTER_CONTAINER",
-  "CL_GUI_TEXTEDIT", "CL_GUI_TIMER", "CL_GUI_TOOLBAR",
-  "CL_COLUMN_TREE_MODEL", "CL_ITEM_TREE_MODEL", "CL_LIST_TREE_MODEL", "CL_SIMPLE_TREE_MODEL",
-  "CL_TREE_MODEL",
+function runtimeClassFiles(directory) {
+  if (!fs.existsSync(directory)) return [];
+  const result = [];
+  const visit = (current) => {
+    for (const entry of fs.readdirSync(current, {withFileTypes: true}).sort((left, right) => left.name.localeCompare(right.name))) {
+      const filename = path.join(current, entry.name);
+      if (entry.isDirectory()) visit(filename);
+      else if (/\.clas\.abap$/i.test(entry.name)) result.push(filename);
+    }
+  };
+  visit(directory);
+  return result;
+}
+
+const RUNTIME_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../src");
+const RUNTIME_CLASS_FILES = runtimeClassFiles(RUNTIME_ROOT);
+
+// These classes are implemented by the shipped runtime. Deriving the set
+// from src/ keeps converter coverage aligned with the runtime inventory, while
+// unknown GUI objects remain explicit converter gaps.
+export const CONVERTIBLE_CONTROL_CLASSES = new Set(
+  RUNTIME_CLASS_FILES
+    .map((filename) => path.basename(filename).replace(/\.clas\.abap$/i, "").toUpperCase())
+    .filter((name) => name.startsWith("CL_")),
+);
+
+export const CONVERTIBLE_STATIC_CLASSES = new Set([
+  ...CONVERTIBLE_CONTROL_CLASSES,
+  "ZCL_GG_GUI_DEMO_HELPER",
 ]);
 
-export function controlObjectTypes(declarations = []) {
+function runtimeMethodReturns() {
+  const result = new Map();
+  for (const filename of RUNTIME_CLASS_FILES) {
+    const className = path.basename(filename).replace(/\.clas\.abap$/i, "").toUpperCase();
+    const source = fs.readFileSync(filename, "utf8");
+    const methods = new Map();
+    for (const match of source.matchAll(/\b(?:CLASS-)?METHODS\s+([A-Z][A-Z0-9_]*)\b([\s\S]*?\.)/gi)) {
+      const returnType = /\bRETURNING\b[\s\S]*?\bTYPE\s+REF\s+TO\s+([A-Z][A-Z0-9_]*)/i.exec(match[2])?.[1];
+      if (returnType) methods.set(match[1].toUpperCase(), returnType.toUpperCase());
+    }
+    if (methods.size) result.set(className, methods);
+  }
+  return result;
+}
+
+const RUNTIME_METHOD_RETURNS = runtimeMethodReturns();
+
+function runtimeEventSignatures() {
+  const result = new Map();
+  for (const filename of RUNTIME_CLASS_FILES) {
+    const className = path.basename(filename).replace(/\.clas\.abap$/i, "").toUpperCase();
+    const source = fs.readFileSync(filename, "utf8");
+    const events = new Map();
+    for (const match of source.matchAll(/\bEVENTS\s+([A-Z][A-Z0-9_]*)\b([\s\S]*?)(?=\.)\./gi)) {
+      const parameters = {};
+      for (const parameter of match[2].matchAll(/(?:VALUE\s*\(\s*)?([A-Z][A-Z0-9_]*)\s*\)?\s+TYPE\s+REF\s+TO\s+([A-Z][A-Z0-9_]*)/gi)) {
+        parameters[parameter[1].toUpperCase()] = parameter[2].toUpperCase();
+      }
+      events.set(match[1].toUpperCase(), parameters);
+    }
+    if (events.size) result.set(className, events);
+  }
+  return result;
+}
+
+const RUNTIME_EVENT_SIGNATURES = runtimeEventSignatures();
+
+function runtimeClassParents() {
+  const result = new Map();
+  for (const filename of RUNTIME_CLASS_FILES) {
+    const className = path.basename(filename).replace(/\.clas\.abap$/i, "").toUpperCase();
+    const source = fs.readFileSync(filename, "utf8");
+    const parent = /\bCLASS\s+[A-Z][A-Z0-9_]*\s+DEFINITION\b[\s\S]*?\bINHERITING\s+FROM\s+([A-Z][A-Z0-9_]*)/i.exec(source)?.[1];
+    if (parent) result.set(className, parent.toUpperCase());
+  }
+  return result;
+}
+
+const RUNTIME_CLASS_PARENTS = runtimeClassParents();
+
+function runtimeEventSignature(className, eventName) {
+  let current = String(className ?? "").toUpperCase();
+  const visited = new Set();
+  while (current && !visited.has(current)) {
+    visited.add(current);
+    const signature = RUNTIME_EVENT_SIGNATURES.get(current)?.get(String(eventName ?? "").toUpperCase());
+    if (signature) return signature;
+    current = RUNTIME_CLASS_PARENTS.get(current);
+  }
+  return undefined;
+}
+
+function localClassObjectTypes(localClasses) {
+  const result = new Set((localClasses ?? []).map((item) => String(item.name ?? "").toUpperCase()));
+  return result;
+}
+
+function localClassStaticMethods(localClasses) {
+  return Object.fromEntries((localClasses ?? []).map((localClass) => [
+    String(localClass.name ?? "").toUpperCase(),
+    new Set((localClass.methods ?? [])
+      .filter((method) => /^\s*CLASS-METHODS\b/i.test(method.definition?.text ?? ""))
+      .map((method) => String(method.name ?? "").toUpperCase())),
+  ]));
+}
+
+function eventHandlerObjectTypes(localClasses) {
   const result = {};
-  for (const declaration of declarations) {
-    for (const entry of declaration.entries ?? []) {
-      const type = /\bTYPE\s+REF\s+TO\s+([A-Z][A-Z0-9_]*)/i.exec(entry.definition ?? "")?.[1]?.toUpperCase();
-      if (type && CONVERTIBLE_CONTROL_CLASSES.has(type)) result[entry.name.toUpperCase()] = type;
+  for (const localClass of localClasses ?? []) {
+    for (const method of localClass.methods ?? []) {
+      const definition = method.definition?.text ?? "";
+      const event = /\bFOR\s+EVENT\s+([A-Z][A-Z0-9_]*)\s+OF\s+([A-Z][A-Z0-9_]*)\b/i.exec(definition);
+      if (!event) continue;
+      const signature = runtimeEventSignature(event[2], event[1]);
+      if (!signature) continue;
+      const importing = /\bIMPORTING\s+([\s\S]*?)(?=\b(?:EXPORTING|CHANGING|RETURNING|RAISING)\b|\.?\s*$)/i.exec(definition)?.[1] ?? "";
+      for (const parameter of importing.matchAll(/\b([A-Z][A-Z0-9_]*)\b/gi)) {
+        const name = parameter[1].toUpperCase();
+        const type = signature[name];
+        if (type && CONVERTIBLE_CONTROL_CLASSES.has(type)) result[name] = type;
+      }
     }
   }
   return result;
 }
 
+export function controlObjectTypes(declarations = [], localClasses = [], {parameters = [], statements = []} = {}) {
+  const result = {};
+  const localClassNames = localClassObjectTypes(localClasses);
+  for (const localClassName of localClassNames) result[localClassName] = `LOCAL:${localClassName}`;
+  for (const declaration of declarations) {
+    for (const entry of declaration.entries ?? []) {
+      const type = /\bTYPE\s+REF\s+TO\s+([A-Z][A-Z0-9_]*)/i.exec(entry.definition ?? "")?.[1]?.toUpperCase();
+      if (type && (CONVERTIBLE_CONTROL_CLASSES.has(type) || localClassNames.has(type))) {
+        result[entry.name.toUpperCase()] = localClassNames.has(type) ? `LOCAL:${type}` : type;
+      }
+    }
+  }
+  for (const parameter of parameters ?? []) {
+    const type = /\bREF\s+TO\s+([A-Z][A-Z0-9_]*)/i.exec(parameter.type ?? "")?.[1]?.toUpperCase();
+    if (!type || (!CONVERTIBLE_CONTROL_CLASSES.has(type) && !localClassNames.has(type))) continue;
+    result[String(parameter.name ?? "").toUpperCase()] = localClassNames.has(type) ? `LOCAL:${type}` : type;
+  }
+  for (const statement of statements ?? []) {
+    const match = /\bDATA\s*\(\s*([A-Z][A-Z0-9_]*)\s*\)\s*=\s*([A-Z][A-Z0-9_]*)\s*->\s*([A-Z][A-Z0-9_]*)\s*\(/i.exec(statement.text ?? "");
+    if (!match) continue;
+    const receiver = match[2].toUpperCase();
+    const receiverType = result[receiver] ?? receiver;
+    const returned = RUNTIME_METHOD_RETURNS.get(receiverType)?.get(match[3].toUpperCase());
+    if (returned && CONVERTIBLE_CONTROL_CLASSES.has(returned)) result[match[1].toUpperCase()] = returned;
+  }
+  Object.assign(result, eventHandlerObjectTypes(localClasses));
+  return result;
+}
+
 function convertibleControlType(type, objectTypes) {
   return CONVERTIBLE_CONTROL_CLASSES.has(String(type ?? "").toUpperCase())
+    || String(objectTypes?.[String(type ?? "").toUpperCase()] ?? "").toUpperCase().startsWith("LOCAL:")
     || CONVERTIBLE_CONTROL_CLASSES.has(String(objectTypes?.[String(type ?? "").toUpperCase()] ?? "").toUpperCase());
+}
+
+function freeReceivers(statement) {
+  return String(statement?.text ?? "")
+    .replace(/^FREE\s*:??\s*/i, "")
+    .replace(/\.$/, "")
+    .split(",")
+    .map((item) => item.trim().match(/^[A-Z][A-Z0-9_]*/i)?.[0])
+    .filter(Boolean);
+}
+
+export function freeChainKey(statement) {
+  if (statement?.kind !== "Free") return undefined;
+  const span = statement.span ?? {};
+  const start = span.startOffset ?? `${span.start?.line ?? span.start?.row ?? 0}:${span.start?.column ?? span.start?.col ?? 0}`;
+  return `${statement.filename ?? ""}:${start}`;
+}
+
+export function convertibleFreeChainKeys(statements, objectTypes = {}) {
+  const groups = new Map();
+  for (const statement of statements ?? []) {
+    const key = freeChainKey(statement);
+    if (key) groups.set(key, [...(groups.get(key) ?? []), statement]);
+  }
+  return new Set([...groups.entries()]
+    .filter(([, members]) => members.some((member) => freeReceivers(member).some((receiver) => convertibleControlType(receiver, objectTypes))))
+    .map(([key]) => key));
 }
 
 // Return true only for a control statement whose receiver was declared with a
@@ -68,15 +227,16 @@ export function isConvertibleControlStatement(statement, objectTypes = {}) {
   if (statement?.kind === "Call" || statement?.kind === "CallMethod") {
     const receiver = /(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*->/i.exec(raw)?.[1];
     const staticClass = /(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*=>/i.exec(raw)?.[1];
-    return convertibleControlType(receiver, objectTypes) || convertibleControlType(staticClass, objectTypes);
+    return convertibleControlType(receiver, objectTypes)
+      || CONVERTIBLE_STATIC_CLASSES.has(String(staticClass ?? "").toUpperCase())
+      || convertibleControlType(staticClass, objectTypes);
   }
   if (statement?.kind === "SetHandler") {
     const receiver = /\bFOR\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1];
     return convertibleControlType(receiver, objectTypes);
   }
   if (statement?.kind === "Free") {
-    const receiver = /^FREE\s*:??\s*([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1];
-    return convertibleControlType(receiver, objectTypes);
+    return freeReceivers(statement).some((receiver) => convertibleControlType(receiver, objectTypes));
   }
   return false;
 }
@@ -114,6 +274,13 @@ export const LOWERING_RULES = new Map([
   ["InsertDatabase", { kind: "open-sql-insert" }], ["UpdateDatabase", { kind: "open-sql-update" }],
   ["DeleteDatabase", { kind: "open-sql-delete" }], ["ModifyDatabase", { kind: "open-sql-modify" }],
   ["CallFunction", { kind: "compatibility-function-module" }],
+  ["Export", { kind: "session-abap-memory-export" }], ["Import", { kind: "session-abap-memory-import" }],
+  ["FreeMemory", { kind: "session-abap-memory-free" }],
+  ["TypePools", { kind: "type-pool-resolution" }],
+  ["Raise", { kind: "exception-raise" }], ["Continue", { kind: "loop-continue" }],
+  ["Unassign", { kind: "field-symbol-unassign" }], ["Sort", { kind: "internal-table-sort" }],
+  ["CreateData", { kind: "data-reference-create" }], ["GetReference", { kind: "data-reference-get" }],
+  ["Exit", { kind: "block-exit" }],
   ["Clear", { kind: "statement" }], ["Add", { kind: "statement" }], ["Subtract", { kind: "statement" }],
   ["Multiply", { kind: "statement" }], ["Divide", { kind: "statement" }], ["Compute", { kind: "statement" }],
   ["Leave", { kind: "navigation-leave" }], ["SetScreen", { kind: "dialog-set-screen" }], ["SetCursor", { kind: "dialog-set-cursor" }], ["LeaveScreen", { kind: "dialog-leave-screen" }],
@@ -136,6 +303,7 @@ export const METHOD_SAFE_STATEMENTS = new Set([
   "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
   "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
   "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
+  "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
 ]);
 
 export const OPEN_SQL_STATEMENTS = new Set([
@@ -153,9 +321,10 @@ export function isStaticOpenSql(statement) {
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
+  const loopTarget = "(?:[A-Z][A-Z0-9_-]*(?:(?:->|-)[A-Z][A-Z0-9_-]*)+|[A-Z][A-Z0-9_-]*)";
   // The target may end in `>` or `)`, so the trailing guard has to be a
   // lookahead: a `\b` after either of those can never match.
-  return /^\s*LOOP\s+AT\s+[A-Z][A-Z0-9_-]*\s+(?:ASSIGNING\s+(?:FIELD-SYMBOL\s*\(\s*<[A-Z][A-Z0-9_]*>\s*\)|<[A-Z][A-Z0-9_]*>)|INTO\s+(?:DATA\s*\(\s*[A-Z][A-Z0-9_-]*\s*\)|[A-Z][A-Z0-9_-]*))(?![A-Z0-9_-])/i.test(body)
+  return new RegExp(`^\\s*LOOP\\s+AT\\s+${loopTarget}\\s+(?:ASSIGNING\\s+(?:FIELD-SYMBOL\\s*\\(\\s*<[A-Z][A-Z0-9_]*>\\s*\\)|<[A-Z][A-Z0-9_]*>)|INTO\\s+(?:DATA\\s*\\(\\s*[A-Z][A-Z0-9_-]*\\s*\\)|[A-Z][A-Z0-9_-]*))(?![A-Z0-9_-])`, "i").test(body)
     && !/^\s*LOOP\s+AT\s+SCREEN\b/i.test(body);
 }
 
@@ -270,6 +439,35 @@ function splitOutsideStrings(text, delimiter = ",") {
 
 function splitPerformOperands(text) {
   return [...String(text ?? "").matchAll(/'(?:''|[^'])*'|[^\s,]+/g)].map((match) => match[0]);
+}
+
+function memoryBindings(text) {
+  const tokens = splitPerformOperands(text);
+  const bindings = [];
+  for (let index = 0; index < tokens.length;) {
+    const name = tokens[index++];
+    if (!/^[A-Z][A-Z0-9_-]*(?:\+[0-9]+)?$/i.test(name)) continue;
+    if (tokens[index] === "=") {
+      const value = tokens[index + 1];
+      if (!value) break;
+      bindings.push({ name, value });
+      index += 2;
+    } else bindings.push({ name, value: name });
+  }
+  return bindings;
+}
+
+function memoryCallLines(statement, context) {
+  const raw = stripPeriod(statement.text);
+  const exportMatch = /^EXPORT\s+([\s\S]+?)\s+TO\s+MEMORY\s+ID\s+([\s\S]+)$/i.exec(raw);
+  const importMatch = /^IMPORT\s+([\s\S]+?)\s+FROM\s+MEMORY\s+ID\s+([\s\S]+)$/i.exec(raw);
+  const freeMatch = /^FREE\s+MEMORY\s+ID\s+([\s\S]+)$/i.exec(raw);
+  if (freeMatch) return [`io_session->free_memory( iv_id = ${valueExpression(freeMatch[1], context)} ).`];
+  if (exportMatch) return memoryBindings(exportMatch[1]).map(({ name, value }) =>
+    `io_session->export_memory( iv_id = ${valueExpression(exportMatch[2], context)} iv_name = ${quote(name.toUpperCase())} iv_value = ${valueExpression(value, context)} ).`);
+  if (importMatch) return memoryBindings(importMatch[1]).map(({ name, value }) =>
+    `io_session->import_memory( EXPORTING iv_id = ${valueExpression(importMatch[2], context)} iv_name = ${quote(name.toUpperCase())} CHANGING cv_value = ${valueExpression(value, context)} ).`);
+  return [];
 }
 
 function splitMessageOperands(text) {
@@ -588,10 +786,59 @@ export function lowerStatement(statement, context) {
     ["sy-dynnr", "''"],
   ];
   if (statement.kind === "Comment") return raw;
-  if (isConvertibleControlStatement(statement, context.controlObjectTypes)) {
-    const lowered = statement.kind === "Free"
-      ? raw.replace(/^FREE\s*:??\s*/i, "CLEAR ").replace(/,\s*$/, ".")
+  const convertibleFreeChain = statement.kind === "Free"
+    && context.freeChainControlKeys?.has(freeChainKey(statement));
+  if (isConvertibleControlStatement(statement, context.controlObjectTypes) || convertibleFreeChain) {
+    let lowered = statement.kind === "Free"
+      ? raw.replace(/^FREE\s*:??\s*/i, "CLEAR: ").replace(/,\s*$/, ".")
       : raw;
+    if (statement.kind === "CreateObject") {
+      const target = /^CREATE\s+OBJECT\s+([A-Z][A-Z0-9_]*)\b/i.exec(lowered)?.[1]?.toUpperCase();
+      const explicitType = /\bTYPE\s+([A-Z][A-Z0-9_]*)\b/i.exec(lowered)?.[1]?.toUpperCase();
+      const resolvedTargetType = target && String(context.controlObjectTypes?.[target] ?? "").toUpperCase();
+      const resolvedExplicitType = explicitType
+        && Object.values(context.controlObjectTypes ?? {}).some((value) => String(value).toUpperCase() === `LOCAL:${explicitType}`)
+        ? `LOCAL:${explicitType}`
+        : "";
+      const objectType = resolvedExplicitType || resolvedTargetType;
+      if (objectType.startsWith("LOCAL:") && context.localClassOwner) {
+        const owner = context.localClassOwner;
+        const session = context.sessionVariable ?? "io_session";
+        const constructor = `io_owner = ${owner} io_session = ${session}`;
+        lowered = /\bEXPORTING\b/i.test(lowered)
+          ? lowered.replace(/\bEXPORTING\b/i, `EXPORTING ${constructor}`)
+          : `${lowered.replace(/\.\s*$/, "")} EXPORTING ${constructor}.`;
+      }
+    }
+    if (statement.kind === "Call" || statement.kind === "CallMethod") {
+      lowered = lowered.replace(
+        /\b(SET_(?:READONLY_MODE|TOOLBAR_MODE|STATUSBAR_MODE|FONT_FIXED))\(\s*CONV\s*#\(\s*([A-Z][A-Z0-9_]*)\s*\)\s*\)/i,
+        "$1( COND i( WHEN $2 = abap_true THEN 1 ELSE 0 ) )",
+      );
+      const staticCall = /(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*=>\s*([A-Z][A-Z0-9_]*)\s*\(/i.exec(lowered);
+      const staticMethods = staticCall && context.localClassStaticMethods?.[staticCall[1].toUpperCase()];
+      if (staticCall && staticMethods?.has(staticCall[2].toUpperCase()) && context.localClassOwner
+        && !/\bIO_OWNER\s*=/i.test(lowered)) {
+        const helperName = context.localClassRenames?.[staticCall[1].toUpperCase()] ?? staticCall[1].toLowerCase();
+        const owner = context.localClassOwner;
+        const session = context.sessionVariable ?? "io_session";
+        const renamed = lowered.replace(
+          new RegExp(`\\b${staticCall[1]}\\s*=>\\s*${staticCall[2]}\\s*\\(`, "i"),
+          `${helperName}=>${staticCall[2]}(`,
+        );
+        const opening = renamed.indexOf("(", staticCall.index);
+        const closing = renamed.lastIndexOf(")");
+        if (opening < 0 || closing < opening) return replaceOutsideStrings(renamed, safeReplacements);
+        let argumentsText = renamed.slice(opening + 1, closing).trim();
+        const originalParameter = context.localClassStaticParameters?.[staticCall[1].toUpperCase()]?.[staticCall[2].toUpperCase()];
+        if (argumentsText && originalParameter && !/^[A-Z][A-Z0-9_]*\s*=/i.test(argumentsText)) {
+          argumentsText = `${originalParameter} = ${argumentsText}`;
+        }
+        const bridgedArguments = `io_owner = ${owner} io_session = ${session}${argumentsText ? ` ${argumentsText}` : ""}`;
+        const bridged = `${renamed.slice(0, opening + 1)} ${bridgedArguments} ${renamed.slice(closing)}`;
+        return replaceOutsideStrings(bridged, safeReplacements);
+      }
+    }
     return replaceOutsideStrings(lowered, safeReplacements);
   }
   if (context.contextMenu && (statement.kind === "CreateObject" || statement.kind === "Call")) {
@@ -886,7 +1133,9 @@ export function lowerStatement(statement, context) {
     if (/\bPERFORM\s+\(|\bIN\s+PROGRAM\b/i.test(raw)) return "* TODO GGCONV-E401: dynamic or external PERFORM requires a manual method mapping.";
     const name = /^PERFORM\s+([^\s.]+)/i.exec(raw)?.[1];
     const routine = context.routines?.find((item) => item.name === name?.toUpperCase());
-    if (!routine) return name ? `me->form_${name.toLowerCase()}( ).` : "* TODO GGCONV-E401: dynamic PERFORM.";
+    const receiver = context.ownerPrefix ?? "me->";
+    const session = context.sessionVariable ?? "io_session";
+    if (!routine) return name ? `${receiver}form_${name.toLowerCase()}( ).` : "* TODO GGCONV-E401: dynamic PERFORM.";
     const argumentsByDirection = new Map();
     let direction;
     for (const token of splitPerformOperands(raw.replace(/^PERFORM\s+[^\s.]+\s*/i, "").replace(/\.$/, ""))) {
@@ -898,9 +1147,9 @@ export function lowerStatement(statement, context) {
         argumentsByDirection.get(direction).push(token);
       }
     }
-    if (!(routine.parameters ?? []).length) return `me->${routine.methodName}( io_session = io_session ).`;
+    if (!(routine.parameters ?? []).length) return `${receiver}${routine.methodName}( io_session = ${session} ).`;
     const parameterWidth = Math.max("io_session".length, ...(routine.parameters ?? []).map((parameter) => parameter.name.length));
-    const fieldsByDirection = { EXPORTING: [`${"io_session".padEnd(parameterWidth, " ")} = io_session`], CHANGING: [] };
+    const fieldsByDirection = { EXPORTING: [`${"io_session".padEnd(parameterWidth, " ")} = ${session}`], CHANGING: [] };
     for (const parameter of routine.parameters ?? []) {
       const values = argumentsByDirection.get(parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING") ?? [];
       const value = values.shift();
@@ -908,7 +1157,7 @@ export function lowerStatement(statement, context) {
         .push(`${parameter.name.padEnd(parameterWidth, " ")} = ${valueExpression(value, context)}`);
     }
     const fields = Object.entries(fieldsByDirection).filter(([, values]) => values.length);
-    const lines = [`me->${routine.methodName}(`];
+    const lines = [`${receiver}${routine.methodName}(`];
     for (let directionIndex = 0; directionIndex < fields.length; directionIndex++) {
       const [direction, values] = fields[directionIndex];
       lines.push(`  ${direction}`);
@@ -917,6 +1166,7 @@ export function lowerStatement(statement, context) {
     }
     return lines.join("\n");
   }
+  if (["Export", "Import", "FreeMemory"].includes(statement.kind)) return memoryCallLines(statement, context).join("\n");
   if (statement.kind === "Return") return "RETURN.";
   if (statement.kind === "Translate") return replaceOutsideStrings(raw, context.replacements);
   if (statement.kind === "Include") return "* INCLUDE expanded by converter.";
@@ -1039,6 +1289,19 @@ function unboundFieldSymbols(statement, bound) {
   return [...new Set(referencedFieldSymbols(statement.text))].filter((name) => !bound.has(name));
 }
 
+function unsupportedAlvTableBoundary(statement, unbound, context) {
+  if (!unbound.length) return undefined;
+  const match = /^\s*(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*->\s*SET_TABLE_FOR_FIRST_DISPLAY\b/i.exec(statement.text.trim());
+  if (!match) return undefined;
+  const receiver = replaceOutsideStrings(match[1].toLowerCase(), context.replacements ?? []);
+  const omitted = `* TODO GGCONV-E515: statement omitted, field symbol${unbound.length > 1 ? "s" : ""} ${unbound.map((name) => `<${name.toLowerCase()}>`).join(" ")} ${unbound.length > 1 ? "have" : "has"} no convertible binding: ${statement.text.trim().replace(/\s+/g, " ")}`;
+  return [
+    omitted,
+    `${receiver}->show_capability_boundary( heading = 'Dynamic ALV output unavailable' explanation = 'This report depends on generic field-symbol table bindings that the browser converter cannot safely reproduce. Its rows and row changes are not displayed.' ).`,
+    "RETURN.",
+  ].join("\n");
+}
+
 function isCommentOnly(lowered) {
   return lowered === undefined || lowered.split("\n").every((line) => line.trim().startsWith("*"));
 }
@@ -1059,6 +1322,15 @@ export function lowerStatements(statements, context) {
   const rangeLoops = [];
   const screenLoops = [];
   const usedScreenNames = new Set();
+  const freeChains = new Map();
+  for (const statement of statements) {
+    const key = freeChainKey(statement);
+    if (key) freeChains.set(key, [...(freeChains.get(key) ?? []), statement]);
+  }
+  const freeChainControlKeys = new Set([
+    ...convertibleFreeChainKeys(statements, context.controlObjectTypes),
+    ...(context.freeChainControlKeys ?? []),
+  ]);
   // An inline `FIELD-SYMBOL(<fs>)` declares the symbol where it is bound, so it
   // is available to the rest of this statement list without a declaration of
   // its own. `safeFieldSymbols` is absent when a caller lowers statements
@@ -1067,7 +1339,7 @@ export function lowerStatements(statements, context) {
     ? new Set([...context.safeFieldSymbols, ...inlineFieldSymbols(statements)])
     : undefined;
   for (let index = 0; index < statements.length; index++) {
-    const statement = statements[index];
+    let statement = statements[index];
     if (statement.kind === "Hide") {
       pendingHidden.push(...uniqueHiddenFields(hiddenFieldEntries(statement.text, context), pendingHidden));
       continue;
@@ -1079,9 +1351,21 @@ export function lowerStatements(statements, context) {
       .map((loop) => loop.replacement);
     const statementContext = {
       ...context,
+      freeChainControlKeys,
       replacements: [...screenReplacements, ...rangeLoops, ...(context.replacements ?? []).filter(([name]) => !rangeLoops.some(([active]) => active === name))],
       screenStateSymbol,
     };
+    const freeKey = freeChainKey(statement);
+    const freeMembers = freeKey ? freeChains.get(freeKey) : undefined;
+    if (statement.kind === "Free" && freeMembers?.length > 1) {
+      if (freeMembers[0] !== statement) continue;
+      const chainText = freeMembers
+        .map((member) => member.text.trim()
+          .replace(/^FREE\s*:??\s*/i, "")
+          .replace(/[,.]\s*$/, ""))
+        .join(", ");
+      statement = { ...statement, text: `FREE ${chainText}.` };
+    }
     const iconAppend = statement.kind === "Move"
       ? /^([A-Z][A-Z0-9_]*)\+(\d+)\s*=\s*('(?:''|[^'])*')\.?$/i.exec(statement.text.trim())
       : undefined;
@@ -1099,7 +1383,9 @@ export function lowerStatements(statements, context) {
       ? { ...statement, text: statement.text.replace(/^\s*WRITE\s*\/\s*/i, "WRITE ") }
       : statement;
     const unbound = bound ? unboundFieldSymbols(statement, bound) : [];
-    const lowered = unbound.length ? undefined : lowerStatement(lowerInput, statementContext);
+    const lowered = unbound.length
+      ? unsupportedAlvTableBoundary(statement, unbound, statementContext)
+      : lowerStatement(lowerInput, statementContext);
     const omitted = unbound.length
       ? `* TODO GGCONV-E515: statement omitted, field symbol${unbound.length > 1 ? "s" : ""} ${unbound.map((name) => `<${name.toLowerCase()}>`).join(" ")} ${unbound.length > 1 ? "have" : "has"} no convertible binding: ${statement.text.trim().replace(/\s+/g, " ")}`
       : `* TODO GGCONV-E501: unsupported statement omitted: ${statement.text.trim().replace(/\s+/g, " ")}`;

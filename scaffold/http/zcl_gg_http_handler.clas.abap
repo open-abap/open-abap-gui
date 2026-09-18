@@ -6,25 +6,30 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_payload,
-             session_id     TYPE string,
-             page_id        TYPE string,
-             action         TYPE string,
-             direct_action  TYPE abap_bool,
-             gg_action      TYPE string,
-             ucomm          TYPE string,
-             gg_ucomm       TYPE string,
-             target         TYPE string,
-             value          TYPE string,
-             row            TYPE i,
-             pf_key         TYPE i,
-             token          TYPE string,
-             gg_token       TYPE string,
-             cursor_field   TYPE string,
-             cursor_value   TYPE string,
-             values         TYPE zif_gg_selection_screen_types=>ty_values,
-             dynamic_action TYPE string,
-             dynamic_values TYPE zif_gg_selection_screen_types=>ty_values,
-             dynpro_values  TYPE zif_gg_dynpro_types_v1=>ty_values,
+             session_id      TYPE string,
+             page_id         TYPE string,
+             action          TYPE string,
+             direct_action   TYPE abap_bool,
+             gg_action       TYPE string,
+             ucomm           TYPE string,
+             gg_ucomm        TYPE string,
+             target          TYPE string,
+             value           TYPE string,
+             row             TYPE i,
+             pf_key          TYPE i,
+             token           TYPE string,
+             gg_token        TYPE string,
+             cursor_field    TYPE string,
+             cursor_value    TYPE string,
+             gg_tree_event   TYPE string,
+             gg_tree_node    TYPE string,
+             gg_tree_field   TYPE string,
+             gg_tree_value   TYPE string,
+             gg_tree_checked TYPE string,
+             values          TYPE zif_gg_selection_screen_types=>ty_values,
+             dynamic_action  TYPE string,
+             dynamic_values  TYPE zif_gg_selection_screen_types=>ty_values,
+             dynpro_values   TYPE zif_gg_dynpro_types_v1=>ty_values,
            END OF ty_payload.
 
     TYPES: BEGIN OF ty_error_response,
@@ -494,6 +499,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
                                           iv_name   = 'cursor_field' ).
     ls_payload-cursor_value = form_value( it_fields = lt_fields
                                           iv_name   = 'cursor_value' ).
+    ls_payload-gg_tree_event = form_value( it_fields = lt_fields
+                                           iv_name   = 'gg_tree_event' ).
+    ls_payload-gg_tree_node = form_value( it_fields = lt_fields
+                                          iv_name   = 'gg_tree_node' ).
+    ls_payload-gg_tree_field = form_value( it_fields = lt_fields
+                                           iv_name   = 'gg_tree_field' ).
+    ls_payload-gg_tree_value = form_value( it_fields = lt_fields
+                                           iv_name   = 'gg_tree_value' ).
+    ls_payload-gg_tree_checked = form_value( it_fields = lt_fields
+                                             iv_name   = 'gg_tree_checked' ).
     ls_payload-values = values_from_fields( lt_fields ).
     ls_payload-dynamic_action = form_value( it_fields = lt_fields
                                             iv_name   = 'gg_free_action' ).
@@ -521,6 +536,15 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     rs_request-token = is_payload-token.
     rs_request-cursor_field = is_payload-cursor_field.
     rs_request-cursor_value = is_payload-cursor_value.
+    rs_request-tree_event = is_payload-gg_tree_event.
+    rs_request-tree_node = is_payload-gg_tree_node.
+    rs_request-tree_field = is_payload-gg_tree_field.
+    rs_request-tree_value = is_payload-gg_tree_value.
+    rs_request-tree_checked = xsdbool(
+      is_payload-gg_tree_checked = 'X'
+      OR is_payload-gg_tree_checked = 'x'
+      OR is_payload-gg_tree_checked = '1'
+      OR is_payload-gg_tree_checked = 'true' ).
     rs_request-values = is_payload-values.
     rs_request-dynamic_action = is_payload-dynamic_action.
     rs_request-dynamic_values = is_payload-dynamic_values.
@@ -582,6 +606,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         rs_request-ucomm = substring( val = lv_action_value
                                       off = 8 ).
       ENDIF.
+    ELSEIF lv_action_value = zif_gg_host_html_v1=>action_tree_event.
+      rs_request-action = zif_gg_host_html_v1=>action_tree_event.
+      rs_request-ucomm = 'GG_TREE_EVENT'.
     ELSEIF lv_action_value IS NOT INITIAL AND rs_request-action IS INITIAL.
       rs_request-action = lv_action_value.
     ENDIF.

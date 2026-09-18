@@ -273,7 +273,21 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_system_error.
 
   PROTECTED SECTION.
-    DATA mt_html_nodes TYPE ty_html_nodes.
+    TYPES: BEGIN OF ty_html_node_state,
+             node_key   TYPE string,
+             parent_key TYPE string,
+             text       TYPE string,
+             expanded   TYPE abap_bool,
+             selected   TYPE abap_bool,
+             hidden     TYPE abap_bool,
+             folder     TYPE abap_bool,
+             expander   TYPE abap_bool,
+             node_image TYPE string,
+             open_image TYPE string,
+           END OF ty_html_node_state.
+    TYPES ty_html_node_states TYPE STANDARD TABLE OF ty_html_node_state WITH DEFAULT KEY.
+
+    DATA mt_html_nodes TYPE ty_html_node_states.
     DATA mv_html_top_node TYPE string.
 
     METHODS add_html_node
@@ -291,6 +305,20 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS clear_html_nodes.
 
     METHODS refresh_tree_html.
+
+    "! Nesting level of a node: 1 for a root node, one more per ancestor that
+    "! is still present in the node table.
+    METHODS node_level
+      IMPORTING
+        node_key      TYPE string
+      RETURNING
+        VALUE(result) TYPE i.
+
+    METHODS node_has_children
+      IMPORTING
+        node_key      TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
 
     METHODS tree_html
       RETURNING
@@ -437,9 +465,15 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD expand_root_nodes.
-    LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE parent_key IS INITIAL.
-      ls_node-expanded = abap_true.
-      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+    DATA(lv_level_count) = COND i( WHEN level_count > 0 THEN level_count ELSE 1 ).
+    DATA lv_node_index TYPE sy-tabix.
+    LOOP AT mt_html_nodes INTO DATA(ls_node).
+      lv_node_index = sy-tabix.
+      IF node_level( ls_node-node_key ) <= lv_level_count
+          AND line_exists( mt_html_nodes[ parent_key = ls_node-node_key ] ).
+        ls_node-expanded = abap_true.
+      ENDIF.
+      MODIFY mt_html_nodes FROM ls_node INDEX lv_node_index.
     ENDLOOP.
     refresh_tree_html( ).
   ENDMETHOD.
@@ -556,25 +590,47 @@ CLASS cl_tree_control_base IMPLEMENTATION.
       html    = tree_html( ) ).
   ENDMETHOD.
 
-  METHOD tree_html.
-    DATA lv_depth TYPE i.
+  METHOD node_level.
     DATA lv_parent TYPE string.
+
+    result = 1.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lv_parent = ls_node-parent_key.
+* A node cannot be its own ancestor, but nothing stops a caller from building a
+* cyclic parent chain, so the walk is bounded by the nesting the control shows.
+    DO 32 TIMES.
+      IF lv_parent IS INITIAL.
+        RETURN.
+      ENDIF.
+      READ TABLE mt_html_nodes INTO DATA(ls_parent)
+        WITH KEY node_key = lv_parent.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      result = result + 1.
+      lv_parent = ls_parent-parent_key.
+    ENDDO.
+  ENDMETHOD.
+
+  METHOD node_has_children.
+    READ TABLE mt_html_nodes INTO DATA(ls_node)
+      WITH KEY node_key = node_key.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    result = xsdbool(
+      line_exists( mt_html_nodes[ parent_key = node_key ] )
+      OR ls_node-expander = abap_true ).
+  ENDMETHOD.
+
+  METHOD tree_html.
     result = |<ul role="tree" aria-label="Tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
-      lv_depth = 1.
-      lv_parent = ls_node-parent_key.
-      DO 32 TIMES.
-        IF lv_parent IS INITIAL.
-          EXIT.
-        ENDIF.
-        READ TABLE mt_html_nodes INTO DATA(ls_parent)
-          WITH KEY node_key = lv_parent.
-        IF sy-subrc <> 0.
-          EXIT.
-        ENDIF.
-        lv_depth = lv_depth + 1.
-        lv_parent = ls_parent-parent_key.
-      ENDDO.
+      DATA(lv_depth) = node_level( ls_node-node_key ).
       DATA(lv_state_class) = cl_gui_control=>state_class( iv_selected = ls_node-selected ).
       DATA(lv_selected) = COND string(
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'

@@ -4,6 +4,7 @@ CLASS ltcl_gg_workbench_utility DEFINITION FINAL FOR TESTING DURATION SHORT RISK
     METHODS renders_styles FOR TESTING.
     METHODS renders_top FOR TESTING.
     METHODS renders_status_owned_icon_bar FOR TESTING.
+    METHODS routes_back_when_active FOR TESTING.
     METHODS renders_bottom FOR TESTING.
     METHODS renders_bottom_message_types FOR TESTING.
 
@@ -15,6 +16,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     DATA(lv_html) = zcl_gg_workbench_utility=>render_styles( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-menubar' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-status-menu-items{min-height:32px' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-statusbar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-runtime-content' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-work-area:#d5e6f3' ) ).
@@ -61,6 +63,24 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<svg on' ) ).
   ENDMETHOD.
 
+  METHOD routes_back_when_active.
+    DATA(lv_program_html) = zcl_gg_workbench_utility=>render_top(
+      iv_runtime    = abap_true
+      iv_session_id = `S1`
+      iv_page_id    = `P1`
+      is_status     = VALUE #( active_ucomm = VALUE #( ( `BACK` ) ) ) ).
+    DATA(lv_workbench_html) = zcl_gg_workbench_utility=>render_top(
+      iv_runtime    = abap_true
+      iv_session_id = `S1`
+      iv_page_id    = `P1`
+      is_status     = VALUE #( active_ucomm = VALUE #( ( `NEXT` ) ) ) ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_program_html CS 'value="COMMAND:BACK"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_program_html CS 'aria-label="Back"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_workbench_html CS 'form="wb-command-workbench"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_workbench_html CS 'value="COMMAND:BACK"' ) ).
+  ENDMETHOD.
+
   METHOD renders_top.
     DATA(lv_html) = zcl_gg_workbench_utility=>render_top( ).
     DATA(lv_custom_html) = zcl_gg_workbench_utility=>render_top( iv_title = `<Example & title>` ).
@@ -71,6 +91,11 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
       iv_title        = `Dynpro`
       iv_content_form = `gg-dynpro-form`
       is_status       = VALUE #( status = `STATUS` ) ).
+    DATA(lv_menu_html) = zcl_gg_workbench_utility=>render_top(
+      iv_runtime = abap_true
+      is_status  = VALUE #( menus = VALUE #(
+        ( code = `SAMPLE` text = `Sample` )
+        ( code = `OPTIONS` text = `Options` ) ) ) ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-menubar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-commandbar' ) ).
@@ -82,6 +107,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'title="Refresh"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'title="Refresh"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'wb-icon-refresh' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_icon_html CS 'wb-toolbar-label">Refresh</span>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Workbench</h1>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_custom_html CS '&lt;Example &amp; title&gt;</h1>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_untrusted_html CS '&lt;/h1&gt;&lt;style&gt;.wb-appbar{display:none}&lt;/style&gt;' ) ).
@@ -90,6 +116,9 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'id="wb-page-title"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="shell-menu"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="standard-command"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '<nav class="wb-menu-items wb-status-menu-items" role="menubar" aria-label="Application menu"><details' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Sample</summary>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Options</summary>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Applications</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1>' ) ).
 * The app bar shows the title only, so the CUA status name never reaches the page.
@@ -111,7 +140,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.gg-dynpro-field,.gg-field,.gg-range' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-help-button:not(:disabled)' ) ).
 * F1 posts field help when the focused field has an ABAP name.
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key!=="F1"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'event.key==="F1"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'post(field,"gg_action","HELP:"+name)' ) ).
 * F8, Enter, Escape, arrow navigation and modal focus trapping are explicit
 * browser parity hooks rather than browser-default behavior.
@@ -122,6 +151,8 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
 * Feedback set while the page is open replays the entry animation and drops
 * the error colour, so a neutral message is never painted as a failure.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'function announce(text,type)' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'F1: help todo' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'announce((button.getAttribute' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'void feedback.offsetWidth' ) ).
 * Announcing drops whichever colour the previous message wore before it paints
 * its own, so a success never keeps an error's red.

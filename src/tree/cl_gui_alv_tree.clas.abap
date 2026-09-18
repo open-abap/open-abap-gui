@@ -217,13 +217,15 @@ CLASS cl_gui_alv_tree DEFINITION INHERITING FROM cl_alv_tree_base PUBLIC.
         is_item_layout TYPE lvc_s_laci OPTIONAL
       EXCEPTIONS
         node_not_found.
+
+  PROTECTED SECTION.
+    METHODS handle_browser_event REDEFINITION.
 ENDCLASS.
 
 CLASS cl_gui_alv_tree IMPLEMENTATION.
   METHOD set_hierarchy_header.
     ms_hierarchy_header = is_hierarchy_header.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |Hierarchy column: { is_hierarchy_header-heading }| ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD get_parent.
@@ -285,13 +287,96 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    m_node_selection_mode = node_selection_mode.
+    m_item_selection = item_selection.
+    m_no_toolbar = no_toolbar.
+    m_no_html_header = no_html_header.
     cl_gui_control=>initialize(
       control = me
       parent  = parent
       kind    = 'ALV_TREE' ).
+    cl_alv_tree_base=>register_instance( me ).
     IF parent IS BOUND.
       parent->add_child( me ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD handle_browser_event.
+    DATA lv_checked TYPE c LENGTH 1.
+    DATA lo_menu TYPE REF TO cl_ctmenu.
+    DATA lo_drag_drop TYPE REF TO cl_dragdropobject.
+    result = super->handle_browser_event(
+      event     = event
+      node_key  = node_key
+      fieldname = fieldname
+      value     = value
+      checked   = checked ).
+    IF result = abap_true.
+      IF event = 'TREE_TOGGLE'
+          AND ( value = 'true' OR value = 'X' OR value = '1' ).
+        RAISE EVENT expand_nc
+          EXPORTING
+            node_key = CONV lvc_nkey( node_key ).
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    CASE event.
+      WHEN 'TREE_CHECKBOX'.
+        update_checked_items(
+          i_node_key  = CONV lvc_nkey( node_key )
+          i_fieldname = CONV lvc_fname( fieldname )
+          i_checked   = checked ).
+        IF checked = abap_true.
+          lv_checked = 'X'.
+        ENDIF.
+        RAISE EVENT checkbox_change
+          EXPORTING
+            checked   = lv_checked
+            fieldname = CONV lvc_fname( fieldname )
+            node_key  = CONV lvc_nkey( node_key ).
+        refresh_tree_html( ).
+        result = abap_true.
+      WHEN 'TREE_LINK'.
+        RAISE EVENT link_click
+          EXPORTING
+            fieldname = fieldname
+            node_key  = node_key.
+        result = abap_true.
+      WHEN 'TREE_ITEM_DOUBLE'.
+        RAISE EVENT item_double_click
+          EXPORTING
+            fieldname = fieldname
+            node_key  = node_key.
+        result = abap_true.
+      WHEN 'TREE_NODE_DOUBLE'.
+        RAISE EVENT node_double_click
+          EXPORTING
+            node_key = node_key.
+        result = abap_true.
+      WHEN 'TREE_CONTEXT'.
+        CREATE OBJECT lo_menu.
+        RAISE EVENT node_context_menu_request
+          EXPORTING
+            node_key = CONV lvc_nkey( node_key )
+            menu     = lo_menu.
+        result = abap_true.
+      WHEN 'TREE_DRAG_START'.
+        CREATE OBJECT lo_drag_drop.
+        RAISE EVENT on_drag
+          EXPORTING
+            drag_drop_object = lo_drag_drop
+            fieldname        = CONV lvc_fname( fieldname )
+            node_key         = CONV lvc_nkey( node_key ).
+        result = abap_true.
+      WHEN 'TREE_DROP'.
+        CREATE OBJECT lo_drag_drop.
+        RAISE EVENT on_drop
+          EXPORTING
+            drag_drop_object = lo_drag_drop
+            node_key         = CONV lvc_nkey( node_key ).
+        result = abap_true.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD set_top_node.
@@ -359,32 +444,79 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD expand_node.
-    set_html_node_state( node_key = CONV string( i_node_key )
-                         expanded = abap_true ).
+    TYPES: BEGIN OF ty_pending_node,
+             node_key TYPE string,
+             level    TYPE i,
+           END OF ty_pending_node.
+    DATA lt_pending TYPE STANDARD TABLE OF ty_pending_node WITH DEFAULT KEY.
+
+    APPEND VALUE #( node_key = CONV string( i_node_key ) level = 1 ) TO lt_pending.
+    WHILE lt_pending IS NOT INITIAL.
+      READ TABLE lt_pending INTO DATA(ls_pending) INDEX 1.
+      DELETE lt_pending INDEX 1.
+      READ TABLE mt_html_nodes INTO DATA(ls_node)
+        WITH KEY node_key = ls_pending-node_key.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      ls_node-expanded = abap_true.
+      MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
+      IF i_level_count > 0 AND ls_pending-level >= i_level_count.
+        CONTINUE.
+      ENDIF.
+      LOOP AT mt_html_nodes INTO DATA(ls_child)
+          WHERE parent_key = ls_pending-node_key.
+        APPEND VALUE #( node_key = ls_child-node_key
+                        level    = ls_pending-level + 1 ) TO lt_pending.
+      ENDLOOP.
+    ENDWHILE.
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD add_node.
     DATA(lv_key) = |TREE-{ lines( mt_html_nodes ) + 1 }|.
+    DATA(lv_is_folder) = xsdbool( is_node_layout-isfolder = abap_true ).
+    DATA(lv_has_children) = xsdbool( is_node_layout-expander = abap_true ).
     IF is_outtab_line IS SUPPLIED.
       IF i_node_text IS NOT INITIAL.
-        add_html_node( node_key   = lv_key
-                       parent_key = CONV string( i_relat_node_key )
-                       text       = CONV string( i_node_text )
-                       data_row   = is_outtab_line ).
+        add_html_node( node_key       = lv_key
+                       parent_key     = CONV string( i_relat_node_key )
+                       text           = CONV string( i_node_text )
+                       data_row       = is_outtab_line
+                       has_children   = lv_has_children
+                       is_folder      = lv_is_folder
+                       node_image     = CONV string( is_node_layout-n_image )
+                       open_image     = CONV string( is_node_layout-exp_image )
+                       it_item_layout = it_item_layout ).
       ELSE.
-        add_html_node( node_key   = lv_key
-                       parent_key = CONV string( i_relat_node_key )
-                       text       = lv_key
-                       data_row   = is_outtab_line ).
+        add_html_node( node_key       = lv_key
+                       parent_key     = CONV string( i_relat_node_key )
+                       text           = lv_key
+                       data_row       = is_outtab_line
+                       has_children   = lv_has_children
+                       is_folder      = lv_is_folder
+                       node_image     = CONV string( is_node_layout-n_image )
+                       open_image     = CONV string( is_node_layout-exp_image )
+                       it_item_layout = it_item_layout ).
       ENDIF.
     ELSEIF i_node_text IS NOT INITIAL.
-      add_html_node( node_key   = lv_key
-                     parent_key = CONV string( i_relat_node_key )
-                     text       = CONV string( i_node_text ) ).
+      add_html_node( node_key       = lv_key
+                     parent_key     = CONV string( i_relat_node_key )
+                     text           = CONV string( i_node_text )
+                     has_children   = lv_has_children
+                     is_folder      = lv_is_folder
+                     node_image     = CONV string( is_node_layout-n_image )
+                     open_image     = CONV string( is_node_layout-exp_image )
+                     it_item_layout = it_item_layout ).
     ELSE.
-      add_html_node( node_key   = lv_key
-                     parent_key = CONV string( i_relat_node_key )
-                     text       = lv_key ).
+      add_html_node( node_key       = lv_key
+                     parent_key     = CONV string( i_relat_node_key )
+                     text           = lv_key
+                     has_children   = lv_has_children
+                     is_folder      = lv_is_folder
+                     node_image     = CONV string( is_node_layout-n_image )
+                     open_image     = CONV string( is_node_layout-exp_image )
+                     it_item_layout = it_item_layout ).
     ENDIF.
     e_new_node_key = lv_key.
   ENDMETHOD.
@@ -408,11 +540,12 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD set_table_for_first_display.
     GET REFERENCE OF it_outtab INTO mt_outtab.
+    IF is_hierarchy_header IS SUPPLIED.
+      ms_hierarchy_header = is_hierarchy_header.
+    ENDIF.
     IF it_fieldcatalog IS SUPPLIED.
       mt_fieldcatalog = it_fieldcatalog.
     ENDIF.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |Tree rows: { lines( it_outtab ) }| ).
     refresh_tree_html( ).
   ENDMETHOD.
 
@@ -427,10 +560,17 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
       WITH KEY node_key = CONV string( i_node_key ).
     IF sy-subrc = 0.
+      e_node_text = ls_node-text.
+      IF ls_node-data_row IS BOUND.
+        ASSIGN ls_node-data_row->* TO <outtab_line>.
+        IF sy-subrc = 0.
+          e_outtab_line = <outtab_line>.
+          RETURN.
+        ENDIF.
+      ENDIF.
       DATA(lv_key) = CONV string( i_node_key ).
       REPLACE FIRST OCCURRENCE OF 'TREE-' IN lv_key WITH ``.
       lv_index = CONV i( lv_key ).
-      e_node_text = ls_node-text.
     ENDIF.
     READ TABLE <outtab> ASSIGNING <outtab_line> INDEX lv_index.
     IF sy-subrc = 0.

@@ -21,8 +21,10 @@ CLASS ltcl_gui_ilidragndrop_control IMPLEMENTATION.
     DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-control-kind="DRAGDROP"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-native-capability="unavailable"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-payload="Legacy ActiveX drag/drop unavailable; geometry=12,18,240,90' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<textarea' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'geometry=12,18,240,90' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Legacy ActiveX drag/drop is unavailable in the browser.</textarea>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>Legacy ActiveX drag/drop unavailable; geometry=' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'context-menu=visible; items=2' ) ).
 
     lo_dragdrop->hide( ).
