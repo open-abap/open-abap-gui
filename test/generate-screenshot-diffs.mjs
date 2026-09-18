@@ -260,9 +260,11 @@ const cards = differences.map((comparison) => {
   const percentage = comparison.totalPixels === 0
     ? "0.00"
     : (comparison.changedPixels / comparison.totalPixels * 100).toFixed(2);
-  // These paths are relative to the deployed preview repository, not to the
-  // workspace paths used while generating the report.
-  const baselineSource = comparison.baselineDimensions ? `../../main/screenshots/${filename}` : null;
+  // Native references live outside the generated report directory. Use their
+  // full file URLs so local reports opened from disk can load them reliably.
+  const baselineSource = comparison.baselineDimensions
+    ? pathToFileURL(resolve(baselineDirectory, comparison.name)).href
+    : null;
   const currentSource = comparison.currentDimensions ? `../screenshots/${filename}` : null;
   const diffSource = comparison.changedPixels > 0 ? `images/${filename}` : null;
 
