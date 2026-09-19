@@ -248,6 +248,12 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-list .gg-color-total\{font-weight:700;border-top:1px solid #6f879b;\}|.
     rv_html = rv_html && |.gg-list .gg-color-group\{font-weight:600;border-top:1px solid #9eb5c8;\}|.
     rv_html = rv_html && |.gg-page\{display:flex;flex-direction:column;gap:8px;max-width:100%;\}|.
+    rv_html = rv_html && |.gg-page--list\{height:100%;min-height:0;\}|.
+    rv_html = rv_html && |.gg-page--list>form\{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;\}|.
+    rv_html = rv_html && |.gg-page--list>form>.gg-work-area\{flex:1 1 auto;min-height:0;overflow:auto;\}|.
+    rv_html = rv_html && |.gg-work-area--docking\{position:relative;\}|.
+    rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro\{margin-left:260px;\}|.
+    rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro>form>.gg-controls-standalone\{position:relative;left:-260px;width:calc(100% + 260px);height:100%;min-height:0;\}|.
     rv_html = rv_html && |.gg-status-region,.gg-message-region,.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-controls-standalone\{display:flow-root;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control\{pointer-events:none;\}|.

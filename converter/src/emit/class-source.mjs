@@ -247,6 +247,16 @@ function implicitSelectionLayoutMembers(ir) {
   return [...names].sort();
 }
 
+function selectionStateType(ir, state) {
+  if (state.ranges) return "zif_gg_selection_screen_types=>ty_ranges";
+  const typeName = state.dataType?.typ?.toLowerCase();
+  if (!typeName) return "string";
+  const localType = (ir.declarations ?? []).some((item) => item.kind === "type"
+    && item.names?.some((name) => name.toLowerCase() === typeName));
+  if (localType) return typeName;
+  return "string";
+}
+
 function dataMembers(ir) {
   const typeMembers = [];
   const constantMembers = [];
@@ -344,7 +354,16 @@ function dataMembers(ir) {
   if ((ir.selections ?? []).some((screen) => screen.elements?.some((item) => item.layout === "begin_tabbed_block"))) {
     dataMembers.push("DATA mv_active_tab TYPE string.");
   }
-  const members = [...typeMembers, ...constantMembers, ...dataMembers];
+  const dynamicTypes = ir.dynamicAlv
+    ? [
+      `TYPES: BEGIN OF ${ir.dynamicAlv.rowType},`,
+      ...ir.dynamicAlv.typeFields.map((field) => `         ${field.name.toLowerCase()} TYPE ${field.type},`),
+      `       END OF ${ir.dynamicAlv.rowType}.`,
+      `TYPES ${ir.dynamicAlv.tableType} TYPE STANDARD TABLE OF ${ir.dynamicAlv.rowType} WITH EMPTY KEY.`,
+    ]
+    : [];
+  const members = [...typeMembers, ...dynamicTypes, ...constantMembers, ...dataMembers];
+  if (ir.dynamicAlv) members.push(`DATA ${ir.dynamicAlv.tableMember.toLowerCase()} TYPE ${ir.dynamicAlv.tableType}.`);
   for (const statement of ir.statements ?? []) {
     if (statement.kind !== "Controls") continue;
     const controls = /^CONTROLS\s+([A-Z][A-Z0-9_]*)\s+TYPE\s+(TABLEVIEW|TABSTRIP)\b/i.exec(statement.text ?? "");
@@ -353,7 +372,7 @@ function dataMembers(ir) {
     members.push(`DATA ${controls[1].toLowerCase()} TYPE zif_gg_dynpro_types_v1=>${type}.`);
   }
   for (const [name, state] of Object.entries(ir.statePlan?.selectionState ?? {})) {
-    const type = state.ranges ? "zif_gg_selection_screen_types=>ty_ranges" : "string";
+    const type = selectionStateType(ir, state);
     members.push(`DATA ${state.member} TYPE ${type}.`);
   }
   for (const routine of ir.routines) {
@@ -626,6 +645,7 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
       statements,
     }),
     safeFieldSymbols: ir.safeFieldSymbols ?? [],
+    dynamicAlv: ir.dynamicAlv,
     rangeDeclarations: Object.fromEntries((ir.declarations ?? [])
       .filter((declaration) => declaration.kind === "ranges")
       .flatMap((declaration) => (declaration.names ?? []).map((name) => [name.toUpperCase(), "zif_gg_selection_screen_types=>ty_ranges"]))),
@@ -640,9 +660,16 @@ function globalFieldSymbolDeclarations(ir, statements) {
   return (ir.declarations ?? [])
     .filter((declaration) => declaration.kind === "field-symbol"
       && declaration.statement?.scope !== "local"
+      && (!ir.dynamicAlv || !declaration.names?.some((name) => String(name).toUpperCase() === ir.dynamicAlv.tableSymbol))
       && (declaration.names ?? []).some((name) => ir.safeFieldSymbols?.includes(name.toUpperCase()))
       && (declaration.names ?? []).some((name) => source.some((statement) => new RegExp(`<${name}>`, "i").test(statement.text))))
-    .map((declaration) => declaration.raw);
+    .map((declaration) => {
+      if (!ir.dynamicAlv) return declaration.raw;
+      const model = ir.dynamicAlv;
+      const names = new Set((declaration.names ?? []).map((name) => String(name).toUpperCase()));
+      if (!names.has(model.tableSymbol)) return declaration.raw;
+      return declaration.raw.replace(/\bTYPE\s+(?:STANDARD\s+)?TABLE\b/i, `TYPE ${model.tableType}`);
+    });
 }
 
 function selectionStateTransport(ir, event) {
@@ -1053,6 +1080,7 @@ function dynproStateFlush(ir, valuesName = "ct_values") {
 }
 
 function unsupportedDynamicTableAction(ir, routine) {
+  if (ir.dynamicAlv) return undefined;
   const tableSymbols = new Set((ir.declarations ?? [])
     .filter((declaration) => declaration.kind === "field-symbol"
       && declaration.statement?.scope !== "local"

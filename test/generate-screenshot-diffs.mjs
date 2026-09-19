@@ -11,6 +11,8 @@ const outputDirectory = resolve(outputArgument || "build/visual-diffs");
 const diffDirectory = resolve(outputDirectory, "images");
 const baselineOutputDirectory = resolve(outputDirectory, "baseline");
 const contentRegion = parseContentRegion(argumentValue("--content-region"));
+const baselineRegion = parseContentRegion(argumentValue("--baseline-region")) || contentRegion;
+const currentRegion = parseContentRegion(argumentValue("--current-region")) || contentRegion;
 const masksPath = resolve(argumentValue("--masks") || "test/visual-masks.json");
 
 function argumentValue(name) {
@@ -119,15 +121,16 @@ try {
     const currentPath = hasCurrent ? resolve(currentDirectory, name) : null;
     const baselineDimensions = baselinePath ? await imageDimensions(baselinePath) : null;
     const currentDimensions = currentPath ? await imageDimensions(currentPath) : null;
-    if (contentRegion) {
-      for (const [label, dimensions] of [["native reference", baselineDimensions], ["browser", currentDimensions]]) {
-        if (dimensions && (contentRegion.x + contentRegion.width > dimensions.width || contentRegion.y + contentRegion.height > dimensions.height)) {
-          throw new Error(`Content region exceeds ${label} image ${name} (${dimensionsText(dimensions)})`);
-        }
+    if (baselineRegion && currentRegion && (baselineRegion.width !== currentRegion.width || baselineRegion.height !== currentRegion.height)) {
+      throw new Error(`Baseline and current content regions must have the same width and height for ${name}`);
+    }
+    for (const [label, region, dimensions] of [["native reference", baselineRegion, baselineDimensions], ["browser", currentRegion, currentDimensions]]) {
+      if (region && dimensions && (region.x + region.width > dimensions.width || region.y + region.height > dimensions.height)) {
+        throw new Error(`Content region exceeds ${label} image ${name} (${dimensionsText(dimensions)})`);
       }
     }
-    const width = contentRegion?.width || Math.max(baselineDimensions?.width || 0, currentDimensions?.width || 0);
-    const height = contentRegion?.height || Math.max(baselineDimensions?.height || 0, currentDimensions?.height || 0);
+    const width = baselineRegion?.width || currentRegion?.width || Math.max(baselineDimensions?.width || 0, currentDimensions?.width || 0);
+    const height = baselineRegion?.height || currentRegion?.height || Math.max(baselineDimensions?.height || 0, currentDimensions?.height || 0);
     const masks = maskDefinition.regions;
     for (const mask of masks) {
       if (mask.x + mask.width > width || mask.y + mask.height > height) {
@@ -135,7 +138,7 @@ try {
       }
     }
 
-    const result = await page.evaluate(async ({baselineUrl, currentUrl, width, height, contentRegion, masks}) => {
+    const result = await page.evaluate(async ({baselineUrl, currentUrl, width, height, baselineRegion, currentRegion, masks}) => {
       async function loadImage(url) {
         if (!url) {
           return null;
@@ -154,8 +157,9 @@ try {
         context.fillStyle = "#fff";
         context.fillRect(0, 0, width, height);
         if (image) {
-          if (contentRegion) {
-            context.drawImage(image, contentRegion.x, contentRegion.y, contentRegion.width, contentRegion.height, 0, 0, width, height);
+          const region = image === baselineImage ? baselineRegion : currentRegion;
+          if (region) {
+            context.drawImage(image, region.x, region.y, region.width, region.height, 0, 0, width, height);
           } else {
             context.drawImage(image, 0, 0);
           }
@@ -228,7 +232,8 @@ try {
       currentUrl: currentPath ? pathToFileURL(currentPath).href : null,
       width,
       height,
-      contentRegion,
+      baselineRegion,
+      currentRegion,
       masks,
     });
 
@@ -246,6 +251,8 @@ try {
       baselineDimensions,
       currentDimensions,
       contentRegion,
+      baselineRegion,
+      currentRegion,
       masks: masks.map(({id, reason}) => ({id, reason})),
     });
   }
@@ -314,7 +321,7 @@ const html = `<!doctype html>
   </head>
   <body>
     <h1>Screenshot visual diffs</h1>
-    <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Content region: ${contentRegion ? `${contentRegion.x},${contentRegion.y},${contentRegion.width},${contentRegion.height}` : "full image"}. Semantic masks: ${maskDefinition.regions.length === 0 ? "none" : maskDefinition.regions.map(({id}) => escapeHtml(id)).join(", ")}.</p>
+    <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Content region: ${contentRegion ? `${contentRegion.x},${contentRegion.y},${contentRegion.width},${contentRegion.height}` : "separate native/browser regions"}; native content region: ${baselineRegion ? `${baselineRegion.x},${baselineRegion.y},${baselineRegion.width},${baselineRegion.height}` : "full image"}; browser content region: ${currentRegion ? `${currentRegion.x},${currentRegion.y},${currentRegion.width},${currentRegion.height}` : "full image"}. Semantic masks: ${maskDefinition.regions.length === 0 ? "none" : maskDefinition.regions.map(({id}) => escapeHtml(id)).join(", ")}.</p>
     <div class="summary">
       <span>${counts.changed} changed</span><span>${counts.added} added</span><span>${counts.removed} removed</span><span>${counts.unchanged} unchanged</span>
     </div>

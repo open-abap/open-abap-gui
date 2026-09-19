@@ -972,6 +972,65 @@ test("renders an honest boundary for an unsupported dynamic ALV table", async ()
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E515"));
 });
 
+test("keeps HTML tags literal inside ABAP string templates", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zhtml_template.",
+      "DATA gv_frontend TYPE string.",
+      "FORM build.",
+      "  APPEND |<p><strong>Detected:</strong> { gv_frontend }</p>| TO ct_html.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zhtml_template.prog.abap",
+    mode: "partial",
+  });
+  assert.doesNotMatch(result.classSource, /TODO GGCONV-E515/);
+  assert.match(result.classSource, /<p><strong>Detected:<\/strong>/);
+});
+
+test("lowers dynamic SET CURSOR field and line operands", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zcursor.",
+      "DATA gv_cursor_field TYPE c LENGTH 40 VALUE 'GS_ROW-NAME'.",
+      "DATA gv_cursor_line TYPE i VALUE 1.",
+      "START-OF-SELECTION.",
+      "  SET CURSOR FIELD gv_cursor_field LINE gv_cursor_line.",
+    ].join("\n"),
+    filename: "zcursor.prog.abap",
+    mode: "partial",
+  });
+  assert.doesNotMatch(result.classSource, /TODO GGCONV-E516: dynamic SET CURSOR/);
+  assert.match(result.classSource, /set_cursor\( VALUE #\( field = CONV string\( gv_cursor_field \) row = CONV i\( gv_cursor_line \) \) \)/);
+});
+
+test("lowers the finite dynamic ALV field-catalog pattern to a typed table", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zdynamic_typed_grid.",
+      "DATA gt_fieldcat TYPE lvc_t_fcat.",
+      "DATA gr_table TYPE REF TO data.",
+      "DATA gv_style_field TYPE lvc_fname.",
+      "FIELD-SYMBOLS <gt_output> TYPE STANDARD TABLE.",
+      "FORM display.",
+      "  gt_fieldcat = VALUE #( ( fieldname = 'ID' inttype = 'C' intlen = 8 ) ( fieldname = 'ACTIVE' inttype = 'C' intlen = 1 checkbox = abap_true edit = abap_true ) ).",
+      "  cl_alv_table_create=>create_dynamic_table( EXPORTING it_fieldcatalog = gt_fieldcat i_style_table = abap_true IMPORTING ep_table = gr_table e_style_fname = gv_style_field ).",
+      "  ASSIGN gr_table->* TO <gt_output>.",
+      "  APPEND INITIAL LINE TO <gt_output>.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zdynamic_typed_grid.prog.abap",
+    mode: "partial",
+  });
+  assert.ok(result.reportIR.dynamicAlv);
+  assert.deepEqual(result.reportIR.safeFieldSymbols, ["GT_OUTPUT"]);
+  assert.match(result.classSource, /TYPES: BEGIN OF ty_dynamic_alv_row/);
+  assert.match(result.classSource, /active TYPE c LENGTH 1/);
+  assert.match(result.classSource, /DATA gt_output TYPE ty_dynamic_alv_rows/);
+  assert.match(result.classSource, /GET REFERENCE OF gt_output INTO gr_table/);
+  assert.doesNotMatch(result.classSource, /Dynamic ALV output unavailable|TODO GGCONV/);
+});
+
 test("preserves chained and table-shaped global declarations", async () => {
   const result = await convertProgram({
     source: [

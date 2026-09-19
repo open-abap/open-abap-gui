@@ -441,6 +441,15 @@ function splitPerformOperands(text) {
   return [...String(text ?? "").matchAll(/'(?:''|[^'])*'|[^\s,]+/g)].map((match) => match[0]);
 }
 
+function lowerDynamicAlvFactory(raw, context) {
+  const model = context.dynamicAlv;
+  if (!model || !/CL_ALV_TABLE_CREATE\s*=>\s*CREATE_DYNAMIC_TABLE/i.test(raw)) return undefined;
+  return [
+    `GET REFERENCE OF ${model.tableMember.toLowerCase()} INTO ${model.referenceMember.toLowerCase()}.`,
+    `${model.styleMember.toLowerCase()} = '${model.styleComponent}'.`,
+  ].join("\n");
+}
+
 function memoryBindings(text) {
   const tokens = splitPerformOperands(text);
   const bindings = [];
@@ -785,6 +794,8 @@ export function lowerStatement(statement, context) {
     ["sy-batch", "io_session->get_context( )-program-batch"],
     ["sy-dynnr", "''"],
   ];
+  const dynamicAlvFactory = lowerDynamicAlvFactory(raw, context);
+  if (dynamicAlvFactory) return dynamicAlvFactory;
   if (statement.kind === "Comment") return raw;
   const convertibleFreeChain = statement.kind === "Free"
     && context.freeChainControlKeys?.has(freeChainKey(statement));
@@ -809,6 +820,9 @@ export function lowerStatement(statement, context) {
           ? lowered.replace(/\bEXPORTING\b/i, `EXPORTING ${constructor}`)
           : `${lowered.replace(/\.\s*$/, "")} EXPORTING ${constructor}.`;
       }
+    }
+    if (context.dynamicAlv && /^GO_GRID\s*->\s*REFRESH_TABLE_DISPLAY\b/i.test(lowered)) {
+      return "go_grid->set_table_for_first_display( CHANGING it_outtab = gt_output it_fieldcatalog = gt_fieldcat ).";
     }
     if (statement.kind === "Call" || statement.kind === "CallMethod") {
       lowered = lowered.replace(
@@ -1090,10 +1104,17 @@ export function lowerStatement(statement, context) {
     return screen ? `io_session->get_dialog( )->set_next_screen( '${screen.padStart(4, "0")}' ).` : undefined;
   }
   if (statement.kind === "SetCursor") {
-    const field = /SET\s+CURSOR\s+FIELD\s+'([^']+)'/i.exec(stripPeriod(raw))?.[1];
-    return field
-      ? `io_session->get_dialog( )->set_cursor( VALUE #( field = '${field.toUpperCase()}' ) ).`
-      : "* TODO GGCONV-E516: dynamic SET CURSOR requires manual lowering.";
+    const body = stripPeriod(raw);
+    const match = /SET\s+CURSOR\s+FIELD\s+(.+?)(?:\s+LINE\s+(.+))?$/i.exec(body);
+    if (!match) return "* TODO GGCONV-E516: dynamic SET CURSOR requires manual lowering.";
+    const fieldOperand = match[1].trim();
+    const field = /^'([^']*)'$/s.exec(fieldOperand)?.[1];
+    const fieldValue = field === undefined
+      ? `CONV string( ${valueExpression(fieldOperand, context)} )`
+      : `'${field.toUpperCase()}'`;
+    const line = match[2]?.trim();
+    const row = line ? ` row = CONV i( ${valueExpression(line, context)} )` : "";
+    return `io_session->get_dialog( )->set_cursor( VALUE #( field = ${fieldValue}${row} ) ).`;
   }
   if (statement.kind === "LeaveScreen") return "io_session->get_dialog( )->leave_screen( ).";
   if (statement.kind === "LeaveToScreen") {
@@ -1165,6 +1186,10 @@ export function lowerStatement(statement, context) {
       lines.push(...values.map((value, valueIndex) => `    ${value}${isLastDirection && valueIndex === values.length - 1 ? " )." : ""}`));
     }
     return lines.join("\n");
+  }
+  if (statement.kind === "Free" && context.dynamicAlv
+      && new RegExp(`\\b${context.dynamicAlv.referenceMember}\\b`, "i").test(raw)) {
+    return `CLEAR ${context.dynamicAlv.referenceMember.toLowerCase()}.`;
   }
   if (["Export", "Import", "FreeMemory"].includes(statement.kind)) return memoryCallLines(statement, context).join("\n");
   if (statement.kind === "Return") return "RETURN.";
@@ -1269,10 +1294,85 @@ function blockEndIndex(statements, start) {
   return -1;
 }
 
-// `'...'` and `` `...` `` literals can hold angle brackets that are not field
-// symbols at all - HTML fragments in particular - so they are removed first.
+// ABAP string literals and templates can hold angle brackets that are not
+// field symbols at all - HTML fragments in particular - so literal template
+// text is removed while expressions inside `{ ... }` remain searchable.
+export function withoutLiteralTemplateText(text) {
+  let result = "";
+  let inTemplate = false;
+  let expressionDepth = 0;
+  let quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (!inTemplate) {
+      if (char === "|") {
+        inTemplate = true;
+        result += " ";
+      } else result += char;
+      continue;
+    }
+    if (char === "'" && quoted && text[index + 1] === "'") {
+      result += "''";
+      index++;
+      continue;
+    }
+    if (char === "'") {
+      quoted = !quoted;
+      if (expressionDepth > 0) result += char;
+      continue;
+    }
+    if (quoted) {
+      if (expressionDepth > 0) result += char;
+      continue;
+    }
+    if (char === "|" && text[index + 1] === "|") {
+      index++;
+      if (expressionDepth > 0) result += "||";
+      continue;
+    }
+    if (char === "|" && expressionDepth === 0) {
+      inTemplate = false;
+      result += " ";
+      continue;
+    }
+    if (char === "{" && expressionDepth >= 0) {
+      expressionDepth++;
+      result += " ";
+      continue;
+    }
+    if (char === "}" && expressionDepth > 0) {
+      expressionDepth--;
+      result += " ";
+      continue;
+    }
+    if (expressionDepth > 0) result += char;
+  }
+  return result;
+}
+
+function normalizeDynamicAlvStatement(statement, context) {
+  const model = context.dynamicAlv;
+  if (!model) return statement;
+  const symbol = `<${model.tableSymbol}>`;
+  const raw = String(statement.text ?? "").trim();
+  if (new RegExp(`^ASSIGN\\s+${model.referenceMember}->\\*\\s+TO\\s+${symbol}\\.?$`, "i").test(raw)) {
+    return {...statement, kind: "Comment", text: "* Dynamic ALV table reference is represented by the typed class table."};
+  }
+  if (new RegExp(`^UNASSIGN\\s+${symbol}\\.?$`, "i").test(raw)) {
+    return {...statement, kind: "Clear", text: `CLEAR ${model.referenceMember}.`};
+  }
+  const tableMember = model.tableMember.toLowerCase();
+  const rewritten = raw
+    .replace(new RegExp(symbol, "gi"), tableMember)
+    .replace(new RegExp(`\\b${tableMember}\\s+IS\\s+NOT\\s+ASSIGNED\\b`, "i"), `${model.referenceMember.toLowerCase()} IS NOT BOUND`)
+    .replace(new RegExp(`\\b${tableMember}\\s+IS\\s+ASSIGNED\\b`, "i"), `${model.referenceMember.toLowerCase()} IS BOUND`);
+  return rewritten === raw ? statement : {...statement, text: rewritten};
+}
+
 function referencedFieldSymbols(text) {
-  const body = text.replace(/'(?:''|[^'])*'/g, " ").replace(/`(?:``|[^`])*`/g, " ");
+  const body = withoutLiteralTemplateText(text)
+    .replace(/'(?:''|[^'])*'/g, " ")
+    .replace(/`(?:``|[^`])*`/g, " ");
   return [...body.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)].map((match) => match[1].toUpperCase());
 }
 
@@ -1355,6 +1455,7 @@ export function lowerStatements(statements, context) {
       replacements: [...screenReplacements, ...rangeLoops, ...(context.replacements ?? []).filter(([name]) => !rangeLoops.some(([active]) => active === name))],
       screenStateSymbol,
     };
+    statement = normalizeDynamicAlvStatement(statement, statementContext);
     const freeKey = freeChainKey(statement);
     const freeMembers = freeKey ? freeChains.get(freeKey) : undefined;
     if (statement.kind === "Free" && freeMembers?.length > 1) {
