@@ -1,4 +1,4 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, expectPageKind, expectFramesClearOfTheirTitles} from "../fixtures.mjs";
 
 test("ZCL_GG_EX_099 — renders the basic dynpro control gallery", async ({page, host}) => {
   await openExample(page, host, 99);
@@ -11,4 +11,5 @@ test("ZCL_GG_EX_099 — renders the basic dynpro control gallery", async ({page,
   await expect(screen.locator('[name="P_CHECK"]')).toBeChecked();
   await expect(screen.locator('[name="gg-radio-G1"][value="P_RADIO_A"]')).toBeChecked();
   await expect(screen.locator('[name="P_LIST"] option')).toHaveCount(2);
+  await expectFramesClearOfTheirTitles(page);
 });

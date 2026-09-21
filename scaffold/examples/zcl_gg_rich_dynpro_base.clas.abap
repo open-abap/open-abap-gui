@@ -58,16 +58,18 @@ CLASS zcl_gg_rich_dynpro_base IMPLEMENTATION.
 
     CASE mv_mode.
       WHEN '99'.
-        io_builder->begin_screen( VALUE #( number = '0100' title = 'Control gallery 99' height = 220 ) ).
-        io_builder->add_box( VALUE #( control = VALUE #( name = 'BOX' position = VALUE #( row = 1 column = 1 width = 560 height = 200 ) ) text = 'All basic dynpro controls' ) ).
-        io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_INPUT' position = VALUE #( row = 20 column = 20 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
-        io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_OUTPUT' position = VALUE #( row = 50 column = 20 width = 220 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
-        io_builder->add_text( VALUE #( control = VALUE #( name = 'P_TEXT' position = VALUE #( row = 80 column = 20 width = 180 ) ) text = 'Text control' ) ).
-        io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_GO' position = VALUE #( row = 110 column = 20 width = 90 ) ) text = 'Apply' ucomm = 'GO' ) ).
-        io_builder->add_checkbox( VALUE #( control = VALUE #( name = 'P_CHECK' position = VALUE #( row = 110 column = 130 width = 120 ) ) text = 'Enabled' ) ).
-        io_builder->add_radiobutton( VALUE #( control = VALUE #( name = 'P_RADIO_A' position = VALUE #( row = 140 column = 20 width = 110 ) ) text = 'Alpha' group = 'G1' ) ).
-        io_builder->add_radiobutton( VALUE #( control = VALUE #( name = 'P_RADIO_B' position = VALUE #( row = 140 column = 140 width = 110 ) ) text = 'Beta' group = 'G1' ) ).
-        io_builder->add_listbox( VALUE #( control = VALUE #( name = 'P_LIST' position = VALUE #( row = 170 column = 20 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 10 ) fixed_values = VALUE #( ( key = 'A' text = 'Alpha' ) ( key = 'B' text = 'Beta' ) ) ) ).
+* The title of a box takes the first line inside it, so the gallery starts its
+* controls clear of that line rather than 19px below the top of the frame.
+        io_builder->begin_screen( VALUE #( number = '0100' title = 'Control gallery 99' height = 235 ) ).
+        io_builder->add_box( VALUE #( control = VALUE #( name = 'BOX' position = VALUE #( row = 1 column = 1 width = 560 height = 215 ) ) text = 'All basic dynpro controls' ) ).
+        io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_INPUT' position = VALUE #( row = 30 column = 20 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
+        io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_OUTPUT' position = VALUE #( row = 60 column = 20 width = 220 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
+        io_builder->add_text( VALUE #( control = VALUE #( name = 'P_TEXT' position = VALUE #( row = 90 column = 20 width = 180 ) ) text = 'Text control' ) ).
+        io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_GO' position = VALUE #( row = 120 column = 20 width = 90 ) ) text = 'Apply' ucomm = 'GO' ) ).
+        io_builder->add_checkbox( VALUE #( control = VALUE #( name = 'P_CHECK' position = VALUE #( row = 120 column = 130 width = 120 ) ) text = 'Enabled' ) ).
+        io_builder->add_radiobutton( VALUE #( control = VALUE #( name = 'P_RADIO_A' position = VALUE #( row = 150 column = 20 width = 110 ) ) text = 'Alpha' group = 'G1' ) ).
+        io_builder->add_radiobutton( VALUE #( control = VALUE #( name = 'P_RADIO_B' position = VALUE #( row = 150 column = 140 width = 110 ) ) text = 'Beta' group = 'G1' ) ).
+        io_builder->add_listbox( VALUE #( control = VALUE #( name = 'P_LIST' position = VALUE #( row = 180 column = 20 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 10 ) fixed_values = VALUE #( ( key = 'A' text = 'Alpha' ) ( key = 'B' text = 'Beta' ) ) ) ).
         io_builder->end_screen( ).
       WHEN '100'.
         io_builder->begin_screen( VALUE #( number = '0100' title = 'PBO and PAI 100' height = 140 ) ).
