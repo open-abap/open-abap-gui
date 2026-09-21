@@ -17,9 +17,10 @@ CLASS zcl_gg_ex_035 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_parameter( VALUE #(
-      name      = 'P_CARR'
-      text      = 'Carrier'
-      data_type = VALUE #( typ = 'C' length = 3 ) ) ).
+      name       = 'P_CARR'
+      text       = 'Carrier'
+      data_type  = VALUE #( typ = 'C' length = 3 )
+      value_help = abap_true ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.

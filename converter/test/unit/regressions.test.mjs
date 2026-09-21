@@ -121,6 +121,27 @@ test("resolves abapGit repository-layout includes without a custom resolver", as
   assert.match(unresolved[0].message, /zrepo_shared_f02/);
 });
 
+// SCREEN-INVISIBLE masks the content of a field that stays on the screen and is
+// the only way a classic report models a password entry; SCREEN-ACTIVE = 0 is
+// what removes a field. The dynpro branch used to map INVISIBLE onto no_display,
+// which hid the field instead of masking it.
+test("regression fixture maps SCREEN-INVISIBLE to password in dynpro modules", async () => {
+  const result = await convertProgram({
+    source: await fixture("regression_screen_invisible.prog.abap.txt"),
+    filename: "regression_screen_invisible.prog.abap",
+    transactionCode: "ZREGINVIS",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Invisible", elements: [{ kind: "output", name: "GV_COUNTER" }] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }] }],
+    },
+  });
+  assert.equal(result.supported, true);
+  assert.match(result.classSource, /<ls_state>-password = abap_true\./);
+  assert.match(result.classSource, /<ls_state>-visible = abap_false\./);
+  assert.doesNotMatch(result.classSource, /no_display/);
+});
+
 test("regression fixture emits dynpro state helpers", async () => {
   const result = await convertProgram({
     source: await fixture("regression_dynpro_state.prog.abap.txt"),

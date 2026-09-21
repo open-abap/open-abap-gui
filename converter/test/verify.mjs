@@ -15,9 +15,9 @@ const commands = [
   ["browser", []],
 ];
 
-// --skip lets the CI chain drop a suite that is known to fail for reasons
-// unrelated to the change under test; run `npm test` with no arguments to get
-// the full picture locally.
+// --skip drops a suite while iterating locally. CI runs the chain with no
+// arguments: a suite skipped there hides a real failure behind a green build,
+// which is how the 016/028/035 behavioral parity defects went unnoticed.
 const skipped = new Set();
 for (let index = 0; index < process.argv.length; index++) {
   if (process.argv[index] === "--skip" && process.argv[index + 1]) skipped.add(process.argv[index + 1]);

@@ -335,51 +335,28 @@ function inputValues(entries, hostClass) {
 }
 
 function mismatch(actual, expected) {
-  return Object.fromEntries(comparableFields
-    .filter((field) => !isDeepStrictEqual(actual[field], expected[field]))
-    .map((field) => [field, { actual: describe(field, actual[field]), expected: describe(field, expected[field]) }]));
+  return comparableFields.flatMap((field) => differences(actual[field], expected[field], field));
 }
 
-function describe(field, value) {
-  if (Array.isArray(value)) {
-    if (field === "render_lines") return value.map((item) => item.text);
-    if (field === "lines") return value;
-    if (field === "values") return value.map((item) => ({ name: item.name?.trim(), value: item.value, ranges: item.ranges }));
-    if (field === "elements" || field === "states") {
-      return value.map((item) => ({
-        kind: item.kind,
-        name: item.name,
-        text: item.text,
-        screen: item.screen,
-        modif_id: item.modif_id,
-        group1: item.group1,
-        visible: item.visible,
-        enabled: item.enabled,
-        input: item.input,
-        output: item.output,
-      }));
-    }
-    if (field === "blocks") return value.map((item) => ({ block: item.block, depth: item.depth }));
-    return { length: value.length };
+// Walks both sides down to the leaves that actually differ and reports each one
+// with the path that reaches it. Reporting whole objects instead would hide the
+// failing field behind dozens of identical ones, and reporting a hand-picked
+// subset of keys would hide it outright.
+function differences(actual, expected, path) {
+  if (isDeepStrictEqual(actual, expected)) return [];
+  const bothArrays = Array.isArray(actual) && Array.isArray(expected);
+  if (bothArrays && actual.length === expected.length) {
+    return actual.flatMap((item, index) => differences(item, expected[index], `${path}[${index}]`));
   }
-  if (value && typeof value === "object") {
-    if (field === "status") return {
-      status: value.status?.trim(),
-      active_ucomm: value.active_ucomm?.map((item) => item.trim()),
-      excluded_ucomm: value.excluded_ucomm?.map((item) => item.trim()),
-      active_pf_keys: value.active_pf_keys,
-      icon_bar: value.icon_bar?.map((item) => ({ ucomm: item.ucomm?.trim(), label: item.label, icon: item.icon, separator: item.separator })),
-    };
-    if (field === "navigation") return {
-      kind: value.kind,
-      target: value.target?.trim(),
-      continuation: value.continuation,
-      modal: value.modal,
-    };
-    if (field === "status") return value;
-    return Object.keys(value);
+  if (!bothArrays && isRecord(actual) && isRecord(expected)) {
+    const keys = [...new Set([...Object.keys(actual), ...Object.keys(expected)])];
+    return keys.flatMap((key) => differences(actual[key], expected[key], `${path}.${key}`));
   }
-  return value;
+  return [{ path, actual, expected }];
+}
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function loadClass(name) {
@@ -512,7 +489,7 @@ try {
     const expected = normalize(await zcl_gg_host.run({ io_report: handWritten, rs_result: 1, ...scenario.options(zcl_gg_host) }));
     const actual = normalize(await zcl_gg_host.run({ io_report: generated, rs_result: 1, ...scenario.options(zcl_gg_host) }));
     const differences = mismatch(actual, expected);
-    if (Object.keys(differences).length) failures.push({ example: scenario.id, scenario: scenario.name, mismatch: differences });
+    if (differences.length) failures.push({ example: scenario.id, scenario: scenario.name, mismatch: differences });
   }
 
   const generatedDynpro = new abap.Classes.ZCL_BV_058();
@@ -521,20 +498,13 @@ try {
     const expected = await zcl_gg_host_dynpro.run({ io_program: handWrittenDynpro, iv_ucomm: ucomm });
     const actual = await zcl_gg_host_dynpro.run({ io_program: generatedDynpro, iv_ucomm: ucomm });
     for (const field of ["screen", "terminal", "terminal_state", "status", "screens", "flow"]) {
-      const expectedValue = plain(expected[field]);
-      const actualValue = plain(actual[field]);
-      if (!isDeepStrictEqual(actualValue, expectedValue)) {
-        failures.push({ example: "058", path: `${ucomm}.${field}`, actual: actualValue, expected: expectedValue });
-      }
+      const fieldDifferences = differences(plain(actual[field]), plain(expected[field]), `${ucomm}.${field}`);
+      if (fieldDifferences.length) failures.push({ example: "058", scenario: ucomm, mismatch: fieldDifferences });
     }
   }
 
   if (failures.length) {
-    throw new Error(`behavioral parity failed for ${failures.length} fixture(s):\n${JSON.stringify(
-      failures.map(({ example, mismatch: differences }) => ({ example, mismatch: differences })),
-      null,
-      2,
-    )}`);
+    throw new Error(`behavioral parity failed for ${failures.length} fixture(s):\n${JSON.stringify(failures, null, 2)}`);
   }
   console.log(`behavioral parity passed for ${names.length - 1} report fixtures and dynpro transitions for 058`);
 } finally {

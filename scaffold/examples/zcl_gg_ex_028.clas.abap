@@ -29,8 +29,8 @@ CLASS zcl_gg_ex_028 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
-    LOOP AT ct_states ASSIGNING FIELD-SYMBOL(<ls_state>) WHERE name = 'P_B'.
-      <ls_state>-visible = abap_false.
+    LOOP AT ct_states ASSIGNING FIELD-SYMBOL(<ls_state>) WHERE modif_id = 'HID'.
+      <ls_state>-password = abap_true.
     ENDLOOP.
   ENDMETHOD.
 

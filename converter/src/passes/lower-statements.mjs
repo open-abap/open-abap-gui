@@ -1212,7 +1212,7 @@ export function lowerStatement(statement, context) {
     converted = converted.replace(/\bscreen-name\b/gi, `${screenStateSymbol}-name`);
     converted = converted.replace(/\bscreen-group1\b/gi, `${screenStateSymbol}-modif_id`);
     converted = converted.replace(/\bscreen-group([2-4])\b/gi, `${screenStateSymbol}-group$1`);
-    converted = converted.replace(/\bscreen-invisible\b/gi, context.event === "dynpro" ? `${screenStateSymbol}-no_display` : `${screenStateSymbol}-password`);
+    converted = converted.replace(/\bscreen-invisible\b/gi, `${screenStateSymbol}-password`);
     converted = converted.replace(/\bscreen-active\b/gi, `${screenStateSymbol}-visible`);
     converted = converted.replace(/\bscreen-required\b/gi, context.event === "dynpro" ? `${screenStateSymbol}-required` : `${screenStateSymbol}-obligatory`);
     converted = converted.replace(/\bscreen-intensified\b/gi, `${screenStateSymbol}-intensified`);
