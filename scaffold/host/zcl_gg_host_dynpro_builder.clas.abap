@@ -161,11 +161,15 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_box.
+* A frame is decoration, it takes no input and has no enabled state of its own.
+* It still counts as enabled, otherwise it would render dimmed like a control
+* the program had switched off.
     APPEND VALUE #( screen   = mv_screen
                     kind     = 'BOX'
                     name     = is_box-control-name
                     text     = is_box-text
                     position = is_box-control-position
+                    enabled  = abap_true
                     visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 
