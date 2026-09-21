@@ -1,0 +1,15 @@
+# tests and fixtures
+test/
+
+# generated validation and scratch output
+gg-gui-validation/
+transpile-validation/
+behavior-validation/
+browser-validation/
+.tmp/
+abaplint-validation.jsonc
+behavior-abaplint.jsonc
+
+# local artifacts
+*.log
+*.tgz
