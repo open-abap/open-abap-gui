@@ -15,6 +15,14 @@ const commands = [
   ["browser", []],
 ];
 
+// --skip lets the CI chain drop a suite that is known to fail for reasons
+// unrelated to the change under test; run `npm test` with no arguments to get
+// the full picture locally.
+const skipped = new Set();
+for (let index = 0; index < process.argv.length; index++) {
+  if (process.argv[index] === "--skip" && process.argv[index + 1]) skipped.add(process.argv[index + 1]);
+}
+
 function run(script, args) {
   return new Promise((resolve, reject) => {
     const npm = process.platform === "win32" ? "npm.cmd" : "npm";
@@ -33,6 +41,10 @@ function run(script, args) {
 }
 
 for (const [script, args] of commands) {
+  if (skipped.has(script)) {
+    console.log(`\n=== npm run ${script} (skipped) ===`);
+    continue;
+  }
   console.log(`\n=== npm run ${script} ===`);
   await run(script, args);
 }

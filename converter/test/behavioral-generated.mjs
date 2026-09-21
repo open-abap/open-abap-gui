@@ -429,7 +429,7 @@ try {
   const pausedView = plain(paused);
   assert.equal(pausedView.navigation.kind, "CALL_SELECTION_SCREEN");
   assert.equal(pausedView.navigation.target.trim(), "0500");
-  assert.equal(pausedView.navigation.modal, false);
+  assert.equal(pausedView.navigation.modal, abap.builtin.abap_false.get());
   const resumed = normalize(await zcl_gg_host.run({
     io_report: resumable,
     rs_result: 1,

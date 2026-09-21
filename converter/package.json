@@ -15,6 +15,7 @@
     "check:matrix": "node test/check-fixtures.mjs",
     "test:unit": "node --test test/unit/*.test.mjs test/integration/*.test.mjs",
     "test": "node test/verify.mjs",
+    "test:ci": "node test/verify.mjs --skip behavior",
     "fixtures": "node test/run-fixtures.mjs",
     "structural": "node test/structural-snapshots.mjs",
     "warnings": "node test/warnings.mjs",

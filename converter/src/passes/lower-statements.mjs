@@ -1154,7 +1154,7 @@ export function lowerStatement(statement, context) {
     if (/\bPERFORM\s+\(|\bIN\s+PROGRAM\b/i.test(raw)) return "* TODO GGCONV-E401: dynamic or external PERFORM requires a manual method mapping.";
     const name = /^PERFORM\s+([^\s.]+)/i.exec(raw)?.[1];
     const routine = context.routines?.find((item) => item.name === name?.toUpperCase());
-    const receiver = context.ownerPrefix ?? "me->";
+    const receiver = context.ownerPrefix ?? "";
     const session = context.sessionVariable ?? "io_session";
     if (!routine) return name ? `${receiver}form_${name.toLowerCase()}( ).` : "* TODO GGCONV-E401: dynamic PERFORM.";
     const argumentsByDirection = new Map();
