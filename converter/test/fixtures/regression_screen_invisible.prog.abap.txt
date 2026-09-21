@@ -1,0 +1,14 @@
+PROGRAM zreg_screen_invisible.
+DATA gv_counter TYPE i VALUE 1.
+MODULE status_0100 OUTPUT.
+  LOOP AT SCREEN.
+    IF screen-group1 = 'SEC'.
+      screen-invisible = '1'.
+      MODIFY SCREEN.
+    ENDIF.
+    IF screen-group1 = 'OFF'.
+      screen-active = '0'.
+      MODIFY SCREEN.
+    ENDIF.
+  ENDLOOP.
+ENDMODULE.

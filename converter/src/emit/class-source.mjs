@@ -650,7 +650,7 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
       .filter((declaration) => declaration.kind === "ranges")
       .flatMap((declaration) => (declaration.names ?? []).map((name) => [name.toUpperCase(), "zif_gg_selection_screen_types=>ty_ranges"]))),
     sessionVariable: "io_session",
-    ownerPrefix: "me->",
+    ownerPrefix: "",
     localClassOwner: "me",
   };
 }
@@ -1660,7 +1660,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
       "DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
       "ct_values = it_values.",
     ];
-    if (!modules.length) return [...lines, "RETURN."];
+    if (!modules.length) return lines;
     lines.push(
       ...dynproStateHydrate(ir),
       ...dynproTableHydrate(tableBindings),
@@ -1691,7 +1691,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
   const helpRequest = [
     ...requestDispatch("poh"),
     "IF line_exists( ct_values[ name = 'GV_RESULT' ] ).",
-    "  rv_text = ct_values[ name = 'GV_RESULT' ]-value.",
+    "rv_text = ct_values[ name = 'GV_RESULT' ]-value.",
     "ENDIF.",
   ];
   const methods = [
@@ -1725,7 +1725,7 @@ function contextMenuMethod(ir) {
     "DATA lo_menu TYPE REF TO cl_ctmenu.",
     "CREATE OBJECT lo_menu.",
     ...(screenField ? [`IF iv_field = '${String(screenField).toUpperCase()}'.`] : []),
-    `  me->${routine.methodName}(
+    `  ${routine.methodName}(
       EXPORTING
         io_session = io_session
         io_menu    = lo_menu ).`,

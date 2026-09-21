@@ -25,6 +25,7 @@ CLASS zcl_gg_ex_016 IMPLEMENTATION.
       lower_case  = abap_true
       memory_id   = 'ZGG'
       search_help = 'ZGG_SH'
+      value_help  = abap_true
       modif_id    = 'ABC' ) ).
   ENDMETHOD.
 

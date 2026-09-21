@@ -83,8 +83,8 @@ async function writeInputs() {
     },
   });
   assert.ok(result.classSource, "converter produced no generated browser dynpro class");
-  await fs.writeFile(path.join(inputFolder, "ZCL_CV_BROWSER_058.clas.abap"), result.classSource, "utf8");
-  await fs.writeFile(path.join(inputFolder, "ZCL_CV_BROWSER_TEST.clas.abap"), [
+  await fs.writeFile(path.join(inputFolder, "zcl_cv_browser_058.clas.abap"), result.classSource, "utf8");
+  await fs.writeFile(path.join(inputFolder, "zcl_cv_browser_test.clas.abap"), [
     "CLASS zcl_cv_browser_test DEFINITION PUBLIC FINAL CREATE PUBLIC.",
     "ENDCLASS.",
     "",
@@ -93,7 +93,7 @@ async function writeInputs() {
     "",
   ].join("\n"), "utf8");
 
-  await fs.writeFile(path.join(inputFolder, "ZCL_CV_BROWSER_TEST.clas.testclasses.abap"), [
+  await fs.writeFile(path.join(inputFolder, "zcl_cv_browser_test.clas.testclasses.abap"), [
     "CLASS ltcl_cv_browser_058 DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.",
     "  PRIVATE SECTION.",
     "    METHODS reaches_next_screen FOR TESTING.",
