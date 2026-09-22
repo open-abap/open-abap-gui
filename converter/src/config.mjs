@@ -1,0 +1,332 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { diagnostic } from "./diagnostics.mjs";
+
+export const DEFAULT_CONFIG_FILENAME = "abap_transpile.json";
+export const GENERATED_FOLDER_SUFFIX = "_converter";
+
+const PROGRAM_SUFFIX = ".prog.abap";
+
+// The program name has to be known before conversion so a caller-supplied
+// className(programName) callback can run, so it is read with a regexp here
+// rather than taken from classifyProgram. The conversion result remains
+// authoritative for programKind; an INCLUDE serialised as `<name>.prog.abap`
+// simply has no REPORT/PROGRAM header and is therefore not an entry point.
+const ENTRY_POINT = /^[ \t]*(?:REPORT|PROGRAM)\s+([A-Za-z0-9_/]+)/m;
+
+function configDiagnostic(filename, code, message, suggestion, construct = "abap_transpile.json") {
+  return diagnostic({ code, filename, construct, message, suggestion, phase: "config" });
+}
+
+function posix(value) {
+  return String(value).replaceAll("\\", "/");
+}
+
+function withoutTrailingSeparator(value) {
+  return String(value).replace(/[\\/]+$/, "");
+}
+
+function compileFilters(values, key, filename, diagnostics) {
+  const list = values === undefined ? [] : values;
+  if (!Array.isArray(list)) {
+    diagnostics.push(configDiagnostic(
+      filename,
+      "GGCONV-E114",
+      `${key} must be an array of regular expressions`,
+      `Use "${key}": [] to match every file.`,
+      key,
+    ));
+    return [];
+  }
+  const compiled = [];
+  for (const entry of list) {
+    if (typeof entry !== "string") {
+      diagnostics.push(configDiagnostic(
+        filename,
+        "GGCONV-E114",
+        `${key} entries must be strings, got ${entry === null ? "null" : typeof entry}`,
+        "Remove the entry or write it as a regular expression string.",
+        key,
+      ));
+      continue;
+    }
+    try {
+      compiled.push(new RegExp(entry, "i"));
+    } catch (error) {
+      diagnostics.push(configDiagnostic(
+        filename,
+        "GGCONV-E114",
+        `${key} entry ${JSON.stringify(entry)} is not a valid regular expression: ${error.message}`,
+        "Escape the regular expression metacharacters or correct the pattern.",
+        key,
+      ));
+    }
+  }
+  return compiled;
+}
+
+function emptyConfig(filename, root, diagnostics) {
+  return {
+    filename,
+    root,
+    inputFolders: [],
+    inputFilters: [],
+    excludeFilters: [],
+    outputFolder: undefined,
+    generatedFolder: undefined,
+    diagnostics,
+    valid: false,
+  };
+}
+
+/**
+ * Read the transpiler configuration the converter shares with abap_transpile.
+ *
+ * The file is read, never written, and never validated beyond the keys the
+ * converter itself needs: an unknown key belongs to a newer transpiler and is
+ * ignored rather than rejected. Problems are returned as diagnostics so a
+ * caller can report them the same way it reports conversion diagnostics.
+ *
+ * Folder names are resolved against the working directory, not against the
+ * configuration file, because that is what abap_transpile does: it globs
+ * `<input_folder>/**` from process.cwd(). The checked-in gg-gui configuration
+ * relies on it — the file sits in converter/gg-gui-validation/ while its
+ * input_folder names `src` at the repository root. Resolving the two tools'
+ * paths differently would make one file mean two different things.
+ */
+export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, { cwd = process.cwd() } = {}) {
+  const root = path.resolve(cwd);
+  const filename = path.resolve(root, configPath);
+  const diagnostics = [];
+
+  let raw;
+  try {
+    raw = await fs.readFile(filename, "utf8");
+  } catch (error) {
+    diagnostics.push(configDiagnostic(
+      filename,
+      "GGCONV-E110",
+      `unable to read transpiler configuration: ${error.message}`,
+      "Pass --config with the path to an abap_transpile.json file.",
+    ));
+    return emptyConfig(filename, root, diagnostics);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    diagnostics.push(configDiagnostic(
+      filename,
+      "GGCONV-E111",
+      `transpiler configuration is not valid JSON: ${error.message}`,
+      "abap_transpile.json is strict JSON; comments and trailing commas are not allowed.",
+    ));
+    return emptyConfig(filename, root, diagnostics);
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    diagnostics.push(configDiagnostic(
+      filename,
+      "GGCONV-E111",
+      `transpiler configuration must be a JSON object, got ${Array.isArray(parsed) ? "an array" : typeof parsed}`,
+      "Wrap the settings in a single JSON object.",
+    ));
+    return emptyConfig(filename, root, diagnostics);
+  }
+
+  const declared = parsed.input_folder;
+  const folders = typeof declared === "string" ? [declared] : declared;
+  const inputFolders = [];
+  if (!Array.isArray(folders) || folders.length === 0) {
+    diagnostics.push(configDiagnostic(
+      filename,
+      "GGCONV-E112",
+      declared === undefined
+        ? "input_folder is required; the converter has no sources to scan without it"
+        : "input_folder must be a folder name or a non-empty array of folder names",
+      'Add "input_folder": ["src"] naming the folders that hold the ABAP sources.',
+      "input_folder",
+    ));
+  } else {
+    for (const entry of folders) {
+      if (typeof entry !== "string" || entry.trim() === "") {
+        diagnostics.push(configDiagnostic(
+          filename,
+          "GGCONV-E112",
+          `input_folder entries must be non-empty strings, got ${entry === null ? "null" : typeof entry}`,
+          "Remove the entry or replace it with a folder name.",
+          "input_folder",
+        ));
+        continue;
+      }
+      const resolved = path.resolve(root, entry);
+      if (!inputFolders.includes(resolved)) inputFolders.push(resolved);
+    }
+  }
+
+  const declaredOutput = parsed.output_folder;
+  let outputFolder;
+  let generatedFolder;
+  if (typeof declaredOutput !== "string" || declaredOutput.trim() === "") {
+    diagnostics.push(configDiagnostic(
+      filename,
+      "GGCONV-E113",
+      declaredOutput === undefined
+        ? "output_folder is required; the converter derives its own output folder from it"
+        : "output_folder must be a non-empty string",
+      'Add "output_folder": "output"; the converter writes to "output_converter".',
+      "output_folder",
+    ));
+  } else {
+    const trimmed = withoutTrailingSeparator(declaredOutput.trim());
+    outputFolder = path.resolve(root, trimmed);
+    generatedFolder = path.resolve(root, `${trimmed}${GENERATED_FOLDER_SUFFIX}`);
+  }
+
+  const inputFilters = compileFilters(parsed.input_filter, "input_filter", filename, diagnostics);
+  const excludeFilters = compileFilters(parsed.exclude_filter, "exclude_filter", filename, diagnostics);
+
+  // The generated classes are only compiled if the transpiler also reads them,
+  // which it does only when the folder is one of its input folders. The
+  // converter cannot edit the config, so it reports the exact entry to add.
+  if (generatedFolder && inputFolders.length && !inputFolders.includes(generatedFolder)) {
+    diagnostics.push(diagnostic({
+      code: "GGCONV-W110",
+      severity: "warning",
+      filename,
+      construct: "input_folder",
+      message: `generated classes are written to ${posix(path.relative(root, generatedFolder)) || posix(generatedFolder)} but that folder is not listed in input_folder, so abap_transpile will not compile them`,
+      suggestion: `Add "${posix(path.relative(root, generatedFolder))}" to input_folder.`,
+      phase: "config",
+    }));
+  }
+
+  for (const folder of inputFolders) {
+    try {
+      const stats = await fs.stat(folder);
+      if (stats.isDirectory()) continue;
+      diagnostics.push(configDiagnostic(
+        filename,
+        "GGCONV-E112",
+        `input_folder entry ${posix(path.relative(root, folder))} is not a directory`,
+        "Name a directory that holds ABAP sources.",
+        "input_folder",
+      ));
+    } catch {
+      // The generated folder is created by the conversion run itself, so its
+      // absence before the first run is expected and not a configuration error.
+      if (folder === generatedFolder) continue;
+      diagnostics.push(configDiagnostic(
+        filename,
+        "GGCONV-E112",
+        `input_folder entry ${posix(path.relative(root, folder))} does not exist`,
+        "Correct the path; like abap_transpile, it is resolved against the working directory.",
+        "input_folder",
+      ));
+    }
+  }
+
+  return {
+    filename,
+    root,
+    inputFolders,
+    inputFilters,
+    excludeFilters,
+    outputFolder,
+    generatedFolder,
+    diagnostics,
+    valid: !diagnostics.some((item) => item.severity === "error"),
+  };
+}
+
+async function collectProgramFiles(directory, generatedFolder, found, visited) {
+  const resolved = path.resolve(directory);
+  // The converter owns the generated folder; scanning it would feed its own
+  // output back in as input on every run after the first.
+  if (generatedFolder && resolved === generatedFolder) return;
+  if (visited.has(resolved)) return;
+  visited.add(resolved);
+  let entries;
+  try {
+    entries = await fs.readdir(resolved, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    const child = path.join(resolved, entry.name);
+    if (entry.isDirectory()) await collectProgramFiles(child, generatedFolder, found, visited);
+    else if (entry.name.toLowerCase().endsWith(PROGRAM_SUFFIX)) found.set(child, true);
+  }
+}
+
+/**
+ * Find the executable programs the configuration selects, in a deterministic
+ * order. Filters are matched against the path relative to the configuration
+ * file, with forward slashes, so a pattern can name a file or a folder.
+ */
+export async function discoverPrograms(config) {
+  const found = new Map();
+  const visited = new Set();
+  for (const folder of config.inputFolders ?? []) {
+    await collectProgramFiles(folder, config.generatedFolder, found, visited);
+  }
+
+  const selected = [];
+  for (const filename of [...found.keys()].sort((left, right) => left.localeCompare(right))) {
+    // abap_transpile globs with { absolute: true, posix: true } and tests its
+    // filters against that, so the same pattern has to select the same files
+    // here. The relative path is for reporting only.
+    const candidate = posix(filename);
+    if (config.inputFilters?.length && !config.inputFilters.some((item) => item.test(candidate))) continue;
+    if (config.excludeFilters?.some((item) => item.test(candidate))) continue;
+    selected.push({ filename, relativePath: posix(path.relative(config.root, filename)) });
+  }
+
+  const programs = [];
+  for (const entry of selected) {
+    let source;
+    try {
+      source = await fs.readFile(entry.filename, "utf8");
+    } catch {
+      continue;
+    }
+    const programName = ENTRY_POINT.exec(source)?.[1]?.toUpperCase();
+    if (!programName) continue;
+    programs.push({ ...entry, source, programName });
+  }
+  return programs;
+}
+
+function resolveOverride(value, programName) {
+  return typeof value === "function" ? value(programName) : value;
+}
+
+/**
+ * Build the convertProgram input for one discovered program. This is the only
+ * place option precedence is decided: an explicit override wins, otherwise the
+ * value is derived from the configuration or left to the converter's defaults.
+ */
+export function conversionPlan(config, program, overrides = {}) {
+  const {
+    className,
+    transactionCode,
+    description,
+    mode,
+    partialStrategy,
+    ddicTypes,
+    ...rest
+  } = overrides;
+  return {
+    ...rest,
+    filename: program.filename,
+    source: program.source,
+    includePaths: config.inputFolders,
+    configPath: path.join(config.root, "abaplint.jsonc"),
+    className: resolveOverride(className, program.programName),
+    transactionCode: resolveOverride(transactionCode, program.programName),
+    ...(description === undefined ? {} : { description: resolveOverride(description, program.programName) }),
+    mode: mode ?? "strict",
+    ...(partialStrategy === undefined ? {} : { partialStrategy }),
+    ...(ddicTypes === undefined ? {} : { ddicTypes }),
+  };
+}

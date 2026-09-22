@@ -1,5 +1,10 @@
 # Plan: converter CLI takes `abap_transpile.json` as input
 
+> **Status: implemented.** All five steps are done. Sections marked
+> "Correction found during implementation" record where the plan was wrong and
+> what was built instead; the root `abap_transpile.json` was deliberately left
+> unchanged (see step 5).
+
 ## Goal
 
 Replace the converter CLI's one-file-plus-flags contract
@@ -116,11 +121,13 @@ write over an existing output and exits `2`. Delete that branch and its
   if it starts with `REPORT` or `PROGRAM`; INCLUDE-only files (abapGit
   serialises those as `.prog.abap` too — see
   [source-resolver.mjs:27-28](converter/src/source-resolver.mjs#L27-L28)) are
-  skipped as entries but stay available as include targets. Reuse the existing
-  `classifyProgram` result rather than adding a second classifier: convert, then
-  drop results whose `reportIR.programKind` is `include`. (Cheaper alternative
-  if that proves slow: the `/^\s*(REPORT|PROGRAM)\b/im` pre-filter already used
-  at [gg-gui.mjs:1294](converter/test/gg-gui.mjs#L1294).)
+  skipped as entries but stay available as include targets.
+
+  Implemented with the `/^[ \t]*(?:REPORT|PROGRAM)\s+(\S+)/m` pre-filter rather
+  than by classifying and discarding, for a reason the plan missed rather than
+  for speed: a `className(programName)` callback has to run *before* conversion,
+  so the program name must be read up front anyway. The conversion result stays
+  authoritative for `programKind`.
 - **Includes**: `includePaths` = resolved `input_folder` list. This makes
   gg-gui's custom `resolveInclude`
   ([gg-gui.mjs:1284-1288](converter/test/gg-gui.mjs#L1284-L1288)) unnecessary,
@@ -135,8 +142,27 @@ write over an existing output and exits `2`. Delete that branch and its
   callbacks to override per program; the CLI exposes only `--class`/`--tcode`,
   valid with a single `--program`. No JSON mapping table.
 - **`abaplint.jsonc`**: `readConfig` is already called with a default relative
-  path ([api.mjs:557](converter/src/api.mjs#L557)); resolve it relative to the
-  config file's directory instead of `process.cwd()`.
+  path ([api.mjs:557](converter/src/api.mjs#L557)); resolve it against the same
+  working directory the folders resolve against.
+
+### Correction found during implementation: paths resolve from cwd
+
+An earlier draft of this plan said to resolve `input_folder` against the
+configuration file's directory. That is wrong, and the checked-in gg-gui
+configuration is the proof: the file lives in `converter/gg-gui-validation/`
+while its `input_folder` names `src` at the repository root.
+
+abap_transpile globs `<input_folder>/**` from `process.cwd()` and matches its
+filters against the result of `glob.sync(..., { absolute: true, posix: true })`.
+The converter therefore does the same:
+
+- folders resolve against the working directory, not the config file
+- filters are tested against the **absolute** posix path, so a pattern cannot be
+  anchored with `^` (`"^src/"` matches nothing; `"/src/"` works)
+
+Resolving differently would make one file mean two different things to the two
+tools, which is the defect this refactor exists to remove. `loadTranspileConfig`
+takes an explicit `{ cwd }` for tests.
 
 ## Open decisions
 
@@ -284,24 +310,28 @@ of string manipulation, specific to one repository's naming convention, and
 nothing else in the project needs it.
 
 Its final `abap_transpile.json` write
-([gg-gui.mjs:1352-1372](converter/test/gg-gui.mjs#L1352-L1372)) becomes
-redundant with the checked-in
-[converter/gg-gui-validation/abap_transpile.json](converter/gg-gui-validation/abap_transpile.json);
-delete the write and read the checked-in file instead, so the harness and the
-converter see the same config.
+([gg-gui.mjs:1352-1372](converter/test/gg-gui.mjs#L1352-L1372)) **moves to the
+top of the run instead of being deleted.** An earlier draft said to delete it
+and read the checked-in file; there is no checked-in file. All of
+`converter/gg-gui-validation/` is gitignored, so that `abap_transpile.json` is a
+build artifact, and deleting the write would break a fresh clone where the file
+does not exist yet.
+
+Writing it first is what makes the harness and the converter agree: the config
+is written, then loaded with `loadTranspileConfig`, and the converter's output
+folder is derived from the same `output_folder` abap_transpile is handed later
+in the run. The harness asserts `transpileConfig.generatedFolder === generatedRoot`
+rather than assuming it.
 
 Folder rename, in the same step so nothing is half-moved. All of
-`converter/gg-gui-validation/` is gitignored ([.gitignore:13](.gitignore#L13))
+`converter/gg-gui-validation/` is gitignored ([.gitignore:14](.gitignore#L14))
 and nothing under it is tracked, so this is a plain rename of build output, not
-a `git mv`; the harness recreates the folder on the next run anyway
-([gg-gui.mjs:1277-1280](converter/test/gg-gui.mjs#L1277-L1280)).
+a `git mv`; the harness recreates the folder on the next run anyway.
 
 - delete the stale `converter/gg-gui-validation/generated` directory
-- in [that config](converter/gg-gui-validation/abap_transpile.json), the
-  `input_folder` entry `converter/gg-gui-validation/generated` becomes
+- `generatedRoot` in the harness becomes `output_converter`
+- the `input_folder` entry in the config the harness writes becomes
   `converter/gg-gui-validation/output_converter`
-- `generatedRoot` in the harness, and the same path in the deleted inline
-  config write
 - grep for the literal `gg-gui-validation/generated` across the repo (scripts,
   `.gitignore`, workflows, `webpack.config.cjs`) before declaring this done
 
@@ -348,8 +378,25 @@ Gate the step behind an unchanged-output check (see Verification).
   from it, so it cannot be omitted. It cannot be explained in the file either:
   `abap_transpile.json` is strict JSON, not JSONC like
   [abaplint.jsonc](abaplint.jsonc). Put the note in the README instead.
-- Root [abap_transpile.json](abap_transpile.json): add `output_converter` to
-  `input_folder` so a root-level conversion feeds `npm run transpile`.
+- Root [abap_transpile.json](abap_transpile.json): **left unchanged.** An
+  earlier draft said to add `output_converter` to `input_folder` so a root-level
+  conversion feeds `npm run transpile`. That is wrong here: the 149 programs in
+  `scaffold/examples` convert to `ZCL_GG_EX_001`… and every one of those classes
+  already exists as a hand-written `.clas.abap` in the same folder. Wiring the
+  folder in would mean a bare `convert.mjs` at the repository root produces 149
+  duplicate class definitions and breaks `npm run transpile`.
+
+  The scaffold examples are the converter's expected *output*, not its input, so
+  a root-level conversion is not a meaningful operation. `GGCONV-W110` still
+  fires for that config, which is correct — it says the output folder is not
+  wired in, and here it should not be.
+
+  Open question for a follow-up: a batch run currently detects collisions
+  between two converted programs (`GGCONV-E115`) but not against classes that
+  already exist in `input_folder`. `convertProgram` already accepts
+  `existingClassNames` and reports `GGCONV-E106`; wiring it from the batch would
+  turn the hazard above into an explicit diagnostic. Deliberately not done here,
+  because "already exists" needs a definition (same folder? any input folder?).
 - [.gitignore](.gitignore): the existing `output` entry (line 1) does **not**
   cover `output_converter` — gitignore matches the whole path segment. Add an
   explicit `output_converter` entry. The gg-gui folder needs nothing, since

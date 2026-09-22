@@ -15,7 +15,7 @@
   "scripts": {
     "publish:dryrun": "npm run test && npm publish --dry-run --access public",
     "publish:patch": "npm --no-git-tag-version version patch && npm install && npm run test && npm publish --access public",
-    "check": "node bin/convert.mjs ../scaffold/examples/zgg_ex_001.prog.abap --check",
+    "check": "node bin/convert.mjs --config test/fixtures/check/abap_transpile.json --check",
     "check:matrix": "node test/check-fixtures.mjs",
     "test:unit": "node --test test/unit/*.test.mjs test/integration/*.test.mjs",
     "test": "node test/verify.mjs",

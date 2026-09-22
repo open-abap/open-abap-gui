@@ -1,0 +1,7 @@
+{
+  "input_folder": ["../scaffold/examples"],
+  "input_filter": ["zgg_ex_001\\.prog\\.abap$"],
+  "exclude_filter": [],
+  "output_folder": "test/fixtures/check/output",
+  "options": {}
+}

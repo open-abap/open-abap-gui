@@ -6,7 +6,8 @@ import {spawn} from "node:child_process";
 import {once} from "node:events";
 import {createServer} from "node:net";
 import {chromium} from "playwright";
-import {convertProgram} from "../src/api.mjs";
+import {convertConfiguredPrograms} from "../src/batch.mjs";
+import {discoverPrograms, loadTranspileConfig} from "../src/config.mjs";
 import {loadDynproMetadata} from "../src/dynpro-metadata.mjs";
 import {GG_GUI_DDIC_TYPES} from "../src/gg-gui-ddic.mjs";
 import {repositoryRoot, repositoryTool} from "./repository.mjs";
@@ -14,7 +15,9 @@ import {repositoryRoot, repositoryTool} from "./repository.mjs";
 const repositoryUrl = "https://github.com/larshp/gg-gui";
 const validationRoot = path.join(repositoryRoot, "converter", "gg-gui-validation");
 const checkoutRoot = path.join(validationRoot, "repository");
-const generatedRoot = path.join(validationRoot, "generated");
+// Derived by the converter from output_folder; kept as a constant here so the
+// harness can assert the two agree rather than assume it.
+const generatedRoot = path.join(validationRoot, "output_converter");
 const manifestsRoot = path.join(validationRoot, "manifests");
 const outputRoot = path.join(validationRoot, "output");
 const screenshotsRoot = path.join(validationRoot, "screenshots");
@@ -1266,93 +1269,13 @@ if (!process.env.GG_GUI_REPOSITORY && !await exists(path.join(sourceRepository, 
 }
 const referenceRoot = path.join(sourceRepository, "sap-screenshots");
 const sourceRoot = path.join(sourceRepository, "src");
-const entries = await fs.readdir(sourceRoot);
-const reportFiles = entries
-  .filter((name) => /^zgg_gui_.*\.prog\.abap$/i.test(name))
-  .sort((left, right) => left.localeCompare(right));
 
-assert.ok(reportFiles.length > 0, `No gg-gui reports found in ${sourceRoot}`);
-await fs.rm(generatedRoot, {recursive: true, force: true});
-await fs.rm(manifestsRoot, {recursive: true, force: true});
-await fs.rm(outputRoot, {recursive: true, force: true});
-await fs.rm(screenshotsRoot, {recursive: true, force: true});
-await fs.mkdir(generatedRoot, {recursive: true});
-await fs.mkdir(manifestsRoot, {recursive: true});
-await fs.mkdir(screenshotsRoot, {recursive: true});
-
-const results = [];
-const targetNames = new Set();
-const referenceContracts = new Map();
-const resolveInclude = async (name) => {
-  const includePath = path.join(sourceRoot, `${String(name).toLowerCase()}.prog.abap`);
-  if (!await exists(includePath)) return undefined;
-  return {filename: includePath, source: await fs.readFile(includePath, "utf8")};
-};
-for (const filename of reportFiles) {
-  const reportPath = path.join(sourceRoot, filename);
-  const source = await fs.readFile(reportPath, "utf8");
-  const programName = /^\s*REPORT\s+([A-Z0-9_\/]+)/im.exec(source)?.[1]?.toUpperCase();
-  assert.ok(programName, `${filename} is not an executable REPORT`);
-  const screenMetadata = await loadDynproMetadata({filename: reportPath});
-  const className = generatedClassName(programName);
-  assert.ok(!targetNames.has(className), `Generated class-name collision for ${className}`);
-  targetNames.add(className);
-  const conversionOptions = {
-    source,
-    filename,
-    className,
-    transactionCode: transactionCode(programName),
-    mode: "partial",
-    resolveInclude,
-    screenMetadata,
-    ddicTypes: GG_GUI_DDIC_TYPES,
-  };
-  const supportProbe = await convertProgram({...conversionOptions, partialStrategy: "preserve"});
-  const hasFatalDiagnostic = supportProbe.diagnostics.some((diagnostic) => diagnostic.severity === "error");
-  const result = supportProbe.classSource && !hasFatalDiagnostic
-    ? supportProbe
-    : await convertProgram({...conversionOptions, partialStrategy: "skeleton"});
-  assert.ok(result.classSource, `Converter emitted no partial class for ${filename}`);
-  if (screenMetadata?.reportTitle) {
-    assert.equal(result.reportIR?.reportTitle, screenMetadata.reportTitle, `${filename} report title should come from TPOOL R`);
-    assert.equal(result.reportIR?.description, screenMetadata.reportTitle, `${filename} metadata title should remain the conversion description`);
-  }
-  await fs.writeFile(path.join(generatedRoot, `${result.manifest.targetClass.toLowerCase()}.clas.abap`), result.classSource, "utf8");
-  for (const helper of result.helperSources ?? []) {
-    await fs.writeFile(path.join(generatedRoot, `${helper.className.toLowerCase()}.clas.abap`), helper.source, "utf8");
-  }
-  await fs.writeFile(path.join(manifestsRoot, `${result.manifest.targetClass.toLowerCase()}.manifest.json`), `${JSON.stringify(result.manifest, null, 2)}\n`, "utf8");
-  const visualContract = visualContractFor(programName, screenMetadata);
-  referenceContracts.set(programName, {
-    programName,
-    sourceFile: filename,
-    expectedFirstScreen: visualContract.screenNumber ?? "SELECTION_OR_LIST",
-    expectedTitle: visualContract.title,
-  });
-  results.push({
-    filename,
-    programName,
-    targetClass: result.manifest.targetClass,
-    transactionCode: result.manifest.transactionCode,
-    supported: result.supported,
-    diagnostics: result.diagnostics,
-    smokeTest: pendingSmokeTest(),
-    interactionAudit: {status: "not-run"},
-    visualContract,
-    visualStructureAudit: {status: "not-run"},
-    chromeInvariance: {status: "not-run"},
-    comparisonAccepted: false,
-    comparisonGates: pendingComparisonGates(),
-    fallbackAudit: intentionalReferenceFallbacks[programName] || null,
-    knownFailing: isKnownFailingReport(programName),
-    generatedClasses: [result.manifest.targetClass, ...(result.helperSources ?? []).map((helper) => helper.className)],
-    activation: {status: "pending", tool: "abap_transpile"},
-    applicationParityCandidate: false,
-  });
-}
-
+// The whole validation directory is generated, so the transpiler configuration
+// is written before anything reads it. Writing it first is what makes the
+// harness and the converter provably agree: the converter's output folder is
+// derived from the same output_folder abap_transpile is handed below.
 await fs.writeFile(transpileConfigPath, `${JSON.stringify({
-  input_folder: ["src", "scaffold", "converter/gg-gui-validation/generated"],
+  input_folder: ["src", "scaffold", "converter/gg-gui-validation/output_converter"],
   input_filter: [],
   exclude_filter: [],
   output_folder: "converter/gg-gui-validation/output",
@@ -1370,6 +1293,98 @@ await fs.writeFile(transpileConfigPath, `${JSON.stringify({
     {url: "https://github.com/open-abap/open-abap-bal"},
   ],
 }, null, 2)}\n`, "utf8");
+
+// The configuration describes what abap_transpile compiles (this repository's
+// scaffold plus the generated classes) and it is where the converter's own
+// output folder comes from. The programs being converted live in the separate
+// gg-gui checkout, so the conversion run reuses the configuration but scans
+// that checkout instead of input_folder.
+const transpileConfig = await loadTranspileConfig(
+  path.relative(repositoryRoot, transpileConfigPath),
+  {cwd: repositoryRoot},
+);
+assert.ok(
+  transpileConfig.valid,
+  `${transpileConfigPath} is not usable: ${transpileConfig.diagnostics.map((item) => item.message).join("; ")}`,
+);
+assert.equal(transpileConfig.generatedFolder, generatedRoot, "the harness and the converter must agree on the generated folder");
+
+const conversionConfig = {
+  ...transpileConfig,
+  inputFolders: [sourceRoot],
+  inputFilters: [/zgg_gui_[^/\\]*\.prog\.abap$/i],
+  excludeFilters: [],
+};
+const reportPrograms = await discoverPrograms(conversionConfig);
+const reportFiles = reportPrograms.map((program) => path.basename(program.filename));
+
+assert.ok(reportFiles.length > 0, `No gg-gui reports found in ${sourceRoot}`);
+await fs.rm(generatedRoot, {recursive: true, force: true});
+await fs.rm(manifestsRoot, {recursive: true, force: true});
+await fs.rm(outputRoot, {recursive: true, force: true});
+await fs.rm(screenshotsRoot, {recursive: true, force: true});
+await fs.mkdir(generatedRoot, {recursive: true});
+await fs.mkdir(manifestsRoot, {recursive: true});
+await fs.mkdir(screenshotsRoot, {recursive: true});
+
+const results = [];
+const targetNames = new Set();
+const referenceContracts = new Map();
+
+// Include resolution, screen-metadata discovery and the per-report write are
+// the converter's own batch behaviour now; what stays here is what only this
+// harness knows: the gg-gui naming convention and the reference contracts.
+await convertConfiguredPrograms({
+  config: conversionConfig,
+  programs: reportPrograms,
+  fallbackStrategy: "skeleton",
+  manifestFolder: manifestsRoot,
+  overrides: {
+    mode: "partial",
+    ddicTypes: GG_GUI_DDIC_TYPES,
+    className: generatedClassName,
+    transactionCode,
+  },
+  onResult: async ({program, result}) => {
+    const filename = path.basename(program.filename);
+    const programName = program.programName;
+    const screenMetadata = await loadDynproMetadata({filename: program.filename});
+    assert.ok(!targetNames.has(result.manifest.targetClass), `Generated class-name collision for ${result.manifest.targetClass}`);
+    targetNames.add(result.manifest.targetClass);
+    assert.ok(result.classSource, `Converter emitted no partial class for ${filename}`);
+    if (screenMetadata?.reportTitle) {
+      assert.equal(result.reportIR?.reportTitle, screenMetadata.reportTitle, `${filename} report title should come from TPOOL R`);
+      assert.equal(result.reportIR?.description, screenMetadata.reportTitle, `${filename} metadata title should remain the conversion description`);
+    }
+    const visualContract = visualContractFor(programName, screenMetadata);
+    referenceContracts.set(programName, {
+      programName,
+      sourceFile: filename,
+      expectedFirstScreen: visualContract.screenNumber ?? "SELECTION_OR_LIST",
+      expectedTitle: visualContract.title,
+    });
+    results.push({
+      filename,
+      programName,
+      targetClass: result.manifest.targetClass,
+      transactionCode: result.manifest.transactionCode,
+      supported: result.supported,
+      diagnostics: result.diagnostics,
+      smokeTest: pendingSmokeTest(),
+      interactionAudit: {status: "not-run"},
+      visualContract,
+      visualStructureAudit: {status: "not-run"},
+      chromeInvariance: {status: "not-run"},
+      comparisonAccepted: false,
+      comparisonGates: pendingComparisonGates(),
+      fallbackAudit: intentionalReferenceFallbacks[programName] || null,
+      knownFailing: isKnownFailingReport(programName),
+      generatedClasses: [result.manifest.targetClass, ...(result.helperSources ?? []).map((helper) => helper.className)],
+      activation: {status: "pending", tool: "abap_transpile"},
+      applicationParityCandidate: false,
+    });
+  },
+});
 
 const revision = await runCommand("git", ["-C", sourceRepository, "rev-parse", "HEAD"], {stdio: "pipe"});
 const referenceManifest = await writeReferenceManifest(revision, referenceRoot, referenceContracts, reportFiles);
