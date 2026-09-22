@@ -445,6 +445,17 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-context-menu-group\{padding:3px 0 0;\}|.
     rv_html = rv_html && |.gg-context-menu-group-label\{display:block;padding:2px 12px;color:#55738f;font-size:11px;font-weight:600;\}|.
     rv_html = rv_html && |.gg-dynpro-control\{position:absolute;box-sizing:border-box;color:#123b64;font:inherit;\}|.
+* A BOX is the group box the Screen Painter draws: a titled band across the top
+* of the frame and a body a shade darker than the work area, rather than the
+* browser default groove border a bare fieldset would carry.
+* The box is an empty fieldset and the fields it encloses are absolutely
+* positioned siblings, not children, so it takes the layer below every other
+* control for its fill not to paint over them whatever the declaration order.
+    rv_html = rv_html && |.gg-dynpro .gg-dynpro-control\{z-index:1;\}|.
+    rv_html = rv_html && |.gg-dynpro fieldset.gg-dynpro-control\{z-index:0;min-width:0;margin:0;padding:0;border:1px solid #93b2d0;background:#deebf4;\}|.
+* Floating the legend takes it out of the notched-border rendering, so it lays
+* out as an ordinary block filling the width of the frame.
+    rv_html = rv_html && |.gg-dynpro fieldset.gg-dynpro-control>legend\{float:left;width:100%;box-sizing:border-box;margin:0;padding:3px 10px;border-bottom:1px solid #87a3c0;background:linear-gradient(#cddfef,#c1d6ea);color:#12314f;font-size:12px;line-height:15px;\}|.
     rv_html = rv_html && |.gg-dynpro input,.gg-dynpro select,.gg-dynpro button\{font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text],.gg-dynpro input[type=password],.gg-dynpro select\{height:var(--gg-row);padding:2px 6px;border:1px solid var(--gg-border-dark);border-radius:1px;background:var(--gg-input);color:#123b64;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
     rv_html = rv_html && |.gg-dynpro .gg-type-text,.gg-dynpro .gg-type-date,.gg-dynpro .gg-type-time\{text-align:left;\}|.

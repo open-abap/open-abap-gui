@@ -1603,17 +1603,28 @@ try {
   assert.equal(await dynproPage.locator('[name="GV_LIST"]').inputValue(), "ONE");
   assert.equal(await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').isChecked(), true);
   assert.equal(await dynproPage.locator('input[type="radio"][data-abap-name="GV_RADIO_A"]').isChecked(), true);
-  const frameOverflow = await dynproPage.locator(".gg-dynpro").evaluate((root) => [...root.querySelectorAll("input[name],select[name],textarea[name],output[id]")]
-    .map((field) => {
-      const frame = field.closest("fieldset");
-      if (!frame) return null;
-      const fieldBounds = field.getBoundingClientRect();
-      const frameBounds = frame.getBoundingClientRect();
-      return fieldBounds.left < frameBounds.left - 1 || fieldBounds.right > frameBounds.right + 1
-        ? field.getAttribute("name") || field.getAttribute("data-abap-name") || field.id
-        : null;
-    }).filter(Boolean));
-  assert.deepEqual(frameOverflow, [], "Dynpro fields must remain inside their containing frames");
+  // A frame and the fields it encloses are absolutely positioned siblings, not
+  // parent and children, so which frame a field belongs to is a question of
+  // geometry. A field overlapping the title band of its frame is hidden behind
+  // it, the same defect as a field overflowing the side of the frame.
+  const frameOverflow = await dynproPage.locator(".gg-dynpro").evaluate((root) => {
+    const frames = [...root.querySelectorAll("fieldset.gg-dynpro-control")].map((frame) => ({
+      bounds: frame.getBoundingClientRect(),
+      band: frame.querySelector("legend").getBoundingClientRect(),
+    }));
+    return [...root.querySelectorAll("input[name],select[name],textarea[name],output[id]")]
+      .map((field) => {
+        const bounds = field.getBoundingClientRect();
+        if (bounds.width === 0 || bounds.height === 0) return null;
+        const name = field.getAttribute("name") || field.getAttribute("data-abap-name") || field.id;
+        const frame = frames.find(({bounds: f}) => bounds.top < f.bottom && bounds.bottom > f.top
+          && bounds.right > f.left && bounds.left < f.right);
+        if (!frame) return null;
+        if (bounds.left < frame.bounds.left - 1 || bounds.right > frame.bounds.right + 1) return name;
+        return bounds.top < frame.band.bottom - 0.5 ? name : null;
+      }).filter(Boolean);
+  });
+  assert.deepEqual(frameOverflow, [], "Dynpro fields must remain inside their containing frames, below the title");
   assert.ok((await dynproPage.locator('input[name="GV_DATE"]').inputValue()).length > 0);
   assert.ok((await dynproPage.locator('input[name="GV_TIME"]').inputValue()).length > 0);
   await dynproPage.locator('[name="GV_TEXT"]').fill("Changed text");

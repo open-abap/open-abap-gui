@@ -1,10 +1,11 @@
-import {test, expect, dispatch} from "../fixtures.mjs";
+import {test, expect, dispatch, expectFramesClearOfTheirTitles} from "../fixtures.mjs";
 
 test("SE38 displays source and executes through the report runtime", async ({page, host}) => {
   const response = await page.goto(`${host.baseUrl}/transaction?tcode=SE38`);
   expect(response?.status()).toBe(200);
   await expect(page.getByText("Subobjects", {exact: true})).toBeVisible();
   await expect(page.locator('[name="gg-radio-SUB"][value="R_SOURCE"]')).toBeChecked();
+  await expectFramesClearOfTheirTitles(page);
   await expect(page.getByText("Variants", {exact: true})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "With Variant", exact: true})).toHaveCount(0);
   await page.locator('input[name="P_PROGRAM"]').fill("ZGG_EX_015");

@@ -111,3 +111,29 @@ export async function dispatch(page, request) {
 export function expectPageKind(page, kind) {
   return expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", kind);
 }
+
+// The title of a box takes the first line inside the frame, so a control the
+// program puts there is hidden behind the band instead of sitting in the body.
+// The frame and the controls it encloses are absolutely positioned siblings,
+// so only geometry can tell that a control belongs to a frame.
+export async function expectFramesClearOfTheirTitles(page) {
+  const collisions = await page.locator(".gg-dynpro").evaluate((root) => {
+    const hits = [];
+    for (const box of root.querySelectorAll("fieldset.gg-dynpro-control")) {
+      const frame = box.getBoundingClientRect();
+      const band = box.querySelector("legend").getBoundingClientRect();
+      for (const control of root.querySelectorAll(".gg-dynpro-control")) {
+        if (control === box || control.tagName === "FIELDSET") continue;
+        const bounds = control.getBoundingClientRect();
+        if (bounds.width === 0 || bounds.height === 0) continue;
+        const inside = bounds.left >= frame.left - 1 && bounds.right <= frame.right + 1
+          && bounds.bottom > frame.top && bounds.top < frame.bottom;
+        if (inside && bounds.top < band.bottom - 0.5) {
+          hits.push(`${control.getAttribute("data-abap-name") || control.getAttribute("name") || control.textContent.trim()} behind "${box.querySelector("legend").textContent.trim()}"`);
+        }
+      }
+    }
+    return hits;
+  });
+  expect(collisions, "Dynpro controls must sit below the title of their frame").toEqual([]);
+}
