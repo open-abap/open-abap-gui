@@ -318,8 +318,15 @@ export function conversionPlan(config, program, overrides = {}) {
   } = overrides;
   return {
     ...rest,
-    filename: program.filename,
+    // The filename is recorded in the generated class header and feeds the
+    // compilation hash, so it must not be an absolute path: that would bake a
+    // machine-specific string into generated ABAP and give the same source a
+    // different hash on every checkout. Metadata discovery is anchored on the
+    // absolute path separately, so it does not depend on the working directory.
+    filename: program.relativePath ?? program.filename,
     source: program.source,
+    dynproMetadataFilename: program.filename.replace(/\.prog\.abap$/i, ".prog.xml"),
+    dynproScreenDirectory: path.dirname(program.filename),
     includePaths: config.inputFolders,
     configPath: path.join(config.root, "abaplint.jsonc"),
     className: resolveOverride(className, program.programName),

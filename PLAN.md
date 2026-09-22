@@ -134,8 +134,17 @@ write over an existing output and exits `2`. Delete that branch and its
   because `includeCandidates` already tries `<name>.prog.abap` per search path.
 - **Screen/dynpro metadata**: already discovered beside the report by
   [loadDynproMetadata](converter/src/dynpro-metadata.mjs#L553) from the real
-  report path. Today the CLI passes a bare filename, so discovery mostly misses;
-  passing the resolved absolute path fixes it for free.
+  report path. Today the CLI passes a bare filename, so discovery mostly misses.
+
+  **Do not fix this by passing the absolute path as `filename`.** The filename
+  is written into the generated class header (`* Source file:`) and feeds the
+  compilation hash, so an absolute path bakes a machine-specific string into
+  generated ABAP and changes `* Source SHA-256:` on every checkout. The
+  before/after diff below caught exactly that. `conversionPlan` therefore passes
+  a config-root-relative `filename` and anchors discovery separately with
+  `dynproMetadataFilename` and `dynproScreenDirectory`, both absolute —
+  `screenFilesForReport` matches on `path.basename`, so the relative name is
+  harmless there.
 - **Class name / transaction code**: default to
   [`defaultClassName`/`defaultTransactionCode`](converter/src/options.mjs#L22-L35).
   Library callers may pass `className(programName)` / `transactionCode(programName)`
@@ -410,8 +419,9 @@ Run before and after, and diff:
 
 1. `cd converter && npm run test:unit` — plus new unit tests for
    `loadTranspileConfig` (missing file, bad JSON, string vs array
-   `input_folder`, missing `output_folder`, bad regex, path resolution relative
-   to the config dir, `generatedFolder` derivation, and the warning when
+   `input_folder`, missing `output_folder`, bad regex, folder resolution against
+   the working directory, filters matching absolute paths,
+   `generatedFolder` derivation, and the warning when
    `input_folder` omits it; plus: an unknown top-level key in the config is
    ignored, not rejected — the converter reads the transpiler's file and must
    not become a second validator of it) and `discoverPrograms` (filter precedence,
