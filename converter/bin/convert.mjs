@@ -4,6 +4,7 @@ import path from "node:path";
 import { convertConfiguredPrograms } from "../src/batch.mjs";
 import { DEFAULT_CONFIG_FILENAME, discoverPrograms, loadTranspileConfig } from "../src/config.mjs";
 import { diagnosticsToJSON, diagnosticsToText, sortDiagnostics } from "../src/diagnostics.mjs";
+import { loadLibraries } from "../src/libs.mjs";
 
 function usage() {
   return `Usage: node converter/bin/convert.mjs [options]
@@ -142,23 +143,37 @@ try {
   process.exit(2);
 }
 
-const summary = await convertConfiguredPrograms({
-  config,
-  programs,
-  write: !options.check,
-  // --program converts a subset, so the rest of the generated folder is still
-  // current output and must survive.
-  clear: options.programs.length === 0,
-  outputFolder: options["output-folder"],
-  outputFile: options.output,
-  overrides: {
-    mode: options.mode,
-    ddicTypes,
-    className: options.class,
-    transactionCode: options.tcode,
-    description: options.description,
-  },
-});
+let libraries;
+try {
+  libraries = loadLibraries(config, { log: (message) => console.error(message) });
+} catch (error) {
+  console.error(error.message);
+  process.exit(2);
+}
+config.libraryFolders = libraries.folders;
+
+let summary;
+try {
+  summary = await convertConfiguredPrograms({
+    config,
+    programs,
+    write: !options.check,
+    // --program converts a subset, so the rest of the generated folder is still
+    // current output and must survive.
+    clear: options.programs.length === 0,
+    outputFolder: options["output-folder"],
+    outputFile: options.output,
+    overrides: {
+      mode: options.mode,
+      ddicTypes,
+      className: options.class,
+      transactionCode: options.tcode,
+      description: options.description,
+    },
+  });
+} finally {
+  libraries.cleanup();
+}
 
 const diagnostics = sortDiagnostics([
   ...summary.diagnostics,

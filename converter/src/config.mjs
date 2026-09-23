@@ -65,6 +65,40 @@ function compileFilters(values, key, filename, diagnostics) {
   return compiled;
 }
 
+// The same shape abap_transpile accepts: each lib is read from `folder` when
+// that exists, otherwise cloned from `url`. Cloning happens in loadLibraries,
+// not here, so reading a configuration never touches the network.
+function parseLibs(declared, filename, diagnostics) {
+  if (declared === undefined) return [];
+  if (!Array.isArray(declared)) {
+    diagnostics.push(configDiagnostic(filename, "GGCONV-E117", "libs must be an array of libraries", 'Use "libs": [{ "url": "https://github.com/..." }].', "libs"));
+    return [];
+  }
+  const libs = [];
+  for (const entry of declared) {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+      diagnostics.push(configDiagnostic(filename, "GGCONV-E117", "libs entries must be objects", 'Write the entry as { "url": "..." } or { "folder": "..." }.', "libs"));
+      continue;
+    }
+    const url = typeof entry.url === "string" && entry.url !== "" ? entry.url : undefined;
+    const folder = typeof entry.folder === "string" && entry.folder !== "" ? entry.folder : undefined;
+    if (url === undefined && folder === undefined) {
+      diagnostics.push(configDiagnostic(filename, "GGCONV-E117", "a lib must define a non-empty url or folder", "Add the repository url, or the folder it is checked out in.", "libs"));
+      continue;
+    }
+    let files = ["/src/**"];
+    if (typeof entry.files === "string" && entry.files !== "") files = [entry.files];
+    else if (Array.isArray(entry.files)) files = entry.files.filter((item) => typeof item === "string" && item !== "");
+    libs.push({
+      url,
+      folder,
+      files,
+      excludeFilters: compileFilters(entry.exclude_filter, "libs exclude_filter", filename, diagnostics),
+    });
+  }
+  return libs;
+}
+
 function emptyConfig(filename, root, diagnostics) {
   return {
     filename,
@@ -72,6 +106,7 @@ function emptyConfig(filename, root, diagnostics) {
     inputFolders: [],
     inputFilters: [],
     excludeFilters: [],
+    libs: [],
     outputFolder: undefined,
     generatedFolder: undefined,
     diagnostics,
@@ -185,6 +220,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
 
   const inputFilters = compileFilters(parsed.input_filter, "input_filter", filename, diagnostics);
   const excludeFilters = compileFilters(parsed.exclude_filter, "exclude_filter", filename, diagnostics);
+  const libs = parseLibs(parsed.libs, filename, diagnostics);
 
   // The generated classes are only compiled if the transpiler also reads them,
   // which it does only when the folder is one of its input folders. The
@@ -232,6 +268,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
     inputFolders,
     inputFilters,
     excludeFilters,
+    libs,
     outputFolder,
     generatedFolder,
     diagnostics,
@@ -327,7 +364,7 @@ export function conversionPlan(config, program, overrides = {}) {
     source: program.source,
     dynproMetadataFilename: program.filename.replace(/\.prog\.abap$/i, ".prog.xml"),
     dynproScreenDirectory: path.dirname(program.filename),
-    includePaths: config.inputFolders,
+    includePaths: [...config.inputFolders, ...(config.libraryFolders ?? [])],
     configPath: path.join(config.root, "abaplint.jsonc"),
     className: resolveOverride(className, program.programName),
     transactionCode: resolveOverride(transactionCode, program.programName),

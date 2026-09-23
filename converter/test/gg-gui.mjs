@@ -118,13 +118,14 @@ const idempotentReferenceActions = Object.freeze({
     RESET: "Fresh-session RESET restores the declared default model; the server dispatch is verified and the unchanged initial model surface is intentional.",
   }),
 });
+// Full program names, e.g. "ZGG_GUI_ALV_TREE".
 const knownFailingReports = Object.freeze([]);
 const knownFailingEmptyContainerReports = Object.freeze([]);
 const knownFailingOverlapReports = Object.freeze([]);
 const knownFailingClippingReports = Object.freeze([]);
 
 function isKnownFailingReport(programName) {
-  return knownFailingReports.includes(programName.replace(/^ZGG_GUI_/, ""));
+  return knownFailingReports.includes(programName);
 }
 
 function idempotentActionReason(programName, ucomm) {
@@ -150,12 +151,16 @@ function hasGenericPartialHeading(headings) {
   return headings.some((heading) => genericPartialHeadings.some((text) => heading.toLowerCase().includes(text)));
 }
 
+function shortName(programName) {
+  return programName.replace(/^ZGG_GUI_/, "");
+}
+
 function generatedClassName(programName) {
-  return `ZCL_CV_${programName.replace(/^ZGG_GUI_/, "")}`.slice(0, 30);
+  return `ZCL_CV_${shortName(programName)}`.slice(0, 30);
 }
 
 function transactionCode(programName) {
-  return `CV_${programName.replace(/^ZGG_GUI_/, "")}`.slice(0, 20);
+  return `CV_${shortName(programName)}`.slice(0, 20);
 }
 
 function visualContractFor(programName, screenMetadata) {
@@ -282,8 +287,13 @@ async function programOwnedFingerprint(page) {
   });
 }
 
+const submitControlSelector = ".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]";
+const selectionChangeSelector = ".wb-runtime-content [data-selection-ucomm]";
+
+// The returned index is the element's position in the selector's document
+// order, which is what page.locator(selector).nth(index) addresses.
 async function inventoryReferenceActions(page) {
-  const submitControls = await page.locator(".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]").evaluateAll((elements) => {
+  return page.evaluate(({submitControlSelector, selectionChangeSelector}) => {
     const isVisible = (element) => {
       if (element.disabled || element.hidden) return false;
       for (let current = element; current; current = current.parentElement) {
@@ -294,39 +304,27 @@ async function inventoryReferenceActions(page) {
       const rect = element.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
     };
-    return elements.map((element, index) => ({
-    index,
-    name: element.getAttribute("name") || "",
-    value: element.getAttribute("value") || "",
-    label: (element.getAttribute("aria-label") || element.textContent || element.getAttribute("value") || "").trim().replace(/\s+/g, " "),
-    disabled: element.disabled,
-    visible: isVisible(element),
-  })).filter((item) => item.visible);
-  });
-  const selectionChanges = await page.locator(".wb-runtime-content [data-selection-ucomm]").evaluateAll((elements) => {
-    const isVisible = (element) => {
-      if (element.disabled || element.hidden) return false;
-      for (let current = element; current; current = current.parentElement) {
-        if (current.hidden || current.matches("details:not([open])")) return false;
-        const style = getComputedStyle(current);
-        if (style.display === "none" || style.visibility === "hidden") return false;
-      }
-      const rect = element.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    };
-    return elements.map((element, index) => ({
-    index,
-    name: element.getAttribute("name") || "",
-    ucomm: element.getAttribute("data-selection-ucomm") || "",
-    type: element.getAttribute("type") || element.tagName.toLowerCase(),
-    label: (element.getAttribute("aria-label") || element.getAttribute("name") || "selection change").trim(),
-    checked: Boolean(element.checked),
-    optionCount: element.tagName.toLowerCase() === "select" ? element.options.length : 0,
-    disabled: element.disabled,
-    visible: isVisible(element),
-  })).filter((item) => item.visible);
-  });
-  return {submitControls, selectionChanges};
+    const submitControls = [...document.querySelectorAll(submitControlSelector)].map((element, index) => ({
+      index,
+      name: element.getAttribute("name") || "",
+      value: element.getAttribute("value") || "",
+      label: (element.getAttribute("aria-label") || element.textContent || element.getAttribute("value") || "").trim().replace(/\s+/g, " "),
+      disabled: element.disabled,
+      visible: isVisible(element),
+    })).filter((item) => item.visible);
+    const selectionChanges = [...document.querySelectorAll(selectionChangeSelector)].map((element, index) => ({
+      index,
+      name: element.getAttribute("name") || "",
+      ucomm: element.getAttribute("data-selection-ucomm") || "",
+      type: element.getAttribute("type") || element.tagName.toLowerCase(),
+      label: (element.getAttribute("aria-label") || element.getAttribute("name") || "selection change").trim(),
+      checked: Boolean(element.checked),
+      optionCount: element.tagName.toLowerCase() === "select" ? element.options.length : 0,
+      disabled: element.disabled,
+      visible: isVisible(element),
+    })).filter((item) => item.visible);
+    return {submitControls, selectionChanges};
+  }, {submitControlSelector, selectionChangeSelector});
 }
 
 async function auditVisualStructure(page, result, recordedFallback) {
@@ -454,12 +452,12 @@ async function auditVisualStructure(page, result, recordedFallback) {
     const findElement = (element) => findNode(element.name)
       || (element.ucomm && [...(pageRoot?.querySelectorAll('button[name="gg_ucomm"]') ?? [])]
         .find((button) => String(button.getAttribute("value") || "").toUpperCase() === element.ucomm));
-  const expectedElements = (contract?.elements ?? []).filter((element) => {
-    if (kind === "SELECTION") return false;
-    if (element.visible === false) return false;
-    const owner = (contract?.containers ?? []).find((container) => container.name === element.container);
-    return !["TABLE_CTRL", "STRIP_CTRL"].includes(owner?.kind);
-  });
+    const expectedElements = (contract?.elements ?? []).filter((element) => {
+      if (kind === "SELECTION") return false;
+      if (element.visible === false) return false;
+      const owner = (contract?.containers ?? []).find((container) => container.name === element.container);
+      return !["TABLE_CTRL", "STRIP_CTRL"].includes(owner?.kind);
+    });
     const missingElements = expectedElements.filter((element) => !findElement(element)).map((element) => element.name);
     check("control-types", missingElements.length === 0, missingElements.length === 0
       ? `${expectedElements.length} metadata field/control name(s) are represented by typed HTML controls`
@@ -476,9 +474,8 @@ async function auditVisualStructure(page, result, recordedFallback) {
       ? `${expectedElements.length} source anchors have visible geometry`
       : `Source anchors without visible geometry: ${anchorFailures.join(", ")}`);
     const matchedElementCount = expectedElements.filter((element) => Boolean(findElement(element))).length;
-    check("content-cardinality", matchedElementCount === expectedElements.length, matchedElementCount === expectedElements.length
-      ? `Expected ${expectedElements.length} metadata content anchor(s); rendered ${matchedElementCount}`
-      : `Expected ${expectedElements.length} metadata content anchor(s); rendered ${matchedElementCount}`);
+    check("content-cardinality", matchedElementCount === expectedElements.length,
+      `Expected ${expectedElements.length} metadata content anchor(s); rendered ${matchedElementCount}`);
     const customHosts = [...(pageRoot?.querySelectorAll('[data-custom-control],[data-control-kind="CUSTOM_CONTAINER"]') ?? [])];
     const directTextOf = (node) => [...node.childNodes]
       .filter((child) => child.nodeType === Node.TEXT_NODE)
@@ -487,13 +484,14 @@ async function auditVisualStructure(page, result, recordedFallback) {
       .trim();
     const customHostFor = (container) => customHosts.find((node) => nodeNames(node).some((value) => value === container.name || value.endsWith(`-${container.name}`))
       || directTextOf(node).toUpperCase().includes(`NAME=${container.name};`));
-    const missingContainers = (contract?.containers ?? [])
-      .filter((container) => container.kind === "CUST_CTRL")
-      .filter(() => kind === "DYNPRO")
+    const customControls = (contract?.containers ?? []).filter((container) => container.kind === "CUST_CTRL");
+    // Custom-control hosts only exist on a dynpro.
+    const dynproCustomControls = kind === "DYNPRO" ? customControls : [];
+    const missingContainers = dynproCustomControls
       .filter((container) => !customHostFor(container))
       .map((container) => container.name);
     check("custom-controls", missingContainers.length === 0, missingContainers.length === 0
-      ? `${(contract?.containers ?? []).filter((container) => container.kind === "CUST_CTRL").length} custom-control host(s) represented`
+      ? `${customControls.length} custom-control host(s) represented`
       : `Missing custom-control host(s): ${missingContainers.join(", ")}`);
     const diagnosticText = (value) => /^(?:name=[^;]*;\s*repid=.*|nodes=\d+;\s*items=\d+;\s*structure=.*|ALV border=\d+;\s*rows=\d+|ALV rows:\s*\d+|Tree rows:.*|Hierarchy column:.*)$/i.test(value.trim());
     const contentSelectors = "tr,img,video,audio,canvas,svg,form,input,select,textarea,button,iframe,object,embed";
@@ -543,15 +541,11 @@ async function auditVisualStructure(page, result, recordedFallback) {
         .some((button) => visible(button) && unobscured(button) && Boolean((button.innerText || button.getAttribute("aria-label") || "").trim()));
       return !nonContainerControl && toolbarButtons;
     };
-    const emptyContainers = (contract?.containers ?? [])
-      .filter((container) => container.kind === "CUST_CTRL")
-      .filter((container) => kind === "DYNPRO")
+    const emptyContainers = dynproCustomControls
       .filter((container) => {
+        if (contract?.emptyContainerExceptions?.[container.name]) return false;
         const host = customHostFor(container);
-        const exception = contract?.emptyContainerExceptions?.[container.name];
-        if (exception) return false;
-        if (!host) return true;
-        return !hasRenderedContent(host);
+        return !host || !hasRenderedContent(host);
       })
       .map((container) => container.name);
     const emptySplitterCells = [...(pageRoot?.querySelectorAll(".gg-splitter-cell") ?? [])]
@@ -559,13 +553,10 @@ async function auditVisualStructure(page, result, recordedFallback) {
       .map((cell, index) => ({cell, key: cell.id || `SPLITTER_CELL_${index + 1}`, index: index + 1}))
       .filter(({cell, key}) => !contract?.emptyContainerExceptions?.[key] && !hasRenderedContent(cell))
       .map(({key, index}) => `${key} (splitter cell ${index})`);
-    const emptyHostIssues = [
-      ...emptyContainers.filter((name) => !contract?.emptyContainerExceptions?.[name]),
-      ...emptySplitterCells,
-    ];
+    const emptyHostIssues = [...emptyContainers, ...emptySplitterCells];
     check("empty-containers", emptyHostIssues.length === 0,
       emptyHostIssues.length === 0
-        ? `${(contract?.containers ?? []).filter((container) => container.kind === "CUST_CTRL").length} custom-control host(s) and rendered splitter cells contain visible text, rows, or media/form content`
+        ? `${customControls.length} custom-control host(s) and rendered splitter cells contain visible text, rows, or media/form content`
         : `Empty custom-control host(s) or splitter cells: ${emptyHostIssues.join(", ")}`);
     const textRegions = [];
     const walker = document.createTreeWalker(pageRoot, NodeFilter.SHOW_TEXT);
@@ -655,7 +646,7 @@ async function auditVisualStructure(page, result, recordedFallback) {
     }
     check("unscrollable-clipping", clippingIssues.length === 0,
       clippingIssues.length === 0
-      ? `${clippingCandidates.length} visible controls/tables fit their client area or have a scrollable region`
+        ? `${clippingCandidates.length} visible controls/tables fit their client area or have a scrollable region`
         : `${clippingIssues.length} clipped control/table region(s): ${clippingIssues.slice(0, 4).join(", ")}`);
     const orderedPositions = expectedElements.map((element) => namedNodes.indexOf(findElement(element))).filter((index) => index >= 0);
     check("field-order", orderedPositions.every((position, index) => index === 0 || position >= orderedPositions[index - 1]), "Metadata field/control order is preserved in document order");
@@ -718,6 +709,30 @@ async function auditVisualStructure(page, result, recordedFallback) {
   };
 }
 
+function transactionUrl(baseUrl, tcode) {
+  return `${baseUrl}/transaction?tcode=${encodeURIComponent(tcode)}`;
+}
+
+async function waitForRuntimePage(page) {
+  await page.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+}
+
+async function openRuntimePage(page, url) {
+  await page.goto(url, {waitUntil: "load"});
+  await waitForRuntimePage(page);
+}
+
+async function clickAndLoad(locator) {
+  await locator.click();
+  await locator.page().waitForLoadState("load");
+}
+
+function waitForDispatch(page) {
+  return page.waitForResponse(
+    (candidate) => candidate.url().endsWith("/dispatch") && candidate.request().method() === "POST",
+    {timeout: 30_000});
+}
+
 async function postDispatch(page, request) {
   const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const pageId = await page.locator("[data-page-kind]").getAttribute("data-page-id");
@@ -747,23 +762,17 @@ async function browserChromeSnapshot(page) {
   });
 }
 
-async function runAlvTreeBrowserRegression(page, baseUrl, result) {
+async function runAlvTreeBrowserRegression(page, result) {
   if (result.programName !== "ZGG_GUI_ALV_TREE") return;
-  const url = `${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`;
   const tree = page.locator('[data-control-kind="ALV_TREE"] .gg-alv-tree table[role="tree"]');
   const waitForTreeEvent = async (control, clickOptions = {}) => {
-    const responsePromise = page.waitForResponse(
-      (candidate) => candidate.url().endsWith("/dispatch") && candidate.request().method() === "POST",
-      {timeout: 30_000});
-    const requestPromise = page.waitForRequest(
-      (candidate) => candidate.url().endsWith("/dispatch") && candidate.method() === "POST",
-      {timeout: 30_000});
+    const responsePromise = waitForDispatch(page);
     await control.click({noWaitAfter: true, ...clickOptions});
-    const [response, request] = await Promise.all([responsePromise, requestPromise]);
+    const response = await responsePromise;
     assert.equal(response.status(), 200, `ZGG_GUI_ALV_TREE interaction returned HTTP ${response.status()}`);
     await page.waitForLoadState("load");
-    await page.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
-    return request.postData() || "";
+    await waitForRuntimePage(page);
+    return response.request().postData() || "";
   };
 
   const folder = tree.locator('tbody tr[data-has-children="true"]').first();
@@ -799,10 +808,9 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
   actionPage.on("dialog", async (dialog) => dialog.accept());
   try {
     for (const result of results) {
-      const url = `${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`;
-      await actionPage.goto(url, {waitUntil: "load"});
-      await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
-      await runAlvTreeBrowserRegression(actionPage, baseUrl, result);
+      const url = transactionUrl(baseUrl, result.transactionCode);
+      await openRuntimePage(actionPage, url);
+      await runAlvTreeBrowserRegression(actionPage, result);
       const inventory = await inventoryReferenceActions(actionPage);
       const initialPageKind = await actionPage.locator("[data-page-kind]").getAttribute("data-page-kind");
       const testedSubmitControls = inventory.submitControls.filter((item) =>
@@ -810,31 +818,23 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
       const journey = [];
 
       for (const action of testedSubmitControls.filter((item) => !item.disabled)) {
-        await actionPage.goto(url, {waitUntil: "load"});
-        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        await openRuntimePage(actionPage, url);
         const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
         const before = await programOwnedFingerprint(actionPage);
-        const controls = actionPage.locator(".wb-runtime-content button[type=submit], .wb-runtime-content input[type=submit]");
         const lineNumber = /^LINE:(\d+)\|/.exec(action.value)?.[1];
         const control = lineNumber
           ? actionPage.locator(`.wb-runtime-content [data-line-index="${lineNumber}"] button[type=submit]`)
-          : controls.nth(action.index);
+          : actionPage.locator(submitControlSelector).nth(action.index);
         assert.equal(await control.isVisible(), true, `${result.programName} action ${action.label} is not visible on its fresh journey`);
         let response;
         try {
-          [response] = await Promise.all([
-            actionPage.waitForResponse(
-              (candidate) => candidate.url().endsWith("/dispatch")
-                && candidate.request().method() === "POST",
-              {timeout: 30_000}),
-            control.click({noWaitAfter: true}),
-          ]);
+          [response] = await Promise.all([waitForDispatch(actionPage), control.click({noWaitAfter: true})]);
           await actionPage.waitForLoadState("load");
         } catch (error) {
           throw new Error(`${result.programName} action ${action.value || action.label} did not dispatch: ${error.message}`);
         }
         assert.equal(response?.status(), 200, `${result.programName} action ${action.value || action.label} did not return HTTP 200: ${await response?.text()}`);
-        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        await waitForRuntimePage(actionPage);
         if (result.programName === "ZGG_GUI_ALV_DYNAMIC" && action.value !== "BACK") {
           const grid = actionPage.locator('[data-control-kind="ALV_GRID"]');
           assert.equal(await grid.count(), 1, `ZGG_GUI_ALV_DYNAMIC action ${action.value || action.label} lost the ALV grid`);
@@ -859,23 +859,16 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
       }
 
       for (const action of inventory.selectionChanges.filter((item) => item.ucomm && !item.disabled && (item.type !== "select" || item.optionCount > 1) && (item.type !== "radio" || !item.checked))) {
-        await actionPage.goto(url, {waitUntil: "load"});
-        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        await openRuntimePage(actionPage, url);
         const beforePageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
         const before = await programOwnedFingerprint(actionPage);
-        const controls = actionPage.locator(".wb-runtime-content [data-selection-ucomm]");
-        const control = controls.nth(action.index);
+        const control = actionPage.locator(selectionChangeSelector).nth(action.index);
         assert.equal(await control.isVisible(), true, `${result.programName} selection action ${action.ucomm} is not visible on its fresh journey`);
-        const responsePromise = actionPage.waitForResponse(
-          (candidate) => candidate.url().endsWith("/dispatch")
-            && candidate.request().method() === "POST",
-          {timeout: 30_000});
+        const responsePromise = waitForDispatch(actionPage);
         let changePromise;
         if (action.type === "select") {
-          const options = await control.locator("option").count();
-          changePromise = options > 1
-            ? control.selectOption({index: 1, noWaitAfter: true})
-            : control.selectOption({index: 0, noWaitAfter: true});
+          // Only selects with a second option are exercised, see the loop filter.
+          changePromise = control.selectOption({index: 1, noWaitAfter: true});
         } else if (action.type === "checkbox") {
           changePromise = action.checked
             ? control.uncheck({noWaitAfter: true})
@@ -893,7 +886,7 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
         }
         await actionPage.waitForLoadState("load");
         assert.equal(response?.status(), 200, `${result.programName} selection action ${action.ucomm} did not return HTTP 200`);
-        await actionPage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+        await waitForRuntimePage(actionPage);
         const afterPageId = await actionPage.locator("[data-page-kind]").getAttribute("data-page-id");
         const after = await programOwnedFingerprint(actionPage);
         const programEffect = before !== after;
@@ -902,8 +895,7 @@ async function runReferenceInteractionAudit(browser, baseUrl, results) {
         journey.push({kind: "selection-change", label: action.label, ucomm: action.ucomm, stateChanged: programEffect, programEffect, idempotent: !programEffect && Boolean(idempotentReason), idempotentReason: idempotentReason || undefined, pageChanged: true});
       }
 
-      await negativePage.goto(url, {waitUntil: "load"});
-      await negativePage.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
+      await openRuntimePage(negativePage, url);
       const forgedCommand = await postDispatch(negativePage, {action: "COMMAND", ucomm: "PLAN9_FORGED_FUNCTION"});
       assert.equal(forgedCommand.status, 400, `${result.programName} accepted a forged function code: ${forgedCommand.body}`);
       const forgedRow = await postDispatch(negativePage, {action: "LINE", row: 999, token: "PLAN9_FORGED_NODE"});
@@ -1176,43 +1168,43 @@ ${cards}
   await fs.writeFile(path.join(screenshotsRoot, "index.html"), html, "utf8");
 }
 
-async function writeReferenceAudit(revision, referenceRoot) {
-  const audits = await Promise.all(Object.entries(referenceStateAudits).map(async ([programName, audit]) => {
+// Records each audited report's pinned reference image beside its audit entry,
+// so a recaptured screenshot shows up as a changed hash.
+async function writeImageAudit(outputName, key, entries, revision, referenceRoot) {
+  const audited = await Promise.all(Object.entries(entries).map(async ([programName, entry]) => {
     const filename = `${programName.toLowerCase()}.png`;
     const referencePath = path.join(referenceRoot, filename);
     const data = await fs.readFile(referencePath);
     return [programName, {
-      ...audit,
+      ...entry,
       filename,
       dimensions: await imageDimensions(referencePath),
       sha256: createHash("sha256").update(data).digest("hex"),
     }];
   }));
-  await fs.writeFile(path.join(validationRoot, "reference-audit.json"), `${JSON.stringify({
+  await fs.writeFile(path.join(validationRoot, outputName), `${JSON.stringify({
     repositoryUrl,
     revision,
     referenceDirectory: path.relative(validationRoot, referenceRoot).split(path.sep).join("/"),
-    audits: Object.fromEntries(audits),
+    [key]: Object.fromEntries(audited),
   }, null, 2)}\n`, "utf8");
 }
 
-async function writeFallbackAudit(revision, referenceRoot) {
-  const fallbacks = await Promise.all(Object.entries(intentionalReferenceFallbacks).map(async ([programName, fallback]) => {
-    const filename = `${programName.toLowerCase()}.png`;
-    const referencePath = path.join(referenceRoot, filename);
-    const data = await fs.readFile(referencePath);
-    return [programName, {
-      ...fallback,
-      filename,
-      dimensions: await imageDimensions(referencePath),
-      sha256: createHash("sha256").update(data).digest("hex"),
-    }];
-  }));
-  await fs.writeFile(path.join(validationRoot, "fallback-audit.json"), `${JSON.stringify({
+async function writeResults(revision, referenceManifest, results, extra = {}) {
+  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({
     repositoryUrl,
     revision,
-    referenceDirectory: path.relative(validationRoot, referenceRoot).split(path.sep).join("/"),
-    fallbacks: Object.fromEntries(fallbacks),
+    referenceManifest: {path: "reference-manifest.json", reportCount: referenceManifest.reportCount},
+    ...extra,
+    screenshotViewport,
+    screenshotFixture,
+    screenshotEnvironment,
+    comparisonGateDefinitions,
+    knownFailingReports,
+    knownFailingEmptyContainerReports,
+    knownFailingOverlapReports,
+    knownFailingClippingReports,
+    reports: results,
   }, null, 2)}\n`, "utf8");
 }
 
@@ -1390,8 +1382,8 @@ await convertConfiguredPrograms({
 
 const revision = await runCommand("git", ["-C", sourceRepository, "rev-parse", "HEAD"], {stdio: "pipe"});
 const referenceManifest = await writeReferenceManifest(revision, referenceRoot, referenceContracts, reportFiles);
-await writeReferenceAudit(revision, referenceRoot);
-await writeFallbackAudit(revision, referenceRoot);
+await writeImageAudit("reference-audit.json", "audits", referenceStateAudits, revision, referenceRoot);
+await writeImageAudit("fallback-audit.json", "fallbacks", intentionalReferenceFallbacks, revision, referenceRoot);
 const recordedFallbackAudit = JSON.parse(await fs.readFile(path.join(validationRoot, "fallback-audit.json"), "utf8"));
 await fs.writeFile(path.join(validationRoot, "known-failing.json"), `${JSON.stringify({
   repositoryUrl,
@@ -1404,7 +1396,10 @@ await fs.writeFile(path.join(validationRoot, "known-failing.json"), `${JSON.stri
   visualGates: [
     {
       id: "empty-containers",
-      reports: knownFailingEmptyContainerReports,
+      reports: knownFailingEmptyContainerReports.map((programName) => ({
+        programName,
+        reason: "A custom-control host or splitter cell renders no visible content.",
+      })),
     },
     {
       id: "overlapping-text",
@@ -1417,12 +1412,12 @@ await fs.writeFile(path.join(validationRoot, "known-failing.json"), `${JSON.stri
       id: "unscrollable-clipping",
       reports: knownFailingClippingReports.map((programName) => ({
         programName,
-      reason: "Visible control content exceeds its height by more than 2px without a scrollable region.",
+        reason: "Visible control content exceeds its height by more than 2px without a scrollable region.",
       })),
     },
   ],
 }, null, 2)}\n`, "utf8");
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, referenceManifest: {path: "reference-manifest.json", reportCount: referenceManifest.reportCount}, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
+await writeResults(revision, referenceManifest, results);
 console.log(`Converted ${results.length} gg-gui reports from ${revision}`);
 
 await runCommand(repositoryTool("abap_transpile"), [path.relative(repositoryRoot, transpileConfigPath)]);
@@ -1441,7 +1436,7 @@ for (const result of results) {
   };
   result.applicationParityCandidate = true;
 }
-await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, referenceManifest: {path: "reference-manifest.json", reportCount: referenceManifest.reportCount}, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
+await writeResults(revision, referenceManifest, results);
 
 let hostProcess;
 let browser;
@@ -1477,7 +1472,7 @@ try {
   const page = await newScreenshotPage(browser);
   for (const result of results) {
     assert.equal(result.applicationParityCandidate, true, `Screenshot blocked until ${result.programName} has clean transpiler activation`);
-    const response = await page.goto(`${baseUrl}/transaction?tcode=${encodeURIComponent(result.transactionCode)}`, {waitUntil: "load"});
+    const response = await page.goto(transactionUrl(baseUrl, result.transactionCode), {waitUntil: "load"});
     assert.equal(response?.status(), 200, `Host failed for ${result.programName}`);
     await page.locator("[data-page-kind]").waitFor({state: "visible", timeout: 30_000});
     const smoke = await page.locator("body").evaluate((body) => ({
@@ -1532,8 +1527,7 @@ try {
   const actualEmptyContainerFailures = [...new Set(results
     .filter((result) => result.visualStructureAudit.checks.some((check) => check.id === "empty-containers" && !check.pass))
     .map((result) => result.programName))].sort();
-  const expectedEmptyContainerFailures = knownFailingEmptyContainerReports.map((item) => item.programName).sort();
-  assert.deepEqual(actualEmptyContainerFailures, expectedEmptyContainerFailures,
+  assert.deepEqual(actualEmptyContainerFailures, [...knownFailingEmptyContainerReports].sort(),
     "The empty-container gate red set changed; update knownFailingEmptyContainerReports after reviewing the rendered hosts.");
   const actualOverlapFailures = [...new Set(results
     .filter((result) => result.visualStructureAudit.checks.some((check) => check.id === "overlapping-text" && !check.pass))
@@ -1548,68 +1542,53 @@ try {
   await runReferenceInteractionAudit(browser, baseUrl, results);
   const variantsPage = await newScreenshotPage(browser);
   variantsPage.on("dialog", async (dialog) => dialog.accept());
-  const variantsUrl = `${baseUrl}/transaction?tcode=${encodeURIComponent("CV_SEL_VARIANTS")}`;
+  const variantsUrl = transactionUrl(baseUrl, "CV_SEL_VARIANTS");
   await variantsPage.goto(variantsUrl, {waitUntil: "load"});
   await variantsPage.locator('[name="P_VARI"]').fill("GG_E2E");
   await variantsPage.locator('[name="P_NAME"]').fill("Created value");
-  await variantsPage.locator('button[name="gg_ucomm"][value="SAVE"]').click();
-  await variantsPage.waitForLoadState("load");
+  await clickAndLoad(variantsPage.locator('button[name="gg_ucomm"][value="SAVE"]'));
   assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was created/);
   await variantsPage.locator('[name="P_NAME"]').fill("Updated value");
-  await variantsPage.locator('button[name="gg_ucomm"][value="SAVE"]').click();
-  await variantsPage.waitForLoadState("load");
+  await clickAndLoad(variantsPage.locator('button[name="gg_ucomm"][value="SAVE"]'));
   assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was updated/);
   await variantsPage.locator('[name="P_NAME"]').fill("Unsaved value");
-  await variantsPage.locator('button[name="gg_ucomm"][value="SHOW"]').click();
-  await variantsPage.waitForLoadState("load");
+  await clickAndLoad(variantsPage.locator('button[name="gg_ucomm"][value="SHOW"]'));
   assert.match(await variantsPage.locator("body").textContent(), /S_CAT kind S/);
-  await variantsPage.locator('button[name="gg_ucomm"][value="SUBVAR"]').click();
-  await variantsPage.waitForLoadState("load");
-  await variantsPage.getByRole("button", {name: "Continue", exact: true}).click();
-  await variantsPage.waitForLoadState("load");
-  await variantsPage.getByRole("button", {name: "BACK", exact: true}).click();
-  await variantsPage.waitForLoadState("load");
+  await clickAndLoad(variantsPage.locator('button[name="gg_ucomm"][value="SUBVAR"]'));
+  await clickAndLoad(variantsPage.getByRole("button", {name: "Continue", exact: true}));
+  await clickAndLoad(variantsPage.getByRole("button", {name: "BACK", exact: true}));
   assert.match(await variantsPage.locator("body").textContent(), /Returned from the report started with USING SELECTION-SET/);
   await variantsPage.goto(variantsUrl, {waitUntil: "load"});
   await variantsPage.locator('[name="P_VARI"]').fill("GG_E2E");
-  await variantsPage.locator('button[name="gg_ucomm"][value="DELETE"]').click();
-  await variantsPage.waitForLoadState("load");
+  await clickAndLoad(variantsPage.locator('button[name="gg_ucomm"][value="DELETE"]'));
   assert.match(await variantsPage.locator("body").textContent(), /Variant GG_E2E was deleted/);
   await variantsPage.close();
   const freePage = await newScreenshotPage(browser);
-  const freeUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SEL_FREE");
+  const freeUrl = transactionUrl(baseUrl, "CV_SEL_FREE");
   await freePage.goto(freeUrl, {waitUntil: "load"});
-  await freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]').click();
-  await freePage.waitForLoadState("load");
+  await clickAndLoad(freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]'));
   assert.equal(await freePage.locator('[data-free-selection="true"]').count(), 1);
   assert.equal(await freePage.getByRole("dialog").getAttribute("aria-modal"), "true");
   await freePage.locator('[name="gg-free-SPRSL-LOW"]').fill("EN");
-  await freePage.locator('[name="gg_free_action"][value="APPLY"]').click();
-  await freePage.waitForLoadState("load");
+  await clickAndLoad(freePage.locator('[name="gg_free_action"][value="APPLY"]'));
   assert.equal(await freePage.locator('[data-free-selection="true"]').count(), 0);
   assert.match(await freePage.locator("body").textContent(), /Converted WHERE T100/);
-  await freePage.locator('button[name="gg_ucomm"][value="DLGFULL"]').click();
-  await freePage.waitForLoadState("load");
+  await clickAndLoad(freePage.locator('button[name="gg_ucomm"][value="DLGFULL"]'));
   assert.equal(await freePage.locator(".gg-free-selection-modal--fullscreen").count(), 1);
-  await freePage.locator('[name="gg_free_action"][value="CANCEL"]').click();
-  await freePage.waitForLoadState("load");
+  await clickAndLoad(freePage.locator('[name="gg_free_action"][value="CANCEL"]'));
   assert.equal(await freePage.locator('[data-free-selection="true"]').count(), 0);
-  await freePage.locator('button[name="gg_ucomm"][value="RESET"]').click();
-  await freePage.waitForLoadState("load");
+  await clickAndLoad(freePage.locator('button[name="gg_ucomm"][value="RESET"]'));
   assert.match(await freePage.locator("body").textContent(), /Dynamic selection, field list,/);
-  await freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]').click();
-  await freePage.waitForLoadState("load");
+  await clickAndLoad(freePage.locator('button[name="gg_ucomm"][value="DLGWIN"]'));
   await freePage.locator('[name="gg-free-SPRSL-LOW"]').fill("EN");
-  await freePage.locator('[name="gg_free_action"][value="APPLY"]').click();
-  await freePage.waitForLoadState("load");
-  await freePage.locator('button[name="gg_ucomm"][value="ONLI"]').click();
-  await freePage.waitForLoadState("load");
+  await clickAndLoad(freePage.locator('[name="gg_free_action"][value="APPLY"]'));
+  await clickAndLoad(freePage.locator('button[name="gg_ucomm"][value="ONLI"]'));
   assert.equal(await freePage.locator('[data-page-kind="LIST"]').count(), 1);
   assert.match(await freePage.locator("body").textContent(), /Range T100-SPRSL/);
   assert.match(await freePage.locator("body").textContent(), /Converted WHERE T100|WHERE T100/);
   await freePage.close();
   const dynproPage = await newScreenshotPage(browser);
-  const dynproUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_ELEMENTS");
+  const dynproUrl = transactionUrl(baseUrl, "CV_DYNPRO_ELEMENTS");
   await dynproPage.goto(dynproUrl, {waitUntil: "load"});
   assert.equal(await dynproPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.equal(await dynproPage.locator(".gg-dynpro fieldset").count(), 2);
@@ -1647,24 +1626,21 @@ try {
   await dynproPage.locator('[name="GV_TEXT"]').fill("Changed text");
   await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').uncheck();
   await dynproPage.locator('[name="GV_LIST"]').selectOption("TWO");
-  await dynproPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await dynproPage.waitForLoadState("load");
+  await clickAndLoad(dynproPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.equal(await dynproPage.locator('[name="GV_TEXT"]').inputValue(), "Changed text");
   assert.equal(await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').isChecked(), false);
   assert.equal(await dynproPage.locator('[name="GV_LIST"]').inputValue(), "TWO");
   assert.match(await dynproPage.locator('output[id*="GV_OUTPUT"]').textContent(), /Applied TWO, PBO pass/);
-  await dynproPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
-  await dynproPage.waitForLoadState("load");
+  await clickAndLoad(dynproPage.locator('button[name="gg_ucomm"][value="RESET"]'));
   assert.equal(await dynproPage.locator('[name="GV_TEXT"]').inputValue(), "Editable text");
   assert.equal(await dynproPage.locator('input[type="checkbox"][name="GV_CHECK"]').isChecked(), true);
   assert.equal(await dynproPage.locator('[name="GV_LIST"]').inputValue(), "ONE");
   assert.match(await dynproPage.locator('output[id*="GV_OUTPUT"]').textContent(), /Values reset/);
-  await dynproPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
-  await dynproPage.waitForLoadState("load");
+  await clickAndLoad(dynproPage.locator('button[name="gg_ucomm"][value="BACK"]'));
   assert.equal(await dynproPage.locator('[data-screen="0000"]').count(), 1);
   await dynproPage.close();
   const flowPage = await newScreenshotPage(browser);
-  const flowUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DYNPRO_FLOW");
+  const flowUrl = transactionUrl(baseUrl, "CV_DYNPRO_FLOW");
   await flowPage.goto(flowUrl, {waitUntil: "load"});
   assert.equal(await flowPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.equal(await flowPage.locator(".gg-dynpro fieldset").count(), 2);
@@ -1674,51 +1650,41 @@ try {
   assert.equal(await flowPage.locator('[name="GV_DYNAMIC"]').isVisible(), true);
   assert.match(await flowPage.locator("body").textContent(), /PBO: STATUS_0100/);
   await flowPage.locator('[name="GV_REQUEST"]').fill("typed request");
-  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await flowPage.waitForLoadState("load");
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.equal(await flowPage.locator('[name="GV_REQUEST"]').inputValue(), "typed request");
   assert.match(await flowPage.locator("body").textContent(), /Validated Ada Lovelace/);
   assert.match(await flowPage.locator("body").textContent(), /PAI: OBSERVE_REQUEST ON INPUT/);
   assert.match(await flowPage.locator("body").textContent(), /PAI: VALIDATE_NAME ON CHAIN-REQUEST/);
   await flowPage.locator('[name="GV_FIRST"]').fill("");
-  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await flowPage.waitForLoadState("load");
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.equal(await flowPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.match(await flowPage.locator("body").textContent(), /Enter a first name/);
   await flowPage.locator('[name="GV_FIRST"]').fill("Ada");
   await flowPage.locator('input[type="checkbox"][name="GV_ENABLE"]').uncheck();
-  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await flowPage.waitForLoadState("load");
-  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await flowPage.waitForLoadState("load");
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.equal(await flowPage.locator('[name="GV_DYNAMIC"]').isVisible(), false);
-  await flowPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
-  await flowPage.waitForLoadState("load");
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="RESET"]'));
   assert.equal(await flowPage.locator('[name="GV_FIRST"]').inputValue(), "Ada");
   assert.equal(await flowPage.locator('[name="GV_LAST"]').inputValue(), "Lovelace");
   assert.equal(await flowPage.locator('[name="GV_REQUEST"]').inputValue(), "");
   assert.equal(await flowPage.locator('input[type="checkbox"][name="GV_ENABLE"]').isChecked(), true);
-  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await flowPage.waitForLoadState("load");
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.equal(await flowPage.locator('[name="GV_DYNAMIC"]').isVisible(), true);
-  await flowPage.locator('button[name="gg_ucomm"][value="FOCUS"]').click();
-  await flowPage.waitForLoadState("load");
-  await flowPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await flowPage.waitForLoadState("load");
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="FOCUS"]'));
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.equal(await flowPage.locator('.gg-dynpro[data-cursor-field="GV_FIRST"]').count(), 1);
-  await flowPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
-  await flowPage.waitForLoadState("load");
+  await clickAndLoad(flowPage.locator('button[name="gg_ucomm"][value="BACK"]'));
   assert.equal(await flowPage.locator('[data-screen="0000"]').count(), 1);
   await flowPage.close();
   const cancelPage = await newScreenshotPage(browser);
   await cancelPage.goto(flowUrl, {waitUntil: "load"});
-  await cancelPage.locator('button[name="gg_ucomm"][value="CANCEL"]').click();
-  await cancelPage.waitForLoadState("load");
+  await clickAndLoad(cancelPage.locator('button[name="gg_ucomm"][value="CANCEL"]'));
   assert.equal(await cancelPage.locator('[data-screen="0000"]').count(), 1);
   assert.match(await cancelPage.locator("body").textContent(), /Changes canceled/);
   await cancelPage.close();
   const tablePage = await newScreenshotPage(browser);
-  const tableUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABLE_CONTROL");
+  const tableUrl = transactionUrl(baseUrl, "CV_TABLE_CONTROL");
   await tablePage.goto(tableUrl, {waitUntil: "load"});
   assert.equal(await tablePage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   const tableControl = tablePage.locator('[data-table-control]');
@@ -1732,33 +1698,27 @@ try {
   await tablePage.locator('input[name="gg-cell-TC_ROWS-QUANTITY-1"]').fill("13");
   await tablePage.locator('input[name="gg-cell-TC_ROWS-PRICE-1"]').fill("139.90");
   await tablePage.locator('input[type="checkbox"][name="gg-cell-TC_ROWS-MARK-1"]').check();
-  await tablePage.locator('button[name="gg_ucomm"][value="APPEND"]').click();
-  await tablePage.waitForLoadState("load");
+  await clickAndLoad(tablePage.locator('button[name="gg_ucomm"][value="APPEND"]'));
   assert.match(await tablePage.locator("body").textContent(), /A row was appended/);
   assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').inputValue(), "Mechanical Keyboard Pro");
   assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-6"]').inputValue(), "New product");
-  await tablePage.locator('button[name="gg_ucomm"][value="COPY"]').click();
-  await tablePage.waitForLoadState("load");
+  await clickAndLoad(tablePage.locator('button[name="gg_ucomm"][value="COPY"]'));
   assert.match(await tablePage.locator("body").textContent(), /copied/);
   assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-7"]').inputValue(), "Copy of Mechanical Keyboard Pro".slice(0, 30));
   await tablePage.locator('input[type="checkbox"][name="gg-cell-TC_ROWS-MARK-1"]').check();
-  await tablePage.locator('button[name="gg_ucomm"][value="DELETE"]').click();
-  await tablePage.waitForLoadState("load");
+  await clickAndLoad(tablePage.locator('button[name="gg_ucomm"][value="DELETE"]'));
   assert.match(await tablePage.locator("body").textContent(), /marked row\(s\) deleted/);
   await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').fill("");
-  await tablePage.locator('button[name="gg_ucomm"][value="APPEND"]').click();
-  await tablePage.waitForLoadState("load");
+  await clickAndLoad(tablePage.locator('button[name="gg_ucomm"][value="APPEND"]'));
   assert.match(await tablePage.locator("body").textContent(), /Enter a product name/);
-  await tablePage.locator('button[name="gg_ucomm"][value="RESET"]').click();
-  await tablePage.waitForLoadState("load");
+  await clickAndLoad(tablePage.locator('button[name="gg_ucomm"][value="RESET"]'));
   assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-1"]').inputValue(), "Mechanical Keyboard");
   assert.equal(await tablePage.locator('input[name="gg-cell-TC_ROWS-NAME-5"]').inputValue(), "Conference Speaker");
-  await tablePage.locator('button[name="gg_ucomm"][value="BACK"]').click();
-  await tablePage.waitForLoadState("load");
+  await clickAndLoad(tablePage.locator('button[name="gg_ucomm"][value="BACK"]'));
   assert.equal(await tablePage.locator('[data-screen="0000"]').count(), 1);
   await tablePage.close();
   const tabPage = await newScreenshotPage(browser);
-  const tabUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_TABSTRIP");
+  const tabUrl = transactionUrl(baseUrl, "CV_TABSTRIP");
   await tabPage.goto(tabUrl, {waitUntil: "load"});
   assert.equal(await tabPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.equal(await tabPage.locator('[role="tab"]').count(), 3);
@@ -1767,39 +1727,32 @@ try {
   assert.match(await tabPage.locator("body").textContent(), /Advanced/);
   assert.equal(await tabPage.locator('[name="GV_NAME"]').isVisible(), true);
   assert.equal(await tabPage.locator('[name="GV_START_DATE"]').count(), 0);
-  await tabPage.getByRole("tab", {name: /Settings: notify/}).click();
-  await tabPage.waitForLoadState("load");
+  await clickAndLoad(tabPage.getByRole("tab", {name: /Settings: notify/}));
   assert.equal(await tabPage.locator('[name="TS_MAIN-ACTIVETAB"]').inputValue(), "TAB2");
   assert.equal(await tabPage.locator('[name="GV_NAME"]').count(), 0);
   assert.equal(await tabPage.locator('[name="GV_START_DATE"]').isVisible(), true);
-  await tabPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await tabPage.waitForLoadState("load");
+  await clickAndLoad(tabPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.match(await tabPage.locator("body").textContent(), /Active page TAB2 was applied/);
-  await tabPage.getByRole("tab", {name: "Advanced", exact: true}).click();
-  await tabPage.waitForLoadState("load");
+  await clickAndLoad(tabPage.getByRole("tab", {name: "Advanced", exact: true}));
   assert.equal(await tabPage.locator('[name="TS_MAIN-ACTIVETAB"]').inputValue(), "TAB3");
   assert.equal(await tabPage.locator('[name="GV_NAME"]').count(), 0);
   await tabPage.locator('input[type="checkbox"][name="GV_SHOW_ADVANCED"]').uncheck();
-  await tabPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await tabPage.waitForLoadState("load");
+  await clickAndLoad(tabPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.equal(await tabPage.locator('[role="tab"]').count(), 2);
   assert.equal(await tabPage.locator('[name="TS_MAIN-ACTIVETAB"]').inputValue(), "TAB1");
-  await tabPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
-  await tabPage.waitForLoadState("load");
+  await clickAndLoad(tabPage.locator('button[name="gg_ucomm"][value="RESET"]'));
   assert.equal(await tabPage.locator('[role="tab"]').count(), 3);
   assert.equal(await tabPage.locator('input[type="checkbox"][name="GV_SHOW_ADVANCED"]').isChecked(), true);
-  await tabPage.locator('button[name="gg_ucomm"][value="CLIENT"]').click();
-  await tabPage.waitForLoadState("load");
+  await clickAndLoad(tabPage.locator('button[name="gg_ucomm"][value="CLIENT"]'));
   assert.equal(await tabPage.locator('[data-screen="0200"]').count(), 1);
   assert.equal(await tabPage.locator('[role="tab"]').count(), 3);
   assert.equal(await tabPage.locator('[name="GV_NAME"]').isVisible(), true);
   assert.equal(await tabPage.locator('[name="GV_START_DATE"]').count(), 0);
-  await tabPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
-  await tabPage.waitForLoadState("load");
+  await clickAndLoad(tabPage.locator('button[name="gg_ucomm"][value="BACK"]'));
   assert.equal(await tabPage.locator('[data-screen="0000"]').count(), 1);
   await tabPage.close();
   const subscreenPage = await newScreenshotPage(browser);
-  const subscreenUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_SUBSCREENS");
+  const subscreenUrl = transactionUrl(baseUrl, "CV_SUBSCREENS");
   await subscreenPage.goto(subscreenUrl, {waitUntil: "load"});
   assert.equal(await subscreenPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.equal(await subscreenPage.locator('[data-screen="0100"]').count(), 1);
@@ -1809,29 +1762,24 @@ try {
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_B"]').count(), 0);
   assert.match(await subscreenPage.locator('[name="GV_LEFT_VALUE"]').locator("xpath=../..").getAttribute("style"), /left:50px/);
   assert.match(await subscreenPage.locator('[name="GV_RIGHT_A"]').locator("xpath=../..").getAttribute("style"), /left:580px/);
-  await subscreenPage.locator('button[name="gg_ucomm"][value="SWAP"]').click();
-  await subscreenPage.waitForLoadState("load");
+  await clickAndLoad(subscreenPage.locator('button[name="gg_ucomm"][value="SWAP"]'));
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').count(), 0);
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_B"]').isVisible(), true);
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_SCREEN"]').inputValue(), "0130");
-  await subscreenPage.locator('button[name="gg_ucomm"][value="SUBNAV"]').click();
-  await subscreenPage.waitForLoadState("load");
+  await clickAndLoad(subscreenPage.locator('button[name="gg_ucomm"][value="SUBNAV"]'));
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_SCREEN"]').inputValue(), "0120");
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').isVisible(), true);
   assert.match(await subscreenPage.locator("body").textContent(), /Parent accepted subscreen request for screen 0120/);
-  await subscreenPage.locator('button[name="gg_ucomm"][value="APPLY"]').click();
-  await subscreenPage.waitForLoadState("load");
+  await clickAndLoad(subscreenPage.locator('button[name="gg_ucomm"][value="APPLY"]'));
   assert.match(await subscreenPage.locator("body").textContent(), /Parent and both active subscreens completed PAI/);
-  await subscreenPage.locator('button[name="gg_ucomm"][value="RESET"]').click();
-  await subscreenPage.waitForLoadState("load");
+  await clickAndLoad(subscreenPage.locator('button[name="gg_ucomm"][value="RESET"]'));
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_SCREEN"]').inputValue(), "0120");
   assert.equal(await subscreenPage.locator('[name="GV_RIGHT_A"]').inputValue(), "Details variant A");
-  await subscreenPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
-  await subscreenPage.waitForLoadState("load");
+  await clickAndLoad(subscreenPage.locator('button[name="gg_ucomm"][value="BACK"]'));
   assert.equal(await subscreenPage.locator('[data-screen="0000"]').count(), 1);
   await subscreenPage.close();
   const dialogsPage = await newScreenshotPage(browser);
-  const dialogsUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_DIALOGS_HELP");
+  const dialogsUrl = transactionUrl(baseUrl, "CV_DIALOGS_HELP");
   await dialogsPage.goto(dialogsUrl, {waitUntil: "load"});
   assert.equal(await dialogsPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.equal(await dialogsPage.locator('[data-screen="0100"]').count(), 1);
@@ -1855,56 +1803,45 @@ try {
   assert.equal(await helpPopup.count(), 1);
   assert.match(await helpPopup.textContent(), /Choice field help/);
   assert.match(await helpPopup.textContent(), /Use F4 to choose ALPHA, BETA, or GAMMA/);
-  await helpPopup.getByRole("button", {name: "Close", exact: true}).click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(helpPopup.getByRole("button", {name: "Close", exact: true}));
   assert.equal(await dialogsPage.locator('.gg-popup-modal[data-popup-kind="INFORM"]').count(), 0);
   assert.match(await dialogsPage.locator("body").textContent(), /Custom F1 help was displayed/);
-  await dialogsPage.locator('button[name="gg_ucomm"][value="DIALOG"]').click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(dialogsPage.locator('button[name="gg_ucomm"][value="DIALOG"]'));
   const dialogScreen = dialogsPage.locator('[data-screen="0200"]');
   assert.equal(await dialogScreen.count(), 1);
   assert.equal(await dialogScreen.getAttribute("data-modal"), "true");
   assert.match(await dialogScreen.getAttribute("style"), /margin-left:50px/);
   assert.match(await dialogScreen.getAttribute("style"), /margin-top:260px/);
   await dialogsPage.locator('[name="GV_DIALOG_TEXT"]').fill("Accepted text");
-  await dialogsPage.locator('button[name="gg_ucomm"][value="OK"]').click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(dialogsPage.locator('button[name="gg_ucomm"][value="OK"]'));
   assert.equal(await dialogsPage.locator('[data-screen="0100"]').count(), 1);
   assert.match(await dialogsPage.locator("body").textContent(), /Modal dialog: Accepted: Accepted text/);
-  await dialogsPage.locator('button[name="gg_ucomm"][value="CONFIRM"]').click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(dialogsPage.locator('button[name="gg_ucomm"][value="CONFIRM"]'));
   const confirmPopup = dialogsPage.locator('.gg-popup-modal[data-popup-kind="CONFIRM"]');
   assert.equal(await confirmPopup.count(), 1);
   assert.match(await confirmPopup.textContent(), /Apply the current choice/);
-  await confirmPopup.getByRole("button", {name: "Cancel", exact: true}).click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(confirmPopup.getByRole("button", {name: "Cancel", exact: true}));
   assert.match(await dialogsPage.locator("body").textContent(), /Confirmation canceled or closed/);
-  await dialogsPage.locator('button[name="gg_ucomm"][value="VALUE"]').click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(dialogsPage.locator('button[name="gg_ucomm"][value="VALUE"]'));
   const valuesPopup = dialogsPage.locator('.gg-popup-modal[data-popup-kind="VALUES"]');
   assert.equal(await valuesPopup.count(), 1);
   await valuesPopup.locator('[name="gg-popup-UNAME"]').fill("DELTA");
-  await valuesPopup.getByRole("button", {name: "Apply", exact: true}).click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(valuesPopup.getByRole("button", {name: "Apply", exact: true}));
   assert.equal(await dialogsPage.locator('[name="GV_CHOICE"]').inputValue(), "DELTA");
   assert.match(await dialogsPage.locator("body").textContent(), /Value popup returned DELTA/);
-  await dialogsPage.locator('button[name="gg_ucomm"][value="INFO"]').click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(dialogsPage.locator('button[name="gg_ucomm"][value="INFO"]'));
   const infoPopup = dialogsPage.locator('.gg-popup-modal[data-popup-kind="INFORM"]');
   assert.equal(await infoPopup.count(), 1);
   assert.match(await infoPopup.textContent(), /This popup does not change application state/);
-  await infoPopup.getByRole("button", {name: "Close", exact: true}).click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(infoPopup.getByRole("button", {name: "Close", exact: true}));
   assert.match(await dialogsPage.locator("body").textContent(), /Information popup closed/);
-  await dialogsPage.locator('button[name="gg_ucomm"][value="PROGRESS"]').click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(dialogsPage.locator('button[name="gg_ucomm"][value="PROGRESS"]'));
   assert.match(await dialogsPage.locator("body").textContent(), /Progress indication completed/);
-  await dialogsPage.locator('button[name="gg_ucomm"][value="BACK"]').click();
-  await dialogsPage.waitForLoadState("load");
+  await clickAndLoad(dialogsPage.locator('button[name="gg_ucomm"][value="BACK"]'));
   assert.equal(await dialogsPage.locator('[data-screen="0000"]').count(), 1);
   await dialogsPage.close();
   const statusPage = await newScreenshotPage(browser);
-  const statusUrl = baseUrl + "/transaction?tcode=" + encodeURIComponent("CV_GUI_STATUS");
+  const statusUrl = transactionUrl(baseUrl, "CV_GUI_STATUS");
   await statusPage.goto(statusUrl, {waitUntil: "load"});
   assert.equal(await statusPage.locator('[data-page-kind="DYNPRO"]').count(), 1);
   assert.equal(await statusPage.locator('[data-screen="0100"]').count(), 1);
@@ -1920,19 +1857,15 @@ try {
   await statusInput.click({button: "right"});
   assert.equal(await contextMenu.isVisible(), true);
   assert.equal(await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').count(), 1);
-  await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').click();
-  await statusPage.waitForLoadState("load");
+  await clickAndLoad(contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]'));
   assert.equal(await statusInput.inputValue(), "RIGHT-CLICK THIS FIELD");
   assert.match(await statusPage.locator("body").textContent(), /converted the value to upper case/);
-  await statusPage.locator('.wb-app-toolbar button[aria-label="Toggle"]').click();
-  await statusPage.waitForLoadState("load");
+  await clickAndLoad(statusPage.locator('.wb-app-toolbar button[aria-label="Toggle"]'));
   assert.match(await statusPage.locator("body").textContent(), /GUI Status Sample: Apply excluded/);
   assert.equal(await statusPage.locator('.wb-app-toolbar button[aria-label="Apply"]').isDisabled(), true);
-  await statusPage.locator('.wb-app-toolbar button[aria-label="Reset"]').click();
-  await statusPage.waitForLoadState("load");
+  await clickAndLoad(statusPage.locator('.wb-app-toolbar button[aria-label="Reset"]'));
   await statusPage.locator('input[type="checkbox"][name="GV_DISABLE_CONTEXT"]').check();
-  await statusPage.locator('.wb-app-toolbar button[aria-label="Toggle"]').click();
-  await statusPage.waitForLoadState("load");
+  await clickAndLoad(statusPage.locator('.wb-app-toolbar button[aria-label="Toggle"]'));
   await statusPage.locator('[name="GV_INPUT"]').click({button: "right"});
   assert.equal(await contextMenu.locator('button[name="gg_ucomm"][value="CTX_UPPER"]').isDisabled(), true);
   await Promise.all([
@@ -1959,7 +1892,7 @@ try {
   const comparisonSummary = JSON.parse(await fs.readFile(path.join(diffRoot, "summary.json"), "utf8"));
   applyComparisonGates(results, comparisonSummary);
   await writeScreenshotIndex(results, revision, referenceRoot);
-  await fs.writeFile(path.join(validationRoot, "results.json"), `${JSON.stringify({repositoryUrl, revision, referenceManifest: {path: "reference-manifest.json", reportCount: referenceManifest.reportCount}, browserChromeBaseline, screenshotViewport, screenshotFixture, screenshotEnvironment, comparisonGateDefinitions, knownFailingReports, knownFailingEmptyContainerReports, knownFailingOverlapReports, knownFailingClippingReports, reports: results}, null, 2)}\n`, "utf8");
+  await writeResults(revision, referenceManifest, results, {browserChromeBaseline});
 } finally {
   await browser?.close();
   await stopProcess(hostProcess);

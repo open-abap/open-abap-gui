@@ -56,6 +56,16 @@ The keys it reads are:
 | `input_filter` | case-insensitive allow-list of regular expressions; empty matches everything |
 | `exclude_filter` | case-insensitive deny-list, applied after `input_filter` |
 | `output_folder` | the converter writes generated classes to `<output_folder>_converter` |
+| `libs` | dependencies searched for INCLUDEs; their programs are never converted |
+
+Each lib is read the way abap_transpile reads it: from `folder` (relative to
+the working directory) when that exists, otherwise shallow-cloned from `url`
+with `git clone --depth 1`. `files` selects its sources (default `/src/**`) and
+`exclude_filter` drops some. The CLI clones into a temporary folder named after
+the url — a fixed name, so the include paths and the source hash they feed stay
+the same from run to run — and deletes it when the run ends. Library callers
+do the same with `loadLibraries(config)`: set `config.libraryFolders` to the
+returned `folders`, convert, then call `cleanup()`.
 
 Everything else in the file belongs to the transpiler and is ignored, including
 keys a newer transpiler adds: the converter reads that file, it never writes it
@@ -83,8 +93,9 @@ an `--output-folder` run, because that folder may be shared. A run in which two
 programs map to the same class writes nothing at all and reports
 `GGCONV-E115`, rather than keeping one class and losing the other.
 
-No network or model call is used during conversion. Includes are resolved from
-`input_folder`, by the optional `resolveInclude(name, parentFilename)` callback,
+No network or model call is used during conversion; the only network access is
+the CLI cloning a lib `url` before it starts. Includes are resolved from
+`input_folder` and the libs, by the optional `resolveInclude(name, parentFilename)` callback,
 or by deterministic filesystem candidates.
 
 Selection texts can be supplied as a `Map`, object, or simple text-pool string

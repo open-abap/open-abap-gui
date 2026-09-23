@@ -7,6 +7,7 @@ export {
   discoverPrograms,
   loadTranspileConfig,
 } from "./config.mjs";
+export { loadLibraries } from "./libs.mjs";
 export { previewProgram, previewRepositoryProgram } from "./workbench-preview.mjs";
 export { createWorkbenchService } from "./workbench-service.mjs";
 export { createWorkbenchPreviewHandlers } from "./workbench-http.mjs";
