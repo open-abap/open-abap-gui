@@ -1,5 +1,5 @@
 import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
-import { controlObjectTypes, globalObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
+import { controlObjectTypes, globalObjectTypes, localHandlerEventClasses, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 
 const REPORT_METHODS = [
@@ -646,6 +646,7 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
       statements,
     }),
     globalClassNames,
+    handlerEvents: localHandlerEventClasses(ir.localClasses ?? []),
     globalObjectTypes: globalObjectTypes(ir.declarations ?? [], globalClassNames, {
       parameters: [
         ...(ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),

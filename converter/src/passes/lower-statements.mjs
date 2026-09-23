@@ -285,6 +285,54 @@ export function isGlobalClassCall(statement, objectTypes = {}, globalClassNames 
   return match[2] === "=>" ? globalClassNames.has(name) : Boolean(objectTypes[name]);
 }
 
+// For each local class, the class whose event each handler method declares
+// with FOR EVENT ... OF, keyed by upper-case class and method name.
+export function localHandlerEventClasses(localClasses = []) {
+  return Object.fromEntries((localClasses ?? []).map((localClass) => [
+    String(localClass.name ?? "").toUpperCase(),
+    Object.fromEntries((localClass.methods ?? []).flatMap((method) => {
+      // CLASS-METHODS definitions reach the IR without a name, so the name is
+      // read from the definition itself.
+      const definition = method.definition?.text ?? "";
+      const name = /^\s*(?:CLASS-)?METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(definition)?.[1] ?? method.name;
+      const eventClass = new RegExp(`\\bFOR\\s+EVENT\\s+[A-Z][A-Z0-9_]*\\s+OF\\s+${GLOBAL_TYPE_NAME}`, "i").exec(definition)?.[1];
+      return eventClass && name ? [[String(name).toUpperCase(), eventClass.toUpperCase()]] : [];
+    })),
+  ]));
+}
+
+// A handler is resolvable when it is a method of an existing global class, or a
+// local-class method whose FOR EVENT ... OF names an existing global class.
+// A bare method name refers to the enclosing class, which is not known here.
+function isGlobalEventHandler(handler, context) {
+  const match = /^(\/[A-Z0-9_]+\/[A-Z][A-Z0-9_]*|[A-Z][A-Z0-9_]*)(->|=>)([A-Z][A-Z0-9_]*)$/i.exec(handler);
+  if (!match) return false;
+  const owner = match[1].toUpperCase();
+  const method = match[3].toUpperCase();
+  const globalClassNames = context.globalClassNames ?? new Set();
+  if (match[2] === "->" && context.globalObjectTypes?.[owner]) return true;
+  if (match[2] === "=>" && globalClassNames.has(owner)) return true;
+  const localClass = match[2] === "=>"
+    ? owner
+    : /^LOCAL:(.+)$/.exec(String(context.controlObjectTypes?.[owner] ?? "").toUpperCase())?.[1];
+  return globalClassNames.has(context.handlerEvents?.[localClass]?.[method]);
+}
+
+// Return true for a SET HANDLER registered on an existing global class: FOR an
+// object declared TYPE REF TO one, or — FOR ALL INSTANCES and for static
+// events, where no object names the class — with every handler resolvable to
+// one. The statement then compiles unchanged inside the generated class.
+export function isGlobalSetHandler(statement, context = {}) {
+  if (statement?.kind !== "SetHandler" || !context.globalClassNames?.size) return false;
+  const text = String(statement.text ?? "").trim().replace(/\s*(->|=>)\s*/g, "$1");
+  const match = /^SET\s+HANDLER\s+(.+?)(?:\s+FOR\s+(ALL\s+INSTANCES|[A-Z][A-Z0-9_]*))?(?:\s+ACTIVATION\s+\S+)?\s*\.?$/i.exec(text);
+  if (!match) return false;
+  const target = match[2]?.toUpperCase();
+  if (target && !/^ALL\s+INSTANCES$/.test(target)) return Boolean(context.globalObjectTypes?.[target]);
+  const handlers = match[1].split(/\s+/).filter(Boolean);
+  return handlers.length > 0 && handlers.every((handler) => isGlobalEventHandler(handler, context));
+}
+
 function replaceListColorConstants(value) {
   let result = value;
   for (const [name, constant] of Object.entries(LIST_COLOR_CONSTANTS)) {
@@ -899,7 +947,8 @@ export function lowerStatement(statement, context) {
     }
     return replaceOutsideStrings(lowered, safeReplacements);
   }
-  if (isGlobalClassCall(statement, context.globalObjectTypes, context.globalClassNames)) {
+  if (isGlobalClassCall(statement, context.globalObjectTypes, context.globalClassNames)
+    || isGlobalSetHandler(statement, context)) {
     return replaceOutsideStrings(raw, safeReplacements);
   }
   if (context.contextMenu && (statement.kind === "CreateObject" || statement.kind === "Call")) {

@@ -422,6 +422,70 @@ test("carries method calls to existing global classes over unchanged", async () 
   assert.equal(unknown.diagnostics.filter((item) => item.code === "GGCONV-E511").length, 4);
 });
 
+test("carries event registrations on existing global classes over unchanged", async () => {
+  const source = [
+    "REPORT zglobalhandler.",
+    "CLASS lcl_events DEFINITION.",
+    "  PUBLIC SECTION.",
+    "    METHODS on_changed FOR EVENT changed OF zcl_model IMPORTING sender.",
+    "    CLASS-METHODS on_created FOR EVENT created OF zcl_model.",
+    "ENDCLASS.",
+    "CLASS lcl_events IMPLEMENTATION.",
+    "  METHOD on_changed.",
+    "  ENDMETHOD.",
+    "  METHOD on_created.",
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+    "DATA go_model TYPE REF TO zcl_model.",
+    "DATA go_events TYPE REF TO lcl_events.",
+    "DATA go_logger TYPE REF TO zcl_logger.",
+    "START-OF-SELECTION.",
+    "  go_model = NEW #( ).",
+    "  go_events = NEW #( ).",
+    "  SET HANDLER go_events->on_changed FOR go_model.",
+    "  SET HANDLER go_events->on_changed FOR ALL INSTANCES ACTIVATION abap_false.",
+    "  SET HANDLER lcl_events=>on_created.",
+    "  SET HANDLER go_logger->on_changed go_logger->on_deleted FOR ALL INSTANCES.",
+  ].join("\n");
+  const result = await convertProgram({ source, filename: "zglobalhandler.prog.abap", globalClassNames: ["ZCL_MODEL", "ZCL_LOGGER"] });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR go_model\./);
+  assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR ALL INSTANCES ACTIVATION abap_false\./);
+  assert.match(result.classSource, /SET HANDLER zcl_globalhandler_h1=>on_created\./);
+  assert.match(result.classSource, /SET HANDLER go_logger->on_changed go_logger->on_deleted FOR ALL INSTANCES\./);
+
+  const unknown = await convertProgram({ source, filename: "zglobalhandler.prog.abap", mode: "partial" });
+  assert.equal(unknown.diagnostics.filter((item) => item.code === "GGCONV-E512").length, 4);
+});
+
+test("keeps diagnosing event registrations that name no known global class", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zunknownhandler.",
+      "CLASS lcl_events DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS on_other FOR EVENT changed OF zcl_unknown.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD on_other.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "DATA go_other TYPE REF TO zcl_unknown.",
+      "DATA go_events TYPE REF TO lcl_events.",
+      "DATA go_logger TYPE REF TO zcl_logger.",
+      "START-OF-SELECTION.",
+      "  SET HANDLER go_events->on_other FOR go_other.",
+      "  SET HANDLER go_events->on_other FOR ALL INSTANCES.",
+      "  SET HANDLER go_logger->on_changed go_events->on_other FOR ALL INSTANCES.",
+    ].join("\n"),
+    filename: "zunknownhandler.prog.abap",
+    mode: "partial",
+    globalClassNames: ["ZCL_LOGGER"],
+  });
+  assert.equal(result.supported, false);
+  assert.equal(result.diagnostics.filter((item) => item.code === "GGCONV-E512").length, 3);
+});
+
 test("keeps diagnosing calls whose receiver is not a known global class", async () => {
   const result = await convertProgram({
     source: [

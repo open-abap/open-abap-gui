@@ -161,6 +161,12 @@ filters, and libs select as existing; the generated folder is not scanned. Pass
 call whose receiver cannot be resolved to one of these classes, or whose method
 name is dynamic, stays an `E511` diagnostic.
 
+`SET HANDLER` is carried over the same way when it registers `FOR` an object
+declared `TYPE REF TO` an existing global class. For `FOR ALL INSTANCES` and
+static events, every handler must be a method of an existing global class or a
+local-class method declared `FOR EVENT ... OF` one. Anything else stays an
+`E512` diagnostic.
+
 When a sibling `.prog.xml` is available, its `TPOOL` is applied automatically:
 selection text symbols resolve `TEXT-*` labels, while report-title entries
 provide the default transaction heading. Explicit `textPool` or
