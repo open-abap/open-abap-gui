@@ -6,6 +6,7 @@ export const DEFAULT_CONFIG_FILENAME = "abap_transpile.json";
 export const GENERATED_FOLDER_SUFFIX = "_converter";
 
 const PROGRAM_SUFFIX = ".prog.abap";
+const CLASS_SUFFIX = ".clas.abap";
 
 // The program name has to be known before conversion so a caller-supplied
 // className(programName) callback can run, so it is read with a regexp here
@@ -276,7 +277,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
   };
 }
 
-async function collectProgramFiles(directory, generatedFolder, found, visited) {
+async function collectProgramFiles(directory, generatedFolder, found, visited, suffix = PROGRAM_SUFFIX) {
   const resolved = path.resolve(directory);
   // The converter owns the generated folder; scanning it would feed its own
   // output back in as input on every run after the first.
@@ -291,9 +292,36 @@ async function collectProgramFiles(directory, generatedFolder, found, visited) {
   }
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     const child = path.join(resolved, entry.name);
-    if (entry.isDirectory()) await collectProgramFiles(child, generatedFolder, found, visited);
-    else if (entry.name.toLowerCase().endsWith(PROGRAM_SUFFIX)) found.set(child, true);
+    if (entry.isDirectory()) await collectProgramFiles(child, generatedFolder, found, visited, suffix);
+    else if (entry.name.toLowerCase().endsWith(suffix)) found.set(child, true);
   }
+}
+
+/**
+ * Name every global class the transpiler compiles alongside the converted
+ * programs: the `.clas.abap` files the input folders and filters select, plus
+ * the classes the libs provide. A method call to one of them compiles unchanged
+ * in the generated class. The generated folder is skipped, so the result does
+ * not depend on the output of an earlier run.
+ */
+export async function discoverGlobalClassNames(config) {
+  const found = new Map();
+  const visited = new Set();
+  for (const folder of config.inputFolders ?? []) {
+    await collectProgramFiles(folder, config.generatedFolder, found, visited, CLASS_SUFFIX);
+  }
+  const names = new Set(config.libraryClassNames ?? []);
+  for (const filename of found.keys()) {
+    const candidate = posix(filename);
+    if (config.inputFilters?.length && !config.inputFilters.some((item) => item.test(candidate))) continue;
+    if (config.excludeFilters?.some((item) => item.test(candidate))) continue;
+    names.add(classNameFromFilename(filename));
+  }
+  return [...names].sort();
+}
+
+export function classNameFromFilename(filename) {
+  return path.basename(filename).slice(0, -CLASS_SUFFIX.length).replaceAll("#", "/").toUpperCase();
 }
 
 /**

@@ -34,7 +34,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@abaplint/core": "^2.120.58"
+    "@abaplint/core": "^2.120.59"
   },
   "license": ""
 }

@@ -152,6 +152,15 @@ methods, `E512` event registration, `E513` function-module adapters, `E514`
 frontend operations, `E515` dynamic types or unsafe field-symbol operations,
 and `E516` unsupported statements.
 
+Method calls to an existing global class are carried over unchanged:
+`zcl_x=>meth( )`, `CALL METHOD zcl_x=>meth`, and `lo_x->meth( )` where
+`lo_x` is declared `TYPE REF TO zcl_x` or with `DATA(lo_x) = NEW zcl_x( )`.
+The batch CLI treats every `.clas.abap` that the configured input folders,
+filters, and libs select as existing; the generated folder is not scanned. Pass
+`globalClassNames` (or `existingClassNames`) to `convertProgram` directly. A
+call whose receiver cannot be resolved to one of these classes, or whose method
+name is dynamic, stays an `E511` diagnostic.
+
 When a sibling `.prog.xml` is available, its `TPOOL` is applied automatically:
 selection text symbols resolve `TEXT-*` labels, while report-title entries
 provide the default transaction heading. Explicit `textPool` or

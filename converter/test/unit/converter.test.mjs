@@ -397,6 +397,51 @@ test("diagnoses dynamic PERFORM instead of emitting a guessed call", async () =>
   assert.match(dynamicCall.classSource, /TODO GGCONV-E501/);
 });
 
+test("carries method calls to existing global classes over unchanged", async () => {
+  const source = [
+    "REPORT zglobalcall.",
+    "DATA go_calc TYPE REF TO zcl_calc.",
+    "DATA gv_total TYPE i.",
+    "START-OF-SELECTION.",
+    "  zcl_calc=>reset( ).",
+    "  CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'.",
+    "  go_calc->add( 2 ).",
+    "  DATA(lo_other) = NEW zcl_calc( ).",
+    "  lo_other->add( 3 ).",
+    "  gv_total = go_calc->total( ).",
+  ].join("\n");
+  const result = await convertProgram({ source, filename: "zglobalcall.prog.abap", globalClassNames: ["zcl_calc"] });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /zcl_calc=>reset\( \)\./);
+  assert.match(result.classSource, /CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'\./);
+  assert.match(result.classSource, /go_calc->add\( 2 \)\./);
+  assert.match(result.classSource, /lo_other->add\( 3 \)\./);
+
+  const unknown = await convertProgram({ source, filename: "zglobalcall.prog.abap", mode: "partial" });
+  assert.equal(unknown.supported, false);
+  assert.equal(unknown.diagnostics.filter((item) => item.code === "GGCONV-E511").length, 4);
+});
+
+test("keeps diagnosing calls whose receiver is not a known global class", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zunknowncall.",
+      "DATA go_other TYPE REF TO zcl_unknown.",
+      "DATA go_untyped TYPE REF TO object.",
+      "START-OF-SELECTION.",
+      "  go_other->run( ).",
+      "  go_untyped->run( ).",
+      "  zcl_unknown=>run( ).",
+      "  CALL METHOD zcl_calc=>(lv_name).",
+    ].join("\n"),
+    filename: "zunknowncall.prog.abap",
+    mode: "partial",
+    globalClassNames: ["ZCL_CALC"],
+  });
+  assert.equal(result.supported, false);
+  assert.equal(result.diagnostics.filter((item) => item.code === "GGCONV-E511").length, 4);
+});
+
 test("converts local FORM parameters to typed methods and PERFORM calls", async () => {
   const source = [
     "REPORT zform.",

@@ -603,6 +603,10 @@ export async function convertProgram(input = {}) {
   applyFunctionKeyMetadata(ir);
   applyMessageMetadata(ir, options, diagnostics);
   diagnostics.push(...textFallbackDiagnostics(ir, options));
+  ir.globalClassNames = [...new Set([
+    ...(Array.isArray(options.globalClassNames) ? options.globalClassNames : []),
+    ...(Array.isArray(options.existingClassNames) ? options.existingClassNames : Array.isArray(options.existingClasses) ? options.existingClasses : []),
+  ].map((name) => String(name).toUpperCase()))].sort();
   diagnostics.push(...scanCapabilities(ir, ir.statements, options));
   reportTimeLimit();
   selectInterfaces(ir);

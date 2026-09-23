@@ -241,6 +241,50 @@ export function isConvertibleControlStatement(statement, objectTypes = {}) {
   return false;
 }
 
+// A statically named receiver: `cls=>meth`, `ref->meth` or `ref->attr->meth`,
+// optionally behind CALL METHOD. Dynamic forms such as CALL METHOD (name) or
+// ref->(name) do not match, because a method name must follow the arrow.
+const GLOBAL_CALL = /^(?:CALL\s+METHOD\s+)?(\/[A-Z0-9_]+\/[A-Z][A-Z0-9_]*|[A-Z][A-Z0-9_]*)\s*(->|=>)\s*[A-Z_]/i;
+const GLOBAL_TYPE_NAME = "(\\/[A-Z0-9_]+\\/[A-Z][A-Z0-9_]*|[A-Z][A-Z0-9_]*)";
+
+// Map each reference variable declared TYPE REF TO an existing global class to
+// that class. Only an explicit declaration or a NEW of a named class counts: the
+// type is never inferred from a variable name or a method's return value.
+export function globalObjectTypes(declarations = [], globalClassNames = new Set(), {parameters = [], statements = []} = {}) {
+  const result = {};
+  if (!globalClassNames.size) return result;
+  const record = (name, type) => {
+    const className = String(type ?? "").toUpperCase();
+    if (name && globalClassNames.has(className)) result[String(name).toUpperCase()] = className;
+  };
+  for (const declaration of declarations) {
+    for (const entry of declaration.entries ?? []) {
+      record(entry.name, new RegExp(`\\bTYPE\\s+REF\\s+TO\\s+${GLOBAL_TYPE_NAME}`, "i").exec(entry.definition ?? "")?.[1]);
+    }
+  }
+  for (const parameter of parameters ?? []) {
+    record(parameter.name, new RegExp(`\\bREF\\s+TO\\s+${GLOBAL_TYPE_NAME}`, "i").exec(parameter.type ?? "")?.[1]);
+  }
+  const declared = new RegExp(`\\b([A-Z][A-Z0-9_]*)\\s+TYPE\\s+REF\\s+TO\\s+${GLOBAL_TYPE_NAME}`, "gi");
+  const inline = new RegExp(`\\bDATA\\s*\\(\\s*([A-Z][A-Z0-9_]*)\\s*\\)\\s*=\\s*NEW\\s+${GLOBAL_TYPE_NAME}\\s*\\(`, "gi");
+  for (const statement of statements ?? []) {
+    const text = String(statement.text ?? "");
+    if (statement.kind === "Data") for (const match of text.matchAll(declared)) record(match[1], match[2]);
+    for (const match of text.matchAll(inline)) record(match[1], match[2]);
+  }
+  return result;
+}
+
+// Return true for a method call whose class is known to exist as a global
+// class, so the statement compiles unchanged inside the generated class.
+export function isGlobalClassCall(statement, objectTypes = {}, globalClassNames = new Set()) {
+  if ((statement?.kind !== "Call" && statement?.kind !== "CallMethod") || !globalClassNames.size) return false;
+  const match = GLOBAL_CALL.exec(String(statement.text ?? "").trim());
+  if (!match) return false;
+  const name = match[1].toUpperCase();
+  return match[2] === "=>" ? globalClassNames.has(name) : Boolean(objectTypes[name]);
+}
+
 function replaceListColorConstants(value) {
   let result = value;
   for (const [name, constant] of Object.entries(LIST_COLOR_CONSTANTS)) {
@@ -854,6 +898,9 @@ export function lowerStatement(statement, context) {
       }
     }
     return replaceOutsideStrings(lowered, safeReplacements);
+  }
+  if (isGlobalClassCall(statement, context.globalObjectTypes, context.globalClassNames)) {
+    return replaceOutsideStrings(raw, safeReplacements);
   }
   if (context.contextMenu && (statement.kind === "CreateObject" || statement.kind === "Call")) {
     return replaceOutsideStrings(raw, safeReplacements);

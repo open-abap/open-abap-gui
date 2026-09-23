@@ -1,7 +1,7 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, controlObjectTypes, convertibleFreeChainKeys, dynamicWriteOperand, freeChainKey, isConvertibleControlStatement, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
+import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, controlObjectTypes, convertibleFreeChainKeys, dynamicWriteOperand, freeChainKey, globalObjectTypes, isConvertibleControlStatement, isGlobalClassCall, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
 import { compatibilityAdapter } from "./function-modules.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
@@ -112,6 +112,11 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     statements,
   });
   const convertibleFreeChains = convertibleFreeChainKeys(statements, convertibleObjectTypes);
+  const globalClassNames = new Set(ir.globalClassNames ?? []);
+  const globalTypes = globalObjectTypes(ir.declarations ?? [], globalClassNames, {
+    parameters: (ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),
+    statements,
+  });
   for (const continuation of ir.continuations ?? []) {
     const unsafeContext = (continuation.controlStack ?? []).find((item) => ["Do", "Loop", "Try", "While"].includes(item.kind));
     if (unsafeContext) {
@@ -154,6 +159,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
     const supportedSpecial = isConvertibleControlStatement(statement, convertibleObjectTypes)
+      || isGlobalClassCall(statement, globalTypes, globalClassNames)
       || statement.kind === "Free" && convertibleFreeChains.has(freeChainKey(statement))
       || (statement.kind === "CallFunction"
       && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text)))
@@ -182,7 +188,9 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     const hasDynproFrontend = ir.programKind === "module-pool" && ir.dynproMetadata
       || ir.programKind === "report" && ir.screenMetadata;
     if (hasDynproFrontend && ["Module", "EndModule", "SetScreen", "LeaveScreen", "LeaveToScreen"].includes(statement.kind)) continue;
-    if (!SUPPORTED_STATEMENTS.has(statement.kind) && !LOWERING_RULES.has(statement.kind) && !supportedSpecial) {
+    if ((statement.kind === "Call" || statement.kind === "CallMethod") && !supportedSpecial) {
+      addStatementDiagnostic(diagnostics, statement, "the method call receiver is not a known global class", "Call a static method of an existing global class, declare the receiver TYPE REF TO one, or convert the call manually.");
+    } else if (!SUPPORTED_STATEMENTS.has(statement.kind) && !LOWERING_RULES.has(statement.kind) && !supportedSpecial) {
       addStatementDiagnostic(diagnostics, statement, `statement kind ${statement.kind} is not supported by this converter`, "Convert this statement manually or add a lowering rule.");
     }
     if (/\b(CALL SCREEN|CALL SELECTION-SCREEN|CALL TRANSACTION|SUBMIT\b.*\bAND RETURN)\b/.test(text)) {

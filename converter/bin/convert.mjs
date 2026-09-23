@@ -151,6 +151,7 @@ try {
   process.exit(2);
 }
 config.libraryFolders = libraries.folders;
+config.libraryClassNames = libraries.classNames;
 
 let summary;
 try {
