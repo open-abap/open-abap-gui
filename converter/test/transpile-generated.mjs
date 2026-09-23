@@ -11,7 +11,7 @@ const outputFolder = path.join(tempRoot, "output");
 const configPath = path.join(tempRoot, "abap_transpile.json");
 const lintConfigPath = path.join(repository, "converter", "abaplint-validation.jsonc");
 const toolTempRoot = path.join(repository, "converter", ".tmp");
-const examples = path.join(repository, "scaffold", "examples");
+const examples = path.join(repository, "examples");
 
 async function prepare() {
   await fs.rm(tempRoot, { recursive: true, force: true });
@@ -141,7 +141,7 @@ async function prepare() {
   await fs.writeFile(path.join(inputFolder, "ZCL_CV_DWRITE_FALLBACK.clas.abap"), dynamicWriteFallback.classSource, "utf8");
 
   await fs.writeFile(configPath, JSON.stringify({
-    input_folder: ["src", "scaffold", "converter/transpile-validation/input"],
+    input_folder: ["src", "framework", "examples", "converter/transpile-validation/input"],
     input_filter: [],
     exclude_filter: [],
     output_folder: "converter/transpile-validation/output",
@@ -162,7 +162,8 @@ async function prepare() {
   const lintConfig = JSON.parse(await fs.readFile(path.join(repository, "abaplint.jsonc"), "utf8"));
   lintConfig.global.files = [
     "/../src/**/*.*",
-    "/../scaffold/**/*.*",
+    "/../framework/**/*.*",
+    "/../examples/**/*.*",
     "/transpile-validation/input/*.clas.abap",
   ];
   await fs.writeFile(lintConfigPath, JSON.stringify(lintConfig, null, 2), "utf8");

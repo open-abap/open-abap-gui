@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot } from "./repository.mjs";
 
-const examples = path.join(repositoryRoot, "scaffold", "examples");
+const examples = path.join(repositoryRoot, "examples");
 const expectedWarningCodes = new Set(["GGCONV-W101"]);
 const seen = new Map();
 

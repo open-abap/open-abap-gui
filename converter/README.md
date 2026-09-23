@@ -1,7 +1,7 @@
 # PROG-to-CLAS converter
 
 The converter is a deterministic, offline source-to-source tool for migrating
-classic executable reports to the versioned scaffold interfaces in `scaffold/`.
+classic executable reports to the versioned scaffold interfaces in `framework/`.
 The library API is the primary entry point:
 
 ```js

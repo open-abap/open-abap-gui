@@ -3,7 +3,7 @@ import path from "node:path";
 import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot } from "./repository.mjs";
 
-const examples = path.join(repositoryRoot, "scaffold", "examples");
+const examples = path.join(repositoryRoot, "examples");
 const rows = [];
 for (let number = 1; number <= 58; number++) {
   const id = String(number).padStart(3, "0");

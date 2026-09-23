@@ -1274,19 +1274,20 @@ const sourceRoot = path.join(sourceRepository, "src");
 // is written before anything reads it. The one file drives both tools, the way
 // a user would run them: the converter finds the gg-gui reports in the checkout
 // named by input_folder and writes to the folder derived from output_folder,
-// and abap_transpile compiles the scaffold, the checkout and the generated
-// classes. The scaffold example programs are excluded because the converter
+// and abap_transpile compiles the framework, the examples, the checkout and the
+// generated classes. The example programs are excluded because the converter
 // would otherwise convert them alongside gg-gui; the example classes stay, as
-// the scaffold unit tests refer to them.
+// the framework unit tests refer to them.
 await fs.writeFile(transpileConfigPath, `${JSON.stringify({
   input_folder: [
     "src",
-    "scaffold",
+    "framework",
+    "examples",
     path.relative(repositoryRoot, sourceRoot).split(path.sep).join("/"),
     "converter/gg-gui-validation/output_converter",
   ],
   input_filter: [],
-  exclude_filter: ["/scaffold/examples/[^/]+\\.prog\\."],
+  exclude_filter: ["/examples/[^/]+\\.prog\\."],
   output_folder: "converter/gg-gui-validation/output",
   write_unit_tests: false,
   write_source_map: false,

@@ -285,7 +285,7 @@ function runCli(args, cwd = converterRoot) {
 }
 
 test("the CLI rejects a positional argument and names the replacement", async () => {
-  const result = await runCli(["../scaffold/examples/zgg_ex_001.prog.abap", "--check"]);
+  const result = await runCli(["../examples/zgg_ex_001.prog.abap", "--check"]);
   assert.equal(result.code, 2);
   assert.match(result.stderr, /takes no positional arguments/);
   assert.match(result.stderr, /--program/);

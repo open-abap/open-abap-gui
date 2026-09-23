@@ -13,7 +13,7 @@ const tempRoot = path.join(repository, "converter", "browser-validation");
 const inputFolder = path.join(tempRoot, "input");
 const outputFolder = path.join(tempRoot, "output");
 const configPath = path.join(tempRoot, "abap_transpile.json");
-const sourcePath = path.join(repository, "scaffold", "examples", "zgg_ex_058.prog.abap");
+const sourcePath = path.join(repository, "examples", "zgg_ex_058.prog.abap");
 
 async function freePort() {
   const probe = createServer();
@@ -121,7 +121,7 @@ async function writeInputs() {
   ].join("\n"), "utf8");
 
   await fs.writeFile(configPath, JSON.stringify({
-    input_folder: ["src", "scaffold", "converter/browser-validation/input"],
+    input_folder: ["src", "framework", "examples", "converter/browser-validation/input"],
     input_filter: [],
     exclude_filter: [],
     output_folder: "converter/browser-validation/output",

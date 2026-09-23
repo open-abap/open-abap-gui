@@ -4,7 +4,7 @@ import path from "node:path";
 import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot } from "./repository.mjs";
 
-const directory = path.join(repositoryRoot, "scaffold", "examples");
+const directory = path.join(repositoryRoot, "examples");
 const names = (await fs.readdir(directory)).filter((name) => name.endsWith(".prog.abap")).sort();
 const byKind = new Map();
 let statementCount = 0;

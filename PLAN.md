@@ -369,12 +369,12 @@ Gate the step behind an unchanged-output check (see Verification).
   passes a path positionally, which no longer parses. It needs a checked-in
   fixture config — `converter/test/fixtures/check/abap_transpile.json` — and
   becomes `node bin/convert.mjs --config test/fixtures/check/abap_transpile.json --check`.
-  The fixture must carry an `input_filter`: `scaffold/examples` holds 149
+  The fixture must carry an `input_filter`: `examples` holds 149
   `*.prog.abap` files, and `check` is meant to stay a one-program smoke test.
 
   ```json
   {
-    "input_folder": ["../../../../scaffold/examples"],
+    "input_folder": ["../../../../examples"],
     "input_filter": ["zgg_ex_001\\.prog\\.abap$"],
     "exclude_filter": [],
     "output_folder": "output",
@@ -390,7 +390,7 @@ Gate the step behind an unchanged-output check (see Verification).
 - Root [abap_transpile.json](abap_transpile.json): **left unchanged.** An
   earlier draft said to add `output_converter` to `input_folder` so a root-level
   conversion feeds `npm run transpile`. That is wrong here: the 149 programs in
-  `scaffold/examples` convert to `ZCL_GG_EX_001`… and every one of those classes
+  `examples` convert to `ZCL_GG_EX_001`… and every one of those classes
   already exists as a hand-written `.clas.abap` in the same folder. Wiring the
   folder in would mean a bare `convert.mjs` at the repository root produces 149
   duplicate class definitions and breaks `npm run transpile`.
