@@ -97,13 +97,12 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Edit"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Refresh"})).toHaveCount(0);
   await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
-  await expect(page.locator(".wb-app-list > li")).toHaveCount(164);
+  await expect(page.locator(".wb-app-list > li")).toHaveCount(165);
   await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
   await expect(page.locator(".wb-app-list").getByText("Favorites", {exact: true})).toHaveCount(0);
   await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(1);
-  await expect(page.locator('a[href="/ZCL_GG_DB_HELPER"] svg use[href="#wb-icon-database"]')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveAttribute("aria-label", "open-abap");
   await expect(page.locator('.wb-logo-mark')).toHaveAttribute("viewBox", "0 0 108 108");
@@ -119,9 +118,9 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   expect(logoBox.y).toBeCloseTo(contentBox.y, 0);
   expect(logoBox.width).toBeCloseTo(contentBox.width, 0);
   expect(logoBox.height).toBeCloseTo(contentBox.height, 0);
-  await expect(page.getByRole("link", {name: "ZCL_GG_DB_HELPER"})).toHaveAttribute(
+  await expect(page.getByRole("link", {name: "ZGG_INT_HTML_REPORT"})).toHaveAttribute(
     "href",
-    "/ZCL_GG_DB_HELPER",
+    "/transaction?tcode=ZGG_INT_HTML_REPORT",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_001"})).toHaveAttribute(
     "href",

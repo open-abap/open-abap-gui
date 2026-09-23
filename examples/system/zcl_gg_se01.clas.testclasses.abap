@@ -24,6 +24,9 @@ CLASS ltcl_gg_se01 IMPLEMENTATION.
     DATA(ls_transaction) = NEW zcl_gg_se01( )->zif_gg_transaction_v1~get_transaction( ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
                                         exp = 'SE01' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_transaction_registry=>lookup( iv_tcode = `se01` )-class_name
+      exp = 'ZCL_GG_SE01' ).
   ENDMETHOD.
 
   METHOD has_five_selection_tabs.

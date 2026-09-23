@@ -2,10 +2,15 @@ CLASS zcl_gg_integration_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_dynpro_v1.
+    INTERFACES zif_gg_transaction_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_integration_dynpro IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_INT_DYNPRO' description = 'Integration dynpro' ).
+  ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.
     rv_screen = '0100'.

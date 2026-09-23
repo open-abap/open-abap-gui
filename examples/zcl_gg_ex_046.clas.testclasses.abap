@@ -2,6 +2,7 @@ CLASS ltcl_ex_46 DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
 
   PRIVATE SECTION.
     METHODS modifies_line_format FOR TESTING.
+    METHODS marks_modified_line FOR TESTING.
 
 ENDCLASS.
 
@@ -16,6 +17,14 @@ CLASS ltcl_ex_46 IMPLEMENTATION.
       act = ls_result-lines
       exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `row one` ) ) ).
     cl_abap_unit_assert=>assert_true( ls_result-line_formats[ 1 ]-intensified ).
+  ENDMETHOD.
+
+  METHOD marks_modified_line.
+    DATA(ls_modified) = zcl_gg_host=>run(
+      io_report     = NEW zcl_gg_ex_046( )
+      iv_line_index = 1 ).
+    cl_abap_unit_assert=>assert_true( act = ls_modified-line_formats[ 1 ]-intensified ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_modified-html CS 'gg-state-changed' ) ).
   ENDMETHOD.
 
 ENDCLASS.

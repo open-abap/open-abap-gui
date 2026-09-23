@@ -39,6 +39,9 @@ CLASS ltcl_gg_se11 IMPLEMENTATION.
     DATA(ls_transaction) = NEW zcl_gg_se11( )->zif_gg_transaction_v1~get_transaction( ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
                                         exp = 'SE11' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_transaction_registry=>lookup( iv_tcode = `Se11` )-class_name
+      exp = 'ZCL_GG_SE11' ).
   ENDMETHOD.
 
   METHOD displays_dictionary_table.

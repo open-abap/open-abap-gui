@@ -1,6 +1,8 @@
 CLASS zcl_gg_db_helper DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
+    INTERFACES zif_gg_host_environment_v1.
+
     CLASS-METHODS create.
     CLASS-METHODS reset.
     CLASS-METHODS clear.
@@ -14,6 +16,15 @@ CLASS zcl_gg_db_helper DEFINITION PUBLIC FINAL CREATE PUBLIC.
 ENDCLASS.
 
 CLASS zcl_gg_db_helper IMPLEMENTATION.
+
+  METHOD zif_gg_host_environment_v1~setup.
+    create( ).
+    reset( ).
+  ENDMETHOD.
+
+  METHOD zif_gg_host_environment_v1~teardown.
+    destroy( ).
+  ENDMETHOD.
 
   METHOD create.
     environment = cl_osql_test_environment=>create( VALUE #( ( 'ZSFLIGHT' ) ) ).

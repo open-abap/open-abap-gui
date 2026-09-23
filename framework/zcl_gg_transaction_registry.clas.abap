@@ -36,26 +36,10 @@ CLASS zcl_gg_transaction_registry DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS clear.
 
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_s_impl,
-             clsname    TYPE c LENGTH 30,
-             refclsname TYPE c LENGTH 30,
-           END OF ty_s_impl.
-    TYPES: BEGIN OF ty_s_key,
-             intkey TYPE c LENGTH 30,
-           END OF ty_s_key.
-    TYPES: BEGIN OF ty_s_source,
-             progname TYPE c LENGTH 40,
-             data     TYPE string,
-           END OF ty_s_source.
-
     CLASS-DATA mt_transactions TYPE ty_transactions.
     CLASS-DATA mv_initialized TYPE abap_bool.
 
     CLASS-METHODS ensure_catalog.
-
-    CLASS-METHODS get_implementations
-      RETURNING
-        VALUE(rt_names) TYPE string_table.
 
     CLASS-METHODS validate_tcode
       IMPORTING
@@ -145,7 +129,7 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       RETURN.
     ENDIF.
     CLEAR mt_transactions.
-    lt_names = get_implementations( ).
+    lt_names = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_TRANSACTION_V1` ).
     SORT lt_names.
 
     LOOP AT lt_names INTO lv_class_name.
@@ -241,83 +225,6 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
     mv_initialized = abap_true.
-  ENDMETHOD.
-
-  METHOD get_implementations.
-    DATA obj TYPE REF TO object.
-    DATA lt_implementation_names TYPE string_table.
-    DATA lv_fm TYPE string.
-    DATA lt_impl TYPE STANDARD TABLE OF ty_s_impl WITH DEFAULT KEY.
-    DATA ls_key TYPE ty_s_key.
-    DATA lt_sources TYPE STANDARD TABLE OF ty_s_source WITH DEFAULT KEY.
-    DATA lv_interface TYPE string.
-    DATA ls_source TYPE ty_s_source.
-    DATA lv_source TYPE string.
-    DATA lv_class_name TYPE string.
-    DATA lr_impl TYPE REF TO ty_s_impl.
-    FIELD-SYMBOLS <any> TYPE any.
-    FIELD-SYMBOLS <class_name> TYPE string.
-
-    TRY.
-        CALL METHOD ('XCO_CP_ABAP')=>interface
-          EXPORTING
-            iv_name      = 'ZIF_GG_TRANSACTION_V1'
-          RECEIVING
-            ro_interface = obj.
-        ASSIGN obj->('IF_XCO_AO_INTERFACE~IMPLEMENTATIONS') TO <any>.
-        IF sy-subrc <> 0.
-          RAISE EXCEPTION TYPE cx_sy_dyn_call_illegal_class.
-        ENDIF.
-        obj = <any>.
-        ASSIGN obj->('IF_XCO_INTF_IMPLEMENTATIONS_FC~ALL') TO <any>.
-        IF sy-subrc <> 0.
-          RAISE EXCEPTION TYPE cx_sy_dyn_call_illegal_class.
-        ENDIF.
-        obj = <any>.
-        CALL METHOD obj->('IF_XCO_INTF_IMPLEMENTATIONS~GET').
-        CALL METHOD obj->('IF_XCO_INTF_IMPLEMENTATIONS~GET_NAMES')
-          RECEIVING
-            rt_names = lt_implementation_names.
-        rt_names = lt_implementation_names.
-      CATCH cx_sy_dyn_call_illegal_class.
-        lv_fm = `SEO_INTERFACE_IMPLEM_GET_ALL`.
-        TRY.
-            ls_key-intkey = 'ZIF_GG_TRANSACTION_V1'.
-            CALL FUNCTION lv_fm
-              EXPORTING
-                intkey       = ls_key
-              IMPORTING
-                impkeys      = lt_impl
-              EXCEPTIONS
-                not_existing = 1
-                OTHERS       = 2.
-            LOOP AT lt_impl REFERENCE INTO lr_impl.
-              INSERT CONV #( lr_impl->clsname ) INTO TABLE rt_names.
-            ENDLOOP.
-          CATCH cx_root.
-            lv_interface = 'ZIF_GG_TRANSACTION_V1'.
-            SELECT progname, data FROM reposrc
-              INTO TABLE @lt_sources
-              ORDER BY progname.
-            TRANSLATE lv_interface TO UPPER CASE.
-            LOOP AT lt_sources INTO ls_source.
-              lv_source = ls_source-data.
-              TRANSLATE lv_source TO UPPER CASE.
-              IF lv_source CS |INTERFACES { lv_interface }|.
-                lv_class_name = CONV string( ls_source-progname ).
-                SHIFT lv_class_name RIGHT DELETING TRAILING space.
-                INSERT lv_class_name INTO TABLE rt_names.
-              ENDIF.
-            ENDLOOP.
-        ENDTRY.
-    ENDTRY.
-
-    LOOP AT rt_names ASSIGNING <class_name>.
-      TRANSLATE <class_name> TO UPPER CASE.
-      SHIFT <class_name> RIGHT DELETING TRAILING space.
-    ENDLOOP.
-    SORT rt_names.
-    DELETE ADJACENT DUPLICATES FROM rt_names.
   ENDMETHOD.
 
   METHOD validate_tcode.

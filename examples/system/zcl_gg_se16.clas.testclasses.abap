@@ -13,6 +13,7 @@ CLASS ltcl_gg_se16 DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLE
     METHODS rejects_unknown_table FOR TESTING.
     METHODS returns_to_same_criteria FOR TESTING.
     METHODS offers_domain_value_help FOR TESTING.
+    METHODS metadata FOR TESTING.
 
 ENDCLASS.
 
@@ -177,6 +178,15 @@ CLASS ltcl_gg_se16 IMPLEMENTATION.
                                         exp = '0150' ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-values[ name = 'P_T1_LOW1' ]-value
                                         exp = 'LH' ).
+  ENDMETHOD.
+
+  METHOD metadata.
+    DATA(ls_transaction) = NEW zcl_gg_se16( )->zif_gg_transaction_v1~get_transaction( ).
+    cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
+                                        exp = 'SE16' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_transaction_registry=>lookup( iv_tcode = `se16` )-class_name
+      exp = 'ZCL_GG_SE16' ).
   ENDMETHOD.
 
 ENDCLASS.

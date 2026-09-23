@@ -13,6 +13,9 @@ CLASS ltcl_gg_se09 IMPLEMENTATION.
     DATA(ls_transaction) = NEW zcl_gg_se09( )->zif_gg_transaction_v1~get_transaction( ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
                                         exp = 'SE09' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_transaction_registry=>lookup( iv_tcode = `SE09` )-class_name
+      exp = 'ZCL_GG_SE09' ).
   ENDMETHOD.
 
   METHOD displays_server_request.

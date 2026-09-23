@@ -2,11 +2,16 @@ CLASS zcl_gg_integration_html_report DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
+    INTERFACES zif_gg_transaction_v1.
     INTERFACES zif_gg_list_processing_v1.
 
 ENDCLASS.
 
 CLASS zcl_gg_integration_html_report IMPLEMENTATION.
+
+  METHOD zif_gg_transaction_v1~get_transaction.
+    rs_transaction = VALUE #( tcode = 'ZGG_INT_HTML_REPORT' description = 'Integration HTML report' ).
+  ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_parameter( VALUE #(

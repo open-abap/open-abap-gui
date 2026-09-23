@@ -2,6 +2,7 @@ CLASS ltcl_ex_55 DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
 
   PRIVATE SECTION.
     METHODS returns_submitted_list FOR TESTING.
+    METHODS structured_memory_list FOR TESTING.
 
 ENDCLASS.
 
@@ -15,6 +16,20 @@ CLASS ltcl_ex_55 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
       exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `hello world` ) ) ).
+  ENDMETHOD.
+
+  METHOD structured_memory_list.
+    DATA(ls_result) = zcl_gg_host=>run(
+      io_report        = NEW zcl_gg_ex_055( )
+      io_submit_report = NEW zcl_gg_ex_001( ) ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-lines
+      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `hello world` ) ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-memory_render_lines[ 1 ]-text
+      exp = `hello world` ).
+    cl_abap_unit_assert=>assert_not_initial( ls_result-memory_render_lines[ 1 ]-token ).
   ENDMETHOD.
 
 ENDCLASS.

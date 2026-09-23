@@ -37,7 +37,8 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
              error TYPE string,
            END OF ty_error_response.
 
-    CLASS-DATA mv_database_ready TYPE abap_bool.
+    CLASS-DATA mv_environment_ready TYPE abap_bool.
+    CLASS-DATA mt_environments TYPE STANDARD TABLE OF REF TO zif_gg_host_environment_v1 WITH EMPTY KEY.
 
     CLASS-METHODS handle_get
       IMPORTING
@@ -103,7 +104,7 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         ct_values    TYPE zif_gg_dynpro_types_v1=>ty_values.
 
-    CLASS-METHODS ensure_database.
+    CLASS-METHODS ensure_environment.
 
     CLASS-METHODS start_program
       IMPORTING
@@ -125,10 +126,6 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_object          TYPE REF TO object OPTIONAL
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
-
-    CLASS-METHODS helper_html
-      RETURNING
-        VALUE(rv_html) TYPE string.
 
     CLASS-METHODS send_runtime_response
       IMPORTING
@@ -263,34 +260,17 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
                              is_response = ls_response ).
       RETURN.
     ENDIF.
-    IF lv_path = '/ZCL_GG_DB_HELPER'.
-      send_html( server  = server
-                 iv_html = helper_html( ) ).
-      RETURN.
-    ENDIF.
-
     lv_class_name = substring( val = lv_path
                                off = 1 ).
     TRANSLATE lv_class_name TO UPPER CASE.
-    CASE lv_class_name.
-      WHEN 'ZCL_GG_INTEGRATION_HTML_REPORT'.
-        ls_response = start_program(
-          io_report  = NEW zcl_gg_integration_html_report( )
-          iv_program = 'ZCL_GG_INTEGRATION_HTML_REPORT' ).
-      WHEN 'ZCL_GG_INTEGRATION_DYNPRO'.
-        ls_response = start_program(
-          io_dynpro  = NEW zcl_gg_integration_dynpro( )
-          iv_program = 'ZCL_GG_INTEGRATION_DYNPRO' ).
-      WHEN OTHERS.
-        lt_transactions = zcl_gg_transaction_registry=>get_all( ).
-        READ TABLE lt_transactions INTO ls_transaction
-          WITH KEY class_name = lv_class_name.
-        IF sy-subrc <> 0.
-          send_not_found( server ).
-          RETURN.
-        ENDIF.
-        ls_response = launch_transaction( is_transaction = ls_transaction ).
-    ENDCASE.
+    lt_transactions = zcl_gg_transaction_registry=>get_all( ).
+    READ TABLE lt_transactions INTO ls_transaction
+      WITH KEY class_name = lv_class_name.
+    IF sy-subrc <> 0.
+      send_not_found( server ).
+      RETURN.
+    ENDIF.
+    ls_response = launch_transaction( is_transaction = ls_transaction ).
     send_runtime_response( server      = server
                            is_response = ls_response ).
   ENDMETHOD.
@@ -948,16 +928,27 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD ensure_database.
-    IF mv_database_ready = abap_false.
-      zcl_gg_db_helper=>create( ).
-      zcl_gg_db_helper=>reset( ).
-      mv_database_ready = abap_true.
+  METHOD ensure_environment.
+    DATA lt_names TYPE string_table.
+    DATA lv_class_name TYPE string.
+    DATA lo_object TYPE REF TO object.
+    DATA lo_environment TYPE REF TO zif_gg_host_environment_v1.
+
+    IF mv_environment_ready = abap_true.
+      RETURN.
     ENDIF.
+    lt_names = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_HOST_ENVIRONMENT_V1` ).
+    LOOP AT lt_names INTO lv_class_name.
+      CREATE OBJECT lo_object TYPE (lv_class_name).
+      lo_environment ?= lo_object.
+      lo_environment->setup( ).
+      APPEND lo_environment TO mt_environments.
+    ENDLOOP.
+    mv_environment_ready = abap_true.
   ENDMETHOD.
 
   METHOD start_program.
-    ensure_database( ).
+    ensure_environment( ).
     IF io_dynpro IS BOUND.
       rs_response = zcl_gg_host_runtime=>start(
         io_dynpro_program = io_dynpro
@@ -1044,22 +1035,11 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
   METHOD shutdown.
     zcl_gg_host_runtime=>clear( ).
-    IF mv_database_ready = abap_true.
-      zcl_gg_db_helper=>destroy( ).
-      mv_database_ready = abap_false.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD helper_html.
-    rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZCL_GG_DB_HELPER</title><style>' &&
-      zcl_gg_workbench_utility=>render_styles( ) &&
-      '</style></head><body><div class="wb-shell">' &&
-      zcl_gg_host_icons=>sprite( ) &&
-      zcl_gg_workbench_utility=>render_top(
-        iv_runtime = abap_true
-        iv_title   = `ZCL_GG_DB_HELPER` ) &&
-      '<div class="wb-runtime-content"><main><h1>ZCL_GG_DB_HELPER</h1><p>This is the database fixture support class used by the integration examples.</p><p>It is not an executable report or dynpro program.</p></main></div>' &&
-      zcl_gg_workbench_utility=>render_bottom( ).
+    LOOP AT mt_environments INTO DATA(lo_environment).
+      lo_environment->teardown( ).
+    ENDLOOP.
+    CLEAR mt_environments.
+    mv_environment_ready = abap_false.
   ENDMETHOD.
 
   METHOD send_runtime_response.

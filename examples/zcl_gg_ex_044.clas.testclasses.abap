@@ -2,6 +2,8 @@ CLASS ltcl_ex_44 DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
 
   PRIVATE SECTION.
     METHODS dispatches_user_command FOR TESTING.
+    METHODS html_status_action FOR TESTING.
+    METHODS runtime_authorizes_commands FOR TESTING.
 
 ENDCLASS.
 
@@ -60,6 +62,48 @@ CLASS ltcl_ex_44 IMPLEMENTATION.
     DATA(ls_empty) = zcl_gg_host=>run( NEW zcl_gg_ex_001( ) ).
     cl_abap_unit_assert=>assert_initial( ls_empty-status-icon_bar ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_empty-html CS 'class="wb-toolbar-button' ) ).
+  ENDMETHOD.
+
+  METHOD html_status_action.
+    DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_044( ) ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL" disabled' ) ).
+  ENDMETHOD.
+
+  METHOD runtime_authorizes_commands.
+    zcl_gg_host_runtime=>clear( ).
+    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_044( ) ).
+
+    DATA(ls_inactive) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = zif_gg_session_types_v1=>command_save ) ).
+    cl_abap_unit_assert=>assert_false( ls_inactive-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_inactive-error
+      exp = 'Command is not active for the current host page' ).
+
+    DATA(ls_excluded) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'DEL' ) ).
+    cl_abap_unit_assert=>assert_false( ls_excluded-valid ).
+
+    DATA(ls_allowed) = zcl_gg_host_runtime=>dispatch( VALUE #(
+      session_id = ls_start-session_id
+      page_id    = ls_start-page_id
+      action     = zif_gg_host_html_v1=>action_command
+      ucomm      = 'REFR' ) ).
+    cl_abap_unit_assert=>assert_true( ls_allowed-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_allowed-compatibility-lines
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `body` )
+        ( `refreshed` ) ) ).
+    zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 
 ENDCLASS.

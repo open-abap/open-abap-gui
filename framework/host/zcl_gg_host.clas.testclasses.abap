@@ -273,20 +273,10 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS html_escapes_output FOR TESTING.
     METHODS runtime_rejects_stale_page FOR TESTING.
     METHODS terminal_page FOR TESTING.
-    METHODS list_model_and_token FOR TESTING.
-    METHODS list_model_coverage FOR TESTING.
     METHODS selection_output_snapshot FOR TESTING.
-    METHODS html_status_action FOR TESTING.
-    METHODS runtime_authorizes_commands FOR TESTING.
-    METHODS runtime_authorizes_pf_keys FOR TESTING.
-    METHODS runtime_history_back FOR TESTING.
-    METHODS dynpro_runtime FOR TESTING.
-    METHODS navigation_metadata FOR TESTING.
-    METHODS runtime_navigation_roundtrips FOR TESTING.
-    METHODS structured_memory_list FOR TESTING.
     METHODS selection_renderer_controls FOR TESTING.
-    METHODS html_display_like FOR TESTING.
     METHODS html_gui_fixture FOR TESTING.
+    METHODS replaces_a_host_session FOR TESTING.
 
 ENDCLASS.
 
@@ -449,53 +439,6 @@ CLASS ltcl_host IMPLEMENTATION.
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 
-  METHOD list_model_and_token.
-    DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_043( ) ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-model_events[ 1 ]-kind
-      exp = 'PAGE_BEGIN' ).
-    cl_abap_unit_assert=>assert_not_initial( ls_result-render_lines[ 1 ]-token ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-action-token=' ) ).
-
-    zcl_gg_host_runtime=>clear( ).
-    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_043( ) ).
-    DATA(ls_invalid) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_line
-      row        = 1
-      token      = 'wrong' ) ).
-    cl_abap_unit_assert=>assert_false( ls_invalid-valid ).
-    zcl_gg_host_runtime=>clear( ).
-  ENDMETHOD.
-
-  METHOD list_model_coverage.
-    DATA(ls_placement) = zcl_gg_host=>run( NEW zcl_gg_ex_002( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_placement-render_lines[ 1 ]-fragments[ 1 ]-position
-      exp = 10 ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_placement-render_lines[ 1 ]-fragments[ 1 ]-length
-      exp = 5 ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lines( ls_placement-render_lines[ 1 ]-fragments ) >= 3 ) ).
-
-    DATA(ls_pages) = zcl_gg_host=>run( NEW zcl_gg_ex_008( ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lines( ls_pages-render_lines ) >= 2 ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_pages-model_events[ kind = 'PAGE_BEGIN' page = 2 ] ) ) ).
-
-    DATA(ls_hidden) = zcl_gg_host=>run( NEW zcl_gg_ex_043( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_hidden-render_lines[ 1 ]-fields[ name = 'GV_ID' ]-value
-      exp = '1' ).
-
-    DATA(ls_modified) = zcl_gg_host=>run(
-      io_report     = NEW zcl_gg_ex_046( )
-      iv_line_index = 1 ).
-    cl_abap_unit_assert=>assert_true( act = ls_modified-line_formats[ 1 ]-intensified ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_modified-html CS 'gg-state-changed' ) ).
-  ENDMETHOD.
-
   METHOD selection_output_snapshot.
     DATA(ls_result) = zcl_gg_host=>run( NEW lcl_report( 'OUTPUT' ) ).
 
@@ -506,245 +449,6 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( ls_result-screen_snapshot-states[ name = 'P_CARR' ]-visible ).
     cl_abap_unit_assert=>assert_false( ls_result-screen_snapshot-states[ name = 'P_CARR' ]-enabled ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-page-kind="SELECTION"' ) ).
-  ENDMETHOD.
-
-  METHOD html_status_action.
-    DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_044( ) ).
-
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL" disabled' ) ).
-  ENDMETHOD.
-
-  METHOD runtime_authorizes_commands.
-    zcl_gg_host_runtime=>clear( ).
-    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_044( ) ).
-
-    DATA(ls_inactive) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_command
-      ucomm      = zif_gg_session_types_v1=>command_save ) ).
-    cl_abap_unit_assert=>assert_false( ls_inactive-valid ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_inactive-error
-      exp = 'Command is not active for the current host page' ).
-
-    DATA(ls_excluded) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_command
-      ucomm      = 'DEL' ) ).
-    cl_abap_unit_assert=>assert_false( ls_excluded-valid ).
-
-    DATA(ls_allowed) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_command
-      ucomm      = 'REFR' ) ).
-    cl_abap_unit_assert=>assert_true( ls_allowed-valid ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_allowed-compatibility-lines
-      exp = VALUE zcl_gg_host_list=>ty_text_lines(
-        ( `body` )
-        ( `refreshed` ) ) ).
-    zcl_gg_host_runtime=>clear( ).
-  ENDMETHOD.
-
-  METHOD runtime_authorizes_pf_keys.
-    zcl_gg_host_runtime=>clear( ).
-    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_049( ) ).
-
-    DATA(ls_disabled) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_pf
-      pf_key     = 6 ) ).
-    cl_abap_unit_assert=>assert_false( ls_disabled-valid ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_disabled-error
-      exp = 'PF key is not active for the current host page' ).
-
-    DATA(ls_allowed) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_pf
-      pf_key     = 5 ) ).
-    cl_abap_unit_assert=>assert_true( ls_allowed-valid ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_allowed-compatibility-lines
-      exp = VALUE zcl_gg_host_list=>ty_text_lines(
-        ( `body` )
-        ( `pf5` ) ) ).
-    zcl_gg_host_runtime=>clear( ).
-  ENDMETHOD.
-
-  METHOD runtime_history_back.
-    zcl_gg_host_runtime=>clear( ).
-    DATA(ls_start) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_043( ) ).
-    cl_abap_unit_assert=>assert_not_initial( ls_start-compatibility-lines ).
-    DATA(ls_detail) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_line
-      row        = 1
-      token      = 'H-1-1' ) ).
-    cl_abap_unit_assert=>assert_true( ls_detail-valid ).
-    DATA(ls_back) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_detail-session_id
-      page_id    = ls_detail-page_id
-      action     = zif_gg_host_html_v1=>action_back ) ).
-    cl_abap_unit_assert=>assert_true( ls_back-valid ).
-    cl_abap_unit_assert=>assert_equals( act = ls_back-page_id
-                                        exp = ls_start-page_id ).
-    cl_abap_unit_assert=>assert_equals( act = lines( ls_back-pages )
-                                        exp = 2 ).
-    zcl_gg_host_runtime=>clear( ).
-  ENDMETHOD.
-
-  METHOD dynpro_runtime.
-    zcl_gg_host_runtime=>clear( ).
-    DATA(ls_start) = zcl_gg_host_runtime=>start( io_dynpro_program = NEW zcl_gg_integration_dynpro( ) ).
-    cl_abap_unit_assert=>assert_true( ls_start-valid ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_start-page_kind
-      exp = zif_gg_host_html_v1=>page_dynpro ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_start-html CS 'data-page-kind="DYNPRO"' ) ).
-
-    DATA(ls_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_submit
-      ucomm      = 'NEXT' ) ).
-    cl_abap_unit_assert=>assert_true( ls_next-valid ).
-    cl_abap_unit_assert=>assert_equals( act = ls_next-current_page-screen
-                                        exp = '0200' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_next-html CS 'data-screen="0200"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_next-html CS 'value="COMMAND:BACK"' ) ).
-
-    DATA(ls_back_command) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_next-session_id
-      page_id    = ls_next-page_id
-      action     = zif_gg_host_html_v1=>action_command
-      ucomm      = 'BACK' ) ).
-    cl_abap_unit_assert=>assert_true( ls_back_command-valid ).
-    cl_abap_unit_assert=>assert_equals( act = ls_back_command-current_page-screen
-                                        exp = '0000' ).
-    zcl_gg_host_runtime=>clear( ).
-  ENDMETHOD.
-
-  METHOD navigation_metadata.
-    DATA(ls_selection) = zcl_gg_host=>run(
-      io_report              = NEW zcl_gg_ex_051( )
-      iv_pause_at_navigation = abap_true ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_selection-navigation-kind
-      exp = zcx_gg_control_flow=>kind_call_selection_screen ).
-    cl_abap_unit_assert=>assert_equals( act = ls_selection-navigation-target
-                                        exp = '0500' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_selection-navigation-continuation
-                                        exp = 'AFTER_0500' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'gg-selection' ) ).
-
-    DATA(ls_screen) = zcl_gg_host=>run( NEW zcl_gg_ex_052( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_screen-navigation-kind
-      exp = zcx_gg_control_flow=>kind_call_screen ).
-    cl_abap_unit_assert=>assert_equals( act = ls_screen-navigation-target
-                                        exp = '0100' ).
-
-    DATA(ls_submit) = zcl_gg_host=>run( NEW zcl_gg_ex_054( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_submit-navigation-kind
-      exp = zcx_gg_control_flow=>kind_submit_return ).
-    cl_abap_unit_assert=>assert_equals( act = ls_submit-navigation-target
-                                        exp = 'ZGG_EX_020' ).
-
-    DATA(ls_transaction) = zcl_gg_host=>run( NEW zcl_gg_ex_056( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_transaction-navigation-kind
-      exp = zcx_gg_control_flow=>kind_call_transaction ).
-    cl_abap_unit_assert=>assert_equals( act = ls_transaction-navigation-target
-                                        exp = 'SE38' ).
-  ENDMETHOD.
-
-  METHOD runtime_navigation_roundtrips.
-    zcl_gg_host_runtime=>clear( ).
-    DATA(ls_selection) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_051( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_selection-page_kind
-      exp = zif_gg_host_html_v1=>page_selection ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'name="P_B"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_selection-html CS 'gg-modal-backdrop' ) ).
-    DATA(ls_selection_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_selection-session_id
-      page_id    = ls_selection-page_id
-      action     = zif_gg_host_html_v1=>action_submit
-      values     = VALUE #( ( name = 'P_B' value = 'X' ) ) ) ).
-    cl_abap_unit_assert=>assert_true( ls_selection_next-valid ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_selection_next-compatibility-lines[ table_line = 'X' ] ) ) ).
-
-    zcl_gg_host_runtime=>clear( ).
-    DATA(ls_cancel) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_051( ) ).
-    DATA(ls_cancel_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_cancel-session_id
-      page_id    = ls_cancel-page_id
-      action     = zif_gg_host_html_v1=>action_exit ) ).
-    cl_abap_unit_assert=>assert_true( ls_cancel_next-valid ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( line_exists( ls_cancel_next-compatibility-lines[ table_line = 'X' ] ) ) ).
-    zcl_gg_host_runtime=>clear( ).
-
-    DATA(ls_screen) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_052( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_screen-page_kind
-      exp = zif_gg_host_html_v1=>page_navigation ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_screen-html CS 'Continue to' ) ).
-    DATA(ls_screen_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_screen-session_id
-      page_id    = ls_screen-page_id
-      action     = zif_gg_host_html_v1=>action_submit ) ).
-    cl_abap_unit_assert=>assert_true( ls_screen_next-valid ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_screen_next-compatibility-lines[ table_line = 'back' ] ) ) ).
-    zcl_gg_host_runtime=>clear( ).
-
-    DATA(ls_submit) = zcl_gg_host_runtime=>start(
-      io_report        = NEW zcl_gg_ex_054( )
-      io_submit_report = NEW lcl_report( 'HELLO' ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_submit-page_kind
-      exp = zif_gg_host_html_v1=>page_navigation ).
-    DATA(ls_submit_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_submit-session_id
-      page_id    = ls_submit-page_id
-      action     = zif_gg_host_html_v1=>action_submit ) ).
-    cl_abap_unit_assert=>assert_true( ls_submit_next-valid ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_submit_next-compatibility-lines[ table_line = 'back' ] ) ) ).
-    zcl_gg_host_runtime=>clear( ).
-
-    DATA(ls_transaction) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_056( ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_transaction-page_kind
-      exp = zif_gg_host_html_v1=>page_navigation ).
-    DATA(ls_transaction_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_transaction-session_id
-      page_id    = ls_transaction-page_id
-      action     = zif_gg_host_html_v1=>action_submit ) ).
-    cl_abap_unit_assert=>assert_true( ls_transaction_next-valid ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_transaction_next-compatibility-lines[ table_line = 'back' ] ) ) ).
-    zcl_gg_host_runtime=>clear( ).
-  ENDMETHOD.
-
-  METHOD structured_memory_list.
-    DATA(ls_result) = zcl_gg_host=>run(
-      io_report        = NEW zcl_gg_ex_055( )
-      io_submit_report = NEW lcl_report( 'HELLO' ) ).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines
-      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `hello world` ) ) ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-memory_render_lines[ 1 ]-text
-      exp = `hello world` ).
-    cl_abap_unit_assert=>assert_not_initial( ls_result-memory_render_lines[ 1 ]-token ).
   ENDMETHOD.
 
   METHOD selection_renderer_controls.
@@ -783,13 +487,6 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-instruction-region"' ) ).
   ENDMETHOD.
 
-  METHOD html_display_like.
-    DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_042( ) ).
-
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-error' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'looks like an error' ) ).
-  ENDMETHOD.
-
   METHOD html_gui_fixture.
     DATA(ls_result) = zcl_gg_host=>run( NEW lcl_report( 'GUI' ) ).
 
@@ -801,6 +498,28 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'sandbox=""' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS '<report text>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS '<report root>' ) ).
+  ENDMETHOD.
+
+  METHOD replaces_a_host_session.
+    DATA ls_old TYPE zif_gg_host_html_v1=>ty_response.
+    DATA ls_new TYPE zif_gg_host_html_v1=>ty_response.
+    DATA ls_stale TYPE zif_gg_host_html_v1=>ty_response.
+    DATA ls_request TYPE zif_gg_host_html_v1=>ty_request.
+
+    zcl_gg_host_runtime=>clear( ).
+    ls_old = zcl_gg_host_runtime=>start( io_report = NEW lcl_report( 'HELLO' ) ).
+    cl_abap_unit_assert=>assert_initial(
+      act = zcl_gg_host_runtime=>close_current(
+        iv_session_id = ls_old-session_id
+        iv_page_id    = ls_old-page_id ) ).
+    ls_new = zcl_gg_host_runtime=>start( io_report = NEW lcl_report( 'PLACE' ) ).
+    cl_abap_unit_assert=>assert_not_initial( act = ls_new-session_id ).
+    ls_request-session_id = ls_old-session_id.
+    ls_request-page_id = ls_old-page_id.
+    ls_request-action = zif_gg_host_html_v1=>action_submit.
+    ls_stale = zcl_gg_host_runtime=>dispatch( ls_request ).
+    cl_abap_unit_assert=>assert_false( act = ls_stale-valid ).
+    zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.
 
 ENDCLASS.

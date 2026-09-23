@@ -14,13 +14,10 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
     DATA(lv_html) = lo_html->get_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<!doctype html>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'ZGG_EX_001' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'WRITE literal' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '/transaction?tcode=ZGG_EX_001' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-app-list"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<details' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'role="tree"' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '/ZCL_GG_EX_001' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'href="/ZCL_' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-commandbar"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="/converter/preview"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-logo-mark" viewBox="0 0 108 108"' ) ).

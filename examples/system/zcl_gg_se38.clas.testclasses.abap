@@ -22,6 +22,9 @@ CLASS ltcl_gg_se38 IMPLEMENTATION.
     DATA(ls_transaction) = NEW zcl_gg_se38( )->zif_gg_transaction_v1~get_transaction( ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
                                         exp = 'SE38' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_transaction_registry=>lookup( iv_tcode = `Se38` )-class_name
+      exp = 'ZCL_GG_SE38' ).
   ENDMETHOD.
 
   METHOD displays_escaped_source.

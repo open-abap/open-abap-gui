@@ -82,9 +82,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
         zcl_gg_host_icons=>icon( iv_name = `file-code` ) &&
         |<span>{ zcl_gg_host_html=>escape_text( CONV string( ls_transaction-tcode ) ) }</span><span class="wb-app-description">{ zcl_gg_host_html=>escape_text( ls_transaction-description ) }</span></a></li>|.
     ENDLOOP.
-    rv_html = rv_html && '<li><a class="wb-app-link" href="/ZCL_GG_DB_HELPER">' &&
-      zcl_gg_host_icons=>icon( iv_name = `database` ) &&
-      'ZCL_GG_DB_HELPER</a></li></ul></nav></aside>'.
+    rv_html = rv_html && '</ul></nav></aside>'.
     rv_html = rv_html && '<main class="wb-content" id="main-content"><section class="wb-logo-only" aria-label="open-abap">' &&
       render_logo( ) &&
       '</section></main></div>'.

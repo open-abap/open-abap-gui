@@ -5,6 +5,7 @@
   "description": "GUI controls for open-abap",
   "scripts": {
     "lint": "abaplint",
+    "lint:framework": "node test/lint-framework.mjs",
     "transpile": "abap_transpile",
     "unit": "abap_transpile && echo RUNNING && node output/index.mjs",
     "test:html-browser": "playwright test",
@@ -15,7 +16,7 @@
     "web:diff": "node test/generate-screenshot-diffs.mjs deployment/main/screenshots build/screenshots build/visual-diffs",
     "web:build": "npm run transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots && npm run web:diff",
     "test:converter": "npm --prefix converter run test",
-    "test": "npm run lint && npm run unit && npm run test:html-browser && npm run test:converter",
+    "test": "npm run lint && npm run lint:framework && npm run unit && npm run test:html-browser && npm run test:converter",
     "regression": "node .github/regression/run.js"
   },
   "license": "",

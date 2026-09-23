@@ -2,6 +2,7 @@ CLASS ltcl_ex_42 DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
 
   PRIVATE SECTION.
     METHODS records_display_like FOR TESTING.
+    METHODS html_display_like FOR TESTING.
 
 ENDCLASS.
 
@@ -24,6 +25,13 @@ CLASS ltcl_ex_42 IMPLEMENTATION.
       exp = 'looks like an error' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-message gg-error"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'role="alert" aria-live="polite"' ) ).
+  ENDMETHOD.
+
+  METHOD html_display_like.
+    DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_042( ) ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-error' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'looks like an error' ) ).
   ENDMETHOD.
 
 ENDCLASS.
