@@ -102,6 +102,10 @@ if (singleOnly.length && options.programs.length !== 1) {
 }
 
 const config = await loadTranspileConfig(options.config ?? DEFAULT_CONFIG_FILENAME);
+// stderr, so a --check summary on stdout stays parseable JSON.
+if (options.config === undefined && !config.diagnostics.some((item) => item.code === "GGCONV-E110")) {
+  console.error(`using ${config.filename} (no --config given)`);
+}
 // GGCONV-W110 warns that abap_transpile will not compile the generated
 // classes. A --check run writes none, so the warning has nothing to say.
 const configDiagnostics = config.diagnostics.filter((item) => !(options.check && item.code === "GGCONV-W110"));
