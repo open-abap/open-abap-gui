@@ -1,7 +1,7 @@
 # PROG-to-CLAS converter
 
 The converter is a deterministic, offline source-to-source tool for migrating
-classic executable reports to the versioned scaffold interfaces in `scaffold/`.
+classic executable reports to the versioned scaffold interfaces in `framework/`.
 The library API is the primary entry point:
 
 ```js
@@ -39,16 +39,53 @@ workbench can wrap that adapter with `createWorkbenchService`; its separate
 `save`/`create` methods require authorization, CSRF validation, a matching
 repository revision, and an explicit writer before they can mutate anything.
 
-The CLI is intentionally thin:
+The CLI is driven by the same `abap_transpile.json` the transpiler reads:
 
 ```text
-node converter/bin/convert.mjs report.prog.abap --class ZCL_REPORT --output out/report.clas.abap
-node converter/bin/convert.mjs report.prog.abap --check --diagnostics json
+node converter/bin/convert.mjs
+node converter/bin/convert.mjs --config abap_transpile.json --check --diagnostics json
+node converter/bin/convert.mjs --program ZGG_EX_001 --class ZCL_REPORT --output out/report.clas.abap
 ```
 
-No network or model call is used during conversion. Includes are resolved by the
-optional `resolveInclude(name, parentFilename)` callback or by deterministic
-filesystem candidates. Generated files are never overwritten by default.
+It takes no positional arguments; a single report is selected with `--program`.
+The keys it reads are:
+
+| key | converter use |
+| --- | --- |
+| `input_folder` | folders scanned for `*.prog.abap`, and the include search path |
+| `input_filter` | case-insensitive allow-list of regular expressions; empty matches everything |
+| `exclude_filter` | case-insensitive deny-list, applied after `input_filter` |
+| `output_folder` | the converter writes generated classes to `<output_folder>_converter` |
+
+Everything else in the file belongs to the transpiler and is ignored, including
+keys a newer transpiler adds: the converter reads that file, it never writes it
+and never validates it beyond the keys above.
+
+`abap_transpile.json` is the only configuration file — there is no converter
+config, and the converter needs no key the transpiler does not already define.
+Folder names resolve against the working directory, exactly as abap_transpile
+resolves them, so the same file selects the same sources for both tools.
+Filters are matched against the absolute path for the same reason, which means
+a pattern cannot be anchored with `^`.
+
+The generated folder is derived, not configurable. `output_folder: "output"`
+puts the classes in `output_converter`; a nested `build/x/output` puts them in
+`build/x/output_converter`. Add that folder to `input_folder` or abap_transpile
+will not compile what the converter just wrote — `GGCONV-W110` says so, and
+names the entry to add. `output_folder` is required even for a `--check` run
+that writes nothing, because the generated folder is derived from it.
+
+Writes always overwrite, and a full run clears the generated folder first so a
+class that no current program produces cannot survive as a stale transpiler
+input. The converter owns that folder entirely. Two runs do not clear it: a
+`--program` run, because the classes it does not produce are still current, and
+an `--output-folder` run, because that folder may be shared. A run in which two
+programs map to the same class writes nothing at all and reports
+`GGCONV-E115`, rather than keeping one class and losing the other.
+
+No network or model call is used during conversion. Includes are resolved from
+`input_folder`, by the optional `resolveInclude(name, parentFilename)` callback,
+or by deterministic filesystem candidates.
 
 Selection texts can be supplied as a `Map`, object, or simple text-pool string
 through `textPool`; unresolved `TEXT-*` keys remain deterministic and produce a
@@ -159,8 +196,10 @@ npm test
 ```
 
 `test:gg-gui` clones `https://github.com/larshp/gg-gui` into the gitignored
-`gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), converts every
-catalog report with the safe partial strategy, transpiles and serves the
+`gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), writes
+`gg-gui-validation/abap_transpile.json` naming that checkout as an input folder,
+converts every report that configuration selects with the safe partial
+strategy, transpiles the same configuration and serves the
 generated report classes, verifies every generated target/helper class has clean
 transpiler output before marking it as an application-parity candidate, and
 writes one browser screenshot per report plus an HTML index under

@@ -1,5 +1,5 @@
 {
-  "input_folder": ["src", "scaffold"],
+  "input_folder": ["src", "framework", "examples"],
   "input_filter": [],
   "exclude_filter": [],
   "output_folder": "output",

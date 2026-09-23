@@ -1,46 +1,61 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertProgram } from "../src/api.mjs";
-import { diagnosticsToJSON, diagnosticsToText } from "../src/diagnostics.mjs";
+import { convertConfiguredPrograms } from "../src/batch.mjs";
+import { DEFAULT_CONFIG_FILENAME, discoverPrograms, loadTranspileConfig } from "../src/config.mjs";
+import { diagnosticsToJSON, diagnosticsToText, sortDiagnostics } from "../src/diagnostics.mjs";
 
 function usage() {
-  return `Usage: node converter/bin/convert.mjs <report.prog.abap> [options]
+  return `Usage: node converter/bin/convert.mjs [options]
+
+Converts every executable program an abap_transpile.json selects. Generated
+classes are written to the configured output_folder with a "_converter" suffix.
 
 Options:
-  --class <name>                 Target global class name
-  --output <path>                Write generated .clas.abap atomically
-  --tcode <code>                 Transaction code
-  --description <text>           Transaction description
-  --mode strict|partial          Conversion mode (default: strict)
-  --diagnostics text|json        Diagnostic format (default: text)
-  --include-path <dir>           Directory to search for INCLUDE programs
-                                 (repeatable; <name>, <name>.incl.abap and
-                                 <name>.prog.abap are tried in each)
-  --ddic <file.json>             DDIC types as {"TABLE":{"type":"...",
-                                 "fields":{"FIELD":"..."}}}
-  --check                        Analyze without writing generated source
-  --help                         Show this help
+  --config <file>          abap_transpile.json (default: ./${DEFAULT_CONFIG_FILENAME})
+  --program <name>         convert only this program (repeatable; report name
+                           or path fragment)
+  --output-folder <dir>    write classes here instead of <output_folder>_converter
+  --ddic <file.json>       DDIC types as {"TABLE":{"type":"...",
+                           "fields":{"FIELD":"..."}}}
+  --mode strict|partial    conversion mode (default: strict)
+  --diagnostics text|json  diagnostic format (default: text)
+  --check                  analyze and print the summary, write nothing
+  --help                   show this help
+
+Single-program options (require exactly one --program):
+  --class <name>           target global class name
+  --tcode <code>           transaction code
+  --description <text>     transaction description
+  --output <path>          write this one .clas.abap instead of the folder
 `;
 }
 
-const VALUE_OPTIONS = new Set(["diagnostics", "mode", "class", "output", "tcode", "description", "ddic"]);
+function positionalError(value) {
+  return `convert.mjs takes no positional arguments, got ${JSON.stringify(value)}.
+  was:  convert.mjs report.prog.abap --check
+  now:  convert.mjs --config ${DEFAULT_CONFIG_FILENAME} --program report --check
+`;
+}
+
+const VALUE_OPTIONS = new Set([
+  "config", "diagnostics", "mode", "class", "output", "output-folder", "tcode", "description", "ddic",
+]);
+const SINGLE_PROGRAM_OPTIONS = ["class", "tcode", "description", "output"];
 
 function parseArgs(argv) {
-  const options = { diagnostics: "text", includePaths: [] };
-  const positional = [];
+  const options = { diagnostics: "text", programs: [] };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--check") options.check = true;
-    else if (arg === "--include-path") options.includePaths.push(argv[++index]);
+    else if (arg === "--program") options.programs.push(argv[++index]);
     else if (arg.startsWith("--")) {
       const key = arg.slice(2);
-      if (VALUE_OPTIONS.has(key)) options[key] = argv[++index];
-      else throw new Error(`unknown option ${arg}`);
-    } else positional.push(arg);
+      if (!VALUE_OPTIONS.has(key)) throw new Error(`unknown option ${arg}`);
+      options[key] = argv[++index];
+    } else throw new Error(positionalError(arg));
   }
-  options.filename = positional[0];
   return options;
 }
 
@@ -53,61 +68,111 @@ async function readDdicTypes(filename) {
   return parsed;
 }
 
-async function exists(filename) {
-  try { await fs.access(filename); return true; } catch { return false; }
+function matchesRequest(program, request) {
+  const wanted = String(request).toLowerCase();
+  return program.programName.toLowerCase() === wanted
+    || program.relativePath.toLowerCase() === wanted
+    || path.basename(program.relativePath).toLowerCase() === wanted
+    || program.relativePath.toLowerCase().endsWith(`/${wanted}`);
 }
 
-async function writeAtomically(filename, contents) {
-  const temporary = `${filename}.tmp-${process.pid}`;
-  await fs.writeFile(temporary, contents, "utf8");
-  await fs.rename(temporary, filename);
+let options;
+try {
+  options = parseArgs(process.argv.slice(2));
+} catch (error) {
+  console.error(error.message);
+  process.exit(2);
 }
-
-const options = parseArgs(process.argv.slice(2));
 if (options.help) {
   console.log(usage());
   process.exit(0);
 }
-if (!options.filename) {
-  console.error(usage());
+if (options.diagnostics !== "text" && options.diagnostics !== "json") {
+  console.error("--diagnostics must be text or json");
   process.exit(2);
 }
-if (options.diagnostics !== "text" && options.diagnostics !== "json") throw new Error("--diagnostics must be text or json");
-
-if (options.includePaths.some((item) => typeof item !== "string" || !item)) throw new Error("--include-path requires a directory");
-
-const result = await convertProgram({
-  filename: options.filename,
-  className: options.class,
-  transactionCode: options.tcode,
-  description: options.description,
-  mode: options.mode,
-  includePaths: options.includePaths,
-  ddicTypes: await readDdicTypes(options.ddic),
-});
-if (result.diagnostics.length) {
-  const rendered = options.diagnostics === "json" ? diagnosticsToJSON(result.diagnostics) : diagnosticsToText(result.diagnostics);
-  console.error(rendered);
+if (options.programs.some((item) => typeof item !== "string" || !item)) {
+  console.error("--program requires a program name");
+  process.exit(2);
 }
+const singleOnly = SINGLE_PROGRAM_OPTIONS.filter((key) => options[key] !== undefined);
+if (singleOnly.length && options.programs.length !== 1) {
+  console.error(`${singleOnly.map((key) => `--${key}`).join(", ")} require exactly one --program, got ${options.programs.length}`);
+  process.exit(2);
+}
+
+const config = await loadTranspileConfig(options.config ?? DEFAULT_CONFIG_FILENAME);
+// GGCONV-W110 warns that abap_transpile will not compile the generated
+// classes. A --check run writes none, so the warning has nothing to say.
+const configDiagnostics = config.diagnostics.filter((item) => !(options.check && item.code === "GGCONV-W110"));
+if (configDiagnostics.length) {
+  console.error(options.diagnostics === "json"
+    ? diagnosticsToJSON(configDiagnostics)
+    : diagnosticsToText(configDiagnostics));
+}
+if (!config.valid) process.exit(2);
+
+const discovered = await discoverPrograms(config);
+let programs = discovered;
+if (options.programs.length) {
+  programs = [];
+  for (const request of options.programs) {
+    const matches = discovered.filter((program) => matchesRequest(program, request));
+    if (!matches.length) {
+      console.error(`no program matching ${JSON.stringify(request)} was found in the configured input folders`);
+      process.exit(2);
+    }
+    for (const match of matches) if (!programs.includes(match)) programs.push(match);
+  }
+}
+if (!programs.length) {
+  console.error(`no executable programs were found in the configured input folders`);
+  process.exit(2);
+}
+
+let ddicTypes;
+try {
+  ddicTypes = await readDdicTypes(options.ddic);
+} catch (error) {
+  console.error(error.message);
+  process.exit(2);
+}
+
+const summary = await convertConfiguredPrograms({
+  config,
+  programs,
+  write: !options.check,
+  // --program converts a subset, so the rest of the generated folder is still
+  // current output and must survive.
+  clear: options.programs.length === 0,
+  outputFolder: options["output-folder"],
+  outputFile: options.output,
+  overrides: {
+    mode: options.mode,
+    ddicTypes,
+    className: options.class,
+    transactionCode: options.tcode,
+    description: options.description,
+  },
+});
+
+const diagnostics = sortDiagnostics([
+  ...summary.diagnostics,
+  ...summary.programs.flatMap((program) => program.diagnostics),
+]);
+if (diagnostics.length) {
+  console.error(options.diagnostics === "json" ? diagnosticsToJSON(diagnostics) : diagnosticsToText(diagnostics));
+}
+
 if (options.check) {
   console.log(JSON.stringify({
-    supported: result.supported,
-    programKind: result.reportIR?.programKind,
-    capabilities: result.reportIR?.capabilities ?? [],
-    diagnostics: result.diagnostics,
-    manifest: result.manifest,
+    programs: summary.programs,
+    summary: {
+      programCount: summary.programs.length,
+      supportedCount: summary.supportedCount,
+      diagnosticCount: diagnostics.length,
+    },
   }, null, 2));
-} else if (result.classSource && options.output) {
-  const output = path.resolve(options.output);
-  if (await exists(output)) {
-    console.error(`refusing to overwrite existing output: ${output}`);
-    process.exitCode = 2;
-  } else {
-    await fs.mkdir(path.dirname(output), { recursive: true });
-    await writeAtomically(output, result.classSource);
-    await writeAtomically(`${output}.manifest.json`, `${JSON.stringify(result.manifest, null, 2)}\n`);
-  }
-} else if (result.classSource) {
-  process.stdout.write(result.classSource);
 }
-if (!result.supported) process.exitCode = 1;
+
+if (summary.diagnostics.length || summary.supportedCount !== summary.programs.length) process.exitCode = 1;

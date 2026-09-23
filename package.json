@@ -5,6 +5,7 @@
   "description": "GUI controls for open-abap",
   "scripts": {
     "lint": "abaplint",
+    "lint:framework": "node test/lint-framework.mjs",
     "transpile": "abap_transpile",
     "unit": "abap_transpile && echo RUNNING && node output/index.mjs",
     "test:html-browser": "playwright test",
@@ -15,17 +16,17 @@
     "web:diff": "node test/generate-screenshot-diffs.mjs deployment/main/screenshots build/screenshots build/visual-diffs",
     "web:build": "npm run transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots && npm run web:diff",
     "test:converter": "npm --prefix converter run test",
-    "test": "npm run lint && npm run unit && npm run test:html-browser && npm run test:converter",
+    "test": "npm run lint && npm run lint:framework && npm run unit && npm run test:html-browser && npm run test:converter",
     "regression": "node .github/regression/run.js"
   },
   "license": "",
   "dependencies": {
-    "@abaplint/cli": "^2.120.57",
-    "@abaplint/core": "^2.120.57",
+    "@abaplint/cli": "^2.120.58",
+    "@abaplint/core": "^2.120.58",
     "@abaplint/database-sqlite": "^2.13.83",
-    "@abaplint/runtime": "^2.13.90",
-    "@abaplint/transpiler-cli": "^2.13.90",
-    "express": "^4.22.2",
+    "@abaplint/runtime": "^2.13.91",
+    "@abaplint/transpiler-cli": "^2.13.91",
+    "express": "^4.22.3",
     "playwright": "^1.62.1"
   },
   "devDependencies": {

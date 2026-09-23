@@ -14,7 +14,7 @@ const outputFolder = path.join(tempRoot, "output");
 const configPath = path.join(tempRoot, "abap_transpile.json");
 const lintConfigPath = path.join(repository, "converter", "behavior-abaplint.jsonc");
 const toolTempRoot = path.join(repository, "converter", ".tmp");
-const examples = path.join(repository, "scaffold", "examples");
+const examples = path.join(repository, "examples");
 
 const comparableFields = [
   "lines", "render_lines", "model_events", "line_formats", "messages", "values", "states",
@@ -256,7 +256,7 @@ async function prepare() {
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_DWRITE_EXPR.clas.abap"), dynamicWriteExpressionResult.classSource, "utf8");
 
   await fs.writeFile(configPath, JSON.stringify({
-    input_folder: ["src", "scaffold", "converter/behavior-validation/input"],
+    input_folder: ["src", "framework", "examples", "converter/behavior-validation/input"],
     input_filter: [],
     exclude_filter: [],
     output_folder: "converter/behavior-validation/output",
@@ -278,7 +278,8 @@ async function prepare() {
   const lintConfig = JSON.parse(await fs.readFile(path.join(repository, "abaplint.jsonc"), "utf8"));
   lintConfig.global.files = [
     "/../src/**/*.*",
-    "/../scaffold/**/*.*",
+    "/../framework/**/*.*",
+    "/../examples/**/*.*",
     "/behavior-validation/input/*.clas.abap",
   ];
   await fs.writeFile(lintConfigPath, JSON.stringify(lintConfig, null, 2), "utf8");

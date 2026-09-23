@@ -10,7 +10,7 @@ import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
 import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../src/capability.mjs";
 import { repositoryRoot } from "../repository.mjs";
 
-const fixture = (name) => fs.readFile(path.join(repositoryRoot, "scaffold", "examples", name), "utf8");
+const fixture = (name) => fs.readFile(path.join(repositoryRoot, "examples", name), "utf8");
 const compositeFixture = (name) => fs.readFile(path.join(repositoryRoot, "converter", "test", "fixtures", name), "utf8");
 
 test("emits a valid class for empty and implicit-start reports", async () => {

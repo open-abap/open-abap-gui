@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot } from "./repository.mjs";
 
-const examples = path.join(repositoryRoot, "scaffold", "examples");
+const examples = path.join(repositoryRoot, "examples");
 
 // Hashes cover the plain-data scaffold IR rather than generated source text.
 // They keep the semantic shape of every fixture reviewable and deterministic.
