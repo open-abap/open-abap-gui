@@ -1271,13 +1271,22 @@ const referenceRoot = path.join(sourceRepository, "sap-screenshots");
 const sourceRoot = path.join(sourceRepository, "src");
 
 // The whole validation directory is generated, so the transpiler configuration
-// is written before anything reads it. Writing it first is what makes the
-// harness and the converter provably agree: the converter's output folder is
-// derived from the same output_folder abap_transpile is handed below.
+// is written before anything reads it. The one file drives both tools, the way
+// a user would run them: the converter finds the gg-gui reports in the checkout
+// named by input_folder and writes to the folder derived from output_folder,
+// and abap_transpile compiles the scaffold, the checkout and the generated
+// classes. The scaffold example programs are excluded because the converter
+// would otherwise convert them alongside gg-gui; the example classes stay, as
+// the scaffold unit tests refer to them.
 await fs.writeFile(transpileConfigPath, `${JSON.stringify({
-  input_folder: ["src", "scaffold", "converter/gg-gui-validation/output_converter"],
+  input_folder: [
+    "src",
+    "scaffold",
+    path.relative(repositoryRoot, sourceRoot).split(path.sep).join("/"),
+    "converter/gg-gui-validation/output_converter",
+  ],
   input_filter: [],
-  exclude_filter: [],
+  exclude_filter: ["/scaffold/examples/[^/]+\\.prog\\."],
   output_folder: "converter/gg-gui-validation/output",
   write_unit_tests: false,
   write_source_map: false,
@@ -1294,11 +1303,6 @@ await fs.writeFile(transpileConfigPath, `${JSON.stringify({
   ],
 }, null, 2)}\n`, "utf8");
 
-// The configuration describes what abap_transpile compiles (this repository's
-// scaffold plus the generated classes) and it is where the converter's own
-// output folder comes from. The programs being converted live in the separate
-// gg-gui checkout, so the conversion run reuses the configuration but scans
-// that checkout instead of input_folder.
 const transpileConfig = await loadTranspileConfig(
   path.relative(repositoryRoot, transpileConfigPath),
   {cwd: repositoryRoot},
@@ -1309,21 +1313,18 @@ assert.ok(
 );
 assert.equal(transpileConfig.generatedFolder, generatedRoot, "the harness and the converter must agree on the generated folder");
 
-const conversionConfig = {
-  ...transpileConfig,
-  inputFolders: [sourceRoot],
-  inputFilters: [/zgg_gui_[^/\\]*\.prog\.abap$/i],
-  excludeFilters: [],
-};
-const reportPrograms = await discoverPrograms(conversionConfig);
+const reportPrograms = await discoverPrograms(transpileConfig);
 const reportFiles = reportPrograms.map((program) => path.basename(program.filename));
 
 assert.ok(reportFiles.length > 0, `No gg-gui reports found in ${sourceRoot}`);
-await fs.rm(generatedRoot, {recursive: true, force: true});
+const strayPrograms = reportPrograms
+  .filter((program) => path.dirname(program.filename) !== sourceRoot)
+  .map((program) => program.relativePath);
+assert.deepEqual(strayPrograms, [], `${transpileConfigPath} selects programs outside the gg-gui checkout`);
+// The converter clears its own generated folder when it writes.
 await fs.rm(manifestsRoot, {recursive: true, force: true});
 await fs.rm(outputRoot, {recursive: true, force: true});
 await fs.rm(screenshotsRoot, {recursive: true, force: true});
-await fs.mkdir(generatedRoot, {recursive: true});
 await fs.mkdir(manifestsRoot, {recursive: true});
 await fs.mkdir(screenshotsRoot, {recursive: true});
 
@@ -1335,7 +1336,7 @@ const referenceContracts = new Map();
 // the converter's own batch behaviour now; what stays here is what only this
 // harness knows: the gg-gui naming convention and the reference contracts.
 await convertConfiguredPrograms({
-  config: conversionConfig,
+  config: transpileConfig,
   programs: reportPrograms,
   fallbackStrategy: "skeleton",
   manifestFolder: manifestsRoot,

@@ -196,8 +196,10 @@ npm test
 ```
 
 `test:gg-gui` clones `https://github.com/larshp/gg-gui` into the gitignored
-`gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), converts every
-catalog report with the safe partial strategy, transpiles and serves the
+`gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), writes
+`gg-gui-validation/abap_transpile.json` naming that checkout as an input folder,
+converts every report that configuration selects with the safe partial
+strategy, transpiles the same configuration and serves the
 generated report classes, verifies every generated target/helper class has clean
 transpiler output before marking it as an application-parity candidate, and
 writes one browser screenshot per report plus an HTML index under
