@@ -4,11 +4,6 @@ import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
 import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
-  controlConstruction: "GGCONV-E510",
-  controlMethod: "GGCONV-E511",
-  eventRegistration: "GGCONV-E512",
-  functionModuleAdapter: "GGCONV-E513",
-  frontendOperation: "GGCONV-E514",
   dynamicType: "GGCONV-E515",
   unsupportedStatement: "GGCONV-E516",
 });
@@ -18,24 +13,7 @@ const ACTIONABLE_CATEGORIES = Object.freeze(Object.fromEntries(
 ));
 
 export function actionableDiagnosticCode(statement) {
-  const text = normalizedText(statement).toUpperCase();
-  if (statement.kind === "CallFunction") return ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter;
-  if (statement.kind === "SetHandler" || /\bSET\s+HANDLER\b|\bREGISTER(?:ED|ING)?\b/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.eventRegistration;
-  }
-  if (statement.kind === "CreateData" || /\bCREATE\s+DATA\b|CREATE_DYNAMIC_TABLE|CREATE_DYNAMIC/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
-  }
-  if (statement.kind === "FieldSymbol" || statement.kind === "Assign" || statement.kind === "Unassign") {
-    return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
-  }
-  if (statement.kind === "CreateObject" || /\bCONTROLS\b|\bCREATE\s+OBJECT\b|CL_SALV_TABLE=>FACTORY/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.controlConstruction;
-  }
-  if (/CL_GUI_FRONTEND_SERVICES|CL_GUI_CFW|CL_ABAP_BROWSER|CL_PROGRESS_INDICATOR/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.frontendOperation;
-  }
-  if (statement.kind === "CallMethod" || /\bCALL\s+METHOD\b|->|=>/.test(text)) return ACTIONABLE_DIAGNOSTIC_CODES.controlMethod;
+  if (statement.kind === "FieldSymbol" || statement.kind === "Assign") return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
   return ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement;
 }
 

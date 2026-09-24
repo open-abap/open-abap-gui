@@ -267,18 +267,11 @@ export const LOWERING_RULES = new Map([
   ["CallTransaction", { kind: "navigation-call-transaction" }],
   ["Case", { kind: "control-case" }],
   ["Catch", { kind: "control-catch" }],
-  ["Cleanup", { kind: "control-cleanup" }],
   ["Constant", { kind: "declaration" }],
   ["Controls", { kind: "declaration" }],
   ["Data", { kind: "declaration" }],
   ["Do", { kind: "control-do" }],
-  ["Else", { kind: "control-else" }],
   ["ElseIf", { kind: "control-elseif" }],
-  ["EndCase", { kind: "control-end-case" }],
-  ["EndDo", { kind: "control-end-do" }],
-  ["EndIf", { kind: "control-end-if" }],
-  ["EndLoop", { kind: "control-end-loop" }],
-  ["EndTry", { kind: "control-end-try" }],
   ["Export", { kind: "session-abap-memory-export" }],
   ["FieldSymbol", { kind: "field-symbol-declaration" }],
   ["Format", { kind: "list-format" }],
@@ -314,13 +307,11 @@ export const LOWERING_RULES = new Map([
   ["Stop", { kind: "terminal-stop" }],
   ["Submit", { kind: "navigation-submit" }],
   ["SuppressDialog", { kind: "dialog-suppress" }],
-  ["Try", { kind: "control-try" }],
   ["TypeBegin", { kind: "declaration" }],
   ["TypeEnd", { kind: "declaration" }],
   ["TypePools", { kind: "type-pool-resolution" }],
   ["Uline", { kind: "list-uline" }],
   ["When", { kind: "control-when" }],
-  ["WhenOthers", { kind: "control-when-others" }],
   ["Write", { kind: "list-write" }],
 ]);
 
@@ -390,10 +381,6 @@ export function dynamicWriteOperand(statement) {
     supported: dynamicWriteExpressionSupported(operand),
     rewrite: (target) => `${prefix}${target}${suffix}`,
   };
-}
-
-export function isDynamicWriteOperand(statement) {
-  return Boolean(dynamicWriteOperand(statement));
 }
 
 function lowerDynamicWriteFallback(dynamic, context) {
@@ -1154,7 +1141,6 @@ export function lowerStatement(statement, context) {
     }
     return `${fields.length ? `${fields.join(".\n")}.\n` : ""}io_session->get_list( )->modify_line( ls_line ).`;
   }
-  if (statement.kind === "Hide") return "";
   if (statement.kind === "Perform") {
     // A dynamic PERFORM names a FORM that became a method; a FORM in another
     // program is not converted and is still called as written.
@@ -1207,7 +1193,7 @@ export function lowerStatement(statement, context) {
     ? `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}) WHERE row = is_context-row.`
     : `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}).`;
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
-  if (["If", "Else", "ElseIf", "EndIf", "Do", "EndDo", "Case", "When", "WhenOthers", "EndCase", "Loop", "EndLoop", "Try", "Catch", "Cleanup", "EndTry", "Move"].includes(statement.kind)) {
+  if (["If", "ElseIf", "Do", "Case", "When", "Loop", "Catch", "Move"].includes(statement.kind)) {
     let converted = replaceListContextFields(replaceListColorConstants(replaceOutsideStrings(raw, context.replacements))).replace(/\bsy-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
     converted = converted.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
     converted = converted.replace(/\bsy-repid\b/gi, "io_session->get_context( )-program-program");
