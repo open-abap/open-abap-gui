@@ -348,6 +348,31 @@ test("lowers ULINE position and length with and without AT", async () => {
   assert.deepEqual(ulines, ["position = 1 length = 40", "position = 5 length = 10", "position = 3", "length = 20", ""]);
 });
 
+test("accepts LOOP TRANSPORTING NO FIELDS and REFERENCE INTO without a work area", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zloopnofields.",
+      "TYPES: BEGIN OF ty_row, configuration TYPE i, client_id TYPE i, END OF ty_row.",
+      "DATA gt_old TYPE STANDARD TABLE OF ty_row WITH EMPTY KEY.",
+      "DATA ls_data TYPE ty_row.",
+      "DATA gv_count TYPE i.",
+      "START-OF-SELECTION.",
+      "  LOOP AT gt_old TRANSPORTING NO FIELDS",
+      "      WHERE configuration <> ls_data-configuration",
+      "      AND client_id = ls_data-client_id.",
+      "    gv_count = gv_count + 1.",
+      "  ENDLOOP.",
+      "  LOOP AT gt_old REFERENCE INTO DATA(lr_row).",
+      "    gv_count = gv_count + lr_row->client_id.",
+      "  ENDLOOP.",
+    ].join("\n"),
+    filename: "zloopnofields.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /LOOP AT gt_old TRANSPORTING NO FIELDS WHERE configuration <> ls_data-configuration AND client_id = ls_data-client_id\./);
+  assert.match(result.classSource, /LOOP AT gt_old REFERENCE INTO DATA\(lr_row\)\./);
+});
+
 test("keeps INCLUDE TYPE and INCLUDE STRUCTURE inside their structure", async () => {
   const result = await convertProgram({
     source: [

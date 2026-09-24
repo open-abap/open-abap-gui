@@ -326,8 +326,9 @@ export function isMethodSafeLoop(statement) {
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
   const loopTarget = "(?:[A-Z][A-Z0-9_-]*(?:(?:->|-)[A-Z][A-Z0-9_-]*)+|[A-Z][A-Z0-9_-]*)";
   // The target may end in `>` or `)`, so the trailing guard has to be a
-  // lookahead: a `\b` after either of those can never match.
-  return new RegExp(`^\\s*LOOP\\s+AT\\s+${loopTarget}\\s+(?:ASSIGNING\\s+(?:FIELD-SYMBOL\\s*\\(\\s*<[A-Z][A-Z0-9_]*>\\s*\\)|<[A-Z][A-Z0-9_]*>)|INTO\\s+(?:DATA\\s*\\(\\s*[A-Z][A-Z0-9_-]*\\s*\\)|[A-Z][A-Z0-9_-]*))(?![A-Z0-9_-])`, "i").test(body)
+  // lookahead: a `\b` after either of those can never match. TRANSPORTING NO
+  // FIELDS reads no row at all, so it needs no target either.
+  return new RegExp(`^\\s*LOOP\\s+AT\\s+${loopTarget}\\s+(?:ASSIGNING\\s+(?:FIELD-SYMBOL\\s*\\(\\s*<[A-Z][A-Z0-9_]*>\\s*\\)|<[A-Z][A-Z0-9_]*>)|(?:REFERENCE\\s+)?INTO\\s+(?:DATA\\s*\\(\\s*[A-Z][A-Z0-9_-]*\\s*\\)|[A-Z][A-Z0-9_-]*)|TRANSPORTING\\s+NO\\s+FIELDS)(?![A-Z0-9_-])`, "i").test(body)
     && !/^\s*LOOP\s+AT\s+SCREEN\b/i.test(body);
 }
 

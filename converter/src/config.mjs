@@ -328,7 +328,9 @@ async function collectProgramFiles(directory, generatedFolder, found, visited, s
   const resolved = path.resolve(directory);
   // The converter owns the generated folder; scanning it would feed its own
   // output back in as input on every run after the first.
-  if (generatedFolder && resolved === generatedFolder) return;
+  const skipped = [generatedFolder].flat().filter(Boolean).map((folder) => path.resolve(folder));
+  if (skipped.includes(resolved)) return;
+  const suffixes = [suffix].flat();
   if (visited.has(resolved)) return;
   visited.add(resolved);
   let entries;
@@ -340,7 +342,7 @@ async function collectProgramFiles(directory, generatedFolder, found, visited, s
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     const child = path.join(resolved, entry.name);
     if (entry.isDirectory()) await collectProgramFiles(child, generatedFolder, found, visited, suffix);
-    else if (entry.name.toLowerCase().endsWith(suffix)) found.set(child, true);
+    else if (suffixes.some((item) => entry.name.toLowerCase().endsWith(item))) found.set(child, true);
   }
 }
 
@@ -402,6 +404,34 @@ export async function discoverPrograms(config) {
     programs.push({ ...entry, source, programName });
   }
   return programs;
+}
+
+const GLOBAL_OBJECT_SUFFIXES = [".clas.abap", ".intf.abap"];
+
+/**
+ * Map the name of each global class and interface in the sources
+ * abap_transpile compiles to its file, so a generated class cannot silently
+ * take the place of one: two files for one class are accepted by abaplint,
+ * which then compiles whichever it read first. The generated folder and
+ * `skipFolders` are left out, as their classes are the converter's own output.
+ * Interfaces are included because they share the class namespace.
+ */
+export async function discoverGlobalObjects(config, skipFolders = []) {
+  const found = new Map();
+  const visited = new Set();
+  const skipped = [config.generatedFolder, ...skipFolders];
+  for (const folder of [...(config.converterInputFolders ?? []), ...(config.inputFolders ?? []), ...(config.libraryFolders ?? [])]) {
+    await collectProgramFiles(folder, skipped, found, visited, GLOBAL_OBJECT_SUFFIXES);
+  }
+  const objects = new Map();
+  for (const filename of [...found.keys()].sort((left, right) => left.localeCompare(right))) {
+    const basename = path.basename(filename);
+    const suffix = GLOBAL_OBJECT_SUFFIXES.find((item) => basename.toLowerCase().endsWith(item));
+    // abapGit writes a namespace /ABC/ as #abc#.
+    const name = basename.slice(0, -suffix.length).replaceAll("#", "/").toUpperCase();
+    if (!objects.has(name)) objects.set(name, filename);
+  }
+  return objects;
 }
 
 function resolveOverride(value, programName) {

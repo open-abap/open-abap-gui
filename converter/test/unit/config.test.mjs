@@ -328,6 +328,61 @@ test("batch conversion reports a target class produced by two programs", async (
   await assert.rejects(() => fs.readdir(config.generatedFolder), "a colliding run must not write a partial class set");
 });
 
+const GLOBAL_CLASS = (name) => `CLASS ${name} DEFINITION PUBLIC CREATE PUBLIC.\n  PUBLIC SECTION.\nENDCLASS.\nCLASS ${name} IMPLEMENTATION.\nENDCLASS.\n`;
+const REPORT_WITH_LOCAL_CLASS = (name) => [
+  `REPORT ${name}.`,
+  "CLASS lcl_helper DEFINITION.",
+  "  PUBLIC SECTION.",
+  "    METHODS run.",
+  "ENDCLASS.",
+  "CLASS lcl_helper IMPLEMENTATION.",
+  "  METHOD run.",
+  "  ENDMETHOD.",
+  "ENDCLASS.",
+  "START-OF-SELECTION.",
+  "  NEW lcl_helper( )->run( ).",
+  "",
+].join("\n");
+
+test("batch conversion does not generate a class that already exists in the sources", async () => {
+  const project = await workspace({
+    "src/zone.prog.abap": REPORT("zone"),
+    "src/lib/zcl_one.clas.abap": GLOBAL_CLASS("zcl_one"),
+  }, LISTED);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  for (const mode of ["strict", "partial"]) {
+    const summary = await convertConfiguredPrograms({ config, overrides: { mode } });
+    assert.ok(summary.programs[0].diagnostics.some((item) => item.code === "GGCONV-E106"), mode);
+    // abaplint would accept a second file for ZCL_ONE and compile whichever it read first.
+    await assert.rejects(() => fs.access(path.join(config.generatedFolder, "zcl_one.clas.abap")), mode);
+  }
+});
+
+test("batch conversion names helper classes around existing classes", async () => {
+  const project = await workspace({
+    "src/zone.prog.abap": REPORT_WITH_LOCAL_CLASS("zone"),
+    "src/zcl_one_h1.clas.abap": GLOBAL_CLASS("zcl_one_h1"),
+  }, LISTED);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  const summary = await convertConfiguredPrograms({ config });
+  assert.equal(summary.programs[0].supported, true, JSON.stringify(summary.programs[0].diagnostics));
+  const written = (await fs.readdir(config.generatedFolder)).sort();
+  assert.deepEqual(written, ["zcl_one.clas.abap", "zcl_one_h1_1.clas.abap"]);
+});
+
+test("batch conversion reports a helper class produced by two programs", async () => {
+  // Helper names use the first 24 characters of the target class, which these share.
+  const project = await workspace({
+    "src/zlong_report_name_abcd_a.prog.abap": REPORT_WITH_LOCAL_CLASS("zlong_report_name_abcd_a"),
+    "src/zlong_report_name_abcd_b.prog.abap": REPORT_WITH_LOCAL_CLASS("zlong_report_name_abcd_b"),
+  }, LISTED);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  const summary = await convertConfiguredPrograms({ config, overrides: { transactionCode: (name) => name.slice(-8) } });
+  assert.deepEqual(codes(summary.diagnostics), ["GGCONV-E115"]);
+  assert.match(summary.diagnostics[0].message, /ZCL_LONG_REPORT_NAME_ABC_H1/);
+  await assert.rejects(() => fs.readdir(config.generatedFolder), "a colliding run must not write a partial class set");
+});
+
 function runCli(args, cwd = converterRoot) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [path.join(converterRoot, "bin", "convert.mjs"), ...args], { cwd });

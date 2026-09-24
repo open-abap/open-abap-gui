@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "./api.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
-import { conversionPlan, discoverPrograms, discoverTransactions } from "./config.mjs";
+import { conversionPlan, discoverGlobalObjects, discoverPrograms, discoverTransactions } from "./config.mjs";
 
 async function writeAtomically(filename, contents) {
   const temporary = `${filename}.tmp-${process.pid}`;
@@ -12,25 +12,34 @@ async function writeAtomically(filename, contents) {
   await fs.rename(temporary, filename);
 }
 
+// Helper classes count too: they are written to the same folder, and a helper
+// name is derived from the first 24 characters of its target class.
+function generatedClassNames(result) {
+  const targetClass = result.manifest?.targetClass ?? result.reportIR?.targetClassName;
+  return [targetClass, ...(result.helperSources ?? []).map((helper) => helper.className)]
+    .filter(Boolean)
+    .map((name) => String(name).toUpperCase());
+}
+
 function collisionDiagnostics(converted) {
   const byClass = new Map();
   const diagnostics = [];
   for (const entry of converted) {
-    const targetClass = entry.result.manifest?.targetClass ?? entry.result.reportIR?.targetClassName;
-    if (!targetClass) continue;
-    const first = byClass.get(targetClass);
-    if (first === undefined) {
-      byClass.set(targetClass, entry);
-      continue;
+    for (const className of generatedClassNames(entry.result)) {
+      const first = byClass.get(className);
+      if (first === undefined) {
+        byClass.set(className, entry);
+        continue;
+      }
+      diagnostics.push(diagnostic({
+        code: "GGCONV-E115",
+        filename: entry.program.filename,
+        construct: className,
+        message: `class ${className} is produced by both ${first.program.relativePath} and ${entry.program.relativePath}`,
+        suggestion: "Rename one of the reports, or pass an explicit class name for one of them.",
+        phase: "batch",
+      }));
     }
-    diagnostics.push(diagnostic({
-      code: "GGCONV-E115",
-      filename: entry.program.filename,
-      construct: targetClass,
-      message: `target class ${targetClass} is produced by both ${first.program.relativePath} and ${entry.program.relativePath}`,
-      suggestion: "Rename one of the reports, or pass an explicit class name for one of them.",
-      phase: "batch",
-    }));
   }
   return diagnostics;
 }
@@ -86,9 +95,17 @@ export async function convertConfiguredPrograms({
   }
 
   const transactions = overrides.transactions ?? await discoverTransactions(config);
+  // What this run writes replaces the files it is written over, so the target
+  // folder and the --output file are not existing classes.
+  const globalObjects = await discoverGlobalObjects(config, [targetFolder]);
+  const replaced = outputFile ? path.resolve(outputFile) : undefined;
+  const existingClassNames = [...new Set([
+    ...(overrides.existingClassNames ?? []),
+    ...[...globalObjects].filter(([, filename]) => filename !== replaced).map(([name]) => name),
+  ])];
   const converted = [];
   for (const program of discovered) {
-    const plan = conversionPlan(config, program, { ...overrides, transactions });
+    const plan = conversionPlan(config, program, { ...overrides, transactions, existingClassNames });
     const result = await runOne(converter, plan, fallbackStrategy);
     converted.push({ program, result });
     if (typeof onResult === "function") await onResult({ program, result });
@@ -109,6 +126,9 @@ export async function convertConfiguredPrograms({
     await fs.mkdir(outputFile ? path.dirname(path.resolve(outputFile)) : targetFolder, { recursive: true });
     for (const { result } of converted) {
       if (!result.classSource) continue;
+      // Partial mode still emits a class whose name is taken (GGCONV-E106);
+      // writing it would put a second definition of that class in the build.
+      if (result.diagnostics.some((item) => item.code === "GGCONV-E106")) continue;
       const targetClass = result.manifest?.targetClass ?? result.reportIR?.targetClassName;
       const classFile = outputFile
         ? path.resolve(outputFile)
