@@ -7,8 +7,9 @@ const commands = [
   ["check:matrix", []],
   ["fixtures", []],
   ["structural", []],
-  // Regenerates test/examples/*/output; review the result with git diff.
-  ["examples:update", []],
+  // Compares against test/examples/*/output; run examples:update to accept
+  // an intended change and review the result with git diff.
+  ["examples", []],
   ["warnings", []],
   ["hardening", []],
   ["coverage", []],

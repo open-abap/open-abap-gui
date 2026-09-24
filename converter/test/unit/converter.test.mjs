@@ -316,6 +316,38 @@ test("writes NO-GROUPING fields without the addition", async () => {
   assert.doesNotMatch(result.classSource, /NO-GROUPING|TODO GGCONV/i);
 });
 
+test("writes INVERSE and INTENSIFIED as field format", async () => {
+  const result = await convertProgram({
+    source: "REPORT zwrite_inverse.\nSTART-OF-SELECTION.\nWRITE 'A' INVERSE.\nWRITE 'B' INTENSIFIED ON INVERSE ON.\n",
+    filename: "zwrite_inverse.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /text = 'A' format = VALUE #\( inverse = abap_true \)/);
+  assert.match(result.classSource, /text = 'B' format = VALUE #\( intensified = abap_true inverse = abap_true \)/);
+  assert.doesNotMatch(result.classSource, /\bINVERSE\b|\bINTENSIFIED\b|\bON \}/);
+});
+
+test("rejects WRITE format switches the writer cannot turn off", async () => {
+  for (const addition of ["INVERSE OFF", "INTENSIFIED = gv_flag", "HOTSPOT OFF"]) {
+    const result = await convertProgram({
+      source: `REPORT zwrite_off.\nDATA gv_flag TYPE abap_bool.\nSTART-OF-SELECTION.\nWRITE 'A' ${addition}.\n`,
+      filename: "zwrite_off.prog.abap",
+      mode: "partial",
+    });
+    assert.match(result.classSource, /TODO GGCONV-E501: unsupported WRITE formatting/, addition);
+  }
+});
+
+test("lowers ULINE position and length with and without AT", async () => {
+  const result = await convertProgram({
+    source: "REPORT zuline.\nSTART-OF-SELECTION.\nULINE AT /1(40).\nULINE /5(10).\nULINE AT 3.\nULINE (20).\nULINE.\n",
+    filename: "zuline.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const ulines = [...result.classSource.matchAll(/lo_writer->uline\( VALUE #\((.*?)\) \)/g)].map((match) => match[1].trim());
+  assert.deepEqual(ulines, ["position = 1 length = 40", "position = 5 length = 10", "position = 3", "length = 20", ""]);
+});
+
 test("terminates each element of a chained statement", async () => {
   const result = await convertProgram({
     source: [

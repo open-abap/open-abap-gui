@@ -544,6 +544,12 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     IF is_field-format-color <> zif_gg_list_processing_types_v1=>color_background.
       ls_format-color = is_field-format-color.
     ENDIF.
+    IF is_field-format-intensified = abap_true.
+      ls_format-intensified = abap_true.
+    ENDIF.
+    IF is_field-format-inverse = abap_true.
+      ls_format-inverse = abap_true.
+    ENDIF.
     IF is_field-format-hotspot = abap_true.
       ls_format-hotspot = abap_true.
     ENDIF.

@@ -711,7 +711,10 @@ function parseWrite(raw, context) {
   if (kind) rest = rest.replace(new RegExp(`\\s+AS\\s+${kind}\\b`, "i"), "");
   const colorName = /\bCOLOR\s+(COL_[A-Z_]+)\b/i.exec(rest)?.[1]?.toUpperCase();
   const colorField = LIST_COLOR_FIELDS[colorName];
+  // Field-level switches; OFF and "= flag" are rejected by unsupportedWriteFormat.
   const hotspot = /\bHOTSPOT\b/i.test(rest);
+  const intensified = /\bINTENSIFIED\b/i.test(rest);
+  const inverse = /\bINVERSE\b/i.test(rest);
   const additions = {
     noGap: /\bNO-GAP\b/i.test(rest),
     currency: /\bCURRENCY\s+([^\s,]+)/i.exec(rest)?.[1],
@@ -722,7 +725,7 @@ function parseWrite(raw, context) {
     justification: /\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/i.exec(rest)?.[1],
   };
   rest = rest
-    .replace(/\bHOTSPOT\b/gi, "")
+    .replace(/\b(?:HOTSPOT|INTENSIFIED|INVERSE)(?:\s+ON)?\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\s+[^\s,]+/gi, "")
     .replace(/\bNO-GAP\b|\bNO-ZERO\b|\bNO-SIGN\b/gi, "")
@@ -751,6 +754,8 @@ function parseWrite(raw, context) {
   const fields = [`text = ${expressionText(rest, context)}`];
   const fieldFormat = [];
   if (colorField) fieldFormat.push(`color = zif_gg_list_processing_types_v1=>${colorField}`);
+  if (intensified) fieldFormat.push("intensified = abap_true");
+  if (inverse) fieldFormat.push("inverse = abap_true");
   if (hotspot) fieldFormat.push("hotspot = abap_true");
   if (fieldFormat.length) fields.push(`format = VALUE #( ${fieldFormat.join(" ")} )`);
   if (placement.length) fields.push(`placement = VALUE #( ${placement.join(" ")} )`);
@@ -766,8 +771,10 @@ function parseWrite(raw, context) {
 }
 
 function unsupportedWriteFormat(text) {
-  const classic = text
-    .replace(/'(?:''|[^'])*'/g, "")
+  const withoutLiterals = text.replace(/'(?:''|[^'])*'/g, "");
+  // The writer can only switch these on for a field, not off against FORMAT.
+  if (/\b(?:HOTSPOT|INTENSIFIED|INVERSE)\s*(?:OFF\b|=)/i.test(withoutLiterals)) return true;
+  const classic = withoutLiterals
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
@@ -925,8 +932,12 @@ export function lowerStatement(statement, context) {
   if (statement.kind === "Format") return parseFormat(raw, context);
   if (statement.kind === "Skip") return `lo_writer->skip( ${stripPeriod(raw).replace(/^SKIP\s*/i, "") || "1"} ).`;
   if (statement.kind === "Uline") {
-    const match = /AT\s+(\d+)(?:\((\d+)\))?/i.exec(raw);
-    const placement = match ? `position = ${match[1]}${match[2] ? ` length = ${match[2]}` : ""}` : "";
+    // ULINE [AT] [/][pos][(len)]; the writer always starts a new line.
+    const match = /^ULINE\s*(?:AT\b\s*)?\/?\s*(\d+)?(?:\(\s*(\d+)\s*\))?/i.exec(stripPeriod(raw));
+    const placement = [
+      match?.[1] ? `position = ${match[1]}` : "",
+      match?.[2] ? `length = ${match[2]}` : "",
+    ].filter(Boolean).join(" ");
     return `lo_writer->uline( VALUE #( ${placement} ) ).\nlo_writer->new_line( ).\nlo_writer->set_position( 5 ).`;
   }
   if (statement.kind === "NewLine" || normalized === "NEW-LINE.") return "lo_writer->new_line( ).";
