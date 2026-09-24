@@ -9,7 +9,6 @@ import {chromium} from "playwright";
 import {convertConfiguredPrograms} from "../src/batch.mjs";
 import {discoverPrograms, loadTranspileConfig} from "../src/config.mjs";
 import {loadDynproMetadata} from "../src/dynpro-metadata.mjs";
-import {GG_GUI_DDIC_TYPES} from "../src/gg-gui-ddic.mjs";
 import {repositoryRoot, repositoryTool} from "./repository.mjs";
 
 const repositoryUrl = "https://github.com/larshp/gg-gui";
@@ -1335,7 +1334,6 @@ await convertConfiguredPrograms({
   manifestFolder: manifestsRoot,
   overrides: {
     mode: "partial",
-    ddicTypes: GG_GUI_DDIC_TYPES,
     className: generatedClassName,
     transactionCode,
   },

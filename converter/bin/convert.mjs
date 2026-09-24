@@ -17,8 +17,8 @@ Options:
   --program <name>         convert only this program (repeatable; report name
                            or path fragment)
   --output-folder <dir>    write classes here instead of <output_folder>_converter
-  --ddic <file.json>       DDIC types as {"TABLE":{"type":"...",
-                           "fields":{"FIELD":"..."}}}
+  --ddic <file.json>       optional field metadata for SELECT-OPTIONS/PARAMETERS
+                           FOR <table>-<field>, as {"TABLE":{"fields":{"FIELD":"..."}}}
   --mode strict|partial    conversion mode (default: strict)
   --diagnostics text|json  diagnostic format (default: text)
   --check                  analyze and print the summary, write nothing

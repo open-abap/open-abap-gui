@@ -111,19 +111,20 @@ missing class/number entries an actionable `GGCONV-E306` error instead:
 messageMetadata: { ZMSG: { "001": { text: "Value &1" } } },
 ```
 
-DDIC-dependent declarations are explicit. Pass `ddicTypes` as a map when the
-source uses `TABLES`, `TYPES ... TYPE <ddic>`, or `FOR <table>-<field>`:
+Every type a declaration references is assumed to exist in the target system.
+`TYPES` declarations are emitted exactly as written, and `TABLES <name>` becomes
+`DATA <name> TYPE <name>`; the converter neither translates type names nor
+reports unknown ones. `ddicTypes` is optional field metadata that types
+selection-screen elements declared `FOR <table>-<field>`:
 
 ```js
 ddicTypes: {
   ZSFLIGHT: {
-    type: "zsflight",
     fields: { CARRID: { type: "c", length: 3 } },
   },
 }
 ```
 
-Unresolved DDIC references produce `GGCONV-E301` rather than an invented type.
 Generated selection callbacks hydrate private `mv_*` state from scaffold
 values and flush changes back to `ct_values` for mutable callbacks.
 
@@ -132,12 +133,6 @@ sources. Their class-definition visibility sections, inheritance, method/event
 declarations, and private attributes are retained. The generated report grants
 only those helpers friendship, so helper methods can use report state without
 promoting that state to public visibility.
-
-The pinned gg-gui validation uses the exported `GG_GUI_DDIC_TYPES` inventory.
-Its entries identify classic LVC, SLIS, SALV, tree, toolbar, icon, and demo
-data types without pretending that component metadata is available. Pass a
-separate `fields` map when a conversion needs to inspect a structure; an
-identity-only entry never creates a guessed component shape.
 
 Classic function modules are lowered only through the explicit compatibility
 adapter registry in `src/function-modules.mjs`. Popup/dialog, classic ALV,

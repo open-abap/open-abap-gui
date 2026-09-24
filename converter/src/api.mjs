@@ -30,7 +30,7 @@ import { withoutLiteralTemplateText } from "./passes/lower-statements.mjs";
 const SAFE_ENTRY_FAILURE_CODES = new Set([
   "GGCONV-E100", "GGCONV-E101", "GGCONV-E102", "GGCONV-E103", "GGCONV-E104",
   "GGCONV-E105", "GGCONV-E106", "GGCONV-E107", "GGCONV-E108", "GGCONV-E109",
-  "GGCONV-E201", "GGCONV-E202", "GGCONV-E203", "GGCONV-E204", "GGCONV-E205", "GGCONV-E301",
+  "GGCONV-E201", "GGCONV-E202", "GGCONV-E203", "GGCONV-E204", "GGCONV-E205",
   "GGCONV-E502", "GGCONV-E503",
 ]);
 
@@ -209,7 +209,7 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
       .filter((name) => !/^HIDE$/i.test(name))
       .map((name) => name.toUpperCase());
   }))].sort();
-  resolveTypes(ir, options, diagnostics);
+  resolveTypes(ir, options);
   return ir;
 }
 

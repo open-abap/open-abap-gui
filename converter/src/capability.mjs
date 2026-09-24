@@ -210,10 +210,6 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       interfaces.add("zif_gg_list_processing_v1");
       ir.features.push("list-processing");
     }
-    const localElementaryType = statement.kind === "Type" && /^TYPES\s+[A-Z][A-Z0-9_]*\s+TYPE\s+(C|N|I|P|D|T|X|STRING)\b/i.test(statement.text.trim());
-    if (/\b(TYPE|TABLES)\b/.test(text) && ["Type", "Tables"].includes(statement.kind) && !localElementaryType && !statement.resolvedType) {
-      addStatementDiagnostic(diagnostics, statement, `${statement.kind.toUpperCase()} declarations need DDIC-aware lowering`, "Provide a resolvable type and a dedicated declaration lowering rule.", "GGCONV-E301");
-    }
     if (/\bMESSAGE\b/.test(text)) ir.features.push("messages");
     if (/\bPARAMETERS\b|\bSELECT-OPTIONS\b/.test(text)) ir.features.push("selection-screen");
     if (eventName(statement)) ir.features.push(`event:${eventName(statement)}`);

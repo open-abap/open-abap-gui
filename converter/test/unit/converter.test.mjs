@@ -4,7 +4,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "../../src/api.mjs";
 import { loadDynproMetadata } from "../../src/dynpro-metadata.mjs";
-import { GG_GUI_DDIC_TYPES } from "../../src/gg-gui-ddic.mjs";
 import { COMPATIBILITY_FUNCTION_MODULES } from "../../src/function-modules.mjs";
 import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
 import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../src/capability.mjs";
@@ -1538,7 +1537,7 @@ test("lowers ABAP memory statements onto the execution session", async () => {
   assert.match(result.classSource, /io_session->free_memory\( iv_id = 'ZGG_MEMORY' \)\./);
 });
 
-test("resolves shipped type-pool declarations without a DDIC gap", async () => {
+test("keeps type-pool declarations as written", async () => {
   const result = await convertProgram({
     source: [
       "REPORT ztype_pools.",
@@ -1551,7 +1550,6 @@ test("resolves shipped type-pool declarations without a DDIC gap", async () => {
     filename: "ztype_pools.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-E301"), false);
   assert.match(result.classSource, /TYPES ty_flavors TYPE cndd_flavors\./);
 });
 
@@ -1629,36 +1627,32 @@ test("resolves supplied DDIC table and field metadata", async () => {
   assert.match(result.classSource, /DATA zsflight TYPE zsflight/);
   assert.match(result.classSource, /name = 'S_CARR'[\s\S]*typ = 'C'[\s\S]*length = 3/);
 
-  const missing = await convertProgram({ source: "REPORT zddic.\nTABLES zsflight.\n", filename: "zddic.prog.abap" });
-  assert.equal(missing.supported, false);
-  assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E301"));
+  const unsupplied = await convertProgram({ source: "REPORT zddic.\nTABLES zsflight.\n", filename: "zddic.prog.abap" });
+  assert.equal(unsupplied.supported, true, JSON.stringify(unsupplied.diagnostics));
+  assert.match(unsupplied.classSource, /DATA zsflight TYPE zsflight\./);
 });
 
-test("resolves the explicit gg-gui type inventory without inventing fields", async () => {
+test("assumes referenced types exist and emits them as written", async () => {
   const result = await convertProgram({
     source: [
-      "REPORT zgg_type_inventory.",
+      "REPORT zassumed_types.",
+      "TABLES: sflight.",
       "TYPES ty_nodes TYPE treev_ntab.",
       "TYPES ty_keys TYPE STANDARD TABLE OF salv_de_node_key WITH EMPTY KEY.",
       "TYPES ty_products TYPE zcl_gg_gui_demo_data=>ty_products.",
+      "TYPES ty_unknown TYPE zsome_type_nobody_supplied.",
+      "START-OF-SELECTION.",
+      "sflight-carrid = 'LH'.",
     ].join("\n"),
-    filename: "zgg_type_inventory.prog.abap",
-    ddicTypes: GG_GUI_DDIC_TYPES,
+    filename: "zassumed_types.prog.abap",
   });
-  assert.equal(result.supported, true);
-  assert.equal(result.manifest.metadataInputs.ddicTypes, true);
-  assert.ok(result.manifest.metadataInputs.resolvedTypes.includes("TY_NODES"));
-  assert.deepEqual(result.reportIR.resolvedTypes.TY_NODES.fields, {});
-  assert.equal(result.reportIR.resolvedTypes.TY_NODES.metadataComplete, false);
-  assert.ok(result.reportIR.resolvedTypes.TY_PRODUCTS);
-
-  const missing = await convertProgram({
-    source: "REPORT zgg_type_missing.\nTYPES ty_missing TYPE lvc_type_not_in_inventory.\n",
-    filename: "zgg_type_missing.prog.abap",
-    ddicTypes: GG_GUI_DDIC_TYPES,
-  });
-  assert.equal(missing.supported, false);
-  assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E301" && item.construct === "LVC_TYPE_NOT_IN_INVENTORY"));
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.diagnostics.filter((item) => item.severity !== "info"), []);
+  assert.match(result.classSource, /DATA sflight TYPE sflight\./);
+  assert.match(result.classSource, /TYPES ty_nodes TYPE treev_ntab\./);
+  assert.match(result.classSource, /TYPES ty_keys TYPE STANDARD TABLE OF salv_de_node_key WITH EMPTY KEY\./);
+  assert.match(result.classSource, /TYPES ty_products TYPE zcl_gg_gui_demo_data=>ty_products\./);
+  assert.match(result.classSource, /TYPES ty_unknown TYPE zsome_type_nobody_supplied\./);
 });
 
 test("classifies non-report program kinds and rejects duplicate singleton events", async () => {
