@@ -199,6 +199,26 @@ async function prepare() {
     className: "ZCL_BV_LORDER",
     transactionCode: "ZBVORDER",
   });
+  // A parameter keeps its declared type: TYPE d arithmetic crosses the month
+  // end, which a string member would turn into 20260931.
+  const typedParameterResult = await convertProgram({
+    source: [
+      "REPORT ztyped_parameter.",
+      "PARAMETERS p_date TYPE d DEFAULT '20260930'.",
+      "PARAMETERS p_count TYPE i.",
+      "INITIALIZATION.",
+      "  p_date = p_date + 1.",
+      "START-OF-SELECTION.",
+      "  WRITE / p_date.",
+      "  WRITE / p_count.",
+    ].join("\n"),
+    filename: "ztyped_parameter.prog.abap",
+    className: "ZCL_BV_PTYPED",
+    transactionCode: "ZBVPTYPED",
+  });
+  if (!typedParameterResult.classSource) throw new Error("converter produced no typed-parameter class");
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_PTYPED.clas.abap"), typedParameterResult.classSource, "utf8");
+
   if (!lifecycleOrderResult.classSource) throw new Error("converter produced no lifecycle-order class");
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_LORDER.clas.abap"), lifecycleOrderResult.classSource, "utf8");
 
@@ -444,6 +464,14 @@ try {
     rs_result: 1,
   }));
   assert.deepEqual(lifecycleOrder.lines, ["load", "init", "start", "end"]);
+  const typedParameter = normalize(await zcl_gg_host.run({
+    io_report: new abap.Classes.ZCL_BV_PTYPED(),
+    rs_result: 1,
+  }));
+  // The changed date goes back to the screen in YYYYMMDD form; the untouched
+  // integer keeps its empty input instead of becoming "0 ".
+  assert.deepEqual(typedParameter.values.map((item) => [item.name, item.value]), [["P_COUNT", ""], ["P_DATE", "20261001"]]);
+  assert.deepEqual(typedParameter.lines, ["20261001", "0"]);
   const terminal = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_TERMINAL(),
     rs_result: 1,

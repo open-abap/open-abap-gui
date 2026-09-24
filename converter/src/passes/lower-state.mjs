@@ -36,6 +36,7 @@ export function buildStatePlan(ir) {
       member: candidate.toLowerCase(),
       ranges: ir.selections.flatMap((screen) => screen.elements).some((item) => item.name === name && item.kind === "select-option"),
       dataType: selection?.dataType,
+      additions: selection?.additions,
     };
   }
   return {

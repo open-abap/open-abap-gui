@@ -16,7 +16,7 @@ CLASS zcl_example_navigation DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     DATA gv_step TYPE i.
-    DATA mv_p_target TYPE string.
+    DATA mv_p_target TYPE c LENGTH 1.
 
 ENDCLASS.
 
@@ -44,37 +44,51 @@ CLASS zcl_example_navigation IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~initialization.
     mv_p_target = ct_values[ name = 'P_TARGET' ]-value.
-    ct_values[ name = 'P_TARGET' ]-value = mv_p_target.
+    IF ct_values[ name = 'P_TARGET' ]-value <> mv_p_target.
+      ct_values[ name = 'P_TARGET' ]-value = |{ mv_p_target }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
     mv_p_target = ct_values[ name = 'P_TARGET' ]-value.
-    ct_values[ name = 'P_TARGET' ]-value = mv_p_target.
+    IF ct_values[ name = 'P_TARGET' ]-value <> mv_p_target.
+      ct_values[ name = 'P_TARGET' ]-value = |{ mv_p_target }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
     mv_p_target = ct_values[ name = 'P_TARGET' ]-value.
-    ct_values[ name = 'P_TARGET' ]-value = mv_p_target.
+    IF ct_values[ name = 'P_TARGET' ]-value <> mv_p_target.
+      ct_values[ name = 'P_TARGET' ]-value = |{ mv_p_target }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
     mv_p_target = ct_values[ name = 'P_TARGET' ]-value.
-    ct_values[ name = 'P_TARGET' ]-value = mv_p_target.
+    IF ct_values[ name = 'P_TARGET' ]-value <> mv_p_target.
+      ct_values[ name = 'P_TARGET' ]-value = |{ mv_p_target }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
     mv_p_target = ct_values[ name = 'P_TARGET' ]-value.
-    ct_values[ name = 'P_TARGET' ]-value = mv_p_target.
+    IF ct_values[ name = 'P_TARGET' ]-value <> mv_p_target.
+      ct_values[ name = 'P_TARGET' ]-value = |{ mv_p_target }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
     mv_p_target = ct_values[ name = 'P_TARGET' ]-value.
-    ct_values[ name = 'P_TARGET' ]-value = mv_p_target.
+    IF ct_values[ name = 'P_TARGET' ]-value <> mv_p_target.
+      ct_values[ name = 'P_TARGET' ]-value = |{ mv_p_target }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
     mv_p_target = ct_values[ name = 'P_TARGET' ]-value.
-    ct_values[ name = 'P_TARGET' ]-value = mv_p_target.
+    IF ct_values[ name = 'P_TARGET' ]-value <> mv_p_target.
+      ct_values[ name = 'P_TARGET' ]-value = |{ mv_p_target }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.

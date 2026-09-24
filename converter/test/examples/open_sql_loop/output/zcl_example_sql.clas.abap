@@ -17,7 +17,7 @@ CLASS zcl_example_sql DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA gt_flights TYPE STANDARD TABLE OF ty_flight WITH EMPTY KEY.
     DATA gs_flight TYPE ty_flight.
     DATA gv_price TYPE s_price.
-    DATA mv_p_carr TYPE string.
+    DATA mv_p_carr TYPE s_carr_id.
 
 ENDCLASS.
 
@@ -45,37 +45,51 @@ CLASS zcl_example_sql IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~initialization.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-    ct_values[ name = 'P_CARR' ]-value = mv_p_carr.
+    IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
+      ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-    ct_values[ name = 'P_CARR' ]-value = mv_p_carr.
+    IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
+      ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-    ct_values[ name = 'P_CARR' ]-value = mv_p_carr.
+    IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
+      ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-    ct_values[ name = 'P_CARR' ]-value = mv_p_carr.
+    IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
+      ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-    ct_values[ name = 'P_CARR' ]-value = mv_p_carr.
+    IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
+      ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-    ct_values[ name = 'P_CARR' ]-value = mv_p_carr.
+    IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
+      ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-    ct_values[ name = 'P_CARR' ]-value = mv_p_carr.
+    IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
+      ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.

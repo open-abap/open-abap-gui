@@ -253,14 +253,38 @@ function implicitSelectionLayoutMembers(ir) {
   return [...names].sort();
 }
 
+const LENGTH_TYPES = new Set(["c", "n", "x", "p"]);
+
+// The member holding a PARAMETERS value gets the type the parameter declares, so
+// arithmetic, formatting and typed method calls behave as in the report. The
+// screen transports values as strings; assignment converts in both directions.
+// Types are assumed to exist, as for DATA declarations.
 function selectionStateType(ir, state) {
-  if (state.ranges) return "zif_gg_selection_screen_types=>ty_ranges";
-  const typeName = state.dataType?.typ?.toLowerCase();
-  if (!typeName) return "string";
-  const localType = (ir.declarations ?? []).some((item) => item.kind === "type"
-    && item.names?.some((name) => name.toLowerCase() === typeName));
-  if (localType) return typeName;
-  return "string";
+  if (state.ranges) return "TYPE zif_gg_selection_screen_types=>ty_ranges";
+  const additions = String(state.additions ?? "").replace(/'(?:''|[^'])*'|`(?:``|[^`])*`/g, "''").replace(/,\s*$/, "");
+  const oldLength = /^\(\s*(\d+)\s*\)/.exec(additions)?.[1];
+  const type = /\bTYPE\s+([A-Z][A-Z0-9_\/]*(?:-[A-Z][A-Z0-9_]*)*)(?:\s+LENGTH\s+(\d+))?(?:\s+DECIMALS\s+(\d+))?/i.exec(additions);
+  if (type) {
+    const name = type[1].toLowerCase();
+    if (!LENGTH_TYPES.has(name)) return `TYPE ${name}`;
+    const length = type[2] ?? oldLength;
+    return `TYPE ${name}${length ? ` LENGTH ${length}` : ""}${type[3] ? ` DECIMALS ${type[3]}` : ""}`;
+  }
+  const like = /\bLIKE\s+([A-Z][A-Z0-9_\/]*)((?:-[A-Z][A-Z0-9_]*)*)/i.exec(additions);
+  if (like) {
+    const base = like[1].toUpperCase();
+    // Another parameter or a report global is a class member, possibly renamed.
+    const member = ir.statePlan?.selectionState?.[base]?.member
+      ?? ir.statePlan?.renames?.[base]?.toLowerCase()
+      ?? (ir.statePlan?.globals?.includes(base)
+        || (ir.declarations ?? []).some((item) => item.kind === "constant" && item.statement?.scope !== "local" && item.names?.includes(base))
+        ? base.toLowerCase() : undefined);
+    // Otherwise it names a dictionary structure field, e.g. LIKE mara-matnr.
+    return member ? `LIKE ${member}${like[2].toLowerCase()}` : `TYPE ${`${like[1]}${like[2]}`.toLowerCase()}`;
+  }
+  // PARAMETERS without a type is c of length 8; a checkbox or radio button is c of length 1.
+  if (/\b(?:AS\s+CHECKBOX|RADIOBUTTON\s+GROUP)\b/i.test(additions)) return "TYPE c LENGTH 1";
+  return `TYPE c LENGTH ${oldLength ?? 8}`;
 }
 
 // Re-emits a BEGIN OF ... END OF structure as one chain. INCLUDE TYPE and
@@ -400,10 +424,19 @@ function dataMembers(ir) {
     const type = controls[2].toUpperCase() === "TABSTRIP" ? "ty_tabstrip_runtime" : "ty_table_runtime";
     members.push(`DATA ${controls[1].toLowerCase()} TYPE zif_gg_dynpro_types_v1=>${type}.`);
   }
-  for (const [name, state] of Object.entries(ir.statePlan?.selectionState ?? {})) {
-    const type = selectionStateType(ir, state);
-    members.push(`DATA ${state.member} TYPE ${type}.`);
-  }
+  // `LIKE` can only name an attribute declared earlier, so a parameter declared
+  // LIKE another parameter comes after it.
+  const selectionState = ir.statePlan?.selectionState ?? {};
+  const emitted = new Set();
+  const emitSelection = (name) => {
+    if (emitted.has(name)) return;
+    emitted.add(name);
+    const state = selectionState[name];
+    const like = /\bLIKE\s+([A-Z][A-Z0-9_\/]*)/i.exec(String(state.additions ?? ""))?.[1]?.toUpperCase();
+    if (like && selectionState[like]) emitSelection(like);
+    members.push(`DATA ${state.member} ${selectionStateType(ir, state)}.`);
+  };
+  Object.keys(selectionState).forEach(emitSelection);
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
     const parameterType = (parameter) => {
@@ -714,8 +747,21 @@ function selectionStateTransport(ir, event) {
   const hydrate = [];
   const flush = [];
   for (const [name, item] of Object.entries(state)) {
-    hydrate.push(`${item.member} = ${source}[ name = '${name}' ]-${item.ranges ? "ranges" : "value"}.`);
-    if (source === "ct_values") flush.push(`${source}[ name = '${name}' ]-${item.ranges ? "ranges" : "value"} = ${item.member}.`);
+    const field = `${source}[ name = '${name}' ]-${item.ranges ? "ranges" : "value"}`;
+    hydrate.push(`${item.member} = ${field}.`);
+    if (source !== "ct_values") continue;
+    if (item.ranges) {
+      flush.push(`${field} = ${item.member}.`);
+      continue;
+    }
+    // The member has the parameter's own type. Assigning it back would turn an
+    // untouched 1 into "1 ", -1 into "1-" and "" into "0 ", so the screen value
+    // is only replaced when the program changed it, in template format.
+    flush.push([
+      `IF ${field} <> ${item.member}.`,
+      `${field} = |{ ${item.member} }|.`,
+      "ENDIF.",
+    ].join("\n"));
   }
   return { hydrate, flush };
 }

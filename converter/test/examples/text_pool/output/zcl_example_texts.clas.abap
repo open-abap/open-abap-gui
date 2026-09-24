@@ -14,8 +14,8 @@ CLASS zcl_example_texts DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     DATA selection TYPE string.
-    DATA mv_p_days TYPE string.
-    DATA mv_p_user TYPE string.
+    DATA mv_p_days TYPE i.
+    DATA mv_p_user TYPE c LENGTH 12.
 
 ENDCLASS.
 
@@ -48,50 +48,78 @@ CLASS zcl_example_texts IMPLEMENTATION.
   METHOD zif_gg_report_v1~initialization.
     mv_p_days = ct_values[ name = 'P_DAYS' ]-value.
     mv_p_user = ct_values[ name = 'P_USER' ]-value.
-    ct_values[ name = 'P_DAYS' ]-value = mv_p_days.
-    ct_values[ name = 'P_USER' ]-value = mv_p_user.
+    IF ct_values[ name = 'P_DAYS' ]-value <> mv_p_days.
+      ct_values[ name = 'P_DAYS' ]-value = |{ mv_p_days }|.
+    ENDIF.
+    IF ct_values[ name = 'P_USER' ]-value <> mv_p_user.
+      ct_values[ name = 'P_USER' ]-value = |{ mv_p_user }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
     mv_p_days = ct_values[ name = 'P_DAYS' ]-value.
     mv_p_user = ct_values[ name = 'P_USER' ]-value.
-    ct_values[ name = 'P_DAYS' ]-value = mv_p_days.
-    ct_values[ name = 'P_USER' ]-value = mv_p_user.
+    IF ct_values[ name = 'P_DAYS' ]-value <> mv_p_days.
+      ct_values[ name = 'P_DAYS' ]-value = |{ mv_p_days }|.
+    ENDIF.
+    IF ct_values[ name = 'P_USER' ]-value <> mv_p_user.
+      ct_values[ name = 'P_USER' ]-value = |{ mv_p_user }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
     mv_p_days = ct_values[ name = 'P_DAYS' ]-value.
     mv_p_user = ct_values[ name = 'P_USER' ]-value.
-    ct_values[ name = 'P_DAYS' ]-value = mv_p_days.
-    ct_values[ name = 'P_USER' ]-value = mv_p_user.
+    IF ct_values[ name = 'P_DAYS' ]-value <> mv_p_days.
+      ct_values[ name = 'P_DAYS' ]-value = |{ mv_p_days }|.
+    ENDIF.
+    IF ct_values[ name = 'P_USER' ]-value <> mv_p_user.
+      ct_values[ name = 'P_USER' ]-value = |{ mv_p_user }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
     mv_p_days = ct_values[ name = 'P_DAYS' ]-value.
     mv_p_user = ct_values[ name = 'P_USER' ]-value.
-    ct_values[ name = 'P_DAYS' ]-value = mv_p_days.
-    ct_values[ name = 'P_USER' ]-value = mv_p_user.
+    IF ct_values[ name = 'P_DAYS' ]-value <> mv_p_days.
+      ct_values[ name = 'P_DAYS' ]-value = |{ mv_p_days }|.
+    ENDIF.
+    IF ct_values[ name = 'P_USER' ]-value <> mv_p_user.
+      ct_values[ name = 'P_USER' ]-value = |{ mv_p_user }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
     mv_p_days = ct_values[ name = 'P_DAYS' ]-value.
     mv_p_user = ct_values[ name = 'P_USER' ]-value.
-    ct_values[ name = 'P_DAYS' ]-value = mv_p_days.
-    ct_values[ name = 'P_USER' ]-value = mv_p_user.
+    IF ct_values[ name = 'P_DAYS' ]-value <> mv_p_days.
+      ct_values[ name = 'P_DAYS' ]-value = |{ mv_p_days }|.
+    ENDIF.
+    IF ct_values[ name = 'P_USER' ]-value <> mv_p_user.
+      ct_values[ name = 'P_USER' ]-value = |{ mv_p_user }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
     mv_p_days = ct_values[ name = 'P_DAYS' ]-value.
     mv_p_user = ct_values[ name = 'P_USER' ]-value.
-    ct_values[ name = 'P_DAYS' ]-value = mv_p_days.
-    ct_values[ name = 'P_USER' ]-value = mv_p_user.
+    IF ct_values[ name = 'P_DAYS' ]-value <> mv_p_days.
+      ct_values[ name = 'P_DAYS' ]-value = |{ mv_p_days }|.
+    ENDIF.
+    IF ct_values[ name = 'P_USER' ]-value <> mv_p_user.
+      ct_values[ name = 'P_USER' ]-value = |{ mv_p_user }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
     mv_p_days = ct_values[ name = 'P_DAYS' ]-value.
     mv_p_user = ct_values[ name = 'P_USER' ]-value.
-    ct_values[ name = 'P_DAYS' ]-value = mv_p_days.
-    ct_values[ name = 'P_USER' ]-value = mv_p_user.
+    IF ct_values[ name = 'P_DAYS' ]-value <> mv_p_days.
+      ct_values[ name = 'P_DAYS' ]-value = |{ mv_p_days }|.
+    ENDIF.
+    IF ct_values[ name = 'P_USER' ]-value <> mv_p_user.
+      ct_values[ name = 'P_USER' ]-value = |{ mv_p_user }|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.

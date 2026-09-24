@@ -1373,10 +1373,6 @@ function lowerSingleStatement(statement, context) {
         return `${converted}\nio_session->get_dialog( )->set_status( VALUE #( status = CONV string( ${target.toLowerCase()} ) ) ).`;
       }
     }
-    if (target && context.selectionState?.[target]) {
-      const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
-      if (assignment && !/^['|]/.test(assignment[2].trim())) converted = `${assignment[1]}|{ ${assignment[2]} }|.`;
-    }
     return converted;
   }
   if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static"].includes(statement.kind)) {

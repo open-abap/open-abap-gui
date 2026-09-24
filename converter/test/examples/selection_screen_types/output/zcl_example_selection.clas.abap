@@ -15,13 +15,13 @@ CLASS zcl_example_selection DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     DATA sflight TYPE sflight.
     DATA gv_next TYPE i.
-    DATA mv_p_amount TYPE string.
-    DATA mv_p_count TYPE string.
-    DATA mv_p_date TYPE string.
-    DATA mv_p_flag TYPE string.
-    DATA mv_p_name TYPE string.
-    DATA mv_p_opt1 TYPE string.
-    DATA mv_p_opt2 TYPE string.
+    DATA mv_p_amount TYPE p LENGTH 8 DECIMALS 2.
+    DATA mv_p_count TYPE i.
+    DATA mv_p_date TYPE d.
+    DATA mv_p_flag TYPE c LENGTH 1.
+    DATA mv_p_name TYPE c LENGTH 20.
+    DATA mv_p_opt1 TYPE c LENGTH 1.
+    DATA mv_p_opt2 TYPE c LENGTH 1.
     DATA mv_s_carr TYPE zif_gg_selection_screen_types=>ty_ranges.
 
 ENDCLASS.
@@ -64,13 +64,27 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt1 = ct_values[ name = 'P_OPT1' ]-value.
     mv_p_opt2 = ct_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = ct_values[ name = 'S_CARR' ]-ranges.
-    ct_values[ name = 'P_AMOUNT' ]-value = mv_p_amount.
-    ct_values[ name = 'P_COUNT' ]-value = mv_p_count.
-    ct_values[ name = 'P_DATE' ]-value = mv_p_date.
-    ct_values[ name = 'P_FLAG' ]-value = mv_p_flag.
-    ct_values[ name = 'P_NAME' ]-value = mv_p_name.
-    ct_values[ name = 'P_OPT1' ]-value = mv_p_opt1.
-    ct_values[ name = 'P_OPT2' ]-value = mv_p_opt2.
+    IF ct_values[ name = 'P_AMOUNT' ]-value <> mv_p_amount.
+      ct_values[ name = 'P_AMOUNT' ]-value = |{ mv_p_amount }|.
+    ENDIF.
+    IF ct_values[ name = 'P_COUNT' ]-value <> mv_p_count.
+      ct_values[ name = 'P_COUNT' ]-value = |{ mv_p_count }|.
+    ENDIF.
+    IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
+      ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
+    ENDIF.
+    IF ct_values[ name = 'P_FLAG' ]-value <> mv_p_flag.
+      ct_values[ name = 'P_FLAG' ]-value = |{ mv_p_flag }|.
+    ENDIF.
+    IF ct_values[ name = 'P_NAME' ]-value <> mv_p_name.
+      ct_values[ name = 'P_NAME' ]-value = |{ mv_p_name }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT1' ]-value <> mv_p_opt1.
+      ct_values[ name = 'P_OPT1' ]-value = |{ mv_p_opt1 }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
+      ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
+    ENDIF.
     ct_values[ name = 'S_CARR' ]-ranges = mv_s_carr.
   ENDMETHOD.
 
@@ -83,13 +97,27 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt1 = ct_values[ name = 'P_OPT1' ]-value.
     mv_p_opt2 = ct_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = ct_values[ name = 'S_CARR' ]-ranges.
-    ct_values[ name = 'P_AMOUNT' ]-value = mv_p_amount.
-    ct_values[ name = 'P_COUNT' ]-value = mv_p_count.
-    ct_values[ name = 'P_DATE' ]-value = mv_p_date.
-    ct_values[ name = 'P_FLAG' ]-value = mv_p_flag.
-    ct_values[ name = 'P_NAME' ]-value = mv_p_name.
-    ct_values[ name = 'P_OPT1' ]-value = mv_p_opt1.
-    ct_values[ name = 'P_OPT2' ]-value = mv_p_opt2.
+    IF ct_values[ name = 'P_AMOUNT' ]-value <> mv_p_amount.
+      ct_values[ name = 'P_AMOUNT' ]-value = |{ mv_p_amount }|.
+    ENDIF.
+    IF ct_values[ name = 'P_COUNT' ]-value <> mv_p_count.
+      ct_values[ name = 'P_COUNT' ]-value = |{ mv_p_count }|.
+    ENDIF.
+    IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
+      ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
+    ENDIF.
+    IF ct_values[ name = 'P_FLAG' ]-value <> mv_p_flag.
+      ct_values[ name = 'P_FLAG' ]-value = |{ mv_p_flag }|.
+    ENDIF.
+    IF ct_values[ name = 'P_NAME' ]-value <> mv_p_name.
+      ct_values[ name = 'P_NAME' ]-value = |{ mv_p_name }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT1' ]-value <> mv_p_opt1.
+      ct_values[ name = 'P_OPT1' ]-value = |{ mv_p_opt1 }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
+      ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
+    ENDIF.
     ct_values[ name = 'S_CARR' ]-ranges = mv_s_carr.
   ENDMETHOD.
 
@@ -102,13 +130,27 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt1 = ct_values[ name = 'P_OPT1' ]-value.
     mv_p_opt2 = ct_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = ct_values[ name = 'S_CARR' ]-ranges.
-    ct_values[ name = 'P_AMOUNT' ]-value = mv_p_amount.
-    ct_values[ name = 'P_COUNT' ]-value = mv_p_count.
-    ct_values[ name = 'P_DATE' ]-value = mv_p_date.
-    ct_values[ name = 'P_FLAG' ]-value = mv_p_flag.
-    ct_values[ name = 'P_NAME' ]-value = mv_p_name.
-    ct_values[ name = 'P_OPT1' ]-value = mv_p_opt1.
-    ct_values[ name = 'P_OPT2' ]-value = mv_p_opt2.
+    IF ct_values[ name = 'P_AMOUNT' ]-value <> mv_p_amount.
+      ct_values[ name = 'P_AMOUNT' ]-value = |{ mv_p_amount }|.
+    ENDIF.
+    IF ct_values[ name = 'P_COUNT' ]-value <> mv_p_count.
+      ct_values[ name = 'P_COUNT' ]-value = |{ mv_p_count }|.
+    ENDIF.
+    IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
+      ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
+    ENDIF.
+    IF ct_values[ name = 'P_FLAG' ]-value <> mv_p_flag.
+      ct_values[ name = 'P_FLAG' ]-value = |{ mv_p_flag }|.
+    ENDIF.
+    IF ct_values[ name = 'P_NAME' ]-value <> mv_p_name.
+      ct_values[ name = 'P_NAME' ]-value = |{ mv_p_name }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT1' ]-value <> mv_p_opt1.
+      ct_values[ name = 'P_OPT1' ]-value = |{ mv_p_opt1 }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
+      ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
+    ENDIF.
     ct_values[ name = 'S_CARR' ]-ranges = mv_s_carr.
   ENDMETHOD.
 
@@ -121,13 +163,27 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt1 = ct_values[ name = 'P_OPT1' ]-value.
     mv_p_opt2 = ct_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = ct_values[ name = 'S_CARR' ]-ranges.
-    ct_values[ name = 'P_AMOUNT' ]-value = mv_p_amount.
-    ct_values[ name = 'P_COUNT' ]-value = mv_p_count.
-    ct_values[ name = 'P_DATE' ]-value = mv_p_date.
-    ct_values[ name = 'P_FLAG' ]-value = mv_p_flag.
-    ct_values[ name = 'P_NAME' ]-value = mv_p_name.
-    ct_values[ name = 'P_OPT1' ]-value = mv_p_opt1.
-    ct_values[ name = 'P_OPT2' ]-value = mv_p_opt2.
+    IF ct_values[ name = 'P_AMOUNT' ]-value <> mv_p_amount.
+      ct_values[ name = 'P_AMOUNT' ]-value = |{ mv_p_amount }|.
+    ENDIF.
+    IF ct_values[ name = 'P_COUNT' ]-value <> mv_p_count.
+      ct_values[ name = 'P_COUNT' ]-value = |{ mv_p_count }|.
+    ENDIF.
+    IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
+      ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
+    ENDIF.
+    IF ct_values[ name = 'P_FLAG' ]-value <> mv_p_flag.
+      ct_values[ name = 'P_FLAG' ]-value = |{ mv_p_flag }|.
+    ENDIF.
+    IF ct_values[ name = 'P_NAME' ]-value <> mv_p_name.
+      ct_values[ name = 'P_NAME' ]-value = |{ mv_p_name }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT1' ]-value <> mv_p_opt1.
+      ct_values[ name = 'P_OPT1' ]-value = |{ mv_p_opt1 }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
+      ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
+    ENDIF.
     ct_values[ name = 'S_CARR' ]-ranges = mv_s_carr.
   ENDMETHOD.
 
@@ -140,13 +196,27 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt1 = ct_values[ name = 'P_OPT1' ]-value.
     mv_p_opt2 = ct_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = ct_values[ name = 'S_CARR' ]-ranges.
-    ct_values[ name = 'P_AMOUNT' ]-value = mv_p_amount.
-    ct_values[ name = 'P_COUNT' ]-value = mv_p_count.
-    ct_values[ name = 'P_DATE' ]-value = mv_p_date.
-    ct_values[ name = 'P_FLAG' ]-value = mv_p_flag.
-    ct_values[ name = 'P_NAME' ]-value = mv_p_name.
-    ct_values[ name = 'P_OPT1' ]-value = mv_p_opt1.
-    ct_values[ name = 'P_OPT2' ]-value = mv_p_opt2.
+    IF ct_values[ name = 'P_AMOUNT' ]-value <> mv_p_amount.
+      ct_values[ name = 'P_AMOUNT' ]-value = |{ mv_p_amount }|.
+    ENDIF.
+    IF ct_values[ name = 'P_COUNT' ]-value <> mv_p_count.
+      ct_values[ name = 'P_COUNT' ]-value = |{ mv_p_count }|.
+    ENDIF.
+    IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
+      ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
+    ENDIF.
+    IF ct_values[ name = 'P_FLAG' ]-value <> mv_p_flag.
+      ct_values[ name = 'P_FLAG' ]-value = |{ mv_p_flag }|.
+    ENDIF.
+    IF ct_values[ name = 'P_NAME' ]-value <> mv_p_name.
+      ct_values[ name = 'P_NAME' ]-value = |{ mv_p_name }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT1' ]-value <> mv_p_opt1.
+      ct_values[ name = 'P_OPT1' ]-value = |{ mv_p_opt1 }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
+      ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
+    ENDIF.
     ct_values[ name = 'S_CARR' ]-ranges = mv_s_carr.
   ENDMETHOD.
 
@@ -159,13 +229,27 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt1 = ct_values[ name = 'P_OPT1' ]-value.
     mv_p_opt2 = ct_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = ct_values[ name = 'S_CARR' ]-ranges.
-    ct_values[ name = 'P_AMOUNT' ]-value = mv_p_amount.
-    ct_values[ name = 'P_COUNT' ]-value = mv_p_count.
-    ct_values[ name = 'P_DATE' ]-value = mv_p_date.
-    ct_values[ name = 'P_FLAG' ]-value = mv_p_flag.
-    ct_values[ name = 'P_NAME' ]-value = mv_p_name.
-    ct_values[ name = 'P_OPT1' ]-value = mv_p_opt1.
-    ct_values[ name = 'P_OPT2' ]-value = mv_p_opt2.
+    IF ct_values[ name = 'P_AMOUNT' ]-value <> mv_p_amount.
+      ct_values[ name = 'P_AMOUNT' ]-value = |{ mv_p_amount }|.
+    ENDIF.
+    IF ct_values[ name = 'P_COUNT' ]-value <> mv_p_count.
+      ct_values[ name = 'P_COUNT' ]-value = |{ mv_p_count }|.
+    ENDIF.
+    IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
+      ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
+    ENDIF.
+    IF ct_values[ name = 'P_FLAG' ]-value <> mv_p_flag.
+      ct_values[ name = 'P_FLAG' ]-value = |{ mv_p_flag }|.
+    ENDIF.
+    IF ct_values[ name = 'P_NAME' ]-value <> mv_p_name.
+      ct_values[ name = 'P_NAME' ]-value = |{ mv_p_name }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT1' ]-value <> mv_p_opt1.
+      ct_values[ name = 'P_OPT1' ]-value = |{ mv_p_opt1 }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
+      ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
+    ENDIF.
     ct_values[ name = 'S_CARR' ]-ranges = mv_s_carr.
   ENDMETHOD.
 
@@ -178,13 +262,27 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt1 = ct_values[ name = 'P_OPT1' ]-value.
     mv_p_opt2 = ct_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = ct_values[ name = 'S_CARR' ]-ranges.
-    ct_values[ name = 'P_AMOUNT' ]-value = mv_p_amount.
-    ct_values[ name = 'P_COUNT' ]-value = mv_p_count.
-    ct_values[ name = 'P_DATE' ]-value = mv_p_date.
-    ct_values[ name = 'P_FLAG' ]-value = mv_p_flag.
-    ct_values[ name = 'P_NAME' ]-value = mv_p_name.
-    ct_values[ name = 'P_OPT1' ]-value = mv_p_opt1.
-    ct_values[ name = 'P_OPT2' ]-value = mv_p_opt2.
+    IF ct_values[ name = 'P_AMOUNT' ]-value <> mv_p_amount.
+      ct_values[ name = 'P_AMOUNT' ]-value = |{ mv_p_amount }|.
+    ENDIF.
+    IF ct_values[ name = 'P_COUNT' ]-value <> mv_p_count.
+      ct_values[ name = 'P_COUNT' ]-value = |{ mv_p_count }|.
+    ENDIF.
+    IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
+      ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
+    ENDIF.
+    IF ct_values[ name = 'P_FLAG' ]-value <> mv_p_flag.
+      ct_values[ name = 'P_FLAG' ]-value = |{ mv_p_flag }|.
+    ENDIF.
+    IF ct_values[ name = 'P_NAME' ]-value <> mv_p_name.
+      ct_values[ name = 'P_NAME' ]-value = |{ mv_p_name }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT1' ]-value <> mv_p_opt1.
+      ct_values[ name = 'P_OPT1' ]-value = |{ mv_p_opt1 }|.
+    ENDIF.
+    IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
+      ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
+    ENDIF.
     ct_values[ name = 'S_CARR' ]-ranges = mv_s_carr.
   ENDMETHOD.
 

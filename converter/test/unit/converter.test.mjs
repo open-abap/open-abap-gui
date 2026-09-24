@@ -83,7 +83,74 @@ test("lowers a selection parameter into a typed screen definition", async () => 
   assert.match(result.classSource, /add_parameter/);
   assert.match(result.classSource, /name = 'P_CARR'/);
   assert.match(result.classSource, /it_values\[ name = 'P_CARR' \]/);
-  assert.match(result.classSource, /DATA mv_p_carr TYPE string/);
+  assert.match(result.classSource, /DATA mv_p_carr TYPE c LENGTH 3\./);
+});
+
+test("declares each selection parameter member with the parameter's own type", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zparams.",
+      "TABLES sflight.",
+      "TYPES ty_status TYPE c LENGTH 2.",
+      "CONSTANTS gc_code TYPE c LENGTH 4 VALUE 'ABCD'.",
+      "DATA gv_carrid TYPE c LENGTH 3.",
+      "DATA lo_writer TYPE i.",
+      "PARAMETERS p_count TYPE i DEFAULT 10.",
+      "PARAMETERS p_date TYPE d.",
+      "PARAMETERS p_amount TYPE p LENGTH 8 DECIMALS 2.",
+      "PARAMETERS p_numc TYPE n LENGTH 6.",
+      "PARAMETERS p_matnr TYPE matnr OBLIGATORY.",
+      "PARAMETERS p_len(10) TYPE c.",
+      "PARAMETERS p_plain.",
+      "PARAMETERS p_old(4).",
+      "PARAMETERS p_aaa LIKE p_zzz.",
+      "PARAMETERS p_zzz TYPE i.",
+      "PARAMETERS p_like LIKE gv_carrid.",
+      "PARAMETERS p_likew LIKE lo_writer.",
+      "PARAMETERS p_likec LIKE gc_code.",
+      "PARAMETERS p_carr LIKE sflight-carrid.",
+      "PARAMETERS p_ddic LIKE mara-matnr.",
+      "PARAMETERS p_comp TYPE sflight-connid.",
+      "PARAMETERS p_flag AS CHECKBOX DEFAULT 'X'.",
+      "PARAMETERS p_rad1 RADIOBUTTON GROUP g1.",
+      "PARAMETERS p_stat TYPE ty_status.",
+      "PARAMETERS p_list TYPE c LENGTH 5 AS LISTBOX VISIBLE LENGTH 20.",
+      "SELECT-OPTIONS s_date FOR p_date.",
+      "START-OF-SELECTION.",
+      "  p_date = p_date + 1.",
+    ].join("\n"),
+    filename: "zparams.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const members = result.classSource.split("\n").map((line) => line.trim()).filter((line) => line.startsWith("DATA mv_p_") || line.startsWith("DATA mv_s_"));
+  assert.deepEqual(members, [
+    "DATA mv_p_zzz TYPE i.",
+    // LIKE can only name an attribute declared before it.
+    "DATA mv_p_aaa LIKE mv_p_zzz.",
+    "DATA mv_p_amount TYPE p LENGTH 8 DECIMALS 2.",
+    "DATA mv_p_carr LIKE sflight-carrid.",
+    "DATA mv_p_comp TYPE sflight-connid.",
+    "DATA mv_p_count TYPE i.",
+    "DATA mv_p_date TYPE d.",
+    "DATA mv_p_ddic TYPE mara-matnr.",
+    "DATA mv_p_flag TYPE c LENGTH 1.",
+    "DATA mv_p_len TYPE c LENGTH 10.",
+    "DATA mv_p_like LIKE gv_carrid.",
+    "DATA mv_p_likec LIKE gc_code.",
+    "DATA mv_p_likew LIKE mv_lo_writer.",
+    "DATA mv_p_list TYPE c LENGTH 5.",
+    "DATA mv_p_matnr TYPE matnr.",
+    "DATA mv_p_numc TYPE n LENGTH 6.",
+    "DATA mv_p_old TYPE c LENGTH 4.",
+    "DATA mv_p_plain TYPE c LENGTH 8.",
+    "DATA mv_p_rad1 TYPE c LENGTH 1.",
+    "DATA mv_p_stat TYPE ty_status.",
+    "DATA mv_s_date TYPE zif_gg_selection_screen_types=>ty_ranges.",
+  ]);
+  // Assignments keep ABAP's own conversion, and the screen value is only
+  // rewritten, in template form, when the program changed it.
+  assert.match(result.classSource, /^\s*mv_p_date = mv_p_date \+ 1\.$/m);
+  assert.match(result.classSource, /IF ct_values\[ name = 'P_DATE' \]-value <> mv_p_date\.\s+ct_values\[ name = 'P_DATE' \]-value = \|\{ mv_p_date \}\|\.\s+ENDIF\./);
 });
 
 test("does not lift selection-screen layout elements into report state", async () => {
@@ -98,7 +165,7 @@ test("does not lift selection-screen layout elements into report state", async (
   });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /DATA mv_cmt1/);
-  assert.match(result.classSource, /DATA mv_p_value TYPE string/);
+  assert.match(result.classSource, /DATA mv_p_value TYPE c\./);
 });
 
 test("applies supplied text-pool labels and warns for unresolved labels", async () => {
