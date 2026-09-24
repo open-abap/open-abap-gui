@@ -961,7 +961,14 @@ export function lowerStatement(statement, context) {
     return "* TODO GGCONV-E516: unsupported SCROLL LIST target requires manual lowering.";
   }
   if (statement.kind === "Stop") return "io_session->stop( ).";
-  if (statement.kind === "Message") return parseMessage(raw, context);
+  if (statement.kind === "Message") {
+    // MESSAGE ... INTO sends nothing; it only fills the target and sy-msg*,
+    // which is valid in a class method, so it is carried over as written.
+    if (/\bINTO\b/i.test(raw.replace(/'(?:''|[^'])*'|`(?:``|[^`])*`/g, ""))) {
+      return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+    }
+    return parseMessage(raw, context);
+  }
   if (statement.kind === "FieldSymbol") {
     const name = /<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
     return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw, context.replacements) : undefined;

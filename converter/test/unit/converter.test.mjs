@@ -1951,6 +1951,59 @@ test("assumes message classes are known", async () => {
   assert.deepEqual(result.diagnostics, []);
 });
 
+test("drops DEFERRED and LOAD forward declarations", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zdefer.",
+      "CLASS lcl_status DEFINITION DEFERRED.",
+      "CLASS lcl_other DEFINITION DEFERRED PUBLIC.",
+      "INTERFACE lif_status DEFERRED.",
+      "CLASS cl_abap_typedescr DEFINITION LOAD.",
+      "INTERFACE if_t100_message LOAD.",
+      "DATA go_status TYPE REF TO lcl_status.",
+      "CLASS lcl_status DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_status IMPLEMENTATION.",
+      "  METHOD run.",
+      "    WRITE 'run'.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  CREATE OBJECT go_status.",
+      "  go_status->run( ).",
+    ].join("\n"),
+    filename: "zdefer.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  for (const source of [result.classSource, ...(result.helperSources ?? []).map((helper) => helper.source)]) {
+    assert.doesNotMatch(source, /\bDEFERRED\b|\bLOAD\s*\./i);
+  }
+});
+
+test("carries MESSAGE ... INTO over unchanged", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsginto.",
+      "DATA ls_message TYPE bal_s_msg.",
+      "START-OF-SELECTION.",
+      "  MESSAGE ID ls_message-msgid",
+      "        TYPE ls_message-msgty NUMBER ls_message-msgno",
+      "        WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4",
+      "        INTO DATA(lv_message).",
+      "  MESSAGE e001(zmsg) WITH 'INTO' INTO DATA(lv_other).",
+      "  MESSAGE i002(zmsg) WITH 'INTO'.",
+    ].join("\n"),
+    filename: "zmsginto.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /^\s*MESSAGE ID ls_message-msgid TYPE ls_message-msgty NUMBER ls_message-msgno WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4 INTO DATA\(lv_message\)\.$/m);
+  assert.match(result.classSource, /^\s*MESSAGE e001\(zmsg\) WITH 'INTO' INTO DATA\(lv_other\)\.$/m);
+  // INTO inside a literal is not the addition; that message is still sent.
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = 'ZMSG' number = '002' v1 = 'INTO' \) \)\./);
+});
+
 test("emits every top-level continuation in a deterministic resume dispatcher", async () => {
   const result = await convertProgram({
     source: [

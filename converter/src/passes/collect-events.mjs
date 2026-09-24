@@ -1,6 +1,8 @@
 import { addEvent } from "../ir/report-ir.mjs";
 import { eventName } from "./classify-program.mjs";
 
+const FORWARD_DECLARATION_KINDS = new Set(["ClassDeferred", "InterfaceDeferred", "ClassDefinitionLoad", "InterfaceLoad"]);
+
 const SINGLETON_EVENTS = new Set(["load_of_program", "initialization", "start_of_selection", "end_of_selection", "top_of_page", "end_of_page", "top_of_page_during_line_sel", "at_line_selection", "at_user_command"]);
 
 function isRoutineStart(statement) {
@@ -25,6 +27,9 @@ export function collectEvents(ir, statements) {
   ir.eventQualifiers ??= {};
   for (const statement of statements) {
     if (statement.kind === "Include") continue;
+    // Forward declarations and the obsolete LOAD additions only steer the
+    // compiler; local classes become global helper classes, which need neither.
+    if (FORWARD_DECLARATION_KINDS.has(statement.kind)) continue;
     if (["ClassDefinition", "ClassImplementation"].includes(statement.kind)) {
       localClassDepth++;
       continue;
