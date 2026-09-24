@@ -40,23 +40,6 @@ export function actionableDiagnosticCode(statement) {
   return ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement;
 }
 
-const SUPPORTED_STATEMENTS = new Set([
-  "Comment", "Empty", "Report", "Program", "Data", "DataBegin", "DataEnd", "Constant", "Static", "Parameter", "SelectOption", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd",
-  "SelectionScreen", "StartOfSelection", "EndOfSelection", "LoadOfProgram", "Initialization", "AtSelectionScreen",
-  "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Write", "Skip", "Uline", "Format", "ScrollList",
-  "NewLine", "SetBlank", "Reserve", "NewPage", "Stop", "Message", "If", "Else", "ElseIf", "EndIf", "Do", "EndDo",
-  "Case", "When", "WhenOthers", "EndCase", "Loop", "EndLoop", "Move", "Return", "Hide", "GetCursor", "ReadLine",
-  "ModifyLine", "SetPFStatus", "SetTitlebar", "Leave", "AtSelectionScreenOutput", "LoopAtScreen", "ModifyScreen",
-  "Form", "EndForm", "Perform", "Translate", "TopOfPageDuringLineSelection", "CallSelectionScreen", "CallScreen", "EndClass",
-  "Try", "Catch", "Cleanup", "EndTry",
-  "Submit", "CallTransaction", "Include", "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable", "Assign",
-  "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
-  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase", "TypePools",
-  "Export", "Import", "FreeMemory",
-  "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
-  "CreateObject", "Call", "CallMethod", "SetHandler",
-]);
-
 function addStatementDiagnostic(diagnostics, statement, message, suggestion, code = "GGCONV-E501") {
   const resolvedCode = code === "GGCONV-E501" ? actionableDiagnosticCode(statement) : code;
   diagnostics.push(diagnostic({
@@ -183,9 +166,6 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     const hasDynproFrontend = ir.programKind === "module-pool" && ir.dynproMetadata
       || ir.programKind === "report" && ir.screenMetadata;
     if (hasDynproFrontend && ["Module", "EndModule", "SetScreen", "LeaveScreen", "LeaveToScreen"].includes(statement.kind)) continue;
-    if (!SUPPORTED_STATEMENTS.has(statement.kind) && !LOWERING_RULES.has(statement.kind) && !supportedSpecial) {
-      addStatementDiagnostic(diagnostics, statement, `statement kind ${statement.kind} is not supported by this converter`, "Convert this statement manually or add a lowering rule.");
-    }
     if (/\b(CALL SCREEN|CALL SELECTION-SCREEN|CALL TRANSACTION|SUBMIT\b.*\bAND RETURN)\b/.test(text)) {
       interfaces.add("zif_gg_resumable_v1");
       ir.features.push("continuation");

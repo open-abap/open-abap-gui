@@ -266,14 +266,49 @@ test("lowers classic currency WRITE formatting and list paging commands", async 
   assert.match(result.classSource, /lo_writer->scroll_to_last_page\( \)\./);
 });
 
-test("keeps logical-database GET events outside the converter scope", async () => {
+test("terminates each element of a chained statement", async () => {
   const result = await convertProgram({
-    source: "REPORT zlogical_database.\nGET spfli.\n",
-    filename: "zlogical_database.prog.abap",
+    source: [
+      "REPORT zchain.",
+      "DATA: gv_a TYPE i, gv_b TYPE string, gt_c TYPE STANDARD TABLE OF i WITH EMPTY KEY.",
+      "START-OF-SELECTION.",
+      "  CLEAR: gv_a, gv_b.",
+      "  ADD: 1 TO gv_a, 2 TO gv_a.",
+      "  APPEND: 1 TO gt_c, 2 TO gt_c.",
+      "  CONDENSE: gv_b, gv_b NO-GAPS.",
+    ].join("\n"),
+    filename: "zchain.prog.abap",
   });
-  assert.equal(result.supported, false);
-  assert.equal(result.classSource, undefined);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516"));
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  for (const statement of ["CLEAR gv_a.", "CLEAR gv_b.", "ADD 1 TO gv_a.", "ADD 2 TO gv_a.", "APPEND 1 TO gt_c.", "APPEND 2 TO gt_c.", "CONDENSE gv_b.", "CONDENSE gv_b NO-GAPS."]) {
+    assert.ok(result.classSource.includes(`    ${statement}\n`), `expected ${statement} in the generated class`);
+  }
+  assert.doesNotMatch(result.classSource, /^\s+(CLEAR|ADD|APPEND|CONDENSE)\b.*,$/m);
+});
+
+test("carries statements without a lowering rule over as written", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zno_rule.",
+      "DATA gv_start TYPE i.",
+      "DATA gv_text TYPE string.",
+      "START-OF-SELECTION.",
+      "  GET RUN TIME FIELD gv_start.",
+      "  CONCATENATE 'a' 'b' INTO gv_text.",
+      "  CONDENSE gv_text.",
+      "  WHILE gv_start < 10.",
+      "    gv_start = gv_start + 1.",
+      "  ENDWHILE.",
+      "  WAIT UP TO 1 SECONDS.",
+    ].join("\n"),
+    filename: "zno_rule.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.diagnostics.filter((item) => item.severity !== "info"), []);
+  for (const statement of ["GET RUN TIME FIELD gv_start.", "CONCATENATE 'a' 'b' INTO gv_text.", "CONDENSE gv_text.", "WHILE gv_start < 10.", "ENDWHILE.", "WAIT UP TO 1 SECONDS."]) {
+    assert.ok(result.classSource.includes(statement), `expected ${statement} in the generated class`);
+  }
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
 test("marks dynamic WRITE calls before lowering", () => {
@@ -663,7 +698,7 @@ test("emits valid hoisted structures for non-chained BEGIN OF declarations", asy
   assert.match(helper, /TYPES: BEGIN OF ty_old, c1 TYPE i, END OF ty_old\./);
 });
 
-test("comments out the whole block when a block opener cannot be lowered", async () => {
+test("comments out the whole block when a block opener cannot be lowered, and keeps blocks without a rule", async () => {
   const result = await convertProgram({
     source: [
       "REPORT zdroploop.",
@@ -697,10 +732,12 @@ test("comments out the whole block when a block opener cannot be lowered", async
   assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
   const helper = result.helperSources[0].source;
   assert.match(helper, /TODO GGCONV-E501: unsupported statement omitted: LOOP AT lt_packages/);
-  for (const omitted of ["IF lt_packages IS NOT INITIAL.", "lv_value = lt_packages.", "ENDIF.", "ENDLOOP.", "lv_value = 'x'.", "ENDWHILE."]) {
+  for (const omitted of ["IF lt_packages IS NOT INITIAL.", "lv_value = lt_packages.", "ENDIF.", "ENDLOOP."]) {
     assert.ok(helper.includes(`* ${omitted}`), `expected commented-out source for ${omitted}`);
   }
-  assert.doesNotMatch(helper, /^\s+END(LOOP|WHILE|IF)\.$/m);
+  assert.doesNotMatch(helper, /^\s+END(LOOP|IF)\.$/m);
+  // WHILE has no lowering rule, so the block is carried over as written.
+  assert.match(helper, /^\s+WHILE lv_value IS INITIAL\.\n\s+lv_value = 'x'\.\n\s+ENDWHILE\.$/m);
   // Statements after the omitted blocks still lower normally.
   assert.match(helper, /^\s+CLEAR lv_value\.$/m);
 });

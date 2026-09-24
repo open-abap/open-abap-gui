@@ -255,9 +255,9 @@ function replaceListContextFields(value) {
     .replace(/\bsy-pagno\b/gi, "io_session->get_list( )->get_context( )-page");
 }
 
-// The capability scanner consumes this registry before emission. Keeping the
-// rule inventory next to the lowering visitor makes a newly parsed statement
-// visible as an explicit capability gap instead of silently falling through.
+// The statements the lowering visitor rewrites into scaffold operations. The
+// manifest records the rule used for each statement; a statement with no rule
+// here is carried over as written.
 export const LOWERING_RULES = new Map([
   ["Write", { kind: "list-write" }], ["Skip", { kind: "list-skip" }], ["Uline", { kind: "list-uline" }],
   ["NewLine", { kind: "list-new-line" }], ["Format", { kind: "list-format" }], ["SetBlank", { kind: "list-blank-lines" }],
@@ -281,8 +281,6 @@ export const LOWERING_RULES = new Map([
   ["Unassign", { kind: "field-symbol-unassign" }], ["Sort", { kind: "internal-table-sort" }],
   ["CreateData", { kind: "data-reference-create" }], ["GetReference", { kind: "data-reference-get" }],
   ["Exit", { kind: "block-exit" }],
-  ["Clear", { kind: "statement" }], ["Add", { kind: "statement" }], ["Subtract", { kind: "statement" }],
-  ["Multiply", { kind: "statement" }], ["Divide", { kind: "statement" }], ["Compute", { kind: "statement" }],
   ["Leave", { kind: "navigation-leave" }], ["SetScreen", { kind: "dialog-set-screen" }], ["SetCursor", { kind: "dialog-set-cursor" }], ["LeaveScreen", { kind: "dialog-leave-screen" }],
   ["LeaveToScreen", { kind: "dialog-leave-to-screen" }], ["GetCursor", { kind: "list-cursor" }], ["ReadLine", { kind: "list-read-line" }],
   ["ModifyLine", { kind: "list-modify-line" }], ["Hide", { kind: "list-hide" }], ["Perform", { kind: "routine-call" }],
@@ -296,12 +294,10 @@ export const LOWERING_RULES = new Map([
   ["Static", { kind: "declaration" }], ["Controls", { kind: "declaration" }], ["Assign", { kind: "field-symbol-assign" }], ["FieldSymbol", { kind: "field-symbol-declaration" }], ["Comment", { kind: "comment" }], ["Empty", { kind: "empty" }],
 ]);
 
-// Ordinary statements are preserved only through this allow-list. Classic
-// event-only syntax must get a diagnostic instead of being copied into a
-// generated method by a catch-all emitter. Object creation, method calls and
-// event registration are carried over as written: local-class receivers are
-// rewritten above before this list is consulted, and every other class is the
-// target system's.
+// Statements known to be valid unchanged inside a generated method; the
+// manifest marks them methodSafe. Local-class receivers of object creation,
+// method calls and event registration are rewritten before this list is
+// consulted, and every other class is the target system's.
 export const METHOD_SAFE_STATEMENTS = new Set([
   "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
   "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
@@ -860,16 +856,10 @@ export function lowerStatement(statement, context) {
     return replaceOutsideStrings(lowered, safeReplacements);
   }
   if (isMethodSafeLoop(statement)) return replaceOutsideStrings(raw, safeReplacements);
-  if (statement.kind === "Clear") {
-    const body = stripPeriod(raw).replace(/^CLEAR\s*:?\s*/i, "");
-    return splitOutsideStrings(body.replace(/,\s*$/, ""))
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => `CLEAR ${replaceOutsideStrings(part, safeReplacements)}.`)
-      .join("\n");
-  }
   if (METHOD_SAFE_STATEMENTS.has(statement.kind)) {
-    return replaceOutsideStrings(raw, safeReplacements);
+    // abaplint splits a chain such as CLEAR: a, b. into one statement per
+    // element, each but the last ending in the chain's comma.
+    return replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
   }
   if (statement.kind === "Write") {
     const iconAssignment = /^WRITE\s+([A-Z][A-Z0-9_]*)\s+AS\s+ICON(?:\s+QUICKINFO\s+.+?)?\s+TO\s+([A-Z][A-Z0-9_]*)\.?$/i.exec(raw);
@@ -1268,7 +1258,14 @@ export function lowerStatement(statement, context) {
       : declaration;
     return replaceOutsideStrings(terminated, context.replacements);
   }
-  return `* TODO GGCONV-E501: unsupported ${statement.kind} statement requires manual lowering.`;
+  // A statement abaplint could not parse is already reported as GGCONV-E201;
+  // copying it would only make the generated class unparseable too.
+  if (statement.kind === "Unknown") return "* TODO GGCONV-E201: statement abaplint could not classify requires manual conversion.";
+  // The rules above are the fixed set of statements that need rewriting.
+  // Everything else is carried over as written; abaplint splits a chained
+  // statement into one statement per element, so a trailing comma becomes the
+  // terminator.
+  return replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
 }
 
 // A block opener that lowers to nothing but a comment cannot leave its body and

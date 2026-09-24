@@ -147,11 +147,14 @@ binary families each have a named session operation. Unknown or custom
 function modules remain diagnostics, and the manifest records the exact
 adapter names used by a conversion.
 
-Unsupported constructs use operation-family diagnostics instead of the broad
-`GGCONV-E501` bucket: `GGCONV-E510` control construction, `E511` control
-methods, `E512` event registration, `E513` function-module adapters, `E514`
-frontend operations, `E515` dynamic types or unsafe field-symbol operations,
-and `E516` unsupported statements.
+Lowering is a fixed set of rules for the statements that need rewriting
+(`LOWERING_RULES` in `src/passes/lower-statements.mjs`). Every other statement
+is carried over as written, with the usual renames, and produces no diagnostic.
+Diagnostics are reserved for a statement a rule exists for but cannot handle in
+that form, and for a statement abaplint cannot parse (`GGCONV-E201`). They use
+operation-family codes instead of the broad `GGCONV-E501` bucket: `E513`
+function-module adapters, `E514` frontend operations, `E515` dynamic types or
+unsafe field-symbol operations, and `E516` other unsupported forms.
 
 `CREATE OBJECT`, method-call statements, `CALL METHOD` (including dynamic
 forms), and `SET HANDLER` are carried over as written. The only rewrite is for
