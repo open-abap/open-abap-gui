@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { convertProgram, undeclaredFieldSymbols } from "../../src/api.mjs";
 import { repositoryRoot } from "../repository.mjs";
@@ -119,6 +120,29 @@ test("resolves abapGit repository-layout includes without a custom resolver", as
   const unresolved = withoutSearchPath.diagnostics.filter((item) => item.code === "GGCONV-E102");
   assert.equal(unresolved.length, 1);
   assert.match(unresolved[0].message, /zrepo_shared_f02/);
+});
+
+test("source hash does not depend on where an include was found", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "ggconv-include-hash-"));
+  try {
+    const convertFrom = async (folder, include) => {
+      await fs.mkdir(path.join(root, folder), { recursive: true });
+      await fs.writeFile(path.join(root, folder, "zhash_top.prog.abap"), include);
+      const result = await convertProgram({
+        source: "REPORT zhash.\nINCLUDE zhash_top.\nSTART-OF-SELECTION.\nWRITE gv_text.\n",
+        filename: "src/zhash.prog.abap",
+        includePaths: [path.join(root, folder)],
+      });
+      assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E102"), JSON.stringify(result.diagnostics));
+      return result.manifest.sourceHash;
+    };
+    const include = "DATA gv_text TYPE string VALUE 'x'.\n";
+    const first = await convertFrom("checkout-a", include);
+    assert.equal(await convertFrom(path.join("elsewhere", "checkout-b"), include), first);
+    assert.notEqual(await convertFrom("checkout-c", "DATA gv_text TYPE string VALUE 'y'.\n"), first);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
 });
 
 // SCREEN-INVISIBLE masks the content of a field that stays on the screen and is
