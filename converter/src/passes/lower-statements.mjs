@@ -268,14 +268,12 @@ export const LOWERING_RULES = new Map([
   ["Case", { kind: "control-case" }],
   ["Catch", { kind: "control-catch" }],
   ["Cleanup", { kind: "control-cleanup" }],
-  ["Comment", { kind: "comment" }],
   ["Constant", { kind: "declaration" }],
   ["Controls", { kind: "declaration" }],
   ["Data", { kind: "declaration" }],
   ["Do", { kind: "control-do" }],
   ["Else", { kind: "control-else" }],
   ["ElseIf", { kind: "control-elseif" }],
-  ["Empty", { kind: "empty" }],
   ["EndCase", { kind: "control-end-case" }],
   ["EndDo", { kind: "control-end-do" }],
   ["EndIf", { kind: "control-end-if" }],
@@ -1264,7 +1262,7 @@ export function lowerStatement(statement, context) {
     }
     return converted;
   }
-  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static", "Comment", "Empty"].includes(statement.kind)) {
+  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static"].includes(statement.kind)) {
     const declaration = statement.kind === "Static" ? raw.replace(/^STATICS\b/i, "DATA") : raw;
     // abaplint splits a chained declaration into one statement per element and
     // repeats the keyword while keeping the separating comma. Each emitted
