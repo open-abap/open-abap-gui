@@ -214,6 +214,7 @@ test("every registered lowering rule has a direct positive fixture", () => {
     EndTry: "ENDTRY.",
     Data: "DATA gv_local TYPE i.",
     Ranges: "RANGES r_value FOR gv_value.",
+    IncludeType: "INCLUDE TYPE zlog.",
     TypeBegin: "TYPES BEGIN OF ty_row.",
     TypeEnd: "TYPES END OF ty_row.",
     Constant: "CONSTANTS gc_value TYPE i VALUE 1.",

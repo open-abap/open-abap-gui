@@ -87,7 +87,7 @@ export function collectLocalClasses(ir, statements) {
     }
     if (currentMethod) {
       statement.localClassPart = "method-body";
-      if (["Data", "DataBegin", "DataEnd", "Constant", "Static", "FieldSymbol", "Ranges", "Type", "TypeBegin", "TypeEnd"].includes(statement.kind)) {
+      if (["Data", "DataBegin", "DataEnd", "Constant", "Static", "FieldSymbol", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType"].includes(statement.kind)) {
         statement.scope = "local";
       }
       currentMethod.statements.push(statement);

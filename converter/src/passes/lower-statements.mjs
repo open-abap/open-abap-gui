@@ -302,6 +302,7 @@ export const LOWERING_RULES = new Map([
   ["Stop", { kind: "terminal-stop" }],
   ["Submit", { kind: "navigation-submit" }],
   ["SuppressDialog", { kind: "dialog-suppress" }],
+  ["IncludeType", { kind: "declaration" }],
   ["TypeBegin", { kind: "declaration" }],
   ["TypeEnd", { kind: "declaration" }],
   ["TypePools", { kind: "type-pool-resolution" }],
@@ -1293,11 +1294,9 @@ export function lowerStatement(statement, context) {
     // abaplint splits a chained declaration into one statement per element and
     // repeats the keyword while keeping the separating comma. Each emitted
     // element is a standalone statement, so a trailing comma must become its
-    // terminator.
-    const terminated = ["Data", "Type", "Constant", "Static"].includes(statement.kind)
-      ? declaration.replace(/,\s*$/, ".")
-      : declaration;
-    return replaceOutsideStrings(terminated, context.replacements);
+    // terminator; BEGIN OF and END OF included, which gives the valid unchained
+    // `TYPES BEGIN OF x. TYPES id TYPE i. TYPES END OF x.` form.
+    return replaceOutsideStrings(declaration.replace(/,\s*$/, "."), context.replacements);
   }
   // A statement abaplint could not parse is already reported as GGCONV-E201;
   // copying it would only make the generated class unparseable too.

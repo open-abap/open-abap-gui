@@ -348,6 +348,44 @@ test("lowers ULINE position and length with and without AT", async () => {
   assert.deepEqual(ulines, ["position = 1 length = 40", "position = 5 length = 10", "position = 3", "length = 20", ""]);
 });
 
+test("keeps INCLUDE TYPE and INCLUDE STRUCTURE inside their structure", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zincl.",
+      "TYPES: BEGIN OF ty_alv,",
+      "         show_payload TYPE icon_d.",
+      "         INCLUDE TYPE zlog.",
+      "TYPES END OF ty_alv.",
+      "TYPES: BEGIN OF ty_renamed.",
+      "         INCLUDE TYPE zlog AS log RENAMING WITH SUFFIX _l.",
+      "TYPES:   extra TYPE i,",
+      "       END OF ty_renamed.",
+      "DATA: BEGIN OF gs_row.",
+      "        INCLUDE STRUCTURE zlog.",
+      "DATA:   flag TYPE c LENGTH 1,",
+      "      END OF gs_row.",
+      "START-OF-SELECTION.",
+      "  PERFORM fill.",
+      "FORM fill.",
+      "  TYPES: BEGIN OF ty_local,",
+      "           id TYPE i.",
+      "           INCLUDE TYPE zlog.",
+      "  TYPES END OF ty_local.",
+      "  DATA ls_local TYPE ty_local.",
+      "  CLEAR ls_local.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zincl.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /TYPES: BEGIN OF ty_alv, show_payload TYPE icon_d\. INCLUDE TYPE zlog\. TYPES: END OF ty_alv\./);
+  assert.match(result.classSource, /TYPES: BEGIN OF ty_renamed\. INCLUDE TYPE zlog AS log RENAMING WITH SUFFIX _l\. TYPES: extra TYPE i, END OF ty_renamed\./);
+  assert.match(result.classSource, /DATA: BEGIN OF gs_row\. INCLUDE STRUCTURE zlog\. DATA: flag TYPE c LENGTH 1, END OF gs_row\./);
+  assert.match(result.classSource, /TYPES BEGIN OF ty_local\.\s+TYPES id TYPE i\.\s+INCLUDE TYPE zlog\.\s+TYPES END OF ty_local\./);
+  // ty_alv and the FORM-local copy; INCLUDE must not leak into event methods.
+  assert.equal(result.classSource.match(/INCLUDE TYPE zlog\./g).length, 2);
+});
+
 test("terminates each element of a chained statement", async () => {
   const result = await convertProgram({
     source: [

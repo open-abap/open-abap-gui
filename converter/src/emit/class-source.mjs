@@ -257,6 +257,25 @@ function selectionStateType(ir, state) {
   return "string";
 }
 
+// Re-emits a BEGIN OF ... END OF structure as one chain. INCLUDE TYPE and
+// INCLUDE STRUCTURE are statements of their own, so they break the chain.
+function structuredDeclaration(keyword, beginName, components, endName) {
+  const statements = [];
+  let chain = [`BEGIN OF ${beginName}`];
+  for (const component of components) {
+    if (/^INCLUDE\s+(?:TYPE|STRUCTURE)\b/i.test(component)) {
+      if (chain.length) statements.push(`${keyword}: ${chain.join(", ")}.`);
+      statements.push(`${component}.`);
+      chain = [];
+    } else {
+      chain.push(component);
+    }
+  }
+  chain.push(`END OF ${endName}`);
+  statements.push(`${keyword}: ${chain.join(", ")}.`);
+  return statements.join(" ");
+}
+
 function dataMembers(ir) {
   const typeMembers = [];
   const constantMembers = [];
@@ -274,12 +293,16 @@ function dataMembers(ir) {
     const components = [];
     for (let cursor = index + 1; cursor < declarations.length; cursor++) {
       consumed.add(cursor);
-      if (declarations[cursor].kind === begin) {
-        components.push(rename(declarations[cursor].raw.replace(new RegExp(`^${keyword}\\s+`, "i"), "")));
+      if (declarations[cursor].kind === begin || declarations[cursor].kind === "includetype") {
+        // A component ends in "," inside a chain and in "." where the chain was
+        // broken, e.g. before INCLUDE TYPE; the structure is re-emitted as one
+        // chain, so the terminator is replaced by a comma.
+        const component = declarations[cursor].raw.replace(new RegExp(`^${keyword}\\s+`, "i"), "").replace(/\s*[,.]\s*$/, "");
+        if (component) components.push(rename(component));
       }
       if (declarations[cursor].kind === end) {
         const endName = /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
-        const declaration = `${keyword}: BEGIN OF ${target}, ${components.join(" ")} END OF ${endName}.`;
+        const declaration = structuredDeclaration(keyword, target, components, endName);
         (keyword === "TYPES" ? typeMembers : dataMembers).push(rename(declaration));
         break;
       }
@@ -1811,8 +1834,7 @@ function helperDefinitionBody(statements, rename) {
   let structured;
   const flushStructured = () => {
     if (!structured) return;
-    const components = structured.components.map((component) => `${component}, `).join("");
-    lines.push(`  ${structured.keyword}: BEGIN OF ${structured.beginName}${components ? `, ${components}` : " "}END OF ${structured.endName ?? structured.beginName}.`);
+    lines.push(`  ${structuredDeclaration(structured.keyword, structured.beginName, structured.components, structured.endName ?? structured.beginName)}`);
     structured = undefined;
   };
   for (const statement of statements) {
