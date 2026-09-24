@@ -848,7 +848,50 @@ function parseMessage(raw, context) {
   return `io_session->message( VALUE #( type = ${typeExpr} text = ${expressionText(literal, context)}${displayField} ) ).`;
 }
 
-export function lowerStatement(statement, context) {
+// A static event handler of a local class cannot receive io_owner and
+// io_session, so registering it stores both in the helper class first.
+// Handlers are named `class=>method`, or just `method` inside their own class.
+function staticHandlerBindings(raw, context) {
+  const handlers = /\bSET\s+HANDLER\s+([\s\S]*?)(?:\s+FOR\b|$)/i.exec(raw.replace(/\.\s*$/, ""))?.[1] ?? "";
+  const classes = new Set();
+  for (const handler of handlers.split(/\s+/).filter(Boolean)) {
+    const qualified = /^([A-Z][A-Z0-9_]*)\s*=>\s*([A-Z][A-Z0-9_]*)$/i.exec(handler);
+    const className = (qualified ? qualified[1] : context.localClassName ?? "").toUpperCase();
+    const method = (qualified ? qualified[2] : handler).toUpperCase();
+    if (context.localClassStaticEventHandlers?.[className]?.has(method)) classes.add(className);
+  }
+  const owner = context.localClassOwner ?? "me";
+  const session = context.sessionVariable ?? "io_session";
+  return [...classes].flatMap((className) => {
+    const helper = context.localClassRenames?.[className] ?? className.toLowerCase();
+    return [`${helper}=>go_owner = ${owner}.`, `${helper}=>go_session = ${session}.`];
+  });
+}
+
+// Inside a local class, a static method of that class may be called without
+// the class name; qualifying it lets the static call bridge add io_owner and
+// io_session.
+function qualifyOwnStaticCall(statement, context) {
+  if (statement.kind !== "Call" || !context.localClassName) return statement;
+  const call = /^(\s*)([A-Z][A-Z0-9_]*)(\s*\()/i.exec(statement.text);
+  if (!call || !context.localClassStaticMethods?.[context.localClassName]?.has(call[2].toUpperCase())) return statement;
+  return { ...statement, text: `${call[1]}${context.localClassName.toLowerCase()}=>${call[2]}${call[3]}${statement.text.slice(call[0].length)}` };
+}
+
+export function lowerStatement(original, context) {
+  const statement = qualifyOwnStaticCall(original, context);
+  let lowered = lowerSingleStatement(statement, context);
+  if (statement !== original && typeof lowered === "string") {
+    // The class name was only added for the bridge; the call stays unqualified.
+    const helper = context.localClassRenames?.[context.localClassName] ?? context.localClassName.toLowerCase();
+    lowered = lowered.replace(new RegExp(`^(\\s*)${helper}\\s*=>\\s*`, "i"), "$1");
+  }
+  if (statement.kind !== "SetHandler" || typeof lowered !== "string") return lowered;
+  const bindings = staticHandlerBindings(statement.text.trim(), context);
+  return bindings.length ? [...bindings, lowered].join("\n") : lowered;
+}
+
+function lowerSingleStatement(statement, context) {
   const raw = statement.text.trim();
   const normalized = raw.replace(/\s+/g, " ").toUpperCase();
   const dynamicAlvFactory = lowerDynamicAlvFactory(raw, context);

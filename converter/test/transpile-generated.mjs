@@ -1,12 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { Config } from "@abaplint/core";
 import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot, repositoryTool } from "./repository.mjs";
 
 const repository = repositoryRoot;
 const tempRoot = path.join(repository, "converter", "transpile-validation");
 const inputFolder = path.join(tempRoot, "input");
+const helperFolder = path.join(tempRoot, "helpers");
 const outputFolder = path.join(tempRoot, "output");
 const configPath = path.join(tempRoot, "abap_transpile.json");
 const lintConfigPath = path.join(repository, "converter", "abaplint-validation.jsonc");
@@ -17,6 +19,7 @@ async function prepare() {
   await fs.rm(tempRoot, { recursive: true, force: true });
   await fs.rm(lintConfigPath, { force: true });
   await fs.mkdir(inputFolder, { recursive: true });
+  await fs.mkdir(helperFolder, { recursive: true });
   await fs.mkdir(outputFolder, { recursive: true });
 
   const names = (await fs.readdir(examples))
@@ -140,8 +143,48 @@ async function prepare() {
   if (!dynamicWriteFallback.classSource || dynamicWriteFallback.supported) throw new Error("dynamic-WRITE fallback fixture was not marked partial");
   await fs.writeFile(path.join(inputFolder, "ZCL_CV_DWRITE_FALLBACK.clas.abap"), dynamicWriteFallback.classSource, "utf8");
 
+  // A static event handler takes only the event's parameters, so owner and
+  // session reach it through the helper class; parser validation alone
+  // accepted the invalid signature this used to produce.
+  const staticHandler = await convertProgram({
+    source: [
+      "REPORT zcv_evt.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_events DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS handle_toolbar",
+      "                FOR EVENT toolbar OF cl_gui_alv_grid",
+      "      IMPORTING e_object e_interactive.",
+      "    CLASS-METHODS add IMPORTING iv_value TYPE i.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD handle_toolbar.",
+      "    add( 1 ).",
+      "    MESSAGE 'toolbar' TYPE 'S'.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  PERFORM setup.",
+      "FORM setup.",
+      "  SET HANDLER lcl_events=>handle_toolbar FOR go_grid.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zcv_evt.prog.abap",
+    className: "ZCL_CV_EVT",
+    transactionCode: "ZCVEVT",
+  });
+  if (!staticHandler.classSource || !staticHandler.supported) throw new Error("static event handler fixture was not converted");
+  await fs.writeFile(path.join(inputFolder, "ZCL_CV_EVT.clas.abap"), staticHandler.classSource, "utf8");
+  for (const helper of staticHandler.helperSources) {
+    await fs.writeFile(path.join(helperFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
+  }
+
   await fs.writeFile(configPath, JSON.stringify({
-    input_folder: ["src", "framework", "examples", "converter/transpile-validation/input"],
+    input_folder: ["src", "framework", "examples", "converter/transpile-validation/input", "converter/transpile-validation/helpers"],
     input_filter: [],
     exclude_filter: [],
     output_folder: "converter/transpile-validation/output",
@@ -165,7 +208,17 @@ async function prepare() {
     "/../framework/**/*.*",
     "/../examples/**/*.*",
     "/transpile-validation/input/*.clas.abap",
+    "/transpile-validation/helpers/*.clas.abap",
   ];
+  // Helper classes are not held to the formatting rules; only the syntax check
+  // applies to them.
+  const ruleDefaults = Config.getDefault().get().rules;
+  for (const [name, value] of Object.entries(lintConfig.rules)) {
+    if (name === "check_syntax" || value === false) continue;
+    const rule = value === true ? { ...ruleDefaults[name] } : value;
+    rule.exclude = [...(rule.exclude ?? []), "transpile-validation[\\\\/]helpers[\\\\/]"];
+    lintConfig.rules[name] = rule;
+  }
   await fs.writeFile(lintConfigPath, JSON.stringify(lintConfig, null, 2), "utf8");
 }
 

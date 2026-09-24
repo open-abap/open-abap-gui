@@ -85,6 +85,8 @@ CLASS zcl_example_events IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_EVENTS' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
+    zcl_example_events_h1=>go_owner = me.
+    zcl_example_events_h1=>go_session = io_session.
     SET HANDLER zcl_example_events_h1=>on_order_created.
     go_order = zcl_example_order=>create( ).
     go_listener = NEW #( ).

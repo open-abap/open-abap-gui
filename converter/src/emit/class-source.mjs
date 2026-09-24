@@ -643,13 +643,18 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
     localClassStaticMethods: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
       String(localClass.name ?? "").toUpperCase(),
       new Set((localClass.definition ?? [])
-        .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? ""))
+        .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? "") && !isStaticEventHandler(statement.text))
         .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
         .filter(Boolean)),
+    ])),
+    localClassStaticEventHandlers: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
+      String(localClass.name ?? "").toUpperCase(),
+      staticEventHandlerNames(localClass),
     ])),
     localClassStaticParameters: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
       String(localClass.name ?? "").toUpperCase(),
       Object.fromEntries((localClass.definition ?? [])
+        .filter((statement) => !isStaticEventHandler(statement.text))
         .map((statement) => {
           const match = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b([\s\S]*)$/i.exec(statement.text ?? "");
           if (!match) return undefined;
@@ -1769,18 +1774,37 @@ function helperDefinitionHeader(localClass, generatedName, ir) {
   return `CLASS ${generatedName.toLowerCase()} DEFINITION PUBLIC${rest ? ` ${renameIdentifiers(rest, allRenames(ir))}` : ""}.`;
 }
 
+// A static event handler is called by the event, which passes only the event's
+// parameters, so it cannot take io_owner and io_session like other static
+// methods. It reads them from static attributes that SET HANDLER fills instead.
+function isStaticEventHandler(text) {
+  return /^\s*CLASS-METHODS\b[\s\S]*\bFOR\s+EVENT\b/i.test(String(text ?? ""));
+}
+
+function staticEventHandlerNames(localClass) {
+  return new Set((localClass.definition ?? [])
+    .filter((statement) => isStaticEventHandler(statement.text))
+    .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
+    .filter(Boolean));
+}
+
 function helperMethodContext(ir, localClass, localMethod) {
   const isStaticMethod = (localClass.definition ?? []).some((statement) => {
     const name = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text ?? "")?.[1];
     return name && name.toUpperCase() === String(localMethod?.name ?? "").toUpperCase();
   });
+  const isEventHandler = staticEventHandlerNames(localClass).has(String(localMethod?.name ?? "").toUpperCase());
   const context = methodContext(ir, "local_class", undefined, {
     statements: localMethod?.statements ?? ir.statements ?? [],
   });
+  const [owner, session] = isEventHandler
+    ? ["go_owner", "go_session"]
+    : isStaticMethod ? ["io_owner", "io_session"] : ["mo_owner", "mo_session"];
   context.ucomm = "sy-ucomm";
-  context.sessionVariable = isStaticMethod ? "io_session" : "mo_session";
-  context.ownerPrefix = isStaticMethod ? "io_owner->" : "mo_owner->";
-  context.localClassOwner = isStaticMethod ? "io_owner" : "mo_owner";
+  context.sessionVariable = session;
+  context.ownerPrefix = `${owner}->`;
+  context.localClassOwner = owner;
+  context.localClassName = String(localClass.name ?? "").toUpperCase();
   const ownerReplacements = Object.fromEntries(Object.entries(globalMemberNames(ir))
     .map(([name, member]) => [name, `${context.ownerPrefix}${member}`]));
   const localTypeUses = new Set([
@@ -1818,9 +1842,11 @@ function helperMethodBody(ir, localClass, localMethod) {
   const statements = truncateTerminalPaths(localMethod.statements ?? []);
   const context = helperMethodContext(ir, localClass, localMethod);
   let body = lowerStatements(statements, context).map((item) => item.text);
-  if (!context.isStaticMethod) {
+  // Lowering writes io_session; methods without that parameter hold the
+  // session elsewhere. `io_session =` is a named argument and stays.
+  if (context.sessionVariable !== "io_session") {
     body = body.map((line) => line.replace(/\bio_session\b/gi, (name, offset, source) =>
-      /^\s*=/.test(source.slice(offset + name.length)) ? name : "mo_session"));
+      /^\s*=/.test(source.slice(offset + name.length)) ? name : context.sessionVariable));
   }
   body = [...globalFieldSymbolDeclarations(ir, statements), ...body];
   if (body.some((line) => line.includes("lo_writer->")) && !/\bio_session\b/i.test(localMethod.definition?.text ?? "")) {
@@ -1889,17 +1915,22 @@ function helperSource(ir, options, localClass) {
   const constructorSignature = originalConstructorDefinition
     ? `${originalConstructorDefinition}${/\bIMPORTING\b/i.test(originalConstructorDefinition) ? " " : " IMPORTING "}io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`
     : `METHODS constructor IMPORTING io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`;
+  const eventHandlers = staticEventHandlerNames(localClass);
   const bridge = [
     `    ${constructorSignature}`,
     `    DATA mo_owner TYPE REF TO ${ir.targetClassName.toLowerCase()}.`,
     "    DATA mo_session TYPE REF TO zif_gg_session_v1.",
+    ...(eventHandlers.size ? [
+      `    CLASS-DATA go_owner TYPE REF TO ${ir.targetClassName.toLowerCase()}.`,
+      "    CLASS-DATA go_session TYPE REF TO zif_gg_session_v1.",
+    ] : []),
   ];
   const originalDefinition = helperDefinitionBody(
     (localClass.definition ?? []).filter((statement) => !(statement.kind === "MethodDef" && /^\s*METHODS\s+constructor\b/i.test(statement.text))),
     rename,
   );
   const staticMethods = new Set((localClass.definition ?? [])
-    .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? ""))
+    .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? "") && !isStaticEventHandler(statement.text))
     .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
     .filter(Boolean));
   const ownerSessionParameters = `io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1`;

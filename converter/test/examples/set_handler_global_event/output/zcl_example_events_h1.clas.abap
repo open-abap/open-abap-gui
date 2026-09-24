@@ -11,8 +11,10 @@ CLASS zcl_example_events_h1 DEFINITION PUBLIC CREATE PUBLIC.
     METHODS constructor IMPORTING io_owner TYPE REF TO zcl_example_events io_session TYPE REF TO zif_gg_session_v1.
     DATA mo_owner TYPE REF TO zcl_example_events.
     DATA mo_session TYPE REF TO zif_gg_session_v1.
+    CLASS-DATA go_owner TYPE REF TO zcl_example_events.
+    CLASS-DATA go_session TYPE REF TO zif_gg_session_v1.
   METHODS on_status_changed FOR EVENT status_changed OF zcl_example_order IMPORTING ev_status.
-  CLASS-METHODS on_order_created FOR EVENT order_created OF zcl_example_order IMPORTING io_owner TYPE REF TO zcl_example_events io_session TYPE REF TO zif_gg_session_v1.
+  CLASS-METHODS on_order_created FOR EVENT order_created OF zcl_example_order.
 
 ENDCLASS.
 
@@ -27,6 +29,6 @@ CLASS zcl_example_events_h1 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD on_order_created.
-    APPEND `Order created` TO io_owner->gt_log.
+    APPEND `Order created` TO go_owner->gt_log.
   ENDMETHOD.
 ENDCLASS.

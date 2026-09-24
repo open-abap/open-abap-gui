@@ -348,6 +348,45 @@ test("lowers ULINE position and length with and without AT", async () => {
   assert.deepEqual(ulines, ["position = 1 length = 40", "position = 5 length = 10", "position = 3", "length = 20", ""]);
 });
 
+test("keeps the event signature of a static event handler and binds owner and session on SET HANDLER", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zevt.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_events DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS handle_toolbar",
+      "                FOR EVENT toolbar OF cl_gui_alv_grid",
+      "      IMPORTING e_object e_interactive.",
+      "    CLASS-METHODS add IMPORTING iv_value TYPE i.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD handle_toolbar.",
+      "    add( 1 ).",
+      "    MESSAGE 'toolbar' TYPE 'S'.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  SET HANDLER lcl_events=>handle_toolbar FOR go_grid.",
+    ].join("\n"),
+    filename: "zevt.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const helper = result.helperSources.find((item) => item.className === "ZCL_EVT_H1").source;
+  assert.match(helper, /CLASS-METHODS handle_toolbar FOR EVENT toolbar OF cl_gui_alv_grid IMPORTING e_object e_interactive\./);
+  assert.match(helper, /CLASS-DATA go_owner TYPE REF TO zcl_evt\./);
+  assert.match(helper, /CLASS-DATA go_session TYPE REF TO zif_gg_session_v1\./);
+  // Other static methods keep the bridge parameters, and calls to them pass the stored pair.
+  assert.match(helper, /CLASS-METHODS add IMPORTING iv_value TYPE i io_owner TYPE REF TO zcl_evt io_session TYPE REF TO zif_gg_session_v1\./);
+  assert.match(helper, /^\s*add\( io_owner = go_owner io_session = go_session IV_VALUE = 1 \)\./m);
+  assert.match(helper, /go_session->message\(/);
+  assert.match(result.classSource, /zcl_evt_h1=>go_owner = me\.\s+zcl_evt_h1=>go_session = io_session\.\s+SET HANDLER zcl_evt_h1=>handle_toolbar FOR go_grid\./);
+});
+
 test("accepts LOOP TRANSPORTING NO FIELDS and REFERENCE INTO without a work area", async () => {
   const result = await convertProgram({
     source: [
