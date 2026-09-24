@@ -34,14 +34,7 @@ async function convertExample(exampleRoot, targetFolder) {
     libs: [],
     generatedFolder: targetFolder,
   };
-  // Manifests are mostly source spans; keeping them out of output/ leaves the
-  // generated classes readable, and the classes are what an example is about.
-  const manifestFolder = await fs.mkdtemp(path.join(os.tmpdir(), "ggconv-example-manifests-"));
-  try {
-    return await convertConfiguredPrograms({ config, outputFolder: targetFolder, manifestFolder, overrides: { mode: "partial" } });
-  } finally {
-    await fs.rm(manifestFolder, { recursive: true, force: true });
-  }
+  return convertConfiguredPrograms({ config, outputFolder: targetFolder, overrides: { mode: "partial" } });
 }
 
 const examples = (await fs.readdir(examplesRoot, { withFileTypes: true }))

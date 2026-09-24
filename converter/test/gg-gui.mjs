@@ -17,7 +17,6 @@ const checkoutRoot = path.join(validationRoot, "repository");
 // converter.output_folder in the configuration written below; the harness
 // asserts the converter reads it back as this folder rather than assume it.
 const generatedRoot = path.join(validationRoot, "generated");
-const manifestsRoot = path.join(validationRoot, "manifests");
 const outputRoot = path.join(validationRoot, "output");
 const screenshotsRoot = path.join(validationRoot, "screenshots");
 const diffRoot = path.join(validationRoot, "diffs");
@@ -1319,10 +1318,8 @@ const strayPrograms = reportPrograms
   .map((program) => program.relativePath);
 assert.deepEqual(strayPrograms, [], `${transpileConfigPath} selects programs outside the gg-gui checkout`);
 // The converter clears its own generated folder when it writes.
-await fs.rm(manifestsRoot, {recursive: true, force: true});
 await fs.rm(outputRoot, {recursive: true, force: true});
 await fs.rm(screenshotsRoot, {recursive: true, force: true});
-await fs.mkdir(manifestsRoot, {recursive: true});
 await fs.mkdir(screenshotsRoot, {recursive: true});
 
 const results = [];
@@ -1336,7 +1333,6 @@ await convertConfiguredPrograms({
   config: transpileConfig,
   programs: reportPrograms,
   fallbackStrategy: "skeleton",
-  manifestFolder: manifestsRoot,
   overrides: {
     mode: "partial",
     className: generatedClassName,

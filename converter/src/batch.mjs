@@ -64,13 +64,11 @@ export async function convertConfiguredPrograms({
   clear = true,
   outputFolder,
   outputFile,
-  manifestFolder,
   onResult,
   converter = convertProgram,
 } = {}) {
   const discovered = programs ?? await discoverPrograms(config);
   const targetFolder = outputFolder ? path.resolve(outputFolder) : config.generatedFolder;
-  const targetManifestFolder = manifestFolder ? path.resolve(manifestFolder) : targetFolder;
 
   if (outputFile && discovered.length > 1) {
     return {
@@ -109,7 +107,6 @@ export async function convertConfiguredPrograms({
       await fs.rm(targetFolder, { recursive: true, force: true });
     }
     await fs.mkdir(outputFile ? path.dirname(path.resolve(outputFile)) : targetFolder, { recursive: true });
-    if (targetManifestFolder !== targetFolder) await fs.mkdir(targetManifestFolder, { recursive: true });
     for (const { result } of converted) {
       if (!result.classSource) continue;
       const targetClass = result.manifest?.targetClass ?? result.reportIR?.targetClassName;
@@ -123,10 +120,6 @@ export async function convertConfiguredPrograms({
           helper.source,
         );
       }
-      const manifestFile = outputFile
-        ? `${classFile}.manifest.json`
-        : path.join(targetManifestFolder, `${String(targetClass).toLowerCase()}.manifest.json`);
-      await writeAtomically(manifestFile, `${JSON.stringify(result.manifest, null, 2)}\n`);
     }
   }
 
