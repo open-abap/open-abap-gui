@@ -150,11 +150,15 @@ adapter names used by a conversion.
 Lowering is a fixed set of rules for the statements that need rewriting
 (`LOWERING_RULES` in `src/passes/lower-statements.mjs`). Every other statement
 is carried over as written, with the usual renames, and produces no diagnostic.
-Diagnostics are reserved for a statement a rule exists for but cannot handle in
-that form, and for a statement abaplint cannot parse (`GGCONV-E201`). They use
-operation-family codes instead of the broad `GGCONV-E501` bucket: `E513`
-function-module adapters, `E514` frontend operations, `E515` dynamic types or
-unsafe field-symbol operations, and `E516` other unsupported forms.
+This includes function modules without a compatibility adapter, `FREE`,
+dynamic `CREATE DATA`, dynamic Open SQL, and `PERFORM ... IN PROGRAM`, which
+are all valid inside a method. Diagnostics are reserved for a statement a rule
+exists for but cannot handle in that form (a `LOOP AT` over a table with a
+header line, a dynamic `PERFORM (name)`, an unproven field-symbol `ASSIGN`,
+unrepresented `WRITE` formatting) and for a statement abaplint cannot parse
+(`GGCONV-E201`). They use operation-family codes instead of the broad
+`GGCONV-E501` bucket, such as `E515` for unsafe field-symbol operations and
+`E516` for other unsupported forms.
 
 `CREATE OBJECT`, method-call statements, `CALL METHOD` (including dynamic
 forms), and `SET HANDLER` are carried over as written. The only rewrite is for

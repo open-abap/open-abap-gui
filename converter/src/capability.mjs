@@ -1,8 +1,7 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, controlObjectTypes, convertibleFreeChainKeys, dynamicWriteOperand, freeChainKey, isConvertibleControlStatement, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
-import { compatibilityAdapter } from "./function-modules.mjs";
+import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
   controlConstruction: "GGCONV-E510",
@@ -79,23 +78,9 @@ function supportedClassicWriteFormat(text) {
   return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
-function isContextMenuStatement(ir, statement) {
-  return (ir.routines ?? []).some((routine) =>
-    /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""))
-    && (routine.statements ?? []).some((item) => item === statement
-      || (item.filename === statement.filename
-        && item.span?.start?.line === statement.span?.start?.line
-        && item.span?.start?.column === statement.span?.start?.column)));
-}
-
 export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   const diagnostics = [];
   const interfaces = new Set(ir.interfaces);
-  const convertibleObjectTypes = controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
-    parameters: (ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),
-    statements,
-  });
-  const convertibleFreeChains = convertibleFreeChainKeys(statements, convertibleObjectTypes);
   for (const continuation of ir.continuations ?? []) {
     const unsafeContext = (continuation.controlStack ?? []).find((item) => ["Do", "Loop", "Try", "While"].includes(item.kind));
     if (unsafeContext) {
@@ -118,36 +103,11 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "dynamic or unproven ASSIGN cannot be lowered safely", "Use a method-local elementary field symbol with a static ASSIGN target, or convert it manually.", "GGCONV-E501");
       continue;
     }
-    if (statement.kind === "Free") {
-      const supportedDynamicReference = ir.dynamicAlv
-        && new RegExp(`\\b${ir.dynamicAlv.referenceMember}\\b`, "i").test(statement.text);
-      if (!supportedDynamicReference && !convertibleFreeChains.has(freeChainKey(statement))) {
-        addStatementDiagnostic(diagnostics, statement, "FREE is only lowered for the supported dynamic-ALV reference pattern", "Use CLEAR for data owned by the generated class or provide a dedicated FREE lowering rule.", "GGCONV-E516");
-      }
-      continue;
-    }
-    if (statement.kind === "CreateData" && /\b(?:TYPE|LIKE)\s*\(/i.test(statement.text)) {
-      addStatementDiagnostic(diagnostics, statement, "dynamic CREATE DATA type cannot be resolved safely", "Use a statically named TYPE or LIKE target, or provide a typed dynamic-data lowering rule.", "GGCONV-E515");
-      continue;
-    }
-    if (OPEN_SQL_STATEMENTS.has(statement.kind) && !isStaticOpenSql(statement)) {
-      addStatementDiagnostic(diagnostics, statement, "dynamic Open SQL cannot be preserved safely inside the generated method", "Use a statically named table and fields or provide a dedicated data-access lowering rule.", "GGCONV-E501");
-      continue;
-    }
     if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
-    const supportedSpecial = isConvertibleControlStatement(statement, convertibleObjectTypes)
-      || statement.kind === "Free" && convertibleFreeChains.has(freeChainKey(statement))
-      || (statement.kind === "CallFunction"
-      && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text)))
-      || isContextMenuStatement(ir, statement);
-    if (statement.kind === "CallFunction" && !supportedSpecial) {
-      addStatementDiagnostic(diagnostics, statement, "CALL FUNCTION is not supported by the generated report method", "Use a supported scaffold operation or provide a dedicated function-module adapter.", "GGCONV-E501");
-      continue;
-    }
-    if (statement.kind === "Perform" && /\bPERFORM\s+\(|\bIN\s+PROGRAM\b/i.test(statement.text)) {
-      addStatementDiagnostic(diagnostics, statement, "dynamic or external PERFORM cannot be lowered safely", "Convert the routine to a local FORM or provide a manual method mapping.", "GGCONV-E401");
+    if (statement.kind === "Perform" && /\bPERFORM\s+\(/i.test(statement.text)) {
+      addStatementDiagnostic(diagnostics, statement, "dynamic PERFORM names a FORM that became a method", "Call the generated method directly or provide a manual method mapping.", "GGCONV-E401");
       continue;
     }
     if (statement.kind === "Write" && !supportedClassicWriteFormat(statement.text)) {

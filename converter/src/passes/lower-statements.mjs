@@ -267,24 +267,14 @@ export const LOWERING_RULES = new Map([
   ["Submit", { kind: "navigation-submit" }], ["CallTransaction", { kind: "navigation-call-transaction" }],
   ["SuppressDialog", { kind: "dialog-suppress" }], ["SetParameter", { kind: "compatibility-parameter-set" }],
   ["GetParameter", { kind: "compatibility-parameter-get" }], ["AuthorityCheck", { kind: "compatibility-authority-check" }],
-  ["Append", { kind: "internal-table-append" }], ["Collect", { kind: "internal-table-collect" }],
-  ["InsertInternal", { kind: "internal-table-insert" }], ["DeleteInternal", { kind: "internal-table-delete" }],
-  ["ModifyInternal", { kind: "internal-table-modify" }], ["ReadTable", { kind: "internal-table-read" }],
-  ["Select", { kind: "open-sql-select" }], ["SelectLoop", { kind: "open-sql-select-loop" }], ["EndSelect", { kind: "open-sql-end-select" }],
-  ["InsertDatabase", { kind: "open-sql-insert" }], ["UpdateDatabase", { kind: "open-sql-update" }],
-  ["DeleteDatabase", { kind: "open-sql-delete" }], ["ModifyDatabase", { kind: "open-sql-modify" }],
   ["CallFunction", { kind: "compatibility-function-module" }],
   ["Export", { kind: "session-abap-memory-export" }], ["Import", { kind: "session-abap-memory-import" }],
   ["FreeMemory", { kind: "session-abap-memory-free" }],
   ["TypePools", { kind: "type-pool-resolution" }],
-  ["Raise", { kind: "exception-raise" }], ["Continue", { kind: "loop-continue" }],
-  ["Unassign", { kind: "field-symbol-unassign" }], ["Sort", { kind: "internal-table-sort" }],
-  ["CreateData", { kind: "data-reference-create" }], ["GetReference", { kind: "data-reference-get" }],
-  ["Exit", { kind: "block-exit" }],
   ["Leave", { kind: "navigation-leave" }], ["SetScreen", { kind: "dialog-set-screen" }], ["SetCursor", { kind: "dialog-set-cursor" }], ["LeaveScreen", { kind: "dialog-leave-screen" }],
   ["LeaveToScreen", { kind: "dialog-leave-to-screen" }], ["GetCursor", { kind: "list-cursor" }], ["ReadLine", { kind: "list-read-line" }],
   ["ModifyLine", { kind: "list-modify-line" }], ["Hide", { kind: "list-hide" }], ["Perform", { kind: "routine-call" }],
-  ["Return", { kind: "control-return" }], ["Translate", { kind: "statement" }], ["LoopAtScreen", { kind: "selection-screen-state-loop" }],
+  ["LoopAtScreen", { kind: "selection-screen-state-loop" }],
   ["ModifyScreen", { kind: "selection-screen-state-mutation" }], ["Move", { kind: "assignment" }], ["If", { kind: "control-if" }],
   ["Else", { kind: "control-else" }], ["ElseIf", { kind: "control-elseif" }], ["EndIf", { kind: "control-end-if" }], ["Do", { kind: "control-do" }],
   ["EndDo", { kind: "control-end-do" }], ["Case", { kind: "control-case" }], ["When", { kind: "control-when" }],
@@ -294,10 +284,9 @@ export const LOWERING_RULES = new Map([
   ["Static", { kind: "declaration" }], ["Controls", { kind: "declaration" }], ["Assign", { kind: "field-symbol-assign" }], ["FieldSymbol", { kind: "field-symbol-declaration" }], ["Comment", { kind: "comment" }], ["Empty", { kind: "empty" }],
 ]);
 
-// Statements known to be valid unchanged inside a generated method; the
-// manifest marks them methodSafe. Local-class receivers of object creation,
-// method calls and event registration are rewritten before this list is
-// consulted, and every other class is the target system's.
+// Statements known to be valid unchanged inside a generated method, which the
+// manifest marks methodSafe. They have no lowering rule and are carried over
+// as written; only local-class receivers are rewritten.
 export const METHOD_SAFE_STATEMENTS = new Set([
   "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
   "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
@@ -305,18 +294,6 @@ export const METHOD_SAFE_STATEMENTS = new Set([
   "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
   "CreateObject", "Call", "CallMethod", "SetHandler",
 ]);
-
-export const OPEN_SQL_STATEMENTS = new Set([
-  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
-]);
-
-export function isStaticOpenSql(statement) {
-  if (!OPEN_SQL_STATEMENTS.has(statement.kind)) return true;
-  const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
-  return !/\b(?:FROM|INTO|UPDATE|DELETE|MODIFY|INSERT)\s*\(/i.test(body)
-    && !/\b(?:SELECT|INSERT|UPDATE|DELETE|MODIFY)\s+\(/i.test(body)
-    && !/\bEXEC\s+SQL\b/i.test(body);
-}
 
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
@@ -856,11 +833,6 @@ export function lowerStatement(statement, context) {
     return replaceOutsideStrings(lowered, safeReplacements);
   }
   if (isMethodSafeLoop(statement)) return replaceOutsideStrings(raw, safeReplacements);
-  if (METHOD_SAFE_STATEMENTS.has(statement.kind)) {
-    // abaplint splits a chain such as CLEAR: a, b. into one statement per
-    // element, each but the last ending in the chain's comma.
-    return replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
-  }
   if (statement.kind === "Write") {
     const iconAssignment = /^WRITE\s+([A-Z][A-Z0-9_]*)\s+AS\s+ICON(?:\s+QUICKINFO\s+.+?)?\s+TO\s+([A-Z][A-Z0-9_]*)\.?$/i.exec(raw);
     if (iconAssignment) return `${iconAssignment[2].toLowerCase()} = '@ICON:${iconAssignment[1].toLowerCase().replace(/^icon_/, "")}'.`;
@@ -1062,13 +1034,15 @@ export function lowerStatement(statement, context) {
     if (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(raw) && target) {
       return `${target} = io_session->get_navigation( )->get_list_from_memory( ).`;
     }
+    // Function modules with a compatibility adapter become session calls; any
+    // other function module is the target system's and is called as written.
     return lowerCompatibilityFunction(replaceOutsideStrings(raw, [
       ...context.replacements,
       ["sy-repid", context.event === "dynpro"
         ? "''"
         : "io_session->get_context( )-program-program"],
       ["sy-dynnr", "''"],
-    ]));
+    ])) ?? replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
   }
   if (statement.kind === "Leave") {
     if (/LIST-PROCESSING/i.test(raw)) {
@@ -1142,7 +1116,10 @@ export function lowerStatement(statement, context) {
   }
   if (statement.kind === "Hide") return "";
   if (statement.kind === "Perform") {
-    if (/\bPERFORM\s+\(|\bIN\s+PROGRAM\b/i.test(raw)) return "* TODO GGCONV-E401: dynamic or external PERFORM requires a manual method mapping.";
+    // A dynamic PERFORM names a FORM that became a method; a FORM in another
+    // program is not converted and is still called as written.
+    if (/\bPERFORM\s+\(/i.test(raw)) return "* TODO GGCONV-E401: dynamic PERFORM requires a manual method mapping.";
+    if (/\bIN\s+PROGRAM\b/i.test(raw)) return replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
     const name = /^PERFORM\s+([^\s.]+)/i.exec(raw)?.[1];
     const routine = context.routines?.find((item) => item.name === name?.toUpperCase());
     const receiver = context.ownerPrefix ?? "";
@@ -1183,8 +1160,6 @@ export function lowerStatement(statement, context) {
     return `CLEAR ${context.dynamicAlv.referenceMember.toLowerCase()}.`;
   }
   if (["Export", "Import", "FreeMemory"].includes(statement.kind)) return memoryCallLines(statement, context).join("\n");
-  if (statement.kind === "Return") return "RETURN.";
-  if (statement.kind === "Translate") return replaceOutsideStrings(raw, context.replacements);
   if (statement.kind === "Include") return "* INCLUDE expanded by converter.";
   if (statement.kind === "TypePools") return "";
   if (statement.kind === "Controls") return "* CONTROLS declaration represented by dynpro metadata.";

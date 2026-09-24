@@ -149,7 +149,7 @@ test("strict mode reports an unsupported program kind without emitting", async (
 });
 
 test("partial mode marks unsupported statements instead of dropping them", async () => {
-  const result = await convertProgram({ source: "REPORT zpartial.\nCALL FUNCTION 'X'.\n", filename: "zpartial.prog.abap", mode: "partial" });
+  const result = await convertProgram({ source: "REPORT zpartial.\nPERFORM (lv_form).\n", filename: "zpartial.prog.abap", mode: "partial" });
   assert.equal(result.supported, false);
   assert.match(result.classSource, /TODO GGCONV/);
 });
@@ -919,7 +919,7 @@ test("uses explicit dynpro metadata for module-pool conversion", async () => {
 
 test("partial skeleton strategy keeps runnable content for optional gaps", async () => {
   const result = await convertProgram({
-    source: "REPORT zpartial_content.\nCALL FUNCTION 'UNKNOWN_OPTIONAL'.\nWRITE 'entry'.\n",
+    source: "REPORT zpartial_content.\nPERFORM (lv_form).\nWRITE 'entry'.\n",
     filename: "zpartial_content.prog.abap",
     mode: "partial",
     partialStrategy: "skeleton",
@@ -928,7 +928,7 @@ test("partial skeleton strategy keeps runnable content for optional gaps", async
   assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\./);
   assert.match(result.classSource, /Application content is available/);
   assert.doesNotMatch(result.classSource, /Partial conversion preview/);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E513"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E401"));
 });
 
 test("loads report-owned dynpro XML and every matching screen flow file", async () => {
@@ -1287,7 +1287,7 @@ test("does not duplicate WRITE operands or rewrite short-circuit conditions", as
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
-test("preserves static Open SQL and diagnoses dynamic database targets", async () => {
+test("preserves static and dynamic Open SQL as written", async () => {
   const result = await convertProgram({
     source: [
       "REPORT zsql.",
@@ -1310,10 +1310,9 @@ test("preserves static Open SQL and diagnoses dynamic database targets", async (
   const dynamic = await convertProgram({
     source: "REPORT zdynamic_sql.\nSTART-OF-SELECTION.\nSELECT * FROM (lv_table) INTO TABLE @lt_rows.",
     filename: "zdynamic_sql.prog.abap",
-    mode: "partial",
   });
-  assert.equal(dynamic.supported, false);
-  assert.ok(dynamic.diagnostics.some((item) => item.code === "GGCONV-E516"));
+  assert.equal(dynamic.supported, true, JSON.stringify(dynamic.diagnostics));
+  assert.match(dynamic.classSource, /SELECT \* FROM \(lv_table\) INTO TABLE @lt_rows\./);
 });
 
 test("diagnoses report-only method legality gaps instead of claiming support", async () => {
@@ -1339,14 +1338,29 @@ test("diagnoses report-only method legality gaps instead of claiming support", a
   assert.doesNotMatch(implicitLoop.classSource, /^\s+ENDLOOP\.$/m);
   assert.ok(!implicitLoop.diagnostics.some((item) => item.code === "GGCONV-E202"));
 
-  const functionCall = await convertProgram({
-    source: "REPORT zfunction_call.\nCALL FUNCTION 'Z_UNSUPPORTED'.\n",
-    filename: "zfunction_call.prog.abap",
-    mode: "partial",
+});
+
+test("carries statements that are valid in a method over as written", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zas_written.",
+      "DATA lr_value TYPE REF TO data.",
+      "DATA lv_type TYPE string VALUE 'I'.",
+      "DATA gt_rows TYPE STANDARD TABLE OF i WITH EMPTY KEY.",
+      "START-OF-SELECTION.",
+      "  CALL FUNCTION 'Z_CUSTOM' EXPORTING iv_program = sy-repid.",
+      "  CREATE DATA lr_value TYPE (lv_type).",
+      "  FREE gt_rows.",
+      "  PERFORM external_form IN PROGRAM zother_program IF FOUND.",
+    ].join("\n"),
+    filename: "zas_written.prog.abap",
   });
-  assert.equal(functionCall.supported, false);
-  assert.ok(functionCall.diagnostics.some((item) => item.code === "GGCONV-E513" && item.construct.includes("CALL FUNCTION 'Z_UNSUPPORTED'")));
-  assert.match(functionCall.classSource, /TODO GGCONV-E501/);
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /CALL FUNCTION 'Z_CUSTOM' EXPORTING iv_program = io_session->get_context\( \)-program-program\./);
+  assert.match(result.classSource, /CREATE DATA lr_value TYPE \(lv_type\)\./);
+  assert.match(result.classSource, /FREE gt_rows\./);
+  assert.match(result.classSource, /PERFORM external_form IN PROGRAM zother_program IF FOUND\./);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
 test("lowers the finite gg-gui function-module families through typed adapters", async () => {
@@ -1604,8 +1618,8 @@ test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture",
 
 test("classifies former E501 gaps by actionable operation family", async () => {
   const cases = [
-    ["CALL FUNCTION 'Z_CUSTOM'.", ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter],
-    ["CREATE DATA lr_value TYPE (lv_type).", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],
+    ["ASSIGN (lv_name) TO <lv_any>.", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],
+    ["LOOP AT gt_values.\nENDLOOP.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement],
   ];
   for (const [statement, code] of cases) {
     const result = await convertProgram({
@@ -1730,14 +1744,16 @@ test("marks unsupported statements instead of silently dropping them", async () 
   const result = await convertProgram({
     source: [
       "REPORT zunsupported_marker.",
+      "DATA gt_values TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
       "START-OF-SELECTION.",
-      "CALL FUNCTION 'NOT_SUPPORTED'.",
+      "LOOP AT gt_values.",
+      "ENDLOOP.",
     ].join("\n"),
     filename: "zunsupported_marker.prog.abap",
     mode: "partial",
   });
   assert.equal(result.supported, false);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E513"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516"));
   assert.match(result.classSource, /TODO GGCONV-E501: unsupported/);
 });
 
