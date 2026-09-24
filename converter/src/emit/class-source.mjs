@@ -2034,15 +2034,15 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     "",
     "  PUBLIC SECTION.",
     "    INTERFACES zif_gg_report_v1.",
-    "    INTERFACES zif_gg_transaction_v1.",
+    ...(ir.transactionCode ? ["    INTERFACES zif_gg_transaction_v1."] : []),
     "",
     "ENDCLASS.",
     "",
     `CLASS ${className} IMPLEMENTATION.`,
     "",
-    method("zif_gg_transaction_v1~get_transaction", [
+    ...(ir.transactionCode ? [method("zif_gg_transaction_v1~get_transaction", [
       `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(ir.description)} ).`,
-    ]).toString(),
+    ]).toString()] : []),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
     "",
@@ -2052,9 +2052,10 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
 export function emitPartialApplication(ir, options, diagnostics) {
   const className = ir.targetClassName.toLowerCase();
   const hasScreenProvider = ir.programKind === "report" && (ir.screenMetadata?.screens?.length ?? 0) > 0;
-  const interfaceNames = ir.programKind === "module-pool"
+  const interfaceNames = (ir.programKind === "module-pool"
     ? ["zif_gg_dynpro_v1", "zif_gg_transaction_v1"]
-    : ["zif_gg_report_v1", "zif_gg_transaction_v1", ...(hasScreenProvider ? ["zif_gg_screen_provider_v1"] : [])];
+    : ["zif_gg_report_v1", "zif_gg_transaction_v1", ...(hasScreenProvider ? ["zif_gg_screen_provider_v1"] : [])])
+    .filter((name) => name !== "zif_gg_transaction_v1" || ir.transactionCode);
   const definition = [
     `CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC.`,
     "",
@@ -2110,7 +2111,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
   ]);
   return `${header({className: ir.targetClassName, ir, options})}${todos.join("\n")}${todos.length ? "\n" : ""}${[
     ...definition,
-    transaction.toString(),
+    ...(ir.transactionCode ? [transaction.toString()] : []),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
     "",

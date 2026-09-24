@@ -21,6 +21,7 @@ function addStatementDiagnostic(diagnostics, statement, message, suggestion, cod
   const resolvedCode = code === "GGCONV-E501" ? actionableDiagnosticCode(statement) : code;
   diagnostics.push(diagnostic({
     code: resolvedCode,
+    severity: resolvedCode.startsWith("GGCONV-W") ? "warning" : "error",
     filename: statement.filename,
     start: statement.span.start,
     end: statement.span.end,
@@ -63,7 +64,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     const unsafeContext = (continuation.controlStack ?? []).find((item) => ["Do", "Loop", "Try", "While"].includes(item.kind));
     if (unsafeContext) {
       const statement = statements.find((item) => item.filename === continuation.filename && item.span.start.line === continuation.span.start.line && item.span.start.column === continuation.span.start.column);
-      if (statement) addStatementDiagnostic(diagnostics, statement, `suspending navigation inside ${unsafeContext.kind.toUpperCase()} cannot be split safely yet`, "Move the suspension to an event boundary or provide an explicit continuation mapping.", "GGCONV-E402");
+      if (statement) addStatementDiagnostic(diagnostics, statement, `suspending navigation inside ${unsafeContext.kind.toUpperCase()} cannot be split safely yet`, "Move the suspension to an event boundary or provide an explicit continuation mapping.", "GGCONV-W402");
     }
   }
   for (const duplicate of ir.duplicateEvents ?? []) {

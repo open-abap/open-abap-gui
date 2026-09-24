@@ -276,7 +276,7 @@ test("takes the transaction code and text from a transaction that starts the pro
 
   const summary = await convertConfiguredPrograms({ config, write: false });
   assert.equal(summary.programs[0].transactionCode, "ZLONG_A");
-  assert.ok(!summary.programs[0].diagnostics.some((item) => item.code === "GGCONV-E105"));
+  assert.ok(!summary.programs[0].diagnostics.some((item) => item.code === "GGCONV-W105"));
 });
 
 test("batch conversion overwrites on a second run and clears stale classes", async () => {

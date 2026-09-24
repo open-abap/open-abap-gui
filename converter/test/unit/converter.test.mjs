@@ -174,7 +174,7 @@ test("partial conversion rejects empty generated dynpro module bodies", async ()
     source: [
       "PROGRAM zempty_dynpro_modules.",
       "MODULE pbo OUTPUT.",
-      "  CALL FUNCTION 'NOT_LOWERED'.",
+      "  PERFORM (lv_form).",
       "ENDMODULE.",
       "MODULE pai INPUT.",
       "ENDMODULE.",
@@ -1039,6 +1039,20 @@ test("converts composite fixtures with nested includes, routines, and database a
   assert.match(database.classSource, /METHOD form_add_value/);
 });
 
+test("generates a class without the transaction interface when no transaction code is usable", async () => {
+  for (const input of [
+    { source: "REPORT zreport_name_over_twenty.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" },
+    { source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n", transactionCode: "not valid" },
+  ]) {
+    const result = await convertProgram({ ...input, filename: "zreport.prog.abap" });
+    assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+    assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W105", "warning"]]);
+    // An empty tcode would be registered with the transaction registry.
+    assert.doesNotMatch(result.classSource, /zif_gg_transaction_v1/);
+    assert.match(result.classSource, /INTERFACES zif_gg_report_v1\./);
+  }
+});
+
 test("validates explicit class and transaction names", async () => {
   const result = await convertProgram({
     source: "REPORT zvalid.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n",
@@ -1048,7 +1062,7 @@ test("validates explicit class and transaction names", async () => {
   });
   assert.equal(result.supported, false);
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E101"));
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E105"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-W105" && item.severity === "warning"));
 
   const collision = await convertProgram({
     source: "REPORT zvalid.\nWRITE 'ok'.\n",
@@ -1909,7 +1923,7 @@ test("splits nested conditional continuations and skips sibling branches", async
     filename: "znested.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-E402"), false);
+  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W402"), false);
   assert.match(result.classSource, /CALL SCREEN[\s\S]*END IF|call_screen[\s\S]*ENDIF\./i);
   const resume = result.classSource.match(/METHOD zif_gg_resumable_v1~resume\.[\s\S]*?ENDMETHOD\./)?.[0] ?? "";
   assert.match(resume, /after inner/);
@@ -1918,10 +1932,11 @@ test("splits nested conditional continuations and skips sibling branches", async
   assert.doesNotMatch(resume, /sibling branch/);
 });
 
-test("keeps loop and exception continuations explicitly unsupported", async () => {
+test("warns about continuations inside loops and exception blocks", async () => {
   const loop = await convertProgram({ source: "REPORT zloop.\nSTART-OF-SELECTION.\nDO 2 TIMES.\n  CALL SCREEN 100.\nENDDO.\n", filename: "zloop.prog.abap" });
-  assert.equal(loop.supported, false);
-  assert.ok(loop.diagnostics.some((item) => item.code === "GGCONV-E402"));
+  assert.equal(loop.supported, true, JSON.stringify(loop.diagnostics));
+  assert.deepEqual(loop.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W402", "warning"]]);
+  assert.match(loop.classSource, /DO 2 TIMES\.\s+io_session->get_dialog\( \)->call_screen\(/);
 });
 
 test("marks unsupported statements instead of silently dropping them", async () => {

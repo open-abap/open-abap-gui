@@ -15,7 +15,7 @@ test("regression fixture keeps nested continuation branch context", async () => 
     transactionCode: "ZREGNEST",
   });
   assert.equal(result.supported, true);
-  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-E402"), false);
+  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W402"), false);
   assert.match(result.classSource, /after conditional/);
   assert.doesNotMatch(result.classSource, /sibling branch/);
 });
