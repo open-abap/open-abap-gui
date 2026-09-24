@@ -601,3 +601,23 @@ export async function loadDynproMetadata({
 }
 
 export { parseFlowLogic };
+
+/**
+ * Read an abapGit TRAN object (`<tcode>.tran.xml`): the transaction code, the
+ * program it starts, and its short text. Returns undefined for a transaction
+ * that starts no program, such as a parameter transaction.
+ */
+export function parseTransactionXml(xml) {
+  const values = firstDescendant(parseXml(xml), "values");
+  const tstc = leafRecord(child(values, "TSTC"));
+  const transactionCode = recordValue(tstc, "TCODE");
+  const program = recordValue(tstc, "PGMNA");
+  if (!transactionCode || !program) return undefined;
+  const texts = children(values, "TSTCT").map(leafRecord);
+  const text = texts.find((item) => String(item.SPRSL ?? "").toUpperCase() === "E") ?? texts[0];
+  return {
+    transactionCode: transactionCode.toUpperCase(),
+    program: program.toUpperCase(),
+    ...(recordValue(text ?? {}, "TTEXT") ? { description: recordValue(text, "TTEXT") } : {}),
+  };
+}

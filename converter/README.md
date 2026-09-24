@@ -78,6 +78,12 @@ resolves them, so the same file selects the same sources for both tools.
 Filters are matched against the absolute path for the same reason, which means
 a pattern cannot be anchored with `^`.
 
+A report's transaction code comes from `--tcode` when given, otherwise from an
+abapGit transaction object (`<tcode>.tran.xml`) in the input folders whose
+program is the report, otherwise from the report name. The transaction's short
+text becomes the default description. When several transactions start the same
+report, the alphabetically first transaction code is used.
+
 The generated folder is derived, not configurable. `output_folder: "output"`
 puts the classes in `output_converter`; a nested `build/x/output` puts them in
 `build/x/output_converter`. Add that folder to `input_folder` or abap_transpile

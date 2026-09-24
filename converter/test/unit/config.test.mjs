@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { conversionPlan, discoverPrograms, loadTranspileConfig } from "../../src/config.mjs";
+import { conversionPlan, discoverPrograms, discoverTransactions, loadTranspileConfig } from "../../src/config.mjs";
 import { convertConfiguredPrograms } from "../../src/batch.mjs";
 import { converterRoot } from "../repository.mjs";
 
@@ -222,6 +222,48 @@ test("conversion plan derives include paths and names, and lets overrides win", 
   assert.equal(overridden.className, "ZCL_CV_ZONE");
   assert.equal(overridden.transactionCode, "ZTX");
   assert.equal(overridden.mode, "partial");
+});
+
+test("takes the transaction code and text from a transaction that starts the program", async () => {
+  const tran = (tcode, program, text) => [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<abapGit version="v1.0.0" serializer="LCL_OBJECT_TRAN" serializer_version="v1.0.0">',
+    ' <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">',
+    "  <asx:values>",
+    `   <TSTC><TCODE>${tcode}</TCODE>${program ? `<PGMNA>${program}</PGMNA>` : ""}</TSTC>`,
+    `   <TSTCT><SPRSL>E</SPRSL><TCODE>${tcode}</TCODE><TTEXT>${text}</TTEXT></TSTCT>`,
+    "  </asx:values>",
+    " </asx:abap>",
+    "</abapGit>",
+  ].join("\n");
+  const project = await workspace({
+    "src/zreport_with_a_very_long_name.prog.abap": REPORT("zreport_with_a_very_long_name"),
+    "src/zlong_b.tran.xml": tran("ZLONG_B", "ZREPORT_WITH_A_VERY_LONG_NAME", "Second"),
+    "src/zlong_a.tran.xml": tran("ZLONG_A", "ZREPORT_WITH_A_VERY_LONG_NAME", "First"),
+    "src/zparam.tran.xml": tran("ZPARAM", undefined, "Parameter transaction"),
+    "src/zbroken.tran.xml": "<abapGit>",
+  }, BASE);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  const transactions = await discoverTransactions(config);
+  assert.deepEqual([...transactions.keys()], ["ZREPORT_WITH_A_VERY_LONG_NAME"]);
+  assert.deepEqual(transactions.get("ZREPORT_WITH_A_VERY_LONG_NAME"), {
+    transactionCode: "ZLONG_A",
+    program: "ZREPORT_WITH_A_VERY_LONG_NAME",
+    description: "First",
+  });
+
+  const [program] = await discoverPrograms(config);
+  const derived = conversionPlan(config, program, { transactions });
+  assert.equal(derived.transactionCode, "ZLONG_A");
+  assert.equal(derived.description, "First");
+  assert.ok(!("transactions" in derived));
+  const overridden = conversionPlan(config, program, { transactions, transactionCode: "ZOWN", description: "Own" });
+  assert.equal(overridden.transactionCode, "ZOWN");
+  assert.equal(overridden.description, "Own");
+
+  const summary = await convertConfiguredPrograms({ config, write: false });
+  assert.equal(summary.programs[0].transactionCode, "ZLONG_A");
+  assert.ok(!summary.programs[0].diagnostics.some((item) => item.code === "GGCONV-E105"));
 });
 
 test("batch conversion overwrites on a second run and clears stale classes", async () => {

@@ -1,12 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { diagnostic } from "./diagnostics.mjs";
+import { parseTransactionXml } from "./dynpro-metadata.mjs";
 
 export const DEFAULT_CONFIG_FILENAME = "abap_transpile.json";
 export const GENERATED_FOLDER_SUFFIX = "_converter";
 
 const PROGRAM_SUFFIX = ".prog.abap";
 const CLASS_SUFFIX = ".clas.abap";
+const TRANSACTION_SUFFIX = ".tran.xml";
 
 // The program name has to be known before conversion so a caller-supplied
 // className(programName) callback can run, so it is read with a regexp here
@@ -320,6 +322,37 @@ export async function discoverGlobalClassNames(config) {
   return [...names].sort();
 }
 
+/**
+ * Map each program to the transaction that starts it, read from the
+ * `.tran.xml` files the input folders and filters select. A program started by
+ * several transactions gets the alphabetically first one, so the choice does
+ * not depend on directory order. Unreadable files are skipped: a transaction
+ * only supplies a default the converter could otherwise derive.
+ */
+export async function discoverTransactions(config) {
+  const found = new Map();
+  const visited = new Set();
+  for (const folder of config.inputFolders ?? []) {
+    await collectProgramFiles(folder, config.generatedFolder, found, visited, TRANSACTION_SUFFIX);
+  }
+  const byProgram = new Map();
+  for (const filename of [...found.keys()].sort((left, right) => left.localeCompare(right))) {
+    const candidate = posix(filename);
+    if (config.inputFilters?.length && !config.inputFilters.some((item) => item.test(candidate))) continue;
+    if (config.excludeFilters?.some((item) => item.test(candidate))) continue;
+    let transaction;
+    try {
+      transaction = parseTransactionXml(await fs.readFile(filename, "utf8"));
+    } catch {
+      continue;
+    }
+    if (!transaction) continue;
+    const current = byProgram.get(transaction.program);
+    if (!current || transaction.transactionCode < current.transactionCode) byProgram.set(transaction.program, transaction);
+  }
+  return byProgram;
+}
+
 export function classNameFromFilename(filename) {
   return path.basename(filename).slice(0, -CLASS_SUFFIX.length).replaceAll("#", "/").toUpperCase();
 }
@@ -379,8 +412,14 @@ export function conversionPlan(config, program, overrides = {}) {
     mode,
     partialStrategy,
     ddicTypes,
+    transactions,
     ...rest
   } = overrides;
+  // A transaction object that starts this program names its transaction code
+  // and short text, ahead of what the converter would derive from the name.
+  const transaction = transactions?.get(program.programName);
+  const explicitDescription = resolveOverride(description, program.programName);
+  const resolvedDescription = explicitDescription ?? transaction?.description;
   return {
     ...rest,
     // The filename is recorded in the generated class header and feeds the
@@ -395,8 +434,8 @@ export function conversionPlan(config, program, overrides = {}) {
     includePaths: [...config.inputFolders, ...(config.libraryFolders ?? [])],
     configPath: path.join(config.root, "abaplint.jsonc"),
     className: resolveOverride(className, program.programName),
-    transactionCode: resolveOverride(transactionCode, program.programName),
-    ...(description === undefined ? {} : { description: resolveOverride(description, program.programName) }),
+    transactionCode: resolveOverride(transactionCode, program.programName) ?? transaction?.transactionCode,
+    ...(resolvedDescription === undefined ? {} : { description: resolvedDescription }),
     mode: mode ?? "strict",
     ...(partialStrategy === undefined ? {} : { partialStrategy }),
     ...(ddicTypes === undefined ? {} : { ddicTypes }),
