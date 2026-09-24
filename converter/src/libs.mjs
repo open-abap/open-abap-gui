@@ -3,10 +3,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { classNameFromFilename } from "./config.mjs";
 
 const INCLUDE_SUFFIXES = [".prog.abap", ".incl.abap"];
-const CLASS_SUFFIX = ".clas.abap";
 
 function posix(value) {
   return String(value).replaceAll("\\", "/");
@@ -82,7 +80,6 @@ export function loadLibraries(config, { log = () => {} } = {}) {
     for (const directory of clones.splice(0)) fs.rmSync(directory, { recursive: true, force: true, maxRetries: 3 });
   };
   const folders = [];
-  const classNames = new Set();
   try {
     for (const lib of config.libs ?? []) {
       const folder = lib.folder === undefined ? undefined : path.join(config.root, lib.folder);
@@ -108,7 +105,6 @@ export function loadLibraries(config, { log = () => {} } = {}) {
         const lower = filename.toLowerCase();
         const parent = path.dirname(filename);
         if (INCLUDE_SUFFIXES.some((suffix) => lower.endsWith(suffix)) && !folders.includes(parent)) folders.push(parent);
-        if (lower.endsWith(CLASS_SUFFIX)) classNames.add(classNameFromFilename(filename));
       }
       log(`\t${count} files added from lib`);
     }
@@ -116,5 +112,5 @@ export function loadLibraries(config, { log = () => {} } = {}) {
     cleanup();
     throw error;
   }
-  return { folders: folders.sort(), classNames: [...classNames].sort(), cleanup };
+  return { folders: folders.sort(), cleanup };
 }

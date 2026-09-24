@@ -7,7 +7,6 @@ export const DEFAULT_CONFIG_FILENAME = "abap_transpile.json";
 export const GENERATED_FOLDER_SUFFIX = "_converter";
 
 const PROGRAM_SUFFIX = ".prog.abap";
-const CLASS_SUFFIX = ".clas.abap";
 const TRANSACTION_SUFFIX = ".tran.xml";
 
 // The program name has to be known before conversion so a caller-supplied
@@ -300,29 +299,6 @@ async function collectProgramFiles(directory, generatedFolder, found, visited, s
 }
 
 /**
- * Name every global class the transpiler compiles alongside the converted
- * programs: the `.clas.abap` files the input folders and filters select, plus
- * the classes the libs provide. A method call to one of them compiles unchanged
- * in the generated class. The generated folder is skipped, so the result does
- * not depend on the output of an earlier run.
- */
-export async function discoverGlobalClassNames(config) {
-  const found = new Map();
-  const visited = new Set();
-  for (const folder of config.inputFolders ?? []) {
-    await collectProgramFiles(folder, config.generatedFolder, found, visited, CLASS_SUFFIX);
-  }
-  const names = new Set(config.libraryClassNames ?? []);
-  for (const filename of found.keys()) {
-    const candidate = posix(filename);
-    if (config.inputFilters?.length && !config.inputFilters.some((item) => item.test(candidate))) continue;
-    if (config.excludeFilters?.some((item) => item.test(candidate))) continue;
-    names.add(classNameFromFilename(filename));
-  }
-  return [...names].sort();
-}
-
-/**
  * Map each program to the transaction that starts it, read from the
  * `.tran.xml` files the input folders and filters select. A program started by
  * several transactions gets the alphabetically first one, so the choice does
@@ -351,10 +327,6 @@ export async function discoverTransactions(config) {
     if (!current || transaction.transactionCode < current.transactionCode) byProgram.set(transaction.program, transaction);
   }
   return byProgram;
-}
-
-export function classNameFromFilename(filename) {
-  return path.basename(filename).slice(0, -CLASS_SUFFIX.length).replaceAll("#", "/").toUpperCase();
 }
 
 /**

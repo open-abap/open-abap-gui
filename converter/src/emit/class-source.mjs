@@ -1,5 +1,5 @@
 import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
-import { controlObjectTypes, globalObjectTypes, localHandlerEventClasses, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
+import { controlObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 
 const REPORT_METHODS = [
@@ -548,7 +548,6 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
     .flatMap((screen) => screen.elements.map((item) => ({ ...item, screen: screen.number })))
     .filter((item) => item.name && ["parameter", "select-option"].includes(item.kind))
     .map((item) => ({ name: item.name, ranges: item.kind === "select-option", screen: item.screen }));
-  const globalClassNames = new Set(ir.globalClassNames ?? []);
   const dynamicWriteTargets = [];
   const dynamicTargetNames = new Set();
   const dynamicCommentNames = (ir.selections ?? [])
@@ -639,15 +638,6 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
     localClassRenames: Object.fromEntries(Object.entries(ir.localClassRenames ?? {})
       .map(([name, value]) => [String(name).toUpperCase(), String(value).toLowerCase()])),
     controlObjectTypes: controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
-      parameters: [
-        ...(ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),
-        ...parameters,
-      ],
-      statements,
-    }),
-    globalClassNames,
-    handlerEvents: localHandlerEventClasses(ir.localClasses ?? []),
-    globalObjectTypes: globalObjectTypes(ir.declarations ?? [], globalClassNames, {
       parameters: [
         ...(ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),
         ...parameters,
@@ -1795,9 +1785,6 @@ function helperMethodContext(ir, localClass, localMethod) {
     ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]) => [name, String(value).toLowerCase()]),
   ];
   context.controlObjectTypes = controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
-    statements: localMethod?.statements ?? [],
-  });
-  context.globalObjectTypes = globalObjectTypes(ir.declarations ?? [], context.globalClassNames, {
     statements: localMethod?.statements ?? [],
   });
   context.isStaticMethod = isStaticMethod;

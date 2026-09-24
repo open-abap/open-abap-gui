@@ -446,7 +446,7 @@ test("still rewrites object creation for report-local classes", async () => {
   assert.match(result.classSource, /go_app->run\( \)\./);
 });
 
-test("carries event registrations on existing global classes over unchanged", async () => {
+test("carries event registrations over as written", async () => {
   const source = [
     "REPORT zglobalhandler.",
     "CLASS lcl_events DEFINITION.",
@@ -470,46 +470,16 @@ test("carries event registrations on existing global classes over unchanged", as
     "  SET HANDLER go_events->on_changed FOR ALL INSTANCES ACTIVATION abap_false.",
     "  SET HANDLER lcl_events=>on_created.",
     "  SET HANDLER go_logger->on_changed go_logger->on_deleted FOR ALL INSTANCES.",
+    "  SET HANDLER go_unknown->(lv_name) FOR go_anything.",
   ].join("\n");
-  const result = await convertProgram({ source, filename: "zglobalhandler.prog.abap", globalClassNames: ["ZCL_MODEL", "ZCL_LOGGER"] });
+  const result = await convertProgram({ source, filename: "zglobalhandler.prog.abap" });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR go_model\./);
   assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR ALL INSTANCES ACTIVATION abap_false\./);
   assert.match(result.classSource, /SET HANDLER zcl_globalhandler_h1=>on_created\./);
   assert.match(result.classSource, /SET HANDLER go_logger->on_changed go_logger->on_deleted FOR ALL INSTANCES\./);
-
-  const unknown = await convertProgram({ source, filename: "zglobalhandler.prog.abap", mode: "partial" });
-  assert.equal(unknown.diagnostics.filter((item) => item.code === "GGCONV-E512").length, 4);
+  assert.match(result.classSource, /SET HANDLER go_unknown->\(lv_name\) FOR go_anything\./);
 });
-
-test("keeps diagnosing event registrations that name no known global class", async () => {
-  const result = await convertProgram({
-    source: [
-      "REPORT zunknownhandler.",
-      "CLASS lcl_events DEFINITION.",
-      "  PUBLIC SECTION.",
-      "    METHODS on_other FOR EVENT changed OF zcl_unknown.",
-      "ENDCLASS.",
-      "CLASS lcl_events IMPLEMENTATION.",
-      "  METHOD on_other.",
-      "  ENDMETHOD.",
-      "ENDCLASS.",
-      "DATA go_other TYPE REF TO zcl_unknown.",
-      "DATA go_events TYPE REF TO lcl_events.",
-      "DATA go_logger TYPE REF TO zcl_logger.",
-      "START-OF-SELECTION.",
-      "  SET HANDLER go_events->on_other FOR go_other.",
-      "  SET HANDLER go_events->on_other FOR ALL INSTANCES.",
-      "  SET HANDLER go_logger->on_changed go_events->on_other FOR ALL INSTANCES.",
-    ].join("\n"),
-    filename: "zunknownhandler.prog.abap",
-    mode: "partial",
-    globalClassNames: ["ZCL_LOGGER"],
-  });
-  assert.equal(result.supported, false);
-  assert.equal(result.diagnostics.filter((item) => item.code === "GGCONV-E512").length, 3);
-});
-
 
 test("converts local FORM parameters to typed methods and PERFORM calls", async () => {
   const source = [
@@ -1597,7 +1567,6 @@ test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture",
 
 test("classifies former E501 gaps by actionable operation family", async () => {
   const cases = [
-    ["SET HANDLER go_events->on_click FOR go_control.", ACTIONABLE_DIAGNOSTIC_CODES.eventRegistration],
     ["CALL FUNCTION 'Z_CUSTOM'.", ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter],
     ["CREATE DATA lr_value TYPE (lv_type).", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],
   ];

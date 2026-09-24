@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { discoverGlobalClassNames, discoverPrograms, loadTranspileConfig } from "../../src/config.mjs";
+import { discoverPrograms, loadTranspileConfig } from "../../src/config.mjs";
 import { convertConfiguredPrograms } from "../../src/batch.mjs";
 import { loadLibraries } from "../../src/libs.mjs";
 
@@ -87,44 +87,6 @@ test("applies the lib files patterns and exclude_filter", async () => {
   );
   const libraries = loadLibraries(config);
   assert.deepEqual(libraries.folders, [path.join(config.root, "deps", "lib", "src", "sub")]);
-});
-
-test("lets the batch register handlers of global classes from the input folders and libs", async () => {
-  const CALLER = [
-    "REPORT zmain.",
-    "START-OF-SELECTION.",
-    "  SET HANDLER zcl_local_util=>on_event FOR ALL INSTANCES.",
-    "  SET HANDLER zcl_lib_util=>on_event FOR ALL INSTANCES.",
-    "  SET HANDLER /abc/cl_ns_util=>on_event FOR ALL INSTANCES.",
-    "  SET HANDLER zcl_filtered=>on_event FOR ALL INSTANCES.",
-    "  SET HANDLER zcl_old_output=>on_event FOR ALL INSTANCES.",
-  ].join("\n");
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "ggconv-libs-"));
-  await writeFiles(root, {
-    "src/zmain.prog.abap": CALLER,
-    "src/zcl_local_util.clas.abap": "",
-    "src/zcl_local_util.clas.testclasses.abap": "",
-    "src/skip/zcl_filtered.clas.abap": "",
-    "output_converter/zcl_old_output.clas.abap": "",
-    "deps/lib/src/zcl_lib_util.clas.abap": "",
-    "deps/lib/src/#abc#cl_ns_util.clas.abap": "",
-  });
-  const configPath = path.join(root, "abap_transpile.json");
-  await fs.writeFile(configPath, JSON.stringify({ ...BASE, exclude_filter: ["/skip/"], libs: [{ folder: "deps/lib" }] }), "utf8");
-  const config = await loadTranspileConfig(configPath, { cwd: root });
-  const libraries = loadLibraries(config);
-  assert.deepEqual(libraries.classNames, ["/ABC/CL_NS_UTIL", "ZCL_LIB_UTIL"]);
-  config.libraryClassNames = libraries.classNames;
-  assert.deepEqual(await discoverGlobalClassNames(config), ["/ABC/CL_NS_UTIL", "ZCL_LIB_UTIL", "ZCL_LOCAL_UTIL"]);
-
-  const summary = await convertConfiguredPrograms({ config, write: false, overrides: { mode: "partial" } });
-  const unresolved = summary.programs[0].diagnostics
-    .filter((item) => item.code === "GGCONV-E512")
-    .map((item) => item.construct);
-  assert.deepEqual(unresolved, [
-    "SET HANDLER zcl_filtered=>on_event FOR ALL INSTANCES.",
-    "SET HANDLER zcl_old_output=>on_event FOR ALL INSTANCES.",
-  ]);
 });
 
 test("reports a lib folder that does not exist and has no url", async () => {

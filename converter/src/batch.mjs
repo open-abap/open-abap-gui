@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "./api.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
-import { conversionPlan, discoverGlobalClassNames, discoverPrograms, discoverTransactions } from "./config.mjs";
+import { conversionPlan, discoverPrograms, discoverTransactions } from "./config.mjs";
 
 async function writeAtomically(filename, contents) {
   const temporary = `${filename}.tmp-${process.pid}`;
@@ -87,11 +87,10 @@ export async function convertConfiguredPrograms({
     };
   }
 
-  const globalClassNames = overrides.globalClassNames ?? await discoverGlobalClassNames(config);
   const transactions = overrides.transactions ?? await discoverTransactions(config);
   const converted = [];
   for (const program of discovered) {
-    const plan = conversionPlan(config, program, { ...overrides, globalClassNames, transactions });
+    const plan = conversionPlan(config, program, { ...overrides, transactions });
     const result = await runOne(converter, plan, fallbackStrategy);
     converted.push({ program, result });
     if (typeof onResult === "function") await onResult({ program, result });

@@ -88,7 +88,7 @@ CLASS zcl_example_unresolved IMPLEMENTATION.
     zcl_not_in_input=>run( ).
     CALL METHOD go_any->(gv_method).
     CALL METHOD zcl_not_in_input=>(gv_method).
-* TODO GGCONV-E501: unsupported SetHandler statement requires manual lowering.
+    SET HANDLER go_missing->on_event FOR go_any.
     lo_writer->write_field( VALUE #( text = 'done' placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

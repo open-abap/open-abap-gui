@@ -241,84 +241,6 @@ export function isConvertibleControlStatement(statement, objectTypes = {}) {
   return false;
 }
 
-const GLOBAL_TYPE_NAME = "(\\/[A-Z0-9_]+\\/[A-Z][A-Z0-9_]*|[A-Z][A-Z0-9_]*)";
-
-// Map each reference variable declared TYPE REF TO an existing global class to
-// that class. Only an explicit declaration or a NEW of a named class counts: the
-// type is never inferred from a variable name or a method's return value.
-export function globalObjectTypes(declarations = [], globalClassNames = new Set(), {parameters = [], statements = []} = {}) {
-  const result = {};
-  if (!globalClassNames.size) return result;
-  const record = (name, type) => {
-    const className = String(type ?? "").toUpperCase();
-    if (name && globalClassNames.has(className)) result[String(name).toUpperCase()] = className;
-  };
-  for (const declaration of declarations) {
-    for (const entry of declaration.entries ?? []) {
-      record(entry.name, new RegExp(`\\bTYPE\\s+REF\\s+TO\\s+${GLOBAL_TYPE_NAME}`, "i").exec(entry.definition ?? "")?.[1]);
-    }
-  }
-  for (const parameter of parameters ?? []) {
-    record(parameter.name, new RegExp(`\\bREF\\s+TO\\s+${GLOBAL_TYPE_NAME}`, "i").exec(parameter.type ?? "")?.[1]);
-  }
-  const declared = new RegExp(`\\b([A-Z][A-Z0-9_]*)\\s+TYPE\\s+REF\\s+TO\\s+${GLOBAL_TYPE_NAME}`, "gi");
-  const inline = new RegExp(`\\bDATA\\s*\\(\\s*([A-Z][A-Z0-9_]*)\\s*\\)\\s*=\\s*NEW\\s+${GLOBAL_TYPE_NAME}\\s*\\(`, "gi");
-  for (const statement of statements ?? []) {
-    const text = String(statement.text ?? "");
-    if (statement.kind === "Data") for (const match of text.matchAll(declared)) record(match[1], match[2]);
-    for (const match of text.matchAll(inline)) record(match[1], match[2]);
-  }
-  return result;
-}
-
-// For each local class, the class whose event each handler method declares
-// with FOR EVENT ... OF, keyed by upper-case class and method name.
-export function localHandlerEventClasses(localClasses = []) {
-  return Object.fromEntries((localClasses ?? []).map((localClass) => [
-    String(localClass.name ?? "").toUpperCase(),
-    Object.fromEntries((localClass.methods ?? []).flatMap((method) => {
-      // CLASS-METHODS definitions reach the IR without a name, so the name is
-      // read from the definition itself.
-      const definition = method.definition?.text ?? "";
-      const name = /^\s*(?:CLASS-)?METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(definition)?.[1] ?? method.name;
-      const eventClass = new RegExp(`\\bFOR\\s+EVENT\\s+[A-Z][A-Z0-9_]*\\s+OF\\s+${GLOBAL_TYPE_NAME}`, "i").exec(definition)?.[1];
-      return eventClass && name ? [[String(name).toUpperCase(), eventClass.toUpperCase()]] : [];
-    })),
-  ]));
-}
-
-// A handler is resolvable when it is a method of an existing global class, or a
-// local-class method whose FOR EVENT ... OF names an existing global class.
-// A bare method name refers to the enclosing class, which is not known here.
-function isGlobalEventHandler(handler, context) {
-  const match = /^(\/[A-Z0-9_]+\/[A-Z][A-Z0-9_]*|[A-Z][A-Z0-9_]*)(->|=>)([A-Z][A-Z0-9_]*)$/i.exec(handler);
-  if (!match) return false;
-  const owner = match[1].toUpperCase();
-  const method = match[3].toUpperCase();
-  const globalClassNames = context.globalClassNames ?? new Set();
-  if (match[2] === "->" && context.globalObjectTypes?.[owner]) return true;
-  if (match[2] === "=>" && globalClassNames.has(owner)) return true;
-  const localClass = match[2] === "=>"
-    ? owner
-    : /^LOCAL:(.+)$/.exec(String(context.controlObjectTypes?.[owner] ?? "").toUpperCase())?.[1];
-  return globalClassNames.has(context.handlerEvents?.[localClass]?.[method]);
-}
-
-// Return true for a SET HANDLER registered on an existing global class: FOR an
-// object declared TYPE REF TO one, or — FOR ALL INSTANCES and for static
-// events, where no object names the class — with every handler resolvable to
-// one. The statement then compiles unchanged inside the generated class.
-export function isGlobalSetHandler(statement, context = {}) {
-  if (statement?.kind !== "SetHandler" || !context.globalClassNames?.size) return false;
-  const text = String(statement.text ?? "").trim().replace(/\s*(->|=>)\s*/g, "$1");
-  const match = /^SET\s+HANDLER\s+(.+?)(?:\s+FOR\s+(ALL\s+INSTANCES|[A-Z][A-Z0-9_]*))?(?:\s+ACTIVATION\s+\S+)?\s*\.?$/i.exec(text);
-  if (!match) return false;
-  const target = match[2]?.toUpperCase();
-  if (target && !/^ALL\s+INSTANCES$/.test(target)) return Boolean(context.globalObjectTypes?.[target]);
-  const handlers = match[1].split(/\s+/).filter(Boolean);
-  return handlers.length > 0 && handlers.every((handler) => isGlobalEventHandler(handler, context));
-}
-
 function replaceListColorConstants(value) {
   let result = value;
   for (const [name, constant] of Object.entries(LIST_COLOR_CONSTANTS)) {
@@ -376,15 +298,16 @@ export const LOWERING_RULES = new Map([
 
 // Ordinary statements are preserved only through this allow-list. Classic
 // event-only syntax must get a diagnostic instead of being copied into a
-// generated method by a catch-all emitter. Object creation and method calls
-// are carried over as written: local-class receivers are rewritten above
-// before this list is consulted, and every other class is the target system's.
+// generated method by a catch-all emitter. Object creation, method calls and
+// event registration are carried over as written: local-class receivers are
+// rewritten above before this list is consulted, and every other class is the
+// target system's.
 export const METHOD_SAFE_STATEMENTS = new Set([
   "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
   "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
   "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
   "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
-  "CreateObject", "Call", "CallMethod",
+  "CreateObject", "Call", "CallMethod", "SetHandler",
 ]);
 
 export const OPEN_SQL_STATEMENTS = new Set([
@@ -936,7 +859,6 @@ export function lowerStatement(statement, context) {
     }
     return replaceOutsideStrings(lowered, safeReplacements);
   }
-  if (isGlobalSetHandler(statement, context)) return replaceOutsideStrings(raw, safeReplacements);
   if (isMethodSafeLoop(statement)) return replaceOutsideStrings(raw, safeReplacements);
   if (statement.kind === "Clear") {
     const body = stripPeriod(raw).replace(/^CLEAR\s*:?\s*/i, "");
