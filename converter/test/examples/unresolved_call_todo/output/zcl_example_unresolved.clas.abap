@@ -84,10 +84,10 @@ CLASS zcl_example_unresolved IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_UNRESOLVED' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-* TODO GGCONV-E501: unsupported Call statement requires manual lowering.
-* TODO GGCONV-E501: unsupported Call statement requires manual lowering.
-* TODO GGCONV-E501: unsupported Call statement requires manual lowering.
-* TODO GGCONV-E501: unsupported Call statement requires manual lowering.
+    go_missing->run( ).
+    zcl_not_in_input=>run( ).
+    CALL METHOD go_any->(gv_method).
+    CALL METHOD zcl_not_in_input=>(gv_method).
 * TODO GGCONV-E501: unsupported SetHandler statement requires manual lowering.
     lo_writer->write_field( VALUE #( text = 'done' placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.

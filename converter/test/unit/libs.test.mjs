@@ -89,15 +89,15 @@ test("applies the lib files patterns and exclude_filter", async () => {
   assert.deepEqual(libraries.folders, [path.join(config.root, "deps", "lib", "src", "sub")]);
 });
 
-test("lets the batch call global classes from the input folders and libs", async () => {
+test("lets the batch register handlers of global classes from the input folders and libs", async () => {
   const CALLER = [
     "REPORT zmain.",
     "START-OF-SELECTION.",
-    "  zcl_local_util=>run( ).",
-    "  zcl_lib_util=>run( ).",
-    "  /abc/cl_ns_util=>run( ).",
-    "  zcl_filtered=>run( ).",
-    "  zcl_old_output=>run( ).",
+    "  SET HANDLER zcl_local_util=>on_event FOR ALL INSTANCES.",
+    "  SET HANDLER zcl_lib_util=>on_event FOR ALL INSTANCES.",
+    "  SET HANDLER /abc/cl_ns_util=>on_event FOR ALL INSTANCES.",
+    "  SET HANDLER zcl_filtered=>on_event FOR ALL INSTANCES.",
+    "  SET HANDLER zcl_old_output=>on_event FOR ALL INSTANCES.",
   ].join("\n");
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "ggconv-libs-"));
   await writeFiles(root, {
@@ -119,9 +119,12 @@ test("lets the batch call global classes from the input folders and libs", async
 
   const summary = await convertConfiguredPrograms({ config, write: false, overrides: { mode: "partial" } });
   const unresolved = summary.programs[0].diagnostics
-    .filter((item) => item.code === "GGCONV-E511")
+    .filter((item) => item.code === "GGCONV-E512")
     .map((item) => item.construct);
-  assert.deepEqual(unresolved, ["zcl_filtered=>run( ).", "zcl_old_output=>run( )."]);
+  assert.deepEqual(unresolved, [
+    "SET HANDLER zcl_filtered=>on_event FOR ALL INSTANCES.",
+    "SET HANDLER zcl_old_output=>on_event FOR ALL INSTANCES.",
+  ]);
 });
 
 test("reports a lib folder that does not exist and has no url", async () => {

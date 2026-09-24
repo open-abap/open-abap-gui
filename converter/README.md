@@ -147,20 +147,20 @@ methods, `E512` event registration, `E513` function-module adapters, `E514`
 frontend operations, `E515` dynamic types or unsafe field-symbol operations,
 and `E516` unsupported statements.
 
-Method calls to an existing global class are carried over unchanged:
-`zcl_x=>meth( )`, `CALL METHOD zcl_x=>meth`, and `lo_x->meth( )` where
-`lo_x` is declared `TYPE REF TO zcl_x` or with `DATA(lo_x) = NEW zcl_x( )`.
-The batch CLI treats every `.clas.abap` that the configured input folders,
-filters, and libs select as existing; the generated folder is not scanned. Pass
-`globalClassNames` (or `existingClassNames`) to `convertProgram` directly. A
-call whose receiver cannot be resolved to one of these classes, or whose method
-name is dynamic, stays an `E511` diagnostic.
+`CREATE OBJECT`, method-call statements, and `CALL METHOD` (including dynamic
+forms) are carried over as written. The only rewrite is for report-local
+classes, which become generated helper classes: creating one adds the
+`io_owner`/`io_session` constructor arguments, and a static call to one is
+routed to the helper with the same arguments.
 
-`SET HANDLER` is carried over the same way when it registers `FOR` an object
+`SET HANDLER` is carried over unchanged when it registers `FOR` an object
 declared `TYPE REF TO` an existing global class. For `FOR ALL INSTANCES` and
 static events, every handler must be a method of an existing global class or a
 local-class method declared `FOR EVENT ... OF` one. Anything else stays an
-`E512` diagnostic.
+`E512` diagnostic. The batch CLI treats every `.clas.abap` that the configured
+input folders, filters, and libs select as existing; the generated folder is
+not scanned. Pass `globalClassNames` (or `existingClassNames`) to
+`convertProgram` directly.
 
 When a sibling `.prog.xml` is available, its `TPOOL` is applied automatically:
 selection text symbols resolve `TEXT-*` labels, while report-title entries

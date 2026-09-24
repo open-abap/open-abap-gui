@@ -390,35 +390,60 @@ test("diagnoses dynamic PERFORM instead of emitting a guessed call", async () =>
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E401"));
   assert.match(result.classSource, /TODO GGCONV-E401/);
 
-  const dynamicCall = await convertProgram({ source: "REPORT zdyncall.\nCALL METHOD (lv_method).\n", filename: "zdyncall.prog.abap", mode: "partial" });
-  assert.equal(dynamicCall.supported, false);
-  assert.ok(dynamicCall.diagnostics.some((item) => item.code === "GGCONV-E511"));
-  assert.match(dynamicCall.classSource, /TODO GGCONV-E501/);
 });
 
-test("carries method calls to existing global classes over unchanged", async () => {
-  const source = [
-    "REPORT zglobalcall.",
-    "DATA go_calc TYPE REF TO zcl_calc.",
-    "DATA gv_total TYPE i.",
-    "START-OF-SELECTION.",
-    "  zcl_calc=>reset( ).",
-    "  CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'.",
-    "  go_calc->add( 2 ).",
-    "  DATA(lo_other) = NEW zcl_calc( ).",
-    "  lo_other->add( 3 ).",
-    "  gv_total = go_calc->total( ).",
-  ].join("\n");
-  const result = await convertProgram({ source, filename: "zglobalcall.prog.abap", globalClassNames: ["zcl_calc"] });
+test("carries object creation and method calls over as written", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zcalls.",
+      "DATA go_calc TYPE REF TO zcl_calc.",
+      "DATA go_any TYPE REF TO object.",
+      "DATA gv_method TYPE string VALUE 'RUN'.",
+      "START-OF-SELECTION.",
+      "  CREATE OBJECT go_calc.",
+      "  CREATE OBJECT go_any TYPE zcl_calc EXPORTING iv_start = 1.",
+      "  zcl_calc=>reset( ).",
+      "  CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'.",
+      "  go_calc->add( 2 ).",
+      "  CALL METHOD go_any->(gv_method).",
+      "  CALL METHOD (gv_method).",
+      "  cl_gui_frontend_services=>clipboard_export( ).",
+    ].join("\n"),
+    filename: "zcalls.prog.abap",
+  });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /CREATE OBJECT go_calc\./);
+  assert.match(result.classSource, /CREATE OBJECT go_any TYPE zcl_calc EXPORTING iv_start = 1\./);
   assert.match(result.classSource, /zcl_calc=>reset\( \)\./);
   assert.match(result.classSource, /CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'\./);
   assert.match(result.classSource, /go_calc->add\( 2 \)\./);
-  assert.match(result.classSource, /lo_other->add\( 3 \)\./);
+  assert.match(result.classSource, /CALL METHOD go_any->\(gv_method\)\./);
+  assert.match(result.classSource, /CALL METHOD \(gv_method\)\./);
+  assert.match(result.classSource, /cl_gui_frontend_services=>clipboard_export\( \)\./);
+});
 
-  const unknown = await convertProgram({ source, filename: "zglobalcall.prog.abap", mode: "partial" });
-  assert.equal(unknown.supported, false);
-  assert.equal(unknown.diagnostics.filter((item) => item.code === "GGCONV-E511").length, 4);
+test("still rewrites object creation for report-local classes", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zlocalcreate.",
+      "CLASS lcl_app DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_app IMPLEMENTATION.",
+      "  METHOD run.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "DATA go_app TYPE REF TO lcl_app.",
+      "START-OF-SELECTION.",
+      "  CREATE OBJECT go_app.",
+      "  go_app->run( ).",
+    ].join("\n"),
+    filename: "zlocalcreate.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /CREATE OBJECT go_app EXPORTING io_owner = me io_session = io_session\./);
+  assert.match(result.classSource, /go_app->run\( \)\./);
 });
 
 test("carries event registrations on existing global classes over unchanged", async () => {
@@ -485,25 +510,6 @@ test("keeps diagnosing event registrations that name no known global class", asy
   assert.equal(result.diagnostics.filter((item) => item.code === "GGCONV-E512").length, 3);
 });
 
-test("keeps diagnosing calls whose receiver is not a known global class", async () => {
-  const result = await convertProgram({
-    source: [
-      "REPORT zunknowncall.",
-      "DATA go_other TYPE REF TO zcl_unknown.",
-      "DATA go_untyped TYPE REF TO object.",
-      "START-OF-SELECTION.",
-      "  go_other->run( ).",
-      "  go_untyped->run( ).",
-      "  zcl_unknown=>run( ).",
-      "  CALL METHOD zcl_calc=>(lv_name).",
-    ].join("\n"),
-    filename: "zunknowncall.prog.abap",
-    mode: "partial",
-    globalClassNames: ["ZCL_CALC"],
-  });
-  assert.equal(result.supported, false);
-  assert.equal(result.diagnostics.filter((item) => item.code === "GGCONV-E511").length, 4);
-});
 
 test("converts local FORM parameters to typed methods and PERFORM calls", async () => {
   const source = [
@@ -1591,8 +1597,6 @@ test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture",
 
 test("classifies former E501 gaps by actionable operation family", async () => {
   const cases = [
-    ["CREATE OBJECT go_control.", ACTIONABLE_DIAGNOSTIC_CODES.controlConstruction],
-    ["CALL METHOD go_control->refresh.", ACTIONABLE_DIAGNOSTIC_CODES.controlMethod],
     ["SET HANDLER go_events->on_click FOR go_control.", ACTIONABLE_DIAGNOSTIC_CODES.eventRegistration],
     ["CALL FUNCTION 'Z_CUSTOM'.", ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter],
     ["CREATE DATA lr_value TYPE (lv_type).", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],

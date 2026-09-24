@@ -241,10 +241,6 @@ export function isConvertibleControlStatement(statement, objectTypes = {}) {
   return false;
 }
 
-// A statically named receiver: `cls=>meth`, `ref->meth` or `ref->attr->meth`,
-// optionally behind CALL METHOD. Dynamic forms such as CALL METHOD (name) or
-// ref->(name) do not match, because a method name must follow the arrow.
-const GLOBAL_CALL = /^(?:CALL\s+METHOD\s+)?(\/[A-Z0-9_]+\/[A-Z][A-Z0-9_]*|[A-Z][A-Z0-9_]*)\s*(->|=>)\s*[A-Z_]/i;
 const GLOBAL_TYPE_NAME = "(\\/[A-Z0-9_]+\\/[A-Z][A-Z0-9_]*|[A-Z][A-Z0-9_]*)";
 
 // Map each reference variable declared TYPE REF TO an existing global class to
@@ -273,16 +269,6 @@ export function globalObjectTypes(declarations = [], globalClassNames = new Set(
     for (const match of text.matchAll(inline)) record(match[1], match[2]);
   }
   return result;
-}
-
-// Return true for a method call whose class is known to exist as a global
-// class, so the statement compiles unchanged inside the generated class.
-export function isGlobalClassCall(statement, objectTypes = {}, globalClassNames = new Set()) {
-  if ((statement?.kind !== "Call" && statement?.kind !== "CallMethod") || !globalClassNames.size) return false;
-  const match = GLOBAL_CALL.exec(String(statement.text ?? "").trim());
-  if (!match) return false;
-  const name = match[1].toUpperCase();
-  return match[2] === "=>" ? globalClassNames.has(name) : Boolean(objectTypes[name]);
 }
 
 // For each local class, the class whose event each handler method declares
@@ -390,12 +376,15 @@ export const LOWERING_RULES = new Map([
 
 // Ordinary statements are preserved only through this allow-list. Classic
 // event-only syntax must get a diagnostic instead of being copied into a
-// generated method by a catch-all emitter.
+// generated method by a catch-all emitter. Object creation and method calls
+// are carried over as written: local-class receivers are rewritten above
+// before this list is consulted, and every other class is the target system's.
 export const METHOD_SAFE_STATEMENTS = new Set([
   "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
   "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
   "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
   "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
+  "CreateObject", "Call", "CallMethod",
 ]);
 
 export const OPEN_SQL_STATEMENTS = new Set([
@@ -947,13 +936,7 @@ export function lowerStatement(statement, context) {
     }
     return replaceOutsideStrings(lowered, safeReplacements);
   }
-  if (isGlobalClassCall(statement, context.globalObjectTypes, context.globalClassNames)
-    || isGlobalSetHandler(statement, context)) {
-    return replaceOutsideStrings(raw, safeReplacements);
-  }
-  if (context.contextMenu && (statement.kind === "CreateObject" || statement.kind === "Call")) {
-    return replaceOutsideStrings(raw, safeReplacements);
-  }
+  if (isGlobalSetHandler(statement, context)) return replaceOutsideStrings(raw, safeReplacements);
   if (isMethodSafeLoop(statement)) return replaceOutsideStrings(raw, safeReplacements);
   if (statement.kind === "Clear") {
     const body = stripPeriod(raw).replace(/^CLEAR\s*:?\s*/i, "");
