@@ -14,9 +14,9 @@ import {repositoryRoot, repositoryTool} from "./repository.mjs";
 const repositoryUrl = "https://github.com/larshp/gg-gui";
 const validationRoot = path.join(repositoryRoot, "converter", "gg-gui-validation");
 const checkoutRoot = path.join(validationRoot, "repository");
-// Derived by the converter from output_folder; kept as a constant here so the
-// harness can assert the two agree rather than assume it.
-const generatedRoot = path.join(validationRoot, "output_converter");
+// converter.output_folder in the configuration written below; the harness
+// asserts the converter reads it back as this folder rather than assume it.
+const generatedRoot = path.join(validationRoot, "generated");
 const manifestsRoot = path.join(validationRoot, "manifests");
 const outputRoot = path.join(validationRoot, "output");
 const screenshotsRoot = path.join(validationRoot, "screenshots");
@@ -1264,22 +1264,27 @@ const sourceRoot = path.join(sourceRepository, "src");
 // The whole validation directory is generated, so the transpiler configuration
 // is written before anything reads it. The one file drives both tools, the way
 // a user would run them: the converter finds the gg-gui reports in the checkout
-// named by input_folder and writes to the folder derived from output_folder,
-// and abap_transpile compiles the framework, the examples, the checkout and the
-// generated classes. The example programs are excluded because the converter
-// would otherwise convert them alongside gg-gui; the example classes stay, as
-// the framework unit tests refer to them.
+// named by converter.input_folder and writes to converter.output_folder, and
+// abap_transpile compiles the framework, the examples, the checkout and the
+// generated classes. The example programs are left out of the transpile, as
+// only the example classes are needed: the framework unit tests refer to them.
+const checkoutSource = path.relative(repositoryRoot, sourceRoot).split(path.sep).join("/");
+const generatedSource = path.relative(repositoryRoot, generatedRoot).split(path.sep).join("/");
 await fs.writeFile(transpileConfigPath, `${JSON.stringify({
   input_folder: [
     "src",
     "framework",
     "examples",
-    path.relative(repositoryRoot, sourceRoot).split(path.sep).join("/"),
-    "converter/gg-gui-validation/output_converter",
+    checkoutSource,
+    generatedSource,
   ],
   input_filter: [],
   exclude_filter: ["/examples/[^/]+\\.prog\\."],
   output_folder: "converter/gg-gui-validation/output",
+  converter: {
+    input_folder: [checkoutSource],
+    output_folder: generatedSource,
+  },
   write_unit_tests: false,
   write_source_map: false,
   options: {

@@ -9,14 +9,14 @@ import { loadLibraries } from "../src/libs.mjs";
 function usage() {
   return `Usage: node converter/bin/convert.mjs [options]
 
-Converts every executable program an abap_transpile.json selects. Generated
-classes are written to the configured output_folder with a "_converter" suffix.
+Converts every executable program in the converter.input_folder of an
+abap_transpile.json. Generated classes are written to converter.output_folder.
 
 Options:
   --config <file>          abap_transpile.json (default: ./${DEFAULT_CONFIG_FILENAME})
   --program <name>         convert only this program (repeatable; report name
                            or path fragment)
-  --output-folder <dir>    write classes here instead of <output_folder>_converter
+  --output-folder <dir>    write classes here instead of converter.output_folder
   --ddic <file.json>       optional field metadata for SELECT-OPTIONS/PARAMETERS
                            FOR <table>-<field>, as {"TABLE":{"fields":{"FIELD":"..."}}}
   --mode strict|partial    conversion mode (default: strict)
@@ -124,14 +124,14 @@ if (options.programs.length) {
   for (const request of options.programs) {
     const matches = discovered.filter((program) => matchesRequest(program, request));
     if (!matches.length) {
-      console.error(`no program matching ${JSON.stringify(request)} was found in the configured input folders`);
+      console.error(`no program matching ${JSON.stringify(request)} was found in converter.input_folder`);
       process.exit(2);
     }
     for (const match of matches) if (!programs.includes(match)) programs.push(match);
   }
 }
 if (!programs.length) {
-  console.error(`no executable programs were found in the configured input folders`);
+  console.error(`no executable programs were found in converter.input_folder`);
   process.exit(2);
 }
 

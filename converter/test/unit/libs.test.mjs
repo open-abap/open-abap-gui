@@ -15,7 +15,12 @@ const LIB_FILES = {
   "src/sub/zlib_inc.prog.abap": "WRITE 'from lib'.\n",
   "src/zlib_report.prog.abap": "REPORT zlib_report.\nWRITE 'lib'.\n",
 };
-const BASE = { input_folder: ["src", "output_converter"], output_folder: "output", options: {} };
+const BASE = {
+  input_folder: ["src", "generated"],
+  output_folder: "output",
+  converter: { input_folder: ["src"], output_folder: "generated" },
+  options: {},
+};
 
 async function writeFiles(root, files) {
   for (const [name, contents] of Object.entries(files)) {

@@ -52,11 +52,22 @@ The keys it reads are:
 
 | key | converter use |
 | --- | --- |
-| `input_folder` | folders scanned for `*.prog.abap`, and the include search path |
-| `input_filter` | case-insensitive allow-list of regular expressions; empty matches everything |
-| `exclude_filter` | case-insensitive deny-list, applied after `input_filter` |
-| `output_folder` | the converter writes generated classes to `<output_folder>_converter` |
+| `converter.input_folder` | folders scanned for `*.prog.abap` and `*.tran.xml`; searched first for INCLUDEs |
+| `converter.output_folder` | where the generated classes are written; owned by the converter |
+| `input_folder` | searched for INCLUDEs after the converter input; must list `converter.output_folder` |
 | `libs` | dependencies searched for INCLUDEs; their programs are never converted |
+
+```json
+{
+  "input_folder": ["src", "generated"],
+  "output_folder": "output",
+  "converter": {
+    "input_folder": ["reports"],
+    "output_folder": "generated"
+  },
+  "options": {}
+}
+```
 
 Each lib is read the way abap_transpile reads it: from `folder` (relative to
 the working directory) when that exists, otherwise shallow-cloned from `url`
@@ -68,28 +79,28 @@ do the same with `loadLibraries(config)`: set `config.libraryFolders` to the
 returned `folders`, convert, then call `cleanup()`.
 
 Everything else in the file belongs to the transpiler and is ignored, including
-keys a newer transpiler adds: the converter reads that file, it never writes it
-and never validates it beyond the keys above.
+`output_folder`, `input_filter` and `exclude_filter` and keys a newer
+transpiler adds: the converter reads that file, it never writes it and never
+validates it beyond the keys above. The filters select what abap_transpile
+compiles; they do not narrow the converter input, which is a folder of its own.
 
-`abap_transpile.json` is the only configuration file — there is no converter
-config, and the converter needs no key the transpiler does not already define.
-Folder names resolve against the working directory, exactly as abap_transpile
-resolves them, so the same file selects the same sources for both tools.
-Filters are matched against the absolute path for the same reason, which means
-a pattern cannot be anchored with `^`.
+`abap_transpile.json` is the only configuration file; the `converter` object is
+part of the transpiler's schema. Folder names resolve against the working
+directory, exactly as abap_transpile resolves them, so the same file names the
+same folders for both tools.
 
 A report's transaction code comes from `--tcode` when given, otherwise from an
-abapGit transaction object (`<tcode>.tran.xml`) in the input folders whose
+abapGit transaction object (`<tcode>.tran.xml`) in the converter input folders whose
 program is the report, otherwise from the report name. The transaction's short
 text becomes the default description. When several transactions start the same
 report, the alphabetically first transaction code is used.
 
-The generated folder is derived, not configurable. `output_folder: "output"`
-puts the classes in `output_converter`; a nested `build/x/output` puts them in
-`build/x/output_converter`. Add that folder to `input_folder` or abap_transpile
-will not compile what the converter just wrote — `GGCONV-W110` says so, and
-names the entry to add. `output_folder` is required even for a `--check` run
-that writes nothing, because the generated folder is derived from it.
+Add `converter.output_folder` to `input_folder` or abap_transpile will not
+compile what the converter just wrote — `GGCONV-W110` says so, and names the
+entry to add. Because a full run clears that folder, it must not be, contain or
+sit inside a converter input folder or any other `input_folder` entry;
+`GGCONV-E119` rejects such a configuration before anything is converted. The
+`converter` object is required even for a `--check` run that writes nothing.
 
 Writes always overwrite, and a full run clears the generated folder first so a
 class that no current program produces cannot survive as a stale transpiler
@@ -101,7 +112,7 @@ programs map to the same class writes nothing at all and reports
 
 No network or model call is used during conversion; the only network access is
 the CLI cloning a lib `url` before it starts. Includes are resolved from
-`input_folder` and the libs, by the optional `resolveInclude(name, parentFilename)` callback,
+`converter.input_folder`, `input_folder` and the libs, by the optional `resolveInclude(name, parentFilename)` callback,
 or by deterministic filesystem candidates.
 
 Selection texts can be supplied as a `Map`, object, or simple text-pool string
@@ -223,7 +234,7 @@ npm test
 
 `test:gg-gui` clones `https://github.com/larshp/gg-gui` into the gitignored
 `gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), writes
-`gg-gui-validation/abap_transpile.json` naming that checkout as an input folder,
+`gg-gui-validation/abap_transpile.json` naming that checkout as the converter input folder,
 converts every report that configuration selects with the safe partial
 strategy, transpiles the same configuration and serves the
 generated report classes, verifies every generated target/helper class has clean

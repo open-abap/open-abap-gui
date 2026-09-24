@@ -46,9 +46,9 @@ async function runOne(converter, plan, fallbackStrategy) {
 }
 
 /**
- * Convert every program an abap_transpile.json selects.
+ * Convert every program in an abap_transpile.json's converter input folders.
  *
- * Writes go to `<output_folder>_converter`, which the converter owns: a full
+ * Writes go to `converter.output_folder`, which the converter owns: a full
  * run clears it first, so a class no current program produces cannot survive as
  * a stale transpiler input. Clearing is skipped for a subset run (`clear:
  * false`, what `--program` passes) because the classes it does not produce are

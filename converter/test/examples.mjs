@@ -8,7 +8,7 @@ import { converterRoot } from "./repository.mjs";
 // Each folder under test/examples is one conversion case: input/ holds the
 // ABAP sources, output/ the classes the converter must write for them. The
 // input folder is converted the way the CLI converts an abap_transpile.json
-// input_folder, so classes in input/ are known globals and programs are found
+// converter.input_folder, so classes in input/ are known globals and programs are found
 // by their REPORT header. Pass --update to rewrite output/ from the current
 // converter instead of comparing against it.
 
@@ -30,8 +30,7 @@ async function convertExample(exampleRoot, targetFolder) {
     filename: path.join(exampleRoot, "abap_transpile.json"),
     root: exampleRoot,
     inputFolders: [input],
-    inputFilters: [],
-    excludeFilters: [],
+    converterInputFolders: [input],
     libs: [],
     generatedFolder: targetFolder,
   };

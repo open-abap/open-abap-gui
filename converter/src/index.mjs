@@ -2,7 +2,6 @@ export { convertProgram } from "./api.mjs";
 export { convertConfiguredPrograms } from "./batch.mjs";
 export {
   DEFAULT_CONFIG_FILENAME,
-  GENERATED_FOLDER_SUFFIX,
   conversionPlan,
   discoverPrograms,
   loadTranspileConfig,
