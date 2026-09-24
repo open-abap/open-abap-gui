@@ -266,6 +266,37 @@ test("lowers classic currency WRITE formatting and list paging commands", async 
   assert.match(result.classSource, /lo_writer->scroll_to_last_page\( \)\./);
 });
 
+test("rewrites system fields in every carried-over statement, not only in conditions", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zvalues.",
+      "DATA gv_text TYPE string.",
+      "DATA gv_program TYPE sy-repid.",
+      "START-OF-SELECTION.",
+      "  IF sy-ucomm = 'sy-ucomm'.",
+      "    gv_text = 'x'.",
+      "  ENDIF.",
+      "  WRITE 'x'.",
+      "AT LINE-SELECTION.",
+      "  CHECK sy-lsind < 3.",
+      "  WHILE sy-lsind > 5.",
+      "  ENDWHILE.",
+      "  CONCATENATE 'Level' sy-lsind INTO gv_text SEPARATED BY space.",
+    ].join("\n"),
+    filename: "zvalues.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const level = "io_session->get_list( )->get_context( )-level";
+  assert.ok(result.classSource.includes(`CHECK ${level} < 3.`));
+  assert.ok(result.classSource.includes(`WHILE ${level} > 5.`));
+  // CONCATENATE takes data objects only, so the session value cannot replace the field.
+  assert.ok(result.classSource.includes("CONCATENATE 'Level' sy-lsind INTO gv_text SEPARATED BY space."));
+  // START-OF-SELECTION has no iv_ucomm parameter, and a literal is not a field.
+  assert.ok(result.classSource.includes("IF sy-ucomm = 'sy-ucomm'."));
+  // A declaration keeps naming the system field's type.
+  assert.match(result.classSource, /DATA gv_program TYPE sy-repid\./);
+});
+
 test("terminates each element of a chained statement", async () => {
   const result = await convertProgram({
     source: [

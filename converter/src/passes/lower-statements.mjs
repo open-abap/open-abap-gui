@@ -1,4 +1,5 @@
 import { lowerCompatibilityFunction } from "../function-modules.mjs";
+import { parsesAsStatement } from "../parser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
@@ -265,13 +266,9 @@ export const LOWERING_RULES = new Map([
   ["CallScreen", { kind: "dialog-call-screen" }],
   ["CallSelectionScreen", { kind: "dialog-call-selection-screen" }],
   ["CallTransaction", { kind: "navigation-call-transaction" }],
-  ["Case", { kind: "control-case" }],
-  ["Catch", { kind: "control-catch" }],
   ["Constant", { kind: "declaration" }],
   ["Controls", { kind: "declaration" }],
   ["Data", { kind: "declaration" }],
-  ["Do", { kind: "control-do" }],
-  ["ElseIf", { kind: "control-elseif" }],
   ["Export", { kind: "session-abap-memory-export" }],
   ["FieldSymbol", { kind: "field-symbol-declaration" }],
   ["Format", { kind: "list-format" }],
@@ -279,12 +276,10 @@ export const LOWERING_RULES = new Map([
   ["GetCursor", { kind: "list-cursor" }],
   ["GetParameter", { kind: "compatibility-parameter-get" }],
   ["Hide", { kind: "list-hide" }],
-  ["If", { kind: "control-if" }],
   ["Import", { kind: "session-abap-memory-import" }],
   ["Leave", { kind: "navigation-leave" }],
   ["LeaveScreen", { kind: "dialog-leave-screen" }],
   ["LeaveToScreen", { kind: "dialog-leave-to-screen" }],
-  ["Loop", { kind: "control-loop" }],
   ["LoopAtScreen", { kind: "selection-screen-state-loop" }],
   ["Message", { kind: "session-message" }],
   ["ModifyLine", { kind: "list-modify-line" }],
@@ -311,7 +306,6 @@ export const LOWERING_RULES = new Map([
   ["TypeEnd", { kind: "declaration" }],
   ["TypePools", { kind: "type-pool-resolution" }],
   ["Uline", { kind: "list-uline" }],
-  ["When", { kind: "control-when" }],
   ["Write", { kind: "list-write" }],
 ]);
 
@@ -517,7 +511,7 @@ function continuationCall(target, parameter, value, id) {
   return `${target}(\n  ${named(parameter, value)}\n  ${named("is_continuation", `VALUE #( id = '${id}' )`)} ).`;
 }
 
-function replaceOutsideStrings(text, replacements) {
+function transformOutsideStrings(text, transform) {
   let result = "";
   let current = "";
   let quotedString = false;
@@ -529,7 +523,7 @@ function replaceOutsideStrings(text, replacements) {
       continue;
     }
     if (char === "'") {
-      if (!quotedString) result += applyReplacements(current, replacements);
+      if (!quotedString) result += transform(current);
       result += char;
       current = "";
       quotedString = !quotedString;
@@ -538,7 +532,61 @@ function replaceOutsideStrings(text, replacements) {
     if (quotedString) result += char;
     else current += char;
   }
-  return result + (quotedString ? current : applyReplacements(current, replacements));
+  return result + (quotedString ? current : transform(current));
+}
+
+function replaceOutsideStrings(text, replacements) {
+  return transformOutsideStrings(text, (part) => applyReplacements(part, replacements));
+}
+
+// Values a report can read that do not exist, or mean something else, in the
+// generated class: system fields held by the session, the SCREEN work area of
+// LOOP AT SCREEN, and the list color constants. Statements carried over as
+// written get these rewrites, outside string literals; declarations and
+// comments do not, since `TYPE sy-repid` must keep naming the field's type.
+function dataValueRewrites(context) {
+  const screen = context.screenStateSymbol ?? "<ls_state>";
+  return [
+    ...(context.replacements ?? []),
+    ...Object.entries(LIST_COLOR_CONSTANTS).map(([name, constant]) => [name, `zif_gg_list_processing_types_v1=>${constant}`]),
+    ["sy-ucomm", context.ucomm ?? "sy-ucomm"],
+    ["sy-subrc", context.subrc ?? "sy-subrc"],
+    ["sy-dynnr", context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''"],
+    ["screen-name", `${screen}-name`],
+    ["screen-group1", `${screen}-modif_id`],
+    ["screen-group([2-4])", `${screen}-group$1`],
+    ["screen-invisible", `${screen}-password`],
+    ["screen-active", `${screen}-visible`],
+    ["screen-required", context.event === "dynpro" ? `${screen}-required` : `${screen}-obligatory`],
+    ["screen-intensified", `${screen}-intensified`],
+    ["screen-(input|output)", `${screen}-$1`],
+  ];
+}
+
+// The session holds these, so they become method call chains, which only an
+// operand position that accepts an expression can take.
+const SESSION_VALUE_REWRITES = [
+  ["sy-(?:linno|lilli)", "io_session->get_list( )->get_context( )-line"],
+  ["sy-pagno", "io_session->get_list( )->get_context( )-page"],
+  ["sy-repid", "io_session->get_context( )-program-program"],
+  ["sy-batch", "io_session->get_context( )-program-batch"],
+  ["sy-lsind", "io_session->get_list( )->get_context( )-level"],
+];
+
+function rewriteValues(text, context, { session = true } = {}) {
+  const replacements = [...dataValueRewrites(context), ...(session ? SESSION_VALUE_REWRITES : [])];
+  return transformOutsideStrings(text, (part) => {
+    const replaced = applyReplacements(part, replacements);
+    return context.event === "dynpro" ? replaced : replaced.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
+  });
+}
+
+// A classic statement such as CONCATENATE takes data objects only. When a
+// session value makes the statement unparseable, the system field is kept.
+function rewriteStatementValues(text, context) {
+  const rewritten = rewriteValues(text, context);
+  const dataOnly = rewriteValues(text, context, { session: false });
+  return rewritten === dataOnly || parsesAsStatement(rewritten) ? rewritten : dataOnly;
 }
 
 function applyReplacements(text, replacements) {
@@ -791,13 +839,6 @@ function parseMessage(raw, context) {
 export function lowerStatement(statement, context) {
   const raw = statement.text.trim();
   const normalized = raw.replace(/\s+/g, " ").toUpperCase();
-  const safeReplacements = [
-    ...(context.replacements ?? []),
-    ["sy-ucomm", context.ucomm ?? "sy-ucomm"],
-    ["sy-repid", "io_session->get_context( )-program-program"],
-    ["sy-batch", "io_session->get_context( )-program-batch"],
-    ["sy-dynnr", "''"],
-  ];
   const dynamicAlvFactory = lowerDynamicAlvFactory(raw, context);
   if (dynamicAlvFactory) return dynamicAlvFactory;
   if (statement.kind === "Comment") return raw;
@@ -846,7 +887,7 @@ export function lowerStatement(statement, context) {
         );
         const opening = renamed.indexOf("(", staticCall.index);
         const closing = renamed.lastIndexOf(")");
-        if (opening < 0 || closing < opening) return replaceOutsideStrings(renamed, safeReplacements);
+        if (opening < 0 || closing < opening) return rewriteStatementValues(renamed, context);
         let argumentsText = renamed.slice(opening + 1, closing).trim();
         const originalParameter = context.localClassStaticParameters?.[staticCall[1].toUpperCase()]?.[staticCall[2].toUpperCase()];
         if (argumentsText && originalParameter && !/^[A-Z][A-Z0-9_]*\s*=/i.test(argumentsText)) {
@@ -854,12 +895,11 @@ export function lowerStatement(statement, context) {
         }
         const bridgedArguments = `io_owner = ${owner} io_session = ${session}${argumentsText ? ` ${argumentsText}` : ""}`;
         const bridged = `${renamed.slice(0, opening + 1)} ${bridgedArguments} ${renamed.slice(closing)}`;
-        return replaceOutsideStrings(bridged, safeReplacements);
+        return rewriteStatementValues(bridged, context);
       }
     }
-    return replaceOutsideStrings(lowered, safeReplacements);
+    return rewriteStatementValues(lowered, context);
   }
-  if (isMethodSafeLoop(statement)) return replaceOutsideStrings(raw, safeReplacements);
   if (statement.kind === "Write") {
     const iconAssignment = /^WRITE\s+([A-Z][A-Z0-9_]*)\s+AS\s+ICON(?:\s+QUICKINFO\s+.+?)?\s+TO\s+([A-Z][A-Z0-9_]*)\.?$/i.exec(raw);
     if (iconAssignment) return `${iconAssignment[2].toLowerCase()} = '@ICON:${iconAssignment[1].toLowerCase().replace(/^icon_/, "")}'.`;
@@ -965,7 +1005,10 @@ export function lowerStatement(statement, context) {
     const value = raw.replace(/^SY-LSIND\s*=\s*/i, "").replace(/\.$/, "");
     return `io_session->get_list( )->set_level( iv_level = ${valueExpression(value, context)} ).`;
   }
-  if (statement.kind === "Loop") {
+  // A LOOP with an INTO or ASSIGNING target is carried over as written. One
+  // without reads a header line, which a class cannot have: over a
+  // select-option it is given an explicit range row, otherwise it is omitted.
+  if (statement.kind === "Loop" && !isMethodSafeLoop(statement)) {
     const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1]?.toUpperCase();
     const selection = context.selections?.find((item) => item.name === name && item.ranges);
     if (selection) {
@@ -1069,7 +1112,7 @@ export function lowerStatement(statement, context) {
         ? "''"
         : "io_session->get_context( )-program-program"],
       ["sy-dynnr", "''"],
-    ])) ?? replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
+    ])) ?? rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
   }
   if (statement.kind === "Leave") {
     if (/LIST-PROCESSING/i.test(raw)) {
@@ -1145,7 +1188,7 @@ export function lowerStatement(statement, context) {
     // A dynamic PERFORM names a FORM that became a method; a FORM in another
     // program is not converted and is still called as written.
     if (/\bPERFORM\s+\(/i.test(raw)) return "* TODO GGCONV-E401: dynamic PERFORM requires a manual method mapping.";
-    if (/\bIN\s+PROGRAM\b/i.test(raw)) return replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
+    if (/\bIN\s+PROGRAM\b/i.test(raw)) return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
     const name = /^PERFORM\s+([^\s.]+)/i.exec(raw)?.[1];
     const routine = context.routines?.find((item) => item.name === name?.toUpperCase());
     const receiver = context.ownerPrefix ?? "";
@@ -1193,58 +1236,41 @@ export function lowerStatement(statement, context) {
     ? `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}) WHERE row = is_context-row.`
     : `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}).`;
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
-  if (["If", "ElseIf", "Do", "Case", "When", "Loop", "Catch", "Move"].includes(statement.kind)) {
-    let converted = replaceListContextFields(replaceListColorConstants(replaceOutsideStrings(raw, context.replacements))).replace(/\bsy-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
-    converted = converted.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
-    converted = converted.replace(/\bsy-repid\b/gi, "io_session->get_context( )-program-program");
-    converted = converted.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
-    converted = converted.replace(/\bsy-lsind\b/gi, "io_session->get_list( )->get_context( )-level");
-    converted = converted.replace(/\bsy-dynnr\b/gi, context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''");
-    const screenStateSymbol = context.screenStateSymbol ?? "<ls_state>";
-    converted = converted.replace(/\bscreen-name\b/gi, `${screenStateSymbol}-name`);
-    converted = converted.replace(/\bscreen-group1\b/gi, `${screenStateSymbol}-modif_id`);
-    converted = converted.replace(/\bscreen-group([2-4])\b/gi, `${screenStateSymbol}-group$1`);
-    converted = converted.replace(/\bscreen-invisible\b/gi, `${screenStateSymbol}-password`);
-    converted = converted.replace(/\bscreen-active\b/gi, `${screenStateSymbol}-visible`);
-    converted = converted.replace(/\bscreen-required\b/gi, context.event === "dynpro" ? `${screenStateSymbol}-required` : `${screenStateSymbol}-obligatory`);
-    converted = converted.replace(/\bscreen-intensified\b/gi, `${screenStateSymbol}-intensified`);
-    converted = converted.replace(/\bscreen-(input|output)\b/gi, `${screenStateSymbol}-$1`);
-    if (context.event !== "dynpro") converted = converted.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
-    if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
-      return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
+  if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
+    return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
+  }
+  if (statement.kind === "Move") {
+    let converted = rewriteStatementValues(raw, context);
+    if (/^G_TABS-ACTIVETAB\s*=/i.test(raw)) {
+      const assignment = converted.replace(/^G_TABS-ACTIVETAB/i, "mv_active_tab");
+      return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n  ${assignment}\nENDIF.` : assignment;
     }
-    if (statement.kind === "Move") {
-      if (/^G_TABS-ACTIVETAB\s*=/i.test(raw)) {
-        const assignment = converted.replace(/^G_TABS-ACTIVETAB/i, "mv_active_tab");
-        return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n  ${assignment}\nENDIF.` : assignment;
+    if (/^G_TABS-(?:PROG|DYNNR)\s*=/i.test(raw)) return "* Selection tab state is maintained by the host screen.";
+    converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
+    converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
+    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");
+    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?0['"]?/i, "<ls_state>-no_display = abap_false");
+    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?1['"]?/gi, "<ls_state>-$1 = abap_true");
+    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?0['"]?/gi, "<ls_state>-$1 = abap_false");
+    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?1['"]?/i, "<ls_state>-intensified = abap_true");
+    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?0['"]?/i, "<ls_state>-intensified = abap_false");
+    converted = converted.replace(/<ls_state>-visible\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-visible = xsdbool( $1 ).");
+    converted = converted.replace(/<ls_state>-intensified\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-intensified = xsdbool( $1 ).");
+    converted = converted.replace(/<ls_state>-visible\s*=\s*'1'/i, "<ls_state>-visible = abap_true");
+    converted = converted.replace(/<ls_state>-visible\s*=\s*'0'/i, "<ls_state>-visible = abap_false");
+    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'2'/i, "<ls_state>-obligatory = abap_true");
+    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'0'/i, "<ls_state>-obligatory = abap_false");
+    const target = /^\s*([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1]?.toUpperCase();
+    if (target && context.dynamicCommentNames?.includes(target)
+        && context.event !== "local_class") {
+      const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
+      if (assignment) {
+        return `${converted}\nio_session->get_dialog( )->set_status( VALUE #( status = CONV string( ${target.toLowerCase()} ) ) ).`;
       }
-      if (/^G_TABS-(?:PROG|DYNNR)\s*=/i.test(raw)) return "* Selection tab state is maintained by the host screen.";
-      converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
-      converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
-      converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");
-      converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?0['"]?/i, "<ls_state>-no_display = abap_false");
-      converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?1['"]?/gi, "<ls_state>-$1 = abap_true");
-      converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?0['"]?/gi, "<ls_state>-$1 = abap_false");
-      converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?1['"]?/i, "<ls_state>-intensified = abap_true");
-      converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?0['"]?/i, "<ls_state>-intensified = abap_false");
-      converted = converted.replace(/<ls_state>-visible\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-visible = xsdbool( $1 ).");
-      converted = converted.replace(/<ls_state>-intensified\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-intensified = xsdbool( $1 ).");
-      converted = converted.replace(/<ls_state>-visible\s*=\s*'1'/i, "<ls_state>-visible = abap_true");
-      converted = converted.replace(/<ls_state>-visible\s*=\s*'0'/i, "<ls_state>-visible = abap_false");
-      converted = converted.replace(/<ls_state>-obligatory\s*=\s*'2'/i, "<ls_state>-obligatory = abap_true");
-      converted = converted.replace(/<ls_state>-obligatory\s*=\s*'0'/i, "<ls_state>-obligatory = abap_false");
-      const target = /^\s*([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1]?.toUpperCase();
-      if (target && context.dynamicCommentNames?.includes(target)
-          && context.event !== "local_class") {
-        const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
-        if (assignment) {
-          return `${converted}\nio_session->get_dialog( )->set_status( VALUE #( status = CONV string( ${target.toLowerCase()} ) ) ).`;
-        }
-      }
-      if (target && context.selectionState?.[target]) {
-        const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
-        if (assignment && !/^['|]/.test(assignment[2].trim())) converted = `${assignment[1]}|{ ${assignment[2]} }|.`;
-      }
+    }
+    if (target && context.selectionState?.[target]) {
+      const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
+      if (assignment && !/^['|]/.test(assignment[2].trim())) converted = `${assignment[1]}|{ ${assignment[2]} }|.`;
     }
     return converted;
   }
@@ -1263,10 +1289,10 @@ export function lowerStatement(statement, context) {
   // copying it would only make the generated class unparseable too.
   if (statement.kind === "Unknown") return "* TODO GGCONV-E201: statement abaplint could not classify requires manual conversion.";
   // The rules above are the fixed set of statements that need rewriting.
-  // Everything else is carried over as written; abaplint splits a chained
-  // statement into one statement per element, so a trailing comma becomes the
-  // terminator.
-  return replaceOutsideStrings(raw.replace(/,\s*$/, "."), safeReplacements);
+  // Everything else is carried over as written, with only the value rewrites;
+  // abaplint splits a chained statement into one statement per element, so a
+  // trailing comma becomes the terminator.
+  return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
 }
 
 // A block opener that lowers to nothing but a comment cannot leave its body and

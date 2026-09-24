@@ -150,6 +150,11 @@ adapter names used by a conversion.
 Lowering is a fixed set of rules for the statements that need rewriting
 (`LOWERING_RULES` in `src/passes/lower-statements.mjs`). Every other statement
 is carried over as written, with the usual renames, and produces no diagnostic.
+Every carried-over statement also gets the same value rewrites: system fields
+the session holds (`sy-lsind`, `sy-repid`, …), the `SCREEN` work area inside
+`LOOP AT SCREEN`, and the list color constants. A system field that becomes a
+method call is kept as written when the statement only takes data objects, as
+`CONCATENATE` does. Declarations and comments are not rewritten.
 This includes function modules without a compatibility adapter, `FREE`,
 dynamic `CREATE DATA`, dynamic Open SQL, and `PERFORM ... IN PROGRAM`, which
 are all valid inside a method. Diagnostics are reserved for a statement a rule
