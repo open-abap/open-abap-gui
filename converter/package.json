@@ -21,6 +21,8 @@
     "test": "node test/verify.mjs",
     "fixtures": "node test/run-fixtures.mjs",
     "structural": "node test/structural-snapshots.mjs",
+    "examples": "node test/examples.mjs",
+    "examples:update": "node test/examples.mjs --update",
     "warnings": "node test/warnings.mjs",
     "hardening": "node test/hardening.mjs",
     "coverage": "node test/coverage.mjs",

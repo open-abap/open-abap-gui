@@ -12,3 +12,5 @@ converter/behavior-validation/
 converter/behavior-abaplint.jsonc
 converter/browser-validation/
 converter/gg-gui-validation/
+# expected converter output for the test examples is checked in
+!/converter/test/examples/*/output/
