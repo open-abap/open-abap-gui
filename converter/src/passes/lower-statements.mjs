@@ -479,26 +479,54 @@ function memoryCallLines(statement, context) {
   return [];
 }
 
+// Index just past the literal that starts at `start`: '...' or `...` (a doubled
+// quote escapes it), or a |...| template, whose { ... } expressions may hold
+// literals and templates of their own and whose text escapes with a backslash.
+function literalEnd(text, start) {
+  const opener = text[start];
+  if (opener === "'" || opener === "`") {
+    let index = start + 1;
+    while (index < text.length) {
+      if (text[index] === opener && text[index + 1] === opener) index += 2;
+      else if (text[index] === opener) return index + 1;
+      else index++;
+    }
+    return text.length;
+  }
+  let index = start + 1;
+  while (index < text.length) {
+    const char = text[index];
+    if (char === "\\") index += 2;
+    else if (char === "|") return index + 1;
+    else if (char === "{") {
+      index++;
+      while (index < text.length && text[index] !== "}") {
+        index = "'`|".includes(text[index]) ? literalEnd(text, index) : index + 1;
+      }
+      index++;
+    } else index++;
+  }
+  return text.length;
+}
+
 function splitMessageOperands(text) {
   const parts = [];
   let current = "";
-  let quotedString = false;
   let depth = 0;
   for (let index = 0; index < text.length; index++) {
     const char = text[index];
-    if (char === "'" && quotedString && text[index + 1] === "'") {
-      current += "''";
-      index++;
-    } else if (char === "'") {
-      quotedString = !quotedString;
-      current += char;
-    } else if (!quotedString && char === "(") {
+    if ("'`|".includes(char)) {
+      // A literal or template is one operand, whatever spaces it holds.
+      const end = literalEnd(text, index);
+      current += text.slice(index, end);
+      index = end - 1;
+    } else if (char === "(") {
       depth++;
       current += char;
-    } else if (!quotedString && char === ")") {
+    } else if (char === ")") {
       depth = Math.max(0, depth - 1);
       current += char;
-    } else if (!quotedString && depth === 0 && /[\s,]/.test(char)) {
+    } else if (depth === 0 && /[\s,]/.test(char)) {
       if (current.trim()) parts.push(current.trim());
       current = "";
     } else current += char;

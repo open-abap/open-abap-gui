@@ -22,7 +22,7 @@ ENDCLASS.
 CLASS zcl_example_texts IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_TEXTS' description = 'Activity report' ).
+    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_TEXTS' description = 'Activity report' program = 'ZEXAMPLE_TEXTS' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

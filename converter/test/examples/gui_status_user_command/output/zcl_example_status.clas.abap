@@ -23,7 +23,7 @@ ENDCLASS.
 CLASS zcl_example_status IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_STATUS' description = 'Counter with a GUI status' ).
+    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_STATUS' description = 'Counter with a GUI status' program = 'ZEXAMPLE_STATUS' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

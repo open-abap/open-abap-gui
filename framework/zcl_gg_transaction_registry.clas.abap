@@ -14,6 +14,7 @@ CLASS zcl_gg_transaction_registry DEFINITION PUBLIC FINAL CREATE PUBLIC.
              description TYPE string,
              class_name  TYPE string,
              kind        TYPE ty_kind,
+             program     TYPE zif_gg_session_types_v1=>ty_program,
            END OF ty_transaction.
     TYPES ty_transactions TYPE STANDARD TABLE OF ty_transaction WITH DEFAULT KEY.
 
@@ -24,6 +25,14 @@ CLASS zcl_gg_transaction_registry DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS lookup
       IMPORTING
         iv_tcode              TYPE string
+      RETURNING
+        VALUE(rs_transaction) TYPE ty_transaction.
+
+* The transaction whose metadata names iv_program; when several do, the one
+* with the alphabetically first class name.
+    CLASS-METHODS lookup_program
+      IMPORTING
+        iv_program            TYPE zif_gg_session_types_v1=>ty_program
       RETURNING
         VALUE(rs_transaction) TYPE ty_transaction.
 
@@ -71,6 +80,21 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       RETURN.
     ENDIF.
     READ TABLE mt_transactions INTO rs_transaction WITH KEY tcode = lv_tcode.
+  ENDMETHOD.
+
+  METHOD lookup_program.
+    DATA lv_program TYPE zif_gg_session_types_v1=>ty_program.
+
+    ensure_catalog( ).
+    lv_program = to_upper( condense( iv_program ) ).
+    IF lv_program IS INITIAL.
+      RETURN.
+    ENDIF.
+    LOOP AT mt_transactions INTO DATA(ls_transaction) WHERE program = lv_program.
+      IF rs_transaction IS INITIAL OR ls_transaction-class_name < rs_transaction-class_name.
+        rs_transaction = ls_transaction.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD normalize_tcode.
@@ -211,6 +235,7 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       ls_transaction-description = lv_description.
       ls_transaction-class_name = lv_class_name.
       ls_transaction-kind = COND #( WHEN lv_report = abap_true THEN kind_report ELSE kind_dynpro ).
+      ls_transaction-program = to_upper( condense( ls_metadata-program ) ).
       APPEND ls_transaction TO mt_transactions.
     ENDLOOP.
 

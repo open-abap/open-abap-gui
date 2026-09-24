@@ -1064,12 +1064,36 @@ test("validates explicit class and transaction names", async () => {
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E101"));
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-W105" && item.severity === "warning"));
 
+  // A taken default name is renamed; an explicit one stays an error.
   const collision = await convertProgram({
     source: "REPORT zvalid.\nWRITE 'ok'.\n",
     filename: "zvalid.prog.abap",
+    existingClassNames: ["ZCL_VALID", "ZCL_VALID_1"],
+    existingClassFiles: { ZCL_VALID: "src/zcl_valid.clas.abap" },
+  });
+  assert.equal(collision.supported, true, JSON.stringify(collision.diagnostics));
+  assert.equal(collision.reportIR.targetClassName, "ZCL_VALID_2");
+  assert.deepEqual(collision.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W106", "warning"]]);
+  assert.match(collision.diagnostics[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the transaction registry/);
+  assert.match(collision.classSource, /rs_transaction = VALUE #\( tcode = 'ZVALID' description = '[^']*' program = 'ZVALID' \)\./);
+
+  const explicit = await convertProgram({
+    source: "REPORT zvalid.\nWRITE 'ok'.\n",
+    filename: "zvalid.prog.abap",
+    className: "ZCL_VALID",
     existingClassNames: ["ZCL_VALID"],
   });
-  assert.ok(collision.diagnostics.some((item) => item.code === "GGCONV-E106"));
+  assert.equal(explicit.supported, false);
+  assert.ok(explicit.diagnostics.some((item) => item.code === "GGCONV-E106" && item.severity === "error"));
+
+  // The suffix never takes the name past 30 characters.
+  const long = await convertProgram({
+    source: "REPORT zabcdefghijklmnopqrstuvwxyz.\nWRITE 'ok'.\n",
+    filename: "zlong.prog.abap",
+    transactionCode: "ZLONG",
+    existingClassNames: ["ZCL_ABCDEFGHIJKLMNOPQRSTUVWXYZ"],
+  });
+  assert.equal(long.reportIR.targetClassName, "ZCL_ABCDEFGHIJKLMNOPQRSTUVWX_1");
 });
 
 test("lowers interactive list context and keeps GET CURSOR in its list event", async () => {

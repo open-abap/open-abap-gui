@@ -21,7 +21,7 @@ ENDCLASS.
 CLASS zcl_example_dialog IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_DIALOG' description = 'Greeting dialog' ).
+    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_DIALOG' description = 'Greeting dialog' program = 'ZEXAMPLE_DIALOG' ).
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.

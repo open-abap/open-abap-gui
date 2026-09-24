@@ -209,6 +209,12 @@ function addWriterDeclaration(body) {
   return [...fields, ...data, declaration, ...rest];
 }
 
+// The program in the transaction metadata lets SUBMIT find the class through
+// the transaction registry, whatever the class is called.
+function programField(ir) {
+  return ir.programName ? ` program = '${ir.programName}'` : "";
+}
+
 function interfaceOrder(ir) {
   const order = ["zif_gg_report_v1", "zif_gg_screen_provider_v1", "zif_gg_dynpro_v1", "zif_gg_context_menu_v1", "zif_gg_transaction_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
   return order.filter((name) => ir.interfaces.includes(name));
@@ -1987,7 +1993,7 @@ export function emitClassSource(ir, options) {
   definition.push("ENDCLASS.", "", `CLASS ${className} IMPLEMENTATION.`, "");
   const implementation = [];
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
-    implementation.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}' ).`]));
+    implementation.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}'${programField(ir)} ).`]));
   }
   if (ir.programKind === "module-pool") implementation.push(...dynproMethods(ir));
   else {
@@ -2041,7 +2047,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     `CLASS ${className} IMPLEMENTATION.`,
     "",
     ...(ir.transactionCode ? [method("zif_gg_transaction_v1~get_transaction", [
-      `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(ir.description)} ).`,
+      `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(ir.description)}${programField(ir)} ).`,
     ]).toString()] : []),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
@@ -2107,7 +2113,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
     .map((item) => `* TODO ${item.code}: ${item.construct}`)
     .filter((value, index, values) => values.indexOf(value) === index);
   const transaction = method("zif_gg_transaction_v1~get_transaction", [
-    `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(label)} ).`,
+    `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(label)}${programField(ir)} ).`,
   ]);
   return `${header({className: ir.targetClassName, ir, options})}${todos.join("\n")}${todos.length ? "\n" : ""}${[
     ...definition,
@@ -2121,7 +2127,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
 export function lowerToScaffoldIR(ir, options, sourceMap = []) {
   const methods = [];
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
-    methods.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}' ).`]));
+    methods.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}'${programField(ir)} ).`]));
   }
   if (ir.programKind === "module-pool") methods.push(...dynproMethods(ir));
   else {

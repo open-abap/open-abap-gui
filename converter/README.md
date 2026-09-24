@@ -110,6 +110,16 @@ an `--output-folder` run, because that folder may be shared. A run in which two
 programs map to the same class writes nothing at all and reports
 `GGCONV-E115`, rather than keeping one class and losing the other.
 
+A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`) unless
+`--class` names it. When that default name is already taken by a class or
+interface in `input_folder`, `converter.input_folder` or the libs, the report
+is generated as the next free name (`ZCL_FOO_1`, `ZCL_FOO_2`, …) and
+`GGCONV-W106` names the file that holds the original. The generated
+transaction metadata records the report's program name, so `SUBMIT zfoo` finds
+the renamed class through the transaction registry. A name given with `--class`
+is never replaced: if it is taken, `GGCONV-E106` reports it and nothing is
+written for that report.
+
 No network or model call is used during conversion; the only network access is
 the CLI cloning a lib `url` before it starts. Includes are resolved from
 `converter.input_folder`, `input_folder` and the libs, by the optional `resolveInclude(name, parentFilename)` callback,

@@ -14,6 +14,7 @@ const configPath = path.join(tempRoot, "abap_transpile.json");
 const lintConfigPath = path.join(repository, "converter", "abaplint-validation.jsonc");
 const toolTempRoot = path.join(repository, "converter", ".tmp");
 const examples = path.join(repository, "examples");
+const RENAMED_CLASS = "ZCL_CV_RENAMED_1";
 
 async function prepare() {
   await fs.rm(tempRoot, { recursive: true, force: true });
@@ -177,6 +178,16 @@ async function prepare() {
     className: "ZCL_CV_EVT",
     transactionCode: "ZCVEVT",
   });
+  // ZCL_CV_RENAMED is taken, so the report is generated as ZCL_CV_RENAMED_1;
+  // SUBMIT zcv_renamed must still reach it (checked after transpiling).
+  const renamed = await convertProgram({
+    source: "REPORT zcv_renamed.\nSTART-OF-SELECTION.\nWRITE 'renamed'.\n",
+    filename: "zcv_renamed.prog.abap",
+    existingClassNames: ["ZCL_CV_RENAMED"],
+  });
+  if (!renamed.supported || renamed.reportIR.targetClassName !== RENAMED_CLASS) throw new Error("renamed-class fixture was not converted as expected");
+  await fs.writeFile(path.join(inputFolder, `${RENAMED_CLASS}.clas.abap`), renamed.classSource, "utf8");
+
   if (!staticHandler.classSource || !staticHandler.supported) throw new Error("static event handler fixture was not converted");
   await fs.writeFile(path.join(inputFolder, "ZCL_CV_EVT.clas.abap"), staticHandler.classSource, "utf8");
   for (const helper of staticHandler.helperSources) {
@@ -191,6 +202,12 @@ async function prepare() {
     write_unit_tests: false,
     write_source_map: false,
     options: {
+      // The database holds the class sources the transaction registry
+      // discovers, which the SUBMIT check after transpiling relies on.
+      setup: {
+        filename: "../../../setup.mjs",
+        preFunction: "setupDatabase",
+      },
       ignoreSyntaxCheck: false,
       addFilenames: true,
       addCommonJS: true,
@@ -238,11 +255,38 @@ function runCommand(command, args) {
   });
 }
 
+// SUBMIT resolves a program to its class by name first; a renamed class is only
+// reachable through the program in its transaction metadata.
+async function checkRenamedSubmitTarget() {
+  const probe = path.join(tempRoot, "submit-probe.mjs");
+  await fs.writeFile(probe, [
+    'import path from "node:path";',
+    'import { pathToFileURL } from "node:url";',
+    'await import(pathToFileURL(path.join(process.argv[2], "init.mjs")).href);',
+    "const program = new abap.types.Character(40);",
+    'program.set("ZCV_RENAMED");',
+    'const report = await abap.Classes["ZCL_GG_HOST_RUNTIME"].report_for_submit({ iv_program: program });',
+    'console.log(`SUBMIT_TARGET=${report.get()?.constructor?.name ?? "NONE"}`);',
+  ].join("\n"), "utf8");
+  const output = await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [probe, outputFolder], { cwd: repository });
+    let stdout = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.pipe(process.stderr);
+    child.once("error", reject);
+    child.once("exit", (code) => (code === 0 ? resolve(stdout) : reject(new Error(`SUBMIT probe exited with code ${code}`))));
+  });
+  const target = /SUBMIT_TARGET=(\S+)/.exec(output)?.[1];
+  if (target?.toUpperCase() !== RENAMED_CLASS) throw new Error(`SUBMIT zcv_renamed resolved to ${target}, expected ${RENAMED_CLASS}`);
+  console.log(`SUBMIT zcv_renamed resolved to the renamed class ${RENAMED_CLASS}`);
+}
+
 try {
   await prepare();
   await runCommand(repositoryTool("abaplint"), [path.relative(repository, lintConfigPath)]);
   await runCommand(repositoryTool("abap_transpile"), [path.relative(repository, configPath)]);
   console.log("generated converter classes passed the open-abap transpiler");
+  await checkRenamedSubmitTarget();
   await fs.rm(tempRoot, { recursive: true, force: true });
   await fs.rm(lintConfigPath, { force: true });
   await fs.rm(toolTempRoot, { recursive: true, force: true });

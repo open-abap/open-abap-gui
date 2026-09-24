@@ -344,16 +344,31 @@ function applyFunctionKeyMetadata(ir) {
   }
 }
 
+// ZCL_FOO -> ZCL_FOO_1, _2, ...; the stem is shortened to keep 30 characters.
+function nextFreeClassName(name, taken) {
+  for (let index = 1; ; index++) {
+    const suffix = `_${index}`;
+    const candidate = `${name.slice(0, 30 - suffix.length)}${suffix}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
 function validateNames(ir, options, diagnostics) {
   let className = options.className ? options.className.toUpperCase() : defaultClassName(ir.programName ?? "");
+  let renamedFrom;
   if (!className) {
     diagnostics.push(diagnostic({ code: "GGCONV-E101", filename: options.filename, construct: "target class", message: "a target class name is required for this report name", suggestion: "Pass className/--class with a valid ABAP global class name.", phase: "options" }));
   } else {
     try {
       className = normalizeObjectName(className, "class");
-      const existingNames = Array.isArray(options.existingClassNames) ? options.existingClassNames : Array.isArray(options.existingClasses) ? options.existingClasses : [];
-      if (existingNames.map((name) => String(name).toUpperCase()).includes(className)) {
+      const existingNames = new Set((Array.isArray(options.existingClassNames) ? options.existingClassNames : Array.isArray(options.existingClasses) ? options.existingClasses : [])
+        .map((name) => String(name).toUpperCase()));
+      if (existingNames.has(className) && options.className) {
+        // An explicit name is what the caller asked for, so it is not replaced.
         diagnostics.push(diagnostic({ code: "GGCONV-E106", filename: options.filename, construct: className, message: `target class ${className} already exists`, suggestion: "Choose a different target class or perform an explicit, separately authorized replacement.", phase: "options" }));
+      } else if (existingNames.has(className)) {
+        renamedFrom = className;
+        className = nextFreeClassName(className, existingNames);
       }
     } catch (error) {
       diagnostics.push(diagnostic({ code: "GGCONV-E101", filename: options.filename, construct: className, message: error.message, suggestion: "Use an uppercase ABAP class name of at most 30 characters.", phase: "options" }));
@@ -361,7 +376,7 @@ function validateNames(ir, options, diagnostics) {
   }
   // Without a transaction code the class is still generated, but without
   // zif_gg_transaction_v1, so the transaction registry does not list it.
-  const withoutTransaction = "the class is generated without zif_gg_transaction_v1 and cannot be started as a transaction";
+  const withoutTransaction = "the class is generated without zif_gg_transaction_v1, so it cannot be started as a transaction and the transaction registry cannot resolve a SUBMIT of it";
   let transactionCode = options.transactionCode?.toUpperCase() ?? defaultTransactionCode(ir.programName ?? "");
   if (options.transactionCode) {
     try {
@@ -372,6 +387,23 @@ function validateNames(ir, options, diagnostics) {
     }
   } else if (!transactionCode) {
     diagnostics.push(diagnostic({ code: "GGCONV-W105", severity: "warning", filename: options.filename, construct: "transaction code", message: `the report name cannot be used as a scaffold transaction code; ${withoutTransaction}`, suggestion: "Pass transactionCode/--tcode explicitly.", phase: "options" }));
+  }
+  if (renamedFrom) {
+    // SUBMIT derives the class from the program name, so a renamed class is
+    // only found through the program in its transaction metadata.
+    const location = options.existingClassFiles?.[renamedFrom];
+    const reachability = transactionCode
+      ? "SUBMIT finds it through the transaction registry"
+      : "without a transaction code, SUBMIT cannot find it";
+    diagnostics.push(diagnostic({
+      code: "GGCONV-W106",
+      severity: "warning",
+      filename: options.filename,
+      construct: renamedFrom,
+      message: `class ${renamedFrom} already exists${location ? ` in ${location}` : ""}; the report is generated as ${className} instead, and ${reachability}`,
+      suggestion: "Pass className/--class to choose the name yourself.",
+      phase: "options",
+    }));
   }
   ir.targetClassName = className;
   ir.transactionCode = transactionCode;

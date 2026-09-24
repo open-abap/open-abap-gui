@@ -344,16 +344,36 @@ const REPORT_WITH_LOCAL_CLASS = (name) => [
   "",
 ].join("\n");
 
-test("batch conversion does not generate a class that already exists in the sources", async () => {
+test("batch conversion renames a default class name that already exists in the sources", async () => {
+  const project = await workspace({
+    "src/zone.prog.abap": REPORT("zone"),
+    "src/lib/zcl_one.clas.abap": GLOBAL_CLASS("zcl_one"),
+  }, LISTED);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  for (const run of ["first", "second"]) {
+    const summary = await convertConfiguredPrograms({ config });
+    const [program] = summary.programs;
+    assert.equal(program.supported, true, JSON.stringify(program.diagnostics));
+    assert.equal(program.targetClass, "ZCL_ONE_1", run);
+    const warning = program.diagnostics.find((item) => item.code === "GGCONV-W106");
+    assert.equal(warning?.severity, "warning", run);
+    assert.match(warning.message, /ZCL_ONE already exists in src\/lib\/zcl_one\.clas\.abap/);
+    // abaplint would accept a second file for ZCL_ONE and compile whichever it
+    // read first; the previous run's ZCL_ONE_1 must not push the name further.
+    assert.deepEqual(await fs.readdir(config.generatedFolder), ["zcl_one_1.clas.abap"], run);
+    assert.match(await fs.readFile(path.join(config.generatedFolder, "zcl_one_1.clas.abap"), "utf8"), /program = 'ZONE'/);
+  }
+});
+
+test("batch conversion keeps an explicit class name that already exists an error", async () => {
   const project = await workspace({
     "src/zone.prog.abap": REPORT("zone"),
     "src/lib/zcl_one.clas.abap": GLOBAL_CLASS("zcl_one"),
   }, LISTED);
   const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
   for (const mode of ["strict", "partial"]) {
-    const summary = await convertConfiguredPrograms({ config, overrides: { mode } });
+    const summary = await convertConfiguredPrograms({ config, overrides: { mode, className: "ZCL_ONE" } });
     assert.ok(summary.programs[0].diagnostics.some((item) => item.code === "GGCONV-E106"), mode);
-    // abaplint would accept a second file for ZCL_ONE and compile whichever it read first.
     await assert.rejects(() => fs.access(path.join(config.generatedFolder, "zcl_one.clas.abap")), mode);
   }
 });

@@ -28,7 +28,7 @@ ENDCLASS.
 CLASS zcl_example_types IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_TYPES' description = 'Converted executable report' ).
+    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_TYPES' description = 'Converted executable report' program = 'ZEXAMPLE_TYPES' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

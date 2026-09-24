@@ -17,7 +17,7 @@ ENDCLASS.
 CLASS zcl_example_transaction_report IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXTRAN' description = 'Report started by its own transaction' ).
+    rs_transaction = VALUE #( tcode = 'ZEXTRAN' description = 'Report started by its own transaction' program = 'ZEXAMPLE_TRANSACTION_REPORT' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

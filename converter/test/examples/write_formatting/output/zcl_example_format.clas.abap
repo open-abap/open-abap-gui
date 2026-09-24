@@ -17,7 +17,7 @@ ENDCLASS.
 CLASS zcl_example_format IMPLEMENTATION.
 
   METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_FORMAT' description = 'Converted executable report' ).
+    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_FORMAT' description = 'Converted executable report' program = 'ZEXAMPLE_FORMAT' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

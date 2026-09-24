@@ -99,13 +99,16 @@ export async function convertConfiguredPrograms({
   // folder and the --output file are not existing classes.
   const globalObjects = await discoverGlobalObjects(config, [targetFolder]);
   const replaced = outputFile ? path.resolve(outputFile) : undefined;
-  const existingClassNames = [...new Set([
-    ...(overrides.existingClassNames ?? []),
-    ...[...globalObjects].filter(([, filename]) => filename !== replaced).map(([name]) => name),
-  ])];
+  const existing = [...globalObjects].filter(([, filename]) => filename !== replaced);
+  const existingClassNames = [...new Set([...(overrides.existingClassNames ?? []), ...existing.map(([name]) => name)])];
+  // Named in GGCONV-W106 when a default class name is taken.
+  const existingClassFiles = {
+    ...Object.fromEntries(existing.map(([name, filename]) => [name, path.relative(config.root, filename).replaceAll("\\", "/")])),
+    ...(overrides.existingClassFiles ?? {}),
+  };
   const converted = [];
   for (const program of discovered) {
-    const plan = conversionPlan(config, program, { ...overrides, transactions, existingClassNames });
+    const plan = conversionPlan(config, program, { ...overrides, transactions, existingClassNames, existingClassFiles });
     const result = await runOne(converter, plan, fallbackStrategy);
     converted.push({ program, result });
     if (typeof onResult === "function") await onResult({ program, result });
@@ -126,7 +129,8 @@ export async function convertConfiguredPrograms({
     await fs.mkdir(outputFile ? path.dirname(path.resolve(outputFile)) : targetFolder, { recursive: true });
     for (const { result } of converted) {
       if (!result.classSource) continue;
-      // Partial mode still emits a class whose name is taken (GGCONV-E106);
+      // Partial mode still emits an explicitly named class whose name is taken
+      // (GGCONV-E106; a default name is renamed instead, GGCONV-W106);
       // writing it would put a second definition of that class in the build.
       if (result.diagnostics.some((item) => item.code === "GGCONV-E106")) continue;
       const targetClass = result.manifest?.targetClass ?? result.reportIR?.targetClassName;
