@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <PROGDIR>
+    <NAME>ZEXAMPLE_STATUS</NAME>
+    <SUBC>1</SUBC>
+   </PROGDIR>
+   <CUA>
+    <STA>
+     <RSMPE_STAT>
+      <CODE>LIST</CODE>
+      <MODAL>D</MODAL>
+      <INT_NOTE>Counter list</INT_NOTE>
+     </RSMPE_STAT>
+    </STA>
+    <FUN>
+     <RSMPE_FUNT>
+      <CODE>ADD</CODE>
+      <FUN_TEXT>Add one</FUN_TEXT>
+      <INFO_TEXT>Increase the counter</INFO_TEXT>
+     </RSMPE_FUNT>
+     <RSMPE_FUNT>
+      <CODE>RESET</CODE>
+      <FUN_TEXT>Reset</FUN_TEXT>
+      <INFO_TEXT>Set the counter to zero</INFO_TEXT>
+     </RSMPE_FUNT>
+    </FUN>
+    <SET>
+     <RSMPE_STAF>
+      <STATUS>LIST</STATUS>
+      <FUNCTION>ADD</FUNCTION>
+     </RSMPE_STAF>
+     <RSMPE_STAF>
+      <STATUS>LIST</STATUS>
+      <FUNCTION>RESET</FUNCTION>
+     </RSMPE_STAF>
+    </SET>
+    <TIT>
+     <RSMPE_TITT>
+      <CODE>MAIN</CODE>
+      <TEXT>&amp;1 report</TEXT>
+     </RSMPE_TITT>
+    </TIT>
+   </CUA>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>Counter with a GUI status</ENTRY>
+     <LENGTH>25</LENGTH>
+    </item>
+   </TPOOL>
+  </asx:values>
+ </asx:abap>
+</abapGit>
