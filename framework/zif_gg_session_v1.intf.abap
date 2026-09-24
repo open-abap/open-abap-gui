@@ -31,9 +31,14 @@ INTERFACE zif_gg_session_v1 PUBLIC.
   "! Execute MESSAGE with processor-specific ABAP semantics. Error and warning
   "! messages may abort the current callback and return control to the host,
   "! and the types A and X end the program without returning at all.
+  "! ia_text is the operand of MESSAGE oref/text TYPE ..., whatever it is: an
+  "! object implementing IF_MESSAGE, such as an exception, gives its text,
+  "! any other value is converted to text. When supplied it replaces
+  "! is_message-text.
   METHODS message
     IMPORTING
-      is_message TYPE zif_gg_session_types_v1=>ty_message.
+      is_message TYPE zif_gg_session_types_v1=>ty_message
+      ia_text    TYPE any OPTIONAL.
 
   "! Session-scoped replacement for classic EXPORT/IMPORT ... MEMORY ID.
   METHODS export_memory

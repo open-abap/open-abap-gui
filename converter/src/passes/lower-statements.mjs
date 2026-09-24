@@ -869,11 +869,22 @@ function parseMessage(raw, context) {
     operands.slice(0, 4).forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
     return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
   }
-  const literal = body
+  const operand = body
     .replace(/\s+DISPLAY\s+LIKE\s+'?[AEISWX]'?\s*$/i, "")
     .replace(/\s+TYPE\s+['"]?[AEISWX]['"]?\s*$/i, "")
     .trim();
-  return `io_session->message( VALUE #( type = ${typeExpr} text = ${expressionText(literal, context)}${displayField} ) ).`;
+  const value = valueExpression(operand, context);
+  if (/^'.*'$/s.test(value) || /^\|.*\|$/s.test(value) || /^`.*`$/s.test(value)) {
+    return `io_session->message( VALUE #( type = ${typeExpr} text = ${value}${displayField} ) ).`;
+  }
+  // `MESSAGE oref TYPE ...` and `MESSAGE text TYPE ...` look the same here: the
+  // operand may be an exception object, whose text a string template cannot
+  // produce, so the session inspects it at runtime.
+  return [
+    "io_session->message(",
+    `  is_message = VALUE #( type = ${typeExpr}${displayField} )`,
+    `  ia_text    = ${value} ).`,
+  ].join("\n");
 }
 
 // A static event handler of a local class cannot receive io_owner and

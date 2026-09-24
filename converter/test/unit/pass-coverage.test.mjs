@@ -271,3 +271,36 @@ test("lowers MESSAGE WITH operands that are string templates or literals with sp
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /v1 = ls_data-configuration v2 = \|\{ lv_token\(5\) \}\| \) \)\./);
 });
+
+test("passes a MESSAGE operand that may be an exception object to the session untouched", () => {
+  resetLines();
+  const context = { replacements: [], selections: [], selectionState: {} };
+  const lower = (source) => lowerStatement(statement("Message", source), context);
+  // `MESSAGE lx_error TYPE 'E'` may name an exception; the session reads its
+  // text at runtime, which a string template around it could not.
+  assert.equal(
+    lower("MESSAGE lx_error TYPE 'E'."),
+    [
+      "io_session->message(",
+      "  is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_error )",
+      "  ia_text    = lx_error ).",
+    ].join("\n"),
+  );
+  assert.equal(
+    lower("MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'."),
+    [
+      "io_session->message(",
+      "  is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_success display_like = zif_gg_session_types_v1=>message_type_error )",
+      "  ia_text    = lx_error ).",
+    ].join("\n"),
+  );
+  // Literals and templates are text already and stay in is_message-text.
+  assert.equal(
+    lower("MESSAGE 'done' TYPE 'I'."),
+    "io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_info text = 'done' ) ).",
+  );
+  assert.equal(
+    lower("MESSAGE |{ lv_count } rows| TYPE 'S'."),
+    "io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_success text = |{ lv_count } rows| ) ).",
+  );
+});

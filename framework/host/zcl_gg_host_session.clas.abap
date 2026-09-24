@@ -100,6 +100,12 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_value) TYPE string.
 
   PRIVATE SECTION.
+    CLASS-METHODS text_of
+      IMPORTING
+        ia_value       TYPE any
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
     DATA mo_list      TYPE REF TO zcl_gg_host_list.
     DATA mo_compatibility TYPE REF TO zif_gg_compatibility_v1.
     DATA mv_program   TYPE zif_gg_session_types_v1=>ty_program.
@@ -286,6 +292,9 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     DATA lv_text TYPE string.
 
     ls_message = is_message.
+    IF ia_text IS SUPPLIED.
+      ls_message-text = text_of( ia_text ).
+    ENDIF.
     IF ls_message-id IS NOT INITIAL AND ls_message-number IS NOT INITIAL.
       MESSAGE ID ls_message-id TYPE ls_message-type NUMBER ls_message-number
         WITH ls_message-v1 ls_message-v2 ls_message-v3 ls_message-v4 INTO lv_text.
@@ -304,6 +313,30 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     RAISE EXCEPTION NEW zcx_gg_control_flow(
       iv_kind      = zcx_gg_control_flow=>kind_message
       iv_operation = ls_message-text ).
+  ENDMETHOD.
+
+  METHOD text_of.
+* MESSAGE oref TYPE ... shows the object's IF_MESSAGE text, MESSAGE text
+* TYPE ... the text itself; the operand's type decides which one this is.
+    DATA lv_kind TYPE c LENGTH 1.
+    DATA lo_object TYPE REF TO object.
+    DATA lo_message TYPE REF TO if_message.
+
+    DESCRIBE FIELD ia_value TYPE lv_kind.
+    IF lv_kind = cl_abap_typedescr=>typekind_oref.
+      lo_object = ia_value.
+      IF lo_object IS NOT BOUND.
+        RETURN.
+      ENDIF.
+      TRY.
+          lo_message ?= lo_object.
+          rv_text = lo_message->get_text( ).
+        CATCH cx_sy_move_cast_error.
+          rv_text = cl_abap_typedescr=>describe_by_object_ref( lo_object )->get_relative_name( ).
+      ENDTRY.
+    ELSE.
+      rv_text = ia_value.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_session_v1~stop.

@@ -81,6 +81,27 @@ async function prepare() {
   if (!exceptionBlock.classSource || !exceptionBlock.supported) throw new Error("exception-block validation fixture was not converted");
   await fs.writeFile(path.join(inputFolder, "ZCL_CV_EXC.clas.abap"), exceptionBlock.classSource, "utf8");
 
+  // MESSAGE with an exception object or a variable as its operand passes it to
+  // the session untouched; a string template cannot hold an object.
+  const messageOperand = await convertProgram({
+    source: [
+      "REPORT zcv_msgref.",
+      "DATA gv_text TYPE string.",
+      "START-OF-SELECTION.",
+      "  TRY.",
+      "      RAISE EXCEPTION TYPE cx_sy_zerodivide.",
+      "    CATCH cx_root INTO DATA(lx_error).",
+      "      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.",
+      "  ENDTRY.",
+      "  MESSAGE gv_text TYPE 'I'.",
+    ].join("\n"),
+    filename: "zcv_msgref.prog.abap",
+    className: "ZCL_CV_MSGREF",
+    transactionCode: "ZCVMSGREF",
+  });
+  if (!messageOperand.classSource || !messageOperand.supported) throw new Error("MESSAGE operand fixture was not converted");
+  await fs.writeFile(path.join(inputFolder, "ZCL_CV_MSGREF.clas.abap"), messageOperand.classSource, "utf8");
+
   const dynamicWriteSupported = await convertProgram({
     source: [
       "REPORT zcv_dynamic_write_supported.",

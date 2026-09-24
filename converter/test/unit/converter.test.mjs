@@ -791,8 +791,8 @@ test("keeps dynamic MESSAGE DISPLAY LIKE out of the text and into display_like",
     filename: "zmsg_display.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.match(result.classSource, /message_type_success text = \|\{ gv_text \}\| display_like = zif_gg_session_types_v1=>message_type_error/);
-  assert.doesNotMatch(result.classSource, /DISPLAY LIKE 'E' \}\|/);
+  assert.match(result.classSource, /is_message = VALUE #\( type = zif_gg_session_types_v1=>message_type_success display_like = zif_gg_session_types_v1=>message_type_error \)\s+ia_text {4}= gv_text \)\./);
+  assert.doesNotMatch(result.classSource, /DISPLAY LIKE/);
 
   const literal = await convertProgram({
     source: "REPORT zmsg_display_lit.\nSTART-OF-SELECTION.\nMESSAGE 'looks like an error' TYPE 'S' DISPLAY LIKE 'E'.\n",
@@ -845,7 +845,7 @@ test("emits valid hoisted local classes for chained declarations and divider com
   assert.match(helper, /DATA: BEGIN OF ls_row, id TYPE i, END OF ls_row\./);
   assert.match(helper, /DATA lv_a TYPE i\./);
   assert.match(helper, /DATA lv_b TYPE i\./);
-  assert.match(helper, /message_type_success text = \|\{ lv_a \}\| display_like = zif_gg_session_types_v1=>message_type_error/);
+  assert.match(helper, /message_type_success display_like = zif_gg_session_types_v1=>message_type_error \)\s+ia_text {4}= lv_a \)\./);
 });
 
 test("emits valid hoisted structures for non-chained BEGIN OF declarations", async () => {
