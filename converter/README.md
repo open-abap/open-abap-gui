@@ -108,14 +108,9 @@ Selection texts can be supplied as a `Map`, object, or simple text-pool string
 through `textPool`; unresolved `TEXT-*` keys remain deterministic and produce a
 `GGCONV-W101` warning. Include content participates in the source hash.
 
-Message-class references remain executable when the target ABAP message class
-is available at runtime. Without `messageMetadata`, the converter records an
-`GGCONV-I101` external-dependency diagnostic. Supplying a message map makes
-missing class/number entries an actionable `GGCONV-E306` error instead:
-
-```js
-messageMetadata: { ZMSG: { "001": { text: "Value &1" } } },
-```
+Every message class a `MESSAGE` statement names is assumed to exist in the
+target system; the message is raised through the session at runtime and the
+converter reports nothing about it.
 
 Every type a declaration references is assumed to exist in the target system.
 `TYPES` declarations are emitted exactly as written, and `TABLES <name>` becomes

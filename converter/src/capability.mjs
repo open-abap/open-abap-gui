@@ -53,7 +53,7 @@ function supportedClassicWriteFormat(text) {
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
-  return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
+  return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
 export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {

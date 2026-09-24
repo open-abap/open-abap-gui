@@ -297,6 +297,25 @@ test("rewrites system fields in every carried-over statement, not only in condit
   assert.match(result.classSource, /DATA gv_program TYPE sy-repid\./);
 });
 
+test("writes NO-GROUPING fields without the addition", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT znogrouping.",
+      "TYPES: BEGIN OF ty_date, count TYPE i, END OF ty_date.",
+      "DATA ls_date TYPE ty_date.",
+      "START-OF-SELECTION.",
+      "  WRITE ls_date-count NO-GROUPING.",
+      "  WRITE: / ls_date-count NO-GROUPING NO-ZERO, 20 ls_date-count NO-GROUPING.",
+    ].join("\n"),
+    filename: "znogrouping.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /lo_writer->write_field\( VALUE #\( text = \|\{ ls_date-count \}\| \) \)\./);
+  assert.match(result.classSource, /text = \|\{ ls_date-count \}\| placement = VALUE #\( new_line = abap_true \) write_format = VALUE #\( no_zero = abap_true \)/);
+  assert.match(result.classSource, /text = \|\{ ls_date-count \}\| placement = VALUE #\( position = 20 \)/);
+  assert.doesNotMatch(result.classSource, /NO-GROUPING|TODO GGCONV/i);
+});
+
 test("terminates each element of a chained statement", async () => {
   const result = await convertProgram({
     source: [
@@ -1853,26 +1872,13 @@ test("preserves dynamic MESSAGE operands", async () => {
   assert.match(result.classSource, /v2 = 'fixed'/);
 });
 
-test("reports external message-class metadata requirements", async () => {
-  const source = "REPORT zmsgmeta.\nMESSAGE i001(zmsg) WITH 'value'.";
-  const external = await convertProgram({ source, filename: "zmsgmeta.prog.abap" });
-  assert.ok(external.diagnostics.some((item) => item.code === "GGCONV-I101"));
-  assert.equal(external.supported, true);
-
-  const missing = await convertProgram({
-    source,
+test("assumes message classes are known", async () => {
+  const result = await convertProgram({
+    source: "REPORT zmsgmeta.\nSTART-OF-SELECTION.\nMESSAGE i001(zmsg) WITH 'value'.\nMESSAGE e002(zmsg).",
     filename: "zmsgmeta.prog.abap",
-    messageMetadata: { ZMSG: { "002": { text: "other" } } },
   });
-  assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E306"));
-  assert.equal(missing.supported, false);
-
-  const supplied = await convertProgram({
-    source,
-    filename: "zmsgmeta.prog.abap",
-    messageMetadata: { ZMSG: { "001": { text: "Message &1" } } },
-  });
-  assert.equal(supplied.diagnostics.some((item) => item.code === "GGCONV-E306"), false);
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.diagnostics, []);
 });
 
 test("emits every top-level continuation in a deterministic resume dispatcher", async () => {

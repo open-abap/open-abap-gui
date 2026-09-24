@@ -381,7 +381,7 @@ function lowerDynamicWriteFallback(dynamic, context) {
   const dynamicName = "lv_ggconv_dynamic_name";
   const dynamicValue = "<ggconv_dynamic_value>";
   const rewritten = dynamic.rewrite(dynamicValue);
-  const unsupportedFormatting = /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(rewritten);
+  const unsupportedFormatting = /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(rewritten);
   const body = unsupportedFormatting
     ? ["* TODO GGCONV-E501: dynamic WRITE formatting requires manual lowering."]
     : parseWrite(rewritten, context).split("\n");
@@ -726,6 +726,9 @@ function parseWrite(raw, context) {
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\s+[^\s,]+/gi, "")
     .replace(/\bNO-GAP\b|\bNO-ZERO\b|\bNO-SIGN\b/gi, "")
+    // The list writer never inserts thousands separators, so every field is
+    // already written without grouping.
+    .replace(/\bNO-GROUPING\b/gi, "")
     .replace(/\bDECIMALS\s+\d+/gi, "")
     .replace(/\bROUND\s+\d+/gi, "")
     .replace(/\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/gi, "")
@@ -768,7 +771,7 @@ function unsupportedWriteFormat(text) {
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
-  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
+  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
 function parseFormat(raw, context) {

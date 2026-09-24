@@ -344,57 +344,6 @@ function applyFunctionKeyMetadata(ir) {
   }
 }
 
-function messageMetadataEntry(metadata, id, number) {
-  if (!metadata) return undefined;
-  const classes = metadata instanceof Map ? metadata : metadata.messages ?? metadata.classes ?? metadata;
-  const messageClass = classes instanceof Map
-    ? classes.get(id) ?? classes.get(id.toUpperCase())
-    : classes?.[id] ?? classes?.[id.toUpperCase()];
-  if (!messageClass) return undefined;
-  const messages = messageClass instanceof Map ? messageClass : messageClass.messages ?? messageClass;
-  return messages instanceof Map
-    ? messages.get(number) ?? messages.get(String(number).padStart(3, "0"))
-    : messages?.[number] ?? messages?.[String(number).padStart(3, "0")];
-}
-
-function applyMessageMetadata(ir, options, diagnostics) {
-  const references = ir.statements.map((statement) => {
-    const match = /\bMESSAGE\s+(?:[AEISWX])?(\d{3})\(([A-Z0-9_\/]+)\)/i.exec(statement.text);
-    return match ? { statement, id: match[2].toUpperCase(), number: match[1] } : undefined;
-  }).filter(Boolean);
-  if (!references.length) return;
-  const metadata = options.messageMetadata ?? options.messageClasses ?? options.messages;
-  for (const { statement, id, number } of references) {
-    const entry = messageMetadataEntry(metadata, id, number);
-    if (entry) continue;
-    if (metadata) {
-      diagnostics.push(diagnostic({
-        code: "GGCONV-E306",
-        filename: statement.filename,
-        start: statement.span.start,
-        end: statement.span.end,
-        construct: `${id}(${number})`,
-        message: `message text for ${id}(${number}) was not supplied by message metadata`,
-        suggestion: "Pass messageMetadata with the message class and three-digit message number, or keep the runtime message class available.",
-        phase: "messages",
-      }));
-    } else {
-      diagnostics.push(diagnostic({
-        code: "GGCONV-I101",
-        severity: "info",
-        filename: statement.filename,
-        start: statement.span.start,
-        end: statement.span.end,
-        construct: `${id}(${number})`,
-        message: `message text for ${id}(${number}) remains an external runtime dependency`,
-        suggestion: "Pass messageMetadata to make the message text available during conversion and validation.",
-        phase: "messages",
-      }));
-    }
-  }
-  ir.messageMetadata = metadata ? { supplied: true } : { supplied: false, references: references.map(({ id, number }) => `${id}(${number})`).sort() };
-}
-
 function validateNames(ir, options, diagnostics) {
   let className = options.className ? options.className.toUpperCase() : defaultClassName(ir.programName ?? "");
   if (!className) {
@@ -601,7 +550,6 @@ export async function convertProgram(input = {}) {
   applyTextPool(ir, options);
   applySelectionMetadata(ir, options);
   applyFunctionKeyMetadata(ir);
-  applyMessageMetadata(ir, options, diagnostics);
   diagnostics.push(...textFallbackDiagnostics(ir, options));
   diagnostics.push(...scanCapabilities(ir, ir.statements, options));
   reportTimeLimit();
