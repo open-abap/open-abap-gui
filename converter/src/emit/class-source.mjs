@@ -276,9 +276,10 @@ function reportMember(ir, base) {
 // SELECT-OPTIONS and RANGES ... FOR target get a range table of the target's
 // type, so LOW and HIGH compare, convert and pass to typed parameters as in the
 // report. A dynamic FOR (name) has no static type; its LOW and HIGH are strings,
-// as the screen transports them.
+// as the screen transports them. Inside a chain the target still carries the
+// comma that separates it from the next element.
 function rangeType(ir, target, member = (base) => reportMember(ir, base)) {
-  const match = /^([A-Z][A-Z0-9_\/]*)((?:-[A-Z][A-Z0-9_]*)*)$/i.exec(String(target ?? "").trim());
+  const match = /^([A-Z][A-Z0-9_\/]*)((?:-[A-Z][A-Z0-9_]*)*)$/i.exec(String(target ?? "").trim().replace(/\s*[,.]$/, ""));
   if (!match) return "TYPE RANGE OF string";
   const resolved = member(match[1].toUpperCase());
   return resolved
