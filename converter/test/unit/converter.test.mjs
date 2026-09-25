@@ -116,6 +116,7 @@ test("declares each selection parameter member with the parameter's own type", a
       "PARAMETERS p_stat TYPE ty_status.",
       "PARAMETERS p_list TYPE c LENGTH 5 AS LISTBOX VISIBLE LENGTH 20.",
       "SELECT-OPTIONS s_date FOR p_date.",
+      "SELECT-OPTIONS s_dyn FOR (gv_carrid).",
       "START-OF-SELECTION.",
       "  p_date = p_date + 1.",
     ].join("\n"),
@@ -146,6 +147,8 @@ test("declares each selection parameter member with the parameter's own type", a
     "DATA mv_p_rad1 TYPE c LENGTH 1.",
     "DATA mv_p_stat TYPE ty_status.",
     "DATA mv_s_date LIKE RANGE OF mv_p_date.",
+    // A dynamic FOR has no static type.
+    "DATA mv_s_dyn TYPE RANGE OF string.",
   ]);
   // Assignments keep ABAP's own conversion, and the screen value is only
   // rewritten, in template form, when the program changed it.

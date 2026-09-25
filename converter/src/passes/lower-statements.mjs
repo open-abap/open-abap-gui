@@ -1084,7 +1084,7 @@ function lowerSingleStatement(statement, context) {
     const match = /^RANGES\s+([A-Z][A-Z0-9_]*)\s+FOR\s+(.+)$/i.exec(stripPeriod(raw));
     if (!match) return undefined;
     const name = match[1].toLowerCase();
-    const type = context.rangeDeclarations?.[match[1].toUpperCase()] ?? "TYPE zif_gg_selection_screen_types=>ty_ranges";
+    const type = context.rangeDeclarations?.[match[1].toUpperCase()] ?? "TYPE RANGE OF string";
     return `DATA ${name} ${type}.`;
   }
   if (statement.kind === "Assign") {

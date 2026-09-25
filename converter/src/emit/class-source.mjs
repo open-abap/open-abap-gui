@@ -273,14 +273,13 @@ function reportMember(ir, base) {
       ? base.toLowerCase() : undefined);
 }
 
-const SHARED_RANGES = "zif_gg_selection_screen_types=>ty_ranges";
-
 // SELECT-OPTIONS and RANGES ... FOR target get a range table of the target's
 // type, so LOW and HIGH compare, convert and pass to typed parameters as in the
-// report. A dynamic FOR (name) has no static type and keeps the shared ranges.
+// report. A dynamic FOR (name) has no static type; its LOW and HIGH are strings,
+// as the screen transports them.
 function rangeType(ir, target, member = (base) => reportMember(ir, base)) {
   const match = /^([A-Z][A-Z0-9_\/]*)((?:-[A-Z][A-Z0-9_]*)*)$/i.exec(String(target ?? "").trim());
-  if (!match) return `TYPE ${SHARED_RANGES}`;
+  if (!match) return "TYPE RANGE OF string";
   const resolved = member(match[1].toUpperCase());
   return resolved
     ? `LIKE RANGE OF ${resolved}${match[2].toLowerCase()}`
