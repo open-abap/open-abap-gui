@@ -60,8 +60,9 @@ for (const name of examples) {
     }
     assert.deepEqual(actualFiles, await listFiles(expectedFolder), `example ${name} produced a different set of files; run with --update to accept`);
     for (const file of actualFiles) {
-      const actual = await fs.readFile(path.join(actualFolder, file), "utf8");
-      const expected = await fs.readFile(path.join(expectedFolder, file), "utf8");
+      // compare without line endings, git core.autocrlf may check out output/ with CRLF
+      const actual = (await fs.readFile(path.join(actualFolder, file), "utf8")).replace(/\r\n/g, "\n");
+      const expected = (await fs.readFile(path.join(expectedFolder, file), "utf8")).replace(/\r\n/g, "\n");
       assert.equal(actual, expected, `example ${name}: output/${file} changed; run with --update to accept`);
     }
     console.log(`example ${name} matches (${actualFiles.length} files)`);
