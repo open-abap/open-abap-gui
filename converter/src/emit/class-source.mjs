@@ -1934,8 +1934,9 @@ function helperMethodContext(ir, localClass, localMethod) {
     ...(ir.selections ?? []).flatMap((screen) => (screen.elements ?? [])
       .filter((item) => item.name)
       .flatMap((item) => {
-        const reference = ir.statePlan?.selectionState?.[item.name]?.member ?? item.name.toLowerCase();
-        const fields = item.ranges
+        // The member lives on the owner class, like the report globals above.
+        const reference = `${context.ownerPrefix}${ir.statePlan?.selectionState?.[item.name]?.member ?? item.name.toLowerCase()}`;
+        const fields = item.kind === "select-option"
           ? [[`${item.name}-low`, `${reference}[ 1 ]-low`], [`${item.name}-high`, `${reference}[ 1 ]-high`]]
           : [];
         return [...fields, [item.name, reference]];

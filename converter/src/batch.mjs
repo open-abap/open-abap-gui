@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "./api.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
-import { conversionPlan, discoverGlobalObjects, discoverPrograms, discoverTransactions } from "./config.mjs";
+import { conversionPlan, discoverGlobalObjects, discoverIncludeFolders, discoverPrograms, discoverTransactions } from "./config.mjs";
 
 async function writeAtomically(filename, contents) {
   const temporary = `${filename}.tmp-${process.pid}`;
@@ -95,6 +95,7 @@ export async function convertConfiguredPrograms({
   }
 
   const transactions = overrides.transactions ?? await discoverTransactions(config);
+  const includeFolders = overrides.includeFolders ?? await discoverIncludeFolders(config);
   // What this run writes replaces the files it is written over, so the target
   // folder and the --output file are not existing classes.
   const globalObjects = await discoverGlobalObjects(config, [targetFolder]);
@@ -108,7 +109,7 @@ export async function convertConfiguredPrograms({
   };
   const converted = [];
   for (const program of discovered) {
-    const plan = conversionPlan(config, program, { ...overrides, transactions, existingClassNames, existingClassFiles });
+    const plan = conversionPlan(config, program, { ...overrides, transactions, includeFolders, existingClassNames, existingClassFiles });
     const result = await runOne(converter, plan, fallbackStrategy);
     converted.push({ program, result });
     if (typeof onResult === "function") await onResult({ program, result });

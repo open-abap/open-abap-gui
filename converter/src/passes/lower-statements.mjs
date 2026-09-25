@@ -926,10 +926,25 @@ function qualifyOwnStaticCall(statement, context) {
   return { ...statement, text: `${call[1]}${context.localClassName.toLowerCase()}=>${call[2]}${call[3]}${statement.text.slice(call[0].length)}` };
 }
 
+// A local class becomes a helper class whose constructor takes the owner and
+// the session, so NEW lcl( ... ) passes them like CREATE OBJECT does. A single
+// unnamed constructor argument would need the parameter name and is left as is.
+function bridgeLocalConstructors(statement, context) {
+  const localClasses = Object.keys(context.localClassRenames ?? {});
+  if (!localClasses.length || !/\bNEW\s/i.test(statement.text)) return statement;
+  const owner = context.localClassOwner ?? "me";
+  const session = context.sessionVariable ?? "io_session";
+  const pattern = new RegExp(`\\bNEW\\s+(${localClasses.join("|")})\\s*\\(\\s*(\\)|[A-Z][A-Z0-9_]*\\s*=(?!=))`, "gi");
+  const text = transformOutsideStrings(statement.text, (part) => part.replace(pattern, (match, name, next) =>
+    `NEW ${name}( io_owner = ${owner} io_session = ${session} ${next}`));
+  return text === statement.text ? statement : { ...statement, text };
+}
+
 export function lowerStatement(original, context) {
-  const statement = qualifyOwnStaticCall(original, context);
+  const bridged = bridgeLocalConstructors(original, context);
+  const statement = qualifyOwnStaticCall(bridged, context);
   let lowered = lowerSingleStatement(statement, context);
-  if (statement !== original && typeof lowered === "string") {
+  if (statement !== bridged && typeof lowered === "string") {
     // The class name was only added for the bridge; the call stays unqualified.
     const helper = context.localClassRenames?.[context.localClassName] ?? context.localClassName.toLowerCase();
     lowered = lowered.replace(new RegExp(`^(\\s*)${helper}\\s*=>\\s*`, "i"), "$1");
