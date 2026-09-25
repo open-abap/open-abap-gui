@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "./api.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
-import { conversionPlan, discoverPrograms } from "./config.mjs";
+import { conversionPlan, discoverGlobalObjects, discoverPrograms, discoverTransactions } from "./config.mjs";
 
 async function writeAtomically(filename, contents) {
   const temporary = `${filename}.tmp-${process.pid}`;
@@ -12,25 +12,34 @@ async function writeAtomically(filename, contents) {
   await fs.rename(temporary, filename);
 }
 
+// Helper classes count too: they are written to the same folder, and a helper
+// name is derived from the first 24 characters of its target class.
+function generatedClassNames(result) {
+  const targetClass = result.manifest?.targetClass ?? result.reportIR?.targetClassName;
+  return [targetClass, ...(result.helperSources ?? []).map((helper) => helper.className)]
+    .filter(Boolean)
+    .map((name) => String(name).toUpperCase());
+}
+
 function collisionDiagnostics(converted) {
   const byClass = new Map();
   const diagnostics = [];
   for (const entry of converted) {
-    const targetClass = entry.result.manifest?.targetClass ?? entry.result.reportIR?.targetClassName;
-    if (!targetClass) continue;
-    const first = byClass.get(targetClass);
-    if (first === undefined) {
-      byClass.set(targetClass, entry);
-      continue;
+    for (const className of generatedClassNames(entry.result)) {
+      const first = byClass.get(className);
+      if (first === undefined) {
+        byClass.set(className, entry);
+        continue;
+      }
+      diagnostics.push(diagnostic({
+        code: "GGCONV-E115",
+        filename: entry.program.filename,
+        construct: className,
+        message: `class ${className} is produced by both ${first.program.relativePath} and ${entry.program.relativePath}`,
+        suggestion: "Rename one of the reports, or pass an explicit class name for one of them.",
+        phase: "batch",
+      }));
     }
-    diagnostics.push(diagnostic({
-      code: "GGCONV-E115",
-      filename: entry.program.filename,
-      construct: targetClass,
-      message: `target class ${targetClass} is produced by both ${first.program.relativePath} and ${entry.program.relativePath}`,
-      suggestion: "Rename one of the reports, or pass an explicit class name for one of them.",
-      phase: "batch",
-    }));
   }
   return diagnostics;
 }
@@ -46,9 +55,9 @@ async function runOne(converter, plan, fallbackStrategy) {
 }
 
 /**
- * Convert every program an abap_transpile.json selects.
+ * Convert every program in an abap_transpile.json's converter input folders.
  *
- * Writes go to `<output_folder>_converter`, which the converter owns: a full
+ * Writes go to `converter.output_folder`, which the converter owns: a full
  * run clears it first, so a class no current program produces cannot survive as
  * a stale transpiler input. Clearing is skipped for a subset run (`clear:
  * false`, what `--program` passes) because the classes it does not produce are
@@ -64,13 +73,11 @@ export async function convertConfiguredPrograms({
   clear = true,
   outputFolder,
   outputFile,
-  manifestFolder,
   onResult,
   converter = convertProgram,
 } = {}) {
   const discovered = programs ?? await discoverPrograms(config);
   const targetFolder = outputFolder ? path.resolve(outputFolder) : config.generatedFolder;
-  const targetManifestFolder = manifestFolder ? path.resolve(manifestFolder) : targetFolder;
 
   if (outputFile && discovered.length > 1) {
     return {
@@ -87,9 +94,21 @@ export async function convertConfiguredPrograms({
     };
   }
 
+  const transactions = overrides.transactions ?? await discoverTransactions(config);
+  // What this run writes replaces the files it is written over, so the target
+  // folder and the --output file are not existing classes.
+  const globalObjects = await discoverGlobalObjects(config, [targetFolder]);
+  const replaced = outputFile ? path.resolve(outputFile) : undefined;
+  const existing = [...globalObjects].filter(([, filename]) => filename !== replaced);
+  const existingClassNames = [...new Set([...(overrides.existingClassNames ?? []), ...existing.map(([name]) => name)])];
+  // Named in GGCONV-W106 when a default class name is taken.
+  const existingClassFiles = {
+    ...Object.fromEntries(existing.map(([name, filename]) => [name, path.relative(config.root, filename).replaceAll("\\", "/")])),
+    ...(overrides.existingClassFiles ?? {}),
+  };
   const converted = [];
   for (const program of discovered) {
-    const plan = conversionPlan(config, program, overrides);
+    const plan = conversionPlan(config, program, { ...overrides, transactions, existingClassNames, existingClassFiles });
     const result = await runOne(converter, plan, fallbackStrategy);
     converted.push({ program, result });
     if (typeof onResult === "function") await onResult({ program, result });
@@ -108,9 +127,12 @@ export async function convertConfiguredPrograms({
       await fs.rm(targetFolder, { recursive: true, force: true });
     }
     await fs.mkdir(outputFile ? path.dirname(path.resolve(outputFile)) : targetFolder, { recursive: true });
-    if (targetManifestFolder !== targetFolder) await fs.mkdir(targetManifestFolder, { recursive: true });
     for (const { result } of converted) {
       if (!result.classSource) continue;
+      // Partial mode still emits an explicitly named class whose name is taken
+      // (GGCONV-E106; a default name is renamed instead, GGCONV-W106);
+      // writing it would put a second definition of that class in the build.
+      if (result.diagnostics.some((item) => item.code === "GGCONV-E106")) continue;
       const targetClass = result.manifest?.targetClass ?? result.reportIR?.targetClassName;
       const classFile = outputFile
         ? path.resolve(outputFile)
@@ -122,10 +144,6 @@ export async function convertConfiguredPrograms({
           helper.source,
         );
       }
-      const manifestFile = outputFile
-        ? `${classFile}.manifest.json`
-        : path.join(targetManifestFolder, `${String(targetClass).toLowerCase()}.manifest.json`);
-      await writeAtomically(manifestFile, `${JSON.stringify(result.manifest, null, 2)}\n`);
     }
   }
 

@@ -1,15 +1,9 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, OPEN_SQL_STATEMENTS, controlObjectTypes, convertibleFreeChainKeys, dynamicWriteOperand, freeChainKey, isConvertibleControlStatement, isMethodSafeLoop, isStaticOpenSql } from "./passes/lower-statements.mjs";
-import { compatibilityAdapter } from "./function-modules.mjs";
+import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
-  controlConstruction: "GGCONV-E510",
-  controlMethod: "GGCONV-E511",
-  eventRegistration: "GGCONV-E512",
-  functionModuleAdapter: "GGCONV-E513",
-  frontendOperation: "GGCONV-E514",
   dynamicType: "GGCONV-E515",
   unsupportedStatement: "GGCONV-E516",
 });
@@ -19,47 +13,15 @@ const ACTIONABLE_CATEGORIES = Object.freeze(Object.fromEntries(
 ));
 
 export function actionableDiagnosticCode(statement) {
-  const text = normalizedText(statement).toUpperCase();
-  if (statement.kind === "CallFunction") return ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter;
-  if (statement.kind === "SetHandler" || /\bSET\s+HANDLER\b|\bREGISTER(?:ED|ING)?\b/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.eventRegistration;
-  }
-  if (statement.kind === "CreateData" || /\bCREATE\s+DATA\b|CREATE_DYNAMIC_TABLE|CREATE_DYNAMIC/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
-  }
-  if (statement.kind === "FieldSymbol" || statement.kind === "Assign" || statement.kind === "Unassign") {
-    return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
-  }
-  if (statement.kind === "CreateObject" || /\bCONTROLS\b|\bCREATE\s+OBJECT\b|CL_SALV_TABLE=>FACTORY/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.controlConstruction;
-  }
-  if (/CL_GUI_FRONTEND_SERVICES|CL_GUI_CFW|CL_ABAP_BROWSER|CL_PROGRESS_INDICATOR/.test(text)) {
-    return ACTIONABLE_DIAGNOSTIC_CODES.frontendOperation;
-  }
-  if (statement.kind === "CallMethod" || /\bCALL\s+METHOD\b|->|=>/.test(text)) return ACTIONABLE_DIAGNOSTIC_CODES.controlMethod;
+  if (statement.kind === "FieldSymbol" || statement.kind === "Assign") return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
   return ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement;
 }
-
-const SUPPORTED_STATEMENTS = new Set([
-  "Comment", "Empty", "Report", "Program", "Data", "DataBegin", "DataEnd", "Constant", "Static", "Parameter", "SelectOption", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd",
-  "SelectionScreen", "StartOfSelection", "EndOfSelection", "LoadOfProgram", "Initialization", "AtSelectionScreen",
-  "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Write", "Skip", "Uline", "Format", "ScrollList",
-  "NewLine", "SetBlank", "Reserve", "NewPage", "Stop", "Message", "If", "Else", "ElseIf", "EndIf", "Do", "EndDo",
-  "Case", "When", "WhenOthers", "EndCase", "Loop", "EndLoop", "Move", "Return", "Hide", "GetCursor", "ReadLine",
-  "ModifyLine", "SetPFStatus", "SetTitlebar", "Leave", "AtSelectionScreenOutput", "LoopAtScreen", "ModifyScreen",
-  "Form", "EndForm", "Perform", "Translate", "TopOfPageDuringLineSelection", "CallSelectionScreen", "CallScreen", "EndClass",
-  "Try", "Catch", "Cleanup", "EndTry",
-  "Submit", "CallTransaction", "Include", "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable", "Assign",
-  "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
-  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase", "TypePools",
-  "Export", "Import", "FreeMemory",
-  "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
-]);
 
 function addStatementDiagnostic(diagnostics, statement, message, suggestion, code = "GGCONV-E501") {
   const resolvedCode = code === "GGCONV-E501" ? actionableDiagnosticCode(statement) : code;
   diagnostics.push(diagnostic({
     code: resolvedCode,
+    severity: resolvedCode.startsWith("GGCONV-W") ? "warning" : "error",
     filename: statement.filename,
     start: statement.span.start,
     end: statement.span.end,
@@ -92,31 +54,17 @@ function supportedClassicWriteFormat(text) {
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
-  return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
-}
-
-function isContextMenuStatement(ir, statement) {
-  return (ir.routines ?? []).some((routine) =>
-    /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""))
-    && (routine.statements ?? []).some((item) => item === statement
-      || (item.filename === statement.filename
-        && item.span?.start?.line === statement.span?.start?.line
-        && item.span?.start?.column === statement.span?.start?.column)));
+  return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
 export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   const diagnostics = [];
   const interfaces = new Set(ir.interfaces);
-  const convertibleObjectTypes = controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
-    parameters: (ir.routines ?? []).flatMap((routine) => routine.parameters ?? []),
-    statements,
-  });
-  const convertibleFreeChains = convertibleFreeChainKeys(statements, convertibleObjectTypes);
   for (const continuation of ir.continuations ?? []) {
     const unsafeContext = (continuation.controlStack ?? []).find((item) => ["Do", "Loop", "Try", "While"].includes(item.kind));
     if (unsafeContext) {
       const statement = statements.find((item) => item.filename === continuation.filename && item.span.start.line === continuation.span.start.line && item.span.start.column === continuation.span.start.column);
-      if (statement) addStatementDiagnostic(diagnostics, statement, `suspending navigation inside ${unsafeContext.kind.toUpperCase()} cannot be split safely yet`, "Move the suspension to an event boundary or provide an explicit continuation mapping.", "GGCONV-E402");
+      if (statement) addStatementDiagnostic(diagnostics, statement, `suspending navigation inside ${unsafeContext.kind.toUpperCase()} cannot be split safely yet`, "Move the suspension to an event boundary or provide an explicit continuation mapping.", "GGCONV-W402");
     }
   }
   for (const duplicate of ir.duplicateEvents ?? []) {
@@ -134,36 +82,11 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "dynamic or unproven ASSIGN cannot be lowered safely", "Use a method-local elementary field symbol with a static ASSIGN target, or convert it manually.", "GGCONV-E501");
       continue;
     }
-    if (statement.kind === "Free") {
-      const supportedDynamicReference = ir.dynamicAlv
-        && new RegExp(`\\b${ir.dynamicAlv.referenceMember}\\b`, "i").test(statement.text);
-      if (!supportedDynamicReference && !convertibleFreeChains.has(freeChainKey(statement))) {
-        addStatementDiagnostic(diagnostics, statement, "FREE is only lowered for the supported dynamic-ALV reference pattern", "Use CLEAR for data owned by the generated class or provide a dedicated FREE lowering rule.", "GGCONV-E516");
-      }
-      continue;
-    }
-    if (statement.kind === "CreateData" && /\b(?:TYPE|LIKE)\s*\(/i.test(statement.text)) {
-      addStatementDiagnostic(diagnostics, statement, "dynamic CREATE DATA type cannot be resolved safely", "Use a statically named TYPE or LIKE target, or provide a typed dynamic-data lowering rule.", "GGCONV-E515");
-      continue;
-    }
-    if (OPEN_SQL_STATEMENTS.has(statement.kind) && !isStaticOpenSql(statement)) {
-      addStatementDiagnostic(diagnostics, statement, "dynamic Open SQL cannot be preserved safely inside the generated method", "Use a statically named table and fields or provide a dedicated data-access lowering rule.", "GGCONV-E501");
-      continue;
-    }
     if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
-    const supportedSpecial = isConvertibleControlStatement(statement, convertibleObjectTypes)
-      || statement.kind === "Free" && convertibleFreeChains.has(freeChainKey(statement))
-      || (statement.kind === "CallFunction"
-      && (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(statement.text) || compatibilityAdapter(statement.text)))
-      || isContextMenuStatement(ir, statement);
-    if (statement.kind === "CallFunction" && !supportedSpecial) {
-      addStatementDiagnostic(diagnostics, statement, "CALL FUNCTION is not supported by the generated report method", "Use a supported scaffold operation or provide a dedicated function-module adapter.", "GGCONV-E501");
-      continue;
-    }
-    if (statement.kind === "Perform" && /\bPERFORM\s+\(|\bIN\s+PROGRAM\b/i.test(statement.text)) {
-      addStatementDiagnostic(diagnostics, statement, "dynamic or external PERFORM cannot be lowered safely", "Convert the routine to a local FORM or provide a manual method mapping.", "GGCONV-E401");
+    if (statement.kind === "Perform" && /\bPERFORM\s+\(/i.test(statement.text)) {
+      addStatementDiagnostic(diagnostics, statement, "dynamic PERFORM names a FORM that became a method", "Call the generated method directly or provide a manual method mapping.", "GGCONV-E401");
       continue;
     }
     if (statement.kind === "Write" && !supportedClassicWriteFormat(statement.text)) {
@@ -182,9 +105,6 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     const hasDynproFrontend = ir.programKind === "module-pool" && ir.dynproMetadata
       || ir.programKind === "report" && ir.screenMetadata;
     if (hasDynproFrontend && ["Module", "EndModule", "SetScreen", "LeaveScreen", "LeaveToScreen"].includes(statement.kind)) continue;
-    if (!SUPPORTED_STATEMENTS.has(statement.kind) && !LOWERING_RULES.has(statement.kind) && !supportedSpecial) {
-      addStatementDiagnostic(diagnostics, statement, `statement kind ${statement.kind} is not supported by this converter`, "Convert this statement manually or add a lowering rule.");
-    }
     if (/\b(CALL SCREEN|CALL SELECTION-SCREEN|CALL TRANSACTION|SUBMIT\b.*\bAND RETURN)\b/.test(text)) {
       interfaces.add("zif_gg_resumable_v1");
       ir.features.push("continuation");
@@ -192,10 +112,6 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     if (["Write", "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Hide", "ReadLine", "ModifyLine", "GetCursor", "SetPFStatus", "SetTitlebar"].includes(statement.kind) || /LINE-SIZE|LINE-COUNT|NO STANDARD PAGE HEADING/.test(text)) {
       interfaces.add("zif_gg_list_processing_v1");
       ir.features.push("list-processing");
-    }
-    const localElementaryType = statement.kind === "Type" && /^TYPES\s+[A-Z][A-Z0-9_]*\s+TYPE\s+(C|N|I|P|D|T|X|STRING)\b/i.test(statement.text.trim());
-    if (/\b(TYPE|TABLES)\b/.test(text) && ["Type", "Tables"].includes(statement.kind) && !localElementaryType && !statement.resolvedType) {
-      addStatementDiagnostic(diagnostics, statement, `${statement.kind.toUpperCase()} declarations need DDIC-aware lowering`, "Provide a resolvable type and a dedicated declaration lowering rule.", "GGCONV-E301");
     }
     if (/\bMESSAGE\b/.test(text)) ir.features.push("messages");
     if (/\bPARAMETERS\b|\bSELECT-OPTIONS\b/.test(text)) ir.features.push("selection-screen");

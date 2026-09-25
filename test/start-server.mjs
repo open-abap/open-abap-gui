@@ -110,6 +110,14 @@ export function createAbapHtmlHostServer() {
 
 export function launchAbapHtmlHost({host = "127.0.0.1", port = 8080} = {}) {
   const server = createAbapHtmlHostServer();
+  server.once("error", (error) => {
+    if (error.code !== "EADDRINUSE") throw error;
+    // Usually a server left running when Ctrl+C stopped npm but not its node child.
+    const find = process.platform === "win32" ? `netstat -ano | findstr :${port}` : `lsof -i :${port}`;
+    console.error(`Port ${port} on ${host} is already in use, probably by an earlier server that did not stop.`);
+    console.error(`Find its PID with: ${find}`);
+    process.exit(1);
+  });
   server.listen(port, host, () => {
     const address = server.address();
     const actualPort = typeof address === "object" && address !== null ? address.port : port;
@@ -119,7 +127,34 @@ export function launchAbapHtmlHost({host = "127.0.0.1", port = 8080} = {}) {
   return server;
 }
 
+const SHUTDOWN_TIMEOUT_MS = 3000;
+
+// A SIGINT listener replaces Node's default exit, so every path here must end
+// the process: normally by closing all handles, otherwise by the timeout.
+function exitOnSignals(server) {
+  let stopping = false;
+  const stop = async (signal) => {
+    if (stopping) {
+      console.error(`${signal} received again, exiting`);
+      process.exit(1);
+    }
+    stopping = true;
+    console.log(`${signal} received, stopping server`);
+    setTimeout(() => {
+      console.error(`Server did not stop within ${SHUTDOWN_TIMEOUT_MS} ms; still open: ${process.getActiveResourcesInfo().join(", ") || "nothing"}`);
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS).unref();
+    const closed = new Promise((resolve) => server.close(resolve));
+    // Browsers keep idle keep-alive sockets open, which would hold close() back.
+    server.closeAllConnections();
+    const [, teardown] = await Promise.allSettled([closed, server.shutdown()]);
+    if (teardown.status === "rejected") console.error("ABAP shutdown failed:", teardown.reason);
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+}
+
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   const port = Number(process.env.OPEN_ABAP_GUI_PORT ?? 8080);
-  launchAbapHtmlHost({port});
+  exitOnSignals(launchAbapHtmlHost({port}));
 }

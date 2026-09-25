@@ -1,5 +1,5 @@
 const DECLARATION_KINDS = new Set([
-  "Data", "DataBegin", "DataEnd", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "Constant", "Static", "FieldSymbol",
+  "Data", "DataBegin", "DataEnd", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType", "Constant", "Static", "FieldSymbol",
 ]);
 
 function splitDeclarationParts(body) {
@@ -80,6 +80,9 @@ export function declarationInfo(statement) {
     const match = /^TYPES\s+END\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(raw);
     return { kind: "typeend", names: match?.[1] ? [match[1].toUpperCase()] : [], raw, complex: true };
   }
+  // INCLUDE TYPE / INCLUDE STRUCTURE only occurs as a component of a BEGIN OF
+  // structure, so it is emitted as part of that structure, never on its own.
+  if (statement.kind === "IncludeType") return { kind: "includetype", names: [], raw, complex: true };
   return { kind: statement.kind.toLowerCase(), raw };
 }
 

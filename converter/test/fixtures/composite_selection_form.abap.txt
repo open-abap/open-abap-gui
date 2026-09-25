@@ -1,7 +1,7 @@
 REPORT zcomposite_selection_form.
 PARAMETERS p_name TYPE c LENGTH 4 DEFAULT 'ABAP'.
 DATA lv_text TYPE string.
-FORM greet USING iv_name TYPE string CHANGING cv_text TYPE string.
+FORM greet USING iv_name TYPE c CHANGING cv_text TYPE string.
   cv_text = iv_name.
 ENDFORM.
 START-OF-SELECTION.

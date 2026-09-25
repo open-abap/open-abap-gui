@@ -1,22 +1,26 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { Config } from "@abaplint/core";
 import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot, repositoryTool } from "./repository.mjs";
 
 const repository = repositoryRoot;
 const tempRoot = path.join(repository, "converter", "transpile-validation");
 const inputFolder = path.join(tempRoot, "input");
+const helperFolder = path.join(tempRoot, "helpers");
 const outputFolder = path.join(tempRoot, "output");
 const configPath = path.join(tempRoot, "abap_transpile.json");
 const lintConfigPath = path.join(repository, "converter", "abaplint-validation.jsonc");
 const toolTempRoot = path.join(repository, "converter", ".tmp");
 const examples = path.join(repository, "examples");
+const RENAMED_CLASS = "ZCL_CV_RENAMED_1";
 
 async function prepare() {
   await fs.rm(tempRoot, { recursive: true, force: true });
   await fs.rm(lintConfigPath, { force: true });
   await fs.mkdir(inputFolder, { recursive: true });
+  await fs.mkdir(helperFolder, { recursive: true });
   await fs.mkdir(outputFolder, { recursive: true });
 
   const names = (await fs.readdir(examples))
@@ -76,6 +80,27 @@ async function prepare() {
   });
   if (!exceptionBlock.classSource || !exceptionBlock.supported) throw new Error("exception-block validation fixture was not converted");
   await fs.writeFile(path.join(inputFolder, "ZCL_CV_EXC.clas.abap"), exceptionBlock.classSource, "utf8");
+
+  // MESSAGE with an exception object or a variable as its operand passes it to
+  // the session untouched; a string template cannot hold an object.
+  const messageOperand = await convertProgram({
+    source: [
+      "REPORT zcv_msgref.",
+      "DATA gv_text TYPE string.",
+      "START-OF-SELECTION.",
+      "  TRY.",
+      "      RAISE EXCEPTION TYPE cx_sy_zerodivide.",
+      "    CATCH cx_root INTO DATA(lx_error).",
+      "      MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'.",
+      "  ENDTRY.",
+      "  MESSAGE gv_text TYPE 'I'.",
+    ].join("\n"),
+    filename: "zcv_msgref.prog.abap",
+    className: "ZCL_CV_MSGREF",
+    transactionCode: "ZCVMSGREF",
+  });
+  if (!messageOperand.classSource || !messageOperand.supported) throw new Error("MESSAGE operand fixture was not converted");
+  await fs.writeFile(path.join(inputFolder, "ZCL_CV_MSGREF.clas.abap"), messageOperand.classSource, "utf8");
 
   const dynamicWriteSupported = await convertProgram({
     source: [
@@ -140,14 +165,70 @@ async function prepare() {
   if (!dynamicWriteFallback.classSource || dynamicWriteFallback.supported) throw new Error("dynamic-WRITE fallback fixture was not marked partial");
   await fs.writeFile(path.join(inputFolder, "ZCL_CV_DWRITE_FALLBACK.clas.abap"), dynamicWriteFallback.classSource, "utf8");
 
+  // A static event handler takes only the event's parameters, so owner and
+  // session reach it through the helper class; parser validation alone
+  // accepted the invalid signature this used to produce.
+  const staticHandler = await convertProgram({
+    source: [
+      "REPORT zcv_evt.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_events DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS handle_toolbar",
+      "                FOR EVENT toolbar OF cl_gui_alv_grid",
+      "      IMPORTING e_object e_interactive.",
+      "    CLASS-METHODS add IMPORTING iv_value TYPE i.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD handle_toolbar.",
+      "    add( 1 ).",
+      "    MESSAGE 'toolbar' TYPE 'S'.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  PERFORM setup.",
+      "FORM setup.",
+      "  SET HANDLER lcl_events=>handle_toolbar FOR go_grid.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zcv_evt.prog.abap",
+    className: "ZCL_CV_EVT",
+    transactionCode: "ZCVEVT",
+  });
+  // ZCL_CV_RENAMED is taken, so the report is generated as ZCL_CV_RENAMED_1;
+  // SUBMIT zcv_renamed must still reach it (checked after transpiling).
+  const renamed = await convertProgram({
+    source: "REPORT zcv_renamed.\nSTART-OF-SELECTION.\nWRITE 'renamed'.\n",
+    filename: "zcv_renamed.prog.abap",
+    existingClassNames: ["ZCL_CV_RENAMED"],
+  });
+  if (!renamed.supported || renamed.reportIR.targetClassName !== RENAMED_CLASS) throw new Error("renamed-class fixture was not converted as expected");
+  await fs.writeFile(path.join(inputFolder, `${RENAMED_CLASS}.clas.abap`), renamed.classSource, "utf8");
+
+  if (!staticHandler.classSource || !staticHandler.supported) throw new Error("static event handler fixture was not converted");
+  await fs.writeFile(path.join(inputFolder, "ZCL_CV_EVT.clas.abap"), staticHandler.classSource, "utf8");
+  for (const helper of staticHandler.helperSources) {
+    await fs.writeFile(path.join(helperFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
+  }
+
   await fs.writeFile(configPath, JSON.stringify({
-    input_folder: ["src", "framework", "examples", "converter/transpile-validation/input"],
+    input_folder: ["src", "framework", "examples", "converter/transpile-validation/input", "converter/transpile-validation/helpers"],
     input_filter: [],
     exclude_filter: [],
     output_folder: "converter/transpile-validation/output",
     write_unit_tests: false,
     write_source_map: false,
     options: {
+      // The database holds the class sources the transaction registry
+      // discovers, which the SUBMIT check after transpiling relies on.
+      setup: {
+        filename: "../../../setup.mjs",
+        preFunction: "setupDatabase",
+      },
       ignoreSyntaxCheck: false,
       addFilenames: true,
       addCommonJS: true,
@@ -165,7 +246,17 @@ async function prepare() {
     "/../framework/**/*.*",
     "/../examples/**/*.*",
     "/transpile-validation/input/*.clas.abap",
+    "/transpile-validation/helpers/*.clas.abap",
   ];
+  // Helper classes are not held to the formatting rules; only the syntax check
+  // applies to them.
+  const ruleDefaults = Config.getDefault().get().rules;
+  for (const [name, value] of Object.entries(lintConfig.rules)) {
+    if (name === "check_syntax" || value === false) continue;
+    const rule = value === true ? { ...ruleDefaults[name] } : value;
+    rule.exclude = [...(rule.exclude ?? []), "transpile-validation[\\\\/]helpers[\\\\/]"];
+    lintConfig.rules[name] = rule;
+  }
   await fs.writeFile(lintConfigPath, JSON.stringify(lintConfig, null, 2), "utf8");
 }
 
@@ -185,11 +276,38 @@ function runCommand(command, args) {
   });
 }
 
+// SUBMIT resolves a program to its class by name first; a renamed class is only
+// reachable through the program in its transaction metadata.
+async function checkRenamedSubmitTarget() {
+  const probe = path.join(tempRoot, "submit-probe.mjs");
+  await fs.writeFile(probe, [
+    'import path from "node:path";',
+    'import { pathToFileURL } from "node:url";',
+    'await import(pathToFileURL(path.join(process.argv[2], "init.mjs")).href);',
+    "const program = new abap.types.Character(40);",
+    'program.set("ZCV_RENAMED");',
+    'const report = await abap.Classes["ZCL_GG_HOST_RUNTIME"].report_for_submit({ iv_program: program });',
+    'console.log(`SUBMIT_TARGET=${report.get()?.constructor?.name ?? "NONE"}`);',
+  ].join("\n"), "utf8");
+  const output = await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [probe, outputFolder], { cwd: repository });
+    let stdout = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.pipe(process.stderr);
+    child.once("error", reject);
+    child.once("exit", (code) => (code === 0 ? resolve(stdout) : reject(new Error(`SUBMIT probe exited with code ${code}`))));
+  });
+  const target = /SUBMIT_TARGET=(\S+)/.exec(output)?.[1];
+  if (target?.toUpperCase() !== RENAMED_CLASS) throw new Error(`SUBMIT zcv_renamed resolved to ${target}, expected ${RENAMED_CLASS}`);
+  console.log(`SUBMIT zcv_renamed resolved to the renamed class ${RENAMED_CLASS}`);
+}
+
 try {
   await prepare();
   await runCommand(repositoryTool("abaplint"), [path.relative(repository, lintConfigPath)]);
   await runCommand(repositoryTool("abap_transpile"), [path.relative(repository, configPath)]);
   console.log("generated converter classes passed the open-abap transpiler");
+  await checkRenamedSubmitTarget();
   await fs.rm(tempRoot, { recursive: true, force: true });
   await fs.rm(lintConfigPath, { force: true });
   await fs.rm(toolTempRoot, { recursive: true, force: true });

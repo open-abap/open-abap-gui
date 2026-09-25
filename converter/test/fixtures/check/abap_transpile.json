@@ -1,7 +1,9 @@
 {
-  "input_folder": ["../examples"],
-  "input_filter": ["zgg_ex_001\\.prog\\.abap$"],
-  "exclude_filter": [],
+  "input_folder": ["test/fixtures/check/src", "test/fixtures/check/generated"],
   "output_folder": "test/fixtures/check/output",
+  "converter": {
+    "input_folder": ["test/fixtures/check/src"],
+    "output_folder": "test/fixtures/check/generated"
+  },
   "options": {}
 }

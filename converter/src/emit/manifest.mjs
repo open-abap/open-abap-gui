@@ -32,7 +32,6 @@ export function createManifest(ir, diagnostics, options) {
       screenProvider: Boolean(ir.screenMetadata),
       ddicTypes: Boolean(options.ddicTypes ?? options.dictionaryTypes ?? options.dictionary),
       compatibilityAdapters,
-      messages: ir.messageMetadata ?? { supplied: false },
       resolvedTypes: Object.keys(ir.resolvedTypes ?? {}).sort(),
     },
     identifierRenames: ir.statePlan?.renames ?? {},

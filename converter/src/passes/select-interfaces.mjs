@@ -9,6 +9,9 @@ export function selectInterfaces(ir) {
     interfaces.delete("zif_gg_screen_provider_v1");
     interfaces.add("zif_gg_dynpro_v1");
   }
+  // GGCONV-W105: a class without a transaction code must not register an
+  // empty one with the transaction registry.
+  if (!ir.transactionCode) interfaces.delete("zif_gg_transaction_v1");
   ir.interfaces = [...interfaces].sort();
   return ir.interfaces;
 }

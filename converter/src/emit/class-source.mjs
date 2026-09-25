@@ -209,6 +209,12 @@ function addWriterDeclaration(body) {
   return [...fields, ...data, declaration, ...rest];
 }
 
+// The program in the transaction metadata lets SUBMIT find the class through
+// the transaction registry, whatever the class is called.
+function programField(ir) {
+  return ir.programName ? ` program = '${ir.programName}'` : "";
+}
+
 function interfaceOrder(ir) {
   const order = ["zif_gg_report_v1", "zif_gg_screen_provider_v1", "zif_gg_dynpro_v1", "zif_gg_context_menu_v1", "zif_gg_transaction_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
   return order.filter((name) => ir.interfaces.includes(name));
@@ -247,14 +253,57 @@ function implicitSelectionLayoutMembers(ir) {
   return [...names].sort();
 }
 
+const LENGTH_TYPES = new Set(["c", "n", "x", "p"]);
+
+// The member holding a PARAMETERS value gets the type the parameter declares, so
+// arithmetic, formatting and typed method calls behave as in the report. The
+// screen transports values as strings; assignment converts in both directions.
+// Types are assumed to exist, as for DATA declarations.
 function selectionStateType(ir, state) {
-  if (state.ranges) return "zif_gg_selection_screen_types=>ty_ranges";
-  const typeName = state.dataType?.typ?.toLowerCase();
-  if (!typeName) return "string";
-  const localType = (ir.declarations ?? []).some((item) => item.kind === "type"
-    && item.names?.some((name) => name.toLowerCase() === typeName));
-  if (localType) return typeName;
-  return "string";
+  if (state.ranges) return "TYPE zif_gg_selection_screen_types=>ty_ranges";
+  const additions = String(state.additions ?? "").replace(/'(?:''|[^'])*'|`(?:``|[^`])*`/g, "''").replace(/,\s*$/, "");
+  const oldLength = /^\(\s*(\d+)\s*\)/.exec(additions)?.[1];
+  const type = /\bTYPE\s+([A-Z][A-Z0-9_\/]*(?:-[A-Z][A-Z0-9_]*)*)(?:\s+LENGTH\s+(\d+))?(?:\s+DECIMALS\s+(\d+))?/i.exec(additions);
+  if (type) {
+    const name = type[1].toLowerCase();
+    if (!LENGTH_TYPES.has(name)) return `TYPE ${name}`;
+    const length = type[2] ?? oldLength;
+    return `TYPE ${name}${length ? ` LENGTH ${length}` : ""}${type[3] ? ` DECIMALS ${type[3]}` : ""}`;
+  }
+  const like = /\bLIKE\s+([A-Z][A-Z0-9_\/]*)((?:-[A-Z][A-Z0-9_]*)*)/i.exec(additions);
+  if (like) {
+    const base = like[1].toUpperCase();
+    // Another parameter or a report global is a class member, possibly renamed.
+    const member = ir.statePlan?.selectionState?.[base]?.member
+      ?? ir.statePlan?.renames?.[base]?.toLowerCase()
+      ?? (ir.statePlan?.globals?.includes(base)
+        || (ir.declarations ?? []).some((item) => item.kind === "constant" && item.statement?.scope !== "local" && item.names?.includes(base))
+        ? base.toLowerCase() : undefined);
+    // Otherwise it names a dictionary structure field, e.g. LIKE mara-matnr.
+    return member ? `LIKE ${member}${like[2].toLowerCase()}` : `TYPE ${`${like[1]}${like[2]}`.toLowerCase()}`;
+  }
+  // PARAMETERS without a type is c of length 8; a checkbox or radio button is c of length 1.
+  if (/\b(?:AS\s+CHECKBOX|RADIOBUTTON\s+GROUP)\b/i.test(additions)) return "TYPE c LENGTH 1";
+  return `TYPE c LENGTH ${oldLength ?? 8}`;
+}
+
+// Re-emits a BEGIN OF ... END OF structure as one chain. INCLUDE TYPE and
+// INCLUDE STRUCTURE are statements of their own, so they break the chain.
+function structuredDeclaration(keyword, beginName, components, endName) {
+  const statements = [];
+  let chain = [`BEGIN OF ${beginName}`];
+  for (const component of components) {
+    if (/^INCLUDE\s+(?:TYPE|STRUCTURE)\b/i.test(component)) {
+      if (chain.length) statements.push(`${keyword}: ${chain.join(", ")}.`);
+      statements.push(`${component}.`);
+      chain = [];
+    } else {
+      chain.push(component);
+    }
+  }
+  chain.push(`END OF ${endName}`);
+  statements.push(`${keyword}: ${chain.join(", ")}.`);
+  return statements.join(" ");
 }
 
 function dataMembers(ir) {
@@ -274,12 +323,16 @@ function dataMembers(ir) {
     const components = [];
     for (let cursor = index + 1; cursor < declarations.length; cursor++) {
       consumed.add(cursor);
-      if (declarations[cursor].kind === begin) {
-        components.push(rename(declarations[cursor].raw.replace(new RegExp(`^${keyword}\\s+`, "i"), "")));
+      if (declarations[cursor].kind === begin || declarations[cursor].kind === "includetype") {
+        // A component ends in "," inside a chain and in "." where the chain was
+        // broken, e.g. before INCLUDE TYPE; the structure is re-emitted as one
+        // chain, so the terminator is replaced by a comma.
+        const component = declarations[cursor].raw.replace(new RegExp(`^${keyword}\\s+`, "i"), "").replace(/\s*[,.]\s*$/, "");
+        if (component) components.push(rename(component));
       }
       if (declarations[cursor].kind === end) {
         const endName = /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
-        const declaration = `${keyword}: BEGIN OF ${target}, ${components.join(" ")} END OF ${endName}.`;
+        const declaration = structuredDeclaration(keyword, target, components, endName);
         (keyword === "TYPES" ? typeMembers : dataMembers).push(rename(declaration));
         break;
       }
@@ -371,10 +424,19 @@ function dataMembers(ir) {
     const type = controls[2].toUpperCase() === "TABSTRIP" ? "ty_tabstrip_runtime" : "ty_table_runtime";
     members.push(`DATA ${controls[1].toLowerCase()} TYPE zif_gg_dynpro_types_v1=>${type}.`);
   }
-  for (const [name, state] of Object.entries(ir.statePlan?.selectionState ?? {})) {
-    const type = selectionStateType(ir, state);
-    members.push(`DATA ${state.member} TYPE ${type}.`);
-  }
+  // `LIKE` can only name an attribute declared earlier, so a parameter declared
+  // LIKE another parameter comes after it.
+  const selectionState = ir.statePlan?.selectionState ?? {};
+  const emitted = new Set();
+  const emitSelection = (name) => {
+    if (emitted.has(name)) return;
+    emitted.add(name);
+    const state = selectionState[name];
+    const like = /\bLIKE\s+([A-Z][A-Z0-9_\/]*)/i.exec(String(state.additions ?? ""))?.[1]?.toUpperCase();
+    if (like && selectionState[like]) emitSelection(like);
+    members.push(`DATA ${state.member} ${selectionStateType(ir, state)}.`);
+  };
+  Object.keys(selectionState).forEach(emitSelection);
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
     const parameterType = (parameter) => {
@@ -620,13 +682,18 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
     localClassStaticMethods: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
       String(localClass.name ?? "").toUpperCase(),
       new Set((localClass.definition ?? [])
-        .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? ""))
+        .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? "") && !isStaticEventHandler(statement.text))
         .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
         .filter(Boolean)),
+    ])),
+    localClassStaticEventHandlers: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
+      String(localClass.name ?? "").toUpperCase(),
+      staticEventHandlerNames(localClass),
     ])),
     localClassStaticParameters: Object.fromEntries((ir.localClasses ?? []).map((localClass) => [
       String(localClass.name ?? "").toUpperCase(),
       Object.fromEntries((localClass.definition ?? [])
+        .filter((statement) => !isStaticEventHandler(statement.text))
         .map((statement) => {
           const match = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b([\s\S]*)$/i.exec(statement.text ?? "");
           if (!match) return undefined;
@@ -680,8 +747,21 @@ function selectionStateTransport(ir, event) {
   const hydrate = [];
   const flush = [];
   for (const [name, item] of Object.entries(state)) {
-    hydrate.push(`${item.member} = ${source}[ name = '${name}' ]-${item.ranges ? "ranges" : "value"}.`);
-    if (source === "ct_values") flush.push(`${source}[ name = '${name}' ]-${item.ranges ? "ranges" : "value"} = ${item.member}.`);
+    const field = `${source}[ name = '${name}' ]-${item.ranges ? "ranges" : "value"}`;
+    hydrate.push(`${item.member} = ${field}.`);
+    if (source !== "ct_values") continue;
+    if (item.ranges) {
+      flush.push(`${field} = ${item.member}.`);
+      continue;
+    }
+    // The member has the parameter's own type. Assigning it back would turn an
+    // untouched 1 into "1 ", -1 into "1-" and "" into "0 ", so the screen value
+    // is only replaced when the program changed it, in template format.
+    flush.push([
+      `IF ${field} <> ${item.member}.`,
+      `${field} = |{ ${item.member} }|.`,
+      "ENDIF.",
+    ].join("\n"));
   }
   return { hydrate, flush };
 }
@@ -1746,18 +1826,37 @@ function helperDefinitionHeader(localClass, generatedName, ir) {
   return `CLASS ${generatedName.toLowerCase()} DEFINITION PUBLIC${rest ? ` ${renameIdentifiers(rest, allRenames(ir))}` : ""}.`;
 }
 
+// A static event handler is called by the event, which passes only the event's
+// parameters, so it cannot take io_owner and io_session like other static
+// methods. It reads them from static attributes that SET HANDLER fills instead.
+function isStaticEventHandler(text) {
+  return /^\s*CLASS-METHODS\b[\s\S]*\bFOR\s+EVENT\b/i.test(String(text ?? ""));
+}
+
+function staticEventHandlerNames(localClass) {
+  return new Set((localClass.definition ?? [])
+    .filter((statement) => isStaticEventHandler(statement.text))
+    .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
+    .filter(Boolean));
+}
+
 function helperMethodContext(ir, localClass, localMethod) {
   const isStaticMethod = (localClass.definition ?? []).some((statement) => {
     const name = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text ?? "")?.[1];
     return name && name.toUpperCase() === String(localMethod?.name ?? "").toUpperCase();
   });
+  const isEventHandler = staticEventHandlerNames(localClass).has(String(localMethod?.name ?? "").toUpperCase());
   const context = methodContext(ir, "local_class", undefined, {
     statements: localMethod?.statements ?? ir.statements ?? [],
   });
+  const [owner, session] = isEventHandler
+    ? ["go_owner", "go_session"]
+    : isStaticMethod ? ["io_owner", "io_session"] : ["mo_owner", "mo_session"];
   context.ucomm = "sy-ucomm";
-  context.sessionVariable = isStaticMethod ? "io_session" : "mo_session";
-  context.ownerPrefix = isStaticMethod ? "io_owner->" : "mo_owner->";
-  context.localClassOwner = isStaticMethod ? "io_owner" : "mo_owner";
+  context.sessionVariable = session;
+  context.ownerPrefix = `${owner}->`;
+  context.localClassOwner = owner;
+  context.localClassName = String(localClass.name ?? "").toUpperCase();
   const ownerReplacements = Object.fromEntries(Object.entries(globalMemberNames(ir))
     .map(([name, member]) => [name, `${context.ownerPrefix}${member}`]));
   const localTypeUses = new Set([
@@ -1795,9 +1894,11 @@ function helperMethodBody(ir, localClass, localMethod) {
   const statements = truncateTerminalPaths(localMethod.statements ?? []);
   const context = helperMethodContext(ir, localClass, localMethod);
   let body = lowerStatements(statements, context).map((item) => item.text);
-  if (!context.isStaticMethod) {
+  // Lowering writes io_session; methods without that parameter hold the
+  // session elsewhere. `io_session =` is a named argument and stays.
+  if (context.sessionVariable !== "io_session") {
     body = body.map((line) => line.replace(/\bio_session\b/gi, (name, offset, source) =>
-      /^\s*=/.test(source.slice(offset + name.length)) ? name : "mo_session"));
+      /^\s*=/.test(source.slice(offset + name.length)) ? name : context.sessionVariable));
   }
   body = [...globalFieldSymbolDeclarations(ir, statements), ...body];
   if (body.some((line) => line.includes("lo_writer->")) && !/\bio_session\b/i.test(localMethod.definition?.text ?? "")) {
@@ -1811,8 +1912,7 @@ function helperDefinitionBody(statements, rename) {
   let structured;
   const flushStructured = () => {
     if (!structured) return;
-    const components = structured.components.map((component) => `${component}, `).join("");
-    lines.push(`  ${structured.keyword}: BEGIN OF ${structured.beginName}${components ? `, ${components}` : " "}END OF ${structured.endName ?? structured.beginName}.`);
+    lines.push(`  ${structuredDeclaration(structured.keyword, structured.beginName, structured.components, structured.endName ?? structured.beginName)}`);
     structured = undefined;
   };
   for (const statement of statements) {
@@ -1867,17 +1967,22 @@ function helperSource(ir, options, localClass) {
   const constructorSignature = originalConstructorDefinition
     ? `${originalConstructorDefinition}${/\bIMPORTING\b/i.test(originalConstructorDefinition) ? " " : " IMPORTING "}io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`
     : `METHODS constructor IMPORTING io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`;
+  const eventHandlers = staticEventHandlerNames(localClass);
   const bridge = [
     `    ${constructorSignature}`,
     `    DATA mo_owner TYPE REF TO ${ir.targetClassName.toLowerCase()}.`,
     "    DATA mo_session TYPE REF TO zif_gg_session_v1.",
+    ...(eventHandlers.size ? [
+      `    CLASS-DATA go_owner TYPE REF TO ${ir.targetClassName.toLowerCase()}.`,
+      "    CLASS-DATA go_session TYPE REF TO zif_gg_session_v1.",
+    ] : []),
   ];
   const originalDefinition = helperDefinitionBody(
     (localClass.definition ?? []).filter((statement) => !(statement.kind === "MethodDef" && /^\s*METHODS\s+constructor\b/i.test(statement.text))),
     rename,
   );
   const staticMethods = new Set((localClass.definition ?? [])
-    .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? ""))
+    .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? "") && !isStaticEventHandler(statement.text))
     .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
     .filter(Boolean));
   const ownerSessionParameters = `io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1`;
@@ -1934,7 +2039,7 @@ export function emitClassSource(ir, options) {
   definition.push("ENDCLASS.", "", `CLASS ${className} IMPLEMENTATION.`, "");
   const implementation = [];
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
-    implementation.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}' ).`]));
+    implementation.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}'${programField(ir)} ).`]));
   }
   if (ir.programKind === "module-pool") implementation.push(...dynproMethods(ir));
   else {
@@ -1981,15 +2086,15 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     "",
     "  PUBLIC SECTION.",
     "    INTERFACES zif_gg_report_v1.",
-    "    INTERFACES zif_gg_transaction_v1.",
+    ...(ir.transactionCode ? ["    INTERFACES zif_gg_transaction_v1."] : []),
     "",
     "ENDCLASS.",
     "",
     `CLASS ${className} IMPLEMENTATION.`,
     "",
-    method("zif_gg_transaction_v1~get_transaction", [
-      `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(ir.description)} ).`,
-    ]).toString(),
+    ...(ir.transactionCode ? [method("zif_gg_transaction_v1~get_transaction", [
+      `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(ir.description)}${programField(ir)} ).`,
+    ]).toString()] : []),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
     "",
@@ -1999,9 +2104,10 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
 export function emitPartialApplication(ir, options, diagnostics) {
   const className = ir.targetClassName.toLowerCase();
   const hasScreenProvider = ir.programKind === "report" && (ir.screenMetadata?.screens?.length ?? 0) > 0;
-  const interfaceNames = ir.programKind === "module-pool"
+  const interfaceNames = (ir.programKind === "module-pool"
     ? ["zif_gg_dynpro_v1", "zif_gg_transaction_v1"]
-    : ["zif_gg_report_v1", "zif_gg_transaction_v1", ...(hasScreenProvider ? ["zif_gg_screen_provider_v1"] : [])];
+    : ["zif_gg_report_v1", "zif_gg_transaction_v1", ...(hasScreenProvider ? ["zif_gg_screen_provider_v1"] : [])])
+    .filter((name) => name !== "zif_gg_transaction_v1" || ir.transactionCode);
   const definition = [
     `CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC.`,
     "",
@@ -2053,11 +2159,11 @@ export function emitPartialApplication(ir, options, diagnostics) {
     .map((item) => `* TODO ${item.code}: ${item.construct}`)
     .filter((value, index, values) => values.indexOf(value) === index);
   const transaction = method("zif_gg_transaction_v1~get_transaction", [
-    `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(label)} ).`,
+    `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(label)}${programField(ir)} ).`,
   ]);
   return `${header({className: ir.targetClassName, ir, options})}${todos.join("\n")}${todos.length ? "\n" : ""}${[
     ...definition,
-    transaction.toString(),
+    ...(ir.transactionCode ? [transaction.toString()] : []),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
     "",
@@ -2067,7 +2173,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
 export function lowerToScaffoldIR(ir, options, sourceMap = []) {
   const methods = [];
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
-    methods.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}' ).`]));
+    methods.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}'${programField(ir)} ).`]));
   }
   if (ir.programKind === "module-pool") methods.push(...dynproMethods(ir));
   else {

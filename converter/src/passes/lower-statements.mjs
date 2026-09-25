@@ -1,4 +1,5 @@
 import { lowerCompatibilityFunction } from "../function-modules.mjs";
+import { parsesAsStatement } from "../parser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
@@ -255,76 +256,79 @@ function replaceListContextFields(value) {
     .replace(/\bsy-pagno\b/gi, "io_session->get_list( )->get_context( )-page");
 }
 
-// The capability scanner consumes this registry before emission. Keeping the
-// rule inventory next to the lowering visitor makes a newly parsed statement
-// visible as an explicit capability gap instead of silently falling through.
+// The statements the lowering visitor rewrites into scaffold operations. The
+// manifest records the rule used for each statement; a statement with no rule
+// here is carried over as written.
 export const LOWERING_RULES = new Map([
-  ["Write", { kind: "list-write" }], ["Skip", { kind: "list-skip" }], ["Uline", { kind: "list-uline" }],
-  ["NewLine", { kind: "list-new-line" }], ["Format", { kind: "list-format" }], ["SetBlank", { kind: "list-blank-lines" }],
-  ["Reserve", { kind: "list-reserve" }], ["NewPage", { kind: "list-new-page" }], ["Stop", { kind: "terminal-stop" }],
-  ["Message", { kind: "session-message" }], ["SetPFStatus", { kind: "session-status" }], ["SetTitlebar", { kind: "session-title" }],
-  ["CallSelectionScreen", { kind: "dialog-call-selection-screen" }], ["CallScreen", { kind: "dialog-call-screen" }],
-  ["Submit", { kind: "navigation-submit" }], ["CallTransaction", { kind: "navigation-call-transaction" }],
-  ["SuppressDialog", { kind: "dialog-suppress" }], ["SetParameter", { kind: "compatibility-parameter-set" }],
-  ["GetParameter", { kind: "compatibility-parameter-get" }], ["AuthorityCheck", { kind: "compatibility-authority-check" }],
-  ["Append", { kind: "internal-table-append" }], ["Collect", { kind: "internal-table-collect" }],
-  ["InsertInternal", { kind: "internal-table-insert" }], ["DeleteInternal", { kind: "internal-table-delete" }],
-  ["ModifyInternal", { kind: "internal-table-modify" }], ["ReadTable", { kind: "internal-table-read" }],
-  ["Select", { kind: "open-sql-select" }], ["SelectLoop", { kind: "open-sql-select-loop" }], ["EndSelect", { kind: "open-sql-end-select" }],
-  ["InsertDatabase", { kind: "open-sql-insert" }], ["UpdateDatabase", { kind: "open-sql-update" }],
-  ["DeleteDatabase", { kind: "open-sql-delete" }], ["ModifyDatabase", { kind: "open-sql-modify" }],
+  ["Assign", { kind: "field-symbol-assign" }],
+  ["AuthorityCheck", { kind: "compatibility-authority-check" }],
   ["CallFunction", { kind: "compatibility-function-module" }],
-  ["Export", { kind: "session-abap-memory-export" }], ["Import", { kind: "session-abap-memory-import" }],
+  ["CallScreen", { kind: "dialog-call-screen" }],
+  ["CallSelectionScreen", { kind: "dialog-call-selection-screen" }],
+  ["CallTransaction", { kind: "navigation-call-transaction" }],
+  ["Constant", { kind: "declaration" }],
+  ["Controls", { kind: "declaration" }],
+  ["Data", { kind: "declaration" }],
+  ["Export", { kind: "session-abap-memory-export" }],
+  ["FieldSymbol", { kind: "field-symbol-declaration" }],
+  ["Format", { kind: "list-format" }],
   ["FreeMemory", { kind: "session-abap-memory-free" }],
+  ["GetCursor", { kind: "list-cursor" }],
+  ["GetParameter", { kind: "compatibility-parameter-get" }],
+  ["Hide", { kind: "list-hide" }],
+  ["Import", { kind: "session-abap-memory-import" }],
+  ["Leave", { kind: "navigation-leave" }],
+  ["LeaveScreen", { kind: "dialog-leave-screen" }],
+  ["LeaveToScreen", { kind: "dialog-leave-to-screen" }],
+  ["LoopAtScreen", { kind: "selection-screen-state-loop" }],
+  ["Message", { kind: "session-message" }],
+  ["ModifyLine", { kind: "list-modify-line" }],
+  ["ModifyScreen", { kind: "selection-screen-state-mutation" }],
+  ["Move", { kind: "assignment" }],
+  ["NewLine", { kind: "list-new-line" }],
+  ["NewPage", { kind: "list-new-page" }],
+  ["Perform", { kind: "routine-call" }],
+  ["Ranges", { kind: "declaration" }],
+  ["ReadLine", { kind: "list-read-line" }],
+  ["Reserve", { kind: "list-reserve" }],
+  ["SetBlank", { kind: "list-blank-lines" }],
+  ["SetCursor", { kind: "dialog-set-cursor" }],
+  ["SetParameter", { kind: "compatibility-parameter-set" }],
+  ["SetPFStatus", { kind: "session-status" }],
+  ["SetScreen", { kind: "dialog-set-screen" }],
+  ["SetTitlebar", { kind: "session-title" }],
+  ["Skip", { kind: "list-skip" }],
+  ["Static", { kind: "declaration" }],
+  ["Stop", { kind: "terminal-stop" }],
+  ["Submit", { kind: "navigation-submit" }],
+  ["SuppressDialog", { kind: "dialog-suppress" }],
+  ["IncludeType", { kind: "declaration" }],
+  ["TypeBegin", { kind: "declaration" }],
+  ["TypeEnd", { kind: "declaration" }],
   ["TypePools", { kind: "type-pool-resolution" }],
-  ["Raise", { kind: "exception-raise" }], ["Continue", { kind: "loop-continue" }],
-  ["Unassign", { kind: "field-symbol-unassign" }], ["Sort", { kind: "internal-table-sort" }],
-  ["CreateData", { kind: "data-reference-create" }], ["GetReference", { kind: "data-reference-get" }],
-  ["Exit", { kind: "block-exit" }],
-  ["Clear", { kind: "statement" }], ["Add", { kind: "statement" }], ["Subtract", { kind: "statement" }],
-  ["Multiply", { kind: "statement" }], ["Divide", { kind: "statement" }], ["Compute", { kind: "statement" }],
-  ["Leave", { kind: "navigation-leave" }], ["SetScreen", { kind: "dialog-set-screen" }], ["SetCursor", { kind: "dialog-set-cursor" }], ["LeaveScreen", { kind: "dialog-leave-screen" }],
-  ["LeaveToScreen", { kind: "dialog-leave-to-screen" }], ["GetCursor", { kind: "list-cursor" }], ["ReadLine", { kind: "list-read-line" }],
-  ["ModifyLine", { kind: "list-modify-line" }], ["Hide", { kind: "list-hide" }], ["Perform", { kind: "routine-call" }],
-  ["Return", { kind: "control-return" }], ["Translate", { kind: "statement" }], ["LoopAtScreen", { kind: "selection-screen-state-loop" }],
-  ["ModifyScreen", { kind: "selection-screen-state-mutation" }], ["Move", { kind: "assignment" }], ["If", { kind: "control-if" }],
-  ["Else", { kind: "control-else" }], ["ElseIf", { kind: "control-elseif" }], ["EndIf", { kind: "control-end-if" }], ["Do", { kind: "control-do" }],
-  ["EndDo", { kind: "control-end-do" }], ["Case", { kind: "control-case" }], ["When", { kind: "control-when" }],
-  ["WhenOthers", { kind: "control-when-others" }], ["EndCase", { kind: "control-end-case" }], ["Loop", { kind: "control-loop" }],
-  ["EndLoop", { kind: "control-end-loop" }], ["Try", { kind: "control-try" }], ["Catch", { kind: "control-catch" }],
-  ["Cleanup", { kind: "control-cleanup" }], ["EndTry", { kind: "control-end-try" }], ["Data", { kind: "declaration" }], ["TypeBegin", { kind: "declaration" }], ["TypeEnd", { kind: "declaration" }], ["Constant", { kind: "declaration" }], ["Ranges", { kind: "declaration" }],
-  ["Static", { kind: "declaration" }], ["Controls", { kind: "declaration" }], ["Assign", { kind: "field-symbol-assign" }], ["FieldSymbol", { kind: "field-symbol-declaration" }], ["Comment", { kind: "comment" }], ["Empty", { kind: "empty" }],
+  ["Uline", { kind: "list-uline" }],
+  ["Write", { kind: "list-write" }],
 ]);
 
-// Ordinary statements are preserved only through this allow-list. Classic
-// event-only syntax must get a diagnostic instead of being copied into a
-// generated method by a catch-all emitter.
+// Statements known to be valid unchanged inside a generated method, which the
+// manifest marks methodSafe. They have no lowering rule and are carried over
+// as written; only local-class receivers are rewritten.
 export const METHOD_SAFE_STATEMENTS = new Set([
   "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
   "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
   "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
   "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
+  "CreateObject", "Call", "CallMethod", "SetHandler",
 ]);
-
-export const OPEN_SQL_STATEMENTS = new Set([
-  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
-]);
-
-export function isStaticOpenSql(statement) {
-  if (!OPEN_SQL_STATEMENTS.has(statement.kind)) return true;
-  const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
-  return !/\b(?:FROM|INTO|UPDATE|DELETE|MODIFY|INSERT)\s*\(/i.test(body)
-    && !/\b(?:SELECT|INSERT|UPDATE|DELETE|MODIFY)\s+\(/i.test(body)
-    && !/\bEXEC\s+SQL\b/i.test(body);
-}
 
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
   const loopTarget = "(?:[A-Z][A-Z0-9_-]*(?:(?:->|-)[A-Z][A-Z0-9_-]*)+|[A-Z][A-Z0-9_-]*)";
   // The target may end in `>` or `)`, so the trailing guard has to be a
-  // lookahead: a `\b` after either of those can never match.
-  return new RegExp(`^\\s*LOOP\\s+AT\\s+${loopTarget}\\s+(?:ASSIGNING\\s+(?:FIELD-SYMBOL\\s*\\(\\s*<[A-Z][A-Z0-9_]*>\\s*\\)|<[A-Z][A-Z0-9_]*>)|INTO\\s+(?:DATA\\s*\\(\\s*[A-Z][A-Z0-9_-]*\\s*\\)|[A-Z][A-Z0-9_-]*))(?![A-Z0-9_-])`, "i").test(body)
+  // lookahead: a `\b` after either of those can never match. TRANSPORTING NO
+  // FIELDS reads no row at all, so it needs no target either.
+  return new RegExp(`^\\s*LOOP\\s+AT\\s+${loopTarget}\\s+(?:ASSIGNING\\s+(?:FIELD-SYMBOL\\s*\\(\\s*<[A-Z][A-Z0-9_]*>\\s*\\)|<[A-Z][A-Z0-9_]*>)|(?:REFERENCE\\s+)?INTO\\s+(?:DATA\\s*\\(\\s*[A-Z][A-Z0-9_-]*\\s*\\)|[A-Z][A-Z0-9_-]*)|TRANSPORTING\\s+NO\\s+FIELDS)(?![A-Z0-9_-])`, "i").test(body)
     && !/^\s*LOOP\s+AT\s+SCREEN\b/i.test(body);
 }
 
@@ -375,15 +379,11 @@ export function dynamicWriteOperand(statement) {
   };
 }
 
-export function isDynamicWriteOperand(statement) {
-  return Boolean(dynamicWriteOperand(statement));
-}
-
 function lowerDynamicWriteFallback(dynamic, context) {
   const dynamicName = "lv_ggconv_dynamic_name";
   const dynamicValue = "<ggconv_dynamic_value>";
   const rewritten = dynamic.rewrite(dynamicValue);
-  const unsupportedFormatting = /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(rewritten);
+  const unsupportedFormatting = /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(rewritten);
   const body = unsupportedFormatting
     ? ["* TODO GGCONV-E501: dynamic WRITE formatting requires manual lowering."]
     : parseWrite(rewritten, context).split("\n");
@@ -479,26 +479,54 @@ function memoryCallLines(statement, context) {
   return [];
 }
 
+// Index just past the literal that starts at `start`: '...' or `...` (a doubled
+// quote escapes it), or a |...| template, whose { ... } expressions may hold
+// literals and templates of their own and whose text escapes with a backslash.
+function literalEnd(text, start) {
+  const opener = text[start];
+  if (opener === "'" || opener === "`") {
+    let index = start + 1;
+    while (index < text.length) {
+      if (text[index] === opener && text[index + 1] === opener) index += 2;
+      else if (text[index] === opener) return index + 1;
+      else index++;
+    }
+    return text.length;
+  }
+  let index = start + 1;
+  while (index < text.length) {
+    const char = text[index];
+    if (char === "\\") index += 2;
+    else if (char === "|") return index + 1;
+    else if (char === "{") {
+      index++;
+      while (index < text.length && text[index] !== "}") {
+        index = "'`|".includes(text[index]) ? literalEnd(text, index) : index + 1;
+      }
+      index++;
+    } else index++;
+  }
+  return text.length;
+}
+
 function splitMessageOperands(text) {
   const parts = [];
   let current = "";
-  let quotedString = false;
   let depth = 0;
   for (let index = 0; index < text.length; index++) {
     const char = text[index];
-    if (char === "'" && quotedString && text[index + 1] === "'") {
-      current += "''";
-      index++;
-    } else if (char === "'") {
-      quotedString = !quotedString;
-      current += char;
-    } else if (!quotedString && char === "(") {
+    if ("'`|".includes(char)) {
+      // A literal or template is one operand, whatever spaces it holds.
+      const end = literalEnd(text, index);
+      current += text.slice(index, end);
+      index = end - 1;
+    } else if (char === "(") {
       depth++;
       current += char;
-    } else if (!quotedString && char === ")") {
+    } else if (char === ")") {
       depth = Math.max(0, depth - 1);
       current += char;
-    } else if (!quotedString && depth === 0 && /[\s,]/.test(char)) {
+    } else if (depth === 0 && /[\s,]/.test(char)) {
       if (current.trim()) parts.push(current.trim());
       current = "";
     } else current += char;
@@ -513,7 +541,7 @@ function continuationCall(target, parameter, value, id) {
   return `${target}(\n  ${named(parameter, value)}\n  ${named("is_continuation", `VALUE #( id = '${id}' )`)} ).`;
 }
 
-function replaceOutsideStrings(text, replacements) {
+function transformOutsideStrings(text, transform) {
   let result = "";
   let current = "";
   let quotedString = false;
@@ -525,7 +553,7 @@ function replaceOutsideStrings(text, replacements) {
       continue;
     }
     if (char === "'") {
-      if (!quotedString) result += applyReplacements(current, replacements);
+      if (!quotedString) result += transform(current);
       result += char;
       current = "";
       quotedString = !quotedString;
@@ -534,7 +562,61 @@ function replaceOutsideStrings(text, replacements) {
     if (quotedString) result += char;
     else current += char;
   }
-  return result + (quotedString ? current : applyReplacements(current, replacements));
+  return result + (quotedString ? current : transform(current));
+}
+
+function replaceOutsideStrings(text, replacements) {
+  return transformOutsideStrings(text, (part) => applyReplacements(part, replacements));
+}
+
+// Values a report can read that do not exist, or mean something else, in the
+// generated class: system fields held by the session, the SCREEN work area of
+// LOOP AT SCREEN, and the list color constants. Statements carried over as
+// written get these rewrites, outside string literals; declarations and
+// comments do not, since `TYPE sy-repid` must keep naming the field's type.
+function dataValueRewrites(context) {
+  const screen = context.screenStateSymbol ?? "<ls_state>";
+  return [
+    ...(context.replacements ?? []),
+    ...Object.entries(LIST_COLOR_CONSTANTS).map(([name, constant]) => [name, `zif_gg_list_processing_types_v1=>${constant}`]),
+    ["sy-ucomm", context.ucomm ?? "sy-ucomm"],
+    ["sy-subrc", context.subrc ?? "sy-subrc"],
+    ["sy-dynnr", context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''"],
+    ["screen-name", `${screen}-name`],
+    ["screen-group1", `${screen}-modif_id`],
+    ["screen-group([2-4])", `${screen}-group$1`],
+    ["screen-invisible", `${screen}-password`],
+    ["screen-active", `${screen}-visible`],
+    ["screen-required", context.event === "dynpro" ? `${screen}-required` : `${screen}-obligatory`],
+    ["screen-intensified", `${screen}-intensified`],
+    ["screen-(input|output)", `${screen}-$1`],
+  ];
+}
+
+// The session holds these, so they become method call chains, which only an
+// operand position that accepts an expression can take.
+const SESSION_VALUE_REWRITES = [
+  ["sy-(?:linno|lilli)", "io_session->get_list( )->get_context( )-line"],
+  ["sy-pagno", "io_session->get_list( )->get_context( )-page"],
+  ["sy-repid", "io_session->get_context( )-program-program"],
+  ["sy-batch", "io_session->get_context( )-program-batch"],
+  ["sy-lsind", "io_session->get_list( )->get_context( )-level"],
+];
+
+function rewriteValues(text, context, { session = true } = {}) {
+  const replacements = [...dataValueRewrites(context), ...(session ? SESSION_VALUE_REWRITES : [])];
+  return transformOutsideStrings(text, (part) => {
+    const replaced = applyReplacements(part, replacements);
+    return context.event === "dynpro" ? replaced : replaced.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
+  });
+}
+
+// A classic statement such as CONCATENATE takes data objects only. When a
+// session value makes the statement unparseable, the system field is kept.
+function rewriteStatementValues(text, context) {
+  const rewritten = rewriteValues(text, context);
+  const dataOnly = rewriteValues(text, context, { session: false });
+  return rewritten === dataOnly || parsesAsStatement(rewritten) ? rewritten : dataOnly;
 }
 
 function applyReplacements(text, replacements) {
@@ -659,7 +741,10 @@ function parseWrite(raw, context) {
   if (kind) rest = rest.replace(new RegExp(`\\s+AS\\s+${kind}\\b`, "i"), "");
   const colorName = /\bCOLOR\s+(COL_[A-Z_]+)\b/i.exec(rest)?.[1]?.toUpperCase();
   const colorField = LIST_COLOR_FIELDS[colorName];
+  // Field-level switches; OFF and "= flag" are rejected by unsupportedWriteFormat.
   const hotspot = /\bHOTSPOT\b/i.test(rest);
+  const intensified = /\bINTENSIFIED\b/i.test(rest);
+  const inverse = /\bINVERSE\b/i.test(rest);
   const additions = {
     noGap: /\bNO-GAP\b/i.test(rest),
     currency: /\bCURRENCY\s+([^\s,]+)/i.exec(rest)?.[1],
@@ -670,10 +755,13 @@ function parseWrite(raw, context) {
     justification: /\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/i.exec(rest)?.[1],
   };
   rest = rest
-    .replace(/\bHOTSPOT\b/gi, "")
+    .replace(/\b(?:HOTSPOT|INTENSIFIED|INVERSE)(?:\s+ON)?\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\s+[^\s,]+/gi, "")
     .replace(/\bNO-GAP\b|\bNO-ZERO\b|\bNO-SIGN\b/gi, "")
+    // The list writer never inserts thousands separators, so every field is
+    // already written without grouping.
+    .replace(/\bNO-GROUPING\b/gi, "")
     .replace(/\bDECIMALS\s+\d+/gi, "")
     .replace(/\bROUND\s+\d+/gi, "")
     .replace(/\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/gi, "")
@@ -696,6 +784,8 @@ function parseWrite(raw, context) {
   const fields = [`text = ${expressionText(rest, context)}`];
   const fieldFormat = [];
   if (colorField) fieldFormat.push(`color = zif_gg_list_processing_types_v1=>${colorField}`);
+  if (intensified) fieldFormat.push("intensified = abap_true");
+  if (inverse) fieldFormat.push("inverse = abap_true");
   if (hotspot) fieldFormat.push("hotspot = abap_true");
   if (fieldFormat.length) fields.push(`format = VALUE #( ${fieldFormat.join(" ")} )`);
   if (placement.length) fields.push(`placement = VALUE #( ${placement.join(" ")} )`);
@@ -711,12 +801,14 @@ function parseWrite(raw, context) {
 }
 
 function unsupportedWriteFormat(text) {
-  const classic = text
-    .replace(/'(?:''|[^'])*'/g, "")
+  const withoutLiterals = text.replace(/'(?:''|[^'])*'/g, "");
+  // The writer can only switch these on for a field, not off against FORMAT.
+  if (/\b(?:HOTSPOT|INTENSIFIED|INVERSE)\s*(?:OFF\b|=)/i.test(withoutLiterals)) return true;
+  const classic = withoutLiterals
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
-  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|NO-GROUPING|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
+  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
 function parseFormat(raw, context) {
@@ -777,23 +869,70 @@ function parseMessage(raw, context) {
     operands.slice(0, 4).forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
     return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
   }
-  const literal = body
+  const operand = body
     .replace(/\s+DISPLAY\s+LIKE\s+'?[AEISWX]'?\s*$/i, "")
     .replace(/\s+TYPE\s+['"]?[AEISWX]['"]?\s*$/i, "")
     .trim();
-  return `io_session->message( VALUE #( type = ${typeExpr} text = ${expressionText(literal, context)}${displayField} ) ).`;
+  const value = valueExpression(operand, context);
+  if (/^'.*'$/s.test(value) || /^\|.*\|$/s.test(value) || /^`.*`$/s.test(value)) {
+    return `io_session->message( VALUE #( type = ${typeExpr} text = ${value}${displayField} ) ).`;
+  }
+  // `MESSAGE oref TYPE ...` and `MESSAGE text TYPE ...` look the same here: the
+  // operand may be an exception object, whose text a string template cannot
+  // produce, so the session inspects it at runtime.
+  return [
+    "io_session->message(",
+    `  is_message = VALUE #( type = ${typeExpr}${displayField} )`,
+    `  ia_text    = ${value} ).`,
+  ].join("\n");
 }
 
-export function lowerStatement(statement, context) {
+// A static event handler of a local class cannot receive io_owner and
+// io_session, so registering it stores both in the helper class first.
+// Handlers are named `class=>method`, or just `method` inside their own class.
+function staticHandlerBindings(raw, context) {
+  const handlers = /\bSET\s+HANDLER\s+([\s\S]*?)(?:\s+FOR\b|$)/i.exec(raw.replace(/\.\s*$/, ""))?.[1] ?? "";
+  const classes = new Set();
+  for (const handler of handlers.split(/\s+/).filter(Boolean)) {
+    const qualified = /^([A-Z][A-Z0-9_]*)\s*=>\s*([A-Z][A-Z0-9_]*)$/i.exec(handler);
+    const className = (qualified ? qualified[1] : context.localClassName ?? "").toUpperCase();
+    const method = (qualified ? qualified[2] : handler).toUpperCase();
+    if (context.localClassStaticEventHandlers?.[className]?.has(method)) classes.add(className);
+  }
+  const owner = context.localClassOwner ?? "me";
+  const session = context.sessionVariable ?? "io_session";
+  return [...classes].flatMap((className) => {
+    const helper = context.localClassRenames?.[className] ?? className.toLowerCase();
+    return [`${helper}=>go_owner = ${owner}.`, `${helper}=>go_session = ${session}.`];
+  });
+}
+
+// Inside a local class, a static method of that class may be called without
+// the class name; qualifying it lets the static call bridge add io_owner and
+// io_session.
+function qualifyOwnStaticCall(statement, context) {
+  if (statement.kind !== "Call" || !context.localClassName) return statement;
+  const call = /^(\s*)([A-Z][A-Z0-9_]*)(\s*\()/i.exec(statement.text);
+  if (!call || !context.localClassStaticMethods?.[context.localClassName]?.has(call[2].toUpperCase())) return statement;
+  return { ...statement, text: `${call[1]}${context.localClassName.toLowerCase()}=>${call[2]}${call[3]}${statement.text.slice(call[0].length)}` };
+}
+
+export function lowerStatement(original, context) {
+  const statement = qualifyOwnStaticCall(original, context);
+  let lowered = lowerSingleStatement(statement, context);
+  if (statement !== original && typeof lowered === "string") {
+    // The class name was only added for the bridge; the call stays unqualified.
+    const helper = context.localClassRenames?.[context.localClassName] ?? context.localClassName.toLowerCase();
+    lowered = lowered.replace(new RegExp(`^(\\s*)${helper}\\s*=>\\s*`, "i"), "$1");
+  }
+  if (statement.kind !== "SetHandler" || typeof lowered !== "string") return lowered;
+  const bindings = staticHandlerBindings(statement.text.trim(), context);
+  return bindings.length ? [...bindings, lowered].join("\n") : lowered;
+}
+
+function lowerSingleStatement(statement, context) {
   const raw = statement.text.trim();
   const normalized = raw.replace(/\s+/g, " ").toUpperCase();
-  const safeReplacements = [
-    ...(context.replacements ?? []),
-    ["sy-ucomm", context.ucomm ?? "sy-ucomm"],
-    ["sy-repid", "io_session->get_context( )-program-program"],
-    ["sy-batch", "io_session->get_context( )-program-batch"],
-    ["sy-dynnr", "''"],
-  ];
   const dynamicAlvFactory = lowerDynamicAlvFactory(raw, context);
   if (dynamicAlvFactory) return dynamicAlvFactory;
   if (statement.kind === "Comment") return raw;
@@ -842,7 +981,7 @@ export function lowerStatement(statement, context) {
         );
         const opening = renamed.indexOf("(", staticCall.index);
         const closing = renamed.lastIndexOf(")");
-        if (opening < 0 || closing < opening) return replaceOutsideStrings(renamed, safeReplacements);
+        if (opening < 0 || closing < opening) return rewriteStatementValues(renamed, context);
         let argumentsText = renamed.slice(opening + 1, closing).trim();
         const originalParameter = context.localClassStaticParameters?.[staticCall[1].toUpperCase()]?.[staticCall[2].toUpperCase()];
         if (argumentsText && originalParameter && !/^[A-Z][A-Z0-9_]*\s*=/i.test(argumentsText)) {
@@ -850,25 +989,10 @@ export function lowerStatement(statement, context) {
         }
         const bridgedArguments = `io_owner = ${owner} io_session = ${session}${argumentsText ? ` ${argumentsText}` : ""}`;
         const bridged = `${renamed.slice(0, opening + 1)} ${bridgedArguments} ${renamed.slice(closing)}`;
-        return replaceOutsideStrings(bridged, safeReplacements);
+        return rewriteStatementValues(bridged, context);
       }
     }
-    return replaceOutsideStrings(lowered, safeReplacements);
-  }
-  if (context.contextMenu && (statement.kind === "CreateObject" || statement.kind === "Call")) {
-    return replaceOutsideStrings(raw, safeReplacements);
-  }
-  if (isMethodSafeLoop(statement)) return replaceOutsideStrings(raw, safeReplacements);
-  if (statement.kind === "Clear") {
-    const body = stripPeriod(raw).replace(/^CLEAR\s*:?\s*/i, "");
-    return splitOutsideStrings(body.replace(/,\s*$/, ""))
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => `CLEAR ${replaceOutsideStrings(part, safeReplacements)}.`)
-      .join("\n");
-  }
-  if (METHOD_SAFE_STATEMENTS.has(statement.kind)) {
-    return replaceOutsideStrings(raw, safeReplacements);
+    return rewriteStatementValues(lowered, context);
   }
   if (statement.kind === "Write") {
     const iconAssignment = /^WRITE\s+([A-Z][A-Z0-9_]*)\s+AS\s+ICON(?:\s+QUICKINFO\s+.+?)?\s+TO\s+([A-Z][A-Z0-9_]*)\.?$/i.exec(raw);
@@ -892,8 +1016,12 @@ export function lowerStatement(statement, context) {
   if (statement.kind === "Format") return parseFormat(raw, context);
   if (statement.kind === "Skip") return `lo_writer->skip( ${stripPeriod(raw).replace(/^SKIP\s*/i, "") || "1"} ).`;
   if (statement.kind === "Uline") {
-    const match = /AT\s+(\d+)(?:\((\d+)\))?/i.exec(raw);
-    const placement = match ? `position = ${match[1]}${match[2] ? ` length = ${match[2]}` : ""}` : "";
+    // ULINE [AT] [/][pos][(len)]; the writer always starts a new line.
+    const match = /^ULINE\s*(?:AT\b\s*)?\/?\s*(\d+)?(?:\(\s*(\d+)\s*\))?/i.exec(stripPeriod(raw));
+    const placement = [
+      match?.[1] ? `position = ${match[1]}` : "",
+      match?.[2] ? `length = ${match[2]}` : "",
+    ].filter(Boolean).join(" ");
     return `lo_writer->uline( VALUE #( ${placement} ) ).\nlo_writer->new_line( ).\nlo_writer->set_position( 5 ).`;
   }
   if (statement.kind === "NewLine" || normalized === "NEW-LINE.") return "lo_writer->new_line( ).";
@@ -916,7 +1044,14 @@ export function lowerStatement(statement, context) {
     return "* TODO GGCONV-E516: unsupported SCROLL LIST target requires manual lowering.";
   }
   if (statement.kind === "Stop") return "io_session->stop( ).";
-  if (statement.kind === "Message") return parseMessage(raw, context);
+  if (statement.kind === "Message") {
+    // MESSAGE ... INTO sends nothing; it only fills the target and sy-msg*,
+    // which is valid in a class method, so it is carried over as written.
+    if (/\bINTO\b/i.test(raw.replace(/'(?:''|[^'])*'|`(?:``|[^`])*`/g, ""))) {
+      return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+    }
+    return parseMessage(raw, context);
+  }
   if (statement.kind === "FieldSymbol") {
     const name = /<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
     return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw, context.replacements) : undefined;
@@ -975,7 +1110,10 @@ export function lowerStatement(statement, context) {
     const value = raw.replace(/^SY-LSIND\s*=\s*/i, "").replace(/\.$/, "");
     return `io_session->get_list( )->set_level( iv_level = ${valueExpression(value, context)} ).`;
   }
-  if (statement.kind === "Loop") {
+  // A LOOP with an INTO or ASSIGNING target is carried over as written. One
+  // without reads a header line, which a class cannot have: over a
+  // select-option it is given an explicit range row, otherwise it is omitted.
+  if (statement.kind === "Loop" && !isMethodSafeLoop(statement)) {
     const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1]?.toUpperCase();
     const selection = context.selections?.find((item) => item.name === name && item.ranges);
     if (selection) {
@@ -1071,13 +1209,15 @@ export function lowerStatement(statement, context) {
     if (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(raw) && target) {
       return `${target} = io_session->get_navigation( )->get_list_from_memory( ).`;
     }
+    // Function modules with a compatibility adapter become session calls; any
+    // other function module is the target system's and is called as written.
     return lowerCompatibilityFunction(replaceOutsideStrings(raw, [
       ...context.replacements,
       ["sy-repid", context.event === "dynpro"
         ? "''"
         : "io_session->get_context( )-program-program"],
       ["sy-dynnr", "''"],
-    ]));
+    ])) ?? rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
   }
   if (statement.kind === "Leave") {
     if (/LIST-PROCESSING/i.test(raw)) {
@@ -1149,9 +1289,11 @@ export function lowerStatement(statement, context) {
     }
     return `${fields.length ? `${fields.join(".\n")}.\n` : ""}io_session->get_list( )->modify_line( ls_line ).`;
   }
-  if (statement.kind === "Hide") return "";
   if (statement.kind === "Perform") {
-    if (/\bPERFORM\s+\(|\bIN\s+PROGRAM\b/i.test(raw)) return "* TODO GGCONV-E401: dynamic or external PERFORM requires a manual method mapping.";
+    // A dynamic PERFORM names a FORM that became a method; a FORM in another
+    // program is not converted and is still called as written.
+    if (/\bPERFORM\s+\(/i.test(raw)) return "* TODO GGCONV-E401: dynamic PERFORM requires a manual method mapping.";
+    if (/\bIN\s+PROGRAM\b/i.test(raw)) return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
     const name = /^PERFORM\s+([^\s.]+)/i.exec(raw)?.[1];
     const routine = context.routines?.find((item) => item.name === name?.toUpperCase());
     const receiver = context.ownerPrefix ?? "";
@@ -1192,8 +1334,6 @@ export function lowerStatement(statement, context) {
     return `CLEAR ${context.dynamicAlv.referenceMember.toLowerCase()}.`;
   }
   if (["Export", "Import", "FreeMemory"].includes(statement.kind)) return memoryCallLines(statement, context).join("\n");
-  if (statement.kind === "Return") return "RETURN.";
-  if (statement.kind === "Translate") return replaceOutsideStrings(raw, context.replacements);
   if (statement.kind === "Include") return "* INCLUDE expanded by converter.";
   if (statement.kind === "TypePools") return "";
   if (statement.kind === "Controls") return "* CONTROLS declaration represented by dynpro metadata.";
@@ -1201,73 +1341,57 @@ export function lowerStatement(statement, context) {
     ? `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}) WHERE row = is_context-row.`
     : `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}).`;
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
-  if (["If", "Else", "ElseIf", "EndIf", "Do", "EndDo", "Case", "When", "WhenOthers", "EndCase", "Loop", "EndLoop", "Try", "Catch", "Cleanup", "EndTry", "Move"].includes(statement.kind)) {
-    let converted = replaceListContextFields(replaceListColorConstants(replaceOutsideStrings(raw, context.replacements))).replace(/\bsy-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
-    converted = converted.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
-    converted = converted.replace(/\bsy-repid\b/gi, "io_session->get_context( )-program-program");
-    converted = converted.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
-    converted = converted.replace(/\bsy-lsind\b/gi, "io_session->get_list( )->get_context( )-level");
-    converted = converted.replace(/\bsy-dynnr\b/gi, context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''");
-    const screenStateSymbol = context.screenStateSymbol ?? "<ls_state>";
-    converted = converted.replace(/\bscreen-name\b/gi, `${screenStateSymbol}-name`);
-    converted = converted.replace(/\bscreen-group1\b/gi, `${screenStateSymbol}-modif_id`);
-    converted = converted.replace(/\bscreen-group([2-4])\b/gi, `${screenStateSymbol}-group$1`);
-    converted = converted.replace(/\bscreen-invisible\b/gi, `${screenStateSymbol}-password`);
-    converted = converted.replace(/\bscreen-active\b/gi, `${screenStateSymbol}-visible`);
-    converted = converted.replace(/\bscreen-required\b/gi, context.event === "dynpro" ? `${screenStateSymbol}-required` : `${screenStateSymbol}-obligatory`);
-    converted = converted.replace(/\bscreen-intensified\b/gi, `${screenStateSymbol}-intensified`);
-    converted = converted.replace(/\bscreen-(input|output)\b/gi, `${screenStateSymbol}-$1`);
-    if (context.event !== "dynpro") converted = converted.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
-    if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
-      return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
+  if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
+    return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
+  }
+  if (statement.kind === "Move") {
+    let converted = rewriteStatementValues(raw, context);
+    if (/^G_TABS-ACTIVETAB\s*=/i.test(raw)) {
+      const assignment = converted.replace(/^G_TABS-ACTIVETAB/i, "mv_active_tab");
+      return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n  ${assignment}\nENDIF.` : assignment;
     }
-    if (statement.kind === "Move") {
-      if (/^G_TABS-ACTIVETAB\s*=/i.test(raw)) {
-        const assignment = converted.replace(/^G_TABS-ACTIVETAB/i, "mv_active_tab");
-        return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n  ${assignment}\nENDIF.` : assignment;
-      }
-      if (/^G_TABS-(?:PROG|DYNNR)\s*=/i.test(raw)) return "* Selection tab state is maintained by the host screen.";
-      converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
-      converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
-      converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");
-      converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?0['"]?/i, "<ls_state>-no_display = abap_false");
-      converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?1['"]?/gi, "<ls_state>-$1 = abap_true");
-      converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?0['"]?/gi, "<ls_state>-$1 = abap_false");
-      converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?1['"]?/i, "<ls_state>-intensified = abap_true");
-      converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?0['"]?/i, "<ls_state>-intensified = abap_false");
-      converted = converted.replace(/<ls_state>-visible\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-visible = xsdbool( $1 ).");
-      converted = converted.replace(/<ls_state>-intensified\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-intensified = xsdbool( $1 ).");
-      converted = converted.replace(/<ls_state>-visible\s*=\s*'1'/i, "<ls_state>-visible = abap_true");
-      converted = converted.replace(/<ls_state>-visible\s*=\s*'0'/i, "<ls_state>-visible = abap_false");
-      converted = converted.replace(/<ls_state>-obligatory\s*=\s*'2'/i, "<ls_state>-obligatory = abap_true");
-      converted = converted.replace(/<ls_state>-obligatory\s*=\s*'0'/i, "<ls_state>-obligatory = abap_false");
-      const target = /^\s*([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1]?.toUpperCase();
-      if (target && context.dynamicCommentNames?.includes(target)
-          && context.event !== "local_class") {
-        const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
-        if (assignment) {
-          return `${converted}\nio_session->get_dialog( )->set_status( VALUE #( status = CONV string( ${target.toLowerCase()} ) ) ).`;
-        }
-      }
-      if (target && context.selectionState?.[target]) {
-        const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
-        if (assignment && !/^['|]/.test(assignment[2].trim())) converted = `${assignment[1]}|{ ${assignment[2]} }|.`;
+    if (/^G_TABS-(?:PROG|DYNNR)\s*=/i.test(raw)) return "* Selection tab state is maintained by the host screen.";
+    converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
+    converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
+    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");
+    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?0['"]?/i, "<ls_state>-no_display = abap_false");
+    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?1['"]?/gi, "<ls_state>-$1 = abap_true");
+    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?0['"]?/gi, "<ls_state>-$1 = abap_false");
+    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?1['"]?/i, "<ls_state>-intensified = abap_true");
+    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?0['"]?/i, "<ls_state>-intensified = abap_false");
+    converted = converted.replace(/<ls_state>-visible\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-visible = xsdbool( $1 ).");
+    converted = converted.replace(/<ls_state>-intensified\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-intensified = xsdbool( $1 ).");
+    converted = converted.replace(/<ls_state>-visible\s*=\s*'1'/i, "<ls_state>-visible = abap_true");
+    converted = converted.replace(/<ls_state>-visible\s*=\s*'0'/i, "<ls_state>-visible = abap_false");
+    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'2'/i, "<ls_state>-obligatory = abap_true");
+    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'0'/i, "<ls_state>-obligatory = abap_false");
+    const target = /^\s*([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1]?.toUpperCase();
+    if (target && context.dynamicCommentNames?.includes(target)
+        && context.event !== "local_class") {
+      const assignment = /^(\s*[^=]+\s*=\s*)([\s\S]+)\.$/.exec(converted);
+      if (assignment) {
+        return `${converted}\nio_session->get_dialog( )->set_status( VALUE #( status = CONV string( ${target.toLowerCase()} ) ) ).`;
       }
     }
     return converted;
   }
-  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static", "Comment", "Empty"].includes(statement.kind)) {
+  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static"].includes(statement.kind)) {
     const declaration = statement.kind === "Static" ? raw.replace(/^STATICS\b/i, "DATA") : raw;
     // abaplint splits a chained declaration into one statement per element and
     // repeats the keyword while keeping the separating comma. Each emitted
     // element is a standalone statement, so a trailing comma must become its
-    // terminator.
-    const terminated = ["Data", "Type", "Constant", "Static"].includes(statement.kind)
-      ? declaration.replace(/,\s*$/, ".")
-      : declaration;
-    return replaceOutsideStrings(terminated, context.replacements);
+    // terminator; BEGIN OF and END OF included, which gives the valid unchained
+    // `TYPES BEGIN OF x. TYPES id TYPE i. TYPES END OF x.` form.
+    return replaceOutsideStrings(declaration.replace(/,\s*$/, "."), context.replacements);
   }
-  return `* TODO GGCONV-E501: unsupported ${statement.kind} statement requires manual lowering.`;
+  // A statement abaplint could not parse is already reported as GGCONV-E201;
+  // copying it would only make the generated class unparseable too.
+  if (statement.kind === "Unknown") return "* TODO GGCONV-E201: statement abaplint could not classify requires manual conversion.";
+  // The rules above are the fixed set of statements that need rewriting.
+  // Everything else is carried over as written, with only the value rewrites;
+  // abaplint splits a chained statement into one statement per element, so a
+  // trailing comma becomes the terminator.
+  return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
 }
 
 // A block opener that lowers to nothing but a comment cannot leave its body and

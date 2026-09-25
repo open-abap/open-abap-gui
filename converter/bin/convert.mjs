@@ -4,20 +4,21 @@ import path from "node:path";
 import { convertConfiguredPrograms } from "../src/batch.mjs";
 import { DEFAULT_CONFIG_FILENAME, discoverPrograms, loadTranspileConfig } from "../src/config.mjs";
 import { diagnosticsToJSON, diagnosticsToText, sortDiagnostics } from "../src/diagnostics.mjs";
+import { loadLibraries } from "../src/libs.mjs";
 
 function usage() {
   return `Usage: node converter/bin/convert.mjs [options]
 
-Converts every executable program an abap_transpile.json selects. Generated
-classes are written to the configured output_folder with a "_converter" suffix.
+Converts every executable program in the converter.input_folder of an
+abap_transpile.json. Generated classes are written to converter.output_folder.
 
 Options:
   --config <file>          abap_transpile.json (default: ./${DEFAULT_CONFIG_FILENAME})
   --program <name>         convert only this program (repeatable; report name
                            or path fragment)
-  --output-folder <dir>    write classes here instead of <output_folder>_converter
-  --ddic <file.json>       DDIC types as {"TABLE":{"type":"...",
-                           "fields":{"FIELD":"..."}}}
+  --output-folder <dir>    write classes here instead of converter.output_folder
+  --ddic <file.json>       optional field metadata for SELECT-OPTIONS/PARAMETERS
+                           FOR <table>-<field>, as {"TABLE":{"fields":{"FIELD":"..."}}}
   --mode strict|partial    conversion mode (default: strict)
   --diagnostics text|json  diagnostic format (default: text)
   --check                  analyze and print the summary, write nothing
@@ -102,6 +103,10 @@ if (singleOnly.length && options.programs.length !== 1) {
 }
 
 const config = await loadTranspileConfig(options.config ?? DEFAULT_CONFIG_FILENAME);
+// stderr, so a --check summary on stdout stays parseable JSON.
+if (options.config === undefined && !config.diagnostics.some((item) => item.code === "GGCONV-E110")) {
+  console.error(`using ${config.filename} (no --config given)`);
+}
 // GGCONV-W110 warns that abap_transpile will not compile the generated
 // classes. A --check run writes none, so the warning has nothing to say.
 const configDiagnostics = config.diagnostics.filter((item) => !(options.check && item.code === "GGCONV-W110"));
@@ -119,14 +124,14 @@ if (options.programs.length) {
   for (const request of options.programs) {
     const matches = discovered.filter((program) => matchesRequest(program, request));
     if (!matches.length) {
-      console.error(`no program matching ${JSON.stringify(request)} was found in the configured input folders`);
+      console.error(`no program matching ${JSON.stringify(request)} was found in converter.input_folder`);
       process.exit(2);
     }
     for (const match of matches) if (!programs.includes(match)) programs.push(match);
   }
 }
 if (!programs.length) {
-  console.error(`no executable programs were found in the configured input folders`);
+  console.error(`no executable programs were found in converter.input_folder`);
   process.exit(2);
 }
 
@@ -138,23 +143,37 @@ try {
   process.exit(2);
 }
 
-const summary = await convertConfiguredPrograms({
-  config,
-  programs,
-  write: !options.check,
-  // --program converts a subset, so the rest of the generated folder is still
-  // current output and must survive.
-  clear: options.programs.length === 0,
-  outputFolder: options["output-folder"],
-  outputFile: options.output,
-  overrides: {
-    mode: options.mode,
-    ddicTypes,
-    className: options.class,
-    transactionCode: options.tcode,
-    description: options.description,
-  },
-});
+let libraries;
+try {
+  libraries = loadLibraries(config, { log: (message) => console.error(message) });
+} catch (error) {
+  console.error(error.message);
+  process.exit(2);
+}
+config.libraryFolders = libraries.folders;
+
+let summary;
+try {
+  summary = await convertConfiguredPrograms({
+    config,
+    programs,
+    write: !options.check,
+    // --program converts a subset, so the rest of the generated folder is still
+    // current output and must survive.
+    clear: options.programs.length === 0,
+    outputFolder: options["output-folder"],
+    outputFile: options.output,
+    overrides: {
+      mode: options.mode,
+      ddicTypes,
+      className: options.class,
+      transactionCode: options.tcode,
+      description: options.description,
+    },
+  });
+} finally {
+  libraries.cleanup();
+}
 
 const diagnostics = sortDiagnostics([
   ...summary.diagnostics,

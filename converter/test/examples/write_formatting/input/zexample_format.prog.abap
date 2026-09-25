@@ -1,0 +1,16 @@
+REPORT zexample_format LINE-SIZE 80.
+
+TYPE-POOLS icon.
+
+START-OF-SELECTION.
+  FORMAT COLOR COL_HEADING INTENSIFIED ON.
+  WRITE: / 'Heading'.
+  FORMAT RESET.
+  ULINE AT /1(40).
+  SKIP 2.
+  WRITE: / 'Positive' COLOR COL_POSITIVE, 30 'Negative' COLOR COL_NEGATIVE.
+  WRITE: /5 icon_okay AS ICON, 'Done'.
+  NEW-LINE.
+  WRITE 'Same line' INVERSE.
+  NEW-PAGE.
+  WRITE: / 'Second page'.

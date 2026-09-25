@@ -105,7 +105,7 @@ export async function resolveSources({ source, filename, resolveInclude, include
     }
     seen.add(identity);
     active.push(identity);
-    units.push({ filename: unit.filename, source: normalized.source, newline: normalized.newline, ancestry });
+    units.push({ filename: unit.filename, source: normalized.source, newline: normalized.newline, ancestry, hashKey: unit.hashKey });
     for (const include of findIncludes(normalized.source)) {
       const loaded = await loadInclude(include.name, unit.filename, resolveInclude, searchPaths);
       if (loaded === undefined) {
@@ -124,13 +124,15 @@ export async function resolveSources({ source, filename, resolveInclude, include
         }));
         continue;
       }
-      await visit(loaded, [...ancestry, unit.filename]);
+      await visit({ ...loaded, hashKey: `INCLUDE ${include.name.toUpperCase()}` }, [...ancestry, unit.filename]);
     }
     active.pop();
   }
 
-  await visit({ filename, source }, []);
-  const compilationInput = units.map((unit) => `${unit.filename}\0${unit.source}`).join("\0");
+  await visit({ filename, source, hashKey: filename }, []);
+  // Includes are usually found through absolute search paths, so they are
+  // hashed by INCLUDE name; a path would differ per checkout and platform.
+  const compilationInput = units.map((unit) => `${unit.hashKey}\0${unit.source}`).join("\0");
   const compilationHash = crypto.createHash("sha256").update(compilationInput, "utf8").digest("hex");
   return { units, diagnostics, sourceHash: compilationHash, newline: normalizeSource(source).newline };
 }

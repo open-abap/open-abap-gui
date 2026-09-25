@@ -17,6 +17,7 @@ import { buildStatePlan } from "../../src/passes/lower-state.mjs";
 import { resolveTypes } from "../../src/passes/resolve-types.mjs";
 import { selectInterfaces } from "../../src/passes/select-interfaces.mjs";
 import { LOWERING_RULES, lowerStatement } from "../../src/passes/lower-statements.mjs";
+import { convertProgram } from "../../src/api.mjs";
 
 let nextLine = 1;
 function statement(kind, text) {
@@ -214,6 +215,7 @@ test("every registered lowering rule has a direct positive fixture", () => {
     EndTry: "ENDTRY.",
     Data: "DATA gv_local TYPE i.",
     Ranges: "RANGES r_value FOR gv_value.",
+    IncludeType: "INCLUDE TYPE zlog.",
     TypeBegin: "TYPES BEGIN OF ty_row.",
     TypeEnd: "TYPES END OF ty_row.",
     Constant: "CONSTANTS gc_value TYPE i VALUE 1.",
@@ -237,4 +239,68 @@ test("every registered lowering rule has a direct positive fixture", () => {
     assert.notEqual(lowered, undefined, `${kind} lowering returned undefined`);
     assert.doesNotMatch(String(lowered), /TODO GGCONV-E\d+/, `${kind} lowering emitted a TODO`);
   }
+});
+
+test("lowers MESSAGE WITH operands that are string templates or literals with spaces", async () => {
+  resetLines();
+  const context = { replacements: [], selections: [], selectionState: {} };
+  const lower = (source) => lowerStatement(statement("Message", source), context);
+  // A template is one operand even though it holds spaces and parentheses.
+  assert.equal(
+    lower("MESSAGE s002(zsdf) WITH ls_data-configuration |{ lv_token(5) }|."),
+    "io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_success id = 'ZSDF' number = '002' v1 = ls_data-configuration v2 = |{ lv_token(5) }| ) ).",
+  );
+  // Nested templates, literals inside expressions, escapes and backtick literals.
+  assert.equal(
+    lower("MESSAGE e001(zsdf) WITH |a { |b { lv_x } c| } \\| d| `x y` 'p q' |{ 'r s' }|."),
+    "io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_error id = 'ZSDF' number = '001' v1 = |a { |b { lv_x } c| } \\| d| v2 = `x y` v3 = 'p q' v4 = |{ 'r s' }| ) ).",
+  );
+
+  // The whole class still parses.
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsgtpl.",
+      "TYPES: BEGIN OF ty_data, configuration TYPE c LENGTH 10, END OF ty_data.",
+      "DATA ls_data TYPE ty_data.",
+      "DATA lv_token TYPE string.",
+      "START-OF-SELECTION.",
+      "  MESSAGE s002(zsdf) WITH ls_data-configuration |{ lv_token(5) }|.",
+    ].join("\n"),
+    filename: "zmsgtpl.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /v1 = ls_data-configuration v2 = \|\{ lv_token\(5\) \}\| \) \)\./);
+});
+
+test("passes a MESSAGE operand that may be an exception object to the session untouched", () => {
+  resetLines();
+  const context = { replacements: [], selections: [], selectionState: {} };
+  const lower = (source) => lowerStatement(statement("Message", source), context);
+  // `MESSAGE lx_error TYPE 'E'` may name an exception; the session reads its
+  // text at runtime, which a string template around it could not.
+  assert.equal(
+    lower("MESSAGE lx_error TYPE 'E'."),
+    [
+      "io_session->message(",
+      "  is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_error )",
+      "  ia_text    = lx_error ).",
+    ].join("\n"),
+  );
+  assert.equal(
+    lower("MESSAGE lx_error TYPE 'S' DISPLAY LIKE 'E'."),
+    [
+      "io_session->message(",
+      "  is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_success display_like = zif_gg_session_types_v1=>message_type_error )",
+      "  ia_text    = lx_error ).",
+    ].join("\n"),
+  );
+  // Literals and templates are text already and stay in is_message-text.
+  assert.equal(
+    lower("MESSAGE 'done' TYPE 'I'."),
+    "io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_info text = 'done' ) ).",
+  );
+  assert.equal(
+    lower("MESSAGE |{ lv_count } rows| TYPE 'S'."),
+    "io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_success text = |{ lv_count } rows| ) ).",
+  );
 });

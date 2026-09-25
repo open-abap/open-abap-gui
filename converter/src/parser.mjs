@@ -80,6 +80,23 @@ export function parseUnits(units, config = Config.getDefault()) {
   return { units: parsedUnits, diagnostics, config };
 }
 
+let statementParser;
+const statementParses = new Map();
+
+// Whether abaplint classifies every statement in the text. Lowering uses it to
+// check that a rewrite left the statement parseable, for example that a
+// statement accepts a method call where it had a data object.
+export function parsesAsStatement(text) {
+  if (!statementParses.has(text)) {
+    statementParser ??= configuredParser(Config.getDefault());
+    const file = statementParser.parse([new MemoryFile("zggconv_probe.prog.abap", text)]).output[0];
+    const statements = file?.getStatements?.() ?? [];
+    statementParses.set(text, statements.length > 0
+      && statements.every((statement) => (statement.get?.()?.constructor?.name ?? statement.constructor.name) !== "Unknown"));
+  }
+  return statementParses.get(text);
+}
+
 export function parseSource(source, filename = "program.prog.abap", config = Config.getDefault()) {
   return parseUnits([{ source, filename, ancestry: [], newline: "\n" }], config);
 }

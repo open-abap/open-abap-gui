@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <PROGDIR>
+    <NAME>ZEXAMPLE_NAVIGATION</NAME>
+    <SUBC>1</SUBC>
+   </PROGDIR>
+   <DYNPROS>
+    <item>
+     <HEADER>
+      <PROGRAM>ZEXAMPLE_NAVIGATION</PROGRAM>
+      <SCREEN>0100</SCREEN>
+      <LANGUAGE>E</LANGUAGE>
+      <DESCRIPT>Intermediate screen</DESCRIPT>
+      <TYPE>N</TYPE>
+      <NEXTSCREEN>0100</NEXTSCREEN>
+      <LINES>010</LINES>
+      <COLUMNS>060</COLUMNS>
+     </HEADER>
+     <FIELDS>
+      <RPY_DYFATC>
+       <CONT_TYPE>SCREEN</CONT_TYPE>
+       <CONT_NAME>SCREEN</CONT_NAME>
+       <TYPE>TEXT</TYPE>
+       <NAME>LABEL_INFO</NAME>
+       <TEXT>Press_Back_to_continue_the_report</TEXT>
+       <LINE>002</LINE>
+       <COLUMN>002</COLUMN>
+       <LENGTH>033</LENGTH>
+      </RPY_DYFATC>
+     </FIELDS>
+    </item>
+   </DYNPROS>
+   <CUA>
+    <STA>
+     <RSMPE_STAT>
+      <CODE>SCREEN</CODE>
+      <MODAL>D</MODAL>
+      <INT_NOTE>Intermediate screen</INT_NOTE>
+     </RSMPE_STAT>
+    </STA>
+    <FUN>
+     <RSMPE_FUNT>
+      <CODE>BACK</CODE>
+      <FUN_TEXT>Back</FUN_TEXT>
+     </RSMPE_FUNT>
+    </FUN>
+    <SET>
+     <RSMPE_STAF>
+      <STATUS>SCREEN</STATUS>
+      <FUNCTION>BACK</FUNCTION>
+     </RSMPE_STAF>
+    </SET>
+   </CUA>
+  </asx:values>
+ </asx:abap>
+</abapGit>

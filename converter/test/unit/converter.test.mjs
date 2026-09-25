@@ -4,7 +4,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "../../src/api.mjs";
 import { loadDynproMetadata } from "../../src/dynpro-metadata.mjs";
-import { GG_GUI_DDIC_TYPES } from "../../src/gg-gui-ddic.mjs";
 import { COMPATIBILITY_FUNCTION_MODULES } from "../../src/function-modules.mjs";
 import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
 import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../src/capability.mjs";
@@ -84,7 +83,74 @@ test("lowers a selection parameter into a typed screen definition", async () => 
   assert.match(result.classSource, /add_parameter/);
   assert.match(result.classSource, /name = 'P_CARR'/);
   assert.match(result.classSource, /it_values\[ name = 'P_CARR' \]/);
-  assert.match(result.classSource, /DATA mv_p_carr TYPE string/);
+  assert.match(result.classSource, /DATA mv_p_carr TYPE c LENGTH 3\./);
+});
+
+test("declares each selection parameter member with the parameter's own type", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zparams.",
+      "TABLES sflight.",
+      "TYPES ty_status TYPE c LENGTH 2.",
+      "CONSTANTS gc_code TYPE c LENGTH 4 VALUE 'ABCD'.",
+      "DATA gv_carrid TYPE c LENGTH 3.",
+      "DATA lo_writer TYPE i.",
+      "PARAMETERS p_count TYPE i DEFAULT 10.",
+      "PARAMETERS p_date TYPE d.",
+      "PARAMETERS p_amount TYPE p LENGTH 8 DECIMALS 2.",
+      "PARAMETERS p_numc TYPE n LENGTH 6.",
+      "PARAMETERS p_matnr TYPE matnr OBLIGATORY.",
+      "PARAMETERS p_len(10) TYPE c.",
+      "PARAMETERS p_plain.",
+      "PARAMETERS p_old(4).",
+      "PARAMETERS p_aaa LIKE p_zzz.",
+      "PARAMETERS p_zzz TYPE i.",
+      "PARAMETERS p_like LIKE gv_carrid.",
+      "PARAMETERS p_likew LIKE lo_writer.",
+      "PARAMETERS p_likec LIKE gc_code.",
+      "PARAMETERS p_carr LIKE sflight-carrid.",
+      "PARAMETERS p_ddic LIKE mara-matnr.",
+      "PARAMETERS p_comp TYPE sflight-connid.",
+      "PARAMETERS p_flag AS CHECKBOX DEFAULT 'X'.",
+      "PARAMETERS p_rad1 RADIOBUTTON GROUP g1.",
+      "PARAMETERS p_stat TYPE ty_status.",
+      "PARAMETERS p_list TYPE c LENGTH 5 AS LISTBOX VISIBLE LENGTH 20.",
+      "SELECT-OPTIONS s_date FOR p_date.",
+      "START-OF-SELECTION.",
+      "  p_date = p_date + 1.",
+    ].join("\n"),
+    filename: "zparams.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const members = result.classSource.split("\n").map((line) => line.trim()).filter((line) => line.startsWith("DATA mv_p_") || line.startsWith("DATA mv_s_"));
+  assert.deepEqual(members, [
+    "DATA mv_p_zzz TYPE i.",
+    // LIKE can only name an attribute declared before it.
+    "DATA mv_p_aaa LIKE mv_p_zzz.",
+    "DATA mv_p_amount TYPE p LENGTH 8 DECIMALS 2.",
+    "DATA mv_p_carr LIKE sflight-carrid.",
+    "DATA mv_p_comp TYPE sflight-connid.",
+    "DATA mv_p_count TYPE i.",
+    "DATA mv_p_date TYPE d.",
+    "DATA mv_p_ddic TYPE mara-matnr.",
+    "DATA mv_p_flag TYPE c LENGTH 1.",
+    "DATA mv_p_len TYPE c LENGTH 10.",
+    "DATA mv_p_like LIKE gv_carrid.",
+    "DATA mv_p_likec LIKE gc_code.",
+    "DATA mv_p_likew LIKE mv_lo_writer.",
+    "DATA mv_p_list TYPE c LENGTH 5.",
+    "DATA mv_p_matnr TYPE matnr.",
+    "DATA mv_p_numc TYPE n LENGTH 6.",
+    "DATA mv_p_old TYPE c LENGTH 4.",
+    "DATA mv_p_plain TYPE c LENGTH 8.",
+    "DATA mv_p_rad1 TYPE c LENGTH 1.",
+    "DATA mv_p_stat TYPE ty_status.",
+    "DATA mv_s_date TYPE zif_gg_selection_screen_types=>ty_ranges.",
+  ]);
+  // Assignments keep ABAP's own conversion, and the screen value is only
+  // rewritten, in template form, when the program changed it.
+  assert.match(result.classSource, /^\s*mv_p_date = mv_p_date \+ 1\.$/m);
+  assert.match(result.classSource, /IF ct_values\[ name = 'P_DATE' \]-value <> mv_p_date\.\s+ct_values\[ name = 'P_DATE' \]-value = \|\{ mv_p_date \}\|\.\s+ENDIF\./);
 });
 
 test("does not lift selection-screen layout elements into report state", async () => {
@@ -99,7 +165,7 @@ test("does not lift selection-screen layout elements into report state", async (
   });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /DATA mv_cmt1/);
-  assert.match(result.classSource, /DATA mv_p_value TYPE string/);
+  assert.match(result.classSource, /DATA mv_p_value TYPE c\./);
 });
 
 test("applies supplied text-pool labels and warns for unresolved labels", async () => {
@@ -150,7 +216,7 @@ test("strict mode reports an unsupported program kind without emitting", async (
 });
 
 test("partial mode marks unsupported statements instead of dropping them", async () => {
-  const result = await convertProgram({ source: "REPORT zpartial.\nCALL FUNCTION 'X'.\n", filename: "zpartial.prog.abap", mode: "partial" });
+  const result = await convertProgram({ source: "REPORT zpartial.\nPERFORM (lv_form).\n", filename: "zpartial.prog.abap", mode: "partial" });
   assert.equal(result.supported, false);
   assert.match(result.classSource, /TODO GGCONV/);
 });
@@ -175,7 +241,7 @@ test("partial conversion rejects empty generated dynpro module bodies", async ()
     source: [
       "PROGRAM zempty_dynpro_modules.",
       "MODULE pbo OUTPUT.",
-      "  CALL FUNCTION 'NOT_LOWERED'.",
+      "  PERFORM (lv_form).",
       "ENDMODULE.",
       "MODULE pai INPUT.",
       "ENDMODULE.",
@@ -267,14 +333,233 @@ test("lowers classic currency WRITE formatting and list paging commands", async 
   assert.match(result.classSource, /lo_writer->scroll_to_last_page\( \)\./);
 });
 
-test("keeps logical-database GET events outside the converter scope", async () => {
+test("rewrites system fields in every carried-over statement, not only in conditions", async () => {
   const result = await convertProgram({
-    source: "REPORT zlogical_database.\nGET spfli.\n",
-    filename: "zlogical_database.prog.abap",
+    source: [
+      "REPORT zvalues.",
+      "DATA gv_text TYPE string.",
+      "DATA gv_program TYPE sy-repid.",
+      "START-OF-SELECTION.",
+      "  IF sy-ucomm = 'sy-ucomm'.",
+      "    gv_text = 'x'.",
+      "  ENDIF.",
+      "  WRITE 'x'.",
+      "AT LINE-SELECTION.",
+      "  CHECK sy-lsind < 3.",
+      "  WHILE sy-lsind > 5.",
+      "  ENDWHILE.",
+      "  CONCATENATE 'Level' sy-lsind INTO gv_text SEPARATED BY space.",
+    ].join("\n"),
+    filename: "zvalues.prog.abap",
   });
-  assert.equal(result.supported, false);
-  assert.equal(result.classSource, undefined);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516"));
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const level = "io_session->get_list( )->get_context( )-level";
+  assert.ok(result.classSource.includes(`CHECK ${level} < 3.`));
+  assert.ok(result.classSource.includes(`WHILE ${level} > 5.`));
+  // CONCATENATE takes data objects only, so the session value cannot replace the field.
+  assert.ok(result.classSource.includes("CONCATENATE 'Level' sy-lsind INTO gv_text SEPARATED BY space."));
+  // START-OF-SELECTION has no iv_ucomm parameter, and a literal is not a field.
+  assert.ok(result.classSource.includes("IF sy-ucomm = 'sy-ucomm'."));
+  // A declaration keeps naming the system field's type.
+  assert.match(result.classSource, /DATA gv_program TYPE sy-repid\./);
+});
+
+test("writes NO-GROUPING fields without the addition", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT znogrouping.",
+      "TYPES: BEGIN OF ty_date, count TYPE i, END OF ty_date.",
+      "DATA ls_date TYPE ty_date.",
+      "START-OF-SELECTION.",
+      "  WRITE ls_date-count NO-GROUPING.",
+      "  WRITE: / ls_date-count NO-GROUPING NO-ZERO, 20 ls_date-count NO-GROUPING.",
+    ].join("\n"),
+    filename: "znogrouping.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /lo_writer->write_field\( VALUE #\( text = \|\{ ls_date-count \}\| \) \)\./);
+  assert.match(result.classSource, /text = \|\{ ls_date-count \}\| placement = VALUE #\( new_line = abap_true \) write_format = VALUE #\( no_zero = abap_true \)/);
+  assert.match(result.classSource, /text = \|\{ ls_date-count \}\| placement = VALUE #\( position = 20 \)/);
+  assert.doesNotMatch(result.classSource, /NO-GROUPING|TODO GGCONV/i);
+});
+
+test("writes INVERSE and INTENSIFIED as field format", async () => {
+  const result = await convertProgram({
+    source: "REPORT zwrite_inverse.\nSTART-OF-SELECTION.\nWRITE 'A' INVERSE.\nWRITE 'B' INTENSIFIED ON INVERSE ON.\n",
+    filename: "zwrite_inverse.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /text = 'A' format = VALUE #\( inverse = abap_true \)/);
+  assert.match(result.classSource, /text = 'B' format = VALUE #\( intensified = abap_true inverse = abap_true \)/);
+  assert.doesNotMatch(result.classSource, /\bINVERSE\b|\bINTENSIFIED\b|\bON \}/);
+});
+
+test("rejects WRITE format switches the writer cannot turn off", async () => {
+  for (const addition of ["INVERSE OFF", "INTENSIFIED = gv_flag", "HOTSPOT OFF"]) {
+    const result = await convertProgram({
+      source: `REPORT zwrite_off.\nDATA gv_flag TYPE abap_bool.\nSTART-OF-SELECTION.\nWRITE 'A' ${addition}.\n`,
+      filename: "zwrite_off.prog.abap",
+      mode: "partial",
+    });
+    assert.match(result.classSource, /TODO GGCONV-E501: unsupported WRITE formatting/, addition);
+  }
+});
+
+test("lowers ULINE position and length with and without AT", async () => {
+  const result = await convertProgram({
+    source: "REPORT zuline.\nSTART-OF-SELECTION.\nULINE AT /1(40).\nULINE /5(10).\nULINE AT 3.\nULINE (20).\nULINE.\n",
+    filename: "zuline.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const ulines = [...result.classSource.matchAll(/lo_writer->uline\( VALUE #\((.*?)\) \)/g)].map((match) => match[1].trim());
+  assert.deepEqual(ulines, ["position = 1 length = 40", "position = 5 length = 10", "position = 3", "length = 20", ""]);
+});
+
+test("keeps the event signature of a static event handler and binds owner and session on SET HANDLER", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zevt.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_events DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS handle_toolbar",
+      "                FOR EVENT toolbar OF cl_gui_alv_grid",
+      "      IMPORTING e_object e_interactive.",
+      "    CLASS-METHODS add IMPORTING iv_value TYPE i.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD handle_toolbar.",
+      "    add( 1 ).",
+      "    MESSAGE 'toolbar' TYPE 'S'.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  SET HANDLER lcl_events=>handle_toolbar FOR go_grid.",
+    ].join("\n"),
+    filename: "zevt.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const helper = result.helperSources.find((item) => item.className === "ZCL_EVT_H1").source;
+  assert.match(helper, /CLASS-METHODS handle_toolbar FOR EVENT toolbar OF cl_gui_alv_grid IMPORTING e_object e_interactive\./);
+  assert.match(helper, /CLASS-DATA go_owner TYPE REF TO zcl_evt\./);
+  assert.match(helper, /CLASS-DATA go_session TYPE REF TO zif_gg_session_v1\./);
+  // Other static methods keep the bridge parameters, and calls to them pass the stored pair.
+  assert.match(helper, /CLASS-METHODS add IMPORTING iv_value TYPE i io_owner TYPE REF TO zcl_evt io_session TYPE REF TO zif_gg_session_v1\./);
+  assert.match(helper, /^\s*add\( io_owner = go_owner io_session = go_session IV_VALUE = 1 \)\./m);
+  assert.match(helper, /go_session->message\(/);
+  assert.match(result.classSource, /zcl_evt_h1=>go_owner = me\.\s+zcl_evt_h1=>go_session = io_session\.\s+SET HANDLER zcl_evt_h1=>handle_toolbar FOR go_grid\./);
+});
+
+test("accepts LOOP TRANSPORTING NO FIELDS and REFERENCE INTO without a work area", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zloopnofields.",
+      "TYPES: BEGIN OF ty_row, configuration TYPE i, client_id TYPE i, END OF ty_row.",
+      "DATA gt_old TYPE STANDARD TABLE OF ty_row WITH EMPTY KEY.",
+      "DATA ls_data TYPE ty_row.",
+      "DATA gv_count TYPE i.",
+      "START-OF-SELECTION.",
+      "  LOOP AT gt_old TRANSPORTING NO FIELDS",
+      "      WHERE configuration <> ls_data-configuration",
+      "      AND client_id = ls_data-client_id.",
+      "    gv_count = gv_count + 1.",
+      "  ENDLOOP.",
+      "  LOOP AT gt_old REFERENCE INTO DATA(lr_row).",
+      "    gv_count = gv_count + lr_row->client_id.",
+      "  ENDLOOP.",
+    ].join("\n"),
+    filename: "zloopnofields.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /LOOP AT gt_old TRANSPORTING NO FIELDS WHERE configuration <> ls_data-configuration AND client_id = ls_data-client_id\./);
+  assert.match(result.classSource, /LOOP AT gt_old REFERENCE INTO DATA\(lr_row\)\./);
+});
+
+test("keeps INCLUDE TYPE and INCLUDE STRUCTURE inside their structure", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zincl.",
+      "TYPES: BEGIN OF ty_alv,",
+      "         show_payload TYPE icon_d.",
+      "         INCLUDE TYPE zlog.",
+      "TYPES END OF ty_alv.",
+      "TYPES: BEGIN OF ty_renamed.",
+      "         INCLUDE TYPE zlog AS log RENAMING WITH SUFFIX _l.",
+      "TYPES:   extra TYPE i,",
+      "       END OF ty_renamed.",
+      "DATA: BEGIN OF gs_row.",
+      "        INCLUDE STRUCTURE zlog.",
+      "DATA:   flag TYPE c LENGTH 1,",
+      "      END OF gs_row.",
+      "START-OF-SELECTION.",
+      "  PERFORM fill.",
+      "FORM fill.",
+      "  TYPES: BEGIN OF ty_local,",
+      "           id TYPE i.",
+      "           INCLUDE TYPE zlog.",
+      "  TYPES END OF ty_local.",
+      "  DATA ls_local TYPE ty_local.",
+      "  CLEAR ls_local.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zincl.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /TYPES: BEGIN OF ty_alv, show_payload TYPE icon_d\. INCLUDE TYPE zlog\. TYPES: END OF ty_alv\./);
+  assert.match(result.classSource, /TYPES: BEGIN OF ty_renamed\. INCLUDE TYPE zlog AS log RENAMING WITH SUFFIX _l\. TYPES: extra TYPE i, END OF ty_renamed\./);
+  assert.match(result.classSource, /DATA: BEGIN OF gs_row\. INCLUDE STRUCTURE zlog\. DATA: flag TYPE c LENGTH 1, END OF gs_row\./);
+  assert.match(result.classSource, /TYPES BEGIN OF ty_local\.\s+TYPES id TYPE i\.\s+INCLUDE TYPE zlog\.\s+TYPES END OF ty_local\./);
+  // ty_alv and the FORM-local copy; INCLUDE must not leak into event methods.
+  assert.equal(result.classSource.match(/INCLUDE TYPE zlog\./g).length, 2);
+});
+
+test("terminates each element of a chained statement", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zchain.",
+      "DATA: gv_a TYPE i, gv_b TYPE string, gt_c TYPE STANDARD TABLE OF i WITH EMPTY KEY.",
+      "START-OF-SELECTION.",
+      "  CLEAR: gv_a, gv_b.",
+      "  ADD: 1 TO gv_a, 2 TO gv_a.",
+      "  APPEND: 1 TO gt_c, 2 TO gt_c.",
+      "  CONDENSE: gv_b, gv_b NO-GAPS.",
+    ].join("\n"),
+    filename: "zchain.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  for (const statement of ["CLEAR gv_a.", "CLEAR gv_b.", "ADD 1 TO gv_a.", "ADD 2 TO gv_a.", "APPEND 1 TO gt_c.", "APPEND 2 TO gt_c.", "CONDENSE gv_b.", "CONDENSE gv_b NO-GAPS."]) {
+    assert.ok(result.classSource.includes(`    ${statement}\n`), `expected ${statement} in the generated class`);
+  }
+  assert.doesNotMatch(result.classSource, /^\s+(CLEAR|ADD|APPEND|CONDENSE)\b.*,$/m);
+});
+
+test("carries statements without a lowering rule over as written", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zno_rule.",
+      "DATA gv_start TYPE i.",
+      "DATA gv_text TYPE string.",
+      "START-OF-SELECTION.",
+      "  GET RUN TIME FIELD gv_start.",
+      "  CONCATENATE 'a' 'b' INTO gv_text.",
+      "  CONDENSE gv_text.",
+      "  WHILE gv_start < 10.",
+      "    gv_start = gv_start + 1.",
+      "  ENDWHILE.",
+      "  WAIT UP TO 1 SECONDS.",
+    ].join("\n"),
+    filename: "zno_rule.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.diagnostics.filter((item) => item.severity !== "info"), []);
+  for (const statement of ["GET RUN TIME FIELD gv_start.", "CONCATENATE 'a' 'b' INTO gv_text.", "CONDENSE gv_text.", "WHILE gv_start < 10.", "ENDWHILE.", "WAIT UP TO 1 SECONDS."]) {
+    assert.ok(result.classSource.includes(statement), `expected ${statement} in the generated class`);
+  }
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
 test("marks dynamic WRITE calls before lowering", () => {
@@ -391,10 +676,95 @@ test("diagnoses dynamic PERFORM instead of emitting a guessed call", async () =>
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E401"));
   assert.match(result.classSource, /TODO GGCONV-E401/);
 
-  const dynamicCall = await convertProgram({ source: "REPORT zdyncall.\nCALL METHOD (lv_method).\n", filename: "zdyncall.prog.abap", mode: "partial" });
-  assert.equal(dynamicCall.supported, false);
-  assert.ok(dynamicCall.diagnostics.some((item) => item.code === "GGCONV-E511"));
-  assert.match(dynamicCall.classSource, /TODO GGCONV-E501/);
+});
+
+test("carries object creation and method calls over as written", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zcalls.",
+      "DATA go_calc TYPE REF TO zcl_calc.",
+      "DATA go_any TYPE REF TO object.",
+      "DATA gv_method TYPE string VALUE 'RUN'.",
+      "START-OF-SELECTION.",
+      "  CREATE OBJECT go_calc.",
+      "  CREATE OBJECT go_any TYPE zcl_calc EXPORTING iv_start = 1.",
+      "  zcl_calc=>reset( ).",
+      "  CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'.",
+      "  go_calc->add( 2 ).",
+      "  CALL METHOD go_any->(gv_method).",
+      "  CALL METHOD (gv_method).",
+      "  cl_gui_frontend_services=>clipboard_export( ).",
+    ].join("\n"),
+    filename: "zcalls.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /CREATE OBJECT go_calc\./);
+  assert.match(result.classSource, /CREATE OBJECT go_any TYPE zcl_calc EXPORTING iv_start = 1\./);
+  assert.match(result.classSource, /zcl_calc=>reset\( \)\./);
+  assert.match(result.classSource, /CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'\./);
+  assert.match(result.classSource, /go_calc->add\( 2 \)\./);
+  assert.match(result.classSource, /CALL METHOD go_any->\(gv_method\)\./);
+  assert.match(result.classSource, /CALL METHOD \(gv_method\)\./);
+  assert.match(result.classSource, /cl_gui_frontend_services=>clipboard_export\( \)\./);
+});
+
+test("still rewrites object creation for report-local classes", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zlocalcreate.",
+      "CLASS lcl_app DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_app IMPLEMENTATION.",
+      "  METHOD run.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "DATA go_app TYPE REF TO lcl_app.",
+      "START-OF-SELECTION.",
+      "  CREATE OBJECT go_app.",
+      "  go_app->run( ).",
+    ].join("\n"),
+    filename: "zlocalcreate.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /CREATE OBJECT go_app EXPORTING io_owner = me io_session = io_session\./);
+  assert.match(result.classSource, /go_app->run\( \)\./);
+});
+
+test("carries event registrations over as written", async () => {
+  const source = [
+    "REPORT zglobalhandler.",
+    "CLASS lcl_events DEFINITION.",
+    "  PUBLIC SECTION.",
+    "    METHODS on_changed FOR EVENT changed OF zcl_model IMPORTING sender.",
+    "    CLASS-METHODS on_created FOR EVENT created OF zcl_model.",
+    "ENDCLASS.",
+    "CLASS lcl_events IMPLEMENTATION.",
+    "  METHOD on_changed.",
+    "  ENDMETHOD.",
+    "  METHOD on_created.",
+    "  ENDMETHOD.",
+    "ENDCLASS.",
+    "DATA go_model TYPE REF TO zcl_model.",
+    "DATA go_events TYPE REF TO lcl_events.",
+    "DATA go_logger TYPE REF TO zcl_logger.",
+    "START-OF-SELECTION.",
+    "  go_model = NEW #( ).",
+    "  go_events = NEW #( ).",
+    "  SET HANDLER go_events->on_changed FOR go_model.",
+    "  SET HANDLER go_events->on_changed FOR ALL INSTANCES ACTIVATION abap_false.",
+    "  SET HANDLER lcl_events=>on_created.",
+    "  SET HANDLER go_logger->on_changed go_logger->on_deleted FOR ALL INSTANCES.",
+    "  SET HANDLER go_unknown->(lv_name) FOR go_anything.",
+  ].join("\n");
+  const result = await convertProgram({ source, filename: "zglobalhandler.prog.abap" });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR go_model\./);
+  assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR ALL INSTANCES ACTIVATION abap_false\./);
+  assert.match(result.classSource, /SET HANDLER zcl_globalhandler_h1=>on_created\./);
+  assert.match(result.classSource, /SET HANDLER go_logger->on_changed go_logger->on_deleted FOR ALL INSTANCES\./);
+  assert.match(result.classSource, /SET HANDLER go_unknown->\(lv_name\) FOR go_anything\./);
 });
 
 test("converts local FORM parameters to typed methods and PERFORM calls", async () => {
@@ -488,8 +858,8 @@ test("keeps dynamic MESSAGE DISPLAY LIKE out of the text and into display_like",
     filename: "zmsg_display.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.match(result.classSource, /message_type_success text = \|\{ gv_text \}\| display_like = zif_gg_session_types_v1=>message_type_error/);
-  assert.doesNotMatch(result.classSource, /DISPLAY LIKE 'E' \}\|/);
+  assert.match(result.classSource, /is_message = VALUE #\( type = zif_gg_session_types_v1=>message_type_success display_like = zif_gg_session_types_v1=>message_type_error \)\s+ia_text {4}= gv_text \)\./);
+  assert.doesNotMatch(result.classSource, /DISPLAY LIKE/);
 
   const literal = await convertProgram({
     source: "REPORT zmsg_display_lit.\nSTART-OF-SELECTION.\nMESSAGE 'looks like an error' TYPE 'S' DISPLAY LIKE 'E'.\n",
@@ -542,7 +912,7 @@ test("emits valid hoisted local classes for chained declarations and divider com
   assert.match(helper, /DATA: BEGIN OF ls_row, id TYPE i, END OF ls_row\./);
   assert.match(helper, /DATA lv_a TYPE i\./);
   assert.match(helper, /DATA lv_b TYPE i\./);
-  assert.match(helper, /message_type_success text = \|\{ lv_a \}\| display_like = zif_gg_session_types_v1=>message_type_error/);
+  assert.match(helper, /message_type_success display_like = zif_gg_session_types_v1=>message_type_error \)\s+ia_text {4}= lv_a \)\./);
 });
 
 test("emits valid hoisted structures for non-chained BEGIN OF declarations", async () => {
@@ -579,7 +949,7 @@ test("emits valid hoisted structures for non-chained BEGIN OF declarations", asy
   assert.match(helper, /TYPES: BEGIN OF ty_old, c1 TYPE i, END OF ty_old\./);
 });
 
-test("comments out the whole block when a block opener cannot be lowered", async () => {
+test("comments out the whole block when a block opener cannot be lowered, and keeps blocks without a rule", async () => {
   const result = await convertProgram({
     source: [
       "REPORT zdroploop.",
@@ -613,10 +983,12 @@ test("comments out the whole block when a block opener cannot be lowered", async
   assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E202"));
   const helper = result.helperSources[0].source;
   assert.match(helper, /TODO GGCONV-E501: unsupported statement omitted: LOOP AT lt_packages/);
-  for (const omitted of ["IF lt_packages IS NOT INITIAL.", "lv_value = lt_packages.", "ENDIF.", "ENDLOOP.", "lv_value = 'x'.", "ENDWHILE."]) {
+  for (const omitted of ["IF lt_packages IS NOT INITIAL.", "lv_value = lt_packages.", "ENDIF.", "ENDLOOP."]) {
     assert.ok(helper.includes(`* ${omitted}`), `expected commented-out source for ${omitted}`);
   }
-  assert.doesNotMatch(helper, /^\s+END(LOOP|WHILE|IF)\.$/m);
+  assert.doesNotMatch(helper, /^\s+END(LOOP|IF)\.$/m);
+  // WHILE has no lowering rule, so the block is carried over as written.
+  assert.match(helper, /^\s+WHILE lv_value IS INITIAL\.\n\s+lv_value = 'x'\.\n\s+ENDWHILE\.$/m);
   // Statements after the omitted blocks still lower normally.
   assert.match(helper, /^\s+CLEAR lv_value\.$/m);
 });
@@ -734,6 +1106,20 @@ test("converts composite fixtures with nested includes, routines, and database a
   assert.match(database.classSource, /METHOD form_add_value/);
 });
 
+test("generates a class without the transaction interface when no transaction code is usable", async () => {
+  for (const input of [
+    { source: "REPORT zreport_name_over_twenty.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" },
+    { source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n", transactionCode: "not valid" },
+  ]) {
+    const result = await convertProgram({ ...input, filename: "zreport.prog.abap" });
+    assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+    assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W105", "warning"]]);
+    // An empty tcode would be registered with the transaction registry.
+    assert.doesNotMatch(result.classSource, /zif_gg_transaction_v1/);
+    assert.match(result.classSource, /INTERFACES zif_gg_report_v1\./);
+  }
+});
+
 test("validates explicit class and transaction names", async () => {
   const result = await convertProgram({
     source: "REPORT zvalid.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n",
@@ -743,14 +1129,38 @@ test("validates explicit class and transaction names", async () => {
   });
   assert.equal(result.supported, false);
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E101"));
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E105"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-W105" && item.severity === "warning"));
 
+  // A taken default name is renamed; an explicit one stays an error.
   const collision = await convertProgram({
     source: "REPORT zvalid.\nWRITE 'ok'.\n",
     filename: "zvalid.prog.abap",
+    existingClassNames: ["ZCL_VALID", "ZCL_VALID_1"],
+    existingClassFiles: { ZCL_VALID: "src/zcl_valid.clas.abap" },
+  });
+  assert.equal(collision.supported, true, JSON.stringify(collision.diagnostics));
+  assert.equal(collision.reportIR.targetClassName, "ZCL_VALID_2");
+  assert.deepEqual(collision.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W106", "warning"]]);
+  assert.match(collision.diagnostics[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the transaction registry/);
+  assert.match(collision.classSource, /rs_transaction = VALUE #\( tcode = 'ZVALID' description = '[^']*' program = 'ZVALID' \)\./);
+
+  const explicit = await convertProgram({
+    source: "REPORT zvalid.\nWRITE 'ok'.\n",
+    filename: "zvalid.prog.abap",
+    className: "ZCL_VALID",
     existingClassNames: ["ZCL_VALID"],
   });
-  assert.ok(collision.diagnostics.some((item) => item.code === "GGCONV-E106"));
+  assert.equal(explicit.supported, false);
+  assert.ok(explicit.diagnostics.some((item) => item.code === "GGCONV-E106" && item.severity === "error"));
+
+  // The suffix never takes the name past 30 characters.
+  const long = await convertProgram({
+    source: "REPORT zabcdefghijklmnopqrstuvwxyz.\nWRITE 'ok'.\n",
+    filename: "zlong.prog.abap",
+    transactionCode: "ZLONG",
+    existingClassNames: ["ZCL_ABCDEFGHIJKLMNOPQRSTUVWXYZ"],
+  });
+  assert.equal(long.reportIR.targetClassName, "ZCL_ABCDEFGHIJKLMNOPQRSTUVWX_1");
 });
 
 test("lowers interactive list context and keeps GET CURSOR in its list event", async () => {
@@ -798,7 +1208,7 @@ test("uses explicit dynpro metadata for module-pool conversion", async () => {
 
 test("partial skeleton strategy keeps runnable content for optional gaps", async () => {
   const result = await convertProgram({
-    source: "REPORT zpartial_content.\nCALL FUNCTION 'UNKNOWN_OPTIONAL'.\nWRITE 'entry'.\n",
+    source: "REPORT zpartial_content.\nPERFORM (lv_form).\nWRITE 'entry'.\n",
     filename: "zpartial_content.prog.abap",
     mode: "partial",
     partialStrategy: "skeleton",
@@ -807,7 +1217,7 @@ test("partial skeleton strategy keeps runnable content for optional gaps", async
   assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\./);
   assert.match(result.classSource, /Application content is available/);
   assert.doesNotMatch(result.classSource, /Partial conversion preview/);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E513"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E401"));
 });
 
 test("loads report-owned dynpro XML and every matching screen flow file", async () => {
@@ -1166,7 +1576,7 @@ test("does not duplicate WRITE operands or rewrite short-circuit conditions", as
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
-test("preserves static Open SQL and diagnoses dynamic database targets", async () => {
+test("preserves static and dynamic Open SQL as written", async () => {
   const result = await convertProgram({
     source: [
       "REPORT zsql.",
@@ -1189,10 +1599,9 @@ test("preserves static Open SQL and diagnoses dynamic database targets", async (
   const dynamic = await convertProgram({
     source: "REPORT zdynamic_sql.\nSTART-OF-SELECTION.\nSELECT * FROM (lv_table) INTO TABLE @lt_rows.",
     filename: "zdynamic_sql.prog.abap",
-    mode: "partial",
   });
-  assert.equal(dynamic.supported, false);
-  assert.ok(dynamic.diagnostics.some((item) => item.code === "GGCONV-E516"));
+  assert.equal(dynamic.supported, true, JSON.stringify(dynamic.diagnostics));
+  assert.match(dynamic.classSource, /SELECT \* FROM \(lv_table\) INTO TABLE @lt_rows\./);
 });
 
 test("diagnoses report-only method legality gaps instead of claiming support", async () => {
@@ -1218,14 +1627,29 @@ test("diagnoses report-only method legality gaps instead of claiming support", a
   assert.doesNotMatch(implicitLoop.classSource, /^\s+ENDLOOP\.$/m);
   assert.ok(!implicitLoop.diagnostics.some((item) => item.code === "GGCONV-E202"));
 
-  const functionCall = await convertProgram({
-    source: "REPORT zfunction_call.\nCALL FUNCTION 'Z_UNSUPPORTED'.\n",
-    filename: "zfunction_call.prog.abap",
-    mode: "partial",
+});
+
+test("carries statements that are valid in a method over as written", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zas_written.",
+      "DATA lr_value TYPE REF TO data.",
+      "DATA lv_type TYPE string VALUE 'I'.",
+      "DATA gt_rows TYPE STANDARD TABLE OF i WITH EMPTY KEY.",
+      "START-OF-SELECTION.",
+      "  CALL FUNCTION 'Z_CUSTOM' EXPORTING iv_program = sy-repid.",
+      "  CREATE DATA lr_value TYPE (lv_type).",
+      "  FREE gt_rows.",
+      "  PERFORM external_form IN PROGRAM zother_program IF FOUND.",
+    ].join("\n"),
+    filename: "zas_written.prog.abap",
   });
-  assert.equal(functionCall.supported, false);
-  assert.ok(functionCall.diagnostics.some((item) => item.code === "GGCONV-E513" && item.construct.includes("CALL FUNCTION 'Z_UNSUPPORTED'")));
-  assert.match(functionCall.classSource, /TODO GGCONV-E501/);
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /CALL FUNCTION 'Z_CUSTOM' EXPORTING iv_program = io_session->get_context\( \)-program-program\./);
+  assert.match(result.classSource, /CREATE DATA lr_value TYPE \(lv_type\)\./);
+  assert.match(result.classSource, /FREE gt_rows\./);
+  assert.match(result.classSource, /PERFORM external_form IN PROGRAM zother_program IF FOUND\./);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
 test("lowers the finite gg-gui function-module families through typed adapters", async () => {
@@ -1429,7 +1853,7 @@ test("lowers ABAP memory statements onto the execution session", async () => {
   assert.match(result.classSource, /io_session->free_memory\( iv_id = 'ZGG_MEMORY' \)\./);
 });
 
-test("resolves shipped type-pool declarations without a DDIC gap", async () => {
+test("keeps type-pool declarations as written", async () => {
   const result = await convertProgram({
     source: [
       "REPORT ztype_pools.",
@@ -1442,7 +1866,6 @@ test("resolves shipped type-pool declarations without a DDIC gap", async () => {
     filename: "ztype_pools.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-E301"), false);
   assert.match(result.classSource, /TYPES ty_flavors TYPE cndd_flavors\./);
 });
 
@@ -1484,11 +1907,8 @@ test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture",
 
 test("classifies former E501 gaps by actionable operation family", async () => {
   const cases = [
-    ["CREATE OBJECT go_control.", ACTIONABLE_DIAGNOSTIC_CODES.controlConstruction],
-    ["CALL METHOD go_control->refresh.", ACTIONABLE_DIAGNOSTIC_CODES.controlMethod],
-    ["SET HANDLER go_events->on_click FOR go_control.", ACTIONABLE_DIAGNOSTIC_CODES.eventRegistration],
-    ["CALL FUNCTION 'Z_CUSTOM'.", ACTIONABLE_DIAGNOSTIC_CODES.functionModuleAdapter],
-    ["CREATE DATA lr_value TYPE (lv_type).", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],
+    ["ASSIGN (lv_name) TO <lv_any>.", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType],
+    ["LOOP AT gt_values.\nENDLOOP.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement],
   ];
   for (const [statement, code] of cases) {
     const result = await convertProgram({
@@ -1520,36 +1940,32 @@ test("resolves supplied DDIC table and field metadata", async () => {
   assert.match(result.classSource, /DATA zsflight TYPE zsflight/);
   assert.match(result.classSource, /name = 'S_CARR'[\s\S]*typ = 'C'[\s\S]*length = 3/);
 
-  const missing = await convertProgram({ source: "REPORT zddic.\nTABLES zsflight.\n", filename: "zddic.prog.abap" });
-  assert.equal(missing.supported, false);
-  assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E301"));
+  const unsupplied = await convertProgram({ source: "REPORT zddic.\nTABLES zsflight.\n", filename: "zddic.prog.abap" });
+  assert.equal(unsupplied.supported, true, JSON.stringify(unsupplied.diagnostics));
+  assert.match(unsupplied.classSource, /DATA zsflight TYPE zsflight\./);
 });
 
-test("resolves the explicit gg-gui type inventory without inventing fields", async () => {
+test("assumes referenced types exist and emits them as written", async () => {
   const result = await convertProgram({
     source: [
-      "REPORT zgg_type_inventory.",
+      "REPORT zassumed_types.",
+      "TABLES: sflight.",
       "TYPES ty_nodes TYPE treev_ntab.",
       "TYPES ty_keys TYPE STANDARD TABLE OF salv_de_node_key WITH EMPTY KEY.",
       "TYPES ty_products TYPE zcl_gg_gui_demo_data=>ty_products.",
+      "TYPES ty_unknown TYPE zsome_type_nobody_supplied.",
+      "START-OF-SELECTION.",
+      "sflight-carrid = 'LH'.",
     ].join("\n"),
-    filename: "zgg_type_inventory.prog.abap",
-    ddicTypes: GG_GUI_DDIC_TYPES,
+    filename: "zassumed_types.prog.abap",
   });
-  assert.equal(result.supported, true);
-  assert.equal(result.manifest.metadataInputs.ddicTypes, true);
-  assert.ok(result.manifest.metadataInputs.resolvedTypes.includes("TY_NODES"));
-  assert.deepEqual(result.reportIR.resolvedTypes.TY_NODES.fields, {});
-  assert.equal(result.reportIR.resolvedTypes.TY_NODES.metadataComplete, false);
-  assert.ok(result.reportIR.resolvedTypes.TY_PRODUCTS);
-
-  const missing = await convertProgram({
-    source: "REPORT zgg_type_missing.\nTYPES ty_missing TYPE lvc_type_not_in_inventory.\n",
-    filename: "zgg_type_missing.prog.abap",
-    ddicTypes: GG_GUI_DDIC_TYPES,
-  });
-  assert.equal(missing.supported, false);
-  assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E301" && item.construct === "LVC_TYPE_NOT_IN_INVENTORY"));
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.diagnostics.filter((item) => item.severity !== "info"), []);
+  assert.match(result.classSource, /DATA sflight TYPE sflight\./);
+  assert.match(result.classSource, /TYPES ty_nodes TYPE treev_ntab\./);
+  assert.match(result.classSource, /TYPES ty_keys TYPE STANDARD TABLE OF salv_de_node_key WITH EMPTY KEY\./);
+  assert.match(result.classSource, /TYPES ty_products TYPE zcl_gg_gui_demo_data=>ty_products\./);
+  assert.match(result.classSource, /TYPES ty_unknown TYPE zsome_type_nobody_supplied\./);
 });
 
 test("classifies non-report program kinds and rejects duplicate singleton events", async () => {
@@ -1598,7 +2014,7 @@ test("splits nested conditional continuations and skips sibling branches", async
     filename: "znested.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-E402"), false);
+  assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W402"), false);
   assert.match(result.classSource, /CALL SCREEN[\s\S]*END IF|call_screen[\s\S]*ENDIF\./i);
   const resume = result.classSource.match(/METHOD zif_gg_resumable_v1~resume\.[\s\S]*?ENDMETHOD\./)?.[0] ?? "";
   assert.match(resume, /after inner/);
@@ -1607,24 +2023,27 @@ test("splits nested conditional continuations and skips sibling branches", async
   assert.doesNotMatch(resume, /sibling branch/);
 });
 
-test("keeps loop and exception continuations explicitly unsupported", async () => {
+test("warns about continuations inside loops and exception blocks", async () => {
   const loop = await convertProgram({ source: "REPORT zloop.\nSTART-OF-SELECTION.\nDO 2 TIMES.\n  CALL SCREEN 100.\nENDDO.\n", filename: "zloop.prog.abap" });
-  assert.equal(loop.supported, false);
-  assert.ok(loop.diagnostics.some((item) => item.code === "GGCONV-E402"));
+  assert.equal(loop.supported, true, JSON.stringify(loop.diagnostics));
+  assert.deepEqual(loop.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W402", "warning"]]);
+  assert.match(loop.classSource, /DO 2 TIMES\.\s+io_session->get_dialog\( \)->call_screen\(/);
 });
 
 test("marks unsupported statements instead of silently dropping them", async () => {
   const result = await convertProgram({
     source: [
       "REPORT zunsupported_marker.",
+      "DATA gt_values TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
       "START-OF-SELECTION.",
-      "CALL FUNCTION 'NOT_SUPPORTED'.",
+      "LOOP AT gt_values.",
+      "ENDLOOP.",
     ].join("\n"),
     filename: "zunsupported_marker.prog.abap",
     mode: "partial",
   });
   assert.equal(result.supported, false);
-  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E513"));
+  assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E516"));
   assert.match(result.classSource, /TODO GGCONV-E501: unsupported/);
 });
 
@@ -1693,26 +2112,66 @@ test("preserves dynamic MESSAGE operands", async () => {
   assert.match(result.classSource, /v2 = 'fixed'/);
 });
 
-test("reports external message-class metadata requirements", async () => {
-  const source = "REPORT zmsgmeta.\nMESSAGE i001(zmsg) WITH 'value'.";
-  const external = await convertProgram({ source, filename: "zmsgmeta.prog.abap" });
-  assert.ok(external.diagnostics.some((item) => item.code === "GGCONV-I101"));
-  assert.equal(external.supported, true);
-
-  const missing = await convertProgram({
-    source,
+test("assumes message classes are known", async () => {
+  const result = await convertProgram({
+    source: "REPORT zmsgmeta.\nSTART-OF-SELECTION.\nMESSAGE i001(zmsg) WITH 'value'.\nMESSAGE e002(zmsg).",
     filename: "zmsgmeta.prog.abap",
-    messageMetadata: { ZMSG: { "002": { text: "other" } } },
   });
-  assert.ok(missing.diagnostics.some((item) => item.code === "GGCONV-E306"));
-  assert.equal(missing.supported, false);
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.diagnostics, []);
+});
 
-  const supplied = await convertProgram({
-    source,
-    filename: "zmsgmeta.prog.abap",
-    messageMetadata: { ZMSG: { "001": { text: "Message &1" } } },
+test("drops DEFERRED and LOAD forward declarations", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zdefer.",
+      "CLASS lcl_status DEFINITION DEFERRED.",
+      "CLASS lcl_other DEFINITION DEFERRED PUBLIC.",
+      "INTERFACE lif_status DEFERRED.",
+      "CLASS cl_abap_typedescr DEFINITION LOAD.",
+      "INTERFACE if_t100_message LOAD.",
+      "DATA go_status TYPE REF TO lcl_status.",
+      "CLASS lcl_status DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS run.",
+      "ENDCLASS.",
+      "CLASS lcl_status IMPLEMENTATION.",
+      "  METHOD run.",
+      "    WRITE 'run'.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  CREATE OBJECT go_status.",
+      "  go_status->run( ).",
+    ].join("\n"),
+    filename: "zdefer.prog.abap",
   });
-  assert.equal(supplied.diagnostics.some((item) => item.code === "GGCONV-E306"), false);
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  for (const source of [result.classSource, ...(result.helperSources ?? []).map((helper) => helper.source)]) {
+    assert.doesNotMatch(source, /\bDEFERRED\b|\bLOAD\s*\./i);
+  }
+});
+
+test("carries MESSAGE ... INTO over unchanged", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsginto.",
+      "DATA ls_message TYPE bal_s_msg.",
+      "START-OF-SELECTION.",
+      "  MESSAGE ID ls_message-msgid",
+      "        TYPE ls_message-msgty NUMBER ls_message-msgno",
+      "        WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4",
+      "        INTO DATA(lv_message).",
+      "  MESSAGE e001(zmsg) WITH 'INTO' INTO DATA(lv_other).",
+      "  MESSAGE i002(zmsg) WITH 'INTO'.",
+    ].join("\n"),
+    filename: "zmsginto.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /^\s*MESSAGE ID ls_message-msgid TYPE ls_message-msgty NUMBER ls_message-msgno WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4 INTO DATA\(lv_message\)\.$/m);
+  assert.match(result.classSource, /^\s*MESSAGE e001\(zmsg\) WITH 'INTO' INTO DATA\(lv_other\)\.$/m);
+  // INTO inside a literal is not the addition; that message is still sent.
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = 'ZMSG' number = '002' v1 = 'INTO' \) \)\./);
 });
 
 test("emits every top-level continuation in a deterministic resume dispatcher", async () => {

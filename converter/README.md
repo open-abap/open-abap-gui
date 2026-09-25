@@ -52,28 +52,55 @@ The keys it reads are:
 
 | key | converter use |
 | --- | --- |
-| `input_folder` | folders scanned for `*.prog.abap`, and the include search path |
-| `input_filter` | case-insensitive allow-list of regular expressions; empty matches everything |
-| `exclude_filter` | case-insensitive deny-list, applied after `input_filter` |
-| `output_folder` | the converter writes generated classes to `<output_folder>_converter` |
+| `converter.input_folder` | folders scanned for `*.prog.abap` and `*.tran.xml`; searched first for INCLUDEs |
+| `converter.output_folder` | where the generated classes are written; owned by the converter |
+| `input_folder` | searched for INCLUDEs after the converter input; must list `converter.output_folder` |
+| `libs` | dependencies searched for INCLUDEs; their programs are never converted |
+
+```json
+{
+  "input_folder": ["src", "generated"],
+  "output_folder": "output",
+  "converter": {
+    "input_folder": ["reports"],
+    "output_folder": "generated"
+  },
+  "options": {}
+}
+```
+
+Each lib is read the way abap_transpile reads it: from `folder` (relative to
+the working directory) when that exists, otherwise shallow-cloned from `url`
+with `git clone --depth 1`. `files` selects its sources (default `/src/**`) and
+`exclude_filter` drops some. The CLI clones into a temporary folder named after
+the url — a fixed name, so the include paths and the source hash they feed stay
+the same from run to run — and deletes it when the run ends. Library callers
+do the same with `loadLibraries(config)`: set `config.libraryFolders` to the
+returned `folders`, convert, then call `cleanup()`.
 
 Everything else in the file belongs to the transpiler and is ignored, including
-keys a newer transpiler adds: the converter reads that file, it never writes it
-and never validates it beyond the keys above.
+`output_folder`, `input_filter` and `exclude_filter` and keys a newer
+transpiler adds: the converter reads that file, it never writes it and never
+validates it beyond the keys above. The filters select what abap_transpile
+compiles; they do not narrow the converter input, which is a folder of its own.
 
-`abap_transpile.json` is the only configuration file — there is no converter
-config, and the converter needs no key the transpiler does not already define.
-Folder names resolve against the working directory, exactly as abap_transpile
-resolves them, so the same file selects the same sources for both tools.
-Filters are matched against the absolute path for the same reason, which means
-a pattern cannot be anchored with `^`.
+`abap_transpile.json` is the only configuration file; the `converter` object is
+part of the transpiler's schema. Folder names resolve against the working
+directory, exactly as abap_transpile resolves them, so the same file names the
+same folders for both tools.
 
-The generated folder is derived, not configurable. `output_folder: "output"`
-puts the classes in `output_converter`; a nested `build/x/output` puts them in
-`build/x/output_converter`. Add that folder to `input_folder` or abap_transpile
-will not compile what the converter just wrote — `GGCONV-W110` says so, and
-names the entry to add. `output_folder` is required even for a `--check` run
-that writes nothing, because the generated folder is derived from it.
+A report's transaction code comes from `--tcode` when given, otherwise from an
+abapGit transaction object (`<tcode>.tran.xml`) in the converter input folders whose
+program is the report, otherwise from the report name. The transaction's short
+text becomes the default description. When several transactions start the same
+report, the alphabetically first transaction code is used.
+
+Add `converter.output_folder` to `input_folder` or abap_transpile will not
+compile what the converter just wrote — `GGCONV-W110` says so, and names the
+entry to add. Because a full run clears that folder, it must not be, contain or
+sit inside a converter input folder or any other `input_folder` entry;
+`GGCONV-E119` rejects such a configuration before anything is converted. The
+`converter` object is required even for a `--check` run that writes nothing.
 
 Writes always overwrite, and a full run clears the generated folder first so a
 class that no current program produces cannot survive as a stale transpiler
@@ -83,36 +110,43 @@ an `--output-folder` run, because that folder may be shared. A run in which two
 programs map to the same class writes nothing at all and reports
 `GGCONV-E115`, rather than keeping one class and losing the other.
 
-No network or model call is used during conversion. Includes are resolved from
-`input_folder`, by the optional `resolveInclude(name, parentFilename)` callback,
+A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`) unless
+`--class` names it. When that default name is already taken by a class or
+interface in `input_folder`, `converter.input_folder` or the libs, the report
+is generated as the next free name (`ZCL_FOO_1`, `ZCL_FOO_2`, …) and
+`GGCONV-W106` names the file that holds the original. The generated
+transaction metadata records the report's program name, so `SUBMIT zfoo` finds
+the renamed class through the transaction registry. A name given with `--class`
+is never replaced: if it is taken, `GGCONV-E106` reports it and nothing is
+written for that report.
+
+No network or model call is used during conversion; the only network access is
+the CLI cloning a lib `url` before it starts. Includes are resolved from
+`converter.input_folder`, `input_folder` and the libs, by the optional `resolveInclude(name, parentFilename)` callback,
 or by deterministic filesystem candidates.
 
 Selection texts can be supplied as a `Map`, object, or simple text-pool string
 through `textPool`; unresolved `TEXT-*` keys remain deterministic and produce a
 `GGCONV-W101` warning. Include content participates in the source hash.
 
-Message-class references remain executable when the target ABAP message class
-is available at runtime. Without `messageMetadata`, the converter records an
-`GGCONV-I101` external-dependency diagnostic. Supplying a message map makes
-missing class/number entries an actionable `GGCONV-E306` error instead:
+Every message class a `MESSAGE` statement names is assumed to exist in the
+target system; the message is raised through the session at runtime and the
+converter reports nothing about it.
 
-```js
-messageMetadata: { ZMSG: { "001": { text: "Value &1" } } },
-```
-
-DDIC-dependent declarations are explicit. Pass `ddicTypes` as a map when the
-source uses `TABLES`, `TYPES ... TYPE <ddic>`, or `FOR <table>-<field>`:
+Every type a declaration references is assumed to exist in the target system.
+`TYPES` declarations are emitted exactly as written, and `TABLES <name>` becomes
+`DATA <name> TYPE <name>`; the converter neither translates type names nor
+reports unknown ones. `ddicTypes` is optional field metadata that types
+selection-screen elements declared `FOR <table>-<field>`:
 
 ```js
 ddicTypes: {
   ZSFLIGHT: {
-    type: "zsflight",
     fields: { CARRID: { type: "c", length: 3 } },
   },
 }
 ```
 
-Unresolved DDIC references produce `GGCONV-E301` rather than an invented type.
 Generated selection callbacks hydrate private `mv_*` state from scaffold
 values and flush changes back to `ct_values` for mutable callbacks.
 
@@ -122,12 +156,6 @@ declarations, and private attributes are retained. The generated report grants
 only those helpers friendship, so helper methods can use report state without
 promoting that state to public visibility.
 
-The pinned gg-gui validation uses the exported `GG_GUI_DDIC_TYPES` inventory.
-Its entries identify classic LVC, SLIS, SALV, tree, toolbar, icon, and demo
-data types without pretending that component metadata is available. Pass a
-separate `fields` map when a conversion needs to inspect a structure; an
-identity-only entry never creates a guessed component shape.
-
 Classic function modules are lowered only through the explicit compatibility
 adapter registry in `src/function-modules.mjs`. Popup/dialog, classic ALV,
 dynamic-selection, F4, variant, list-memory, conversion, and frontend URL or
@@ -135,11 +163,30 @@ binary families each have a named session operation. Unknown or custom
 function modules remain diagnostics, and the manifest records the exact
 adapter names used by a conversion.
 
-Unsupported constructs use operation-family diagnostics instead of the broad
-`GGCONV-E501` bucket: `GGCONV-E510` control construction, `E511` control
-methods, `E512` event registration, `E513` function-module adapters, `E514`
-frontend operations, `E515` dynamic types or unsafe field-symbol operations,
-and `E516` unsupported statements.
+Lowering is a fixed set of rules for the statements that need rewriting
+(`LOWERING_RULES` in `src/passes/lower-statements.mjs`). Every other statement
+is carried over as written, with the usual renames, and produces no diagnostic.
+Every carried-over statement also gets the same value rewrites: system fields
+the session holds (`sy-lsind`, `sy-repid`, …), the `SCREEN` work area inside
+`LOOP AT SCREEN`, and the list color constants. A system field that becomes a
+method call is kept as written when the statement only takes data objects, as
+`CONCATENATE` does. Declarations and comments are not rewritten.
+This includes function modules without a compatibility adapter, `FREE`,
+dynamic `CREATE DATA`, dynamic Open SQL, and `PERFORM ... IN PROGRAM`, which
+are all valid inside a method. Diagnostics are reserved for a statement a rule
+exists for but cannot handle in that form (a `LOOP AT` over a table with a
+header line, a dynamic `PERFORM (name)`, an unproven field-symbol `ASSIGN`,
+unrepresented `WRITE` formatting) and for a statement abaplint cannot parse
+(`GGCONV-E201`). They use operation-family codes instead of the broad
+`GGCONV-E501` bucket, such as `E515` for unsafe field-symbol operations and
+`E516` for other unsupported forms.
+
+`CREATE OBJECT`, method-call statements, `CALL METHOD` (including dynamic
+forms), and `SET HANDLER` are carried over as written. The only rewrite is for
+report-local classes, which become generated helper classes: their names are
+replaced by the helper's, creating one adds the `io_owner`/`io_session`
+constructor arguments, and a static call to one is routed to the helper with
+the same arguments.
 
 When a sibling `.prog.xml` is available, its `TPOOL` is applied automatically:
 selection text symbols resolve `TEXT-*` labels, while report-title entries
@@ -197,7 +244,7 @@ npm test
 
 `test:gg-gui` clones `https://github.com/larshp/gg-gui` into the gitignored
 `gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), writes
-`gg-gui-validation/abap_transpile.json` naming that checkout as an input folder,
+`gg-gui-validation/abap_transpile.json` naming that checkout as the converter input folder,
 converts every report that configuration selects with the safe partial
 strategy, transpiles the same configuration and serves the
 generated report classes, verifies every generated target/helper class has clean
