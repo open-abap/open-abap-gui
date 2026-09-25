@@ -260,8 +260,39 @@ const LENGTH_TYPES = new Set(["c", "n", "x", "p"]);
 // arithmetic, formatting and typed method calls behave as in the report. The
 // screen transports values as strings; assignment converts in both directions.
 // Types are assumed to exist, as for DATA declarations.
+// The class member standing for a report data object: another parameter or
+// select-option, or a report global, possibly renamed. Undefined when the name
+// is not one, e.g. a dictionary structure in LIKE mara-matnr.
+function reportMember(ir, base) {
+  const tables = (ir.declarations ?? []).find((item) => item.kind === "tables" && item.names?.includes(base));
+  if (tables && !tables.resolved) return undefined;
+  return ir.statePlan?.selectionState?.[base]?.member
+    ?? ir.statePlan?.renames?.[base]?.toLowerCase()
+    ?? (ir.statePlan?.globals?.includes(base)
+      || (ir.declarations ?? []).some((item) => item.kind === "constant" && item.statement?.scope !== "local" && item.names?.includes(base))
+      ? base.toLowerCase() : undefined);
+}
+
+const SHARED_RANGES = "zif_gg_selection_screen_types=>ty_ranges";
+
+// SELECT-OPTIONS and RANGES ... FOR target get a range table of the target's
+// type, so LOW and HIGH compare, convert and pass to typed parameters as in the
+// report. A dynamic FOR (name) has no static type and keeps the shared ranges.
+function rangeType(ir, target, member = (base) => reportMember(ir, base)) {
+  const match = /^([A-Z][A-Z0-9_\/]*)((?:-[A-Z][A-Z0-9_]*)*)$/i.exec(String(target ?? "").trim());
+  if (!match) return `TYPE ${SHARED_RANGES}`;
+  const resolved = member(match[1].toUpperCase());
+  return resolved
+    ? `LIKE RANGE OF ${resolved}${match[2].toLowerCase()}`
+    : `TYPE RANGE OF ${`${match[1]}${match[2]}`.toLowerCase()}`;
+}
+
+function selectOptionTarget(additions) {
+  return /^\s*FOR\s+([^\s]+)/i.exec(String(additions ?? ""))?.[1];
+}
+
 function selectionStateType(ir, state) {
-  if (state.ranges) return "TYPE zif_gg_selection_screen_types=>ty_ranges";
+  if (state.ranges) return rangeType(ir, selectOptionTarget(state.additions));
   const additions = String(state.additions ?? "").replace(/'(?:''|[^'])*'|`(?:``|[^`])*`/g, "''").replace(/,\s*$/, "");
   const oldLength = /^\(\s*(\d+)\s*\)/.exec(additions)?.[1];
   const type = /\bTYPE\s+([A-Z][A-Z0-9_\/]*(?:-[A-Z][A-Z0-9_]*)*)(?:\s+LENGTH\s+(\d+))?(?:\s+DECIMALS\s+(\d+))?/i.exec(additions);
@@ -273,14 +304,7 @@ function selectionStateType(ir, state) {
   }
   const like = /\bLIKE\s+([A-Z][A-Z0-9_\/]*)((?:-[A-Z][A-Z0-9_]*)*)/i.exec(additions);
   if (like) {
-    const base = like[1].toUpperCase();
-    // Another parameter or a report global is a class member, possibly renamed.
-    const member = ir.statePlan?.selectionState?.[base]?.member
-      ?? ir.statePlan?.renames?.[base]?.toLowerCase()
-      ?? (ir.statePlan?.globals?.includes(base)
-        || (ir.declarations ?? []).some((item) => item.kind === "constant" && item.statement?.scope !== "local" && item.names?.includes(base))
-        ? base.toLowerCase() : undefined);
-    // Otherwise it names a dictionary structure field, e.g. LIKE mara-matnr.
+    const member = reportMember(ir, like[1].toUpperCase());
     return member ? `LIKE ${member}${like[2].toLowerCase()}` : `TYPE ${`${like[1]}${like[2]}`.toLowerCase()}`;
   }
   // PARAMETERS without a type is c of length 8; a checkbox or radio button is c of length 1.
@@ -343,10 +367,8 @@ function dataMembers(ir) {
   const rangeMember = (item) => {
     const name = item.names?.[0]?.toLowerCase();
     if (!name) return undefined;
-    // RANGES creates a four-column selection range table. The scaffold's
-    // shared range type is the legal class-pool equivalent and keeps LOW/HIGH
-    // transport stable even when the original DDIC type is not available.
-    return `DATA ${name} TYPE zif_gg_selection_screen_types=>ty_ranges.`;
+    // RANGES creates a four-column selection range table of the FOR target.
+    return `DATA ${name} ${rangeType(ir, item.target)}.`;
   };
   for (let index = 0; index < declarations.length; index++) {
     const item = declarations[index];
@@ -433,7 +455,7 @@ function dataMembers(ir) {
     if (emitted.has(name)) return;
     emitted.add(name);
     const state = selectionState[name];
-    const like = /\bLIKE\s+([A-Z][A-Z0-9_\/]*)/i.exec(String(state.additions ?? ""))?.[1]?.toUpperCase();
+    const like = /\b(?:LIKE|FOR)\s+([A-Z][A-Z0-9_\/]*)/i.exec(String(state.additions ?? ""))?.[1]?.toUpperCase();
     if (like && selectionState[like]) emitSelection(like);
     members.push(`DATA ${state.member} ${selectionStateType(ir, state)}.`);
   };
@@ -716,7 +738,13 @@ function methodContext(ir, event, qualifierOverride, {parameters = [], statement
     dynamicAlv: ir.dynamicAlv,
     rangeDeclarations: Object.fromEntries((ir.declarations ?? [])
       .filter((declaration) => declaration.kind === "ranges")
-      .flatMap((declaration) => (declaration.names ?? []).map((name) => [name.toUpperCase(), "zif_gg_selection_screen_types=>ty_ranges"]))),
+      .flatMap((declaration) => (declaration.names ?? []).map((name) => [name.toUpperCase(), rangeType(ir, declaration.target, (base) => {
+        // A RANGES in a FORM may be FOR the FORM's own variables and parameters.
+        const local = declaration.statement?.scope === "local"
+          && ((ir.declarations ?? []).some((item) => item.statement?.scope === "local" && item.names?.includes(base))
+            || (ir.routines ?? []).some((routine) => (routine.parameters ?? []).some((parameter) => parameter.name.toUpperCase() === base)));
+        return local ? base.toLowerCase() : reportMember(ir, base);
+      })]))),
     sessionVariable: "io_session",
     ownerPrefix: "",
     localClassOwner: "me",
@@ -749,10 +777,21 @@ function selectionStateTransport(ir, event) {
   const flush = [];
   for (const [name, item] of Object.entries(state)) {
     const field = `${source}[ name = '${name}' ]-${item.ranges ? "ranges" : "value"}`;
-    hydrate.push(`${item.member} = ${field}.`);
+    // A select-option member is a range table of its own type; the screen
+    // transports LOW and HIGH as strings, CORRESPONDING converts each row.
+    hydrate.push(item.ranges ? `${item.member} = CORRESPONDING #( ${field} ).` : `${item.member} = ${field}.`);
     if (source !== "ct_values") continue;
     if (item.ranges) {
-      flush.push(`${field} = ${item.member}.`);
+      // As for parameters below, an untouched empty LOW of type i must not
+      // come back as "0", so the screen rows are only replaced on a change.
+      const screen = `lt_ggconv_${name.toLowerCase()}`;
+      flush.push([
+        `DATA(${screen}) = ${item.member}.`,
+        `${screen} = CORRESPONDING #( ${field} ).`,
+        `IF ${screen} <> ${item.member}.`,
+        `${field} = CORRESPONDING #( ${item.member} ).`,
+        "ENDIF.",
+      ].join("\n"));
       continue;
     }
     // The member has the parameter's own type. Assigning it back would turn an
@@ -783,7 +822,9 @@ function nestedSelectionCaptures(ir) {
       lines.push(`IF iv_screen = '${current}'.`);
     }
     const ranges = ir.statePlan?.selectionState?.[field.name]?.ranges ?? field.ranges;
-    lines.push(`mv_${field.name.toLowerCase()} = ct_values[ name = '${field.name}' ]-${ranges ? "ranges" : "value"}.`);
+    lines.push(ranges
+      ? `mv_${field.name.toLowerCase()} = CORRESPONDING #( ct_values[ name = '${field.name}' ]-ranges ).`
+      : `mv_${field.name.toLowerCase()} = ct_values[ name = '${field.name}' ]-value.`);
   }
   if (current) lines.push("ENDIF.");
   return lines;

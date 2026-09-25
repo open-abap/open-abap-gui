@@ -145,7 +145,7 @@ test("declares each selection parameter member with the parameter's own type", a
     "DATA mv_p_plain TYPE c LENGTH 8.",
     "DATA mv_p_rad1 TYPE c LENGTH 1.",
     "DATA mv_p_stat TYPE ty_status.",
-    "DATA mv_s_date TYPE zif_gg_selection_screen_types=>ty_ranges.",
+    "DATA mv_s_date LIKE RANGE OF mv_p_date.",
   ]);
   // Assignments keep ABAP's own conversion, and the screen value is only
   // rewritten, in template form, when the program changed it.
@@ -1550,7 +1550,7 @@ test("lowers global declaration families into ordered class-pool members", async
   assert.match(privateSection, /TYPES ty_rows TYPE STANDARD TABLE OF ty_row WITH EMPTY KEY\./);
   assert.match(privateSection, /TYPES ty_range TYPE RANGE OF i\./);
   assert.match(privateSection, /CONSTANTS gc_value TYPE i VALUE 2\./);
-  assert.match(privateSection, /DATA r_value TYPE zif_gg_selection_screen_types=>ty_ranges\./);
+  assert.match(privateSection, /DATA r_value LIKE RANGE OF gv_first\./);
   assert.doesNotMatch(privateSection, /FIELD-SYMBOLS/);
   assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\.[\s\S]*FIELD-SYMBOLS <gv_ref> TYPE i\.[\s\S]*ASSIGN gv_first TO <gv_ref>/);
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
@@ -1899,7 +1899,7 @@ test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture",
   const result = await convertProgram({ source, filename: "plan9_minimal_constructs.prog.abap", transactionCode: "ZPLAN9MIN" });
   assert.equal(result.supported, true);
   assert.match(result.classSource, /TYPES: BEGIN OF ty_row/);
-  assert.match(result.classSource, /DATA r_value TYPE zif_gg_selection_screen_types=>ty_ranges/);
+  assert.match(result.classSource, /DATA r_value LIKE RANGE OF gv_value/);
   assert.match(result.classSource, /FIELD-SYMBOLS <lv_value> TYPE i/);
   assert.match(result.classSource, /get_compatibility\( \)->popup_to_confirm/);
   assert.match(result.classSource, /get_compatibility\( \)->publish_url/);
