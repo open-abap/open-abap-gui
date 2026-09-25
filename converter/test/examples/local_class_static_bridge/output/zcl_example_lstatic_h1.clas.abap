@@ -11,7 +11,7 @@ CLASS zcl_example_lstatic_h1 DEFINITION PUBLIC CREATE PUBLIC.
     METHODS constructor IMPORTING io_owner TYPE REF TO zcl_example_lstatic io_session TYPE REF TO zif_gg_session_v1.
     DATA mo_owner TYPE REF TO zcl_example_lstatic.
     DATA mo_session TYPE REF TO zif_gg_session_v1.
-  CLASS-METHODS greet IMPORTING iv_name TYPE string RETURNING VALUE(rv_text) TYPE string io_owner TYPE REF TO zcl_example_lstatic io_session TYPE REF TO zif_gg_session_v1.
+  CLASS-METHODS greet IMPORTING iv_name TYPE string io_owner TYPE REF TO zcl_example_lstatic io_session TYPE REF TO zif_gg_session_v1 RETURNING VALUE(rv_text) TYPE string.
   CLASS-METHODS remember IMPORTING iv_text TYPE string io_owner TYPE REF TO zcl_example_lstatic io_session TYPE REF TO zif_gg_session_v1.
 
 ENDCLASS.

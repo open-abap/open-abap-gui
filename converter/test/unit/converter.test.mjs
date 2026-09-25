@@ -1789,6 +1789,44 @@ test("bridges local static methods through their generated helper owner", async 
   assert.match(result.helperSources[0].source, /CLASS-METHODS add IMPORTING text TYPE string io_owner TYPE REF TO zcl_static_bridge io_session TYPE REF TO zif_gg_session_v1/);
 });
 
+test("adds the owner and session ahead of RETURNING and RAISING", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zbridge_order.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_calc DEFINITION FINAL.",
+      "  PUBLIC SECTION.",
+      "    METHODS constructor RAISING cx_static_check.",
+      "    CLASS-METHODS count RETURNING VALUE(rv_count) TYPE i RAISING cx_static_check.",
+      "    CLASS-METHODS add",
+      "      IMPORTING iv_value TYPE i",
+      "      RETURNING VALUE(rv_count) TYPE i.",
+      "ENDCLASS.",
+      "CLASS lcl_calc IMPLEMENTATION.",
+      "  METHOD constructor.",
+      "  ENDMETHOD.",
+      "  METHOD count.",
+      "    rv_count = gv_count.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "    rv_count = gv_count.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  gv_count = lcl_calc=>add( 1 ).",
+    ].join("\n"),
+    filename: "zbridge_order.prog.abap",
+    transactionCode: "ZBRIDGE",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const helper = result.helperSources[0].source.replace(/\s+/g, " ");
+  const bridge = "io_owner TYPE REF TO zcl_bridge_order io_session TYPE REF TO zif_gg_session_v1";
+  assert.ok(helper.includes(`METHODS constructor IMPORTING ${bridge} RAISING cx_static_check.`), helper);
+  assert.ok(helper.includes(`CLASS-METHODS count IMPORTING ${bridge} RETURNING VALUE(rv_count) TYPE i RAISING cx_static_check.`), helper);
+  assert.ok(helper.includes(`CLASS-METHODS add IMPORTING iv_value TYPE i ${bridge} RETURNING VALUE(rv_count) TYPE i.`), helper);
+});
+
 test("resolves FORM parameters and inline runtime event sources", async () => {
   const result = await convertProgram({
     source: [

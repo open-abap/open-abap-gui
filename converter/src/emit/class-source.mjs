@@ -2016,16 +2016,29 @@ function helperDefinitionBody(statements, rename) {
   return lines;
 }
 
+// Adds parameters to a METHODS or CLASS-METHODS definition. IMPORTING comes
+// before EXPORTING, CHANGING, RETURNING, RAISING and EXCEPTIONS, so the
+// parameters close an existing IMPORTING or open one ahead of those. A chained
+// definition ends in a comma, which becomes a period like other chain elements.
+function withImportingParameters(definition, parameters) {
+  const text = definition.replace(/\s*[.,]\s*$/, "");
+  const masked = text.replace(/'(?:''|[^'])*'|`(?:``|[^`])*`|"[^\n]*/g, (part) => " ".repeat(part.length));
+  const importing = /\bIMPORTING\b/i.exec(masked);
+  const from = importing ? importing.index + importing[0].length : 0;
+  const next = /\b(?:EXPORTING|CHANGING|RETURNING|RAISING|EXCEPTIONS)\b/i.exec(masked.slice(from));
+  // Insert after the last code ahead of that keyword, not into a " comment.
+  const at = masked.slice(0, next ? from + next.index : masked.length).trimEnd().length;
+  return `${text.slice(0, at)} ${importing ? "" : "IMPORTING "}${parameters}${text.slice(at)}.`;
+}
+
 function helperSource(ir, options, localClass) {
   const generatedName = localClass.generatedName;
   const rename = (text) => renameIdentifiers(text, allRenames(ir));
+  const ownerSessionParameters = `io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1`;
   const originalConstructor = (localClass.methods ?? []).find((localMethod) => localMethod.name?.toUpperCase() === "CONSTRUCTOR");
-  const originalConstructorDefinition = originalConstructor?.definition?.text
-    ? rename(originalConstructor.definition.text).replace(/\.\s*$/, "")
-    : undefined;
-  const constructorSignature = originalConstructorDefinition
-    ? `${originalConstructorDefinition}${/\bIMPORTING\b/i.test(originalConstructorDefinition) ? " " : " IMPORTING "}io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`
-    : `METHODS constructor IMPORTING io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1.`;
+  const constructorSignature = originalConstructor?.definition?.text
+    ? withImportingParameters(rename(originalConstructor.definition.text), ownerSessionParameters)
+    : `METHODS constructor IMPORTING ${ownerSessionParameters}.`;
   const eventHandlers = staticEventHandlerNames(localClass);
   const bridge = [
     `    ${constructorSignature}`,
@@ -2036,20 +2049,21 @@ function helperSource(ir, options, localClass) {
       "    CLASS-DATA go_session TYPE REF TO zif_gg_session_v1.",
     ] : []),
   ];
-  const originalDefinition = helperDefinitionBody(
-    (localClass.definition ?? []).filter((statement) => !(statement.kind === "MethodDef" && /^\s*METHODS\s+constructor\b/i.test(statement.text))),
-    rename,
+  // Static methods, other than event handlers, get the owner and session as
+  // parameters. They are added before the statement is split into lines, so a
+  // definition spanning several lines keeps its parameters in order.
+  const definitionWithStaticBridges = helperDefinitionBody(
+    (localClass.definition ?? [])
+      .filter((statement) => !(statement.kind === "MethodDef" && /^\s*METHODS\s+constructor\b/i.test(statement.text)))
+      .map((statement) => {
+        const text = rename(statement.text);
+        const bridged = /^\s*CLASS-METHODS\s+[A-Z][A-Z0-9_]*\b/i.test(text)
+          && !isStaticEventHandler(text)
+          && !/\bIO_OWNER\b/i.test(text);
+        return { ...statement, text: bridged ? withImportingParameters(text, ownerSessionParameters) : text };
+      }),
+    (text) => text,
   );
-  const staticMethods = new Set((localClass.definition ?? [])
-    .filter((statement) => /^\s*CLASS-METHODS\b/i.test(statement.text ?? "") && !isStaticEventHandler(statement.text))
-    .map((statement) => /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1]?.toUpperCase())
-    .filter(Boolean));
-  const ownerSessionParameters = `io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1`;
-  const definitionWithStaticBridges = originalDefinition.map((line) => {
-    const methodName = /^\s*CLASS-METHODS\s+([A-Z][A-Z0-9_]*)\b/i.exec(line)?.[1]?.toUpperCase();
-    if (!methodName || !staticMethods.has(methodName) || /\bIO_OWNER\b/i.test(line)) return line;
-    return `${line.replace(/\.\s*$/, "")}${/\bIMPORTING\b/i.test(line) ? " " : " IMPORTING "}${ownerSessionParameters}.`;
-  });
   const publicSection = definitionWithStaticBridges.findIndex((line) => /^\s*PUBLIC SECTION\.$/i.test(line));
   const definitionBody = publicSection >= 0
     ? [...definitionWithStaticBridges.slice(0, publicSection + 1), ...bridge, ...definitionWithStaticBridges.slice(publicSection + 1)]
