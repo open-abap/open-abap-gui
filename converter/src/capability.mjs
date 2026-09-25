@@ -2,6 +2,7 @@ import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
 import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
+import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
   dynamicType: "GGCONV-E515",
@@ -69,6 +70,12 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   }
   for (const duplicate of ir.duplicateEvents ?? []) {
     addStatementDiagnostic(diagnostics, duplicate.statement, `duplicate singleton event ${duplicate.event} is ambiguous after conversion`, "Merge the event blocks into one ordered handler or provide an explicit event mapping.", "GGCONV-E203");
+  }
+  for (const routine of ir.routines ?? []) {
+    if (!isAmbiguousScreenRoutine(ir, routine)) continue;
+    for (const statement of routine.statements.filter((item) => item.kind === "LoopAtScreen")) {
+      addStatementDiagnostic(diagnostics, statement, `LOOP AT SCREEN in FORM ${routine.name}, which is performed for both selection screens and dynpros, can only run over one kind of screen state`, "Split the FORM into one for the selection screen and one for the dynpro.", "GGCONV-E501");
+    }
   }
   for (const statement of statements) {
     const text = normalizedText(statement).toUpperCase();

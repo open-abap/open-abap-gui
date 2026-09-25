@@ -576,6 +576,7 @@ function replaceOutsideStrings(text, replacements) {
 // comments do not, since `TYPE sy-repid` must keep naming the field's type.
 function dataValueRewrites(context) {
   const screen = context.screenStateSymbol ?? "<ls_state>";
+  const dynproScreen = screenStates(context).kind === "dynpro";
   return [
     ...(context.replacements ?? []),
     ...Object.entries(LIST_COLOR_CONSTANTS).map(([name, constant]) => [name, `zif_gg_list_processing_types_v1=>${constant}`]),
@@ -587,7 +588,7 @@ function dataValueRewrites(context) {
     ["screen-group([2-4])", `${screen}-group$1`],
     ["screen-invisible", `${screen}-password`],
     ["screen-active", `${screen}-visible`],
-    ["screen-required", context.event === "dynpro" ? `${screen}-required` : `${screen}-obligatory`],
+    ["screen-required", dynproScreen ? `${screen}-required` : `${screen}-obligatory`],
     ["screen-intensified", `${screen}-intensified`],
     ["screen-(input|output)", `${screen}-$1`],
   ];
@@ -607,8 +608,16 @@ function rewriteValues(text, context, { session = true } = {}) {
   const replacements = [...dataValueRewrites(context), ...(session ? SESSION_VALUE_REWRITES : [])];
   return transformOutsideStrings(text, (part) => {
     const replaced = applyReplacements(part, replacements);
-    return context.event === "dynpro" ? replaced : replaced.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
+    return screenStates(context).kind === "dynpro" ? replaced : replaced.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
   });
+}
+
+// The table LOOP AT SCREEN runs over, see screen-states.mjs. Without one from
+// the class emitter, the PBO method's own ct_states.
+function screenStates(context) {
+  return context.screenStates ?? (context.event === "dynpro"
+    ? { kind: "dynpro", table: "ct_states", row: "is_context-row" }
+    : { kind: "selection", table: "ct_states" });
 }
 
 // A classic statement such as CONCATENATE takes data objects only. When a
@@ -1337,9 +1346,14 @@ function lowerSingleStatement(statement, context) {
   if (statement.kind === "Include") return "* INCLUDE expanded by converter.";
   if (statement.kind === "TypePools") return "";
   if (statement.kind === "Controls") return "* CONTROLS declaration represented by dynpro metadata.";
-  if (statement.kind === "LoopAtScreen") return context.event === "dynpro"
-    ? `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}) WHERE row = is_context-row.`
-    : `LOOP AT ct_states ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"}).`;
+  if (statement.kind === "LoopAtScreen") {
+    const states = screenStates(context);
+    return [
+      ...(states.todo ? [`* TODO GGCONV-E501: ${states.todo}`] : []),
+      ...(states.guard ? [`IF ${states.guard} IS BOUND.`] : []),
+      `LOOP AT ${states.table} ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"})${states.row ? ` WHERE row = ${states.row}` : ""}.`,
+    ].join("\n");
+  }
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
   if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
     return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
@@ -1636,6 +1650,7 @@ export function lowerStatements(statements, context) {
         item.text = appendHiddenFields(item.text, pendingHidden);
         pendingHidden = [];
       }
+      if (statement.kind === "EndLoop" && screenLoops.at(-1)?.guarded) item.text = `${item.text}\nENDIF.`;
       output.push(item);
       if (statement.kind === "Write") lastWriteIndex = output.length - 1;
       if (statement.kind === "Loop") {
@@ -1645,7 +1660,7 @@ export function lowerStatements(statements, context) {
         }
       }
       if (statement.kind === "EndLoop") rangeLoops.pop();
-      if (statement.kind === "LoopAtScreen") screenLoops.push({ kind: "screen", ...screenBinding });
+      if (statement.kind === "LoopAtScreen") screenLoops.push({ kind: "screen", ...screenBinding, guarded: Boolean(screenStates(statementContext).guard) });
       if (statement.kind === "Loop") screenLoops.push({ kind: "other" });
       if (statement.kind === "EndLoop") screenLoops.pop();
     } else output.push({ text: omitted, statement, supported: false });

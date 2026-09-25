@@ -1,5 +1,6 @@
 import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
 import { controlObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
+import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 
 const REPORT_METHODS = [
@@ -415,7 +416,7 @@ function dataMembers(ir) {
       `TYPES ${ir.dynamicAlv.tableType} TYPE STANDARD TABLE OF ${ir.dynamicAlv.rowType} WITH EMPTY KEY.`,
     ]
     : [];
-  const members = [...typeMembers, ...dynamicTypes, ...constantMembers, ...dataMembers];
+  const members = [...typeMembers, ...dynamicTypes, ...constantMembers, ...dataMembers, ...screenStateMembers(ir)];
   if (ir.dynamicAlv) members.push(`DATA ${ir.dynamicAlv.tableMember.toLowerCase()} TYPE ${ir.dynamicAlv.tableType}.`);
   for (const statement of ir.statements ?? []) {
     if (statement.kind !== "Controls") continue;
@@ -940,6 +941,9 @@ function truncateTerminalPaths(statements) {
 function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifierOverride) {
   const statements = truncateTerminalPaths(sourceStatements);
   const context = methodContext(ir, event, qualifierOverride, {statements: sourceStatements});
+  context.screenStates = event === "at_selection_screen_output"
+    ? { kind: "selection", table: "ct_states" }
+    : storedScreenStates(screenStatePlan(ir).defaultKind);
   if (event === "at_selection_screen_value_req") {
     const f4Call = statements.find((statement) => statement.kind === "CallFunction" && /F4IF_INT_TABLE_VALUE_REQUEST/i.test(statement.text));
     if (f4Call) {
@@ -1040,6 +1044,7 @@ function reportMethods(ir) {
         body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
       }
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
+      if (event === "at_selection_screen_output") body.unshift(...selectionStatesSetter(ir));
       methods.push(method(`zif_gg_report_v1~${event}`, body));
     }
   }
@@ -1094,6 +1099,9 @@ function resumeMethod(ir) {
       ];
     } else {
       const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
+      context.screenStates = ownerIsModule ? storedScreenStates("dynpro")
+        : ir.routines?.includes(owner) ? routineScreenStates(ir, owner)
+        : storedScreenStates(screenStatePlan(ir).defaultKind);
       lowered = removePromotedDeclarations(ir, lowerStatements(tail, context).map((item) => item.text));
       lowered = [...globalFieldSymbolDeclarations(ir, tail), ...lowered];
       if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
@@ -1194,6 +1202,7 @@ function routineBody(ir, routine) {
     parameters: routine.parameters,
     statements: routine.statements ?? [],
   });
+  context.screenStates = routineScreenStates(ir, routine);
   context.contextMenu = /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""));
   let lowered = removePromotedDeclarations(ir, lowerStatements(active, context).map((item) => item.text));
   lowered = [...globalFieldSymbolDeclarations(ir, active), ...lowered];
@@ -1666,7 +1675,11 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     if (!modules.length) return ["RETURN."];
     const lines = ["CASE is_context-module."];
     for (const module of modules) {
-      const context = { ...methodContext(ir, "dynpro"), ucomm: "is_context-ucomm" };
+      const context = {
+        ...methodContext(ir, "dynpro"),
+        ucomm: "is_context-ucomm",
+        ...(direction === "OUTPUT" ? {} : { screenStates: storedScreenStates("dynpro", { row: "is_context-row" }) }),
+      };
       const body = [
         ...globalFieldSymbolDeclarations(ir, module.statements),
         ...removePromotedDeclarations(ir, lowerStatements(module.statements, context).map((item) => item.text)),
@@ -1748,7 +1761,11 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
       "CASE is_context-module.",
     );
     for (const module of modules) {
-      const context = { ...methodContext(ir, "dynpro"), ucomm: "is_context-ucomm" };
+      const context = {
+        ...methodContext(ir, "dynpro"),
+        ucomm: "is_context-ucomm",
+        screenStates: storedScreenStates("dynpro", { row: "is_context-row" }),
+      };
       const body = [
         ...globalFieldSymbolDeclarations(ir, module.statements),
         ...removePromotedDeclarations(ir, lowerStatements(module.statements, context).map((item) => item.text)),
@@ -1779,7 +1796,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     method(interfaceMethod("build_screens"), buildScreens),
     method(interfaceMethod("build_flow_logic"), buildFlow),
     method(interfaceMethod("initialization"), [...stateFlush, ...tableFlush]),
-    method(interfaceMethod("process_output_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...cursorLines, ...dispatch("OUTPUT"), ...stateFlush, ...tableFlush]),
+    method(interfaceMethod("process_output_module"), [...dynproStatesSetter(ir), ...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...cursorLines, ...dispatch("OUTPUT"), ...stateFlush, ...tableFlush]),
     method(interfaceMethod("process_input_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...dispatch("INPUT"), ...stateFlush, ...tableFlush]),
     method(interfaceMethod("process_on_value_request"), valueRequest),
     method(interfaceMethod("process_on_help_request"), helpRequest),
@@ -1855,6 +1872,7 @@ function helperMethodContext(ir, localClass, localMethod) {
   context.ucomm = "sy-ucomm";
   context.sessionVariable = session;
   context.ownerPrefix = `${owner}->`;
+  context.screenStates = storedScreenStates(screenStatePlan(ir).defaultKind, { owner: context.ownerPrefix });
   context.localClassOwner = owner;
   context.localClassName = String(localClass.name ?? "").toUpperCase();
   const ownerReplacements = Object.fromEntries(Object.entries(globalMemberNames(ir))

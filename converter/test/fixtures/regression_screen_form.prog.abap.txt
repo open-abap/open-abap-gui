@@ -1,0 +1,23 @@
+REPORT zreg_screen_form.
+PARAMETERS p_flag AS CHECKBOX DEFAULT 'X'.
+PARAMETERS p_text TYPE c LENGTH 10 MODIF ID txt.
+PARAMETERS p_other TYPE c LENGTH 10.
+AT SELECTION-SCREEN OUTPUT.
+  PERFORM adjust_screen.
+START-OF-SELECTION.
+  WRITE / 'done'.
+FORM adjust_screen.
+  PERFORM hide_text.
+ENDFORM.
+FORM hide_text.
+  LOOP AT SCREEN.
+    IF screen-group1 = 'TXT' AND p_flag = 'X'.
+      screen-active = '0'.
+      MODIFY SCREEN.
+    ENDIF.
+    IF screen-name = 'P_OTHER'.
+      screen-required = '2'.
+      MODIFY SCREEN.
+    ENDIF.
+  ENDLOOP.
+ENDFORM.

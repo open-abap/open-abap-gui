@@ -166,6 +166,100 @@ test("regression fixture maps SCREEN-INVISIBLE to password in dynpro modules", a
   assert.doesNotMatch(result.classSource, /no_display/);
 });
 
+// SCREEN is a program global: a FORM performed from AT SELECTION-SCREEN OUTPUT
+// or a PBO module loops over the same table as the event. The FORM's method
+// has no ct_states parameter, so LOOP AT SCREEN used to reference an undefined
+// ct_states there.
+test("regression fixture lets a FORM performed from AT SELECTION-SCREEN OUTPUT loop at screen", async () => {
+  const result = await convertProgram({
+    source: await fixture("regression_screen_form.prog.abap.txt"),
+    filename: "regression_screen_form.prog.abap",
+    transactionCode: "ZREGSFORM",
+  });
+  assert.equal(result.supported, true);
+  const source = result.classSource;
+  assert.match(source, /DATA mr_selection_states TYPE REF TO zif_gg_selection_screen_types=>ty_states\./);
+  assert.doesNotMatch(source, /mr_dynpro_states/);
+  assert.match(source, /METHOD zif_gg_report_v1~at_selection_screen_output\.\n\s+mr_selection_states = REF #\( ct_states \)\./);
+  const form = /METHOD form_hide_text\.[\s\S]*?ENDMETHOD\./.exec(source)?.[0] ?? "";
+  assert.match(form, /IF mr_selection_states IS BOUND\.\n\s+LOOP AT mr_selection_states->\* ASSIGNING FIELD-SYMBOL\(<ls_state>\)\./);
+  assert.match(form, /<ls_state>-obligatory = abap_true\./);
+  assert.match(form, /ENDLOOP\.\n\s+ENDIF\./);
+  assert.doesNotMatch(form, /ct_states/);
+});
+
+test("regression fixture lets a FORM performed from a PBO module loop at screen", async () => {
+  const result = await convertProgram({
+    source: await fixture("regression_screen_form_dynpro.prog.abap.txt"),
+    filename: "regression_screen_form_dynpro.prog.abap",
+    transactionCode: "ZREGDFORM",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Form", elements: [{ kind: "output", name: "GV_COUNTER" }] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [{ name: "USER_COMMAND_0100" }] }],
+    },
+  });
+  assert.equal(result.supported, true);
+  const source = result.classSource;
+  assert.match(source, /DATA mr_dynpro_states TYPE REF TO zif_gg_dynpro_types_v1=>ty_states\./);
+  assert.doesNotMatch(source, /mr_selection_states/);
+  assert.match(source, /METHOD zif_gg_dynpro_v1~process_output_module\.\n\s+mr_dynpro_states = REF #\( ct_states \)\.\n\s+mv_dynpro_row = is_context-row\./);
+  const form = /METHOD form_hide_secret\.[\s\S]*?ENDMETHOD\./.exec(source)?.[0] ?? "";
+  assert.match(form, /LOOP AT mr_dynpro_states->\* ASSIGNING FIELD-SYMBOL\(<ls_state>\) WHERE row = mv_dynpro_row\./);
+  assert.doesNotMatch(form, /ct_states/);
+});
+
+test("LOOP AT SCREEN directly in a PBO event keeps using ct_states", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zreg_screen_direct.",
+      "PARAMETERS p_text TYPE c LENGTH 10 MODIF ID txt.",
+      "AT SELECTION-SCREEN OUTPUT.",
+      "  LOOP AT SCREEN.",
+      "    screen-active = '0'.",
+      "    MODIFY SCREEN.",
+      "  ENDLOOP.",
+    ].join("\n"),
+    filename: "zreg_screen_direct.prog.abap",
+    transactionCode: "ZREGSDIR",
+  });
+  assert.equal(result.supported, true);
+  assert.match(result.classSource, /LOOP AT ct_states ASSIGNING FIELD-SYMBOL\(<ls_state>\)\./);
+  assert.doesNotMatch(result.classSource, /mr_selection_states|mr_dynpro_states/);
+});
+
+test("a FORM that loops at screen for both selection screens and dynpros is flagged", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zreg_screen_both.",
+      "PARAMETERS p_text TYPE c LENGTH 10 MODIF ID txt.",
+      "AT SELECTION-SCREEN OUTPUT.",
+      "  PERFORM hide.",
+      "START-OF-SELECTION.",
+      "  CALL SCREEN 100.",
+      "MODULE status_0100 OUTPUT.",
+      "  PERFORM hide.",
+      "ENDMODULE.",
+      "FORM hide.",
+      "  LOOP AT SCREEN.",
+      "    screen-active = '0'.",
+      "    MODIFY SCREEN.",
+      "  ENDLOOP.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zreg_screen_both.prog.abap",
+    transactionCode: "ZREGSBOTH",
+    mode: "partial",
+    screenMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Both", elements: [] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }] }],
+    },
+  });
+  assert.equal(result.supported, false);
+  assert.match(result.classSource, /TODO GGCONV-E501: FORM HIDE is called for both selection screens and dynpros/);
+});
+
 test("regression fixture emits dynpro state helpers", async () => {
   const result = await convertProgram({
     source: await fixture("regression_dynpro_state.prog.abap.txt"),
