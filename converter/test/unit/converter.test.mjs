@@ -476,7 +476,8 @@ test("accepts LOOP TRANSPORTING NO FIELDS and REFERENCE INTO without a work area
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /LOOP AT gt_old TRANSPORTING NO FIELDS WHERE configuration <> ls_data-configuration AND client_id = ls_data-client_id\./);
-  assert.match(result.classSource, /LOOP AT gt_old REFERENCE INTO DATA\(lr_row\)\./);
+  assert.match(result.classSource, /DATA lr_row TYPE REF TO ty_row\./);
+  assert.match(result.classSource, /LOOP AT gt_old REFERENCE INTO lr_row\./);
 });
 
 test("keeps INCLUDE TYPE and INCLUDE STRUCTURE inside their structure", async () => {
@@ -2168,8 +2169,8 @@ test("carries MESSAGE ... INTO over unchanged", async () => {
     filename: "zmsginto.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.match(result.classSource, /^\s*MESSAGE ID ls_message-msgid TYPE ls_message-msgty NUMBER ls_message-msgno WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4 INTO DATA\(lv_message\)\.$/m);
-  assert.match(result.classSource, /^\s*MESSAGE e001\(zmsg\) WITH 'INTO' INTO DATA\(lv_other\)\.$/m);
+  assert.match(result.classSource, /^\s*MESSAGE ID ls_message-msgid TYPE ls_message-msgty NUMBER ls_message-msgno WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4 INTO lv_message\.$/m);
+  assert.match(result.classSource, /^\s*MESSAGE e001\(zmsg\) WITH 'INTO' INTO lv_other\.$/m);
   // INTO inside a literal is not the addition; that message is still sent.
   assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = 'ZMSG' number = '002' v1 = 'INTO' \) \)\./);
 });

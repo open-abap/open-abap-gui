@@ -6,6 +6,7 @@ import { parseUnits, readConfig } from "./parser.mjs";
 import { emptyReportIR } from "./ir/report-ir.mjs";
 import { classifyProgram } from "./passes/classify-program.mjs";
 import { collectDeclarations } from "./passes/collect-declarations.mjs";
+import { liftInlineDeclarations } from "./passes/lift-inline-declarations.mjs";
 import { collectSelectionScreens } from "./passes/collect-selection-screens.mjs";
 import { collectEvents } from "./passes/collect-events.mjs";
 import { collectLocalClasses } from "./passes/collect-local-classes.mjs";
@@ -195,6 +196,10 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
     ...(ir.dynamicAlv?.fieldSymbols ?? []),
   ])].sort();
   ir.modules = collectModules(allStatements);
+  const moduleStatements = new Set(ir.modules.flatMap((module) => module.statements));
+  ir.declarations.push(...liftInlineDeclarations(parsed.units, parsed.config, ir.eventBlocks
+    .flatMap((block) => block.statements)
+    .filter((statement) => !statement.localClassName && !moduleStatements.has(statement))));
   ir.sourceIndex = buildSourceIndex(ir);
   ir.statePlan = buildStatePlan(ir);
   ir.references = analyzeReferences(ir);
