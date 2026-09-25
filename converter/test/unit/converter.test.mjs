@@ -1827,6 +1827,60 @@ test("adds the owner and session ahead of RETURNING and RAISING", async () => {
   assert.ok(helper.includes(`CLASS-METHODS add IMPORTING iv_value TYPE i ${bridge} RETURNING VALUE(rv_count) TYPE i.`), helper);
 });
 
+test("passes the owner and session to every local static method call", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zbridge_calls.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_calc DEFINITION FINAL.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS count RETURNING VALUE(rv_count) TYPE i.",
+      "    CLASS-METHODS add IMPORTING iv_value TYPE i.",
+      "    CLASS-METHODS run.",
+      "    METHODS go.",
+      "ENDCLASS.",
+      "CLASS lcl_calc IMPLEMENTATION.",
+      "  METHOD count.",
+      "    rv_count = gv_count.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "  ENDMETHOD.",
+      "  METHOD run.",
+      "    DATA(lv_count) = count( ).",
+      "    IF count( ) > 1.",
+      "      add( count( ) ).",
+      "    ENDIF.",
+      "    add( EXPORTING iv_value = 2 ).",
+      "    DATA(lv_text) = |count( { count( ) }|.",
+      "  ENDMETHOD.",
+      "  METHOD go.",
+      "    CALL METHOD lcl_calc=>add EXPORTING iv_value = 3.",
+      "    CALL METHOD run.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  gv_count = lcl_calc=>count( ).",
+      "  NEW lcl_calc( )->go( ).",
+    ].join("\n"),
+    filename: "zbridge_calls.prog.abap",
+    transactionCode: "ZBRIDGE",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const main = result.classSource.replace(/\s+/g, " ");
+  const helper = result.helperSources[0].source.replace(/\s+/g, " ");
+  assert.ok(main.includes("gv_count = zcl_bridge_calls_h1=>count( io_owner = me io_session = io_session )."), main);
+  const statics = "io_owner = io_owner io_session = io_session";
+  assert.ok(helper.includes(`DATA(lv_count) = count( ${statics} ).`), helper);
+  assert.ok(helper.includes(`IF count( ${statics} ) > 1.`), helper);
+  assert.ok(helper.includes(`add( ${statics} IV_VALUE = count( ${statics} ) ).`), helper);
+  assert.ok(helper.includes(`add( EXPORTING ${statics} iv_value = 2 ).`), helper);
+  assert.ok(helper.includes(`DATA(lv_text) = |count( { count( ${statics} ) }|.`), helper);
+  const instance = "io_owner = mo_owner io_session = mo_session";
+  assert.ok(helper.includes(`CALL METHOD zcl_bridge_calls_h1=>add EXPORTING ${instance} iv_value = 3.`), helper);
+  assert.ok(helper.includes(`CALL METHOD run EXPORTING ${instance}.`), helper);
+});
+
 test("resolves FORM parameters and inline runtime event sources", async () => {
   const result = await convertProgram({
     source: [

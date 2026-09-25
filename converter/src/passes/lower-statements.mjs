@@ -916,14 +916,121 @@ function staticHandlerBindings(raw, context) {
   });
 }
 
-// Inside a local class, a static method of that class may be called without
-// the class name; qualifying it lets the static call bridge add io_owner and
-// io_session.
-function qualifyOwnStaticCall(statement, context) {
-  if (statement.kind !== "Call" || !context.localClassName) return statement;
-  const call = /^(\s*)([A-Z][A-Z0-9_]*)(\s*\()/i.exec(statement.text);
-  if (!call || !context.localClassStaticMethods?.[context.localClassName]?.has(call[2].toUpperCase())) return statement;
-  return { ...statement, text: `${call[1]}${context.localClassName.toLowerCase()}=>${call[2]}${call[3]}${statement.text.slice(call[0].length)}` };
+// Blanks the contents of literals and comments, keeping every offset, so code
+// can be searched without matching text. The embedded expressions of string
+// templates are code and stay.
+function maskLiterals(text) {
+  const chars = text.split("");
+  const blank = (from, to) => {
+    for (let index = from; index < to && index < chars.length; index++) if (chars[index] !== "\n") chars[index] = " ";
+  };
+  let index = 0;
+  let expressions = 0;
+  const templateText = () => {
+    while (index < text.length) {
+      if (text[index] === "\\") {
+        blank(index, index + 2);
+        index += 2;
+      } else if (text[index] === "|" || text[index] === "{") {
+        if (text[index] === "{") expressions++;
+        index++;
+        return;
+      } else {
+        blank(index, index + 1);
+        index++;
+      }
+    }
+  };
+  while (index < text.length) {
+    const char = text[index];
+    if (char === "'" || char === "`") {
+      let end = index + 1;
+      while (end < text.length && (text[end] !== char || text[end + 1] === char)) end += text[end] === char ? 2 : 1;
+      blank(index + 1, end);
+      index = end + 1;
+    } else if (char === "\"") {
+      const end = text.indexOf("\n", index);
+      blank(index, end < 0 ? text.length : end);
+      index = end < 0 ? text.length : end;
+    } else if (char === "|" || (char === "}" && expressions)) {
+      if (char === "}") expressions--;
+      index++;
+      templateText();
+    } else {
+      index++;
+    }
+  }
+  return chars.join("");
+}
+
+function closingParenthesis(masked, opening) {
+  let depth = 0;
+  for (let index = opening; index < masked.length; index++) {
+    if (masked[index] === "(") depth++;
+    if (masked[index] === ")" && --depth === 0) return index;
+  }
+  return -1;
+}
+
+// A static method of a local class takes the owner and the session, see
+// withImportingParameters in emit/class-source.mjs, so every call passes them:
+// as a statement, in an expression, nested in other arguments, and as
+// CALL METHOD without parentheses. Inside its own class the method may be
+// called without the class name. A single unnamed argument gets the name of
+// the method's first IMPORTING parameter, as it is no longer the only one.
+function bridgeLocalStaticCalls(statement, context) {
+  const statics = context.localClassStaticMethods ?? {};
+  const owner = context.localClassOwner;
+  if (!owner || !Object.values(statics).some((methods) => methods.size) || typeof statement.text !== "string") return statement;
+  const session = context.sessionVariable ?? "io_session";
+  const bridge = `io_owner = ${owner} io_session = ${session}`;
+  const own = context.localClassName?.toUpperCase();
+  const target = (className, method) => {
+    const name = (className ?? own ?? "").toUpperCase();
+    return statics[name]?.has(method.toUpperCase()) ? name : undefined;
+  };
+  let text = statement.text;
+  const calls = [...maskLiterals(text).matchAll(/(?<![\w\/>~-])(?:([A-Z][A-Z0-9_\/]*)\s*=>\s*)?([A-Z][A-Z0-9_]*)\s*\(/gi)]
+    .filter((call) => target(call[1], call[2]))
+    .reverse();
+  for (const call of calls) {
+    const masked = maskLiterals(text);
+    const opening = call.index + call[0].length - 1;
+    const closing = closingParenthesis(masked, opening);
+    if (closing < 0) continue;
+    const argumentsMasked = masked.slice(opening + 1, closing);
+    // Nested calls, bridged before this one, do not count.
+    let topLevel = argumentsMasked;
+    while (/\([^()]*\)/.test(topLevel)) topLevel = topLevel.replace(/\([^()]*\)/g, (part) => " ".repeat(part.length));
+    if (/\bIO_OWNER\s*=/i.test(topLevel)) continue;
+    const argumentsText = text.slice(opening + 1, closing).trim();
+    const keyword = /^\s*(EXPORTING|IMPORTING|CHANGING|RECEIVING|EXCEPTIONS)\b/i.exec(argumentsMasked);
+    let bridged;
+    if (keyword?.[1].toUpperCase() === "EXPORTING") {
+      const at = opening + 1 + keyword.index + keyword[0].length;
+      text = `${text.slice(0, at)} ${bridge}${text.slice(at)}`;
+      continue;
+    } else if (keyword) {
+      bridged = `EXPORTING ${bridge} ${argumentsText}`;
+    } else if (!argumentsText) {
+      bridged = bridge;
+    } else {
+      const parameter = context.localClassStaticParameters?.[target(call[1], call[2])]?.[call[2].toUpperCase()];
+      bridged = parameter && !/^\s*[A-Z][A-Z0-9_]*\s*=(?!=)/i.test(argumentsMasked)
+        ? `${bridge} ${parameter} = ${argumentsText}`
+        : `${bridge} ${argumentsText}`;
+    }
+    text = `${text.slice(0, opening + 1)} ${bridged} ${text.slice(closing)}`;
+  }
+  const callMethod = /^(\s*CALL\s+METHOD\s+)(?:([A-Z][A-Z0-9_\/]*)\s*=>\s*)?([A-Z][A-Z0-9_]*)\b(?!\s*\()/i.exec(maskLiterals(text));
+  if (callMethod && target(callMethod[2], callMethod[3]) && !/\bIO_OWNER\s*=/i.test(maskLiterals(text))) {
+    const end = callMethod[0].length;
+    const exporting = /^\s*EXPORTING\b/i.exec(maskLiterals(text).slice(end));
+    text = exporting
+      ? `${text.slice(0, end + exporting[0].length)} ${bridge}${text.slice(end + exporting[0].length)}`
+      : `${text.slice(0, end)} EXPORTING ${bridge}${text.slice(end)}`;
+  }
+  return text === statement.text ? statement : { ...statement, text };
 }
 
 // A local class becomes a helper class whose constructor takes the owner and
@@ -941,14 +1048,8 @@ function bridgeLocalConstructors(statement, context) {
 }
 
 export function lowerStatement(original, context) {
-  const bridged = bridgeLocalConstructors(original, context);
-  const statement = qualifyOwnStaticCall(bridged, context);
-  let lowered = lowerSingleStatement(statement, context);
-  if (statement !== bridged && typeof lowered === "string") {
-    // The class name was only added for the bridge; the call stays unqualified.
-    const helper = context.localClassRenames?.[context.localClassName] ?? context.localClassName.toLowerCase();
-    lowered = lowered.replace(new RegExp(`^(\\s*)${helper}\\s*=>\\s*`, "i"), "$1");
-  }
+  const statement = bridgeLocalStaticCalls(bridgeLocalConstructors(original, context), context);
+  const lowered = lowerSingleStatement(statement, context);
   if (statement.kind !== "SetHandler" || typeof lowered !== "string") return lowered;
   const bindings = staticHandlerBindings(statement.text.trim(), context);
   return bindings.length ? [...bindings, lowered].join("\n") : lowered;
@@ -992,29 +1093,6 @@ function lowerSingleStatement(statement, context) {
         /\b(SET_(?:READONLY_MODE|TOOLBAR_MODE|STATUSBAR_MODE|FONT_FIXED))\(\s*CONV\s*#\(\s*([A-Z][A-Z0-9_]*)\s*\)\s*\)/i,
         "$1( COND i( WHEN $2 = abap_true THEN 1 ELSE 0 ) )",
       );
-      const staticCall = /(?:CALL\s+METHOD\s+)?([A-Z][A-Z0-9_]*)\s*=>\s*([A-Z][A-Z0-9_]*)\s*\(/i.exec(lowered);
-      const staticMethods = staticCall && context.localClassStaticMethods?.[staticCall[1].toUpperCase()];
-      if (staticCall && staticMethods?.has(staticCall[2].toUpperCase()) && context.localClassOwner
-        && !/\bIO_OWNER\s*=/i.test(lowered)) {
-        const helperName = context.localClassRenames?.[staticCall[1].toUpperCase()] ?? staticCall[1].toLowerCase();
-        const owner = context.localClassOwner;
-        const session = context.sessionVariable ?? "io_session";
-        const renamed = lowered.replace(
-          new RegExp(`\\b${staticCall[1]}\\s*=>\\s*${staticCall[2]}\\s*\\(`, "i"),
-          `${helperName}=>${staticCall[2]}(`,
-        );
-        const opening = renamed.indexOf("(", staticCall.index);
-        const closing = renamed.lastIndexOf(")");
-        if (opening < 0 || closing < opening) return rewriteStatementValues(renamed, context);
-        let argumentsText = renamed.slice(opening + 1, closing).trim();
-        const originalParameter = context.localClassStaticParameters?.[staticCall[1].toUpperCase()]?.[staticCall[2].toUpperCase()];
-        if (argumentsText && originalParameter && !/^[A-Z][A-Z0-9_]*\s*=/i.test(argumentsText)) {
-          argumentsText = `${originalParameter} = ${argumentsText}`;
-        }
-        const bridgedArguments = `io_owner = ${owner} io_session = ${session}${argumentsText ? ` ${argumentsText}` : ""}`;
-        const bridged = `${renamed.slice(0, opening + 1)} ${bridgedArguments} ${renamed.slice(closing)}`;
-        return rewriteStatementValues(bridged, context);
-      }
     }
     return rewriteStatementValues(lowered, context);
   }
