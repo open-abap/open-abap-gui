@@ -4,6 +4,7 @@ CLASS zcl_gg_transaction_command DEFINITION PUBLIC FINAL CREATE PUBLIC.
     TYPES: BEGIN OF ty_result,
              valid TYPE abap_bool,
              tcode TYPE zif_gg_transaction_v1=>ty_tcode,
+             menu  TYPE abap_bool,
              error TYPE string,
            END OF ty_result.
 
@@ -56,8 +57,10 @@ CLASS zcl_gg_transaction_command IMPLEMENTATION.
     ENDIF.
     lv_tcode = substring( val = lv_command
                           off = 2 ).
-    IF lv_tcode IS INITIAL.
-      rs_result-error = 'A transaction code is required after /n.'.
+*   A bare /n ends the current transaction and returns to the menu.
+    IF condense( lv_tcode ) IS INITIAL.
+      rs_result-valid = abap_true.
+      rs_result-menu = abap_true.
       RETURN.
     ENDIF.
     IF lv_tcode(1) = ' '.

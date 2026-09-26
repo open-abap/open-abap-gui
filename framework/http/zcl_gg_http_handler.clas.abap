@@ -288,6 +288,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA ls_command TYPE zcl_gg_transaction_command=>ty_result.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
     DATA lo_transaction TYPE REF TO object.
+    DATA lo_workbench TYPE REF TO zif_gg_raw_html_v1.
     DATA ls_response TYPE zif_gg_host_html_v1=>ty_response.
 
     lv_path = server->request->get_header_field( '~path' ).
@@ -319,6 +320,15 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_session_id = lv_session_id
           iv_page_id    = lv_page_id
           iv_error      = ls_command-error ).
+        RETURN.
+      ENDIF.
+      IF ls_command-menu = abap_true.
+        IF lv_session_id IS NOT INITIAL.
+          zcl_gg_host_runtime=>close( lv_session_id ).
+        ENDIF.
+        lo_workbench = NEW zcl_gg_workbench( ).
+        send_html( server  = server
+                   iv_html = lo_workbench->get_html( ) ).
         RETURN.
       ENDIF.
       ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = CONV string( ls_command-tcode ) ).
