@@ -23,6 +23,13 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS render_logo
       RETURNING
         VALUE(rv_html) TYPE string.
+
+* The separator between the application list and the content area. Dragging
+* it, or the arrow, Home and End keys while it has focus, resizes the list;
+* the width is kept in the browser for the next visit.
+    CLASS-METHODS render_splitter
+      RETURNING
+        VALUE(rv_html) TYPE string.
 ENDCLASS.
 
 CLASS zcl_gg_workbench IMPLEMENTATION.
@@ -70,7 +77,9 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>open-abap GUI</title><style>' &&
       zcl_gg_workbench_utility=>render_styles( ) &&
       '.wb-workspace{display:flex;flex:1 1 auto;min-height:0;margin:16px 28px 0;border:1px solid #aebfd2;border-radius:5px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(34,67,102,.12)}' &&
-      '.wb-app-panel{width:305px;flex:0 0 305px;min-height:0;border-right:1px solid #aebfd2;background:#f4f8fc;overflow:auto}' &&
+      '.wb-app-panel{width:305px;flex:0 0 305px;min-height:0;background:#f4f8fc;overflow:auto}' &&
+      '.wb-splitter{flex:0 0 5px;border-right:1px solid #aebfd2;background:#e1ebf6;cursor:col-resize;touch-action:none}' &&
+      '.wb-splitter:hover,.wb-splitter:focus-visible,.wb-splitter--active{background:#9fbcd8;outline:0}' &&
       '.wb-app-heading{padding:11px 14px;color:#164b80;font-weight:700;background:#e1ebf6;border-bottom:1px solid #b8c9dc}' &&
       'nav+.wb-app-heading{border-top:1px solid #b8c9dc}' &&
       '.wb-app-list{margin:0;padding:9px 10px 22px;list-style:none}' &&
@@ -89,7 +98,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id ).
-    rv_html = rv_html && '<div class="wb-workspace"><aside class="wb-app-panel"><div class="wb-app-heading">Transactions</div><nav aria-label="Transactions"><ul class="wb-app-list">'.
+    rv_html = rv_html && '<div class="wb-workspace"><aside class="wb-app-panel" id="wb-app-panel"><div class="wb-app-heading">Transactions</div><nav aria-label="Transactions"><ul class="wb-app-list">'.
     LOOP AT lt_transactions INTO ls_transaction.
       lv_tcode_url = cl_http_utility=>escape_url( CONV string( ls_transaction-tcode ) ).
       rv_html = rv_html && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_transaction-tcode ) ) }" href="/transaction?tcode={ zcl_gg_host_html=>escape_attribute( lv_tcode_url ) }">| &&
@@ -114,11 +123,25 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       ENDLOOP.
       rv_html = rv_html && '</ul></nav>'.
     ENDIF.
-    rv_html = rv_html && '</aside>'.
+    rv_html = rv_html && '</aside>' && render_splitter( ).
     rv_html = rv_html && '<main class="wb-content" id="main-content"><section class="wb-logo-only" aria-label="open-abap">' &&
       render_logo( ) &&
       '</section></main></div>'.
     rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( iv_message = iv_error ).
+  ENDMETHOD.
+
+  METHOD render_splitter.
+    rv_html = '<div class="wb-splitter" role="separator" aria-orientation="vertical" aria-label="Resize application list" aria-controls="wb-app-panel" aria-valuemin="160" aria-valuemax="305" aria-valuenow="305" tabindex="0"></div>' &&
+      '<script>(function(){var panel=document.getElementById("wb-app-panel");var splitter=panel&&panel.nextElementSibling;if(!splitter){return;}var key="gg-workbench-panel-width";var min=160;' &&
+      'var max=function(){return Math.max(min,panel.parentElement.clientWidth-240);};' &&
+      'var apply=function(width){width=Math.round(Math.min(max(),Math.max(min,width)));panel.style.width=width+"px";panel.style.flexBasis=width+"px";splitter.setAttribute("aria-valuemax",String(max()));splitter.setAttribute("aria-valuenow",String(width));return width;};' &&
+      'var store=function(width){try{localStorage.setItem(key,String(width));}catch(e){}};var stored=null;try{stored=Number(localStorage.getItem(key));}catch(e){}' &&
+      'apply(stored||panel.getBoundingClientRect().width);' &&
+      'splitter.addEventListener("pointerdown",function(event){if(event.button!==0){return;}event.preventDefault();splitter.focus();splitter.setPointerCapture(event.pointerId);splitter.classList.add("wb-splitter--active");var left=panel.getBoundingClientRect().left;' &&
+      'var move=function(e){apply(e.clientX-left);};var stop=function(){splitter.classList.remove("wb-splitter--active");splitter.removeEventListener("pointermove",move);splitter.removeEventListener("pointerup",stop);splitter.removeEventListener("pointercancel",stop);store(Number(splitter.getAttribute("aria-valuenow")));};' &&
+      'splitter.addEventListener("pointermove",move);splitter.addEventListener("pointerup",stop);splitter.addEventListener("pointercancel",stop);});' &&
+      'splitter.addEventListener("keydown",function(event){var width=panel.getBoundingClientRect().width;var next=event.key==="ArrowLeft"?width-16:event.key==="ArrowRight"?width+16:event.key==="Home"?min:event.key==="End"?max():null;if(next===null){return;}event.preventDefault();store(apply(next));});' &&
+      'window.addEventListener("resize",function(){apply(panel.getBoundingClientRect().width);});}());</script>'.
   ENDMETHOD.
 
   METHOD render_logo.

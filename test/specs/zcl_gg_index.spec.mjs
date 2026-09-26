@@ -196,6 +196,44 @@ test("starts a report without a transaction from the Reports section", async ({p
   await expect(page.locator(".wb-status-feedback")).toHaveText("Unknown program: ZGG_INT_UNKNOWN");
 });
 
+test("the splitter resizes the application list by pointer and keyboard", async ({page, host}) => {
+  await page.setViewportSize({width: 1280, height: 720});
+  await page.goto(`${host.baseUrl}/`);
+
+  const panel = page.locator(".wb-app-panel");
+  const splitter = page.getByRole("separator", {name: "Resize application list"});
+  await expect(splitter).toHaveAttribute("aria-orientation", "vertical");
+  await expect(splitter).toHaveAttribute("aria-valuenow", "305");
+  const initial = (await panel.boundingBox()).width;
+  expect(initial).toBeCloseTo(305, 0);
+
+  const box = await splitter.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, {steps: 5});
+  await page.mouse.up();
+  expect((await panel.boundingBox()).width).toBeCloseTo(initial + 120, -1);
+  const dragged = Number(await splitter.getAttribute("aria-valuenow"));
+  expect(dragged).toBeCloseTo(initial + 120, -1);
+
+  await splitter.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(splitter).toHaveAttribute("aria-valuenow", String(dragged - 16));
+  await page.keyboard.press("Home");
+  await expect(splitter).toHaveAttribute("aria-valuenow", "160");
+  expect((await panel.boundingBox()).width).toBeCloseTo(160, 0);
+
+  // The list never grows past the point where the content area stays usable.
+  await page.keyboard.press("End");
+  const workspace = await page.locator(".wb-workspace").boundingBox();
+  expect((await panel.boundingBox()).width).toBeLessThanOrEqual(workspace.width - 240);
+
+  await page.keyboard.press("Home");
+  await page.reload();
+  await expect(splitter).toHaveAttribute("aria-valuenow", "160");
+  expect((await panel.boundingBox()).width).toBeCloseTo(160, 0);
+});
+
 test("index keeps the workbench chrome visible in a short viewport", async ({page, host}) => {
   await page.setViewportSize({width: 900, height: 360});
   await page.goto(`${host.baseUrl}/`);
