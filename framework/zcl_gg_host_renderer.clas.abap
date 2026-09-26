@@ -114,6 +114,8 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_html) TYPE string.
 
   PRIVATE SECTION.
+    TYPES ty_block_path TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+
     CLASS-METHODS render_messages
       IMPORTING
         it_messages    TYPE zcl_gg_host_session=>ty_messages
@@ -185,12 +187,12 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_screen) TYPE string.
 
-    CLASS-METHODS visible_selection_blocks
+    CLASS-METHODS selection_block_path
       IMPORTING
-        iv_screen        TYPE string
-        it_blocks        TYPE zcl_gg_host_screen=>ty_blocks
+        iv_block       TYPE i
+        it_blocks      TYPE zcl_gg_host_screen=>ty_blocks
       RETURNING
-        VALUE(rt_blocks) TYPE zcl_gg_host_screen=>ty_blocks.
+        VALUE(rt_path) TYPE ty_block_path.
 
     CLASS-METHODS selection_help_section
       IMPORTING
@@ -497,7 +499,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_confirm_attrs TYPE string.
     DATA lv_field_root_attrs TYPE string.
     DATA lv_active_tab_screen TYPE string.
-    DATA lt_visible_blocks TYPE zcl_gg_host_screen=>ty_blocks.
+    DATA lt_open_blocks TYPE ty_block_path.
+    DATA lt_block_path TYPE ty_block_path.
+    DATA lv_common_blocks TYPE i.
+    DATA lv_block_change TYPE abap_bool.
 
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page"><header class="gg-status-region" aria-label="Selection status"><p class="gg-selection-status"{ COND string( WHEN is_status-status IS INITIAL THEN `` ELSE ` role="status"` ) }>{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section>|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
@@ -516,33 +521,40 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_active_tab_screen = active_selection_screen(
       iv_default = is_context-screen
       it_tabs    = it_tabs ).
-    lt_visible_blocks = visible_selection_blocks(
-      iv_screen = lv_active_tab_screen
-      it_blocks = it_blocks ).
-
     LOOP AT it_elements INTO DATA(ls_element).
       CHECK ls_element-kind <> 'SCREEN'
         AND ( ls_element-screen = is_context-screen
           OR ls_element-screen = lv_active_tab_screen ).
+* Sibling blocks share a depth, so fieldsets follow the block identity path:
+* keep the common prefix open, close the rest, open the new tail.
+      lt_block_path = selection_block_path(
+        iv_block  = ls_element-block
+        it_blocks = it_blocks ).
+      lv_common_blocks = 0.
+      LOOP AT lt_open_blocks INTO lv_open_block.
+        READ TABLE lt_block_path WITH KEY table_line = lv_open_block TRANSPORTING NO FIELDS.
+        IF sy-subrc <> 0 OR sy-tabix <> lv_common_blocks + 1.
+          EXIT.
+        ENDIF.
+        lv_common_blocks = lv_common_blocks + 1.
+      ENDLOOP.
+      lv_block_change = xsdbool( lv_common_blocks < lines( lt_open_blocks )
+                              OR lv_common_blocks < lines( lt_block_path ) ).
       lv_body = lv_body && COND string(
-        WHEN lv_open_line > 0 AND ls_element-line <> lv_open_line THEN `</div>`
+        WHEN lv_open_line > 0 AND ( ls_element-line <> lv_open_line OR lv_block_change = abap_true ) THEN `</div>`
         ELSE `` ).
       lv_open_line = COND i(
-        WHEN lv_open_line > 0 AND ls_element-line <> lv_open_line THEN 0
+        WHEN lv_open_line > 0 AND ( ls_element-line <> lv_open_line OR lv_block_change = abap_true ) THEN 0
         ELSE lv_open_line ).
-      WHILE lv_open_block < ls_element-block_depth.
-        lv_open_block = lv_open_block + 1.
-        READ TABLE lt_visible_blocks INTO DATA(ls_block) INDEX lv_open_block.
-        IF sy-subrc = 0.
-          lv_title = ls_block-block-title.
-        ELSE.
-          CLEAR lv_title.
-        ENDIF.
-        lv_body = lv_body && |<fieldset><legend>{ zcl_gg_host_html=>escape_text( lv_title ) }</legend>|.
-      ENDWHILE.
-      WHILE lv_open_block > ls_element-block_depth.
+      WHILE lines( lt_open_blocks ) > lv_common_blocks.
         lv_body = lv_body && |</fieldset>|.
-        lv_open_block = lv_open_block - 1.
+        DELETE lt_open_blocks INDEX lines( lt_open_blocks ).
+      ENDWHILE.
+      WHILE lines( lt_open_blocks ) < lines( lt_block_path ).
+        lv_open_block = lt_block_path[ lines( lt_open_blocks ) + 1 ].
+        lv_title = it_blocks[ lv_open_block ]-block-title.
+        lv_body = lv_body && |<fieldset><legend>{ zcl_gg_host_html=>escape_text( lv_title ) }</legend>|.
+        APPEND lv_open_block TO lt_open_blocks.
       ENDWHILE.
       lv_body = lv_body && COND string(
         WHEN ls_element-line > 0 AND lv_open_line = 0
@@ -772,10 +784,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       ENDCASE.
     ENDLOOP.
     lv_body = lv_body && COND string( WHEN lv_open_line > 0 THEN `</div>` ELSE `` ).
-    WHILE lv_open_block > 0.
+    DO lines( lt_open_blocks ) TIMES.
       lv_body = lv_body && |</fieldset>|.
-      lv_open_block = lv_open_block - 1.
-    ENDWHILE.
+    ENDDO.
 * Execute carries the ONLI function code. It skips browser validation, as the
 * program-declared pushbuttons above already do, so an empty obligatory field
 * is rejected by the program's own selection-screen validation with a message
@@ -1498,11 +1509,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD visible_selection_blocks.
-    LOOP AT it_blocks INTO DATA(ls_block)
-        WHERE screen = iv_screen.
-      APPEND ls_block TO rt_blocks.
-    ENDLOOP.
+  METHOD selection_block_path.
+* Outermost first; element block indexes point into it_blocks, parents too.
+    DATA lv_block TYPE i.
+
+    lv_block = iv_block.
+    WHILE lv_block > 0 AND lv_block <= lines( it_blocks ).
+      INSERT lv_block INTO rt_path INDEX 1.
+      lv_block = it_blocks[ lv_block ]-parent.
+    ENDWHILE.
   ENDMETHOD.
 
   METHOD selection_help_section.

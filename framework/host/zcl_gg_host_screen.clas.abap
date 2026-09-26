@@ -9,6 +9,7 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
     TYPES: BEGIN OF ty_block,
              block  TYPE zif_gg_selection_screen_types=>ty_block,
              depth  TYPE i,
+             parent TYPE i,
              screen TYPE zif_gg_selection_screen_types=>ty_screen_number,
            END OF ty_block.
     TYPES ty_blocks TYPE STANDARD TABLE OF ty_block WITH DEFAULT KEY.
@@ -39,6 +40,7 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
              length         TYPE i,
              line           TYPE i,
              block_depth    TYPE i,
+             block          TYPE i,
              visible_length TYPE i,
              for_field      TYPE zif_gg_selection_screen_types=>ty_name,
              modif_id       TYPE zif_gg_selection_screen_types=>ty_modif_id,
@@ -105,6 +107,7 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_elements TYPE ty_elements.
     DATA mt_states TYPE zif_gg_selection_screen_types=>ty_states.
     DATA mv_block_depth TYPE i.
+    DATA mt_block_stack TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA mv_line TYPE i.
     DATA mv_position TYPE i.
     DATA mv_in_line TYPE abap_bool.
@@ -232,6 +235,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     ls_element-length = iv_length.
     ls_element-line = mv_line.
     ls_element-block_depth = mv_block_depth.
+    READ TABLE mt_block_stack INTO ls_element-block INDEX lines( mt_block_stack ).
     ls_element-visible_length = iv_visible_length.
     ls_element-for_field = iv_for_field.
     ls_element-modif_id = iv_modif_id.
@@ -447,15 +451,21 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~begin_block.
+    DATA lv_parent TYPE i.
+
+    READ TABLE mt_block_stack INTO lv_parent INDEX lines( mt_block_stack ).
     mv_block_depth = mv_block_depth + 1.
     APPEND VALUE #( block  = is_block
                     depth  = mv_block_depth
+                    parent = lv_parent
                     screen = COND #( WHEN mv_screen IS INITIAL THEN '1000' ELSE mv_screen ) ) TO mt_blocks.
+    APPEND lines( mt_blocks ) TO mt_block_stack.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~end_block.
     IF mv_block_depth > 0.
       mv_block_depth = mv_block_depth - 1.
+      DELETE mt_block_stack INDEX lines( mt_block_stack ).
     ENDIF.
   ENDMETHOD.
 

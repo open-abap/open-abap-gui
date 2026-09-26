@@ -97,7 +97,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Edit"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Refresh"})).toHaveCount(0);
   await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
-  await expect(page.locator(".wb-app-list > li")).toHaveCount(165);
+  await expect(page.locator(".wb-app-list > li")).toHaveCount(166);
   await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
@@ -164,7 +164,10 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_159"})).toContainText(
     "Multi-month calendar",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(158);
+  await expect(page.getByRole("link", {name: "ZGG_EX_160"})).toContainText(
+    "Sibling selection-screen blocks",
+  );
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(159);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 
