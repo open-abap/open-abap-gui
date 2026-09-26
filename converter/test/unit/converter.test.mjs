@@ -2353,3 +2353,36 @@ test("hoists local classes into collision-free helper class sources", async () =
   assert.equal(collision.reportIR.localClasses[0].generatedName, "ZCL_LOCAL_H1_1");
   assert.match(collision.classSource, /FRIENDS zcl_local_h1_1\./);
 });
+
+test("resolves dictionary-typed selection fields to their built-in types through abaplint", async () => {
+  const input = path.join(repositoryRoot, "converter", "test", "examples", "ddic_parameter_types", "input");
+  const source = await fs.readFile(path.join(input, "zexample_ddic.prog.abap"), "utf8");
+  const dictionaryFiles = (await fs.readdir(input)).map((name) => path.join(input, name));
+  const resolved = await convertProgram({ source, filename: "zexample_ddic.prog.abap", dictionaryFiles });
+  assert.equal(resolved.supported, true, JSON.stringify(resolved.diagnostics));
+  const field = (name) => resolved.reportIR.selections.flatMap((screen) => screen.elements).find((item) => item.name === name).dataType;
+  assert.deepEqual(field("P_COUNT"), { typ: "I", rollname: "ZEXAMPLE_COUNT" });
+  assert.deepEqual(field("P_AMOUNT"), { typ: "P", length: 7, decimals: 2, rollname: "ZEXAMPLE_AMOUNT" });
+  assert.deepEqual(field("P_DATE"), { typ: "D", length: 8, rollname: "ZEXAMPLE_DATE" });
+  assert.deepEqual(field("P_CARR"), { typ: "C", length: 3, rollname: "ZEXAMPLE_CARRIER" });
+  assert.deepEqual(field("S_DATE"), { typ: "D", length: 8, rollname: "ZEXAMPLE_DATE" });
+  // The class state keeps the dictionary type; only the screen needs the built-in one.
+  assert.match(resolved.classSource, /DATA mv_p_count TYPE zexample_count\./);
+  assert.match(resolved.classSource, /name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #\( rollname = 'ZEXAMPLE_COUNT' typ = 'I' \)/);
+
+  // Sources may be passed in memory, and a domain is found through its data element.
+  const inMemory = await convertProgram({
+    source: "REPORT zmem.\nPARAMETERS p_qty TYPE zmem_qty.\nSTART-OF-SELECTION.\nWRITE p_qty.\n",
+    filename: "zmem.prog.abap",
+    dictionaryFiles: await Promise.all(["zexample_count.dtel.xml", "zexample_count.doma.xml"].map(async (name) => ({
+      filename: name.replace("zexample_count", "zmem_qty"),
+      source: (await fs.readFile(path.join(input, name), "utf8")).replaceAll("ZEXAMPLE_COUNT", "ZMEM_QTY"),
+    }))),
+  });
+  assert.match(inMemory.classSource, /data_type = VALUE #\( rollname = 'ZMEM_QTY' typ = 'I' \)/);
+
+  // Without the dictionary objects the type stays as written.
+  const unresolved = await convertProgram({ source, filename: "zexample_ddic.prog.abap" });
+  assert.equal(unresolved.supported, true, JSON.stringify(unresolved.diagnostics));
+  assert.match(unresolved.classSource, /name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #\( typ = 'ZEXAMPLE_COUNT' \)/);
+});

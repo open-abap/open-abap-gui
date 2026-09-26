@@ -152,6 +152,19 @@ ddicTypes: {
 }
 ```
 
+The selection screen needs the built-in type behind a dictionary type to
+render a field, for example an integer data element as a number field. For a
+`PARAMETERS` or `SELECT-OPTIONS` typed with a dictionary type, directly or
+through `LIKE`/`FOR`, the converter runs the abaplint syntax check with the
+abapGit dictionary objects (`.dtel.xml`, `.doma.xml`, `.tabl.xml`,
+`.ttyp.xml`) found in the converter input, `input_folder` and the libs, and
+uses the resolved type; the class state keeps the dictionary type as written.
+Only the objects the report refers to are read, together with the objects
+they refer to, such as a data element's domain. When the objects are not
+there, the type stays as written. `convertProgram` takes them as
+`dictionaryFiles`, a list of file names or `{ filename, source }` entries. See
+`test/examples/ddic_parameter_types`.
+
 Generated selection callbacks hydrate private `mv_*` state from scaffold
 values and flush changes back to `ct_values` for mutable callbacks.
 

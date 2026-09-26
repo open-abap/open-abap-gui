@@ -1,6 +1,3 @@
-import path from "node:path";
-import { Config, MemoryFile, Registry } from "@abaplint/core";
-import { SyntaxLogic } from "@abaplint/core/build/src/abap/5_syntax/syntax.js";
 import { declarationInfo } from "./collect-declarations.mjs";
 
 // An inline DATA( ) outside a FORM, method or module declares a program global,
@@ -11,32 +8,10 @@ import { declarationInfo } from "./collect-declarations.mjs";
 const REFERENCE_CONSTRUCTORS = new Set(["NEW", "REF", "CAST"]);
 const TYPED_CONSTRUCTORS = new Set(["VALUE", "CONV", "CORRESPONDING", "EXACT", "REDUCE", "FILTER", "COND", "SWITCH", ...REFERENCE_CONSTRUCTORS]);
 
-function includeXML(filename) {
-  const name = path.basename(filename).replace(/\.prog\.abap$/i, "").toUpperCase();
-  return `<?xml version="1.0" encoding="utf-8"?><abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0"><asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0"><asx:values><PROGDIR><NAME>${name}</NAME><SUBC>I</SUBC></PROGDIR></asx:values></asx:abap></abapGit>`;
-}
-
-// Unknown global types are void instead of errors, as the converter runs
-// without the DDIC and the other repository objects the report uses.
-function syntaxConfig(config) {
-  const raw = config.get();
-  return new Config(JSON.stringify({ ...raw, syntax: { ...raw.syntax, errorNamespace: "^$" } }));
-}
-
-function programVariables(units, config) {
-  const root = units[0];
-  if (!root || !/\.prog\.abap$/i.test(root.filename)) return [];
-  const registry = new Registry(syntaxConfig(config));
-  for (const [index, unit] of units.entries()) {
-    registry.addFile(new MemoryFile(unit.filename, unit.source));
-    if (index > 0) registry.addFile(new MemoryFile(unit.filename.replace(/\.abap$/i, ".xml"), includeXML(unit.filename)));
-  }
-  registry.parse();
-  const program = registry.getObject("PROG", path.basename(root.filename).replace(/\.prog\.abap$/i, "").toUpperCase());
+function programVariables(programScope) {
+  const program = programScope();
   if (!program) return [];
-  const scope = new SyntaxLogic(registry, program).run().spaghetti.getTop().getFirstChild()?.getFirstChild();
-  if (scope?.getIdentifier().stype !== "_program") return [];
-  return Object.entries(scope.getData().vars)
+  return Object.entries(program.scope.getData().vars)
     .filter(([, variable]) => variable.getMeta().includes("inline"))
     .map(([name, variable]) => ({ name, variable }));
 }
@@ -73,12 +48,12 @@ function useAttribute(text, name) {
   return text.split(/('(?:[^']|'')*'|`(?:[^`]|``)*`|\|(?:[^|\\]|\\.)*\|)/).map((part, index) => index % 2 ? part : part.replace(pattern, "$1")).join("");
 }
 
-export function liftInlineDeclarations(parsedUnits, config, globalStatements) {
+export function liftInlineDeclarations(programScope, globalStatements) {
   const candidates = globalStatements.filter((statement) => /\bDATA\s*\(/i.test(statement.text));
   if (!candidates.length) return [];
   let variables;
   try {
-    variables = programVariables(parsedUnits, config);
+    variables = programVariables(programScope);
   } catch {
     return [];
   }

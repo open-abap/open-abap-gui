@@ -7,6 +7,8 @@ import { emptyReportIR } from "./ir/report-ir.mjs";
 import { classifyProgram } from "./passes/classify-program.mjs";
 import { collectDeclarations } from "./passes/collect-declarations.mjs";
 import { liftInlineDeclarations } from "./passes/lift-inline-declarations.mjs";
+import { dictionaryIndex, lazyProgramScope } from "./passes/program-scope.mjs";
+import { resolveSelectionTypes } from "./passes/resolve-selection-types.mjs";
 import { collectSelectionScreens } from "./passes/collect-selection-screens.mjs";
 import { collectEvents } from "./passes/collect-events.mjs";
 import { collectLocalClasses } from "./passes/collect-local-classes.mjs";
@@ -197,7 +199,8 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
   ])].sort();
   ir.modules = collectModules(allStatements);
   const moduleStatements = new Set(ir.modules.flatMap((module) => module.statements));
-  ir.declarations.push(...liftInlineDeclarations(parsed.units, parsed.config, ir.eventBlocks
+  const programScope = lazyProgramScope(parsed.units, parsed.config, dictionaryIndex(options.dictionaryFiles));
+  ir.declarations.push(...liftInlineDeclarations(programScope, ir.eventBlocks
     .flatMap((block) => block.statements)
     .filter((statement) => !statement.localClassName && !moduleStatements.has(statement))));
   ir.sourceIndex = buildSourceIndex(ir);
@@ -215,6 +218,7 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
       .map((name) => name.toUpperCase());
   }))].sort();
   resolveTypes(ir, options);
+  resolveSelectionTypes(ir, programScope);
   return ir;
 }
 

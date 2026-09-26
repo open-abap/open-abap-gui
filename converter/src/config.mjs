@@ -457,6 +457,25 @@ export async function discoverGlobalObjects(config, skipFolders = []) {
   return objects;
 }
 
+const DICTIONARY_SUFFIXES = [".dtel.xml", ".doma.xml", ".tabl.xml", ".ttyp.xml"];
+
+/**
+ * The abapGit-serialized dictionary objects in the converter input, the
+ * transpiler input and the libraries, in that order. The converter reads one
+ * only when a report refers to it, to resolve e.g. the built-in type behind a
+ * data element a PARAMETERS statement names.
+ */
+export async function discoverDictionaryFiles(config) {
+  const found = new Map();
+  const visited = new Set();
+  for (const folder of [...(config.converterInputFolders ?? []), ...(config.inputFolders ?? []), ...(config.libraryFolders ?? [])]) {
+    const files = new Map();
+    await collectProgramFiles(folder, config.generatedFolder, files, visited, DICTIONARY_SUFFIXES);
+    for (const filename of [...files.keys()].sort((left, right) => left.localeCompare(right))) found.set(filename, true);
+  }
+  return [...found.keys()];
+}
+
 function resolveOverride(value, programName) {
   return typeof value === "function" ? value(programName) : value;
 }
