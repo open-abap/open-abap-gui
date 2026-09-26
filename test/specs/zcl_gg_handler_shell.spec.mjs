@@ -33,7 +33,7 @@ for (const route of [
 
     await back.click();
     await page.waitForLoadState("load");
-    await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
+    await expect(page.getByRole("navigation", {name: "Transactions"})).toBeVisible();
     await expect(page.locator("[data-page-kind]")).toHaveCount(0);
   });
 }

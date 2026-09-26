@@ -9,15 +9,15 @@ CLASS zcl_example_format DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
-    INTERFACES zif_gg_transaction_v1.
+    INTERFACES zif_gg_program_v1.
     INTERFACES zif_gg_list_processing_v1.
 
 ENDCLASS.
 
 CLASS zcl_example_format IMPLEMENTATION.
 
-  METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_FORMAT' description = 'Converted executable report' program = 'ZEXAMPLE_FORMAT' ).
+  METHOD zif_gg_program_v1~get_program.
+    rs_program = VALUE #( program = 'ZEXAMPLE_FORMAT' description = 'Converted executable report' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

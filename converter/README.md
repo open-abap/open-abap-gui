@@ -91,9 +91,13 @@ same folders for both tools.
 
 A report's transaction code comes from `--tcode` when given, otherwise from an
 abapGit transaction object (`<tcode>.tran.xml`) in the converter input folders whose
-program is the report, otherwise from the report name. The transaction's short
-text becomes the default description. When several transactions start the same
-report, the alphabetically first transaction code is used.
+program is the report. The transaction's short text becomes the default
+description. When several transactions start the same report, the
+alphabetically first transaction code is used. A report with neither gets no
+transaction code: its class implements `zif_gg_program_v1` instead of
+`zif_gg_transaction_v1`, and the workbench lists it under Reports rather than
+Transactions. A module pool can only be started through a transaction, so
+without either it takes its program name as the transaction code.
 
 Add `converter.output_folder` to `input_folder` or abap_transpile will not
 compile what the converter just wrote — `GGCONV-W110` says so, and names the
@@ -115,8 +119,9 @@ A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`) unless
 interface in `input_folder`, `converter.input_folder` or the libs, the report
 is generated as the next free name (`ZCL_FOO_1`, `ZCL_FOO_2`, …) and
 `GGCONV-W106` names the file that holds the original. The generated
-transaction metadata records the report's program name, so `SUBMIT zfoo` finds
-the renamed class through the transaction registry. A name given with `--class`
+transaction or program metadata records the report's program name, so
+`SUBMIT zfoo` finds the renamed class through the transaction or program
+registry. A name given with `--class`
 is never replaced: if it is taken, `GGCONV-E106` reports it and nothing is
 written for that report.
 

@@ -379,27 +379,34 @@ function validateNames(ir, options, diagnostics) {
       diagnostics.push(diagnostic({ code: "GGCONV-E101", filename: options.filename, construct: className, message: error.message, suggestion: "Use an uppercase ABAP class name of at most 30 characters.", phase: "options" }));
     }
   }
-  // Without a transaction code the class is still generated, but without
-  // zif_gg_transaction_v1, so the transaction registry does not list it.
-  const withoutTransaction = "the class is generated without zif_gg_transaction_v1, so it cannot be started as a transaction and the transaction registry cannot resolve a SUBMIT of it";
-  let transactionCode = options.transactionCode?.toUpperCase() ?? defaultTransactionCode(ir.programName ?? "");
+  // A report gets a transaction code only when one is given or a transaction
+  // object starts it; otherwise it is generated with zif_gg_program_v1 and
+  // listed as a report without a transaction. A module pool can only be
+  // started through a transaction, so it defaults to its program name.
+  const programRegistered = ir.programKind === "report" && Boolean(ir.programName);
+  const withoutTransaction = programRegistered
+    ? "the class is generated without zif_gg_transaction_v1, as a report without a transaction"
+    : "the class is generated without zif_gg_transaction_v1, so it cannot be started as a transaction and the transaction registry cannot resolve a SUBMIT of it";
+  let transactionCode;
   if (options.transactionCode) {
     try {
       transactionCode = normalizeTransactionCode(options.transactionCode);
     } catch (error) {
       diagnostics.push(diagnostic({ code: "GGCONV-W105", severity: "warning", filename: options.filename, construct: "transaction code", message: `${error.message}; ${withoutTransaction}`, suggestion: "Pass a valid scaffold transaction code.", phase: "options" }));
-      transactionCode = undefined;
     }
-  } else if (!transactionCode) {
-    diagnostics.push(diagnostic({ code: "GGCONV-W105", severity: "warning", filename: options.filename, construct: "transaction code", message: `the report name cannot be used as a scaffold transaction code; ${withoutTransaction}`, suggestion: "Pass transactionCode/--tcode explicitly.", phase: "options" }));
+  } else if (ir.programKind === "module-pool") {
+    transactionCode = defaultTransactionCode(ir.programName ?? "");
+    if (!transactionCode) diagnostics.push(diagnostic({ code: "GGCONV-W105", severity: "warning", filename: options.filename, construct: "transaction code", message: `the program name cannot be used as a scaffold transaction code; ${withoutTransaction}`, suggestion: "Pass transactionCode/--tcode explicitly.", phase: "options" }));
   }
   if (renamedFrom) {
     // SUBMIT derives the class from the program name, so a renamed class is
-    // only found through the program in its transaction metadata.
+    // only found through the program in its transaction or program metadata.
     const location = options.existingClassFiles?.[renamedFrom];
     const reachability = transactionCode
       ? "SUBMIT finds it through the transaction registry"
-      : "without a transaction code, SUBMIT cannot find it";
+      : programRegistered
+        ? "SUBMIT finds it through the program registry"
+        : "without a transaction code, SUBMIT cannot find it";
     diagnostics.push(diagnostic({
       code: "GGCONV-W106",
       severity: "warning",

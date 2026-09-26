@@ -96,8 +96,17 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Add to favorites"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Edit"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Refresh"})).toHaveCount(0);
-  await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
-  await expect(page.locator(".wb-app-list > li")).toHaveCount(167);
+  await expect(page.getByRole("navigation", {name: "Applications"})).toHaveCount(0);
+  const transactions = page.getByRole("navigation", {name: "Transactions"});
+  await expect(transactions).toBeVisible();
+  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(167);
+  const reports = page.getByRole("navigation", {name: "Reports"});
+  await expect(reports).toBeVisible();
+  await expect(reports.locator(".wb-app-list > li")).toHaveCount(1);
+  await expect(reports.getByRole("link", {name: "ZGG_INT_PROGRAM"})).toHaveAttribute(
+    "href",
+    "/program?name=ZGG_INT_PROGRAM",
+  );
   await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
@@ -172,6 +181,19 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   );
   await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(160);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
+});
+
+test("starts a report without a transaction from the Reports section", async ({page, host}) => {
+  await page.goto(host.baseUrl);
+  await page.getByRole("navigation", {name: "Reports"}).getByRole("link", {name: "ZGG_INT_PROGRAM"}).click();
+  await page.waitForLoadState("load");
+
+  await expect(page.locator(".wb-app-title")).toHaveText("ZGG_INT_PROGRAM");
+  await expect(page.getByText("started without a transaction")).toBeVisible();
+
+  const response = await page.goto(`${host.baseUrl}/program?name=ZGG_INT_UNKNOWN`);
+  expect(response?.status()).toBe(200);
+  await expect(page.locator(".wb-status-feedback")).toHaveText("Unknown program: ZGG_INT_UNKNOWN");
 });
 
 test("index keeps the workbench chrome visible in a short viewport", async ({page, host}) => {

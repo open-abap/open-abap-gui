@@ -9,7 +9,7 @@ CLASS zcl_example_status DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
-    INTERFACES zif_gg_transaction_v1.
+    INTERFACES zif_gg_program_v1.
     INTERFACES zif_gg_list_processing_v1.
 
   PRIVATE SECTION.
@@ -22,8 +22,8 @@ ENDCLASS.
 
 CLASS zcl_example_status IMPLEMENTATION.
 
-  METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_STATUS' description = 'Counter with a GUI status' program = 'ZEXAMPLE_STATUS' ).
+  METHOD zif_gg_program_v1~get_program.
+    rs_program = VALUE #( program = 'ZEXAMPLE_STATUS' description = 'Counter with a GUI status' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

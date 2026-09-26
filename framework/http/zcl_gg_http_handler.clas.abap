@@ -215,6 +215,10 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lo_workbench TYPE REF TO zif_gg_raw_html_v1.
     DATA lv_class_name TYPE string.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
+    DATA lv_program TYPE string.
+    DATA ls_program TYPE zcl_gg_program_registry=>ty_program.
+    DATA lo_program TYPE REF TO object.
+    DATA lo_report TYPE REF TO zif_gg_report_v1.
 
     lv_path = server->request->get_header_field( '~path' ).
     REPLACE FIRST OCCURRENCE OF '?' IN lv_path WITH ''.
@@ -249,6 +253,41 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
             iv_status = 500 ).
           RETURN.
       ENDTRY.
+      IF ls_response-valid = abap_false.
+        send_workbench_error(
+          server    = server
+          iv_error  = ls_response-error
+          iv_status = 500 ).
+        RETURN.
+      ENDIF.
+      send_runtime_response( server      = server
+                             is_response = ls_response ).
+      RETURN.
+    ENDIF.
+    IF lv_path = '/program'.
+      server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
+      lv_program = form_value( it_fields = lt_fields
+                               iv_name   = 'name' ).
+      ls_program = zcl_gg_program_registry=>lookup( iv_program = lv_program ).
+      IF ls_program-program IS INITIAL.
+        send_workbench_error(
+          server   = server
+          iv_error = |Unknown program: { lv_program }| ).
+        RETURN.
+      ENDIF.
+      TRY.
+          CREATE OBJECT lo_program TYPE (ls_program-class_name).
+          lo_report ?= lo_program.
+        CATCH cx_root INTO DATA(lx_program_error).
+          send_workbench_error(
+            server    = server
+            iv_error  = |Unable to start program { ls_program-program } ({ ls_program-class_name }): { lx_program_error->get_text( ) }|
+            iv_status = 500 ).
+          RETURN.
+      ENDTRY.
+      ls_response = start_program(
+        io_report  = lo_report
+        iv_program = CONV #( ls_program-class_name ) ).
       IF ls_response-valid = abap_false.
         send_workbench_error(
           server    = server

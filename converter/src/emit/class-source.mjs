@@ -2,6 +2,7 @@ import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
 import { controlObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
 import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
+import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -216,8 +217,16 @@ function programField(ir) {
   return ir.programName ? ` program = '${ir.programName}'` : "";
 }
 
+// A report no transaction starts declares its program instead, which lists it
+// in the workbench and lets SUBMIT find it through the program registry.
+function programMethod(ir, description = ir.description) {
+  return method("zif_gg_program_v1~get_program", [
+    `rs_program = VALUE #( program = ${literal(ir.programName)} description = ${literal(description)} ).`,
+  ]);
+}
+
 function interfaceOrder(ir) {
-  const order = ["zif_gg_report_v1", "zif_gg_screen_provider_v1", "zif_gg_dynpro_v1", "zif_gg_context_menu_v1", "zif_gg_transaction_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
+  const order = ["zif_gg_report_v1", "zif_gg_screen_provider_v1", "zif_gg_dynpro_v1", "zif_gg_context_menu_v1", "zif_gg_transaction_v1", "zif_gg_program_v1", "zif_gg_list_processing_v1", "zif_gg_resumable_v1"];
   return order.filter((name) => ir.interfaces.includes(name));
 }
 
@@ -2115,6 +2124,7 @@ export function emitClassSource(ir, options) {
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
     implementation.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}'${programField(ir)} ).`]));
   }
+  if (ir.interfaces.includes("zif_gg_program_v1")) implementation.push(programMethod(ir));
   if (ir.programKind === "module-pool") implementation.push(...dynproMethods(ir));
   else {
     implementation.push(...reportMethods(ir));
@@ -2161,6 +2171,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     "  PUBLIC SECTION.",
     "    INTERFACES zif_gg_report_v1.",
     ...(ir.transactionCode ? ["    INTERFACES zif_gg_transaction_v1."] : []),
+    ...(hasProgramMetadata(ir) ? ["    INTERFACES zif_gg_program_v1."] : []),
     "",
     "ENDCLASS.",
     "",
@@ -2169,6 +2180,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     ...(ir.transactionCode ? [method("zif_gg_transaction_v1~get_transaction", [
       `rs_transaction = VALUE #( tcode = ${literal(ir.transactionCode)} description = ${literal(ir.description)}${programField(ir)} ).`,
     ]).toString()] : []),
+    ...(hasProgramMetadata(ir) ? [programMethod(ir).toString()] : []),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
     "",
@@ -2181,7 +2193,8 @@ export function emitPartialApplication(ir, options, diagnostics) {
   const interfaceNames = (ir.programKind === "module-pool"
     ? ["zif_gg_dynpro_v1", "zif_gg_transaction_v1"]
     : ["zif_gg_report_v1", "zif_gg_transaction_v1", ...(hasScreenProvider ? ["zif_gg_screen_provider_v1"] : [])])
-    .filter((name) => name !== "zif_gg_transaction_v1" || ir.transactionCode);
+    .filter((name) => name !== "zif_gg_transaction_v1" || ir.transactionCode)
+    .concat(hasProgramMetadata(ir) ? ["zif_gg_program_v1"] : []);
   const definition = [
     `CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC.`,
     "",
@@ -2238,6 +2251,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
   return `${header({className: ir.targetClassName, ir, options})}${todos.join("\n")}${todos.length ? "\n" : ""}${[
     ...definition,
     ...(ir.transactionCode ? [transaction.toString()] : []),
+    ...(hasProgramMetadata(ir) ? [programMethod(ir, label).toString()] : []),
     ...methods.map((entry) => entry.toString()),
     "ENDCLASS.",
     "",
@@ -2249,6 +2263,7 @@ export function lowerToScaffoldIR(ir, options, sourceMap = []) {
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
     methods.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}'${programField(ir)} ).`]));
   }
+  if (ir.interfaces.includes("zif_gg_program_v1")) methods.push(programMethod(ir));
   if (ir.programKind === "module-pool") methods.push(...dynproMethods(ir));
   else {
     methods.push(...reportMethods(ir));

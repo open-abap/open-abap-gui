@@ -1119,18 +1119,30 @@ test("converts composite fixtures with nested includes, routines, and database a
   assert.match(database.classSource, /METHOD form_add_value/);
 });
 
-test("generates a class without the transaction interface when no transaction code is usable", async () => {
-  for (const input of [
-    { source: "REPORT zreport_name_over_twenty.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" },
-    { source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n", transactionCode: "not valid" },
+test("generates a report without a transaction code as a program", async () => {
+  for (const [input, program, diagnostics] of [
+    [{ source: "REPORT zreport_name_over_twenty.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" }, "ZREPORT_NAME_OVER_TWENTY", []],
+    [{ source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" }, "ZSHORT", []],
+    [{ source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n", transactionCode: "not valid" }, "ZSHORT", [["GGCONV-W105", "warning"]]],
   ]) {
     const result = await convertProgram({ ...input, filename: "zreport.prog.abap" });
     assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-    assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W105", "warning"]]);
-    // An empty tcode would be registered with the transaction registry.
+    assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), diagnostics);
+    // No transaction code is made up from the report name.
+    assert.equal(result.reportIR.transactionCode, undefined);
+    assert.equal(result.manifest.transactionCode, undefined);
     assert.doesNotMatch(result.classSource, /zif_gg_transaction_v1/);
-    assert.match(result.classSource, /INTERFACES zif_gg_report_v1\./);
+    assert.match(result.classSource, /INTERFACES zif_gg_report_v1\.\n    INTERFACES zif_gg_program_v1\./);
+    assert.ok(result.classSource.includes(`rs_program = VALUE #( program = '${program}' description = `), result.classSource);
   }
+
+  const transaction = await convertProgram({
+    source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n",
+    filename: "zshort.prog.abap",
+    transactionCode: "ZSH",
+  });
+  assert.match(transaction.classSource, /rs_transaction = VALUE #\( tcode = 'ZSH' description = '[^']*' program = 'ZSHORT' \)\./);
+  assert.doesNotMatch(transaction.classSource, /zif_gg_program_v1/);
 });
 
 test("validates explicit class and transaction names", async () => {
@@ -1154,8 +1166,8 @@ test("validates explicit class and transaction names", async () => {
   assert.equal(collision.supported, true, JSON.stringify(collision.diagnostics));
   assert.equal(collision.reportIR.targetClassName, "ZCL_VALID_2");
   assert.deepEqual(collision.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W106", "warning"]]);
-  assert.match(collision.diagnostics[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the transaction registry/);
-  assert.match(collision.classSource, /rs_transaction = VALUE #\( tcode = 'ZVALID' description = '[^']*' program = 'ZVALID' \)\./);
+  assert.match(collision.diagnostics[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the program registry/);
+  assert.match(collision.classSource, /rs_program = VALUE #\( program = 'ZVALID' description = '[^']*' \)\./);
 
   const explicit = await convertProgram({
     source: "REPORT zvalid.\nWRITE 'ok'.\n",
@@ -1304,7 +1316,9 @@ test("keeps report IR serializable and renames generated-name collisions", async
   assert.doesNotThrow(() => JSON.stringify(result.scaffoldIR));
   assert.ok(result.scaffoldIR.methods.some((item) => item.name.endsWith("~start_of_selection")));
   assert.equal(result.scaffoldIR.definition.final, true);
-  assert.equal(result.scaffoldIR.transaction.tcode, "ZCOLLISION");
+  assert.equal(result.scaffoldIR.transaction.tcode, undefined);
+  assert.ok(result.scaffoldIR.interfaces.includes("zif_gg_program_v1"));
+  assert.ok(result.scaffoldIR.methods.some((item) => item.name === "zif_gg_program_v1~get_program"));
   assert.ok(Array.isArray(result.scaffoldIR.screenBuilder.operations));
   assert.ok(result.scaffoldIR.methods.find((item) => item.name.endsWith("~start_of_selection")).operations.some((item) => item.kind === "list-write"));
 });

@@ -9,7 +9,7 @@ CLASS zcl_example_first DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
-    INTERFACES zif_gg_transaction_v1.
+    INTERFACES zif_gg_program_v1.
     INTERFACES zif_gg_list_processing_v1.
 
   PRIVATE SECTION.
@@ -19,8 +19,8 @@ ENDCLASS.
 
 CLASS zcl_example_first IMPLEMENTATION.
 
-  METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_FIRST' description = 'Converted executable report' program = 'ZEXAMPLE_FIRST' ).
+  METHOD zif_gg_program_v1~get_program.
+    rs_program = VALUE #( program = 'ZEXAMPLE_FIRST' description = 'Converted executable report' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.
