@@ -9,18 +9,19 @@ CLASS zcl_example_lstatic DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_exam
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
-    INTERFACES zif_gg_transaction_v1.
+    INTERFACES zif_gg_program_v1.
     INTERFACES zif_gg_list_processing_v1.
 
   PRIVATE SECTION.
     DATA gv_greeting TYPE string.
+    DATA lv_text TYPE string.
 
 ENDCLASS.
 
 CLASS zcl_example_lstatic IMPLEMENTATION.
 
-  METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_LSTATIC' description = 'Converted executable report' program = 'ZEXAMPLE_LSTATIC' ).
+  METHOD zif_gg_program_v1~get_program.
+    rs_program = VALUE #( program = 'ZEXAMPLE_LSTATIC' description = 'Converted executable report' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.
@@ -82,7 +83,7 @@ CLASS zcl_example_lstatic IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_LSTATIC' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    DATA(lv_text) = zcl_example_lstatic_h1=>greet( `World` ).
+    lv_text = zcl_example_lstatic_h1=>greet( io_owner = me io_session = io_session IV_NAME = `World` ).
     zcl_example_lstatic_h1=>remember( io_owner = me io_session = io_session IV_TEXT = lv_text ).
     lo_writer->write_field( VALUE #( text = |{ gv_greeting }| placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.

@@ -92,6 +92,31 @@ test("a valid command replaces the old host session", async ({page, host}) => {
   expect(stale.body.error).toMatch(/Unknown host session/);
 });
 
+test("a bare /n closes the host session and returns to the menu", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
+  const oldSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
+  const oldPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
+
+  const command = page.getByRole("textbox", {name: "Command"});
+  await command.fill("/n");
+  await command.press("Enter");
+  await expect(page.locator(".wb-workspace")).toBeVisible();
+  await expect(page.locator("[data-page-kind]")).toHaveCount(0);
+  await expect(page.locator(".wb-status-error")).toHaveCount(0);
+  await expect(page.getByRole("link", {name: "ZGG_EX_001"})).toBeVisible();
+
+  const closed = await page.evaluate(async ({sessionId, pageId}) => {
+    const response = await fetch("/dispatch", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({session_id: sessionId, page_id: pageId, action: "SUBMIT"}),
+    });
+    return {status: response.status, body: await response.json()};
+  }, {sessionId: oldSession, pageId: oldPage});
+  expect(closed.status).toBe(400);
+  expect(closed.body.error).toMatch(/Unknown host session/);
+});
+
 test("invalid commands clear the command field and leave the old session open", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
   const oldSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");

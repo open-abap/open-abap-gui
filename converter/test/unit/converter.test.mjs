@@ -116,6 +116,11 @@ test("declares each selection parameter member with the parameter's own type", a
       "PARAMETERS p_stat TYPE ty_status.",
       "PARAMETERS p_list TYPE c LENGTH 5 AS LISTBOX VISIBLE LENGTH 20.",
       "SELECT-OPTIONS s_date FOR p_date.",
+      "SELECT-OPTIONS s_dyn FOR (gv_carrid).",
+      "SELECT-OPTIONS: s_chain FOR gv_carrid,",
+      "  s_last FOR gv_carrid.",
+      "RANGES: r_chain FOR gv_carrid,",
+      "  r_last FOR gv_carrid.",
       "START-OF-SELECTION.",
       "  p_date = p_date + 1.",
     ].join("\n"),
@@ -145,8 +150,15 @@ test("declares each selection parameter member with the parameter's own type", a
     "DATA mv_p_plain TYPE c LENGTH 8.",
     "DATA mv_p_rad1 TYPE c LENGTH 1.",
     "DATA mv_p_stat TYPE ty_status.",
-    "DATA mv_s_date TYPE zif_gg_selection_screen_types=>ty_ranges.",
+    // Inside a chain the FOR target is followed by a comma.
+    "DATA mv_s_chain LIKE RANGE OF gv_carrid.",
+    "DATA mv_s_date LIKE RANGE OF mv_p_date.",
+    // A dynamic FOR has no static type.
+    "DATA mv_s_dyn TYPE RANGE OF string.",
+    "DATA mv_s_last LIKE RANGE OF gv_carrid.",
   ]);
+  assert.match(result.classSource, /DATA r_chain LIKE RANGE OF gv_carrid\./i);
+  assert.match(result.classSource, /DATA r_last LIKE RANGE OF gv_carrid\./i);
   // Assignments keep ABAP's own conversion, and the screen value is only
   // rewritten, in template form, when the program changed it.
   assert.match(result.classSource, /^\s*mv_p_date = mv_p_date \+ 1\.$/m);
@@ -476,7 +488,8 @@ test("accepts LOOP TRANSPORTING NO FIELDS and REFERENCE INTO without a work area
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /LOOP AT gt_old TRANSPORTING NO FIELDS WHERE configuration <> ls_data-configuration AND client_id = ls_data-client_id\./);
-  assert.match(result.classSource, /LOOP AT gt_old REFERENCE INTO DATA\(lr_row\)\./);
+  assert.match(result.classSource, /DATA lr_row TYPE REF TO ty_row\./);
+  assert.match(result.classSource, /LOOP AT gt_old REFERENCE INTO lr_row\./);
 });
 
 test("keeps INCLUDE TYPE and INCLUDE STRUCTURE inside their structure", async () => {
@@ -1106,18 +1119,30 @@ test("converts composite fixtures with nested includes, routines, and database a
   assert.match(database.classSource, /METHOD form_add_value/);
 });
 
-test("generates a class without the transaction interface when no transaction code is usable", async () => {
-  for (const input of [
-    { source: "REPORT zreport_name_over_twenty.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" },
-    { source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n", transactionCode: "not valid" },
+test("generates a report without a transaction code as a program", async () => {
+  for (const [input, program, diagnostics] of [
+    [{ source: "REPORT zreport_name_over_twenty.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" }, "ZREPORT_NAME_OVER_TWENTY", []],
+    [{ source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n" }, "ZSHORT", []],
+    [{ source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n", transactionCode: "not valid" }, "ZSHORT", [["GGCONV-W105", "warning"]]],
   ]) {
     const result = await convertProgram({ ...input, filename: "zreport.prog.abap" });
     assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-    assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W105", "warning"]]);
-    // An empty tcode would be registered with the transaction registry.
+    assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), diagnostics);
+    // No transaction code is made up from the report name.
+    assert.equal(result.reportIR.transactionCode, undefined);
+    assert.equal(result.manifest.transactionCode, undefined);
     assert.doesNotMatch(result.classSource, /zif_gg_transaction_v1/);
-    assert.match(result.classSource, /INTERFACES zif_gg_report_v1\./);
+    assert.match(result.classSource, /INTERFACES zif_gg_report_v1\.\n    INTERFACES zif_gg_program_v1\./);
+    assert.ok(result.classSource.includes(`rs_program = VALUE #( program = '${program}' description = `), result.classSource);
   }
+
+  const transaction = await convertProgram({
+    source: "REPORT zshort.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n",
+    filename: "zshort.prog.abap",
+    transactionCode: "ZSH",
+  });
+  assert.match(transaction.classSource, /rs_transaction = VALUE #\( tcode = 'ZSH' description = '[^']*' program = 'ZSHORT' \)\./);
+  assert.doesNotMatch(transaction.classSource, /zif_gg_program_v1/);
 });
 
 test("validates explicit class and transaction names", async () => {
@@ -1141,8 +1166,8 @@ test("validates explicit class and transaction names", async () => {
   assert.equal(collision.supported, true, JSON.stringify(collision.diagnostics));
   assert.equal(collision.reportIR.targetClassName, "ZCL_VALID_2");
   assert.deepEqual(collision.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W106", "warning"]]);
-  assert.match(collision.diagnostics[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the transaction registry/);
-  assert.match(collision.classSource, /rs_transaction = VALUE #\( tcode = 'ZVALID' description = '[^']*' program = 'ZVALID' \)\./);
+  assert.match(collision.diagnostics[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the program registry/);
+  assert.match(collision.classSource, /rs_program = VALUE #\( program = 'ZVALID' description = '[^']*' \)\./);
 
   const explicit = await convertProgram({
     source: "REPORT zvalid.\nWRITE 'ok'.\n",
@@ -1291,7 +1316,9 @@ test("keeps report IR serializable and renames generated-name collisions", async
   assert.doesNotThrow(() => JSON.stringify(result.scaffoldIR));
   assert.ok(result.scaffoldIR.methods.some((item) => item.name.endsWith("~start_of_selection")));
   assert.equal(result.scaffoldIR.definition.final, true);
-  assert.equal(result.scaffoldIR.transaction.tcode, "ZCOLLISION");
+  assert.equal(result.scaffoldIR.transaction.tcode, undefined);
+  assert.ok(result.scaffoldIR.interfaces.includes("zif_gg_program_v1"));
+  assert.ok(result.scaffoldIR.methods.some((item) => item.name === "zif_gg_program_v1~get_program"));
   assert.ok(Array.isArray(result.scaffoldIR.screenBuilder.operations));
   assert.ok(result.scaffoldIR.methods.find((item) => item.name.endsWith("~start_of_selection")).operations.some((item) => item.kind === "list-write"));
 });
@@ -1549,7 +1576,7 @@ test("lowers global declaration families into ordered class-pool members", async
   assert.match(privateSection, /TYPES ty_rows TYPE STANDARD TABLE OF ty_row WITH EMPTY KEY\./);
   assert.match(privateSection, /TYPES ty_range TYPE RANGE OF i\./);
   assert.match(privateSection, /CONSTANTS gc_value TYPE i VALUE 2\./);
-  assert.match(privateSection, /DATA r_value TYPE zif_gg_selection_screen_types=>ty_ranges\./);
+  assert.match(privateSection, /DATA r_value LIKE RANGE OF gv_first\./);
   assert.doesNotMatch(privateSection, /FIELD-SYMBOLS/);
   assert.match(result.classSource, /METHOD zif_gg_report_v1~start_of_selection\.[\s\S]*FIELD-SYMBOLS <gv_ref> TYPE i\.[\s\S]*ASSIGN gv_first TO <gv_ref>/);
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
@@ -1785,6 +1812,98 @@ test("bridges local static methods through their generated helper owner", async 
   assert.match(result.helperSources[0].source, /CLASS-METHODS add IMPORTING text TYPE string io_owner TYPE REF TO zcl_static_bridge io_session TYPE REF TO zif_gg_session_v1/);
 });
 
+test("adds the owner and session ahead of RETURNING and RAISING", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zbridge_order.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_calc DEFINITION FINAL.",
+      "  PUBLIC SECTION.",
+      "    METHODS constructor RAISING cx_static_check.",
+      "    CLASS-METHODS count RETURNING VALUE(rv_count) TYPE i RAISING cx_static_check.",
+      "    CLASS-METHODS add",
+      "      IMPORTING iv_value TYPE i",
+      "      RETURNING VALUE(rv_count) TYPE i.",
+      "ENDCLASS.",
+      "CLASS lcl_calc IMPLEMENTATION.",
+      "  METHOD constructor.",
+      "  ENDMETHOD.",
+      "  METHOD count.",
+      "    rv_count = gv_count.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "    rv_count = gv_count.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  gv_count = lcl_calc=>add( 1 ).",
+    ].join("\n"),
+    filename: "zbridge_order.prog.abap",
+    transactionCode: "ZBRIDGE",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const helper = result.helperSources[0].source.replace(/\s+/g, " ");
+  const bridge = "io_owner TYPE REF TO zcl_bridge_order io_session TYPE REF TO zif_gg_session_v1";
+  assert.ok(helper.includes(`METHODS constructor IMPORTING ${bridge} RAISING cx_static_check.`), helper);
+  assert.ok(helper.includes(`CLASS-METHODS count IMPORTING ${bridge} RETURNING VALUE(rv_count) TYPE i RAISING cx_static_check.`), helper);
+  assert.ok(helper.includes(`CLASS-METHODS add IMPORTING iv_value TYPE i ${bridge} RETURNING VALUE(rv_count) TYPE i.`), helper);
+});
+
+test("passes the owner and session to every local static method call", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zbridge_calls.",
+      "DATA gv_count TYPE i.",
+      "CLASS lcl_calc DEFINITION FINAL.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS count RETURNING VALUE(rv_count) TYPE i.",
+      "    CLASS-METHODS add IMPORTING iv_value TYPE i.",
+      "    CLASS-METHODS run.",
+      "    METHODS go.",
+      "ENDCLASS.",
+      "CLASS lcl_calc IMPLEMENTATION.",
+      "  METHOD count.",
+      "    rv_count = gv_count.",
+      "  ENDMETHOD.",
+      "  METHOD add.",
+      "    gv_count = gv_count + iv_value.",
+      "  ENDMETHOD.",
+      "  METHOD run.",
+      "    DATA(lv_count) = count( ).",
+      "    IF count( ) > 1.",
+      "      add( count( ) ).",
+      "    ENDIF.",
+      "    add( EXPORTING iv_value = 2 ).",
+      "    DATA(lv_text) = |count( { count( ) }|.",
+      "  ENDMETHOD.",
+      "  METHOD go.",
+      "    CALL METHOD lcl_calc=>add EXPORTING iv_value = 3.",
+      "    CALL METHOD run.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  gv_count = lcl_calc=>count( ).",
+      "  NEW lcl_calc( )->go( ).",
+    ].join("\n"),
+    filename: "zbridge_calls.prog.abap",
+    transactionCode: "ZBRIDGE",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const main = result.classSource.replace(/\s+/g, " ");
+  const helper = result.helperSources[0].source.replace(/\s+/g, " ");
+  assert.ok(main.includes("gv_count = zcl_bridge_calls_h1=>count( io_owner = me io_session = io_session )."), main);
+  const statics = "io_owner = io_owner io_session = io_session";
+  assert.ok(helper.includes(`DATA(lv_count) = count( ${statics} ).`), helper);
+  assert.ok(helper.includes(`IF count( ${statics} ) > 1.`), helper);
+  assert.ok(helper.includes(`add( ${statics} IV_VALUE = count( ${statics} ) ).`), helper);
+  assert.ok(helper.includes(`add( EXPORTING ${statics} iv_value = 2 ).`), helper);
+  assert.ok(helper.includes(`DATA(lv_text) = |count( { count( ${statics} ) }|.`), helper);
+  const instance = "io_owner = mo_owner io_session = mo_session";
+  assert.ok(helper.includes(`CALL METHOD zcl_bridge_calls_h1=>add EXPORTING ${instance} iv_value = 3.`), helper);
+  assert.ok(helper.includes(`CALL METHOD run EXPORTING ${instance}.`), helper);
+});
+
 test("resolves FORM parameters and inline runtime event sources", async () => {
   const result = await convertProgram({
     source: [
@@ -1898,7 +2017,7 @@ test("covers PLAN9 lowering and adapter rules with a minimal extracted fixture",
   const result = await convertProgram({ source, filename: "plan9_minimal_constructs.prog.abap", transactionCode: "ZPLAN9MIN" });
   assert.equal(result.supported, true);
   assert.match(result.classSource, /TYPES: BEGIN OF ty_row/);
-  assert.match(result.classSource, /DATA r_value TYPE zif_gg_selection_screen_types=>ty_ranges/);
+  assert.match(result.classSource, /DATA r_value LIKE RANGE OF gv_value/);
   assert.match(result.classSource, /FIELD-SYMBOLS <lv_value> TYPE i/);
   assert.match(result.classSource, /get_compatibility\( \)->popup_to_confirm/);
   assert.match(result.classSource, /get_compatibility\( \)->publish_url/);
@@ -2168,8 +2287,8 @@ test("carries MESSAGE ... INTO over unchanged", async () => {
     filename: "zmsginto.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.match(result.classSource, /^\s*MESSAGE ID ls_message-msgid TYPE ls_message-msgty NUMBER ls_message-msgno WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4 INTO DATA\(lv_message\)\.$/m);
-  assert.match(result.classSource, /^\s*MESSAGE e001\(zmsg\) WITH 'INTO' INTO DATA\(lv_other\)\.$/m);
+  assert.match(result.classSource, /^\s*MESSAGE ID ls_message-msgid TYPE ls_message-msgty NUMBER ls_message-msgno WITH ls_message-msgv1 ls_message-msgv2 ls_message-msgv3 ls_message-msgv4 INTO lv_message\.$/m);
+  assert.match(result.classSource, /^\s*MESSAGE e001\(zmsg\) WITH 'INTO' INTO lv_other\.$/m);
   // INTO inside a literal is not the addition; that message is still sent.
   assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = 'ZMSG' number = '002' v1 = 'INTO' \) \)\./);
 });
@@ -2233,4 +2352,37 @@ test("hoists local classes into collision-free helper class sources", async () =
   });
   assert.equal(collision.reportIR.localClasses[0].generatedName, "ZCL_LOCAL_H1_1");
   assert.match(collision.classSource, /FRIENDS zcl_local_h1_1\./);
+});
+
+test("resolves dictionary-typed selection fields to their built-in types through abaplint", async () => {
+  const input = path.join(repositoryRoot, "converter", "test", "examples", "ddic_parameter_types", "input");
+  const source = await fs.readFile(path.join(input, "zexample_ddic.prog.abap"), "utf8");
+  const dictionaryFiles = (await fs.readdir(input)).map((name) => path.join(input, name));
+  const resolved = await convertProgram({ source, filename: "zexample_ddic.prog.abap", dictionaryFiles });
+  assert.equal(resolved.supported, true, JSON.stringify(resolved.diagnostics));
+  const field = (name) => resolved.reportIR.selections.flatMap((screen) => screen.elements).find((item) => item.name === name).dataType;
+  assert.deepEqual(field("P_COUNT"), { typ: "I", rollname: "ZEXAMPLE_COUNT" });
+  assert.deepEqual(field("P_AMOUNT"), { typ: "P", length: 7, decimals: 2, rollname: "ZEXAMPLE_AMOUNT" });
+  assert.deepEqual(field("P_DATE"), { typ: "D", length: 8, rollname: "ZEXAMPLE_DATE" });
+  assert.deepEqual(field("P_CARR"), { typ: "C", length: 3, rollname: "ZEXAMPLE_CARRIER" });
+  assert.deepEqual(field("S_DATE"), { typ: "D", length: 8, rollname: "ZEXAMPLE_DATE" });
+  // The class state keeps the dictionary type; only the screen needs the built-in one.
+  assert.match(resolved.classSource, /DATA mv_p_count TYPE zexample_count\./);
+  assert.match(resolved.classSource, /name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #\( rollname = 'ZEXAMPLE_COUNT' typ = 'I' \)/);
+
+  // Sources may be passed in memory, and a domain is found through its data element.
+  const inMemory = await convertProgram({
+    source: "REPORT zmem.\nPARAMETERS p_qty TYPE zmem_qty.\nSTART-OF-SELECTION.\nWRITE p_qty.\n",
+    filename: "zmem.prog.abap",
+    dictionaryFiles: await Promise.all(["zexample_count.dtel.xml", "zexample_count.doma.xml"].map(async (name) => ({
+      filename: name.replace("zexample_count", "zmem_qty"),
+      source: (await fs.readFile(path.join(input, name), "utf8")).replaceAll("ZEXAMPLE_COUNT", "ZMEM_QTY"),
+    }))),
+  });
+  assert.match(inMemory.classSource, /data_type = VALUE #\( rollname = 'ZMEM_QTY' typ = 'I' \)/);
+
+  // Without the dictionary objects the type stays as written.
+  const unresolved = await convertProgram({ source, filename: "zexample_ddic.prog.abap" });
+  assert.equal(unresolved.supported, true, JSON.stringify(unresolved.diagnostics));
+  assert.match(unresolved.classSource, /name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #\( typ = 'ZEXAMPLE_COUNT' \)/);
 });

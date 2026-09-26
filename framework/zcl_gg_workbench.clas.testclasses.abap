@@ -18,6 +18,8 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<details' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'role="tree"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'href="/ZCL_' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '</aside><div class="wb-splitter" role="separator" aria-orientation="vertical"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-controls="wb-app-panel"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-commandbar"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="/converter/preview"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-logo-mark" viewBox="0 0 108 108"' ) ).

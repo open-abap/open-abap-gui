@@ -6,6 +6,7 @@ CLASS ltcl_gg_transaction_registry DEFINITION FINAL FOR TESTING DURATION SHORT R
   PRIVATE SECTION.
     METHODS normalizes_and_looks_up FOR TESTING.
     METHODS rejects_unsupported_commands FOR TESTING.
+    METHODS returns_to_menu FOR TESTING.
 
 ENDCLASS.
 
@@ -46,10 +47,22 @@ CLASS ltcl_gg_transaction_registry IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-error
       exp = 'Unknown transaction code: zgg_ex_999' ).
-    LOOP AT VALUE string_table( ( `ZGG_EX_001` ) ( `/oZGG_EX_001` ) ( `/n` ) ( `/nUNKNOWN` ) ( `/nZGG_EX_001 extra` ) ) INTO DATA(lv_command).
+    LOOP AT VALUE string_table( ( `ZGG_EX_001` ) ( `/oZGG_EX_001` ) ( `/nUNKNOWN` ) ( `/nZGG_EX_001 extra` ) ) INTO DATA(lv_command).
       ls_result = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
       cl_abap_unit_assert=>assert_false( act = ls_result-valid ).
       cl_abap_unit_assert=>assert_not_initial( act = ls_result-error ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD returns_to_menu.
+    DATA ls_result TYPE zcl_gg_transaction_command=>ty_result.
+
+    LOOP AT VALUE string_table( ( `/n` ) ( `/N` ) ( ` /n ` ) ) INTO DATA(lv_command).
+      ls_result = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
+      cl_abap_unit_assert=>assert_true( act = ls_result-valid ).
+      cl_abap_unit_assert=>assert_true( act = ls_result-menu ).
+      cl_abap_unit_assert=>assert_initial( act = ls_result-tcode ).
+      cl_abap_unit_assert=>assert_initial( act = ls_result-error ).
     ENDLOOP.
   ENDMETHOD.
 

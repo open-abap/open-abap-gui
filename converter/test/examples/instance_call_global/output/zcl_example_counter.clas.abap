@@ -9,19 +9,20 @@ CLASS zcl_example_counter DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
-    INTERFACES zif_gg_transaction_v1.
+    INTERFACES zif_gg_program_v1.
     INTERFACES zif_gg_list_processing_v1.
 
   PRIVATE SECTION.
     DATA go_counter TYPE REF TO zcl_example_tally.
     DATA gv_value TYPE i.
+    DATA lo_second TYPE REF TO zcl_example_tally.
 
 ENDCLASS.
 
 CLASS zcl_example_counter IMPLEMENTATION.
 
-  METHOD zif_gg_transaction_v1~get_transaction.
-    rs_transaction = VALUE #( tcode = 'ZEXAMPLE_COUNTER' description = 'Converted executable report' program = 'ZEXAMPLE_COUNTER' ).
+  METHOD zif_gg_program_v1~get_program.
+    rs_program = VALUE #( program = 'ZEXAMPLE_COUNTER' description = 'Converted executable report' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.
@@ -87,7 +88,7 @@ CLASS zcl_example_counter IMPLEMENTATION.
     go_counter->increment( ).
     go_counter->increment( )->increment( ).
     CALL METHOD go_counter->add EXPORTING iv_amount = 10.
-    DATA(lo_second) = NEW zcl_example_tally( ).
+    lo_second = NEW zcl_example_tally( ).
     lo_second->add( iv_amount = 5 ).
     gv_value = go_counter->get_value( ) + lo_second->get_value( ).
     lo_writer->write_field( VALUE #( text = 'Total:' placement = VALUE #( new_line = abap_true ) ) ).

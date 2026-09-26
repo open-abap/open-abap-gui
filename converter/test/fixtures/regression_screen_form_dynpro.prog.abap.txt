@@ -1,0 +1,17 @@
+PROGRAM zreg_screen_form_dynpro.
+DATA gv_counter TYPE i VALUE 1.
+DATA gv_secret TYPE c LENGTH 10.
+MODULE status_0100 OUTPUT.
+  PERFORM hide_secret.
+ENDMODULE.
+MODULE user_command_0100 INPUT.
+  gv_counter = gv_counter + 1.
+ENDMODULE.
+FORM hide_secret.
+  LOOP AT SCREEN.
+    IF screen-group1 = 'OFF'.
+      screen-active = '0'.
+      MODIFY SCREEN.
+    ENDIF.
+  ENDLOOP.
+ENDFORM.

@@ -275,6 +275,7 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS terminal_page FOR TESTING.
     METHODS selection_output_snapshot FOR TESTING.
     METHODS selection_renderer_controls FOR TESTING.
+    METHODS selection_sibling_blocks FOR TESTING.
     METHODS html_gui_fixture FOR TESTING.
     METHODS replaces_a_host_session FOR TESTING.
 
@@ -377,7 +378,8 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-page_kind
       exp = zif_gg_host_html_v1=>page_selection ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<form method="post" action="/dispatch">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<form id="gg-host-form" method="post" action="/dispatch">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-toolbar-scope="application-status"><button class="wb-toolbar-button wb-toolbar-button--execute" type="submit" form="gg-host-form"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'name="P_CARR"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'required' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-state-required' ) ).
@@ -485,6 +487,42 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<label for=' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label=' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-instruction-region"' ) ).
+  ENDMETHOD.
+
+  METHOD selection_sibling_blocks.
+    DATA(lo_screen) = NEW zcl_gg_host_screen( ).
+    lo_screen->zif_gg_selection_screen_builder_v1~begin_block( VALUE #(
+      name = 'BLOCK1' title = 'First' with_frame = abap_true ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+      name = 'P_MAXRUN' text = 'Max' data_type = VALUE #( typ = 'I' ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~end_block( ).
+    lo_screen->zif_gg_selection_screen_builder_v1~begin_block( VALUE #(
+      name = 'BLOCK2' title = 'Second' with_frame = abap_true ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+      name = 'P_BKDEF' text = 'Default' data_type = VALUE #( typ = 'I' ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~end_block( ).
+    DATA(lv_html) = zcl_gg_host_renderer=>render_selection(
+      iv_session_id = 'S'
+      iv_page_id    = 'P'
+      iv_title      = 'Selection'
+      it_values     = lo_screen->get_values( )
+      it_states     = lo_screen->get_states( )
+      it_blocks     = lo_screen->get_blocks( )
+      it_elements   = lo_screen->get_elements( )
+      it_tabs       = lo_screen->get_tabs( ) ).
+    FIND ALL OCCURRENCES OF '<fieldset>' IN lv_html MATCH COUNT DATA(lv_open).
+    FIND ALL OCCURRENCES OF '</fieldset>' IN lv_html MATCH COUNT DATA(lv_close).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_open
+      exp = 2 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_close
+      exp = 2 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<legend>First</legend>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<legend>Second</legend>' ) ).
+    FIND '<legend>Second</legend>' IN lv_html MATCH OFFSET DATA(lv_second).
+    FIND 'P_MAXRUN' IN lv_html MATCH OFFSET DATA(lv_first_field).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_second > lv_first_field ) ).
   ENDMETHOD.
 
   METHOD html_gui_fixture.

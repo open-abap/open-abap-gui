@@ -114,6 +114,8 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_html) TYPE string.
 
   PRIVATE SECTION.
+    TYPES ty_block_path TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+
     CLASS-METHODS render_messages
       IMPORTING
         it_messages    TYPE zcl_gg_host_session=>ty_messages
@@ -185,12 +187,12 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_screen) TYPE string.
 
-    CLASS-METHODS visible_selection_blocks
+    CLASS-METHODS selection_block_path
       IMPORTING
-        iv_screen        TYPE string
-        it_blocks        TYPE zcl_gg_host_screen=>ty_blocks
+        iv_block       TYPE i
+        it_blocks      TYPE zcl_gg_host_screen=>ty_blocks
       RETURNING
-        VALUE(rt_blocks) TYPE zcl_gg_host_screen=>ty_blocks.
+        VALUE(rt_path) TYPE ty_block_path.
 
     CLASS-METHODS selection_help_section
       IMPORTING
@@ -342,7 +344,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF is_navigation-modal = abap_true.
       DATA(lv_modal) = |<div class="gg-modal-backdrop" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-target="{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }"><section class="gg-modal-panel" role="dialog" aria-modal="true" aria-label="Selection screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }"><header class="gg-modal-header"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span><span class="gg-modal-kind">{ zcl_gg_host_html=>escape_text( is_navigation-kind ) }</span>{ COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>| ELSE `` ) }</header>|.
       REPLACE FIRST OCCURRENCE OF '<main id="gg-main-content" aria-labelledby="wb-page-title">' IN rv_html WITH |<main id="gg-main-content" aria-labelledby="wb-page-title">{ lv_modal }|.
-      REPLACE FIRST OCCURRENCE OF '</main>' IN rv_html WITH '</section></div></main>'.
+* The backdrop covers the icon bar, so a selection screen shown as a popup
+* carries its Execute in the popup instead, as a SAP GUI popup does.
+      DATA(lv_execute) = zcl_gg_workbench_utility=>render_execute_button( `gg-host-form` ).
+      IF rv_html CS lv_execute.
+        REPLACE FIRST OCCURRENCE OF lv_execute IN rv_html WITH ``.
+        REPLACE FIRST OCCURRENCE OF '<div class="wb-toolbar wb-app-toolbar" role="toolbar" aria-label="Application GUI status" data-toolbar-scope="application-status"></div>' IN rv_html WITH ``.
+        REPLACE FIRST OCCURRENCE OF '</main>' IN rv_html WITH |<footer class="gg-modal-footer">{ lv_execute }</footer></section></div></main>|.
+      ELSE.
+        REPLACE FIRST OCCURRENCE OF '</main>' IN rv_html WITH '</section></div></main>'.
+      ENDIF.
     ELSE.
       DATA(lv_navigation) = |<nav class="gg-navigation" aria-label="Host navigation" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-modal="false"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span>{ COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>| ELSE `` ) }</nav>|.
       REPLACE FIRST OCCURRENCE OF '<main id="gg-main-content" aria-labelledby="wb-page-title">' IN rv_html WITH |<main id="gg-main-content" aria-labelledby="wb-page-title">{ lv_navigation }|.
@@ -497,11 +508,14 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_confirm_attrs TYPE string.
     DATA lv_field_root_attrs TYPE string.
     DATA lv_active_tab_screen TYPE string.
-    DATA lt_visible_blocks TYPE zcl_gg_host_screen=>ty_blocks.
+    DATA lt_open_blocks TYPE ty_block_path.
+    DATA lt_block_path TYPE ty_block_path.
+    DATA lv_common_blocks TYPE i.
+    DATA lv_block_change TYPE abap_bool.
 
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page"><header class="gg-status-region" aria-label="Selection status"><p class="gg-selection-status"{ COND string( WHEN is_status-status IS INITIAL THEN `` ELSE ` role="status"` ) }>{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section>|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
-    lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
+    lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
 
     IF it_tabs IS NOT INITIAL.
       lv_body = lv_body && |<nav role="tablist" aria-label="Selection tabs">|.
@@ -516,33 +530,40 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_active_tab_screen = active_selection_screen(
       iv_default = is_context-screen
       it_tabs    = it_tabs ).
-    lt_visible_blocks = visible_selection_blocks(
-      iv_screen = lv_active_tab_screen
-      it_blocks = it_blocks ).
-
     LOOP AT it_elements INTO DATA(ls_element).
       CHECK ls_element-kind <> 'SCREEN'
         AND ( ls_element-screen = is_context-screen
           OR ls_element-screen = lv_active_tab_screen ).
+* Sibling blocks share a depth, so fieldsets follow the block identity path:
+* keep the common prefix open, close the rest, open the new tail.
+      lt_block_path = selection_block_path(
+        iv_block  = ls_element-block
+        it_blocks = it_blocks ).
+      lv_common_blocks = 0.
+      LOOP AT lt_open_blocks INTO lv_open_block.
+        READ TABLE lt_block_path WITH KEY table_line = lv_open_block TRANSPORTING NO FIELDS.
+        IF sy-subrc <> 0 OR sy-tabix <> lv_common_blocks + 1.
+          EXIT.
+        ENDIF.
+        lv_common_blocks = lv_common_blocks + 1.
+      ENDLOOP.
+      lv_block_change = xsdbool( lv_common_blocks < lines( lt_open_blocks )
+                              OR lv_common_blocks < lines( lt_block_path ) ).
       lv_body = lv_body && COND string(
-        WHEN lv_open_line > 0 AND ls_element-line <> lv_open_line THEN `</div>`
+        WHEN lv_open_line > 0 AND ( ls_element-line <> lv_open_line OR lv_block_change = abap_true ) THEN `</div>`
         ELSE `` ).
       lv_open_line = COND i(
-        WHEN lv_open_line > 0 AND ls_element-line <> lv_open_line THEN 0
+        WHEN lv_open_line > 0 AND ( ls_element-line <> lv_open_line OR lv_block_change = abap_true ) THEN 0
         ELSE lv_open_line ).
-      WHILE lv_open_block < ls_element-block_depth.
-        lv_open_block = lv_open_block + 1.
-        READ TABLE lt_visible_blocks INTO DATA(ls_block) INDEX lv_open_block.
-        IF sy-subrc = 0.
-          lv_title = ls_block-block-title.
-        ELSE.
-          CLEAR lv_title.
-        ENDIF.
-        lv_body = lv_body && |<fieldset><legend>{ zcl_gg_host_html=>escape_text( lv_title ) }</legend>|.
-      ENDWHILE.
-      WHILE lv_open_block > ls_element-block_depth.
+      WHILE lines( lt_open_blocks ) > lv_common_blocks.
         lv_body = lv_body && |</fieldset>|.
-        lv_open_block = lv_open_block - 1.
+        DELETE lt_open_blocks INDEX lines( lt_open_blocks ).
+      ENDWHILE.
+      WHILE lines( lt_open_blocks ) < lines( lt_block_path ).
+        lv_open_block = lt_block_path[ lines( lt_open_blocks ) + 1 ].
+        lv_title = it_blocks[ lv_open_block ]-block-title.
+        lv_body = lv_body && |<fieldset><legend>{ zcl_gg_host_html=>escape_text( lv_title ) }</legend>|.
+        APPEND lv_open_block TO lt_open_blocks.
       ENDWHILE.
       lv_body = lv_body && COND string(
         WHEN ls_element-line > 0 AND lv_open_line = 0
@@ -772,16 +793,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       ENDCASE.
     ENDLOOP.
     lv_body = lv_body && COND string( WHEN lv_open_line > 0 THEN `</div>` ELSE `` ).
-    WHILE lv_open_block > 0.
+    DO lines( lt_open_blocks ) TIMES.
       lv_body = lv_body && |</fieldset>|.
-      lv_open_block = lv_open_block - 1.
-    ENDWHILE.
-* Execute carries the ONLI function code. It skips browser validation, as the
-* program-declared pushbuttons above already do, so an empty obligatory field
-* is rejected by the program's own selection-screen validation with a message
-* rather than by a native browser bubble.
+    ENDDO.
+* Execute (ONLI, F8) sits in the workbench icon bar and submits this form by
+* its id, see zcl_gg_workbench_utility=>render_iconbar. It skips browser
+* validation, as the program-declared pushbuttons above already do, so an
+* empty obligatory field is rejected by the program's own selection-screen
+* validation with a message rather than by a native browser bubble.
     lv_body = lv_body && render_dynamic_selection( is_selection = is_dynamic_selection ).
-    lv_body = lv_body && |<div class="gg-action-row gg-field gg-actions" role="group" aria-label="Selection actions"><button type="submit" formnovalidate name="gg_ucomm" value="ONLI" data-key="F8" aria-keyshortcuts="F8">Execute</button><button type="submit" formnovalidate name="gg_action" value="EXIT" aria-keyshortcuts="Escape">Cancel</button></div></form></section></section>|.
+    lv_body = lv_body && |</form></section></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
@@ -1498,11 +1519,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD visible_selection_blocks.
-    LOOP AT it_blocks INTO DATA(ls_block)
-        WHERE screen = iv_screen.
-      APPEND ls_block TO rt_blocks.
-    ENDLOOP.
+  METHOD selection_block_path.
+* Outermost first; element block indexes point into it_blocks, parents too.
+    DATA lv_block TYPE i.
+
+    lv_block = iv_block.
+    WHILE lv_block > 0 AND lv_block <= lines( it_blocks ).
+      INSERT lv_block INTO rt_path INDEX 1.
+      lv_block = it_blocks[ lv_block ]-parent.
+    ENDWHILE.
   ENDMETHOD.
 
   METHOD selection_help_section.

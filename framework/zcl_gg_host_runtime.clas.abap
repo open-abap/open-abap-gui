@@ -768,11 +768,15 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       ENDTRY.
     ENDIF.
 * Classes named any other way, such as a converted report whose default class
-* name was taken, declare their program in the transaction metadata. This is
-* the last resort so an existing name-derived match keeps precedence.
+* name was taken, declare their program in the transaction metadata, or in the
+* program metadata when no transaction starts them. This is the last resort so
+* an existing name-derived match keeps precedence.
     IF ro_report IS NOT BOUND.
       TRY.
           lv_class_name = zcl_gg_transaction_registry=>lookup_program( iv_program )-class_name.
+          IF lv_class_name IS INITIAL.
+            lv_class_name = zcl_gg_program_registry=>lookup( CONV #( iv_program ) )-class_name.
+          ENDIF.
           IF lv_class_name IS NOT INITIAL.
             CREATE OBJECT ro_report TYPE (lv_class_name).
           ENDIF.

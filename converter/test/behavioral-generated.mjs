@@ -275,6 +275,38 @@ async function prepare() {
   }
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_DWRITE_EXPR.clas.abap"), dynamicWriteExpressionResult.classSource, "utf8");
 
+  // LOOP AT SCREEN in a FORM performed from the PBO event changes the states
+  // the host displays, as SCREEN does for any procedure called during PBO.
+  const screenFormResult = await convertProgram({
+    source: await fs.readFile(path.join(repository, "converter", "test", "fixtures", "regression_screen_form.prog.abap.txt"), "utf8"),
+    filename: "zscreen_form.prog.abap",
+    className: "ZCL_BV_SFORM",
+    transactionCode: "ZBVSFORM",
+  });
+  if (!screenFormResult.classSource || !screenFormResult.supported) {
+    throw new Error("converter produced no supported screen FORM class");
+  }
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_SFORM.clas.abap"), screenFormResult.classSource, "utf8");
+
+  const dynproScreenFormResult = await convertProgram({
+    source: await fs.readFile(path.join(repository, "converter", "test", "fixtures", "regression_screen_form_dynpro.prog.abap.txt"), "utf8"),
+    filename: "zscreen_form_dynpro.prog.abap",
+    className: "ZCL_BV_DFORM",
+    transactionCode: "ZBVDFORM",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Form", elements: [
+        { kind: "output", name: "GV_COUNTER" },
+        { kind: "input", name: "GV_SECRET", attributes: { group1: "OFF" } },
+      ] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [{ name: "USER_COMMAND_0100" }] }],
+    },
+  });
+  if (!dynproScreenFormResult.classSource || !dynproScreenFormResult.supported) {
+    throw new Error("converter produced no supported dynpro screen FORM class");
+  }
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_DFORM.clas.abap"), dynproScreenFormResult.classSource, "utf8");
+
   await fs.writeFile(configPath, JSON.stringify({
     input_folder: ["src", "framework", "examples", "converter/behavior-validation/input"],
     input_filter: [],
@@ -489,6 +521,24 @@ try {
     rs_result: 1,
   }));
   assert.deepEqual(dynamicWriteExpression.lines, ["expression"]);
+
+  // The FORM makes P_OTHER obligatory, so the run needs a value for it.
+  const screenForm = normalize(await zcl_gg_host.run({
+    io_report: new abap.Classes.ZCL_BV_SFORM(),
+    rs_result: 1,
+    it_input: inputValues([["P_OTHER", "X"]], zcl_gg_host),
+  }));
+  const screenState = (states, name) => states.find((item) => item.name.trim() === name);
+  assert.equal(screenState(screenForm.states, "P_TEXT").visible, abap.builtin.abap_false.get());
+  assert.equal(screenState(screenForm.states, "P_OTHER").visible, abap.builtin.abap_true.get());
+  assert.equal(screenState(screenForm.states, "P_OTHER").obligatory, abap.builtin.abap_true.get());
+  assert.deepEqual(screenForm.lines, ["done"]);
+
+  const dynproScreenForm = plain(await zcl_gg_host_dynpro.run({
+    io_program: new abap.Classes.ZCL_BV_DFORM(),
+  }));
+  assert.equal(screenState(dynproScreenForm.states, "GV_SECRET").visible, abap.builtin.abap_false.get());
+  assert.equal(screenState(dynproScreenForm.states, "GV_COUNTER").visible, abap.builtin.abap_true.get());
 
   const dbSystem = abap.builtin.sy.get().dbsys;
   const previousDbSystem = dbSystem.get();

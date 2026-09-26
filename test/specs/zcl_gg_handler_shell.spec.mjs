@@ -11,7 +11,14 @@ for (const route of [
     await expect(page.getByRole("menubar", {name: "Main menu"})).toBeVisible();
     await expect(page.locator(".wb-commandbar")).toBeVisible();
     await expect(page.locator(".wb-appbar")).toBeVisible();
-    await expect(page.locator(".wb-toolbar")).toHaveCount(0);
+    // A selection screen's icon bar holds only Execute; the dynpro declares none.
+    const iconBar = page.locator(".wb-toolbar");
+    if (route === "/ZCL_GG_INTEGRATION_HTML_REPORT") {
+      await expect(iconBar.getByRole("button")).toHaveCount(1);
+      await expect(iconBar.getByRole("button", {name: "Execute"})).toHaveAttribute("aria-keyshortcuts", "F8");
+    } else {
+      await expect(iconBar).toHaveCount(0);
+    }
     await expect(page.locator(".wb-statusbar")).toBeVisible();
     const expectedTitle = {
       "/ZCL_GG_INTEGRATION_HTML_REPORT": "Selection",
@@ -33,7 +40,7 @@ for (const route of [
 
     await back.click();
     await page.waitForLoadState("load");
-    await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
+    await expect(page.getByRole("navigation", {name: "Transactions"})).toBeVisible();
     await expect(page.locator("[data-page-kind]")).toHaveCount(0);
   });
 }

@@ -96,8 +96,17 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Add to favorites"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Edit"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Refresh"})).toHaveCount(0);
-  await expect(page.getByRole("navigation", {name: "Applications"})).toBeVisible();
-  await expect(page.locator(".wb-app-list > li")).toHaveCount(165);
+  await expect(page.getByRole("navigation", {name: "Applications"})).toHaveCount(0);
+  const transactions = page.getByRole("navigation", {name: "Transactions"});
+  await expect(transactions).toBeVisible();
+  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(167);
+  const reports = page.getByRole("navigation", {name: "Reports"});
+  await expect(reports).toBeVisible();
+  await expect(reports.locator(".wb-app-list > li")).toHaveCount(1);
+  await expect(reports.getByRole("link", {name: "ZGG_INT_PROGRAM"})).toHaveAttribute(
+    "href",
+    "/program?name=ZGG_INT_PROGRAM",
+  );
   await expect(page.locator(".wb-app-list details")).toHaveCount(0);
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
@@ -164,8 +173,65 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_159"})).toContainText(
     "Multi-month calendar",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(158);
+  await expect(page.getByRole("link", {name: "ZGG_EX_160"})).toContainText(
+    "Sibling selection-screen blocks",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_161"})).toContainText(
+    "Stacked checkbox parameters",
+  );
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(160);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
+});
+
+test("starts a report without a transaction from the Reports section", async ({page, host}) => {
+  await page.goto(host.baseUrl);
+  await page.getByRole("navigation", {name: "Reports"}).getByRole("link", {name: "ZGG_INT_PROGRAM"}).click();
+  await page.waitForLoadState("load");
+
+  await expect(page.locator(".wb-app-title")).toHaveText("ZGG_INT_PROGRAM");
+  await expect(page.getByText("started without a transaction")).toBeVisible();
+
+  const response = await page.goto(`${host.baseUrl}/program?name=ZGG_INT_UNKNOWN`);
+  expect(response?.status()).toBe(200);
+  await expect(page.locator(".wb-status-feedback")).toHaveText("Unknown program: ZGG_INT_UNKNOWN");
+});
+
+test("the splitter resizes the application list by pointer and keyboard", async ({page, host}) => {
+  await page.setViewportSize({width: 1280, height: 720});
+  await page.goto(`${host.baseUrl}/`);
+
+  const panel = page.locator(".wb-app-panel");
+  const splitter = page.getByRole("separator", {name: "Resize application list"});
+  await expect(splitter).toHaveAttribute("aria-orientation", "vertical");
+  await expect(splitter).toHaveAttribute("aria-valuenow", "305");
+  const initial = (await panel.boundingBox()).width;
+  expect(initial).toBeCloseTo(305, 0);
+
+  const box = await splitter.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, {steps: 5});
+  await page.mouse.up();
+  expect((await panel.boundingBox()).width).toBeCloseTo(initial + 120, -1);
+  const dragged = Number(await splitter.getAttribute("aria-valuenow"));
+  expect(dragged).toBeCloseTo(initial + 120, -1);
+
+  await splitter.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(splitter).toHaveAttribute("aria-valuenow", String(dragged - 16));
+  await page.keyboard.press("Home");
+  await expect(splitter).toHaveAttribute("aria-valuenow", "160");
+  expect((await panel.boundingBox()).width).toBeCloseTo(160, 0);
+
+  // The list never grows past the point where the content area stays usable.
+  await page.keyboard.press("End");
+  const workspace = await page.locator(".wb-workspace").boundingBox();
+  expect((await panel.boundingBox()).width).toBeLessThanOrEqual(workspace.width - 240);
+
+  await page.keyboard.press("Home");
+  await page.reload();
+  await expect(splitter).toHaveAttribute("aria-valuenow", "160");
+  expect((await panel.boundingBox()).width).toBeCloseTo(160, 0);
 });
 
 test("index keeps the workbench chrome visible in a short viewport", async ({page, host}) => {

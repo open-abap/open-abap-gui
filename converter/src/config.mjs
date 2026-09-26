@@ -406,6 +406,29 @@ export async function discoverPrograms(config) {
   return programs;
 }
 
+const INCLUDE_SOURCE_SUFFIXES = [".prog.abap", ".incl.abap"];
+
+/**
+ * The folders an INCLUDE is searched in: every folder holding program sources
+ * in the converter input, the transpiler input and the libraries, subfolders
+ * included, as abapGit serialises each subpackage into a folder of its own.
+ * The converter input comes first, then the rest, each in a deterministic order.
+ */
+export async function discoverIncludeFolders(config) {
+  const folders = [];
+  const visited = new Set();
+  for (const folder of [...(config.converterInputFolders ?? []), ...(config.inputFolders ?? []), ...(config.libraryFolders ?? [])]) {
+    const found = new Map();
+    await collectProgramFiles(folder, config.generatedFolder, found, visited, INCLUDE_SOURCE_SUFFIXES);
+    const directories = [...new Set([...found.keys()].map((filename) => path.dirname(filename)))]
+      .sort((left, right) => left.localeCompare(right));
+    for (const directory of [path.resolve(folder), ...directories]) {
+      if (!folders.includes(directory)) folders.push(directory);
+    }
+  }
+  return folders;
+}
+
 const GLOBAL_OBJECT_SUFFIXES = [".clas.abap", ".intf.abap"];
 
 /**
@@ -434,6 +457,25 @@ export async function discoverGlobalObjects(config, skipFolders = []) {
   return objects;
 }
 
+const DICTIONARY_SUFFIXES = [".dtel.xml", ".doma.xml", ".tabl.xml", ".ttyp.xml"];
+
+/**
+ * The abapGit-serialized dictionary objects in the converter input, the
+ * transpiler input and the libraries, in that order. The converter reads one
+ * only when a report refers to it, to resolve e.g. the built-in type behind a
+ * data element a PARAMETERS statement names.
+ */
+export async function discoverDictionaryFiles(config) {
+  const found = new Map();
+  const visited = new Set();
+  for (const folder of [...(config.converterInputFolders ?? []), ...(config.inputFolders ?? []), ...(config.libraryFolders ?? [])]) {
+    const files = new Map();
+    await collectProgramFiles(folder, config.generatedFolder, files, visited, DICTIONARY_SUFFIXES);
+    for (const filename of [...files.keys()].sort((left, right) => left.localeCompare(right))) found.set(filename, true);
+  }
+  return [...found.keys()];
+}
+
 function resolveOverride(value, programName) {
   return typeof value === "function" ? value(programName) : value;
 }
@@ -452,6 +494,7 @@ export function conversionPlan(config, program, overrides = {}) {
     partialStrategy,
     ddicTypes,
     transactions,
+    includeFolders,
     ...rest
   } = overrides;
   // A transaction object that starts this program names its transaction code
@@ -471,8 +514,9 @@ export function conversionPlan(config, program, overrides = {}) {
     dynproMetadataFilename: program.filename.replace(/\.prog\.abap$/i, ".prog.xml"),
     dynproScreenDirectory: path.dirname(program.filename),
     // A report's includes sit next to it or among the sources the transpiler
-    // compiles, so the converter input is searched first, then the rest.
-    includePaths: [...new Set([
+    // compiles, so the converter input is searched first, then the rest. The
+    // batch passes every subfolder too, from discoverIncludeFolders.
+    includePaths: includeFolders ?? [...new Set([
       ...(config.converterInputFolders ?? []),
       ...(config.inputFolders ?? []),
       ...(config.libraryFolders ?? []),

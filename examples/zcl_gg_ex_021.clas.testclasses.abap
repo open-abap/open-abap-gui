@@ -19,9 +19,8 @@ CLASS ltcl_ex_21 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-elements[ kind = 'ULINE' ]-length
       exp = 40 ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-elements[ kind = 'PARAMETER' ]-line
-      exp = 1 ).
+*   Outside BEGIN OF LINE the parameter after the SKIP is a line of its own.
+    cl_abap_unit_assert=>assert_initial( ls_result-elements[ kind = 'PARAMETER' ]-line ).
   ENDMETHOD.
 
 ENDCLASS.
