@@ -268,6 +268,8 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dialog-body\{flex:1;min-height:0;overflow:hidden;padding:4px;background:#fff;box-sizing:border-box;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-dialog-body>.gg-control\{position:relative!important;left:0!important;top:0!important;width:100%!important;height:100%!important;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-message-region,.gg-instruction-region\{display:flex;flex-direction:column;gap:4px;\}|.
+* Empty regions stay in the markup but take no space or flex gap.
+    rv_html = rv_html && |.gg-message-region:empty,.gg-status-region:has(>.gg-selection-status:empty)\{display:none;\}|.
     rv_html = rv_html && |.gg-action-row\{position:relative;z-index:30;display:flex;align-items:center;gap:8px;min-height:28px;padding:4px 0;border-top:1px solid var(--gg-border);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-state-focused:focus,.gg-state-focused:focus-visible\{outline:2px solid #2668a3;outline-offset:2px;\}|.
     rv_html = rv_html && |.gg-state-selected,[aria-selected=true],[aria-current=true]\{background:#c7dced;color:#102f4d;\}|.
@@ -359,6 +361,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection\{max-width:100%;padding:0 0 16px;color:#123b64;\}|.
     rv_html = rv_html && |.gg-selection>form\{display:flex;flex-direction:column;gap:2px;\}|.
     rv_html = rv_html && |.gg-selection fieldset\{min-width:0;margin:.75rem 0;padding:.75rem;border:1px solid var(--gg-border-dark);border-radius:2px;background:linear-gradient(var(--gg-panel),var(--gg-work-area));box-shadow:0 1px 4px rgba(34,67,102,.12);\}|.
+    rv_html = rv_html && |.gg-selection>form>input[type=hidden]+fieldset\{margin-top:0;\}|.
     rv_html = rv_html && |.gg-selection fieldset>legend\{padding:0 7px;color:#123b64;font-size:13px;font-weight:600;\}|.
     rv_html = rv_html && |.gg-selection-line\{display:flex;align-items:center;gap:10px;min-height:28px;padding:1px 0;\}|.
     rv_html = rv_html && |.gg-selection-line .gg-field\{display:flex;align-items:center;min-height:26px;width:auto;margin:0;padding:0;\}|.
