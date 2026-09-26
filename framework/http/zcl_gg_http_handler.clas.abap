@@ -986,6 +986,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     IF mv_environment_ready = abap_true.
       RETURN.
     ENDIF.
+* An environment may install an OSQL test double, which moves every table,
+* REPOSRC included, into the double schema. Class discovery reads REPOSRC, so
+* the catalogs are built first; a catalog error surfaces where it is used.
+    TRY.
+        zcl_gg_transaction_registry=>get_all( ).
+        zcl_gg_program_registry=>get_all( ).
+      CATCH cx_root ##NO_HANDLER.
+    ENDTRY.
     lt_names = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_HOST_ENVIRONMENT_V1` ).
     LOOP AT lt_names INTO lv_class_name.
       CREATE OBJECT lo_object TYPE (lv_class_name).
