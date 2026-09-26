@@ -19,8 +19,17 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_page_id      TYPE string OPTIONAL
         is_status       TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
         iv_content_form TYPE string OPTIONAL
+        iv_execute_form TYPE string OPTIONAL
       RETURNING
         VALUE(rv_html)  TYPE string.
+
+* A selection screen's Execute (ONLI, F8), as the F8 icon. It submits the
+* selection form by its id, so the entered values travel with it.
+    CLASS-METHODS render_execute_button
+      IMPORTING
+        iv_form        TYPE string
+      RETURNING
+        VALUE(rv_html) TYPE string.
 
 * A message in the status bar carries its ABAP type: E, A and X are errors, W a
 * warning, S a success and I an information. Each type owns a colour, and the
@@ -71,6 +80,7 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_runtime      TYPE abap_bool
         iv_content_form TYPE string
+        iv_execute_form TYPE string
         it_entries      TYPE zif_gg_session_types_v1=>ty_icon_bar
         is_status       TYPE zif_gg_session_types_v1=>ty_gui_status
       RETURNING
@@ -146,6 +156,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-toolbar-separator{height:24px;border-left:1px solid #b8c9dc;margin:0 4px}' &&
       '.wb-toolbar-button{height:26px;min-width:32px;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--gg-border);border-radius:2px;background:linear-gradient(#fff,#e8f0f8);color:#15589a;font-weight:600;cursor:pointer}' &&
       '.wb-toolbar-button:hover,.wb-toolbar-button:focus{background:#fff;border-color:#5e8fbd;outline:0}' &&
+      '.wb-toolbar-button--execute{color:#3b9348}' &&
       'button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible{outline:2px solid #2668a3;outline-offset:2px}' &&
       '.wb-runtime-content{flex:1 1 auto;min-height:0;margin:8px 16px 0;padding:14px 18px;box-sizing:border-box;overflow:auto;background:var(--gg-work-surface);border:1px solid var(--gg-border-dark);border-radius:2px;box-shadow:0 1px 4px rgba(34,67,102,.12)}' &&
       '.wb-runtime-content--dynpro{margin:6px 16px 0;padding:0;background:var(--gg-work-area);border:1px solid var(--gg-border-dark);border-radius:2px;box-shadow:0 1px 4px rgba(34,67,102,.18)}' &&
@@ -208,6 +219,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       render_iconbar(
         iv_runtime      = iv_runtime
         iv_content_form = lv_content_form
+        iv_execute_form = iv_execute_form
         it_entries      = is_status-icon_bar
         is_status       = is_status ) &&
       render_pf_keys(
@@ -263,6 +275,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = '<span hidden data-pf-map="' && lv_map && '"></span><script>(function(){var node=document.querySelector("[data-pf-map]");if(!node){return;}var map={};(node.getAttribute("data-pf-map")||"").split(";").forEach(function(item){var pair=item.split(":");if(pair.length===2){map[pair[0]]=pair[1];}});document.addEventListener("keydown",function(event){var match=/^F([1-9]|1[0-9]|2[0-4])$/.exec(event.key||"");if(!match){return;}var key=String(Number(match[1]));var ucomm=map[key];if(!ucomm){return;}var field=document.activeElement;if(key==="1"&&field&&field.closest&&field.closest(".gg-dynpro-field,.gg-field")){return;}var form=document.getElementById("gg-dynpro-form");if(!form){return;}var action=form.querySelector("input[name=action]");if(action){action.value="PF";}var keyField=document["cr"+"eateElement"]("input");keyField.type="hidden";keyField.name="pf_key";keyField.value=key;form.appendChild(keyField);var ucommField=document["cr"+"eateElement"]("input");ucommField.type="hidden";ucommField.name="ucomm";ucommField.value=ucomm;form.appendChild(ucommField);event.preventDefault();form.submit();},true);}());</script>'.
   ENDMETHOD.
 
+  METHOD render_execute_button.
+    rv_html = |<button class="wb-toolbar-button wb-toolbar-button--execute" type="submit" form="{ zcl_gg_host_html=>escape_attribute( iv_form ) }" formnovalidate name="gg_ucomm" value="ONLI" data-key="F8" aria-keyshortcuts="F8" aria-label="Execute" title="Execute (F8)" data-ucomm="ONLI">| &&
+      zcl_gg_host_icons=>icon( iv_name = 'execute' ) &&
+      '</button>'.
+  ENDMETHOD.
+
   METHOD render_iconbar.
     DATA lv_buttons  TYPE string.
     DATA lv_label    TYPE string.
@@ -271,8 +289,13 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     DATA lv_state    TYPE string.
     DATA lv_enabled  TYPE abap_bool.
 
-    IF it_entries IS INITIAL.
+    IF it_entries IS INITIAL AND iv_execute_form IS INITIAL.
       RETURN.
+    ENDIF.
+
+* A selection screen's Execute leads the icon bar, as in SAP GUI.
+    IF iv_execute_form IS NOT INITIAL.
+      lv_buttons = render_execute_button( iv_execute_form ).
     ENDIF.
 
     LOOP AT it_entries INTO DATA(ls_icon).

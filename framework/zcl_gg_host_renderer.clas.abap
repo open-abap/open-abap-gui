@@ -344,7 +344,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF is_navigation-modal = abap_true.
       DATA(lv_modal) = |<div class="gg-modal-backdrop" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-target="{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }"><section class="gg-modal-panel" role="dialog" aria-modal="true" aria-label="Selection screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }"><header class="gg-modal-header"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span><span class="gg-modal-kind">{ zcl_gg_host_html=>escape_text( is_navigation-kind ) }</span>{ COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>| ELSE `` ) }</header>|.
       REPLACE FIRST OCCURRENCE OF '<main id="gg-main-content" aria-labelledby="wb-page-title">' IN rv_html WITH |<main id="gg-main-content" aria-labelledby="wb-page-title">{ lv_modal }|.
-      REPLACE FIRST OCCURRENCE OF '</main>' IN rv_html WITH '</section></div></main>'.
+* The backdrop covers the icon bar, so a selection screen shown as a popup
+* carries its Execute in the popup instead, as a SAP GUI popup does.
+      DATA(lv_execute) = zcl_gg_workbench_utility=>render_execute_button( `gg-host-form` ).
+      IF rv_html CS lv_execute.
+        REPLACE FIRST OCCURRENCE OF lv_execute IN rv_html WITH ``.
+        REPLACE FIRST OCCURRENCE OF '<div class="wb-toolbar wb-app-toolbar" role="toolbar" aria-label="Application GUI status" data-toolbar-scope="application-status"></div>' IN rv_html WITH ``.
+        REPLACE FIRST OCCURRENCE OF '</main>' IN rv_html WITH |<footer class="gg-modal-footer">{ lv_execute }</footer></section></div></main>|.
+      ELSE.
+        REPLACE FIRST OCCURRENCE OF '</main>' IN rv_html WITH '</section></div></main>'.
+      ENDIF.
     ELSE.
       DATA(lv_navigation) = |<nav class="gg-navigation" aria-label="Host navigation" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-modal="false"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span>{ COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>| ELSE `` ) }</nav>|.
       REPLACE FIRST OCCURRENCE OF '<main id="gg-main-content" aria-labelledby="wb-page-title">' IN rv_html WITH |<main id="gg-main-content" aria-labelledby="wb-page-title">{ lv_navigation }|.
@@ -506,7 +515,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page"><header class="gg-status-region" aria-label="Selection status"><p class="gg-selection-status"{ COND string( WHEN is_status-status IS INITIAL THEN `` ELSE ` role="status"` ) }>{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section>|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
-    lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
+    lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
 
     IF it_tabs IS NOT INITIAL.
       lv_body = lv_body && |<nav role="tablist" aria-label="Selection tabs">|.
@@ -787,12 +796,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DO lines( lt_open_blocks ) TIMES.
       lv_body = lv_body && |</fieldset>|.
     ENDDO.
-* Execute carries the ONLI function code. It skips browser validation, as the
-* program-declared pushbuttons above already do, so an empty obligatory field
-* is rejected by the program's own selection-screen validation with a message
-* rather than by a native browser bubble.
+* Execute (ONLI, F8) sits in the workbench icon bar and submits this form by
+* its id, see zcl_gg_workbench_utility=>render_iconbar. It skips browser
+* validation, as the program-declared pushbuttons above already do, so an
+* empty obligatory field is rejected by the program's own selection-screen
+* validation with a message rather than by a native browser bubble.
     lv_body = lv_body && render_dynamic_selection( is_selection = is_dynamic_selection ).
-    lv_body = lv_body && |<div class="gg-action-row gg-field gg-actions" role="group" aria-label="Selection actions"><button type="submit" formnovalidate name="gg_ucomm" value="ONLI" data-key="F8" aria-keyshortcuts="F8">Execute</button><button type="submit" formnovalidate name="gg_action" value="EXIT" aria-keyshortcuts="Escape">Cancel</button></div></form></section></section>|.
+    lv_body = lv_body && |</form></section></section>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id

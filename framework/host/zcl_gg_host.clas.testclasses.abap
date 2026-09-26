@@ -378,7 +378,8 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-page_kind
       exp = zif_gg_host_html_v1=>page_selection ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<form method="post" action="/dispatch">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<form id="gg-host-form" method="post" action="/dispatch">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-toolbar-scope="application-status"><button class="wb-toolbar-button wb-toolbar-button--execute" type="submit" form="gg-host-form"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'name="P_CARR"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'required' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'gg-state-required' ) ).

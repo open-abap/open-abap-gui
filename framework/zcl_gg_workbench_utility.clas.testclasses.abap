@@ -61,6 +61,14 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '#wb-icon-help-circle' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'not-a-real-icon' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<svg on' ) ).
+
+    DATA(lv_selection_html) = zcl_gg_workbench_utility=>render_top(
+      iv_runtime      = abap_true
+      iv_execute_form = `gg-host-form` ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_selection_html CS
+      'form="gg-host-form" formnovalidate name="gg_ucomm" value="ONLI" data-key="F8"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_selection_html CS '#wb-icon-player-play' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="ONLI"' ) ).
   ENDMETHOD.
 
   METHOD routes_back_when_active.
