@@ -233,7 +233,11 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     ls_element-as_subscreen = iv_as_subscreen.
     ls_element-position = iv_position.
     ls_element-length = iv_length.
-    ls_element-line = mv_line.
+* Only elements between BEGIN OF LINE and END OF LINE share a line; any other
+* element is a line of its own, even after a SKIP or an earlier line block.
+    IF mv_in_line = abap_true.
+      ls_element-line = mv_line.
+    ENDIF.
     ls_element-block_depth = mv_block_depth.
     READ TABLE mt_block_stack INTO ls_element-block INDEX lines( mt_block_stack ).
     ls_element-visible_length = iv_visible_length.
