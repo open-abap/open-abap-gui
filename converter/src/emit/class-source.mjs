@@ -539,6 +539,17 @@ function staticSelectionText(ir, token) {
   return values.get(key) ?? token;
 }
 
+// A text-pool entry of "." marks a selection text with dictionary reference:
+// SAP shows the field label of the data element the field is typed with. The
+// label is read at runtime from the member holding the field's value.
+function selectionText(ir, item) {
+  const member = ir.statePlan?.selectionState?.[item.name?.toUpperCase()]?.member;
+  if (member && /^(?:D\s+)?\.$/.test(String(item.text ?? "").trim())) {
+    return `io_builder->get_ddic_text( ig_field = ${member} iv_name = '${item.name}' )`;
+  }
+  return literal(item.text ?? item.name);
+}
+
 function hasSelectionValueRequest(ir, name) {
   const target = String(name ?? "").toUpperCase();
   if (!target) return false;
@@ -584,7 +595,7 @@ function selectionBuilder(ir) {
         if (/AS\s+CHECKBOX/i.test(additions)) {
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
           const modif = /MODIF\s+ID\s+(\w+)/i.exec(additions)?.[1];
-          const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`];
+          const fields = [`name = '${item.name}'`, `text = ${selectionText(ir, item)}`];
           if (/DEFAULT\s+(?:['"]?X|ABAP_TRUE)\b/i.test(additions)) fields.push("default = abap_true");
           if (modif) fields.push(`modif_id = '${modif.toUpperCase()}'`);
           if (ucomm) fields.push(`ucomm = '${ucomm.toUpperCase()}'`);
@@ -593,9 +604,9 @@ function selectionBuilder(ir) {
           const group = /RADIOBUTTON\s+GROUP\s+(\w+)/i.exec(additions)[1].toUpperCase();
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
           const defaultValue = /DEFAULT\s+(?:['"]?X|ABAP_TRUE)\b/i.test(additions) ? " default = abap_true" : "";
-          lines.push(`io_builder->add_radiobutton( VALUE #( name = '${item.name}' text = ${literal(item.text ?? item.name)} radio_group = '${group}'${defaultValue}${ucomm ? ` ucomm = '${ucomm.toUpperCase()}'` : ""} ) ).`);
+          lines.push(`io_builder->add_radiobutton( VALUE #( name = '${item.name}' text = ${selectionText(ir, item)} radio_group = '${group}'${defaultValue}${ucomm ? ` ucomm = '${ucomm.toUpperCase()}'` : ""} ) ).`);
         } else if (/AS\s+LISTBOX/i.test(additions)) {
-          const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`, type];
+          const fields = [`name = '${item.name}'`, `text = ${selectionText(ir, item)}`, type];
           const visibleLength = /VISIBLE\s+LENGTH\s+(\d+)/i.exec(additions)?.[1];
           if (visibleLength) fields[2] = type.replace(/\s\)$/, ` visible_length = ${visibleLength} )`);
           const defaultValue = selectionDefault(item);
@@ -605,7 +616,7 @@ function selectionBuilder(ir) {
           if (item.fixedValues?.length) fields.push(`fixed_values = VALUE #( ${item.fixedValues.map((fixed) => `( key = ${literal(fixed.key ?? fixed.value ?? "")} text = ${literal(fixed.text ?? fixed.label ?? fixed.key ?? "")} )`).join(" ")} )`);
           lines.push(`io_builder->add_listbox( VALUE #( ${fields.join(" ")} ) ).`);
         } else {
-          const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`, type];
+          const fields = [`name = '${item.name}'`, `text = ${selectionText(ir, item)}`, type];
           const defaultValue = selectionDefault(item);
           if (defaultValue) fields.push(`default = ${defaultValue}`);
           const modif = /MODIF\s+ID\s+(\w+)/i.exec(additions)?.[1];
@@ -621,7 +632,7 @@ function selectionBuilder(ir) {
           lines.push(`io_builder->add_parameter( VALUE #( ${fields.join(" ")} ) ).`);
         }
       } else if (item.kind === "select-option") {
-        const fields = [`name = '${item.name}'`, `text = ${literal(item.text ?? item.name)}`, `data_type = ${selectionDataType(item)}`];
+        const fields = [`name = '${item.name}'`, `text = ${selectionText(ir, item)}`, `data_type = ${selectionDataType(item)}`];
         if (/NO[\s-]+EXTENSION/i.test(item.additions)) fields.push("no_extension = abap_true");
         if (/NO[\s-]+INTERVALS/i.test(item.additions)) fields.push("no_intervals = abap_true");
         if (hasSelectionValueRequest(ir, item.name)) fields.push("value_help = abap_true");

@@ -132,7 +132,10 @@ or by deterministic filesystem candidates.
 
 Selection texts can be supplied as a `Map`, object, or simple text-pool string
 through `textPool`; unresolved `TEXT-*` keys remain deterministic and produce a
-`GGCONV-W101` warning. Include content participates in the source hash.
+`GGCONV-W101` warning. A parameter or select-option whose selection text is
+`.`, the dictionary reference, gets its label at runtime from
+`io_builder->get_ddic_text( )`: the field label of the data element its member
+is typed with. Include content participates in the source hash.
 
 Every message class a `MESSAGE` statement names is assumed to exist in the
 target system; the message is raised through the session at runtime and the

@@ -75,4 +75,14 @@ INTERFACE zif_gg_selection_screen_builder_v1 PUBLIC.
 
   METHODS end_screen.
 
+* Selection text of a parameter or select-option whose text-pool entry is
+* the dictionary reference ".": the field label of the data element the
+* field is typed with, read at runtime. The name is the fallback text.
+  METHODS get_ddic_text
+    IMPORTING
+      ig_field       TYPE any
+      iv_name        TYPE zif_gg_selection_screen_types=>ty_name
+    RETURNING
+      VALUE(rv_text) TYPE string.
+
 ENDINTERFACE.
