@@ -644,7 +644,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
           lv_state_class = zcl_gg_host_html=>state_class(
-            iv_selected = xsdbool( ls_value-value = 'X' OR ls_value-value = '1' )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
           lv_message_attrs = field_message_attrs(
@@ -659,7 +658,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
           lv_state_class = zcl_gg_host_html=>state_class(
-            iv_selected = xsdbool( ls_value-value = 'X' OR ls_value-value = '1' )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
           lv_body = lv_body && |<div class="gg-field gg-choice { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><input class="{ lv_state_class }" type="radio" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_state-group1 ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
@@ -671,7 +669,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
           lv_state_class = zcl_gg_host_html=>state_class(
-            iv_selected = xsdbool( ls_value-value IS NOT INITIAL )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
           lv_message_attrs = field_message_attrs(
