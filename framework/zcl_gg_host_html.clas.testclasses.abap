@@ -98,7 +98,7 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-selected' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-changed' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-disabled' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-required' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS 'input[required]:is([type=text],[type=password]):invalid{background-image:' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-error' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-warning' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document CS '.gg-state-total' ) ).
