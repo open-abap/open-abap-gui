@@ -526,4 +526,61 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     CLEAR mv_screen.
   ENDMETHOD.
 
+  METHOD zif_gg_selection_screen_builder_v1~get_ddic_text.
+    DATA lo_type    TYPE REF TO cl_abap_typedescr.
+    DATA lo_table   TYPE REF TO cl_abap_tabledescr.
+    DATA lo_struct  TYPE REF TO cl_abap_structdescr.
+    DATA lo_element TYPE REF TO cl_abap_elemdescr.
+    DATA ls_field   TYPE dfies.
+
+    rv_text = iv_name.
+    lo_type = cl_abap_typedescr=>describe_by_data( ig_field ).
+* A select-option is a range table; its dictionary field is the LOW component.
+    IF lo_type->kind = cl_abap_typedescr=>kind_table.
+      lo_table ?= lo_type.
+      lo_type = lo_table->get_table_line_type( ).
+      IF lo_type->kind <> cl_abap_typedescr=>kind_struct.
+        RETURN.
+      ENDIF.
+      lo_struct ?= lo_type.
+      lo_struct->get_component_type(
+        EXPORTING
+          p_name              = 'LOW'
+        RECEIVING
+          p_descr_ref         = DATA(lo_low)
+        EXCEPTIONS
+          component_not_found = 1
+          OTHERS              = 2 ).
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      lo_type = lo_low.
+    ENDIF.
+    IF lo_type->kind <> cl_abap_typedescr=>kind_elem OR lo_type->is_ddic_type( ) = abap_false.
+      RETURN.
+    ENDIF.
+    lo_element ?= lo_type.
+    lo_element->get_ddic_field(
+      RECEIVING
+        p_flddescr   = ls_field
+      EXCEPTIONS
+        not_found    = 1
+        no_ddic_type = 2
+        OTHERS       = 3 ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+* The medium field label, as SAP GUI shows it; the other labels and the
+* short description stand in when the data element leaves it empty.
+    IF ls_field-scrtext_m IS NOT INITIAL.
+      rv_text = ls_field-scrtext_m.
+    ELSEIF ls_field-scrtext_l IS NOT INITIAL.
+      rv_text = ls_field-scrtext_l.
+    ELSEIF ls_field-scrtext_s IS NOT INITIAL.
+      rv_text = ls_field-scrtext_s.
+    ELSEIF ls_field-fieldtext IS NOT INITIAL.
+      rv_text = ls_field-fieldtext.
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.

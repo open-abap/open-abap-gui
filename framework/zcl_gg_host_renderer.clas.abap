@@ -494,6 +494,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_state_class TYPE string.
     DATA lv_type_attrs TYPE string.
     DATA lv_state_attrs TYPE string.
+    DATA ls_optional_state TYPE zif_gg_selection_screen_types=>ty_state.
+    DATA lv_optional_state_attrs TYPE string.
     DATA lv_external_attrs TYPE string.
     DATA lv_high_external_attrs TYPE string.
     DATA lv_focus_attrs TYPE string.
@@ -644,7 +646,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
           lv_state_class = zcl_gg_host_html=>state_class(
-            iv_selected = xsdbool( ls_value-value = 'X' OR ls_value-value = '1' )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
           lv_message_attrs = field_message_attrs(
@@ -659,7 +660,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
           lv_state_class = zcl_gg_host_html=>state_class(
-            iv_selected = xsdbool( ls_value-value = 'X' OR ls_value-value = '1' )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
           lv_body = lv_body && |<div class="gg-field gg-choice { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><input class="{ lv_state_class }" type="radio" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_state-group1 ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
@@ -671,7 +671,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
           READ TABLE it_states INTO ls_state WITH KEY name = ls_element-name.
           lv_state_class = zcl_gg_host_html=>state_class(
-            iv_selected = xsdbool( ls_value-value IS NOT INITIAL )
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
           lv_message_attrs = field_message_attrs(
@@ -724,9 +723,19 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             lv_high_external_attrs = external_value_attrs(
               iv_value = ls_range-high
               iv_type  = ls_element-data_type-typ ).
+* OBLIGATORY asks for the low value of the first row only, so the high field
+* and further rows are not required and carry no required marker.
             lv_state_attrs = state_attrs(
               is_state    = ls_state
               iv_readonly = xsdbool( ls_state-input = abap_false ) ).
+            ls_optional_state = ls_state.
+            CLEAR ls_optional_state-obligatory.
+            lv_optional_state_attrs = state_attrs(
+              is_state    = ls_optional_state
+              iv_readonly = xsdbool( ls_state-input = abap_false ) ).
+            IF sy-index > 1.
+              lv_state_attrs = lv_optional_state_attrs.
+            ENDIF.
             lv_focus_attrs = COND string(
               WHEN lv_initial_focus = abap_false
                 AND ls_state-visible = abap_true
@@ -738,12 +747,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
                                         OR lv_focus_attrs IS NOT INITIAL ).
             lv_body = lv_body && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }">{ COND string( WHEN lv_range_count > 1 THEN |<span class="gg-range-index" aria-hidden="true">{ sy-index }</span>| ELSE `` ) }<input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_low_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-text ) ) } low"{ lv_type_attrs }{ lv_external_attrs }{ lv_state_attrs }{ lv_focus_attrs }>|.
             IF ls_element-no_intervals = abap_false.
-              lv_body = lv_body && |<span class="gg-range-to" aria-hidden="true">to</span><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_high_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-text ) ) } high"{ lv_type_attrs }{ lv_high_external_attrs }{ lv_state_attrs }>|.
+              lv_body = lv_body && |<span class="gg-range-to" aria-hidden="true">to</span><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_high_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-text ) ) } high"{ lv_type_attrs }{ lv_high_external_attrs }{ lv_optional_state_attrs }>|.
             ENDIF.
             lv_body = lv_body && |<input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" value="{ COND string( WHEN ls_range-sign IS INITIAL THEN `I` ELSE ls_range-sign ) }"><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" value="{ COND string( WHEN ls_range-option IS INITIAL THEN `EQ` ELSE ls_range-option ) }">|.
-            IF ls_state-obligatory = abap_true.
-              lv_body = lv_body && |<span class="gg-required-marker" title="Required" aria-label="Required">*</span>|.
-            ENDIF.
             lv_body = lv_body && range_row_actions(
               iv_name         = lv_range_name
               iv_label        = CONV string( ls_element-text )
