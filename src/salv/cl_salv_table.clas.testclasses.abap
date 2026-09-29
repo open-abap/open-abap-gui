@@ -13,6 +13,16 @@ CLASS ltcl_salv_table_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS column_is_column_table FOR TESTING
       RAISING
         cx_salv_not_found.
+    METHODS renders_as_alv_grid FOR TESTING
+      RAISING
+        cx_salv_not_found.
+    METHODS toolbar_follows_functions FOR TESTING
+      RAISING
+        cx_salv_not_found
+        cx_salv_wrong_call.
+    METHODS shows_rows_added_after_factory FOR TESTING.
+    METHODS displays_in_its_container FOR TESTING.
+    METHODS teardown.
 ENDCLASS.
 
 CLASS ltcl_salv_table_support IMPLEMENTATION.
@@ -47,7 +57,7 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'CARRIER' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '12' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;ready&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-salv-row-1' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-row-1' ) ).
     DATA(lv_xml) = lo_salv->to_xml( xml_type = 1 ).
     cl_abap_unit_assert=>assert_not_initial( lv_xml ).
   ENDMETHOD.
@@ -155,7 +165,8 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     DATA(lv_html) = lo_salv->get_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="ID"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="NAME"' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="EXCEPTION"' ) ).
+* The exception column is shown, as traffic lights.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-light="3"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="TECHNICAL"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="CELL_COLORS"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="CELL_TYPES"' ) ).
@@ -178,5 +189,112 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     lo_column ?= lo_salv->get_columns( )->get_column( 'TRAFFIC_LIGHT' ).
     lo_column->set_icon( abap_true ).
     cl_abap_unit_assert=>assert_true( act = lo_column->is_icon( ) ).
+  ENDMETHOD.
+
+  METHOD teardown.
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD renders_as_alv_grid.
+    TYPES: BEGIN OF ty_row,
+             light  TYPE c LENGTH 4,
+             object TYPE c LENGTH 20,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+    DATA lo_column TYPE REF TO cl_salv_column_table.
+
+    lt_rows = VALUE #( ( light = '@08@' object = 'BUS2032' ) ).
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_column ?= lo_salv->get_columns( )->get_column( 'LIGHT' ).
+    lo_column->set_icon( abap_true ).
+    lo_column->set_short_text( 'Status' ).
+    lo_salv->get_columns( )->get_column( 'OBJECT' )->set_long_text( 'Business object' ).
+    lo_salv->get_display_settings( )->set_list_header( 'Event status' ).
+
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-alv"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Event status"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Status</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Business object</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Green light"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>BUS2032<' ) ).
+* Without enabled functions or a selection mode there is no toolbar and no
+* row selector.
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-alv-toolbar' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-alv-row-1' ) ).
+  ENDMETHOD.
+
+  METHOD toolbar_follows_functions.
+    DATA lt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    APPEND 1 TO lt_rows.
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->get_functions( )->set_all( abap_true ).
+    lo_salv->get_functions( )->set_sort_desc( abap_false ).
+    lo_salv->get_functions( )->add_function(
+      name     = 'ZRESET'
+      text     = 'Reset'
+      tooltip  = 'Restore rows'
+      position = 1 ).
+
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="ALV toolbar"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&SORT_DSC"' ) ).
+* SALV output is read-only, so the grid's editing functions never appear.
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&LOCAL&APPEND"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="ZRESET"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Reset</button>' ) ).
+  ENDMETHOD.
+
+  METHOD shows_rows_added_after_factory.
+    TYPES: BEGIN OF ty_row,
+             name TYPE c LENGTH 10,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    APPEND VALUE #( name = 'LATE' ) TO lt_rows.
+
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>LATE<' ) ).
+  ENDMETHOD.
+
+  METHOD displays_in_its_container.
+    DATA lt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    APPEND 42 TO lt_rows.
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'CC_MAIN' ).
+    cl_salv_table=>factory(
+      EXPORTING
+        r_container  = lo_container
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->display( ).
+
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'CC_MAIN' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-control-kind="ALV_GRID"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>42<' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-external' ) ).
   ENDMETHOD.
 ENDCLASS.

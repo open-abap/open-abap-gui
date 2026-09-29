@@ -1,4 +1,6 @@
-CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
+* cl_salv_table is a friend so a SALV table renders through this grid: it
+* supplies its function toolbar and reads the grid markup for fullscreen output.
+CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRIENDS cl_salv_table.
   PUBLIC SECTION.
 
     METHODS constructor
@@ -560,8 +562,13 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base.
     DATA ms_scroll_row_no TYPE lvc_s_roid.
     DATA mv_ready_for_input TYPE i.
     DATA mv_gridtitle TYPE lvc_title.
+    DATA mt_toolbar_excluding TYPE ui_functions.
 
     METHODS render_model
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS render_toolbar
       RETURNING
         VALUE(result) TYPE string.
 
@@ -916,11 +923,16 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    mv_toolbar_visible = abap_true.
+* Without a parent the grid is not a control on any screen; cl_salv_table
+* uses such a grid to render fullscreen output.
+    IF i_parent IS NOT BOUND.
+      RETURN.
+    ENDIF.
     cl_gui_control=>initialize(
       control = me
       parent  = i_parent
       kind    = 'ALV_GRID' ).
-    mv_toolbar_visible = abap_true.
     i_parent->add_child( me ).
   ENDMETHOD.
 
@@ -1068,7 +1080,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       checkbox        = xsdbool( is_fieldcat-checkbox = 'X' )
       icon            = xsdbool( is_fieldcat-icon = 'X' )
       symbol          = xsdbool( is_fieldcat-symbol = 'X' )
-      exception_light = xsdbool( ms_layout-excp_led = 'X'
+      exception_light = xsdbool( ms_layout-excp_fname IS NOT INITIAL
                                 AND ms_layout-excp_fname = is_fieldcat-fieldname )
       emphasize       = CONV string( is_fieldcat-emphasize )
       f4              = xsdbool( is_fieldcat-f4availabl = 'X' )
@@ -1269,6 +1281,18 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         lv_icon_name = 'error'.
         lv_label = 'Inactive'.
         lv_color = '#b3261e'.
+      WHEN '@08@' OR '@5B@'.
+        lv_icon_name = 'success'.
+        lv_label = 'Green light'.
+        lv_color = '#218342'.
+      WHEN '@09@' OR '@5D@'.
+        lv_icon_name = 'warning'.
+        lv_label = 'Yellow light'.
+        lv_color = '#a56300'.
+      WHEN '@0A@' OR '@5C@'.
+        lv_icon_name = 'error'.
+        lv_label = 'Red light'.
+        lv_color = '#b3261e'.
       WHEN OTHERS.
         result = |<span class="gg-alv-icon" role="img" aria-label="ALV icon">{ cl_gui_control=>escape_html( iv_code ) }</span>|.
         RETURN.
@@ -1335,6 +1359,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     ENDIF.
     IF it_filter IS SUPPLIED.
       mt_filter = it_filter.
+    ENDIF.
+    IF it_toolbar_excluding IS SUPPLIED.
+      mt_toolbar_excluding = it_toolbar_excluding.
     ENDIF.
     GET REFERENCE OF it_outtab INTO mt_outtab.
     LOOP AT it_outtab ASSIGNING <row>.
@@ -1443,9 +1470,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
     lv_is_subtotal = xsdbool( iv_subtotal_field IS NOT INITIAL ).
     IF lv_is_subtotal = abap_true.
-      result = |<tr class="gg-grid-subtotal gg-state-subtotal" data-subtotal-field="{ cl_gui_control=>escape_html( CONV string( iv_subtotal_field ) ) }" data-subtotal-value="{ cl_gui_control=>escape_html( iv_subtotal_value ) }"><th scope="row">Subtotal</th>|.
+      result = |<tr class="gg-grid-subtotal gg-state-subtotal" data-subtotal-field="{ cl_gui_control=>escape_html( CONV string( iv_subtotal_field ) ) }" data-subtotal-value="{ cl_gui_control=>escape_html( iv_subtotal_value ) }">{ COND string( WHEN ms_layout-no_rowmark = abap_false THEN `<th scope="row">Subtotal</th>` ) }|.
     ELSE.
-      result = '<tr class="gg-grid-total gg-state-total"><th scope="row">Total</th>'.
+      result = |<tr class="gg-grid-total gg-state-total">{ COND string( WHEN ms_layout-no_rowmark = abap_false THEN `<th scope="row">Total</th>` ) }|.
     ENDIF.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
@@ -1497,6 +1524,57 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     result = result && '</tr>'.
   ENDMETHOD.
 
+  METHOD render_toolbar.
+    DATA lt_standard TYPE ttb_button.
+    DATA lv_buttons TYPE string.
+
+    IF ms_layout-no_toolbar = abap_true.
+      RETURN.
+    ENDIF.
+    lt_standard = VALUE #(
+      ( function = '&REFRESH' quickinfo = 'Refresh' icon = 'refresh' )
+      ( function = '&SORT_ASC' quickinfo = 'Sort ascending' icon = 'arrow-bar-to-up' )
+      ( function = '&SORT_DSC' quickinfo = 'Sort descending' icon = 'arrow-bar-to-down' )
+      ( function = '&FIND' quickinfo = 'Find' icon = 'search' )
+      ( function = '&FILTER' quickinfo = 'Filter' icon = 'search-plus' )
+      ( function = '&SUMC' quickinfo = 'Sum' icon = 'database' )
+      ( function = '&SUBTOT' quickinfo = 'Subtotals' icon = 'folder' )
+      ( function = '&PRINT' quickinfo = 'Print' icon = 'printer' )
+      ( function = '&XML' quickinfo = 'XML export' icon = 'file-arrow-down' )
+      ( function = '&PC' quickinfo = 'Export to file' icon = 'file-arrow-down' )
+      ( function = '&SAVE' quickinfo = 'Save variant' icon = 'device-floppy' )
+      ( function = '&LOAD' quickinfo = 'Load variant' icon = 'folder-open' )
+      ( function = '&VIEW' quickinfo = 'Change layout' icon = 'screen' )
+      ( function = '&ALL' quickinfo = 'Select all' icon = 'circle-check' )
+      ( function = '&LOCAL&APPEND' quickinfo = 'Insert row' icon = 'plus' )
+      ( function = '&LOCAL&DELETE_ROW' quickinfo = 'Delete row' icon = 'trash' )
+      ( function = '&UNDO' quickinfo = 'Undo' icon = 'arrow-back-up' )
+      ( function = '&HELP' quickinfo = 'Help' icon = 'help-circle' ) ).
+    IF NOT line_exists( mt_toolbar_excluding[ table_line = mc_fc_excl_all ] ).
+      LOOP AT lt_standard INTO DATA(ls_standard).
+        IF line_exists( mt_toolbar_excluding[ table_line = ls_standard-function ] ).
+          CONTINUE.
+        ENDIF.
+        lv_buttons = lv_buttons && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="{ ls_standard-function }" title="{ ls_standard-quickinfo }" aria-label="{ ls_standard-quickinfo }">{ zcl_gg_host_icons=>icon( iv_name = CONV string( ls_standard-icon ) ) }</button>|.
+      ENDLOOP.
+    ENDIF.
+* Application functions follow the standard ones, as SAP GUI adds them to the
+* right of the ALV functions.
+    LOOP AT mt_toolbar INTO DATA(ls_button).
+      IF ls_button-butn_type = cntb_btype_sep.
+        lv_buttons = lv_buttons && |<span class="gg-toolbar-separator" role="separator" aria-orientation="vertical"></span>|.
+        CONTINUE.
+      ENDIF.
+      DATA(lv_label) = COND string( WHEN ls_button-text IS INITIAL
+                                    THEN CONV string( ls_button-quickinfo )
+                                    ELSE CONV string( ls_button-text ) ).
+      lv_buttons = lv_buttons && |<button type="submit" name="gg_ucomm" value="{ cl_gui_control=>escape_html( CONV string( ls_button-function ) ) }" title="{ cl_gui_control=>escape_html( CONV string( ls_button-quickinfo ) ) }" aria-label="{ cl_gui_control=>escape_html( lv_label ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ` disabled aria-disabled="true"` ELSE `` ) }>{ cl_gui_control=>escape_html( lv_label ) }</button>|.
+    ENDLOOP.
+    IF lv_buttons IS NOT INITIAL.
+      result = |<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control">{ lv_buttons }</div>|.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD render_model.
     DATA lv_has_total TYPE abap_bool.
     DATA lv_subtotal_field TYPE lvc_fname.
@@ -1504,33 +1582,16 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     DATA lt_subtotal_rows TYPE ty_html_rows.
     DATA ls_subtotal_sort TYPE lvc_s_sort.
     DATA lv_toolbar TYPE string.
+    DATA lv_row_marks TYPE abap_bool.
 
     lv_has_total = xsdbool( line_exists( mt_fieldcatalog[ do_sum = 'X' ] ) ).
     READ TABLE mt_sort INTO ls_subtotal_sort WITH KEY subtot = 'X'.
     IF sy-subrc = 0.
       lv_subtotal_field = ls_subtotal_sort-fieldname.
     ENDIF.
-    lv_toolbar = '<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control">'.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&REFRESH" title="Refresh" aria-label="Refresh">{ zcl_gg_host_icons=>icon( iv_name = 'refresh' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SORT_ASC" title="Sort ascending" aria-label="Sort ascending">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-up' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SORT_DSC" title="Sort descending" aria-label="Sort descending">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-down' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&FIND" title="Find" aria-label="Find">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&FILTER" title="Filter" aria-label="Filter">{ zcl_gg_host_icons=>icon( iv_name = 'search-plus' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SUMC" title="Sum" aria-label="Sum">{ zcl_gg_host_icons=>icon( iv_name = 'database' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SUBTOT" title="Subtotals" aria-label="Subtotals">{ zcl_gg_host_icons=>icon( iv_name = 'folder' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&PRINT" title="Print" aria-label="Print">{ zcl_gg_host_icons=>icon( iv_name = 'printer' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&XML" title="XML export" aria-label="XML export">{ zcl_gg_host_icons=>icon( iv_name = 'file-arrow-down' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&PC" title="Export to file" aria-label="Export to file">{ zcl_gg_host_icons=>icon( iv_name = 'file-arrow-down' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&SAVE" title="Save variant" aria-label="Save variant">{ zcl_gg_host_icons=>icon( iv_name = 'device-floppy' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&LOAD" title="Load variant" aria-label="Load variant">{ zcl_gg_host_icons=>icon( iv_name = 'folder-open' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&VIEW" title="Change layout" aria-label="Change layout">{ zcl_gg_host_icons=>icon( iv_name = 'screen' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&ALL" title="Select all" aria-label="Select all">{ zcl_gg_host_icons=>icon( iv_name = 'circle-check' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&LOCAL&APPEND" title="Insert row" aria-label="Insert row">{ zcl_gg_host_icons=>icon( iv_name = 'plus' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&LOCAL&DELETE_ROW" title="Delete row" aria-label="Delete row">{ zcl_gg_host_icons=>icon( iv_name = 'trash' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&UNDO" title="Undo" aria-label="Undo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-back-up' ) }</button>|.
-    lv_toolbar = lv_toolbar && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="&HELP" title="Help" aria-label="Help">{ zcl_gg_host_icons=>icon( iv_name = 'help-circle' ) }</button>|.
-    lv_toolbar = lv_toolbar && '</div>'.
-    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }<table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"><thead><tr><th scope="col">Select</th>|.
+    lv_toolbar = render_toolbar( ).
+    lv_row_marks = xsdbool( ms_layout-no_rowmark = abap_false ).
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }<table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"{ COND string( WHEN mv_gridtitle IS NOT INITIAL THEN | aria-label="{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }"| ) }><thead><tr>{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col">Select</th>` ) }|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         DATA(lv_heading) = ls_fieldcat-coltext.
@@ -1566,7 +1627,10 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       DATA(lv_row_color_attr) = COND string(
         WHEN ls_row-color_style IS INITIAL THEN ``
         ELSE | style="{ ls_row-color_style }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }"| ).
-      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }{ lv_row_color_attr }><td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }" style="{ ls_row-color_style }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
+      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }{ lv_row_color_attr }>|.
+      IF lv_row_marks = abap_true.
+        result = result && |<td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }" style="{ ls_row-color_style }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
+      ENDIF.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
         result = result && render_cell(
           is_row  = ls_row

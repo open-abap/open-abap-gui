@@ -111,12 +111,48 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
     DATA mo_filters TYPE REF TO cl_salv_filters.
     DATA mo_sorts TYPE REF TO cl_salv_sorts.
     DATA mo_functional_settings TYPE REF TO cl_salv_functional_settings.
+    DATA mo_container TYPE REF TO cl_gui_container.
+    DATA mo_grid TYPE REF TO cl_gui_alv_grid.
+    DATA mr_display_table TYPE REF TO data.
 
     METHODS build_metadata.
     METHODS collect_rows.
     METHODS rebuild_html
       RETURNING
         VALUE(value) TYPE string.
+* Shows the table: in its container when the factory got one, otherwise as
+* fullscreen output.
+    METHODS publish.
+* Hands the SALV model to an ALV grid, which does all of the rendering.
+    METHODS fill_grid
+      IMPORTING
+        io_grid TYPE REF TO cl_gui_alv_grid.
+    METHODS field_catalog
+      RETURNING
+        VALUE(result) TYPE lvc_t_fcat.
+    METHODS is_table_column
+      IMPORTING
+        iv_columnname TYPE lvc_fname
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+    METHODS ddic_field
+      IMPORTING
+        io_type       TYPE REF TO cl_abap_typedescr
+      RETURNING
+        VALUE(result) TYPE dfies.
+* The ALV function codes behind one SALV function name. Names that are not
+* SALV standard functions have none; they are application functions.
+    METHODS function_codes
+      IMPORTING
+        iv_name       TYPE salv_de_function
+      RETURNING
+        VALUE(result) TYPE ui_functions.
+    METHODS toolbar_excluding
+      RETURNING
+        VALUE(result) TYPE ui_functions.
+    METHODS application_toolbar
+      RETURNING
+        VALUE(result) TYPE ttb_button.
     METHODS passes_filters
       IMPORTING
         columnname    TYPE lvc_fname
@@ -149,11 +185,11 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_end_of_list.
-    cl_gui_control=>set_external_html( get_html( ) ).
+    publish( ).
   ENDMETHOD.
 
   METHOD set_top_of_list_print.
-    cl_gui_control=>set_external_html( get_html( ) ).
+    publish( ).
   ENDMETHOD.
 
   METHOD get_sorts.
@@ -211,7 +247,7 @@ CLASS cl_salv_table IMPLEMENTATION.
 
   METHOD set_striped_pattern.
     get_display_settings( )->set_striped_pattern( CONV abap_bool( value ) ).
-    cl_gui_control=>set_external_html( get_html( ) ).
+    publish( ).
   ENDMETHOD.
 
   METHOD set_list_header.
@@ -232,6 +268,13 @@ CLASS cl_salv_table IMPLEMENTATION.
     r_salv_table->mo_filters = NEW cl_salv_filters( ).
     r_salv_table->mo_sorts = NEW cl_salv_sorts( ).
     r_salv_table->mo_functional_settings = NEW cl_salv_functional_settings( ).
+    IF r_container IS SUPPLIED.
+      TRY.
+          r_salv_table->mo_container ?= r_container.
+        CATCH cx_sy_move_cast_error.
+          CLEAR r_salv_table->mo_container.
+      ENDTRY.
+    ENDIF.
     r_salv_table->build_metadata( ).
   ENDMETHOD.
 
@@ -251,11 +294,11 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD refresh.
-    cl_gui_control=>set_external_html( get_html( ) ).
+    publish( ).
   ENDMETHOD.
 
   METHOD display.
-    cl_gui_control=>set_external_html( get_html( ) ).
+    publish( ).
   ENDMETHOD.
 
   METHOD set_screen_popup.
@@ -277,7 +320,7 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_top_of_list.
-    cl_gui_control=>set_external_html( get_html( ) ).
+    publish( ).
   ENDMETHOD.
 
   METHOD get_columns.
@@ -312,10 +355,35 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD rebuild_html.
-    DATA ls_row TYPE ty_html_row.
-    DATA lv_select_header TYPE string.
-    DATA lv_checked TYPE string.
-    DATA lt_selected_rows TYPE salv_t_row.
+    DATA lo_no_parent TYPE REF TO cl_gui_container.
+
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_no_parent ).
+    fill_grid( lo_grid ).
+    value = lo_grid->render_model( ).
+  ENDMETHOD.
+
+  METHOD publish.
+    IF mo_container IS NOT BOUND.
+      cl_gui_control=>set_external_html( get_html( ) ).
+      RETURN.
+    ENDIF.
+    IF mo_grid IS NOT BOUND.
+      mo_grid = NEW cl_gui_alv_grid( i_parent = mo_container ).
+    ENDIF.
+    fill_grid( mo_grid ).
+  ENDMETHOD.
+
+  METHOD fill_grid.
+    FIELD-SYMBOLS <table> TYPE ANY TABLE.
+    FIELD-SYMBOLS <display> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS <line> TYPE any.
+    FIELD-SYMBOLS <row> TYPE any.
+    DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
+    DATA lr_line TYPE REF TO data.
+    DATA lt_fieldcatalog TYPE lvc_t_fcat.
+    DATA ls_layout TYPE lvc_s_layo.
+    DATA lt_excluding TYPE ui_functions.
+    DATA lv_index TYPE i.
 
     IF mo_columns IS NOT BOUND.
       mo_columns = NEW cl_salv_columns_table( ).
@@ -324,48 +392,289 @@ CLASS cl_salv_table IMPLEMENTATION.
     CLEAR mt_html_rows.
     collect_rows( ).
     mv_row_count = lines( mt_html_rows ).
+    IF mr_table IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ASSIGN mr_table->* TO <table>.
 
-    DATA(lv_header) = mv_header.
-    IF lv_header IS INITIAL AND mo_display_settings IS BOUND.
-      lv_header = mo_display_settings->get_list_header( ).
+* The grid reads a standard table. The program's own table is handed over when
+* it is one and no filter hides rows, so row numbers stay the program's.
+    lo_table_descr ?= cl_abap_typedescr=>describe_by_data( <table> ).
+    IF lo_table_descr->table_kind = cl_abap_tabledescr=>tablekind_std
+        AND mv_row_count = lines( <table> ).
+      ASSIGN mr_table->* TO <display>.
+    ELSE.
+      CREATE DATA lr_line LIKE LINE OF <table>.
+      ASSIGN lr_line->* TO <line>.
+      CREATE DATA mr_display_table LIKE STANDARD TABLE OF <line>.
+      ASSIGN mr_display_table->* TO <display>.
+      LOOP AT <table> ASSIGNING <row>.
+        lv_index = lv_index + 1.
+        IF line_exists( mt_html_rows[ index = lv_index ] ).
+          APPEND <row> TO <display>.
+        ENDIF.
+      ENDLOOP.
     ENDIF.
-    value = |<section class="gg-salv-table" aria-label="SALV table"><h2>{ cl_gui_control=>escape_html( lv_header ) }</h2><p>{ mv_row_count } rows</p><table><caption>{ cl_gui_control=>escape_html( lv_header ) }</caption><thead><tr>|.
-    CLEAR lv_select_header.
-    IF mo_selections IS BOUND
-        AND mo_selections->get_selection_mode( ) <> if_salv_c_selection_mode=>none.
-      lv_select_header = `<th scope="col">Select</th>`.
-      lt_selected_rows = mo_selections->get_selected_rows( ).
+
+    lt_fieldcatalog = field_catalog( ).
+    IF mo_display_settings IS BOUND.
+      ls_layout-zebra = mo_display_settings->is_striped_pattern( ).
     ENDIF.
-    value = value && lv_select_header.
-    LOOP AT mo_columns->get( ) INTO DATA(ls_heading).
-      IF ls_heading-r_column->is_technical( ) = abap_true.
+* A color column must hold a color table (LVC_T_SCOL); anything else is not
+* one, as SAP rejects it.
+    IF is_table_column( mo_columns->get_color_column( ) ) = abap_true.
+      ls_layout-ctab_fname = mo_columns->get_color_column( ).
+    ENDIF.
+    ls_layout-excp_fname = mo_columns->get_exception_column( ).
+    CLEAR io_grid->mt_selected_rows.
+    IF mo_selections IS NOT BOUND
+        OR mo_selections->get_selection_mode( ) = if_salv_c_selection_mode=>none.
+      ls_layout-no_rowmark = abap_true.
+    ELSE.
+      LOOP AT mo_selections->get_selected_rows( ) INTO DATA(lv_selected).
+        READ TABLE mt_html_rows TRANSPORTING NO FIELDS WITH KEY index = lv_selected.
+        IF sy-subrc = 0.
+          APPEND VALUE #( index = sy-tabix ) TO io_grid->mt_selected_rows.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+    IF mv_header IS NOT INITIAL.
+      io_grid->mv_gridtitle = mv_header.
+    ELSEIF mo_display_settings IS BOUND.
+      io_grid->mv_gridtitle = mo_display_settings->get_list_header( ).
+    ENDIF.
+    lt_excluding = toolbar_excluding( ).
+    io_grid->mt_toolbar = application_toolbar( ).
+    io_grid->set_table_for_first_display(
+      EXPORTING
+        is_layout            = ls_layout
+        it_toolbar_excluding = lt_excluding
+      CHANGING
+        it_outtab            = <display>
+        it_fieldcatalog      = lt_fieldcatalog ).
+  ENDMETHOD.
+
+  METHOD field_catalog.
+    DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
+    DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
+    DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
+    DATA lo_type TYPE REF TO cl_abap_typedescr.
+    DATA lo_column_list TYPE REF TO cl_salv_column_list.
+    DATA ls_fieldcat TYPE lvc_s_fcat.
+    DATA ls_ddic TYPE dfies.
+    DATA ls_color TYPE lvc_s_colo.
+
+    IF mr_table IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_typedescr=>describe_by_data( mr_table->* ).
+    lo_line_descr = lo_table_descr->get_table_line_type( ).
+    IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
+      lo_struct_descr ?= lo_line_descr.
+    ENDIF.
+
+    LOOP AT mo_columns->get( ) INTO DATA(ls_column).
+      CLEAR: ls_fieldcat, ls_ddic, lo_type.
+      ls_fieldcat-col_pos = sy-tabix.
+      ls_fieldcat-fieldname = ls_column-columnname.
+      IF lo_struct_descr IS BOUND.
+        lo_struct_descr->get_component_type(
+          EXPORTING
+            p_name              = ls_column-columnname
+          RECEIVING
+            p_descr_ref         = lo_type
+          EXCEPTIONS
+            component_not_found = 1
+            OTHERS              = 2 ).
+        IF sy-subrc <> 0.
+          CLEAR lo_type.
+        ENDIF.
+      ELSE.
+        lo_type = lo_line_descr.
+      ENDIF.
+* Only elementary fields have a cell value. Tables such as a color column
+* are read through the layout, never printed.
+      IF lo_type IS NOT BOUND OR lo_type->kind <> cl_abap_typedescr=>kind_elem.
+        ls_fieldcat-tech = abap_true.
+      ELSE.
+        ls_fieldcat-inttype = SWITCH #( lo_type->type_kind
+          WHEN cl_abap_typedescr=>typekind_int1
+            OR cl_abap_typedescr=>typekind_int2
+            OR cl_abap_typedescr=>typekind_int8 THEN 'I'
+          WHEN cl_abap_typedescr=>typekind_decfloat16
+            OR cl_abap_typedescr=>typekind_decfloat34 THEN 'P'
+          ELSE lo_type->type_kind ).
+        ls_ddic = ddic_field( lo_type ).
+      ENDIF.
+
+* Texts the program set win over the DDIC field labels.
+      ls_fieldcat-scrtext_l = ls_column-r_column->get_long_text( ).
+      IF ls_fieldcat-scrtext_l IS INITIAL.
+        ls_fieldcat-scrtext_l = ls_ddic-scrtext_l.
+      ENDIF.
+      ls_fieldcat-scrtext_m = ls_column-r_column->get_medium_text( ).
+      IF ls_fieldcat-scrtext_m IS INITIAL.
+        ls_fieldcat-scrtext_m = ls_ddic-scrtext_m.
+      ENDIF.
+      ls_fieldcat-scrtext_s = ls_column-r_column->get_short_text( ).
+      IF ls_fieldcat-scrtext_s IS INITIAL.
+        ls_fieldcat-scrtext_s = ls_ddic-scrtext_s.
+      ENDIF.
+      ls_fieldcat-coltext = COND #(
+        WHEN ls_fieldcat-scrtext_l IS NOT INITIAL THEN ls_fieldcat-scrtext_l
+        WHEN ls_fieldcat-scrtext_m IS NOT INITIAL THEN ls_fieldcat-scrtext_m
+        ELSE ls_fieldcat-scrtext_s ).
+      ls_fieldcat-tooltip = ls_column-r_column->get_tooltip( ).
+      ls_fieldcat-outputlen = ls_column-r_column->get_output_length( ).
+      ls_fieldcat-cfieldname = ls_column-r_column->get_currency_column( ).
+      ls_fieldcat-qfieldname = ls_column-r_column->get_quantity_column( ).
+      IF ls_column-r_column->is_technical( ) = abap_true.
+        ls_fieldcat-tech = abap_true.
+      ENDIF.
+      IF ls_column-r_column->is_visible( ) = abap_false.
+        ls_fieldcat-no_out = abap_true.
+      ENDIF.
+
+      TRY.
+          lo_column_list ?= ls_column-r_column.
+          ls_fieldcat-icon = lo_column_list->is_icon( ).
+          ls_fieldcat-key = lo_column_list->is_key( ).
+          ls_color = lo_column_list->get_color( ).
+          IF ls_color-col <> 0.
+            ls_fieldcat-emphasize = |C{ ls_color-col }{ ls_color-int }{ ls_color-inv }|.
+          ENDIF.
+          CASE lo_column_list->get_cell_type( ).
+            WHEN if_salv_c_cell_type=>checkbox OR if_salv_c_cell_type=>checkbox_hotspot.
+              ls_fieldcat-checkbox = abap_true.
+            WHEN if_salv_c_cell_type=>hotspot OR if_salv_c_cell_type=>link.
+              ls_fieldcat-hotspot = abap_true.
+          ENDCASE.
+        CATCH cx_sy_move_cast_error.
+          CLEAR lo_column_list.
+      ENDTRY.
+      APPEND ls_fieldcat TO result.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD is_table_column.
+    DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
+    DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
+    DATA lo_type TYPE REF TO cl_abap_typedescr.
+
+    IF mr_table IS NOT BOUND OR iv_columnname IS INITIAL.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_typedescr=>describe_by_data( mr_table->* ).
+    IF lo_table_descr->get_table_line_type( )->kind <> cl_abap_typedescr=>kind_struct.
+      RETURN.
+    ENDIF.
+    lo_struct_descr ?= lo_table_descr->get_table_line_type( ).
+    lo_struct_descr->get_component_type(
+      EXPORTING
+        p_name              = iv_columnname
+      RECEIVING
+        p_descr_ref         = lo_type
+      EXCEPTIONS
+        component_not_found = 1
+        OTHERS              = 2 ).
+    result = xsdbool( sy-subrc = 0 AND lo_type->kind = cl_abap_typedescr=>kind_table ).
+  ENDMETHOD.
+
+  METHOD ddic_field.
+    DATA lo_element TYPE REF TO cl_abap_elemdescr.
+
+    IF io_type->kind <> cl_abap_typedescr=>kind_elem OR io_type->is_ddic_type( ) = abap_false.
+      RETURN.
+    ENDIF.
+    lo_element ?= io_type.
+    lo_element->get_ddic_field(
+      RECEIVING
+        p_flddescr   = result
+      EXCEPTIONS
+        not_found    = 1
+        no_ddic_type = 2
+        OTHERS       = 3 ).
+    IF sy-subrc <> 0.
+      CLEAR result.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD function_codes.
+    CASE iv_name.
+      WHEN 'SORT_ASC'.
+        result = VALUE #( ( '&SORT_ASC' ) ).
+      WHEN 'SORT_DESC'.
+        result = VALUE #( ( '&SORT_DSC' ) ).
+      WHEN 'GROUP_SORT'.
+        result = VALUE #( ( '&SORT_ASC' ) ( '&SORT_DSC' ) ).
+      WHEN 'FIND'.
+        result = VALUE #( ( '&FIND' ) ).
+      WHEN 'FILTER' OR 'GROUP_FILTER'.
+        result = VALUE #( ( '&FILTER' ) ).
+      WHEN 'GROUP_AGGREGATION'.
+        result = VALUE #( ( '&SUMC' ) ( '&SUBTOT' ) ).
+      WHEN 'PRINT' OR 'PRINT_PREVIEW'.
+        result = VALUE #( ( '&PRINT' ) ).
+      WHEN 'EXPORT_SPREADSHEET' OR 'VIEW_EXCEL'.
+        result = VALUE #( ( '&XML' ) ).
+      WHEN 'EXPORT_LOCALFILE'.
+        result = VALUE #( ( '&PC' ) ).
+      WHEN 'LAYOUT_SAVE'.
+        result = VALUE #( ( '&SAVE' ) ).
+      WHEN 'GROUP_LAYOUT'.
+        result = VALUE #( ( '&VIEW' ) ( '&LOAD' ) ( '&SAVE' ) ).
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD toolbar_excluding.
+* SALV is read-only, so only its display functions can appear, and only the
+* ones the program enabled. With none enabled the table has no toolbar.
+    DATA lt_offered TYPE ui_functions.
+    DATA lt_allowed TYPE ui_functions.
+    DATA lv_code TYPE ui_func.
+
+    lt_offered = VALUE #(
+      ( '&SORT_ASC' ) ( '&SORT_DSC' ) ( '&FIND' ) ( '&FILTER' ) ( '&SUMC' ) ( '&SUBTOT' )
+      ( '&PRINT' ) ( '&XML' ) ( '&PC' ) ( '&VIEW' ) ( '&LOAD' ) ( '&SAVE' ) ).
+    IF mo_functions IS BOUND.
+      IF mo_functions->mv_all = abap_true.
+        lt_allowed = lt_offered.
+      ENDIF.
+      LOOP AT mo_functions->mt_functions INTO DATA(ls_function).
+        LOOP AT function_codes( ls_function-name ) INTO lv_code.
+          DELETE lt_allowed WHERE table_line = lv_code.
+          IF ls_function-function->get_visible( ) = abap_true.
+            APPEND lv_code TO lt_allowed.
+          ENDIF.
+        ENDLOOP.
+      ENDLOOP.
+    ENDIF.
+    IF lt_allowed IS INITIAL.
+      result = VALUE #( ( cl_gui_alv_grid=>mc_fc_excl_all ) ).
+      RETURN.
+    ENDIF.
+    result = VALUE #(
+      ( '&REFRESH' ) ( '&ALL' ) ( '&LOCAL&APPEND' ) ( '&LOCAL&DELETE_ROW' ) ( '&UNDO' ) ( '&HELP' ) ).
+    LOOP AT lt_offered INTO lv_code.
+      IF NOT line_exists( lt_allowed[ table_line = lv_code ] ).
+        APPEND lv_code TO result.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD application_toolbar.
+    IF mo_functions IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    LOOP AT mo_functions->mt_functions INTO DATA(ls_function).
+      IF function_codes( ls_function-name ) IS NOT INITIAL
+          OR ls_function-function->get_visible( ) = abap_false.
         CONTINUE.
       ENDIF.
-      value = value && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }">{ cl_gui_control=>escape_html( CONV string( ls_heading-columnname ) ) }</th>|.
+      APPEND VALUE #( function  = ls_function-name
+                      text      = ls_function-function->get_text( )
+                      quickinfo = ls_function-function->get_tooltip( ) ) TO result.
     ENDLOOP.
-    value = value && |</tr></thead><tbody>|.
-    LOOP AT mt_html_rows INTO ls_row.
-      value = value && |<tr data-row-index="{ ls_row-index }">|.
-      IF lv_select_header IS NOT INITIAL.
-        CLEAR lv_checked.
-        IF line_exists( lt_selected_rows[ table_line = ls_row-index ] ).
-          lv_checked = ` checked`.
-        ENDIF.
-        value = value && |<td><input type="checkbox" name="gg-salv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }"{ lv_checked }></td>|.
-      ENDIF.
-      LOOP AT ls_row-cells INTO DATA(ls_cell).
-        TRY.
-            IF mo_columns->get_column( ls_cell-columnname )->is_technical( ) = abap_true.
-              CONTINUE.
-            ENDIF.
-          CATCH cx_salv_not_found.
-            CONTINUE.
-        ENDTRY.
-        value = value && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_cell-columnname ) ) }">{ cl_gui_control=>escape_html( ls_cell-text ) }</td>|.
-      ENDLOOP.
-      value = value && |</tr>|.
-    ENDLOOP.
-    value = value && |</tbody></table></section>|.
   ENDMETHOD.
 
   METHOD collect_rows.
@@ -374,6 +683,7 @@ CLASS cl_salv_table IMPLEMENTATION.
     FIELD-SYMBOLS <component> TYPE any.
     DATA ls_row TYPE ty_html_row.
     DATA lo_component_type TYPE REF TO cl_abap_typedescr.
+    DATA lv_index TYPE i.
 
     IF mr_table IS NOT BOUND.
       RETURN.
@@ -384,7 +694,8 @@ CLASS cl_salv_table IMPLEMENTATION.
     ENDIF.
     LOOP AT <table> ASSIGNING <row>.
       CLEAR ls_row.
-      ls_row-index = sy-tabix.
+      lv_index = lv_index + 1.
+      ls_row-index = lv_index.
       DATA(lv_matches) = abap_true.
       LOOP AT mo_columns->get( ) INTO DATA(ls_column).
         DATA(lv_text) = ``.
