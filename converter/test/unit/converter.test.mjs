@@ -1245,6 +1245,41 @@ test("partial skeleton strategy keeps runnable content for optional gaps", async
   assert.ok(result.diagnostics.some((item) => item.code === "GGCONV-E401"));
 });
 
+test("discovers each screen's OK-code field in the screen XML and binds it in the screen metadata", async () => {
+  const programFilename = path.join(repositoryRoot, "converter", "test", "examples", "dynpro_ok_code_field", "input", "zexample_okcode.prog.abap");
+  const metadata = await loadDynproMetadata({ filename: programFilename });
+  assert.deepEqual(metadata.screens.map((screen) => [screen.number, screen.okCode]), [["0100", "OK_CODE"], ["0200", "GV_DETAIL_OK"]]);
+
+  const converted = await convertProgram({ source: await fs.readFile(programFilename, "utf8"), filename: programFilename });
+  assert.equal(converted.supported, true);
+  assert.match(converted.classSource, /begin_screen\( VALUE #\( number = '0100' [^)]*ok_code = 'OK_CODE' /);
+  assert.match(converted.classSource, /begin_screen\( VALUE #\( number = '0200' [^)]*ok_code = 'GV_DETAIL_OK' /);
+  // The PAI module reads the field the host fills, not a fixed name.
+  assert.match(converted.classSource, /ok_code = CONV #\( ct_values\[ name = 'OK_CODE' \]-value \)/);
+
+  const withoutOkCode = await loadDynproMetadata({
+    filename: path.join(repositoryRoot, "converter", "test", "fixtures", "dynpro_metadata.prog.abap"),
+  });
+  assert.deepEqual(withoutOkCode.screens.map((screen) => screen.okCode), [undefined, undefined]);
+  const plain = await convertProgram({
+    source: "PROGRAM zdynpro_metadata.\nMODULE user_command_0100 INPUT.\nENDMODULE.\n",
+    filename: path.join(repositoryRoot, "converter", "test", "fixtures", "dynpro_metadata.prog.abap"),
+  });
+  assert.doesNotMatch(plain.classSource, /ok_code =/);
+
+  // Metadata supplied without XML declares the field through its element.
+  const supplied = await convertProgram({
+    source: "PROGRAM zsupplied.\nDATA save_ok TYPE sy-ucomm.\nMODULE user_command_0100 INPUT.\nENDMODULE.\n",
+    filename: "zsupplied.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Supplied", elements: [{ kind: "okcode", name: "save_ok" }] }],
+      flowLogic: [{ screen: "0100", pbo: [], pai: [{ name: "USER_COMMAND_0100" }] }],
+    },
+  });
+  assert.match(supplied.classSource, /begin_screen\( VALUE #\( number = '0100' [^)]*ok_code = 'SAVE_OK' /);
+});
+
 test("loads report-owned dynpro XML and every matching screen flow file", async () => {
   const metadataFilename = path.join(repositoryRoot, "converter", "test", "fixtures", "dynpro_metadata.prog.xml");
   const metadata = await loadDynproMetadata({

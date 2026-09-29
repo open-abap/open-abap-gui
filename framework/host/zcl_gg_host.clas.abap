@@ -632,17 +632,10 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ENDIF.
 
       IF lv_submit_return = abap_true AND io_submit_report IS BOUND.
-        TRY.
-            lv_ended = resume_submit_return(
-              io_report        = io_report
-              io_submit_report = io_submit_report
-              io_session       = lo_session ).
-          CATCH cx_root INTO DATA(lx_submit_return).
-            lo_session->zif_gg_session_v1~message(
-              VALUE #( type = zif_gg_session_types_v1=>message_type_warning
-                       text = |Nested report return is unavailable: { lx_submit_return->get_text( ) }| ) ).
-            lv_ended = abap_false.
-        ENDTRY.
+        lv_ended = resume_submit_return(
+          io_report        = io_report
+          io_submit_report = io_submit_report
+          io_session       = lo_session ).
       ENDIF.
     ENDIF.
 

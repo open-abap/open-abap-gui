@@ -55,21 +55,21 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
 
     TRY.
         lt_transactions = zcl_gg_transaction_registry=>get_all( ).
-      CATCH cx_root.
+      CATCH zcx_gg_transaction_error.
         zcl_gg_transaction_registry=>clear( ).
         TRY.
             lt_transactions = zcl_gg_transaction_registry=>get_all( ).
-          CATCH cx_root.
+          CATCH zcx_gg_transaction_error.
             CLEAR lt_transactions.
         ENDTRY.
     ENDTRY.
     TRY.
         lt_programs = zcl_gg_program_registry=>get_all( ).
-      CATCH cx_root.
+      CATCH zcx_gg_transaction_error.
         zcl_gg_program_registry=>clear( ).
         TRY.
             lt_programs = zcl_gg_program_registry=>get_all( ).
-          CATCH cx_root.
+          CATCH zcx_gg_transaction_error.
             CLEAR lt_programs.
         ENDTRY.
     ENDTRY.

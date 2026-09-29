@@ -37,6 +37,8 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            modif_id TYPE ty_modif_id,
          END OF ty_control.
 
+* ok_code names the screen's OK-code field, the one the host fills with the
+* function code before PAI. A screen without one gets GV_OK_CODE.
   TYPES: BEGIN OF ty_screen,
            number      TYPE ty_screen_number,
            title       TYPE string,
@@ -44,6 +46,7 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            modal       TYPE abap_bool,
            width       TYPE i,
            height      TYPE i,
+           ok_code     TYPE ty_name,
          END OF ty_screen.
 
 * Definitions consumed by the operation-specific builder methods.

@@ -140,6 +140,22 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         ct_values   TYPE zif_gg_dynpro_types_v1=>ty_values.
 
     CLASS-METHODS apply_cfw_ok_code
+      IMPORTING
+        iv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_name
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
+
+    CLASS-METHODS ok_code_field
+      IMPORTING
+        it_screens      TYPE zcl_gg_host_dynpro_builder=>ty_screens
+        iv_screen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+      RETURNING
+        VALUE(rv_field) TYPE zif_gg_dynpro_types_v1=>ty_name.
+
+    CLASS-METHODS set_ok_code
+      IMPORTING
+        iv_field  TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_ucomm  TYPE csequence
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
 
@@ -196,6 +212,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         iv_submitted     TYPE abap_bool
         iv_ucomm         TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        iv_ok_code       TYPE zif_gg_dynpro_types_v1=>ty_name
         iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name
         iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name
         it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
@@ -262,6 +279,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         is_step          TYPE zcl_gg_host_dynpro_flow=>ty_step
         iv_ucomm         TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        iv_ok_code       TYPE zif_gg_dynpro_types_v1=>ty_name
         iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name
         iv_table_start   TYPE i
         iv_table_end     TYPE i
@@ -288,6 +306,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_session TYPE REF TO zcl_gg_host_session
         iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         iv_ucomm   TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        iv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_name
       CHANGING
         cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
         ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
@@ -336,6 +355,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lt_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
     DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
     DATA lv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+    DATA lv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_name.
     DATA lx_flow TYPE REF TO zcx_gg_control_flow.
     DATA ls_screen TYPE zif_gg_dynpro_types_v1=>ty_screen.
     DATA lv_session_id TYPE string.
@@ -410,14 +430,19 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         INSERT ls_input_value INTO TABLE lt_values.
       ENDIF.
     ENDLOOP.
+    lv_screen = COND #(
+      WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
+      ELSE iv_screen ).
+    lv_ok_code = ok_code_field(
+      it_screens = lt_screens
+      iv_screen  = lv_screen ).
     IF iv_submitted = abap_true AND iv_ucomm IS NOT INITIAL.
-      READ TABLE lt_values ASSIGNING <ls_value>
-        WITH KEY container = `` name = 'GV_OK_CODE' row = 0.
-      IF sy-subrc = 0.
-        <ls_value>-value = iv_ucomm.
-      ELSE.
-        INSERT VALUE #( name = 'GV_OK_CODE' value = iv_ucomm ) INTO TABLE lt_values.
-      ENDIF.
+      set_ok_code(
+        EXPORTING
+          iv_field  = lv_ok_code
+          iv_ucomm  = iv_ucomm
+        CHANGING
+          ct_values = lt_values ).
     ENDIF.
 
     seed_table_states(
@@ -463,9 +488,6 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_container = ls_context-table_control ).
     ENDIF.
 
-    lv_screen = COND #(
-      WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
-      ELSE iv_screen ).
     rs_result-modal_position = is_modal_position.
     rs_result-help_name = COND #( WHEN iv_value_request IS INITIAL
                                   THEN iv_help_request
@@ -482,6 +504,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             iv_screen        = lv_screen
             iv_submitted     = iv_submitted
             iv_ucomm         = iv_ucomm
+            iv_ok_code       = lv_ok_code
             iv_value_request = iv_value_request
             iv_help_request  = iv_help_request
             it_controls      = lt_controls
@@ -858,6 +881,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
                     io_session = io_session
                     iv_screen  = lv_subscreen
                     iv_ucomm   = iv_ucomm
+                    iv_ok_code = iv_ok_code
                   CHANGING
                     cs_context = cs_context
                     ct_values  = ct_values ).
@@ -878,6 +902,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
                   iv_screen        = iv_screen
                   is_step          = ls_step
                   iv_ucomm         = iv_ucomm
+                  iv_ok_code       = iv_ok_code
                   iv_table_control = lv_table_control
                   iv_table_start   = lv_table_start
                   iv_table_end     = lv_table_end
@@ -908,7 +933,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
               io_session = io_session
             CHANGING
               ct_values  = ct_values ).
-          apply_cfw_ok_code( CHANGING ct_values = ct_values ).
+          apply_cfw_ok_code(
+            EXPORTING
+              iv_ok_code = iv_ok_code
+            CHANGING
+              ct_values  = ct_values ).
         ENDLOOP.
       ENDIF.
     ENDIF.
@@ -1083,7 +1112,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           io_session = io_session
         CHANGING
           ct_values  = ct_values ).
-      apply_cfw_ok_code( CHANGING ct_values = ct_values ).
+      apply_cfw_ok_code(
+        EXPORTING
+          iv_ok_code = iv_ok_code
+        CHANGING
+          ct_values  = ct_values ).
     ELSEIF iv_table_end >= iv_table_start.
       lv_table_row = iv_table_start.
       WHILE lv_table_row <= iv_table_end.
@@ -1097,7 +1130,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             io_session = io_session
           CHANGING
             ct_values  = ct_values ).
-        apply_cfw_ok_code( CHANGING ct_values = ct_values ).
+        apply_cfw_ok_code(
+          EXPORTING
+            iv_ok_code = iv_ok_code
+          CHANGING
+            ct_values  = ct_values ).
         lv_table_row = lv_table_row + 1.
       ENDWHILE.
     ENDIF.
@@ -1133,6 +1170,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           iv_screen        = iv_screen
           is_step          = ls_step
           iv_ucomm         = iv_ucomm
+          iv_ok_code       = iv_ok_code
           iv_table_control = ``
           iv_table_start   = 1
           iv_table_end     = 0
@@ -1502,12 +1540,30 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     IF lv_new_code IS INITIAL.
       RETURN.
     ENDIF.
-    READ TABLE ct_values ASSIGNING FIELD-SYMBOL(<ls_value>)
-      WITH KEY container = `` name = 'GV_OK_CODE' row = 0.
-    IF sy-subrc = 0.
-      <ls_value>-value = lv_new_code.
+    set_ok_code(
+      EXPORTING
+        iv_field  = iv_ok_code
+        iv_ucomm  = lv_new_code
+      CHANGING
+        ct_values = ct_values ).
+  ENDMETHOD.
+
+  METHOD ok_code_field.
+    READ TABLE it_screens INTO DATA(ls_screen) WITH KEY number = iv_screen.
+    IF sy-subrc = 0 AND ls_screen-ok_code IS NOT INITIAL.
+      rv_field = ls_screen-ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = lv_new_code ) INTO TABLE ct_values.
+      rv_field = 'GV_OK_CODE'.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD set_ok_code.
+    READ TABLE ct_values ASSIGNING FIELD-SYMBOL(<ls_value>)
+      WITH KEY container = `` name = iv_field row = 0.
+    IF sy-subrc = 0.
+      <ls_value>-value = iv_ucomm.
+    ELSE.
+      INSERT VALUE #( name = iv_field value = iv_ucomm ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 

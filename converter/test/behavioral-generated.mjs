@@ -307,6 +307,20 @@ async function prepare() {
   }
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_DFORM.clas.abap"), dynproScreenFormResult.classSource, "utf8");
 
+  // The OK-code fields come from the screen XML beside the program: 0100
+  // declares OK_CODE and 0200 declares GV_DETAIL_OK.
+  const okCodeFilename = path.join(repository, "converter", "test", "examples", "dynpro_ok_code_field", "input", "zexample_okcode.prog.abap");
+  const okCodeResult = await convertProgram({
+    source: await fs.readFile(okCodeFilename, "utf8"),
+    filename: okCodeFilename,
+    className: "ZCL_BV_OKCODE",
+    transactionCode: "ZBVOKCODE",
+  });
+  if (!okCodeResult.classSource || !okCodeResult.supported) {
+    throw new Error("converter produced no supported OK-code dynpro class");
+  }
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_OKCODE.clas.abap"), okCodeResult.classSource, "utf8");
+
   await fs.writeFile(configPath, JSON.stringify({
     input_folder: ["src", "framework", "examples", "converter/behavior-validation/input"],
     input_filter: [],
@@ -539,6 +553,29 @@ try {
   }));
   assert.equal(screenState(dynproScreenForm.states, "GV_SECRET").visible, abap.builtin.abap_false.get());
   assert.equal(screenState(dynproScreenForm.states, "GV_COUNTER").visible, abap.builtin.abap_true.get());
+
+  // Each command reaches the PAI branch that reads the screen's own OK-code
+  // field, so the generated CASE decides, not a fixed GV_OK_CODE.
+  const okCode = async (screen, ucomm) => plain(await zcl_gg_host_dynpro.run({
+    io_program: new abap.Classes.ZCL_BV_OKCODE(),
+    iv_screen: screen,
+    iv_ucomm: ucomm,
+  }));
+  const okCodeValue = (result, name) => result.values.find((item) => item.name.trim() === name)?.value.trim();
+  const leftProgram = (result) => result.terminal_state === abap.builtin.abap_true.get();
+  assert.equal(leftProgram(await okCode("0100", "BACK")), true, "BACK on 0100 did not reach LEAVE PROGRAM");
+  const overviewExit = await okCode("0100", "EXIT");
+  assert.equal(overviewExit.screen, "0200");
+  assert.equal(leftProgram(overviewExit), false);
+  const overviewCancel = await okCode("0100", "CANC");
+  assert.equal(okCodeValue(overviewCancel, "GV_LAST"), "CANCELED");
+  assert.equal(okCodeValue(overviewCancel, "OK_CODE"), "", "the PAI module clears OK_CODE after reading it");
+  assert.equal(leftProgram(overviewCancel), false);
+  assert.equal((await okCode("0200", "BACK")).screen, "0100");
+  assert.equal(leftProgram(await okCode("0200", "EXIT")), true, "EXIT on 0200 did not reach LEAVE PROGRAM");
+  const detailCancel = await okCode("0200", "CANC");
+  assert.equal(okCodeValue(detailCancel, "GV_LAST"), "DETAIL CANCELED");
+  assert.equal(okCodeValue(detailCancel, "OK_CODE"), "", "screen 0200 wrote the OK-code field of screen 0100");
 
   const dbSystem = abap.builtin.sy.get().dbsys;
   const previousDbSystem = dbSystem.get();

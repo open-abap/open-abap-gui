@@ -4,6 +4,9 @@ import path from "node:path";
 import {pathToFileURL} from "node:url";
 import {createWorkbenchPreviewHandlers} from "../converter/src/workbench-http.mjs";
 
+// A crash prints its whole stack; ABAP call chains exceed V8's default of 10.
+Error.stackTraceLimit = Infinity;
+
 const outputRoot = path.resolve(process.env.OPEN_ABAP_GUI_OUTPUT ?? "output");
 await import(pathToFileURL(path.join(outputRoot, "init.mjs")).href);
 
@@ -35,6 +38,16 @@ const converterWorkbench = createWorkbenchPreviewHandlers();
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
+// An exception that leaves a request handler is an application crash, not a
+// response. Express would answer it and keep serving, so it is rethrown
+// outside Express as an uncaught exception: Node prints the original stack
+// and the process exits with a nonzero code, whether or not headers were sent.
+function crash(error) {
+  process.nextTick(() => {
+    throw error;
+  });
+}
+
 // This module is the transport adapter and executable server entry point.
 
 export function createAbapHtmlHostServer() {
@@ -43,39 +56,39 @@ export function createAbapHtmlHostServer() {
   app.set("etag", false);
   app.use(express.raw({type: "*/*", limit: MAX_BODY_BYTES}));
 
-  app.get("/converter/preview", async (request, response, next) => {
+  app.get("/converter/preview", async (request, response) => {
     try {
       await converterWorkbench.get(request, response);
     } catch (error) {
-      next(error);
+      crash(error);
     }
   });
-  app.post("/converter/preview", async (request, response, next) => {
+  app.post("/converter/preview", async (request, response) => {
     try {
       await converterWorkbench.post(request, response);
     } catch (error) {
-      next(error);
+      crash(error);
     }
   });
-  app.post("/converter/preview/save", async (request, response, next) => {
+  app.post("/converter/preview/save", async (request, response) => {
     try {
       await converterWorkbench.save(request, response);
     } catch (error) {
-      next(error);
+      crash(error);
     }
   });
-  app.get("/converter/preview/download", async (request, response, next) => {
+  app.get("/converter/preview/download", async (request, response) => {
     try {
       await converterWorkbench.download(request, response);
     } catch (error) {
-      next(error);
+      crash(error);
     }
   });
 
   // The read-only converter preview is an explicit workbench adapter. All
   // other requests are handed to the fixed ABAP IF_HTTP_EXTENSION handler,
   // which owns the application behavior for the deployed GUI.
-  app.all("*", async (request, response, next) => {
+  app.all("*", async (request, response) => {
     try {
       await cl_express_icf_shim.run({
         req: request,
@@ -83,18 +96,21 @@ export function createAbapHtmlHostServer() {
         class: "ZCL_GG_HTTP_HANDLER",
       });
     } catch (error) {
-      next(error);
+      crash(error);
     }
   });
 
+  // Express reaches this only for its own errors. A client error from request
+  // parsing, such as an oversized body, is answered; anything else crashes.
   app.use((error, request, response, next) => {
-    if (response.headersSent) {
-      next(error);
+    const status = error?.status ?? error?.statusCode;
+    if (error?.expose !== true || !(status >= 400 && status < 500) || response.headersSent) {
+      crash(error);
       return;
     }
-    response.status(400).type("application/json").send({
+    response.status(status).type("application/json").send({
       valid: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: error.message,
     });
   });
 

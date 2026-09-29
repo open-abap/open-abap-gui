@@ -3,6 +3,7 @@ import { controlObjectTypes, lowerStatements, selectionExpression, selectionType
 import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
+import { screenOkCode } from "../dynpro-metadata.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -1520,6 +1521,8 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     const fields = [`number = '${screenNumber(screen.number)}'`];
     if (screen.title) fields.push(`title = ${literal(screen.title)}`);
     if (screen.nextScreen !== undefined) fields.push(`next_screen = '${screenNumber(screen.nextScreen)}'`);
+    const okCode = screen.okCode ? String(screen.okCode).trim().toUpperCase() : screenOkCode(screen.elements);
+    if (okCode) fields.push(`ok_code = '${okCode}'`);
     if (screen.modal) fields.push("modal = abap_true");
     if (screen.width !== undefined) fields.push(`width = ${screen.width * 10}`);
     if (screen.height !== undefined) fields.push(`height = ${screen.height * 26 + 20}`);

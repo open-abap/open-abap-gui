@@ -175,6 +175,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD if_http_extension~handle_request.
     DATA lv_method TYPE string.
 
+* Only the host's own transaction errors become a response. Any other
+* exception is an application crash and leaves unchanged, so the web entry
+* point terminates the process with the original stack.
     TRY.
         lv_method = server->request->get_method( ).
         TRANSLATE lv_method TO UPPER CASE.
@@ -199,10 +202,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           server    = server
           iv_error  = lx_transaction_error->mv_message
           iv_status = 500 ).
-      CATCH cx_root INTO DATA(lx_error).
-        send_error(
-          server   = server
-          iv_error = lx_error->get_text( ) ).
     ENDTRY.
   ENDMETHOD.
 
@@ -275,16 +274,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_error = |Unknown program: { lv_program }| ).
         RETURN.
       ENDIF.
-      TRY.
-          CREATE OBJECT lo_program TYPE (ls_program-class_name).
-          lo_report ?= lo_program.
-        CATCH cx_root INTO DATA(lx_program_error).
-          send_workbench_error(
-            server    = server
-            iv_error  = |Unable to start program { ls_program-program } ({ ls_program-class_name }): { lx_program_error->get_text( ) }|
-            iv_status = 500 ).
-          RETURN.
-      ENDTRY.
+* The catalog already created the class and checked it is a report.
+      CREATE OBJECT lo_program TYPE (ls_program-class_name).
+      lo_report ?= lo_program.
       ls_response = start_program(
         io_report  = lo_report
         iv_program = CONV #( ls_program-class_name ) ).
@@ -992,7 +984,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     TRY.
         zcl_gg_transaction_registry=>get_all( ).
         zcl_gg_program_registry=>get_all( ).
-      CATCH cx_root ##NO_HANDLER.
+      CATCH zcx_gg_transaction_error ##NO_HANDLER.
     ENDTRY.
     lt_names = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_HOST_ENVIRONMENT_V1` ).
     LOOP AT lt_names INTO lv_class_name.
@@ -1024,28 +1016,15 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lo_report TYPE REF TO zif_gg_report_v1.
     DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
 
-    TRY.
-        CREATE OBJECT ro_object TYPE (is_transaction-class_name).
-      CATCH cx_root INTO DATA(lx_create_error).
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Unable to start transaction { is_transaction-tcode } ({ is_transaction-class_name }): { lx_create_error->get_text( ) }| ).
-    ENDTRY.
+* The catalog already created the class and derived its kind from the
+* interfaces it implements, so a failure here is an application crash.
+    CREATE OBJECT ro_object TYPE (is_transaction-class_name).
 
     CASE is_transaction-kind.
       WHEN zcl_gg_transaction_registry=>kind_report.
-        TRY.
-            lo_report ?= ro_object.
-          CATCH cx_root.
-            RAISE EXCEPTION NEW zcx_gg_transaction_error(
-              iv_message = |Transaction { is_transaction-tcode } is not a report implementation| ).
-        ENDTRY.
+        lo_report ?= ro_object.
       WHEN zcl_gg_transaction_registry=>kind_dynpro.
-        TRY.
-            lo_dynpro ?= ro_object.
-          CATCH cx_root.
-            RAISE EXCEPTION NEW zcx_gg_transaction_error(
-              iv_message = |Transaction { is_transaction-tcode } is not a dynpro implementation| ).
-        ENDTRY.
+        lo_dynpro ?= ro_object.
       WHEN OTHERS.
         RAISE EXCEPTION NEW zcx_gg_transaction_error(
           iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind| ).
@@ -1065,22 +1044,12 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
     CASE is_transaction-kind.
       WHEN zcl_gg_transaction_registry=>kind_report.
-        TRY.
-            lo_report ?= lo_object.
-          CATCH cx_root.
-            RAISE EXCEPTION NEW zcx_gg_transaction_error(
-              iv_message = |Transaction { is_transaction-tcode } is not a report implementation| ).
-        ENDTRY.
+        lo_report ?= lo_object.
         rs_response = start_program(
           io_report  = lo_report
           iv_program = CONV #( is_transaction-class_name ) ).
       WHEN zcl_gg_transaction_registry=>kind_dynpro.
-        TRY.
-            lo_dynpro ?= lo_object.
-          CATCH cx_root.
-            RAISE EXCEPTION NEW zcx_gg_transaction_error(
-              iv_message = |Transaction { is_transaction-tcode } is not a dynpro implementation| ).
-        ENDTRY.
+        lo_dynpro ?= lo_object.
         rs_response = start_program(
           io_dynpro  = lo_dynpro
           iv_program = CONV #( is_transaction-class_name ) ).
