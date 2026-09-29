@@ -1,4 +1,4 @@
-CLASS cl_salv_functions DEFINITION PUBLIC.
+CLASS cl_salv_functions DEFINITION PUBLIC FRIENDS cl_salv_table.
   PUBLIC SECTION.
     METHODS add_function
         IMPORTING

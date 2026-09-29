@@ -403,7 +403,7 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'sandbox=""' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'javascript:' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lo_salv->get_html( ) CS 'SALV &amp; table' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-salv-table' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-alv"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<root>' ) ).
     cl_gui_control=>clear_external_html( ).
   ENDMETHOD.

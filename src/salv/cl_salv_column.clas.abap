@@ -23,6 +23,9 @@ CLASS cl_salv_column DEFINITION PUBLIC.
     METHODS is_technical
       RETURNING
         VALUE(value) TYPE abap_bool.
+    METHODS is_visible
+      RETURNING
+        VALUE(value) TYPE abap_bool.
 
     METHODS get_short_text
       RETURNING
@@ -151,6 +154,10 @@ CLASS cl_salv_column IMPLEMENTATION.
 
   METHOD is_technical.
     value = mv_technical.
+  ENDMETHOD.
+
+  METHOD is_visible.
+    value = mv_visible.
   ENDMETHOD.
 
   METHOD constructor.

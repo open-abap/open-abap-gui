@@ -20,7 +20,7 @@ CLASS ltcl_ex_163 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals( act = ls_result-title
                                         exp = 'Event status' ).
     cl_abap_unit_assert=>assert_initial( ls_result-messages ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-salv-table"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-alv"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-fieldname="TRAFFIC_LIGHT"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>BUS2032<' ) ).
   ENDMETHOD.
