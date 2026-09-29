@@ -27,6 +27,12 @@ CLASS cl_salv_columns DEFINITION PUBLIC FRIENDS cl_salv_table cl_salv_tree cl_sa
       IMPORTING
         columnname TYPE lvc_fname.
 
+    METHODS create_column
+      IMPORTING
+        columnname   TYPE lvc_fname
+      RETURNING
+        VALUE(value) TYPE REF TO cl_salv_column.
+
     TYPES: BEGIN OF ty_column_state,
              columnname TYPE lvc_fname,
              column     TYPE REF TO cl_salv_column,
@@ -80,7 +86,11 @@ CLASS cl_salv_columns IMPLEMENTATION.
       RETURN.
     ENDIF.
     APPEND VALUE #( columnname = columnname
-                    column     = NEW cl_salv_column_list( columnname = columnname ) ) TO mt_columns.
+                    column     = create_column( columnname ) ) TO mt_columns.
+  ENDMETHOD.
+
+  METHOD create_column.
+    value = NEW cl_salv_column( columnname = columnname ).
   ENDMETHOD.
 
 ENDCLASS.

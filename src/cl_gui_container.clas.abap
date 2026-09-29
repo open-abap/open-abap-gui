@@ -7,6 +7,8 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     TYPES ty_child_ids TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
+    CLASS-METHODS class_constructor.
+
     METHODS add_child
       IMPORTING
         child TYPE REF TO cl_gui_control.
@@ -30,6 +32,19 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 ENDCLASS.
 
 CLASS cl_gui_container IMPLEMENTATION.
+  METHOD class_constructor.
+* DEFAULT_SCREEN and SCREEN0 stand for the dynpro itself, so SAP GUI has them
+* bound before any program runs. They are never registered as controls: a
+* control created on them gets no parent id and renders at the top level of
+* the screen, the same place as a control created without a parent.
+    CREATE OBJECT default_screen.
+    default_screen->mv_alive = abap_true.
+    default_screen->mv_visible = abap_true.
+    CREATE OBJECT screen0.
+    screen0->mv_alive = abap_true.
+    screen0->mv_visible = abap_true.
+  ENDMETHOD.
+
   METHOD add_child.
     IF child IS BOUND AND NOT line_exists( mt_child_ids[ table_line = child->control_id ] ).
       APPEND child->control_id TO mt_child_ids.

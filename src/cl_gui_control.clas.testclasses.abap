@@ -7,6 +7,7 @@ CLASS ltcl_control_helpers DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVE
         cx_salv_not_found.
     METHODS grid_filter_options FOR TESTING.
     METHODS column_tree_indent FOR TESTING.
+    METHODS grid_on_default_screen FOR TESTING.
 
     METHODS salv_keeps
       IMPORTING
@@ -90,6 +91,30 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
       ENDIF.
     ENDLOOP.
     cl_gui_control=>clear( ).
+  ENDMETHOD.
+
+  METHOD grid_on_default_screen.
+    TYPES: BEGIN OF ty_row,
+             carrier TYPE c LENGTH 3,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fcat TYPE lvc_t_fcat.
+
+    cl_abap_unit_assert=>assert_bound( cl_gui_container=>default_screen ).
+    cl_abap_unit_assert=>assert_bound( cl_gui_container=>screen0 ).
+
+    lt_rows = VALUE #( ( carrier = 'LH' ) ).
+    APPEND VALUE #( fieldname = 'CARRIER' inttype = 'C' ) TO lt_fcat.
+    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = cl_gui_container=>default_screen ).
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_gui_control=>clear( ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-control-kind="ALV_GRID"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>LH<' ) ).
   ENDMETHOD.
 
   METHOD salv_filter_options.

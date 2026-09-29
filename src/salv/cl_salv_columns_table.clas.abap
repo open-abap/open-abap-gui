@@ -9,9 +9,16 @@ CLASS cl_salv_columns_table DEFINITION PUBLIC INHERITING FROM cl_salv_columns_li
     METHODS set_hyperlink_entry_column
       IMPORTING
         value TYPE any.
+
+  PROTECTED SECTION.
+    METHODS create_column REDEFINITION.
 ENDCLASS.
 
 CLASS cl_salv_columns_table IMPLEMENTATION.
+  METHOD create_column.
+    value = NEW cl_salv_column_table( columnname = columnname ).
+  ENDMETHOD.
+
   METHOD set_hyperlink_entry_column.
     TRY.
         get_column( CONV lvc_fname( value ) )->set_technical( abap_true ).
