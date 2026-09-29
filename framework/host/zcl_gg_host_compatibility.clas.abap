@@ -375,7 +375,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
             t_table_level1          = ct_header
             t_table_level2          = ct_item ).
         lo_hierseq->display( ).
-      CATCH cx_root INTO DATA(lx_error).
+      CATCH cx_salv_error cx_salv_no_check cx_salv_method_not_supported INTO DATA(lx_error).
         cl_gui_control=>set_external_html(
           |<section class="gg-classic-alv gg-classic-alv-hierseq" aria-label="Classic hierarchical ALV"><h2>{ cl_gui_control=>escape_html( is_request-title ) }</h2><p>Hierarchical ALV fallback: { cl_gui_control=>escape_html( lx_error->get_text( ) ) }</p><p>Header and item tables remain separate; no native success is claimed.</p></section>| ).
     ENDTRY.
@@ -1004,7 +1004,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
             t_table      = ct_outtab ).
         lo_salv->set_list_header( lv_title ).
         rv_html = lo_salv->get_html( ).
-      CATCH cx_root INTO DATA(lx_error).
+      CATCH cx_salv_error cx_salv_no_check cx_salv_method_not_supported INTO DATA(lx_error).
         rv_html = |<p data-native-capability="unavailable">Classic ALV semantic renderer failed safely: { cl_gui_control=>escape_html( lx_error->get_text( ) ) }</p>|.
     ENDTRY.
   ENDMETHOD.

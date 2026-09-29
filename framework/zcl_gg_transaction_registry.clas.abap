@@ -157,25 +157,22 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
     SORT lt_names.
 
     LOOP AT lt_names INTO lv_class_name.
-      TRY.
-          CREATE OBJECT lo_object TYPE (lv_class_name).
-          lo_metadata ?= lo_object.
-        CATCH cx_root INTO DATA(lx_metadata).
-          RAISE EXCEPTION NEW zcx_gg_transaction_error(
-            iv_message = |Transaction class { lv_class_name } cannot provide metadata: { lx_metadata->get_text( ) }| ).
-      ENDTRY.
+* Discovery found the class through the interface, so a constructor or cast
+* failure here is an application crash and keeps its original exception.
+      CREATE OBJECT lo_object TYPE (lv_class_name).
+      lo_metadata ?= lo_object.
 
       CLEAR: lo_report, lo_dynpro, lv_report, lv_dynpro.
       TRY.
           lo_report ?= lo_object.
           lv_report = abap_true.
-        CATCH cx_root.
+        CATCH cx_sy_move_cast_error.
           CLEAR lo_report.
       ENDTRY.
       TRY.
           lo_dynpro ?= lo_object.
           lv_dynpro = abap_true.
-        CATCH cx_root.
+        CATCH cx_sy_move_cast_error.
           CLEAR lo_dynpro.
       ENDTRY.
       IF lv_report = abap_true AND lv_dynpro = abap_true.

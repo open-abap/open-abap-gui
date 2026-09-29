@@ -73,16 +73,13 @@ CLASS zcl_gg_program_registry IMPLEMENTATION.
     lt_names = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_PROGRAM_V1` ).
 
     LOOP AT lt_names INTO lv_class_name.
-      TRY.
-          CREATE OBJECT lo_object TYPE (lv_class_name).
-          lo_metadata ?= lo_object.
-        CATCH cx_root INTO DATA(lx_metadata).
-          RAISE EXCEPTION NEW zcx_gg_transaction_error(
-            iv_message = |Program class { lv_class_name } cannot provide metadata: { lx_metadata->get_text( ) }| ).
-      ENDTRY.
+* Discovery found the class through the interface, so a constructor or cast
+* failure here is an application crash and keeps its original exception.
+      CREATE OBJECT lo_object TYPE (lv_class_name).
+      lo_metadata ?= lo_object.
       TRY.
           lo_report ?= lo_object.
-        CATCH cx_root.
+        CATCH cx_sy_move_cast_error.
           RAISE EXCEPTION NEW zcx_gg_transaction_error(
             iv_message = |Program class { lv_class_name } does not implement ZIF_GG_REPORT_V1| ).
       ENDTRY.

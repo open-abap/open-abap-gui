@@ -102,7 +102,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(transactions.locator(".wb-app-list > li")).toHaveCount(167);
   const reports = page.getByRole("navigation", {name: "Reports"});
   await expect(reports).toBeVisible();
-  await expect(reports.locator(".wb-app-list > li")).toHaveCount(1);
+  await expect(reports.locator(".wb-app-list > li")).toHaveCount(2);
   await expect(reports.getByRole("link", {name: "ZGG_INT_PROGRAM"})).toHaveAttribute(
     "href",
     "/program?name=ZGG_INT_PROGRAM",
