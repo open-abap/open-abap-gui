@@ -12,6 +12,9 @@ CLASS cl_salv_columns_tree DEFINITION PUBLIC INHERITING FROM cl_salv_columns.
       RETURNING
         VALUE(value) TYPE lvc_fname.
 
+  PROTECTED SECTION.
+    METHODS create_column REDEFINITION.
+
   PRIVATE SECTION.
     DATA mv_exception_column TYPE lvc_fname.
 
@@ -25,6 +28,10 @@ CLASS cl_salv_columns_tree IMPLEMENTATION.
 
   METHOD get_exception_column.
     value = mv_exception_column.
+  ENDMETHOD.
+
+  METHOD create_column.
+    value = NEW cl_salv_column_tree( columnname = columnname ).
   ENDMETHOD.
 
 ENDCLASS.

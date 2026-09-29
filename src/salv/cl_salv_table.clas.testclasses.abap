@@ -10,6 +10,9 @@ CLASS ltcl_salv_table_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS hides_technical_columns FOR TESTING
       RAISING
         cx_salv_not_found.
+    METHODS column_is_column_table FOR TESTING
+      RAISING
+        cx_salv_not_found.
 ENDCLASS.
 
 CLASS ltcl_salv_table_support IMPLEMENTATION.
@@ -157,5 +160,23 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="CELL_COLORS"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="CELL_TYPES"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-fieldname="LINK_HANDLES"' ) ).
+  ENDMETHOD.
+
+  METHOD column_is_column_table.
+    TYPES: BEGIN OF ty_row,
+             traffic_light TYPE c LENGTH 4,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+    DATA lo_column TYPE REF TO cl_salv_column_table.
+
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_column ?= lo_salv->get_columns( )->get_column( 'TRAFFIC_LIGHT' ).
+    lo_column->set_icon( abap_true ).
+    cl_abap_unit_assert=>assert_true( act = lo_column->is_icon( ) ).
   ENDMETHOD.
 ENDCLASS.

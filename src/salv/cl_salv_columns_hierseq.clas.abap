@@ -11,6 +11,9 @@ CLASS cl_salv_columns_hierseq DEFINITION PUBLIC INHERITING FROM cl_salv_columns_
       RETURNING
         VALUE(value) TYPE lvc_fname.
 
+  PROTECTED SECTION.
+    METHODS create_column REDEFINITION.
+
   PRIVATE SECTION.
     DATA mv_expand_column TYPE lvc_fname.
 
@@ -24,6 +27,10 @@ CLASS cl_salv_columns_hierseq IMPLEMENTATION.
 
   METHOD get_expand_column.
     value = mv_expand_column.
+  ENDMETHOD.
+
+  METHOD create_column.
+    value = NEW cl_salv_column_hierseq( columnname = columnname ).
   ENDMETHOD.
 
 ENDCLASS.
