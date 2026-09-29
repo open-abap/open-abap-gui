@@ -275,10 +275,10 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-state-selected,[aria-selected=true],[aria-current=true]\{background:#c7dced;color:#102f4d;\}|.
     rv_html = rv_html && |.gg-state-changed,[data-state~="changed"]\{box-shadow:inset 3px 0 #d4a000;\}|.
     rv_html = rv_html && |.gg-state-disabled,[disabled],[aria-disabled=true]\{opacity:.62;cursor:default;\}|.
-* An empty required field carries the ticked box draws at its left edge.
+* An empty required field carries the ticked box drawn at its right edge.
 * The browser does not enforce required (submits are formnovalidate), so
 * :invalid means empty here; disabled and read-only fields never match it.
-    rv_html = rv_html && |input[required]:is([type=text],[type=password]):invalid\{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Crect x='.5' y='.5' width='11' height='11' rx='1.5' fill='%23fff' stroke='%235b7790'/%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%232c618d' stroke-width='1.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:4px center;background-size:12px 12px;text-indent:14px;\}|.
+    rv_html = rv_html && |input[required]:is([type=text],[type=password]):invalid\{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Crect x='.5' y='.5' width='11' height='11' rx='1.5' fill='%23fff' stroke='%235b7790'/%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%232c618d' stroke-width='1.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;background-size:12px 12px;\}|.
     rv_html = rv_html && |.gg-state-error,[aria-invalid=true],[data-state~="error"]\{border-color:#b00020;color:#8f001b;\}|.
     rv_html = rv_html && |.gg-state-warning,[data-state~="warning"]\{border-color:#c08100;color:#704700;\}|.
     rv_html = rv_html && |.gg-state-total\{font-weight:700;border-top:1px solid #6f879b;\}|.
