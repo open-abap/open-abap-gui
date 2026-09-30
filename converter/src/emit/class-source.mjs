@@ -156,7 +156,7 @@ function continuationRenames(ir) {
   return Object.fromEntries([...continuationLocalNames(ir)].sort().map((name) => [name, `mv_ggconv_${name.toLowerCase()}`]));
 }
 
-export function prepareLocalClassNames(ir, options = {}) {
+function prepareLocalClassNames(ir, options = {}) {
   const target = String(ir.targetClassName ?? "ZCL_CONVERTED").toUpperCase().replace(/[^A-Z0-9_]/g, "_");
   const used = new Set([
     target,

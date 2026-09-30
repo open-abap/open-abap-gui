@@ -40,7 +40,7 @@ function runtimeClass(runtime, name) {
  * The adapter exposes source and a deterministic source revision; it has no
  * mutation methods by design.
  */
-export function createAbapRepository(runtime = globalThis.abap) {
+function createAbapRepository(runtime = globalThis.abap) {
   async function repositoryObject() {
     const instance = new (runtimeClass(runtime, "ZCL_GG_SYSTEM_REPOSITORY"))();
     await instance.constructor_();

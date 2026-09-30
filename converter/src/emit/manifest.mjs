@@ -58,7 +58,3 @@ export function createManifest(ir, diagnostics, options) {
     ].sort(([left], [right]) => left.localeCompare(right))),
   });
 }
-
-export function manifestJSON(manifest) {
-  return `${JSON.stringify(stable(manifest), null, 2)}\n`;
-}

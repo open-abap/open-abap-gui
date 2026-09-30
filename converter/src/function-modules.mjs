@@ -84,7 +84,7 @@ function scanParameterEnd(raw, start) {
   return raw.length;
 }
 
-export function functionParameter(raw, name) {
+function functionParameter(raw, name) {
   const match = new RegExp(`\\b${String(name).replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*=\\s*`, "i").exec(raw);
   if (!match) return undefined;
   const start = match.index + match[0].length;

@@ -30,7 +30,7 @@ function splitDeclarationParts(body) {
   return parts;
 }
 
-export function declarationEntries(raw, keyword) {
+function declarationEntries(raw, keyword) {
   const body = raw.replace(new RegExp(`^\\s*${keyword}\\s*:??\\s*`, "i"), "").replace(/\.$/, "");
   return splitDeclarationParts(body).map((part) => {
     const match = /^([A-Z][A-Z0-9_]*)\s*(.*)$/i.exec(part);

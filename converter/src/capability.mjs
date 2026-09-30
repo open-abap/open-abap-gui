@@ -14,7 +14,7 @@ const ACTIONABLE_CATEGORIES = Object.freeze(Object.fromEntries(
   Object.entries(ACTIONABLE_DIAGNOSTIC_CODES).map(([category, code]) => [code, category]),
 ));
 
-export function actionableDiagnosticCode(statement) {
+function actionableDiagnosticCode(statement) {
   if (statement.kind === "FieldSymbol" || statement.kind === "Assign") return ACTIONABLE_DIAGNOSTIC_CODES.dynamicType;
   return ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement;
 }
