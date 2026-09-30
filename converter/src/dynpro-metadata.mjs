@@ -610,8 +610,6 @@ export async function loadDynproMetadata({
   return metadata;
 }
 
-export { parseFlowLogic };
-
 /**
  * Read an abapGit TRAN object (`<tcode>.tran.xml`): the transaction code, the
  * program it starts, and its short text. Returns undefined for a transaction

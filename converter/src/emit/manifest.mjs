@@ -30,7 +30,7 @@ export function createManifest(ir, diagnostics, options) {
     metadataInputs: {
       dynpro: Boolean(ir.dynproMetadata),
       screenProvider: Boolean(ir.screenMetadata),
-      ddicTypes: Boolean(options.ddicTypes ?? options.dictionaryTypes ?? options.dictionary),
+      ddicTypes: Boolean(options.ddicTypes),
       compatibilityAdapters,
       resolvedTypes: Object.keys(ir.resolvedTypes ?? {}).sort(),
     },
@@ -44,7 +44,6 @@ export function createManifest(ir, diagnostics, options) {
       systemFields: ir.statePlan.systemFields,
     } : {},
     features,
-    supportedFeatures: features,
     capabilities: ir.capabilities ?? [],
     unsupportedFeatures: sortDiagnostics(diagnostics).filter((item) => item.code.startsWith("GGCONV-E")).map((item) => item.code),
     diagnostics: {

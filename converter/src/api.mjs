@@ -224,7 +224,6 @@ function buildReportIR(parsed, resolved, options) {
 
 function metadataTextPool(ir, options) {
   return options.textPool
-    ?? options.textSymbols
     ?? ir.screenMetadata?.textPool
     ?? ir.dynproMetadata?.textPool;
 }
@@ -325,7 +324,7 @@ function applyTextPool(ir, options) {
 }
 
 function applySelectionMetadata(ir, options) {
-  const metadata = options.selectionMetadata ?? options.selectionScreenMetadata;
+  const metadata = options.selectionMetadata;
   if (!metadata || typeof metadata !== "object") return;
   for (const screen of ir.selections) {
     for (const item of screen.elements) {
