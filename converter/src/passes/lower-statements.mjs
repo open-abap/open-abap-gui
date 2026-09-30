@@ -319,6 +319,7 @@ export const METHOD_SAFE_STATEMENTS = new Set([
   "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
   "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
   "CreateObject", "Call", "CallMethod", "SetHandler",
+  "OpenDataset", "ReadDataset", "Transfer", "CloseDataset", "DeleteDataset", "GetDataset", "SetDataset",
 ]);
 
 export function isMethodSafeLoop(statement) {
