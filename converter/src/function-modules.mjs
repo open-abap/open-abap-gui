@@ -220,7 +220,6 @@ function lowerDynamicSelection(raw, name) {
 }
 
 function lowerVariants(raw, name) {
-  const report = functionParameter(raw, "report") ?? functionParameter(raw, "curr_report");
   const variant = functionParameter(raw, "variant") ?? functionParameter(raw, "curr_variant");
   const reportParameter = functionParameter(raw, "report") !== undefined ? "report" : "curr_report";
   const variantParameter = functionParameter(raw, "variant") !== undefined ? "variant" : "curr_variant";

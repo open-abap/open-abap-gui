@@ -1,5 +1,3 @@
-const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 };
-
 export function diagnostic({
   code,
   severity = "error",

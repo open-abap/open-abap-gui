@@ -678,7 +678,7 @@ function selectionBuilder(ir) {
   return lines;
 }
 
-function methodContext(ir, event, qualifierOverride, {parameters = [], statements = ir.statements ?? []} = {}) {
+function methodContext(ir, event, {parameters = [], statements = ir.statements ?? []} = {}) {
   const mutable = ["initialization", "at_selection_screen", "at_selection_screen_on_field", "at_selection_screen_on_end_of", "at_selection_screen_on_block", "at_selection_screen_on_radio", "at_selection_screen_output"].includes(event);
   const values = ir.selections
     .flatMap((screen) => screen.elements.map((item) => ({ ...item, screen: screen.number })))
@@ -881,12 +881,6 @@ function nestedSelectionCaptures(ir) {
   return lines;
 }
 
-function continuationFor(ir, statement) {
-  return ir.continuations?.find((item) => item.filename === statement.filename
-    && item.span.start.line === statement.span.start.line
-    && item.span.start.column === statement.span.start.column);
-}
-
 function removePromotedDeclarations(ir, lines) {
   const promoted = new Set([...continuationLocalNames(ir)].map((name) => continuationRenames(ir)[name].toLowerCase()));
   if (!promoted.size) return lines;
@@ -1013,9 +1007,9 @@ function truncateTerminalPaths(statements) {
   return output;
 }
 
-function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifierOverride) {
+function eventBody(ir, event, sourceStatements = ir.events[event] ?? []) {
   const statements = truncateTerminalPaths(sourceStatements);
-  const context = methodContext(ir, event, qualifierOverride, {statements: sourceStatements});
+  const context = methodContext(ir, event, {statements: sourceStatements});
   context.screenStates = event === "at_selection_screen_output"
     ? { kind: "selection", table: "ct_states" }
     : storedScreenStates(screenStatePlan(ir).defaultKind);
@@ -1094,7 +1088,7 @@ function reportMethods(ir) {
   const bodiesFor = (event) => {
     const blocks = ir.eventBlocks?.filter((block) => block.event === event) ?? [];
     if (!blocks.length) return eventBody(ir, event).body;
-    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements, block.qualifier).body, block.qualifier));
+    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements).body, block.qualifier));
   };
   for (const event of REPORT_METHODS) {
     if (event === "get_logical_database") {
@@ -1125,7 +1119,7 @@ function listMethods(ir) {
   const bodiesFor = (event) => {
     const blocks = ir.eventBlocks?.filter((block) => block.event === event) ?? [];
     if (!blocks.length) return eventBody(ir, event).body;
-    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements, block.qualifier).body, block.qualifier));
+    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements).body, block.qualifier));
   };
   for (const name of LIST_METHODS) {
     if (name === "get_settings") {
@@ -1266,7 +1260,7 @@ function routineBody(ir, routine) {
   const dynamicTableAction = unsupportedDynamicTableAction(ir, routine);
   if (dynamicTableAction) return dynamicTableAction;
   const active = truncateTerminalPaths(routine.statements ?? []);
-  const context = methodContext(ir, "start_of_selection", undefined, {
+  const context = methodContext(ir, "start_of_selection", {
     parameters: routine.parameters,
     statements: routine.statements ?? [],
   });
@@ -1455,14 +1449,6 @@ function dynproTableDefinitions(screen) {
 
 function dynproTableBindings(metadata) {
   return (metadata?.screens ?? []).flatMap((screen) => dynproTableDefinitions(screen));
-}
-
-function dynproTableRuntimeMembers(ir) {
-  return (ir.statements ?? []).flatMap((statement) => {
-    if (statement.kind !== "Controls") return [];
-    const name = /^CONTROLS\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text)?.[1];
-    return name ? [`DATA ${name.toLowerCase()} TYPE zif_gg_dynpro_types_v1=>ty_table_runtime.`] : [];
-  });
 }
 
 function dynproTableHydrate(bindings) {
@@ -1932,7 +1918,7 @@ function helperMethodContext(ir, localClass, localMethod) {
     return name && name.toUpperCase() === String(localMethod?.name ?? "").toUpperCase();
   });
   const isEventHandler = staticEventHandlerNames(localClass).has(String(localMethod?.name ?? "").toUpperCase());
-  const context = methodContext(ir, "local_class", undefined, {
+  const context = methodContext(ir, "local_class", {
     statements: localMethod?.statements ?? ir.statements ?? [],
   });
   const [owner, session] = isEventHandler
@@ -2276,7 +2262,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
   ].join("\n")}`;
 }
 
-export function lowerToScaffoldIR(ir, options, sourceMap = []) {
+export function lowerToScaffoldIR(ir, sourceMap = []) {
   const methods = [];
   if (ir.interfaces.includes("zif_gg_transaction_v1")) {
     methods.push(method("zif_gg_transaction_v1~get_transaction", [`rs_transaction = VALUE #( tcode = '${ir.transactionCode}' description = '${String(ir.description).replaceAll("'", "''")}'${programField(ir)} ).`]));

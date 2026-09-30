@@ -45,7 +45,7 @@ async function prepare() {
   const names = (await fs.readdir(examples))
     .filter((name) => /^zgg_ex_\d{3}\.prog\.abap$/.test(name) && Number(name.slice(7, 10)) <= 58)
     .sort();
-  for (const [index, name] of names.entries()) {
+  for (const name of names) {
     const source = await fs.readFile(path.join(examples, name), "utf8");
     const id = name.slice(7, 10);
     const className = `ZCL_BV_${id}`;

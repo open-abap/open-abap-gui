@@ -124,15 +124,6 @@ function localClassObjectTypes(localClasses) {
   return result;
 }
 
-function localClassStaticMethods(localClasses) {
-  return Object.fromEntries((localClasses ?? []).map((localClass) => [
-    String(localClass.name ?? "").toUpperCase(),
-    new Set((localClass.methods ?? [])
-      .filter((method) => /^\s*CLASS-METHODS\b/i.test(method.definition?.text ?? ""))
-      .map((method) => String(method.name ?? "").toUpperCase())),
-  ]));
-}
-
 function eventHandlerObjectTypes(localClasses) {
   const result = {};
   for (const localClass of localClasses ?? []) {

@@ -1,8 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const SCREEN_FILE = /^(?<stem>.+)\.prog\.screen_(?<number>\d{1,4})\.abap$/i;
-
 function localName(name) {
   return String(name ?? "").split(":").at(-1).toUpperCase();
 }
@@ -546,7 +544,7 @@ function replaceProgramExtension(filename, extension) {
   return `${filename}${extension}`;
 }
 
-function screenFilesForReport(directory, reportFilename, names) {
+function screenFilesForReport(reportFilename, names) {
   const stem = path.basename(reportFilename).replace(/\.prog\.abap$/i, "");
   const expected = new RegExp(`^${stem.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\.prog\\.screen_(\\d{1,4})\\.abap$`, "i");
   return names.map((name) => {
@@ -582,7 +580,7 @@ export async function loadDynproMetadata({
   }
   const directory = path.normalize(screenDirectory ?? path.dirname(xmlFilename));
   const candidates = screenFiles ?? await readDirectory(directory);
-  const matching = screenFilesForReport(directory, reportFilename, candidates);
+  const matching = screenFilesForReport(reportFilename, candidates);
   const metadata = parseXmlMetadata(xml, { metadataFilename: xmlFilename });
   const flowByNumber = new Map();
   const loadedFiles = [];
