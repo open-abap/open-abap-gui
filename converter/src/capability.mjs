@@ -3,6 +3,7 @@ import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
 import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
+import { LOOP_BLOCKS } from "./passes/blocks.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
   dynamicType: "GGCONV-E515",
@@ -62,10 +63,12 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
   const diagnostics = [];
   const interfaces = new Set(ir.interfaces);
   for (const continuation of ir.continuations ?? []) {
-    const unsafeContext = (continuation.controlStack ?? []).find((item) => ["Do", "Loop", "Try", "While"].includes(item.kind));
+    // A continuation resumes the rest of an IF, CASE or TRY body, but not the
+    // remaining iterations of a loop around the suspension.
+    const unsafeContext = (continuation.controlStack ?? []).find((item) => LOOP_BLOCKS.has(item.kind));
     if (unsafeContext) {
       const statement = statements.find((item) => item.filename === continuation.filename && item.span.start.line === continuation.span.start.line && item.span.start.column === continuation.span.start.column);
-      if (statement) addStatementDiagnostic(diagnostics, statement, `suspending navigation inside ${unsafeContext.kind.toUpperCase()} cannot be split safely yet`, "Move the suspension to an event boundary or provide an explicit continuation mapping.", "GGCONV-W402");
+      if (statement) addStatementDiagnostic(diagnostics, statement, `suspending navigation inside ${unsafeContext.kind.toUpperCase()} resumes after the loop; its remaining iterations do not run`, "Move the suspension out of the loop or provide an explicit continuation mapping.", "GGCONV-W402");
     }
   }
   for (const duplicate of ir.duplicateEvents ?? []) {
@@ -98,6 +101,9 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     }
     if (statement.kind === "Write" && !supportedClassicWriteFormat(statement.text)) {
       addStatementDiagnostic(diagnostics, statement, "this WRITE formatting addition is not represented by the scaffold writer", "Move the formatting to FORMAT or provide a typed writer extension.", "GGCONV-E501");
+    }
+    if (statement.kind === "CallTransaction" && /\bUSING\b/.test(text.replace(/'(?:''|[^'])*'/g, ""))) {
+      addStatementDiagnostic(diagnostics, statement, "CALL TRANSACTION ... USING replays batch-input screens, which the host cannot drive", "Pass the values the called transaction reads through SET PARAMETER ID with AND SKIP FIRST SCREEN, or convert the call manually.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement);
     }
     const dynamicWrite = dynamicWriteOperand(statement);
     if (dynamicWrite && (!dynamicWrite.supported || !hasDynamicWriteTargets(ir))) {

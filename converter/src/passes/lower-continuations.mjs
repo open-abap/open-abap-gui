@@ -1,18 +1,9 @@
 import crypto from "node:crypto";
+import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "./blocks.mjs";
 
 const CONTROL_WORDS = new Set(["CALL", "SCREEN", "SELECTION", "SUBMIT", "AND", "RETURN", "TRANSACTION", "USING", "WITH", "VALUE", "TYPE", "IF", "ELSE", "ELSEIF", "ENDIF", "DO", "ENDDO", "CASE", "WHEN", "ENDCASE"]);
-const OPENERS = new Set(["If", "Do", "Loop", "Case", "Try", "While"]);
-const BRANCHES = new Set(["Else", "ElseIf", "When", "WhenOthers", "Catch", "Cleanup"]);
-const CLOSERS = new Map([
-  ["If", "EndIf"],
-  ["Do", "EndDo"],
-  ["Loop", "EndLoop"],
-  ["Case", "EndCase"],
-  ["Try", "EndTry"],
-  ["While", "EndWhile"],
-]);
 
-function isSuspendingStatement(statement) {
+export function isSuspendingStatement(statement) {
   if (["CallScreen", "CallSelectionScreen", "CallTransaction"].includes(statement.kind)) return true;
   return statement.kind === "Submit" && /\bAND\s+RETURN\b/i.test(statement.text);
 }
@@ -45,16 +36,15 @@ export function collectContinuations(statements, knownVariables = []) {
         controlStack: controlStack.map((item) => ({ ...item })),
       });
     }
-    if (BRANCHES.has(statement.kind) && controlStack.length) {
+    if (BLOCK_BRANCHES.has(statement.kind) && controlStack.length) {
       controlStack[controlStack.length - 1].branch = statement.kind;
     }
-    if (OPENERS.has(statement.kind)) controlStack.push({
+    if (BLOCK_OPENERS.has(statement.kind)) controlStack.push({
       kind: statement.kind,
       branch: "body",
     });
-    const opener = [...CLOSERS.entries()].find(([, closer]) => closer === statement.kind)?.[0];
-    if (opener) {
-      const index = controlStack.map((item) => item.kind).lastIndexOf(opener);
+    if (BLOCK_ENDS.has(statement.kind)) {
+      const index = controlStack.findLastIndex((item) => closesBlock(item.kind, statement.kind));
       if (index >= 0) controlStack.splice(index, 1);
     }
   }

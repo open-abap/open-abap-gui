@@ -83,11 +83,29 @@ CLASS zcl_gg_host_surface DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS surface_action_ucomm   TYPE string VALUE 'UCOMM'.
     CONSTANTS surface_action_command TYPE string VALUE 'COMMAND'.
 
+* Everything a program has put on the browser control surface: controls,
+* trees and host surfaces. A program that calls another with CALL TRANSACTION
+* keeps it, as its internal session keeps its controls in SAP GUI, and has it
+* back when the call returns.
+    TYPES: BEGIN OF ty_saved,
+             surfaces TYPE ty_surfaces,
+             controls TYPE REF TO data,
+             trees    TYPE cl_alv_tree_base=>ty_instances,
+           END OF ty_saved.
+
     CLASS-METHODS set_surface
       IMPORTING
         is_surface TYPE ty_surface.
 
     CLASS-METHODS clear.
+
+    CLASS-METHODS save
+      RETURNING
+        VALUE(rs_saved) TYPE ty_saved.
+
+    CLASS-METHODS restore
+      IMPORTING
+        is_saved TYPE ty_saved.
 
   PRIVATE SECTION.
     CLASS-DATA mt_surfaces TYPE ty_surfaces.
@@ -174,6 +192,18 @@ CLASS zcl_gg_host_surface IMPLEMENTATION.
   METHOD clear.
     CLEAR mt_surfaces.
     cl_gui_control=>clear_external_html( ).
+  ENDMETHOD.
+
+  METHOD save.
+    rs_saved-surfaces = mt_surfaces.
+    rs_saved-controls = cl_gui_control=>save_state( ).
+    rs_saved-trees = cl_alv_tree_base=>save_instances( ).
+  ENDMETHOD.
+
+  METHOD restore.
+    mt_surfaces = is_saved-surfaces.
+    cl_gui_control=>restore_state( is_saved-controls ).
+    cl_alv_tree_base=>restore_instances( is_saved-trees ).
   ENDMETHOD.
 
   METHOD escape.

@@ -1,10 +1,10 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, openExample, dispatch, expectPageKind, expectWorkbench} from "../fixtures.mjs";
 
 test(`ZCL_GG_EX_037 — executes selection exit handling`, async ({page, host}) => {
   await openExample(page, host, 37);
   await expectPageKind(page, "SELECTION");
+  // The exit handler runs LEAVE PROGRAM, which ends the transaction the
+  // workbench started.
   await dispatch(page, {action: "EXIT", ucomm: "ECAN"});
-  await expectPageKind(page, "TERMINAL");
-  await expect(page.locator(".gg-terminal")).toHaveText("LEAVE PROGRAM");
-  await expect(page.locator(".wb-runtime-content form")).toHaveCount(0);
+  await expectWorkbench(page);
 });

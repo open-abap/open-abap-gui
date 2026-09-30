@@ -18,6 +18,12 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * passes abap_false; it stops only when it asked for VIA SELECTION-SCREEN.
         iv_interactive           TYPE abap_bool DEFAULT abap_true
         it_input                 TYPE zif_gg_selection_screen_types=>ty_values OPTIONAL
+* The session that started this program with CALL TRANSACTION or SUBMIT AND
+* RETURN. It continues after that statement once this program ends.
+        iv_caller                TYPE string OPTIONAL
+* CALL TRANSACTION ... AND SKIP FIRST SCREEN: the first screen is processed
+* with Enter as soon as its PBO has filled it.
+        iv_skip_first_screen     TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rs_response)       TYPE zif_gg_host_html_v1=>ty_response.
 
@@ -59,8 +65,18 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              last_dynpro         TYPE zcl_gg_host_dynpro=>ty_result,
              results             TYPE STANDARD TABLE OF zcl_gg_host=>ty_result WITH DEFAULT KEY,
              pages               TYPE zif_gg_host_html_v1=>ty_pages,
+             caller              TYPE string,
+* The controls this program showed when it called another one, put back when
+* that call returns.
+             surface             TYPE zcl_gg_host_surface=>ty_saved,
+* The report opened on its selection screen, which it shows again when a run
+* ends without a list, as SAP GUI does.
+             selection_start     TYPE abap_bool,
            END OF ty_session.
     TYPES ty_sessions TYPE STANDARD TABLE OF ty_session WITH DEFAULT KEY.
+
+* The terminal text of a report run that ended with nothing to display.
+    CONSTANTS c_program_ended TYPE string VALUE 'Program ended'.
 
     CLASS-DATA mt_sessions TYPE ty_sessions.
     CLASS-DATA mv_session_id TYPE i.
@@ -130,6 +146,51 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_page_id         TYPE string
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+* Takes over a dynpro step into the session: starts what the step called,
+* returns a report's CALL SCREEN at screen 0, or keeps the new screen.
+    CLASS-METHODS enter_dynpro_result
+      IMPORTING
+        is_dynpro          TYPE zcl_gg_host_dynpro=>ty_result
+        iv_page_id         TYPE string
+        is_session         TYPE ty_session
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+* CALL TRANSACTION and SUBMIT AND RETURN start the target as a session of its
+* own that returns to is_session when it ends; LEAVE TO TRANSACTION replaces
+* is_session and everything that called it.
+    CLASS-METHODS start_called
+      IMPORTING
+        is_navigation      TYPE zif_gg_host_html_v1=>ty_navigation
+        is_submit          TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
+        is_session         TYPE ty_session
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+* A program ends when it leaves its last screen or its report run is over.
+* The session then returns to its caller, or is reported as ended.
+    CLASS-METHODS respond
+      IMPORTING
+        is_session         TYPE ty_session
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+    CLASS-METHODS program_ended
+      IMPORTING
+        is_session      TYPE ty_session
+      RETURNING
+        VALUE(rv_ended) TYPE abap_bool.
+
+    CLASS-METHODS resume_caller
+      IMPORTING
+        iv_session_id      TYPE string
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+    CLASS-METHODS store
+      IMPORTING
+        is_session TYPE ty_session.
 ENDCLASS.
 
 CLASS zcl_gg_host_runtime IMPLEMENTATION.
@@ -161,6 +222,20 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         iv_submitted  = abap_false
         iv_session_id = lv_session_id
         iv_page_id    = |{ lv_session_id }-1| ).
+      IF iv_skip_first_screen = abap_true
+          AND ls_dynpro-page_kind = zif_gg_host_html_v1=>page_dynpro
+          AND ls_dynpro-terminal_state = abap_false
+          AND ls_dynpro-navigation-kind IS INITIAL.
+        ls_dynpro = zcl_gg_host_dynpro=>run(
+          io_program    = io_dynpro_program
+          iv_ucomm      = ''
+          iv_submitted  = abap_true
+          it_values     = ls_dynpro-values
+          io_resumable  = lo_resumable
+          iv_screen     = ls_dynpro-screen
+          iv_session_id = lv_session_id
+          iv_page_id    = |{ lv_session_id }-1| ).
+      ENDIF.
     ELSEIF io_report IS BOUND.
       TRY.
           lo_resumable ?= io_report.
@@ -174,7 +249,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         iv_batch               = iv_batch
         it_input               = it_input
         iv_stop_before_start   = iv_selection_screen_only
-        iv_present_selection   = iv_interactive
+        iv_present_selection   = xsdbool( iv_interactive = abap_true AND iv_skip_first_screen = abap_false )
         iv_session_id          = lv_session_id
         iv_page_id             = |{ lv_session_id }-1|
         iv_pause_at_navigation = abap_true ).
@@ -195,20 +270,36 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ls_session-resumable = lo_resumable.
     ls_session-lifecycle = lo_lifecycle.
     ls_session-next_page = 2.
+    ls_session-caller = iv_caller.
+    ls_session-selection_start = xsdbool( ls_result-page_kind = zif_gg_host_html_v1=>page_selection ).
+    APPEND ls_session TO mt_sessions.
     IF io_dynpro_program IS BOUND.
       ls_session-dynpro_program = io_dynpro_program.
-      ls_session-last_dynpro = ls_dynpro.
-      APPEND ls_dynpro-page TO ls_session-pages.
-    ELSE.
-      enter_report_result(
-        EXPORTING
-          is_result  = ls_result
-          iv_page_id = |{ lv_session_id }-1|
-        CHANGING
-          cs_session = ls_session ).
+      store( ls_session ).
+      rs_response = enter_dynpro_result(
+        is_dynpro  = ls_dynpro
+        iv_page_id = |{ lv_session_id }-1|
+        is_session = ls_session ).
+      RETURN.
     ENDIF.
-    APPEND ls_session TO mt_sessions.
-    rs_response = response_for( ls_session ).
+    enter_report_result(
+      EXPORTING
+        is_result  = ls_result
+        iv_page_id = |{ lv_session_id }-1|
+      CHANGING
+        cs_session = ls_session ).
+    store( ls_session ).
+    IF ls_session-dynpro_program IS NOT BOUND
+        AND ( ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_submit ).
+      rs_response = start_called(
+        is_navigation = ls_result-navigation
+        is_submit     = ls_result-submit
+        is_session    = ls_session ).
+      RETURN.
+    ENDIF.
+    rs_response = respond( ls_session ).
   ENDMETHOD.
 
   METHOD dispatch.
@@ -300,10 +391,6 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lv_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm.
     DATA ls_pf_action TYPE zif_gg_session_types_v1=>ty_pf_action.
     DATA lv_page_id TYPE string.
-    DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
-    DATA lo_object TYPE REF TO object.
-    DATA lo_report TYPE REF TO zif_gg_report_v1.
-    DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
     DATA lv_popup_action TYPE string.
     DATA lv_help_request TYPE zif_gg_dynpro_types_v1=>ty_name.
     DATA lv_resume_continuation TYPE string.
@@ -397,62 +484,198 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       CLEAR ls_session-pending_popup_ucomm.
       CLEAR ls_session-pending_help.
     ENDIF.
-    IF ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
-        OR ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction.
-      ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = ls_dynpro-navigation-target ).
+    ls_session-next_page = ls_session-next_page + 1.
+    rs_response = enter_dynpro_result(
+      is_dynpro  = ls_dynpro
+      iv_page_id = lv_page_id
+      is_session = ls_session ).
+  ENDMETHOD.
+
+  METHOD enter_dynpro_result.
+    DATA ls_session TYPE ty_session.
+
+    ls_session = is_session.
+    IF ls_session-report IS BOUND
+        AND ls_session-pending_navigation-kind = zcx_gg_control_flow=>kind_call_screen
+        AND is_dynpro-screen = '0000'
+        AND is_dynpro-terminal_state = abap_false
+        AND is_dynpro-page_kind = zif_gg_host_html_v1=>page_dynpro.
+      rs_response = return_to_report(
+        is_session = ls_session
+        iv_page_id = iv_page_id ).
+      RETURN.
+    ENDIF.
+* The step is kept even when it calls another program: its navigation holds
+* the continuation the program resumes from when the call returns.
+    ls_session-last_dynpro = is_dynpro.
+    APPEND is_dynpro-page TO ls_session-pages.
+    store( ls_session ).
+    IF is_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
+        OR is_dynpro-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction
+        OR is_dynpro-navigation-kind = zcx_gg_control_flow=>kind_submit_return.
+      rs_response = start_called(
+        is_navigation = is_dynpro-navigation
+        is_submit     = is_dynpro-submit
+        is_session    = ls_session ).
+      RETURN.
+    ENDIF.
+    rs_response = respond( ls_session ).
+  ENDMETHOD.
+
+  METHOD start_called.
+    DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
+    DATA lo_object TYPE REF TO object.
+    DATA lo_report TYPE REF TO zif_gg_report_v1.
+    DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
+    DATA lv_caller TYPE string.
+    DATA ls_ended TYPE ty_session.
+
+    IF is_navigation-kind = zcx_gg_control_flow=>kind_submit_return
+        OR is_navigation-kind = zcx_gg_control_flow=>kind_submit.
+      lo_report = report_for_submit( CONV #( is_navigation-target ) ).
+      IF lo_report IS NOT BOUND.
+        rs_response = invalid_response( |Submitted report { is_navigation-target } is unknown or not executable.| ).
+        RETURN.
+      ENDIF.
+    ELSE.
+      ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = is_navigation-target ).
       IF ls_transaction-tcode IS INITIAL.
-        rs_response = invalid_response( 'Transaction target is unknown or not authorized.' ).
+        rs_response = invalid_response( |Transaction { is_navigation-target } does not exist or is not available in this runtime.| ).
         RETURN.
       ENDIF.
       CREATE OBJECT lo_object TYPE (ls_transaction-class_name).
       CASE ls_transaction-kind.
         WHEN zcl_gg_transaction_registry=>kind_report.
           lo_report ?= lo_object.
-          close( ls_session-session_id ).
-          rs_response = start( io_report = lo_report ).
         WHEN zcl_gg_transaction_registry=>kind_dynpro.
           lo_dynpro ?= lo_object.
-          close( ls_session-session_id ).
-          rs_response = start( io_dynpro_program = lo_dynpro ).
         WHEN OTHERS.
-          rs_response = invalid_response( 'Transaction target has an unsupported executable kind.' ).
+          rs_response = invalid_response( |Transaction { is_navigation-target } has an unsupported executable kind.| ).
+          RETURN.
       ENDCASE.
-      RETURN.
     ENDIF.
-    IF ls_dynpro-navigation-kind = zcx_gg_control_flow=>kind_submit_return.
-      lo_report = report_for_submit( CONV #( ls_dynpro-navigation-target ) ).
-      IF lo_report IS NOT BOUND.
-        rs_response = invalid_response( 'Submitted report is unknown or not executable.' ).
-        RETURN.
-      ENDIF.
-      close( ls_session-session_id ).
+
+    CASE is_navigation-kind.
+      WHEN zcx_gg_control_flow=>kind_call_transaction
+          OR zcx_gg_control_flow=>kind_submit_return.
+        lv_caller = is_session-session_id.
+        ls_ended = is_session.
+        ls_ended-surface = zcl_gg_host_surface=>save( ).
+        store( ls_ended ).
+      WHEN zcx_gg_control_flow=>kind_submit.
+* SUBMIT without AND RETURN replaces the submitting program, so the report
+* returns to whatever called that program.
+        lv_caller = is_session-caller.
+        close( is_session-session_id ).
+      WHEN OTHERS.
+* LEAVE TO TRANSACTION ends every program in the call sequence.
+        ls_ended = is_session.
+        DO.
+          lv_caller = ls_ended-caller.
+          close( ls_ended-session_id ).
+          READ TABLE mt_sessions INTO ls_ended WITH KEY session_id = lv_caller.
+          IF lv_caller IS INITIAL OR sy-subrc <> 0.
+            EXIT.
+          ENDIF.
+        ENDDO.
+        CLEAR lv_caller.
+    ENDCASE.
+
+    IF lo_dynpro IS BOUND.
+      rs_response = start(
+        io_dynpro_program    = lo_dynpro
+        iv_program           = CONV #( ls_transaction-class_name )
+        iv_caller            = lv_caller
+        iv_skip_first_screen = is_navigation-skip_first_screen ).
+    ELSEIF is_navigation-kind = zcx_gg_control_flow=>kind_submit_return
+        OR is_navigation-kind = zcx_gg_control_flow=>kind_submit.
       rs_response = start(
         io_report                = lo_report
-        it_input                 = ls_dynpro-submit-values
+        it_input                 = is_submit-values
         iv_interactive           = abap_false
-        iv_selection_screen_only = ls_dynpro-submit-via_selection_screen ).
+        iv_selection_screen_only = is_submit-via_selection_screen
+        iv_caller                = lv_caller ).
+    ELSE.
+      rs_response = start(
+        io_report            = lo_report
+        iv_program           = CONV #( ls_transaction-class_name )
+        iv_caller            = lv_caller
+        iv_skip_first_screen = is_navigation-skip_first_screen ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD respond.
+    IF program_ended( is_session ) = abap_false.
+      rs_response = response_for( is_session ).
       RETURN.
     ENDIF.
-    ls_session-next_page = ls_session-next_page + 1.
-    IF ls_session-report IS BOUND
-        AND ls_session-pending_navigation-kind = zcx_gg_control_flow=>kind_call_screen
-        AND ls_dynpro-screen = '0000'
-        AND ls_dynpro-terminal_state = abap_false
-        AND ls_dynpro-page_kind = zif_gg_host_html_v1=>page_dynpro.
+    IF is_session-caller IS NOT INITIAL.
+      close( is_session-session_id ).
+      rs_response = resume_caller( is_session-caller ).
+      RETURN.
+    ENDIF.
+    rs_response = response_for( is_session ).
+    rs_response-ended = abap_true.
+  ENDMETHOD.
+
+  METHOD program_ended.
+    IF is_session-dynpro_program IS BOUND.
+      rv_ended = xsdbool(
+        is_session-last_dynpro-terminal_state = abap_true
+        OR ( is_session-report IS NOT BOUND
+          AND is_session-last_dynpro-screen = '0000'
+          AND is_session-last_dynpro-page_kind = zif_gg_host_html_v1=>page_dynpro ) ).
+      RETURN.
+    ENDIF.
+    rv_ended = xsdbool(
+      is_session-last_result-page_kind = zif_gg_host_html_v1=>page_terminal
+      AND ( is_session-last_result-navigation-kind = zcx_gg_control_flow=>kind_leave_program
+        OR is_session-last_result-terminal = c_program_ended ) ).
+  ENDMETHOD.
+
+  METHOD resume_caller.
+    DATA ls_caller TYPE ty_session.
+    DATA lv_page_id TYPE string.
+    DATA ls_dynpro TYPE zcl_gg_host_dynpro=>ty_result.
+
+    READ TABLE mt_sessions INTO ls_caller
+      WITH KEY session_id = iv_session_id.
+    IF sy-subrc <> 0.
+      rs_response = invalid_response( 'The calling program is no longer active' ).
+      RETURN.
+    ENDIF.
+    lv_page_id = |{ ls_caller-session_id }-{ ls_caller-next_page }|.
+    ls_caller-next_page = ls_caller-next_page + 1.
+    zcl_gg_host_surface=>restore( ls_caller-surface ).
+    CLEAR ls_caller-surface.
+    store( ls_caller ).
+    IF ls_caller-dynpro_program IS NOT BOUND.
       rs_response = return_to_report(
-        is_session = ls_session
+        is_session = ls_caller
         iv_page_id = lv_page_id ).
       RETURN.
     ENDIF.
-    ls_session-last_dynpro = ls_dynpro.
-    APPEND ls_dynpro-page TO ls_session-pages.
-    READ TABLE mt_sessions INTO DATA(ls_old_dynpro)
-      WITH KEY session_id = ls_session-session_id.
-    DATA(lv_index) = sy-tabix.
+    ls_dynpro = zcl_gg_host_dynpro=>run(
+      io_program             = ls_caller-dynpro_program
+      iv_submitted           = abap_false
+      io_resumable           = ls_caller-resumable
+      iv_resume_continuation = ls_caller-last_dynpro-navigation-continuation
+      iv_resume_first        = abap_true
+      iv_screen              = ls_caller-last_dynpro-screen
+      is_modal_position      = ls_caller-last_dynpro-modal_position
+      iv_session_id          = ls_caller-session_id
+      iv_page_id             = lv_page_id ).
+    rs_response = enter_dynpro_result(
+      is_dynpro  = ls_dynpro
+      iv_page_id = lv_page_id
+      is_session = ls_caller ).
+  ENDMETHOD.
+
+  METHOD store.
+    READ TABLE mt_sessions WITH KEY session_id = is_session-session_id TRANSPORTING NO FIELDS.
     IF sy-subrc = 0.
-      MODIFY mt_sessions FROM ls_session INDEX lv_index.
+      MODIFY mt_sessions FROM is_session INDEX sy-tabix.
     ENDIF.
-    rs_response = response_for( ls_session ).
   ENDMETHOD.
 
   METHOD queue_control_event.
@@ -501,6 +724,20 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       DELETE lt_input WHERE name = ls_request_value-name.
       INSERT ls_request_value INTO TABLE lt_input.
     ENDLOOP.
+* A browser posts only the selected button of a radio group. The group holds
+* one selection, so the program sees the others cleared, the default too.
+    LOOP AT is_request-values INTO ls_request_value WHERE value = 'X'.
+      READ TABLE ls_session-last_result-states INTO DATA(ls_radio)
+        WITH KEY name = ls_request_value-name.
+      IF sy-subrc <> 0 OR ls_radio-group1 IS INITIAL.
+        CONTINUE.
+      ENDIF.
+      LOOP AT ls_session-last_result-states INTO DATA(ls_sibling)
+          WHERE group1 = ls_radio-group1 AND name <> ls_radio-name.
+        DELETE lt_input WHERE name = ls_sibling-name.
+        INSERT VALUE #( name = ls_sibling-name value = '' ) INTO TABLE lt_input.
+      ENDLOOP.
+    ENDLOOP.
     lv_ucomm = CONV zif_gg_session_types_v1=>ty_ucomm( is_request-ucomm ).
     IF is_request-dynamic_action IS NOT INITIAL.
       lv_ucomm = COND #( WHEN is_request-dynamic_action = 'RESET' THEN 'RESET' ELSE 'DLGWIN' ).
@@ -525,9 +762,13 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
 
+* Back from the first screen of a report leaves the program.
     IF is_request-action = zif_gg_host_html_v1=>action_back
         AND lines( ls_session-results ) <= 1.
-      rs_response = invalid_response( 'No host back target' ).
+      ls_session-last_result-page_kind = zif_gg_host_html_v1=>page_terminal.
+      ls_session-last_result-navigation-kind = zcx_gg_control_flow=>kind_leave_program.
+      store( ls_session ).
+      rs_response = respond( ls_session ).
       RETURN.
     ENDIF.
     IF is_request-action = zif_gg_host_html_v1=>action_back.
@@ -678,24 +919,26 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDCASE.
 
     ls_session-next_page = ls_session-next_page + 1.
-    ls_session-last_result = ls_result.
-    CLEAR ls_session-pending_navigation.
-    IF ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
-        OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_screen
-        OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_submit_return
-        OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_transaction.
-      ls_session-pending_navigation = ls_result-navigation.
+* Any run of the report can reach CALL SCREEN, Execute on the selection
+* screen included, so every run is taken over the same way as the first.
+    enter_report_result(
+      EXPORTING
+        is_result  = ls_result
+        iv_page_id = lv_page_id
+      CHANGING
+        cs_session = ls_session ).
+    store( ls_session ).
+    IF ls_session-dynpro_program IS NOT BOUND
+        AND ( ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_submit ).
+      rs_response = start_called(
+        is_navigation = ls_result-navigation
+        is_submit     = ls_result-submit
+        is_session    = ls_session ).
+      RETURN.
     ENDIF.
-    ls_session-pending_submit = ls_result-submit.
-    APPEND ls_result TO ls_session-results.
-    APPEND ls_result-page TO ls_session-pages.
-    READ TABLE mt_sessions INTO DATA(ls_old_report)
-      WITH KEY session_id = ls_session-session_id.
-    lv_index = sy-tabix.
-    IF sy-subrc = 0.
-      MODIFY mt_sessions FROM ls_session INDEX lv_index.
-    ENDIF.
-    rs_response = response_for( ls_session ).
+    rs_response = respond( ls_session ).
   ENDMETHOD.
 
   METHOD close.
@@ -723,10 +966,14 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       rv_error = 'Stale host page'.
       RETURN.
     ENDIF.
-    IF ls_session-lifecycle IS BOUND.
-      ls_session-lifecycle->on_close( ).
-    ENDIF.
-    DELETE mt_sessions WHERE session_id = iv_session_id.
+* Starting another transaction ends the whole call sequence, so the programs
+* waiting for this one to return end with it.
+    WHILE ls_session-session_id IS NOT INITIAL.
+      DATA(lv_caller) = ls_session-caller.
+      close( ls_session-session_id ).
+      CLEAR ls_session.
+      READ TABLE mt_sessions INTO ls_session WITH KEY session_id = lv_caller.
+    ENDWHILE.
   ENDMETHOD.
 
   METHOD report_for_submit.
@@ -832,25 +1079,42 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       iv_session_id          = ls_session-session_id
       iv_page_id             = iv_page_id
       iv_pause_at_navigation = abap_true ).
-* A report that ends without list output leaves nothing to display, so the
-* program is finished rather than showing an empty list.
+* A report run that ends without list output leaves nothing to display. A
+* report the user started on its selection screen shows that screen again,
+* as SAP GUI does; any other report has finished.
     IF ls_result-page_kind = zif_gg_host_html_v1=>page_list
         AND ls_result-lines IS INITIAL
         AND cl_gui_control=>has_content( ) = abap_false.
-      ls_result-terminal = 'Program ended'.
-      ls_result-page_kind = zif_gg_host_html_v1=>page_terminal.
-      ls_result-html = zcl_gg_host_renderer=>render_terminal(
-        iv_session_id = ls_session-session_id
-        iv_page_id    = iv_page_id
-        iv_title      = 'Terminal'
-        iv_text       = ls_result-terminal
-        it_messages   = ls_result-messages ).
-      ls_result-page-kind = ls_result-page_kind.
-      ls_result-page-processor = zif_gg_session_types_v1=>processor_report.
-      ls_result-page-title = 'Terminal'.
-      ls_result-page-terminal = abap_true.
-      ls_result-page-html = ls_result-html.
-      CLEAR ls_result-page-actions.
+      IF ls_session-selection_start = abap_true.
+        DATA(lt_messages) = ls_result-messages.
+        ls_result = zcl_gg_host=>run(
+          io_report            = ls_session-report
+          iv_program           = ls_session-program
+          iv_batch             = ls_session-batch
+          it_input             = ls_session-last_result-values
+          iv_stop_before_start = abap_true
+          iv_present_selection = abap_true
+          iv_session_id        = ls_session-session_id
+          iv_page_id           = iv_page_id ).
+        IF ls_result-messages IS INITIAL.
+          ls_result-messages = lt_messages.
+        ENDIF.
+      ELSE.
+        ls_result-terminal = c_program_ended.
+        ls_result-page_kind = zif_gg_host_html_v1=>page_terminal.
+        ls_result-html = zcl_gg_host_renderer=>render_terminal(
+          iv_session_id = ls_session-session_id
+          iv_page_id    = iv_page_id
+          iv_title      = 'Terminal'
+          iv_text       = ls_result-terminal
+          it_messages   = ls_result-messages ).
+        ls_result-page-kind = ls_result-page_kind.
+        ls_result-page-processor = zif_gg_session_types_v1=>processor_report.
+        ls_result-page-title = 'Terminal'.
+        ls_result-page-terminal = abap_true.
+        ls_result-page-html = ls_result-html.
+        CLEAR ls_result-page-actions.
+      ENDIF.
     ENDIF.
     CLEAR ls_session-results.
     enter_report_result(
@@ -859,12 +1123,18 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         iv_page_id = iv_page_id
       CHANGING
         cs_session = ls_session ).
-
-    READ TABLE mt_sessions WITH KEY session_id = ls_session-session_id TRANSPORTING NO FIELDS.
-    IF sy-subrc = 0.
-      MODIFY mt_sessions FROM ls_session INDEX sy-tabix.
+    store( ls_session ).
+    IF ls_session-dynpro_program IS NOT BOUND
+        AND ( ls_result-navigation-kind = zcx_gg_control_flow=>kind_call_transaction
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_leave_to_transaction
+          OR ls_result-navigation-kind = zcx_gg_control_flow=>kind_submit ).
+      rs_response = start_called(
+        is_navigation = ls_result-navigation
+        is_submit     = ls_result-submit
+        is_session    = ls_session ).
+      RETURN.
     ENDIF.
-    rs_response = response_for( ls_session ).
+    rs_response = respond( ls_session ).
   ENDMETHOD.
 
   METHOD clear.

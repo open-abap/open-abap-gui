@@ -28,15 +28,21 @@ CLASS ltcl_ex_56 IMPLEMENTATION.
 
   METHOD roundtrips_call_transaction.
     zcl_gg_host_runtime=>clear( ).
+* CALL TRANSACTION runs SE38; its first screen needs a program, so skipping
+* it with Enter leaves the user on it.
     DATA(ls_transaction) = zcl_gg_host_runtime=>start( io_report = NEW zcl_gg_ex_056( ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_transaction-page_kind
-      exp = zif_gg_host_html_v1=>page_navigation ).
+      exp = zif_gg_host_html_v1=>page_dynpro ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_transaction-html CS 'P_PROGRAM' ) ).
+* Back leaves SE38, and the report continues after its CALL TRANSACTION.
     DATA(ls_transaction_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_transaction-session_id
       page_id    = ls_transaction-page_id
-      action     = zif_gg_host_html_v1=>action_submit ) ).
+      action     = zif_gg_host_html_v1=>action_back
+      ucomm      = 'BACK' ) ).
     cl_abap_unit_assert=>assert_true( ls_transaction_next-valid ).
+    cl_abap_unit_assert=>assert_false( ls_transaction_next-ended ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_transaction_next-compatibility-lines[ table_line = 'back' ] ) ) ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.

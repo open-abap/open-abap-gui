@@ -337,6 +337,23 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_radiobutton.
+    DATA lv_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
+
+* USER-COMMAND is written on one button of a radio group and belongs to the
+* whole group: selecting any of its buttons raises it.
+    lv_ucomm = is_radiobutton-ucomm.
+    LOOP AT mt_states INTO DATA(ls_member) WHERE group1 = is_radiobutton-radio_group.
+      READ TABLE mt_elements ASSIGNING FIELD-SYMBOL(<ls_member>)
+        WITH KEY kind = 'RADIOBUTTON' name = ls_member-name.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      IF lv_ucomm IS INITIAL.
+        lv_ucomm = <ls_member>-ucomm.
+      ELSEIF <ls_member>-ucomm IS INITIAL.
+        <ls_member>-ucomm = lv_ucomm.
+      ENDIF.
+    ENDLOOP.
     add_value(
       iv_name  = is_radiobutton-name
       iv_value = CONV string( is_radiobutton-default ) ).
@@ -350,7 +367,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_kind     = 'RADIOBUTTON'
       iv_name     = is_radiobutton-name
       iv_text     = is_radiobutton-text
-      iv_ucomm    = is_radiobutton-ucomm
+      iv_ucomm    = lv_ucomm
       iv_modif_id = is_radiobutton-modif_id ).
   ENDMETHOD.
 

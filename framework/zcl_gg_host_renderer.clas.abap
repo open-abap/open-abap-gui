@@ -701,7 +701,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 * A select-option reads as one labelled row, like the parameters around it, so
 * its name lines up in the same label column instead of sitting in a framed
 * box of its own. Only a multi-row range needs the row numbers.
-          lv_body = lv_body && |<div class="gg-field gg-range { lv_state_class }" role="group" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) }"><span class="gg-range-name">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</span><div class="gg-range-list{ COND string( WHEN lv_range_count > 1 THEN ` gg-range-list--numbered` ELSE `` ) }" data-range-list="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }">|.
+* LOOP AT SCREEN that makes a select-option inactive hides its whole row.
+          lv_body = lv_body && |<div class="gg-field gg-range { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) } role="group" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) }"><span class="gg-range-name">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</span><div class="gg-range-list{ COND string( WHEN lv_range_count > 1 THEN ` gg-range-list--numbered` ELSE `` ) }" data-range-list="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }">|.
           DO lv_range_count TIMES.
             CLEAR ls_range.
             READ TABLE ls_value-ranges INTO ls_range INDEX sy-index.

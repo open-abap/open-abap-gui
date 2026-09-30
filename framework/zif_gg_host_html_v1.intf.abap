@@ -36,10 +36,11 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
     WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_navigation,
-           kind         TYPE string,
-           target       TYPE string,
-           continuation TYPE string,
-           modal        TYPE abap_bool,
+           kind              TYPE string,
+           target            TYPE string,
+           continuation      TYPE string,
+           modal             TYPE abap_bool,
+           skip_first_screen TYPE abap_bool,
          END OF ty_navigation.
 
   TYPES: BEGIN OF ty_renderer_context,
@@ -104,9 +105,12 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
            dynpro_values  TYPE zif_gg_dynpro_types_v1=>ty_values,
          END OF ty_request.
 
+* ended: the program a user started has finished, and no calling program is
+* waiting for it, so the client returns to where the user started it from.
   TYPES: BEGIN OF ty_response,
            valid         TYPE abap_bool,
            error         TYPE string,
+           ended         TYPE abap_bool,
            session_id    TYPE string,
            page_id       TYPE string,
            page_kind     TYPE string,

@@ -16,8 +16,14 @@ test("regression fixture keeps nested continuation branch context", async () => 
   });
   assert.equal(result.supported, true);
   assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W402"), false);
-  assert.match(result.classSource, /after conditional/);
-  assert.doesNotMatch(result.classSource, /sibling branch/);
+  const start = result.classSource.match(/METHOD zif_gg_report_v1~start_of_selection\.[\s\S]*?ENDMETHOD\./)?.[0] ?? "";
+  const resume = result.classSource.match(/METHOD zif_gg_resumable_v1~resume\.[\s\S]*?ENDMETHOD\./)?.[0] ?? "";
+  // The ELSE branch runs when gv_value <> 0, so it stays in the event; only
+  // the path taken after the suspension leaves it out.
+  assert.match(start, /sibling branch/);
+  assert.match(start, /after conditional/);
+  assert.match(resume, /after conditional/);
+  assert.doesNotMatch(resume, /sibling branch/);
 });
 
 test("regression fixture keeps report-only loop legality explicit", async () => {

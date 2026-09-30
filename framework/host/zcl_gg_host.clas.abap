@@ -765,12 +765,15 @@ CLASS zcl_gg_host IMPLEMENTATION.
           OR ls_screen_call-modal-start_column > 0
           OR ls_screen_call-modal-end_row > 0
           OR ls_screen_call-modal-end_column > 0 ).
-      WHEN zcx_gg_control_flow=>kind_submit_return.
+      WHEN zcx_gg_control_flow=>kind_submit_return
+          OR zcx_gg_control_flow=>kind_submit.
         DATA(ls_submit_call) = io_session->get_submit_call( ).
         rs_navigation-target = ls_submit_call-program.
-      WHEN zcx_gg_control_flow=>kind_call_transaction.
+      WHEN zcx_gg_control_flow=>kind_call_transaction
+          OR zcx_gg_control_flow=>kind_leave_to_transaction.
         DATA(ls_transaction_call) = io_session->get_transaction_call( ).
         rs_navigation-target = ls_transaction_call-tcode.
+        rs_navigation-skip_first_screen = ls_transaction_call-skip_first_screen.
     ENDCASE.
   ENDMETHOD.
 

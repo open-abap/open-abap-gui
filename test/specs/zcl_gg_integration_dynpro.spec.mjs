@@ -11,9 +11,11 @@ test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", a
   await page.waitForLoadState("load");
   assert.match(await page.getByRole("region", {name: "Value help"}).textContent(), /Value from POV/);
 
+  // Screen 0 ends the transaction the workbench started, so the workbench shows.
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
   await dispatch(page, {action: "SUBMIT", ucomm: "BACK"});
-  assert.equal(await page.locator('[data-screen="0000"]').count(), 1);
+  assert.equal(await page.locator("#wb-app-panel").count(), 1);
+  assert.equal(await page.locator("[data-page-kind]").count(), 0);
 
   await page.goto(`${host.baseUrl}/ZCL_GG_INTEGRATION_DYNPRO`);
   assert.equal(await page.locator("[data-page-kind]").getAttribute("data-page-kind"), "DYNPRO");
@@ -22,16 +24,17 @@ test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", a
   await page.waitForLoadState("load");
   assert.match(await page.getByRole("heading", {name: "Flight result"}).textContent(), /Flight result/);
   assert.equal(await page.locator("output").textContent(), "AA-0017");
+  const endedSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
+  const endedPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
+  // LEAVE PROGRAM ends the transaction: the workbench shows and the session is closed.
   await page.getByRole("button", {name: "Exit"}).click();
   await page.waitForLoadState("load");
-  assert.equal(await page.locator("[data-page-kind]").getAttribute("data-page-kind"), "TERMINAL");
-  assert.equal(await page.locator(".wb-runtime-content form").count(), 0);
-  const terminalSession = await page.locator("[data-page-kind]").getAttribute("data-session-id");
-  const terminalPage = await page.locator("[data-page-kind]").getAttribute("data-page-id");
+  assert.equal(await page.locator("#wb-app-panel").count(), 1);
+  assert.equal(await page.locator("[data-page-kind]").count(), 0);
   assert.equal(await page.evaluate(async (sessionId) => {
     const response = await fetch(`/session/${encodeURIComponent(sessionId)}`, {method: "DELETE"});
     return response.status;
-  }, terminalSession), 204);
+  }, endedSession), 204);
   const closedDispatch = await page.evaluate(async ({sessionId, pageId}) => {
     const response = await fetch("/dispatch", {
       method: "POST",
@@ -39,7 +42,7 @@ test("ZCL_GG_INTEGRATION_DYNPRO — help, value help, and screen round trips", a
       body: JSON.stringify({session_id: sessionId, page_id: pageId, action: "SUBMIT"}),
     });
     return {status: response.status, body: await response.json()};
-  }, {sessionId: terminalSession, pageId: terminalPage});
+  }, {sessionId: endedSession, pageId: endedPage});
   assert.equal(closedDispatch.status, 400);
   assert.match(closedDispatch.body.error, /Unknown host session/);
 });
