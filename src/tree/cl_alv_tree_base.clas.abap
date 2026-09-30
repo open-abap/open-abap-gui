@@ -1,6 +1,8 @@
 CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
-  FRIENDS cl_gui_cfw cl_gui_alv_tree zcl_gg_host_runtime.
+  FRIENDS cl_gui_cfw cl_gui_alv_tree zcl_gg_host_runtime zcl_gg_host_surface.
   PUBLIC SECTION.
+    TYPES ty_instances TYPE STANDARD TABLE OF REF TO cl_alv_tree_base WITH DEFAULT KEY.
+
     CONSTANTS c_hierarchy_column_name TYPE lvc_fname VALUE '&Hierarchy'.
     CONSTANTS c_virtual_root_node TYPE lvc_nkey VALUE '&VIRTUALROOT'.
     CONSTANTS c_hierarchy_header_name TYPE lvc_fname VALUE 'HierarchyHeader'.
@@ -382,6 +384,14 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
 
     CLASS-METHODS clear_instances.
 
+    CLASS-METHODS save_instances
+      RETURNING
+        VALUE(result) TYPE ty_instances.
+
+    CLASS-METHODS restore_instances
+      IMPORTING
+        instances TYPE ty_instances.
+
     CLASS-METHODS dispatch_browser_event
       IMPORTING
         event         TYPE string
@@ -392,8 +402,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
       RETURNING
         VALUE(result) TYPE abap_bool.
 
-    CLASS-DATA mt_instances TYPE STANDARD TABLE OF REF TO cl_alv_tree_base
-      WITH DEFAULT KEY.
+    CLASS-DATA mt_instances TYPE ty_instances.
 
 ENDCLASS.
 
@@ -410,6 +419,14 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD clear_instances.
     CLEAR mt_instances.
+  ENDMETHOD.
+
+  METHOD save_instances.
+    result = mt_instances.
+  ENDMETHOD.
+
+  METHOD restore_instances.
+    mt_instances = instances.
   ENDMETHOD.
 
   METHOD dispatch_browser_event.

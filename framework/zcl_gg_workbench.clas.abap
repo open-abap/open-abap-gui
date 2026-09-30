@@ -11,10 +11,20 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+* The workbench a program returns to when it ends, with the program's last
+* message in the status bar, as the SAP menu shows it.
+    CLASS-METHODS render_message
+      IMPORTING
+        iv_message     TYPE string
+        iv_type        TYPE zif_gg_session_types_v1=>ty_message_type
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
   PRIVATE SECTION.
     CLASS-METHODS render_workbench
       IMPORTING
         iv_error       TYPE string OPTIONAL
+        iv_type        TYPE zif_gg_session_types_v1=>ty_message_type DEFAULT zif_gg_session_types_v1=>message_type_error
         iv_session_id  TYPE string OPTIONAL
         iv_page_id     TYPE string OPTIONAL
       RETURNING
@@ -43,6 +53,12 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       iv_error      = iv_error
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id ).
+  ENDMETHOD.
+
+  METHOD render_message.
+    rv_html = render_workbench(
+      iv_error = iv_message
+      iv_type  = iv_type ).
   ENDMETHOD.
 
   METHOD render_workbench.
@@ -127,7 +143,9 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = rv_html && '<main class="wb-content" id="main-content"><section class="wb-logo-only" aria-label="open-abap">' &&
       render_logo( ) &&
       '</section></main></div>'.
-    rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( iv_message = iv_error ).
+    rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom(
+      iv_message = iv_error
+      iv_type    = iv_type ).
   ENDMETHOD.
 
   METHOD render_splitter.

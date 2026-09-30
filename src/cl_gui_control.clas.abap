@@ -65,6 +65,16 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
 
     CLASS-METHODS clear.
 
+* The registry as an opaque handle, so a program's controls survive a
+* CALL TRANSACTION that starts from a cleared surface.
+    CLASS-METHODS save_state
+      RETURNING
+        VALUE(result) TYPE REF TO data.
+
+    CLASS-METHODS restore_state
+      IMPORTING
+        state TYPE REF TO data.
+
     CLASS-METHODS set_external_html
       IMPORTING
         html TYPE string.
@@ -273,6 +283,12 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
              picture_alt_text       TYPE string,
             END OF ty_snapshot.
     TYPES ty_snapshots TYPE STANDARD TABLE OF ty_snapshot WITH DEFAULT KEY.
+    TYPES: BEGIN OF ty_state,
+             next_id       TYPE i,
+             focus         TYPE REF TO cl_gui_control,
+             snapshots     TYPE ty_snapshots,
+             external_html TYPE string,
+           END OF ty_state.
 
     CLASS-DATA mv_next_id TYPE i.
     CLASS-DATA mo_focus TYPE REF TO cl_gui_control.
@@ -619,6 +635,31 @@ CLASS cl_gui_control IMPLEMENTATION.
 
   METHOD clear.
     CLEAR: mv_next_id, mo_focus, mt_snapshots, mv_external_html.
+  ENDMETHOD.
+
+  METHOD save_state.
+    DATA lr_state TYPE REF TO ty_state.
+
+    CREATE DATA lr_state.
+    lr_state->next_id = mv_next_id.
+    lr_state->focus = mo_focus.
+    lr_state->snapshots = mt_snapshots.
+    lr_state->external_html = mv_external_html.
+    result = lr_state.
+  ENDMETHOD.
+
+  METHOD restore_state.
+    FIELD-SYMBOLS <ls_state> TYPE ty_state.
+
+    clear( ).
+    IF state IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ASSIGN state->* TO <ls_state>.
+    mv_next_id = <ls_state>-next_id.
+    mo_focus = <ls_state>-focus.
+    mt_snapshots = <ls_state>-snapshots.
+    mv_external_html = <ls_state>-external_html.
   ENDMETHOD.
 
   METHOD set_external_html.

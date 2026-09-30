@@ -99,7 +99,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("navigation", {name: "Applications"})).toHaveCount(0);
   const transactions = page.getByRole("navigation", {name: "Transactions"});
   await expect(transactions).toBeVisible();
-  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(169);
+  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(170);
   const reports = page.getByRole("navigation", {name: "Reports"});
   await expect(reports).toBeVisible();
   await expect(reports.locator(".wb-app-list > li")).toHaveCount(2);
@@ -185,7 +185,10 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_163"})).toContainText(
     "SALV column cast to column table",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(162);
+  await expect(page.getByRole("link", {name: "ZGG_EX_164"})).toContainText(
+    "Radio USER-COMMAND with MODIF ID select-options",
+  );
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(163);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 

@@ -9,7 +9,7 @@ fixture here before their plan checkbox is marked complete.
 | `GGCONV-REG-001` | nested includes were flattened after the owning event, hiding declarations and FORM routines | `composite_nested_includes.abap.txt` | composite unit and behavioral tests |
 | `GGCONV-REG-002` | Open SQL `SELECT ... INTO TABLE` was indented as a control-flow block | `composite_sql_form.abap.txt` | composite unit and seeded SQLite behavior |
 | `GGCONV-REG-003` | implicit-header-table loops were copied into methods without a legality diagnostic | `regression_implicit_loop.abap.txt` | method-legality unit test |
-| `GGCONV-REG-004` | nested conditional continuation resumed sibling branches | `regression_nested_continuation.abap.txt` | continuation unit test |
+| `GGCONV-REG-004` | nested conditional continuation resumed sibling branches; the event also lost them, and everything after the block, at its first suspension | `regression_nested_continuation.abap.txt`, inline cockpit fixture | continuation unit tests (`continuations.test.mjs`) |
 | `GGCONV-REG-005` | dynpro global state was lost across PBO/PAI requests and helper indentation broke generated ABAP | `regression_dynpro_state.prog.abap.txt` | generated dynpro host behavior test |
 | `GGCONV-REG-006` | local-class content could be omitted without a visible migration marker | `composite_local_class.abap.txt` | partial-conversion diagnostic unit test |
 | `GGCONV-REG-007` | structured, internal-table, reference, and elementary type declarations were not represented in class state | `regression_declaration_shapes.abap.txt` | declaration-shape unit and transpile tests |
@@ -20,3 +20,6 @@ fixture here before their plan checkbox is marked complete.
 | `GGCONV-REG-012` | call-like dynamic WRITE operands were accepted without a safe target-dispatch rule | `regression_dynamic_write_call.abap.txt` | dynamic-WRITE diagnostic unit and transpile tests |
 | `GGCONV-REG-013` | unsupported parser-representable dynamic WRITE operands lost expression evaluation entirely | `regression_dynamic_write_fallback.abap.txt` | dynamic-WRITE fallback unit and transpile tests |
 | `GGCONV-REG-014` | LOOP AT SCREEN in a FORM performed from AT SELECTION-SCREEN OUTPUT or a PBO module looped over a `ct_states` the FORM's method does not have | `regression_screen_form.prog.abap.txt`, `regression_screen_form_dynpro.prog.abap.txt` | screen-state unit tests and generated report and dynpro host behavior tests |
+| `GGCONV-REG-015` | a CATCH cx_root around a suspension swallowed the host's control-flow unwinding, and a resumed TRY body lost its handlers | inline unit fixtures | continuation unit tests |
+| `GGCONV-REG-016` | local-class methods that WRITE were replaced by a TODO although the helper stores its session | inline unit fixture | helper-session unit test |
+| `GGCONV-REG-017` | radio-group USER-COMMAND reached only the declaring button, and MODIF ID was dropped from select-options, radio buttons and listboxes | inline unit fixtures, `examples/zgg_ex_164.prog.abap` | selection-screen unit tests |

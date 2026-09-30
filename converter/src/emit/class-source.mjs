@@ -3,6 +3,8 @@ import { controlObjectTypes, lowerStatements, selectionExpression, selectionType
 import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
+import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.mjs";
+import { isSuspendingStatement } from "../passes/lower-continuations.mjs";
 import { screenOkCode } from "../dynpro-metadata.mjs";
 
 const REPORT_METHODS = [
@@ -178,8 +180,16 @@ export function prepareLocalClassNames(ir, options = {}) {
   return renames;
 }
 
+// A cx_root handler that named no target is given this one, so it can pass
+// the host's control-flow unwinding on; one declaration serves the method.
+function withControlFlowGuard(body) {
+  const lines = body.flatMap((line) => String(line).split("\n"));
+  if (!lines.some((line) => /\bINTO\s+lx_ggconv_caught\./i.test(line))) return body;
+  return ["DATA lx_ggconv_caught TYPE REF TO cx_root.", ...body];
+}
+
 function method(name, body, comment) {
-  const entry = { name, body: body.length ? [...body] : ["RETURN."] };
+  const entry = { name, body: body.length ? withControlFlowGuard([...body]) : ["RETURN."] };
   if (comment) entry.comment = comment;
   Object.defineProperty(entry, "toString", {
     enumerable: false,
@@ -569,6 +579,14 @@ function selectionBuilder(ir) {
     if (screen.number !== "0100" || screen.asWindow || screen.asSubscreen) {
       lines.push(`io_builder->begin_screen( VALUE #( number = '${screen.number}'${screen.asWindow ? " as_window = abap_true" : ""}${screen.asSubscreen ? " as_subscreen = abap_true" : ""} ) ).`);
     }
+    // USER-COMMAND is written on one button of a radio group, usually the
+    // first, and belongs to the whole group: selecting any button raises it.
+    const groupCommands = new Map();
+    for (const item of screen.elements) {
+      const group = item.kind === "parameter" ? /RADIOBUTTON\s+GROUP\s+(\w+)/i.exec(item.additions ?? "")?.[1]?.toUpperCase() : undefined;
+      const ucomm = group ? /USER-COMMAND\s+(\w+)/i.exec(item.additions ?? "")?.[1] : undefined;
+      if (ucomm && !groupCommands.has(group)) groupCommands.set(group, ucomm.toUpperCase());
+    }
     for (const item of screen.elements) {
       if (item.kind === "layout") {
         if (item.layout === "comment") {
@@ -603,15 +621,18 @@ function selectionBuilder(ir) {
           lines.push(`io_builder->add_checkbox( VALUE #( ${fields.join(" ")} ) ).`);
         } else if (/RADIOBUTTON\s+GROUP\s+(\w+)/i.test(additions)) {
           const group = /RADIOBUTTON\s+GROUP\s+(\w+)/i.exec(additions)[1].toUpperCase();
-          const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
+          const ucomm = groupCommands.get(group);
+          const modif = /MODIF\s+ID\s+(\w+)/i.exec(additions)?.[1];
           const defaultValue = /DEFAULT\s+(?:['"]?X|ABAP_TRUE)\b/i.test(additions) ? " default = abap_true" : "";
-          lines.push(`io_builder->add_radiobutton( VALUE #( name = '${item.name}' text = ${selectionText(ir, item)} radio_group = '${group}'${defaultValue}${ucomm ? ` ucomm = '${ucomm.toUpperCase()}'` : ""} ) ).`);
+          lines.push(`io_builder->add_radiobutton( VALUE #( name = '${item.name}' text = ${selectionText(ir, item)} radio_group = '${group}'${defaultValue}${modif ? ` modif_id = '${modif.toUpperCase()}'` : ""}${ucomm ? ` ucomm = '${ucomm}'` : ""} ) ).`);
         } else if (/AS\s+LISTBOX/i.test(additions)) {
           const fields = [`name = '${item.name}'`, `text = ${selectionText(ir, item)}`, type];
           const visibleLength = /VISIBLE\s+LENGTH\s+(\d+)/i.exec(additions)?.[1];
           if (visibleLength) fields[2] = type.replace(/\s\)$/, ` visible_length = ${visibleLength} )`);
           const defaultValue = selectionDefault(item);
           if (defaultValue) fields.push(`default = ${defaultValue}`);
+          const modif = /MODIF\s+ID\s+(\w+)/i.exec(additions)?.[1];
+          if (modif) fields.push(`modif_id = '${modif.toUpperCase()}'`);
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
           if (ucomm) fields.push(`ucomm = '${ucomm.toUpperCase()}'`);
           if (item.fixedValues?.length) fields.push(`fixed_values = VALUE #( ${item.fixedValues.map((fixed) => `( key = ${literal(fixed.key ?? fixed.value ?? "")} text = ${literal(fixed.text ?? fixed.label ?? fixed.key ?? "")} )`).join(" ")} )`);
@@ -640,6 +661,15 @@ function selectionBuilder(ir) {
         if (/OBLIGATORY/i.test(item.additions)) fields.push("obligatory = abap_true");
         const defaultMatch = /DEFAULT\s+([^\s,]+)(?:\s+TO\s+([^\s,]+))?/i.exec(item.additions);
         if (defaultMatch) fields.push(`default = VALUE #( sign = 'I' option = '${defaultMatch[2] ? "BT" : "EQ"}' low = ${selectionExpression(defaultMatch[1])}${defaultMatch[2] ? ` high = ${selectionExpression(defaultMatch[2])}` : ""} )`);
+        const modif = /MODIF\s+ID\s+(\w+)/i.exec(item.additions ?? "")?.[1];
+        if (modif) fields.push(`modif_id = '${modif.toUpperCase()}'`);
+        const memoryId = /MEMORY\s+ID\s+(\w+)/i.exec(item.additions ?? "")?.[1];
+        if (memoryId) fields.push(`memory_id = '${memoryId.toUpperCase()}'`);
+        const searchHelp = /MATCHCODE\s+OBJECT\s+(\w+)/i.exec(item.additions ?? "")?.[1];
+        if (searchHelp) fields.push(`search_help = '${searchHelp.toUpperCase()}'`);
+        if (searchHelp && !fields.includes("value_help = abap_true")) fields.push("value_help = abap_true");
+        if (/LOWER\s+CASE/i.test(item.additions ?? "")) fields.push("lower_case = abap_true");
+        if (/NO-DISPLAY/i.test(item.additions ?? "")) fields.push("no_display = abap_true");
         lines.push(`io_builder->add_select_option( VALUE #( ${fields.join(" ")} ) ).`);
       }
     }
@@ -851,20 +881,6 @@ function nestedSelectionCaptures(ir) {
   return lines;
 }
 
-const CONTROL_CLOSERS = new Map([
-  ["If", "ENDIF."],
-  ["Do", "ENDDO."],
-  ["Loop", "ENDLOOP."],
-  ["Case", "ENDCASE."],
-  ["Try", "ENDTRY."],
-  ["While", "ENDWHILE."],
-]);
-
-function isSuspendingStatement(statement) {
-  if (["CallScreen", "CallSelectionScreen", "CallTransaction"].includes(statement.kind)) return true;
-  return statement.kind === "Submit" && /\bAND\s+RETURN\b/i.test(statement.text);
-}
-
 function continuationFor(ir, statement) {
   return ir.continuations?.find((item) => item.filename === statement.filename
     && item.span.start.line === statement.span.start.line
@@ -878,68 +894,77 @@ function removePromotedDeclarations(ir, lines) {
     .filter((line) => ![...promoted].some((name) => new RegExp(`^\\s*DATA\\s+${name}\\b`, 'i').test(line)));
 }
 
-function continuationClosers(continuation) {
-  return [...(continuation?.controlStack ?? [])]
-    .reverse()
-    .map((item) => CONTROL_CLOSERS.get(item.kind))
-    .filter(Boolean);
-}
-
-function isBranchStatement(statement) {
-  return ["Else", "ElseIf", "When", "WhenOthers", "Catch", "Cleanup"].includes(statement.kind);
-}
-
-function openerForCloser(kind) {
-  for (const [opener, closer] of [["If", "EndIf"], ["Do", "EndDo"], ["Loop", "EndLoop"], ["Case", "EndCase"], ["Try", "EndTry"], ["While", "EndWhile"]]) {
-    if (closer === kind) return opener;
+// The blocks open at statements[index], outermost first, with the branch of
+// each that the statement is in.
+function enclosingBlocks(statements, index) {
+  const stack = [];
+  for (let cursor = 0; cursor < index; cursor++) {
+    const statement = statements[cursor];
+    if (BLOCK_OPENERS.has(statement.kind)) {
+      stack.push({ kind: statement.kind, statement, branch: "body" });
+    } else if (BLOCK_BRANCHES.has(statement.kind) && stack.length) {
+      stack.at(-1).branch = statement.kind;
+    } else if (BLOCK_ENDS.has(statement.kind)) {
+      const open = stack.findLastIndex((item) => closesBlock(item.kind, statement.kind));
+      if (open >= 0) stack.splice(open);
+    }
   }
-  return undefined;
+  return stack;
 }
 
-// A continuation resumes after the host has unwound the original ABAP call
-// stack. Conditional blocks therefore need a small amount of structural
-// normalization: close tokens belonging to the pre-suspension path are
-// removed, and sibling ELSE/WHEN branches are skipped. New control-flow that
-// starts after the suspension remains ordinary ABAP and is preserved.
-function resumeTail(statements, index, continuation) {
-  const runtimeStack = (continuation?.controlStack ?? []).map((item) => ({ ...item, original: true }));
-  const output = [];
-  let skipped;
+// What runs after a suspension returns, as statements of the owning block.
+// Suspending unwinds the ABAP call stack, so the continuation is the rest of
+// the block the suspension is in, then the rest of each enclosing block,
+// outward. Sibling ELSE/WHEN/CATCH branches of an enclosing block are not on
+// that path and are skipped with the block's closer, except for a TRY whose
+// protected body is resumed: that TRY is opened again, so its CATCH and
+// CLEANUP branches still handle the rest of the body. Blocks that start after
+// the suspension are ordinary ABAP and are kept as written.
+function resumeTail(statements, index) {
+  const frames = enclosingBlocks(statements, index)
+    .map((frame) => ({ ...frame, reopened: frame.kind === "Try" && frame.branch === "body" }));
+  const output = frames.filter((frame) => frame.reopened).map((frame) => frame.statement);
+  let nested = 0;
+  let skipping = false;
   let skippedDepth = 0;
   for (let cursor = index + 1; cursor < statements.length; cursor++) {
     const statement = statements[cursor];
     const kind = statement.kind;
-    if (skipped) {
-      if (runtimeStack.length && ["If", "Do", "Loop", "Case", "Try", "While"].includes(kind)) skippedDepth++;
-      const closer = openerForCloser(kind);
-      if (closer) {
+    if (skipping) {
+      if (BLOCK_OPENERS.has(kind)) skippedDepth++;
+      else if (BLOCK_ENDS.has(kind)) {
         if (skippedDepth > 0) skippedDepth--;
-        else if (closer === skipped.kind) {
-          runtimeStack.pop();
-          skipped = undefined;
+        else {
+          frames.pop();
+          skipping = false;
         }
       }
       continue;
     }
-
-    if (isBranchStatement(statement) && runtimeStack.at(-1)?.original) {
-      skipped = runtimeStack.at(-1);
-      skippedDepth = 0;
-      continue;
-    }
-    const closer = openerForCloser(kind);
-    if (closer && runtimeStack.at(-1)?.original && runtimeStack.at(-1).kind === closer) {
-      runtimeStack.pop();
-      continue;
-    }
-    if (["If", "Do", "Loop", "Case", "Try", "While"].includes(kind)) {
-      runtimeStack.push({ kind, original: false });
+    if (nested > 0) {
+      if (BLOCK_OPENERS.has(kind)) nested++;
+      else if (BLOCK_ENDS.has(kind)) nested--;
       output.push(statement);
       continue;
     }
-    if (closer && runtimeStack.at(-1)?.original === false && runtimeStack.at(-1).kind === closer) {
-      runtimeStack.pop();
+    if (BLOCK_OPENERS.has(kind)) {
+      nested++;
       output.push(statement);
+      continue;
+    }
+    const frame = frames.at(-1);
+    if (BLOCK_ENDS.has(kind)) {
+      if (!frame) continue;
+      frames.pop();
+      if (frame.reopened) output.push(statement);
+      continue;
+    }
+    if (BLOCK_BRANCHES.has(kind) && frame) {
+      if (frame.reopened) output.push(statement);
+      else {
+        skipping = true;
+        skippedDepth = 0;
+      }
       continue;
     }
     output.push(statement);
@@ -947,54 +972,42 @@ function resumeTail(statements, index, continuation) {
   return output;
 }
 
-function suspensionIndex(statements) {
-  return statements.findIndex((statement) => isSuspendingStatement(statement));
-}
-
-function terminalIndex(statements) {
-  let depth = 0;
-  for (let index = 0; index < statements.length; index++) {
-    const statement = statements[index];
-    if (["If", "Do", "Loop", "Case", "Try", "While"].includes(statement.kind)) depth++;
-    if (["EndIf", "EndDo", "EndLoop", "EndCase", "EndTry", "EndWhile"].includes(statement.kind)) depth = Math.max(0, depth - 1);
-    if (isTerminal(statement) && depth === 0) return index;
-  }
-  return -1;
-}
-
 function isTerminal(statement) {
   return statement.kind === "Stop" || statement.kind === "Submit" && !/\bAND\s+RETURN\b/i.test(statement.text)
     || statement.kind === "Leave" && /\b(LEAVE\s+PROGRAM|LEAVE\s+TO\s+TRANSACTION|LEAVE\s+LIST-PROCESSING)\b/i.test(statement.text);
 }
 
+// Terminal statements and suspensions do not fall through: the session
+// unwinds the method at them. The rest of the block they are in is therefore
+// unreachable and is left out, and a suspension's rest runs from its
+// continuation instead. The block's closer, its sibling branches and
+// everything after it are still reachable and are kept.
 function truncateTerminalPaths(statements) {
   const output = [];
   let depth = 0;
-  let skipping = false;
-  let branchDepth = 0;
+  let skipDepth;
   for (const statement of statements) {
-    const opens = ["If", "Do", "Loop", "Case", "Try", "While"].includes(statement.kind);
-    const closes = ["EndIf", "EndDo", "EndLoop", "EndCase", "EndTry", "EndWhile"].includes(statement.kind);
-    const branch = ["Else", "When", "WhenOthers"].includes(statement.kind);
-    if (skipping) {
-      if (opens) depth++;
-      if (closes) {
+    const kind = statement.kind;
+    if (skipDepth !== undefined) {
+      if (BLOCK_OPENERS.has(kind)) depth++;
+      else if (BLOCK_ENDS.has(kind)) {
         depth--;
-        if (depth === branchDepth) skipping = false;
-        output.push(statement);
-      } else if (branch && depth === branchDepth) {
-        skipping = false;
+        if (depth < skipDepth) {
+          skipDepth = undefined;
+          output.push(statement);
+        }
+      } else if (BLOCK_BRANCHES.has(kind) && depth === skipDepth) {
+        skipDepth = undefined;
         output.push(statement);
       }
       continue;
     }
     output.push(statement);
-    if (opens) depth++;
-    if (closes) depth = Math.max(0, depth - 1);
-    if (isTerminal(statement)) {
+    if (BLOCK_OPENERS.has(kind)) depth++;
+    else if (BLOCK_ENDS.has(kind)) depth = Math.max(0, depth - 1);
+    else if (isTerminal(statement) || isSuspendingStatement(statement)) {
       if (depth === 0) return output;
-      skipping = true;
-      branchDepth = depth;
+      skipDepth = depth;
     }
   }
   return output;
@@ -1031,19 +1044,13 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
     const match = write && /^WRITE\s+('(?:''|[^'])*')/i.exec(write.text.trim());
     if (match) return { body: [`rv_text = ${match[1]}.`], lowered: [] };
   }
-  const index = suspensionIndex(statements);
-  const terminal = terminalIndex(statements);
-  const end = index >= 0 ? index + 1 : terminal >= 0 ? terminal + 1 : statements.length;
-  const activeStatements = statements.slice(0, end);
-  const lowered = lowerStatements(activeStatements, context);
+  const lowered = lowerStatements(statements, context);
   const transport = selectionStateTransport(ir, event);
-  const fieldSymbols = globalFieldSymbolDeclarations(ir, activeStatements);
-  const continuation = index >= 0 ? continuationFor(ir, statements[index]) : undefined;
+  const fieldSymbols = globalFieldSymbolDeclarations(ir, statements);
   let body = [
     ...fieldSymbols,
     ...transport.hydrate,
     ...removePromotedDeclarations(ir, lowered.map((item) => item.text)),
-    ...continuationClosers(continuation),
     ...transport.flush,
   ];
   const hasWriter = body.some((line) => line.includes("lo_writer->"));
@@ -1053,7 +1060,7 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   }
   if (event === "start_of_selection" && body.length) body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
   if (hasWriter) body = addWriterDeclaration(body);
-  return { body, lowered, suspension: index >= 0 ? { statement: statements[index], tail: statements.slice(index + 1) } : undefined };
+  return { body, lowered };
 }
 
 function qualifierGuard(ir, event, body, qualifierOverride) {
@@ -1150,7 +1157,7 @@ function resumeMethod(ir) {
       ?? ir.modules?.find((item) => item.statements?.includes(statement));
     const ownerIsModule = ir.modules?.includes(owner) === true;
     const ownerStatements = owner?.statements ?? [];
-    const tail = resumeTail(ownerStatements, ownerStatements.indexOf(statement), continuation);
+    const tail = truncateTerminalPaths(resumeTail(ownerStatements, ownerStatements.indexOf(statement)));
     let lowered;
     if (tail.some((item) => item.kind === "CallFunction" && /LIST_FROM_MEMORY/i.test(item.text))) {
       lowered = [
@@ -1166,12 +1173,13 @@ function resumeMethod(ir) {
         : storedScreenStates(screenStatePlan(ir).defaultKind);
       lowered = removePromotedDeclarations(ir, lowerStatements(tail, context).map((item) => item.text));
       lowered = [...globalFieldSymbolDeclarations(ir, tail), ...lowered];
-      if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
     }
     if (lowered.length === 0) lowered.push("RETURN.");
     cases.push(`WHEN '${id}'.`, ...lowered);
   }
   const body = ["CASE is_resume-continuation-id.", ...(cases.length ? cases : ["WHEN OTHERS.", "RETURN."]), ...(cases.length ? ["WHEN OTHERS.", "RETURN."] : []), "ENDCASE."];
+  // One writer serves every continuation: each WHEN declaring its own inline
+  // DATA(lo_writer) would declare the same name twice in one method.
   return method("zif_gg_resumable_v1~resume", body.some((line) => line.includes("lo_writer->")) ? addWriterDeclaration(body) : body, "Continuation states are explicit so unsupported suspension semantics remain visible.");
 }
 
@@ -1257,9 +1265,7 @@ function unsupportedDynamicTableAction(ir, routine) {
 function routineBody(ir, routine) {
   const dynamicTableAction = unsupportedDynamicTableAction(ir, routine);
   if (dynamicTableAction) return dynamicTableAction;
-  const statements = truncateTerminalPaths(routine.statements ?? []);
-  const index = suspensionIndex(statements);
-  const active = index >= 0 ? statements.slice(0, index + 1) : statements;
+  const active = truncateTerminalPaths(routine.statements ?? []);
   const context = methodContext(ir, "start_of_selection", undefined, {
     parameters: routine.parameters,
     statements: routine.statements ?? [],
@@ -1282,7 +1288,6 @@ function routineBody(ir, routine) {
       "CREATE OBJECT go_ili EXPORTING parent = go_host.",
       "go_ili->hide( ).");
   }
-  if (index >= 0) lowered.push(...continuationClosers(continuationFor(ir, statements[index])));
   if (lowered.some((line) => line.includes("lo_writer->"))) lowered = addWriterDeclaration(lowered);
   return lowered;
 }
@@ -1977,15 +1982,14 @@ function helperMethodBody(ir, localClass, localMethod) {
   const statements = truncateTerminalPaths(localMethod.statements ?? []);
   const context = helperMethodContext(ir, localClass, localMethod);
   let body = lowerStatements(statements, context).map((item) => item.text);
-  // Lowering writes io_session; methods without that parameter hold the
-  // session elsewhere. `io_session =` is a named argument and stays.
+  body = [...globalFieldSymbolDeclarations(ir, statements), ...body];
+  if (body.some((line) => line.includes("lo_writer->"))) body = addWriterDeclaration(body);
+  // Lowering writes io_session, the writer declaration included; methods
+  // without that parameter use the session the helper stores for its owner.
+  // `io_session =` is a named argument and stays.
   if (context.sessionVariable !== "io_session") {
     body = body.map((line) => line.replace(/\bio_session\b/gi, (name, offset, source) =>
       /^\s*=/.test(source.slice(offset + name.length)) ? name : context.sessionVariable));
-  }
-  body = [...globalFieldSymbolDeclarations(ir, statements), ...body];
-  if (body.some((line) => line.includes("lo_writer->")) && !/\bio_session\b/i.test(localMethod.definition?.text ?? "")) {
-    body = ["* TODO GGCONV-E501: local class writer access requires an explicit session mapping."];
   }
   return body.length ? body : ["RETURN."];
 }

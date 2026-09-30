@@ -2170,6 +2170,10 @@ test("splits nested conditional continuations and skips sibling branches", async
   assert.equal(result.supported, true);
   assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W402"), false);
   assert.match(result.classSource, /CALL SCREEN[\s\S]*END IF|call_screen[\s\S]*ENDIF\./i);
+  const start = result.classSource.match(/METHOD zif_gg_report_v1~start_of_selection\.[\s\S]*?ENDMETHOD\./)?.[0] ?? "";
+  // The rest of the suspension's own block runs from its continuation only.
+  assert.match(start, /call_screen[\s\S]*ENDIF\.[\s\S]*after outer[\s\S]*ELSE\.[\s\S]*sibling branch[\s\S]*ENDIF\.[\s\S]*after conditional/);
+  assert.doesNotMatch(start, /after inner/);
   const resume = result.classSource.match(/METHOD zif_gg_resumable_v1~resume\.[\s\S]*?ENDMETHOD\./)?.[0] ?? "";
   assert.match(resume, /after inner/);
   assert.match(resume, /after outer/);
@@ -2219,7 +2223,8 @@ test("preserves method-safe exception blocks", async () => {
     filename: "zexception_block.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.match(result.classSource, /TRY\.[\s\S]*CATCH cx_root\.[\s\S]*CLEANUP\.[\s\S]*ENDTRY\./);
+  // cx_root gets a target so it can pass the host's control-flow unwinding on.
+  assert.match(result.classSource, /TRY\.[\s\S]*CATCH cx_root INTO lx_ggconv_caught\.[\s\S]*CLEANUP\.[\s\S]*ENDTRY\./);
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 

@@ -399,10 +399,14 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~leave_program.
-    RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = zcx_gg_control_flow=>kind_leave_program ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_leave_program
+      iv_operation = 'LEAVE PROGRAM' ).
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~submit.
+* The host starts the submitted report from the stored call.
+    ms_submit_call = is_submit.
     RAISE EXCEPTION NEW zcx_gg_control_flow(
       iv_kind      = zcx_gg_control_flow=>kind_submit
       iv_operation = |SUBMIT { is_submit-program }| ).
@@ -429,6 +433,8 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~leave_to_transaction.
+* The host starts the target from the stored call, as for CALL TRANSACTION.
+    ms_transaction_call = is_call.
     RAISE EXCEPTION NEW zcx_gg_control_flow(
       iv_kind      = zcx_gg_control_flow=>kind_leave_to_transaction
       iv_operation = |LEAVE TO TRANSACTION { is_call-tcode }| ).

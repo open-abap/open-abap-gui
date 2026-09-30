@@ -158,7 +158,8 @@ async function dispatch(page, request) {
     document.write(html);
     document.close();
   }, response.html);
-  await page.locator("[data-page-kind]").waitFor();
+  // A program that ends returns to the workbench, which is not a runtime page.
+  await page.locator("[data-page-kind], #wb-app-panel").first().waitFor();
 }
 
 await writeInputs();
@@ -194,8 +195,11 @@ try {
   assert.equal(await page.locator('[data-screen="0200"]').count(), 1);
   await page.goto(`${baseUrl}/transaction?tcode=ZCVB058`);
   await page.locator("[data-page-kind]").waitFor();
+  // LEAVE TO SCREEN 0 on the first screen ends the transaction, which returns
+  // the user to the workbench that started it.
   await dispatch(page, {action: "SUBMIT", ucomm: "BACK"});
-  assert.equal(await page.locator('[data-screen="0000"]').count(), 1);
+  assert.equal(await page.locator("#wb-app-panel").count(), 1);
+  assert.equal(await page.locator("[data-page-kind]").count(), 0);
   console.log("generated converter dynpro 058 passed ABAP Unit and browser integration");
 } finally {
   await browser?.close();

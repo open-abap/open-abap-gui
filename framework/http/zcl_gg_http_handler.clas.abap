@@ -1069,7 +1069,19 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD send_runtime_response.
-    IF is_response-valid = abap_true.
+    DATA ls_message TYPE zif_gg_session_types_v1=>ty_message.
+
+* A program the user started from the workbench has ended, so the user is
+* back at the workbench, with the program's last message as SAP shows it.
+    IF is_response-valid = abap_true AND is_response-ended = abap_true.
+      zcl_gg_host_runtime=>close( is_response-session_id ).
+      READ TABLE is_response-messages INTO ls_message INDEX lines( is_response-messages ).
+      send_html(
+        server  = server
+        iv_html = zcl_gg_workbench=>render_message(
+                    iv_message = ls_message-text
+                    iv_type    = ls_message-type ) ).
+    ELSEIF is_response-valid = abap_true.
       send_html(
         server  = server
         iv_html = is_response-html ).
@@ -1078,6 +1090,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         server    = server
         iv_error  = is_response-error
         iv_status = 409 ).
+* A page the browser posted shows why the step failed in the shell; the
+* program's session stays as it was, so going back returns to it.
+    ELSEIF server->request->get_header_field( 'content-type' ) NS 'application/json'
+        AND server->request->get_method( ) = 'POST'.
+      send_workbench_error(
+        server    = server
+        iv_error  = is_response-error
+        iv_status = 400 ).
     ELSE.
       send_error(
         server   = server

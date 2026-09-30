@@ -105,11 +105,18 @@ export async function dispatch(page, request) {
   const html = await response.text();
   expect(response.status(), html).toBe(200);
   await page.setContent(html, {waitUntil: "load"});
-  await expect(page.locator("[data-page-kind]")).toHaveCount(1);
+  // A program that ends returns to the workbench, which is not a runtime page.
+  await expect(page.locator("[data-page-kind], #wb-app-panel")).toHaveCount(1);
 }
 
 export function expectPageKind(page, kind) {
   return expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", kind);
+}
+
+// The workbench a program started from it returns to when it ends.
+export async function expectWorkbench(page) {
+  await expect(page.locator("#wb-app-panel")).toBeVisible();
+  await expect(page.locator("[data-page-kind]")).toHaveCount(0);
 }
 
 // The title of a box takes the first line inside the frame, so a control the

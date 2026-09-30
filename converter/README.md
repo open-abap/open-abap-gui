@@ -231,8 +231,12 @@ guiStatusMetadata: {
 Reports containing supported `CALL SCREEN`, `CALL SELECTION-SCREEN`, `SUBMIT
 ... AND RETURN`, or `CALL TRANSACTION` forms expose
 `zif_gg_resumable_v1`; the generated class contains deterministic continuation
-cases. Complex or metadata-dependent transfers remain explicitly diagnosed in
-partial mode.
+cases. A suspension inside `IF`, `CASE` or `TRY` keeps every other branch in
+the event; its continuation runs the rest of the suspending path only, with a
+resumed `TRY` body still guarded by its handlers. A suspension inside a loop
+resumes after the loop and is diagnosed with `GGCONV-W402`. `CALL TRANSACTION
+... USING` is diagnosed, since the host does not replay batch input. Complex or
+metadata-dependent transfers remain explicitly diagnosed in partial mode.
 
 Module pools are accepted with explicit `dynproMetadata`, an
 `resolveDynpro(metadataRequest)` callback, or report-owned abapGit metadata.

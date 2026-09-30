@@ -115,7 +115,14 @@ CLASS zcl_example_navigation IMPLEMENTATION.
         io_session->get_dialog( )->call_screen(
           is_call         = VALUE #( screen = '0100' )
           is_continuation = VALUE #( id = 'AFTER_0100' ) ).
+      WHEN 'R'.
+        io_session->get_navigation( )->submit_and_return(
+          is_submit       = VALUE #( program = 'ZEXAMPLE_OTHER' )
+          is_continuation = VALUE #( id = 'AFTER_SUBMIT' ) ).
     ENDCASE.
+    gv_step = 2.
+    lo_writer->write_field( VALUE #( text = 'After navigation, step' placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = |{ gv_step }| ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.
@@ -243,14 +250,13 @@ CLASS zcl_example_navigation IMPLEMENTATION.
 
   METHOD zif_gg_resumable_v1~resume.
 * Continuation states are explicit so unsupported suspension semantics remain visible.
+    DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     CASE is_resume-continuation-id.
       WHEN 'AFTER_0100'.
-        DATA(lo_writer) = io_session->get_list( )->get_writer( ).
         gv_step = 2.
         lo_writer->write_field( VALUE #( text = 'After navigation, step' placement = VALUE #( new_line = abap_true ) ) ).
         lo_writer->write_field( VALUE #( text = |{ gv_step }| ) ).
       WHEN 'AFTER_SUBMIT'.
-        DATA(lo_writer) = io_session->get_list( )->get_writer( ).
         gv_step = 2.
         lo_writer->write_field( VALUE #( text = 'After navigation, step' placement = VALUE #( new_line = abap_true ) ) ).
         lo_writer->write_field( VALUE #( text = |{ gv_step }| ) ).

@@ -51,6 +51,10 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_modal_position      TYPE zif_gg_session_types_v1=>ty_modal_position OPTIONAL
         io_resumable           TYPE REF TO zif_gg_resumable_v1 OPTIONAL
         iv_resume_continuation TYPE string OPTIONAL
+* The program returns from a CALL TRANSACTION or SUBMIT AND RETURN: the rest
+* of the interrupted module runs first, then the screen's PBO. What the rest
+* does, a LEAVE PROGRAM or another call included, is handled as in PAI.
+        iv_resume_first        TYPE abap_bool DEFAULT abap_false
         iv_screen              TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
         iv_session_id          TYPE string OPTIONAL
         iv_page_id             TYPE string OPTIONAL
@@ -496,6 +500,18 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       iv_processor = zif_gg_session_types_v1=>processor_dynpro
       iv_screen    = lv_screen ).
     TRY.
+        IF iv_resume_first = abap_true
+            AND iv_resume_continuation IS NOT INITIAL
+            AND io_resumable IS BOUND.
+          io_resumable->resume(
+            is_resume  = VALUE #( continuation = VALUE #( id = iv_resume_continuation ) )
+            io_session = lo_session ).
+          io_program->initialization(
+            EXPORTING
+              io_session = lo_session
+            CHANGING
+              ct_values  = lt_values ).
+        ENDIF.
         process_modules(
           EXPORTING
             io_program       = io_program
@@ -585,7 +601,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         io_session        = lo_session
         io_resumable      = io_resumable
         iv_screen         = lv_screen
-        iv_resume_enabled = xsdbool( iv_submitted = abap_false )
+        iv_resume_enabled = xsdbool( iv_submitted = abap_false AND iv_resume_first = abap_false )
         iv_continuation   = iv_resume_continuation
         iv_execute_pbo    = abap_false
       CHANGING
@@ -1405,7 +1421,9 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         text = |Command { iv_ucomm } is excluded on dynpro screen { iv_screen }| ) ).
       RETURN.
     ENDIF.
+* Enter submits an empty function code, which no status has to activate.
     IF iv_submitted = abap_true
+        AND iv_ucomm IS NOT INITIAL
         AND iv_ucomm <> 'GG_TREE_EVENT'
         AND iv_ucomm <> 'BACK'
         AND NOT line_exists( it_controls[ screen = iv_screen ucomm = iv_ucomm ] )
@@ -1608,9 +1626,10 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           OR zcx_gg_control_flow=>kind_leave_to_transaction.
         ls_transaction_call = io_session->get_transaction_call( ).
         cs_result-navigation = VALUE #(
-          kind         = ix_flow->mv_kind
-          target       = CONV string( ls_transaction_call-tcode )
-          continuation = ls_continuation-id ).
+          kind              = ix_flow->mv_kind
+          target            = CONV string( ls_transaction_call-tcode )
+          continuation      = ls_continuation-id
+          skip_first_screen = ls_transaction_call-skip_first_screen ).
       WHEN zcx_gg_control_flow=>kind_submit_return.
         ls_submit_call = io_session->get_submit_call( ).
         cs_result-navigation = VALUE #(

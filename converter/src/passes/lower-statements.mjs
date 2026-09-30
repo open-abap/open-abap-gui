@@ -682,6 +682,13 @@ function expressionText(expression, context) {
   return `|{ ${value} }|`;
 }
 
+function catchesControlFlow(raw) {
+  const classes = stripPeriod(raw)
+    .replace(/^\s*CATCH\s+(?:BEFORE\s+UNWIND\s+)?/i, "")
+    .replace(/\s+INTO\s+[\s\S]*$/i, "");
+  return classes.split(/\s+/).some((name) => /^(?:CX_ROOT|CX_NO_CHECK)$/i.test(name));
+}
+
 function continuationId(statement, context) {
   return context.continuations?.find((item) =>
     item.filename === statement.filename &&
@@ -1283,10 +1290,16 @@ function lowerSingleStatement(statement, context) {
     return `io_session->get_navigation( )->submit( VALUE #( ${fields.join(" ")} ) ).`;
   }
   if (statement.kind === "CallTransaction") {
-    const tcode = /CALL\s+TRANSACTION\s+'([^']+)'/i.exec(raw)?.[1];
+    const body = stripPeriod(raw).replace(/^\s*CALL\s+TRANSACTION\s+/i, "");
+    const operand = /^('(?:''|[^'])*'|[A-Z][A-Z0-9_]*(?:(?:-|->|=>)[A-Z][A-Z0-9_]*)*)/i.exec(body)?.[1];
     const id = continuationId(statement, context);
-    if (!tcode || !id) return undefined;
-    return continuationCall("io_session->get_navigation( )->call_transaction", "is_call", `VALUE #( tcode = '${tcode.toUpperCase()}'${/SKIP\s+FIRST\s+SCREEN/i.test(raw) ? " skip_first_screen = abap_true" : ""} )`, id);
+    if (!operand || !id) return undefined;
+    // A batch-input table drives the called transaction's screens, which the
+    // host cannot replay; the call is reported rather than run without it.
+    if (/\bUSING\b/i.test(body.slice(operand.length))) return "* TODO GGCONV-E516: CALL TRANSACTION ... USING batch-input data requires manual lowering.";
+    const tcode = /^'(.*)'$/s.exec(operand)?.[1];
+    const target = tcode === undefined ? `CONV #( ${valueExpression(operand, context)} )` : `'${tcode.toUpperCase()}'`;
+    return continuationCall("io_session->get_navigation( )->call_transaction", "is_call", `VALUE #( tcode = ${target}${/SKIP\s+FIRST\s+SCREEN/i.test(body) ? " skip_first_screen = abap_true" : ""} )`, id);
   }
   if (statement.kind === "SuppressDialog") {
     return "io_session->get_dialog( )->suppress_dialog( ).";
@@ -1466,8 +1479,9 @@ function lowerSingleStatement(statement, context) {
     converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?0['"]?/gi, "<ls_state>-$1 = abap_false");
     converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?1['"]?/i, "<ls_state>-intensified = abap_true");
     converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?0['"]?/i, "<ls_state>-intensified = abap_false");
-    converted = converted.replace(/<ls_state>-visible\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-visible = xsdbool( $1 ).");
-    converted = converted.replace(/<ls_state>-intensified\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-intensified = xsdbool( $1 ).");
+    // SCREEN flags are '1' or '0'; the state flags they map to are abap_bool.
+    converted = converted.replace(/<ls_state>-(visible|intensified|input|output|password|no_display)\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-$1 = xsdbool( $2 ).");
+    converted = converted.replace(/<ls_state>-(visible|intensified|input|output|password|no_display)\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'0'\s+ELSE\s+'1'\s*\)\./i, "<ls_state>-$1 = xsdbool( NOT ( $2 ) ).");
     converted = converted.replace(/<ls_state>-visible\s*=\s*'1'/i, "<ls_state>-visible = abap_true");
     converted = converted.replace(/<ls_state>-visible\s*=\s*'0'/i, "<ls_state>-visible = abap_false");
     converted = converted.replace(/<ls_state>-obligatory\s*=\s*'2'/i, "<ls_state>-obligatory = abap_true");
@@ -1490,6 +1504,21 @@ function lowerSingleStatement(statement, context) {
     // terminator; BEGIN OF and END OF included, which gives the valid unchained
     // `TYPES BEGIN OF x. TYPES id TYPE i. TYPES END OF x.` form.
     return replaceOutsideStrings(declaration.replace(/,\s*$/, "."), context.replacements);
+  }
+  // Suspensions, MESSAGE and LEAVE unwind the generated method with
+  // zcx_gg_control_flow, a cx_no_check. A handler for cx_root or cx_no_check
+  // would catch that unwinding, which the statement it models never raises,
+  // so the handler first passes it on unchanged.
+  if (statement.kind === "Catch" && catchesControlFlow(raw)) {
+    const catchText = rewriteStatementValues(raw, context);
+    const into = /\bINTO\s+(?:DATA\s*\(\s*([A-Z][A-Z0-9_]*)\s*\)|([A-Z][A-Z0-9_]*))\s*\.?\s*$/i.exec(stripPeriod(catchText));
+    const caught = (into?.[1] ?? into?.[2])?.toLowerCase() ?? "lx_ggconv_caught";
+    return [
+      into ? catchText : `${stripPeriod(catchText)} INTO ${caught}.`,
+      `IF ${caught} IS INSTANCE OF zcx_gg_control_flow.`,
+      `RAISE EXCEPTION ${caught}.`,
+      "ENDIF.",
+    ].join("\n");
   }
   // A statement abaplint could not parse is already reported as GGCONV-E201;
   // copying it would only make the generated class unparseable too.
