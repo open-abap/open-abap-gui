@@ -310,18 +310,6 @@ export const LOWERING_RULES = new Map([
   ["Write", { kind: "list-write" }],
 ]);
 
-// Statements known to be valid unchanged inside a generated method, which the
-// manifest marks methodSafe. They have no lowering rule and are carried over
-// as written; only local-class receivers are rewritten.
-export const METHOD_SAFE_STATEMENTS = new Set([
-  "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
-  "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
-  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
-  "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
-  "CreateObject", "Call", "CallMethod", "SetHandler",
-  "OpenDataset", "ReadDataset", "Transfer", "CloseDataset", "DeleteDataset", "GetDataset", "SetDataset",
-]);
-
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");

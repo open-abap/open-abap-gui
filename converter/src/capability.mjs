@@ -1,7 +1,7 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, METHOD_SAFE_STATEMENTS, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
+import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
 import { LOOP_BLOCKS } from "./passes/blocks.mjs";
 
@@ -144,7 +144,6 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       span: statement.span,
       status,
       loweringRule: LOWERING_RULES.get(statement.kind)?.kind,
-      ...(METHOD_SAFE_STATEMENTS.has(statement.kind) || isMethodSafeLoop(statement) ? { methodSafe: true } : {}),
       ...(issue ? { diagnostic: issue.code } : {}),
     };
   });
