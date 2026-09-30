@@ -1,6 +1,6 @@
 {
   "name": "@abaplint/open-abap-gui-converter",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "Deterministic, offline conversion of classic ABAP executable reports to the versioned scaffold interfaces.",
   "type": "module",
   "main": "src/index.mjs",
@@ -29,8 +29,7 @@
     "transpile": "node test/transpile-generated.mjs",
     "behavior": "node test/behavioral-generated.mjs",
     "browser": "node test/browser-generated.mjs",
-    "test:gg-gui": "node test/gg-gui.mjs",
-    "verify": "node test/verify.mjs"
+    "test:gg-gui": "node test/gg-gui.mjs"
   },
   "engines": {
     "node": ">=22.0.0"

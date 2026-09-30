@@ -84,7 +84,7 @@ function scanParameterEnd(raw, start) {
   return raw.length;
 }
 
-export function functionParameter(raw, name) {
+function functionParameter(raw, name) {
   const match = new RegExp(`\\b${String(name).replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*=\\s*`, "i").exec(raw);
   if (!match) return undefined;
   const start = match.index + match[0].length;
@@ -220,7 +220,6 @@ function lowerDynamicSelection(raw, name) {
 }
 
 function lowerVariants(raw, name) {
-  const report = functionParameter(raw, "report") ?? functionParameter(raw, "curr_report");
   const variant = functionParameter(raw, "variant") ?? functionParameter(raw, "curr_variant");
   const reportParameter = functionParameter(raw, "report") !== undefined ? "report" : "curr_report";
   const variantParameter = functionParameter(raw, "variant") !== undefined ? "variant" : "curr_variant";

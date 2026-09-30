@@ -46,10 +46,6 @@ function abapType(entry) {
   }
 }
 
-function declaredName(source, pattern, fallback) {
-  return String(source ?? "").match(pattern)?.[1]?.toUpperCase() ?? fallback;
-}
-
 export function detectDynamicAlv(ir) {
   const source = ir?.source?.source ?? "";
   if (!/CL_ALV_TABLE_CREATE\s*=>\s*CREATE_DYNAMIC_TABLE/i.test(source)) return undefined;

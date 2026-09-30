@@ -81,7 +81,3 @@ export function analyzeFieldSymbols(ir) {
   }
   return safe;
 }
-
-export function fieldSymbolName(statement) {
-  return /<([A-Z][A-Z0-9_]*)>/i.exec(statement.text)?.[1]?.toUpperCase();
-}

@@ -1,10 +1,3 @@
-import { declarationInfo } from "./collect-declarations.mjs";
-
-function quoted(value) {
-  const match = /'((?:''|[^'])*)'/.exec(value);
-  return match ? `'${match[1]}'` : undefined;
-}
-
 function defaultValue(additions) {
   const match = /\bDEFAULT\s+((?:'(?:''|[^'])*')|(?:\|[^|]*\|)|(?:[A-Z_][A-Z0-9_-]*(?:\s*-\s*[A-Z_][A-Z0-9_-]*)?)|(?:[-+]?\d+(?:\.\d+)?))/i.exec(additions);
   return match?.[1];

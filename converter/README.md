@@ -211,8 +211,8 @@ the same arguments.
 
 When a sibling `.prog.xml` is available, its `TPOOL` is applied automatically:
 selection text symbols resolve `TEXT-*` labels, while report-title entries
-provide the default transaction heading. Explicit `textPool` or
-`textSymbols` input still takes precedence. The same lookup is applied to
+provide the default transaction heading. Explicit `textPool` input still
+takes precedence. The same lookup is applied to
 metadata-backed dynpro titles, headings, and pushbuttons.
 
 Selection-screen domain values and GUI status definitions can be supplied as

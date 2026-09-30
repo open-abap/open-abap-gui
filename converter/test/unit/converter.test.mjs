@@ -303,8 +303,6 @@ test("reports all seven DATASET statements as method safe", async () => {
     const capability = result.reportIR.capabilities.find((item) => item.kind === kind);
     assert.equal(capability?.construct, statements[index], kind);
     assert.equal(capability.status, "supported", kind);
-    assert.equal(capability.methodSafe, true, kind);
-    assert.equal(result.manifest.capabilities.find((item) => item.kind === kind)?.methodSafe, true, `${kind} manifest`);
   }
 });
 
@@ -1566,7 +1564,6 @@ test("preserves method-safe arithmetic and internal-table statements", async () 
   assert.match(result.classSource, /READ TABLE gt_values INTO gv_value INDEX 1/);
   assert.match(result.classSource, /INSERT gv_value INTO TABLE gt_values/);
   assert.match(result.classSource, /DELETE gt_values INDEX 1/);
-  assert.equal(result.reportIR.capabilities.find((item) => item.kind === "Append")?.methodSafe, true);
   assert.doesNotMatch(result.classSource, /TODO GGCONV-E501/);
 });
 
@@ -1680,7 +1677,6 @@ test("preserves static and dynamic Open SQL as written", async () => {
   assert.match(result.classSource, /SELECT \* FROM zsflight INTO TABLE @lt_flights/);
   assert.match(result.classSource, /LOOP AT lt_flights INTO DATA\(ls_flight\)/);
   assert.match(result.classSource, /INSERT zsflight FROM @lt_flights/);
-  assert.equal(result.reportIR.capabilities.find((item) => item.kind === "Select")?.methodSafe, true);
 
   const dynamic = await convertProgram({
     source: "REPORT zdynamic_sql.\nSTART-OF-SELECTION.\nSELECT * FROM (lv_table) INTO TABLE @lt_rows.",

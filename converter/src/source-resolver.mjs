@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { diagnostic } from "./diagnostics.mjs";
 
-export function normalizeSource(source) {
+function normalizeSource(source) {
   const withoutBom = source.replace(/^\uFEFF/, "");
   const newline = withoutBom.includes("\r\n") ? "\r\n" : "\n";
   return { source: withoutBom.replace(/\r\n?/g, "\n"), newline };
@@ -13,7 +13,7 @@ export function sourceHash(source) {
   return crypto.createHash("sha256").update(normalizeSource(source).source, "utf8").digest("hex");
 }
 
-export function linePosition(source, offset) {
+function linePosition(source, offset) {
   const before = source.slice(0, Math.max(0, offset));
   const lastNewline = before.lastIndexOf("\n");
   return { line: (before.match(/\n/g) ?? []).length + 1, column: offset - lastNewline };

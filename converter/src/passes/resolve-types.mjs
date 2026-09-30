@@ -20,7 +20,7 @@ function lookup(map, name) {
 // `ddicTypes` is optional field metadata: it types selection-screen elements
 // declared FOR <table>-<field>, and never renames a type or gates conversion.
 export function resolveTypes(ir, options) {
-  const dictionary = metadataMap(options.ddicTypes ?? options.dictionaryTypes ?? options.dictionary);
+  const dictionary = metadataMap(options.ddicTypes);
   ir.resolvedTypes = {};
   const scalarTypes = new Map();
   for (const declaration of ir.declarations) {

@@ -36,7 +36,7 @@ export function eventName(statement) {
   return undefined;
 }
 
-export function reportName(statements) {
+function reportName(statements) {
   const header = statements.find((item) => item.kind === "Report" || item.kind === "Program" || item.kind === "FunctionPool" || /^\s*(?:INCLUDE|FUNCTION-POOL|CLASS-POOL)\b/i.test(item.text));
   if (!header) return undefined;
   const match = /^\s*(?:REPORT|PROGRAM|INCLUDE|FUNCTION-POOL|CLASS-POOL)\s+([^\s.]+)/i.exec(header.text);

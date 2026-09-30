@@ -46,13 +46,13 @@ const RUNTIME_CLASS_FILES = runtimeClassFiles(RUNTIME_ROOT);
 // These classes are implemented by the shipped runtime. Deriving the set
 // from src/ keeps converter coverage aligned with the runtime inventory, while
 // unknown GUI objects remain explicit converter gaps.
-export const CONVERTIBLE_CONTROL_CLASSES = new Set(
+const CONVERTIBLE_CONTROL_CLASSES = new Set(
   RUNTIME_CLASS_FILES
     .map((filename) => path.basename(filename).replace(/\.clas\.abap$/i, "").toUpperCase())
     .filter((name) => name.startsWith("CL_")),
 );
 
-export const CONVERTIBLE_STATIC_CLASSES = new Set([
+const CONVERTIBLE_STATIC_CLASSES = new Set([
   ...CONVERTIBLE_CONTROL_CLASSES,
   "ZCL_GG_GUI_DEMO_HELPER",
 ]);
@@ -124,15 +124,6 @@ function localClassObjectTypes(localClasses) {
   return result;
 }
 
-function localClassStaticMethods(localClasses) {
-  return Object.fromEntries((localClasses ?? []).map((localClass) => [
-    String(localClass.name ?? "").toUpperCase(),
-    new Set((localClass.methods ?? [])
-      .filter((method) => /^\s*CLASS-METHODS\b/i.test(method.definition?.text ?? ""))
-      .map((method) => String(method.name ?? "").toUpperCase())),
-  ]));
-}
-
 function eventHandlerObjectTypes(localClasses) {
   const result = {};
   for (const localClass of localClasses ?? []) {
@@ -197,14 +188,14 @@ function freeReceivers(statement) {
     .filter(Boolean);
 }
 
-export function freeChainKey(statement) {
+function freeChainKey(statement) {
   if (statement?.kind !== "Free") return undefined;
   const span = statement.span ?? {};
   const start = span.startOffset ?? `${span.start?.line ?? span.start?.row ?? 0}:${span.start?.column ?? span.start?.col ?? 0}`;
   return `${statement.filename ?? ""}:${start}`;
 }
 
-export function convertibleFreeChainKeys(statements, objectTypes = {}) {
+function convertibleFreeChainKeys(statements, objectTypes = {}) {
   const groups = new Map();
   for (const statement of statements ?? []) {
     const key = freeChainKey(statement);
@@ -218,7 +209,7 @@ export function convertibleFreeChainKeys(statements, objectTypes = {}) {
 // Return true only for a control statement whose receiver was declared with a
 // scaffold-owned class. This deliberately does not infer from a variable name
 // such as GO_GRID, because doing so could emit a call for an unrelated type.
-export function isConvertibleControlStatement(statement, objectTypes = {}) {
+function isConvertibleControlStatement(statement, objectTypes = {}) {
   const raw = String(statement?.text ?? "").trim();
   if (statement?.kind === "CreateObject") {
     const target = /^CREATE\s+OBJECT\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1];
@@ -308,18 +299,6 @@ export const LOWERING_RULES = new Map([
   ["TypePools", { kind: "type-pool-resolution" }],
   ["Uline", { kind: "list-uline" }],
   ["Write", { kind: "list-write" }],
-]);
-
-// Statements known to be valid unchanged inside a generated method, which the
-// manifest marks methodSafe. They have no lowering rule and are carried over
-// as written; only local-class receivers are rewritten.
-export const METHOD_SAFE_STATEMENTS = new Set([
-  "Append", "Collect", "InsertInternal", "DeleteInternal", "ModifyInternal", "ReadTable",
-  "Clear", "Add", "Subtract", "Multiply", "Divide", "Compute",
-  "Select", "SelectLoop", "EndSelect", "InsertDatabase", "UpdateDatabase", "DeleteDatabase", "ModifyDatabase",
-  "Raise", "Continue", "Unassign", "Sort", "CreateData", "GetReference", "Exit",
-  "CreateObject", "Call", "CallMethod", "SetHandler",
-  "OpenDataset", "ReadDataset", "Transfer", "CloseDataset", "DeleteDataset", "GetDataset", "SetDataset",
 ]);
 
 export function isMethodSafeLoop(statement) {
@@ -1637,7 +1616,7 @@ function referencedFieldSymbols(text) {
   return [...body.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)].map((match) => match[1].toUpperCase());
 }
 
-export function inlineFieldSymbols(statements) {
+function inlineFieldSymbols(statements) {
   return (statements ?? []).flatMap((statement) =>
     [...statement.text.matchAll(/\bFIELD-SYMBOL\s*\(\s*<([A-Z][A-Z0-9_]*)>\s*\)/gi)].map((match) => match[1].toUpperCase()));
 }

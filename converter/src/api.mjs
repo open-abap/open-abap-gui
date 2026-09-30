@@ -168,7 +168,7 @@ function orderedStatements(parsedUnits) {
   return root ? expand(root) : [...units.values()].flatMap((unit) => unit.statements);
 }
 
-function buildReportIR(parsed, resolved, options, diagnostics) {
+function buildReportIR(parsed, resolved, options) {
   const serializable = (statement) => {
     const { node: _parserNode, ...plain } = statement;
     return plain;
@@ -224,7 +224,6 @@ function buildReportIR(parsed, resolved, options, diagnostics) {
 
 function metadataTextPool(ir, options) {
   return options.textPool
-    ?? options.textSymbols
     ?? ir.screenMetadata?.textPool
     ?? ir.dynproMetadata?.textPool;
 }
@@ -325,7 +324,7 @@ function applyTextPool(ir, options) {
 }
 
 function applySelectionMetadata(ir, options) {
-  const metadata = options.selectionMetadata ?? options.selectionScreenMetadata;
+  const metadata = options.selectionMetadata;
   if (!metadata || typeof metadata !== "object") return;
   for (const screen of ir.selections) {
     for (const item of screen.elements) {
@@ -559,7 +558,7 @@ export async function convertProgram(input = {}) {
   const parsed = parseUnits(resolved.units, config);
   diagnostics.push(...parsed.diagnostics);
   reportTimeLimit();
-  const ir = buildReportIR(parsed, resolved, options, diagnostics);
+  const ir = buildReportIR(parsed, resolved, options);
   if (ir.programKind === "module-pool") {
     if (options.dynproMetadata) ir.dynproMetadata = options.dynproMetadata;
     else if (typeof options.resolveDynpro === "function") {
@@ -643,6 +642,6 @@ export async function convertProgram(input = {}) {
   const finalDiagnostics = sortDiagnostics(diagnostics);
   const finalSupported = !finalDiagnostics.some((item) => item.severity === "error" || item.code.startsWith("GGCONV-E")) && Boolean(ir.targetClassName);
   const manifest = createManifest(ir, finalDiagnostics, options);
-  const scaffold = lowerToScaffoldIR(ir, options, sourceMap);
+  const scaffold = lowerToScaffoldIR(ir, sourceMap);
   return { classSource, helperSources, manifest, diagnostics: finalDiagnostics, sourceMap, reportIR: ir, scaffoldIR: scaffold, supported: finalSupported };
 }
