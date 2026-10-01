@@ -83,7 +83,6 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
     DATA mr_default_drop TYPE REF TO cl_dragdrop.
 
     DATA ms_exception_field TYPE lvc_s_l004.
-    DATA ms_layout TYPE lvc_s_layo.
     DATA ms_hierarchy_header TYPE treev_hhdr.
     DATA mt_calculated_items TYPE HASHED TABLE OF lvc_s_item WITH UNIQUE KEY node_key item_name.
     DATA mt_checked_items TYPE lvc_t_chit.
@@ -548,9 +547,6 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     ENDIF.
     IF it_filter IS SUPPLIED.
       mt_filter = it_filter.
-    ENDIF.
-    IF is_layout IS SUPPLIED.
-      ms_layout = is_layout.
     ENDIF.
   ENDMETHOD.
 
