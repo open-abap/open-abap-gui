@@ -283,3 +283,27 @@ test("regression fixture emits dynpro state helpers", async () => {
   assert.match(result.classSource, /value = CONV string\( gv_counter \)/);
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
+
+// A chained WRITE is split into one WRITE per operand at its commas, but a
+// comma inside a string template, a backtick string or a quoted text is part
+// of the operand: WRITE: / |a { x }, { y }|. used to become two broken
+// templates the post-emit parse refused (GGCONV-E202).
+test("chained WRITE keeps a comma inside a template or a literal", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zwrite_comma.",
+      "DATA x TYPE i VALUE 1.",
+      "DATA y TYPE i VALUE 2.",
+      "START-OF-SELECTION.",
+      "  WRITE: / |a { x }, { y }|, `b,c`, 'd,''e'.",
+      "",
+    ].join("\n"),
+    filename: "zwrite_comma.prog.abap",
+  });
+  assert.ok(!result.diagnostics.some((item) => item.severity === "error"), JSON.stringify(result.diagnostics));
+  const writes = result.classSource.split("\n").filter((line) => line.includes("write_field("));
+  assert.equal(writes.length, 3, writes.join("\n"));
+  assert.match(writes[0], /\|a \{ x \}, \{ y \}\|/);
+  assert.match(writes[1], /\|\{ `b,c` \}\|/);
+  assert.match(writes[2], /'d,''e'/);
+});
