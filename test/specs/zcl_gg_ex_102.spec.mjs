@@ -29,7 +29,7 @@ test("ZCL_GG_EX_102 — double-clicking a value closes help and fills the field"
   await openExample(page, host, 102);
   await clickHelp(page, "P_VALUE", "Value help for P_VALUE");
   await page.waitForLoadState("load");
-  await page.locator(".gg-value-help li").first().dblclick();
+  await page.locator('.gg-value-help li[data-value="AA"]').dblclick();
   await expect(page.locator('[name="P_VALUE"]')).toHaveValue("AA");
   await expect(page.getByRole("dialog", {name: "Value help"})).toBeHidden();
   await expect(page.locator('[name="P_VALUE"]')).toBeFocused();
