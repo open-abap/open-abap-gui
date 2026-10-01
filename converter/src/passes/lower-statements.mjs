@@ -396,19 +396,37 @@ function titlebarExpression(text, operands, context) {
   return `|${result}|`;
 }
 
+// Split at the delimiter where it separates operands: not inside a 'text'
+// or `string` literal, and not inside a |template|, whose { expressions }
+// may hold literals and templates of their own (WRITE: / |a { x }, { y }|.)
 function splitOutsideStrings(text, delimiter = ",") {
   const parts = [];
   let current = "";
-  let quotedString = false;
+  // what encloses the current character: a template, or an expression inside one
+  const stack = [];
   for (let index = 0; index < text.length; index++) {
     const char = text[index];
-    if (char === "'" && quotedString && text[index + 1] === "'") {
-      current += "''";
-      index++;
-    } else if (char === "'") {
-      quotedString = !quotedString;
+    const inTemplate = stack.at(-1) === "|";
+    if (inTemplate) {
       current += char;
-    } else if (char === delimiter && !quotedString) {
+      if (char === "\\" && index + 1 < text.length) current += text[++index];
+      else if (char === "{") stack.push("{");
+      else if (char === "|") stack.pop();
+      continue;
+    }
+    if (char === "'" || char === "`") {
+      // a literal runs to its closing quote; a doubled quote stays inside it
+      let end = index + 1;
+      while (end < text.length && !(text[end] === char && text[end + 1] !== char)) end += text[end] === char ? 2 : 1;
+      current += text.slice(index, end + 1);
+      index = end;
+    } else if (char === "|") {
+      stack.push("|");
+      current += char;
+    } else if (char === "}" && stack.at(-1) === "{") {
+      stack.pop();
+      current += char;
+    } else if (char === delimiter && stack.length === 0) {
       parts.push(current);
       current = "";
     } else current += char;
