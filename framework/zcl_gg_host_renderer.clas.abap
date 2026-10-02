@@ -324,6 +324,22 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html)  TYPE string.
 
+    CLASS-METHODS resizing_attrs
+      IMPORTING
+        is_resizing     TYPE zif_gg_dynpro_types_v1=>ty_resizing
+      RETURNING
+        VALUE(rv_attrs) TYPE string.
+
+* Lays the resizable controls of a dynpro out against the work area: each grows
+* or shrinks with it down to its minimum size, and the controls below or to the
+* right of it move by the same amount, as SAP GUI does when the window changes.
+    CLASS-METHODS resizing_script
+      IMPORTING
+        iv_width       TYPE i
+        iv_height      TYPE i
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
     CLASS-METHODS dynpro_geometry
       IMPORTING
         iv_height        TYPE i
@@ -1118,6 +1134,14 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         AND NOT line_exists( it_controls[ kind = 'CUSTOM_CONTROL' ] ).
       lv_body = lv_body && iv_controls_html.
     ENDIF.
+    LOOP AT it_controls TRANSPORTING NO FIELDS
+        WHERE screen = is_screen-number
+          AND ( resizing-vertical = abap_true OR resizing-horizontal = abap_true ).
+      lv_body = lv_body && resizing_script(
+        iv_width  = is_screen-width
+        iv_height = lv_render_height ).
+      EXIT.
+    ENDLOOP.
     IF io_menu IS BOUND AND iv_menu_field IS NOT INITIAL.
       lv_context_menu = render_context_menu(
         io_menu  = io_menu
@@ -1414,7 +1438,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           it_values   = it_values
           it_states   = it_states ).
       WHEN 'CUSTOM_CONTROL'.
-        rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-custom-control="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" role="region" aria-label="Custom control { zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }">{ iv_controls_html }</div>|.
+        rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-custom-control="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"{ resizing_attrs( is_control-resizing ) } role="region" aria-label="Custom control { zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }">{ iv_controls_html }</div>|.
       WHEN OTHERS.
         rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }">{ zcl_gg_host_html=>escape_text( is_control-text ) }</div>|.
     ENDCASE.
@@ -1433,6 +1457,61 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         rv_screen = CONV #( ls_value-value ).
       ENDIF.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD resizing_attrs.
+    IF is_resizing-vertical = abap_true.
+      rv_attrs = rv_attrs && | data-resize-vertical="true"|.
+      IF is_resizing-min_height > 0.
+        rv_attrs = rv_attrs && | data-min-height="{ is_resizing-min_height }"|.
+      ENDIF.
+    ENDIF.
+    IF is_resizing-horizontal = abap_true.
+      rv_attrs = rv_attrs && | data-resize-horizontal="true"|.
+      IF is_resizing-min_width > 0.
+        rv_attrs = rv_attrs && | data-min-width="{ is_resizing-min_width }"|.
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD resizing_script.
+* Every layout pass starts from the designed geometry, so the space left over in
+* the scrolling main region is measured the same way on load and on each window
+* resize. The first pass waits for the whole page, as the status bar after this
+* script still takes its share of the window. A control without a minimum size
+* never shrinks below its design size.
+* Resizable controls stacked on the same axis share the extra space, and a
+* control below or to the right of one moves by the growth of those before it.
+    rv_html = |<script>(function()\{var designWidth={ iv_width },designHeight={ iv_height };| &&
+      `var dynpro=document.querySelector(".gg-dynpro[data-modal=false]");if(!dynpro){return;}` &&
+      `var form=dynpro.querySelector("form");var main=dynpro.closest("main");if(!form||!main){return;}` &&
+      `var px=function(value){return parseInt(value,10)||0;};` &&
+      `var boxes=Array.prototype.filter.call(form.children,function(el){return el.classList.contains("gg-dynpro-control");}).map(function(el){` &&
+      `return {el:el,top:px(el.style.top),left:px(el.style.left),width:el.offsetWidth,height:el.offsetHeight};});` &&
+      `boxes.forEach(function(b){designWidth=Math.max(designWidth,b.left+b.width+5);designHeight=Math.max(designHeight,b.top+b.height+8);});` &&
+      `var axis=function(flag,start,size,cross,crossSize,min,extra){var shift=boxes.map(function(){return 0;}),grow=shift.slice(),below=[],resizers=[];` &&
+      `boxes.forEach(function(b,i){if(b.el.hasAttribute(flag)){resizers.push(i);}});` &&
+      `resizers.forEach(function(i){var r=boxes[i];var share=resizers.filter(function(j){var o=boxes[j];` &&
+      `return o[cross]<r[cross]+r[crossSize]&&r[cross]<o[cross]+o[crossSize];}).length;` &&
+      `var least=px(r.el.getAttribute(min))||r[size];grow[i]=Math.max(least,Math.round(r[size]+extra/share))-r[size];});` &&
+      `boxes.map(function(b,i){return i;}).sort(function(a,b){return boxes[a][start]-boxes[b][start];}).forEach(function(i){` &&
+      `resizers.forEach(function(j){var r=boxes[j];if(j!==i&&boxes[i][start]>=r[start]+r[size]){var moved=shift[j]+grow[j];` &&
+      `shift[i]=below[i]?Math.max(shift[i],moved):moved;below[i]=true;}});});` &&
+      `return {shift:shift,grow:grow};};` &&
+      `var place=function(y,x){var bottom=0;boxes.forEach(function(b,i){var s=b.el.style;s.top=b.top+y.shift[i]+"px";s.left=b.left+x.shift[i]+"px";` &&
+      `if(b.el.hasAttribute("data-resize-vertical")){s.height=b.height+y.grow[i]+"px";}` &&
+      `if(b.el.hasAttribute("data-resize-horizontal")){s.width=b.width+x.grow[i]+"px";}` &&
+      `bottom=Math.max(bottom,b.top+y.shift[i]+b.height+y.grow[i]);});dynpro.style.minHeight=Math.max(bottom+8,designHeight+y.extra)+"px";};` &&
+      `var none={shift:boxes.map(function(){return 0;}),grow:boxes.map(function(){return 0;}),extra:0};` &&
+      `var used=function(){var top=main.getBoundingClientRect().top-main.scrollTop,bottom=0;` &&
+      `Array.prototype.forEach.call(main.children,function(child){if(!child.getClientRects().length){return;}` &&
+      `bottom=Math.max(bottom,child.getBoundingClientRect().bottom+px(getComputedStyle(child).marginBottom)-top);});` &&
+      `return bottom+px(getComputedStyle(main).paddingBottom);};` &&
+      `var layout=function(){place(none,none);var extraY=main.clientHeight-used(),extraX=dynpro.clientWidth-designWidth;` &&
+      `var y=axis("data-resize-vertical","top","height","left","width","data-min-height",extraY);y.extra=extraY;` &&
+      `var x=axis("data-resize-horizontal","left","width","top","height","data-min-width",extraX);place(y,x);};` &&
+      `if(window.ResizeObserver){new ResizeObserver(function(){layout();}).observe(main);}else{window.addEventListener("resize",layout);}` &&
+      `if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",layout);}else{layout();}}());</script>`.
   ENDMETHOD.
 
   METHOD dynpro_geometry.

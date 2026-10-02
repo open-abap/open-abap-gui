@@ -290,6 +290,12 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-list .gg-state-changed\{border-left:3px solid #d4a000;padding-left:4px;\}|.
     rv_html = rv_html && |.gg-alv table\{border-collapse:collapse;min-width:100%;background:#fff;color:#123b64;font-size:13px;\}|.
     rv_html = rv_html && |.gg-alv\{max-width:100%;overflow:auto;\}|.
+* In a control the grid fills the whole box, as an ALV grid fills its
+* container: title and toolbar keep their height and the table area takes the
+* rest, scrolling inside it while the toolbar stays in place.
+    rv_html = rv_html && |.gg-control>.gg-alv\{display:flex;flex-direction:column;height:100%;box-sizing:border-box;overflow:hidden;\}|.
+    rv_html = rv_html && |.gg-control>.gg-alv>header,.gg-control>.gg-alv>.gg-alv-toolbar\{flex:0 0 auto;\}|.
+    rv_html = rv_html && |.gg-control>.gg-alv>.gg-alv-grid-area\{flex:1 1 auto;min-height:0;overflow:auto;background:#fff;border:1px solid #c1d2e0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-alv th,.gg-alv td\{height:28px;padding:3px 8px;border:1px solid #c1d2e0;white-space:nowrap;text-align:left;\}|.
     rv_html = rv_html && |.gg-alv th\{background:linear-gradient(#e9f3fa,#c7dae9);border-color:#8daac4;font-weight:700;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-row:nth-child(even) td\{background:#f3f8fc;\}|.

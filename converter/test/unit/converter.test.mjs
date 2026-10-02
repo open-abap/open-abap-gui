@@ -1302,6 +1302,29 @@ test("discovers each screen's OK-code field in the screen XML and binds it in th
   assert.match(supplied.classSource, /begin_screen\( VALUE #\( number = '0100' [^)]*ok_code = 'SAVE_OK' /);
 });
 
+test("passes the resizing attributes of a custom control to the dynpro builder", async () => {
+  const container = (name, line, resizable) => ({
+    kind: "cust_ctrl", type: "CUST_CTRL", name, elementOf: "SCREEN",
+    line, column: 1, length: 118, height: 21, position: { line, column: 1, width: 118, height: 21 }, resizable,
+  });
+  const converted = await convertProgram({
+    source: "PROGRAM zresizing.\nMODULE status_0100 OUTPUT.\nENDMODULE.\n",
+    filename: "zresizing.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Resizing", elements: [], containers: [
+        container("CC_MAIN", 1, { vertical: true, horizontal: true, minLines: 9, minColumns: 35 }),
+        container("CC_FIXED", 23, { vertical: false, horizontal: false }),
+      ] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [] }],
+    },
+  });
+  assert.match(converted.classSource,
+    /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_MAIN' [^\n]* \) resizing = VALUE #\( vertical = abap_true min_height = 234 horizontal = abap_true min_width = 350 \) \) \)\./);
+  assert.match(converted.classSource, /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_FIXED' [^\n]*\) \) \) \)\./);
+  assert.doesNotMatch(converted.classSource, /name = 'CC_FIXED'[^\n]*resizing/);
+});
+
 test("loads report-owned dynpro XML and every matching screen flow file", async () => {
   const metadataFilename = path.join(repositoryRoot, "converter", "test", "fixtures", "dynpro_metadata.prog.xml");
   const metadata = await loadDynproMetadata({

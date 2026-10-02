@@ -13,6 +13,7 @@ CLASS ltcl_gg_integration_dyn DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS skips_pai_when_not_submitted FOR TESTING.
     METHODS renders_control_families FOR TESTING.
     METHODS renders_empty_output_field FOR TESTING.
+    METHODS renders_resizable_control FOR TESTING.
     METHODS maps_module_context FOR TESTING.
     METHODS drives_pov_and_poh FOR TESTING.
     METHODS retains_builder_flow_ops FOR TESTING.
@@ -201,6 +202,39 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<output class="gg-dynpro-control' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'id="gg-dynpro-control-n-STATUS"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'top:20px;width:160px;height:26px' ) ).
+  ENDMETHOD.
+
+  METHOD renders_resizable_control.
+    DATA(lo_builder) = NEW zcl_gg_host_dynpro_builder( ).
+    lo_builder->zif_gg_dynpro_builder_v1~begin_screen( VALUE #( number = '0100' ) ).
+    lo_builder->zif_gg_dynpro_builder_v1~add_custom_control( VALUE #(
+      control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 1180 height = 546 ) )
+      resizing = VALUE #( vertical = abap_true horizontal = abap_true min_height = 234 min_width = 350 ) ) ).
+    lo_builder->zif_gg_dynpro_builder_v1~add_custom_control( VALUE #(
+      control = VALUE #( name = 'CC_FIXED' position = VALUE #( row = 600 column = 5 width = 100 height = 52 ) ) ) ).
+    lo_builder->zif_gg_dynpro_builder_v1~end_screen( ).
+
+    DATA(lv_html) = zcl_gg_host_renderer=>render_dynpro(
+      iv_session_id = 'S'
+      iv_page_id    = 'P'
+      is_screen     = VALUE #( number = '0100' )
+      it_controls   = lo_builder->get_controls( )
+      it_values     = VALUE #( )
+      it_states     = VALUE #( ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'data-custom-control="gg-dynpro-control-n-CC_MAIN" data-resize-vertical="true" data-min-height="234" data-resize-horizontal="true" data-min-width="350"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'data-custom-control="gg-dynpro-control-n-CC_FIXED" role="region"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'new ResizeObserver(' ) ).
+
+    lv_html = zcl_gg_host_renderer=>render_dynpro(
+      iv_session_id = 'S'
+      iv_page_id    = 'P'
+      is_screen     = VALUE #( number = '0100' )
+      it_controls   = VALUE #( ( screen = '0100' kind = 'CUSTOM_CONTROL' name = 'CC_FIXED' visible = abap_true ) )
+      it_values     = VALUE #( )
+      it_states     = VALUE #( ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-resize-' ) ).
   ENDMETHOD.
 
   METHOD maps_module_context.

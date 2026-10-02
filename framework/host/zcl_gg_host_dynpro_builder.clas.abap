@@ -39,6 +39,7 @@ CLASS zcl_gg_host_dynpro_builder DEFINITION PUBLIC FINAL CREATE PUBLIC.
              column_title    TYPE string,
              column_width    TYPE i,
              checkbox        TYPE abap_bool,
+             resizing        TYPE zif_gg_dynpro_types_v1=>ty_resizing,
            END OF ty_control_record.
     TYPES ty_controls TYPE STANDARD TABLE OF ty_control_record WITH DEFAULT KEY.
 
@@ -188,6 +189,7 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
                     kind     = 'CUSTOM_CONTROL'
                     name     = is_custom_control-control-name
                     position = is_custom_control-control-position
+                    resizing = is_custom_control-resizing
                     visible  = abap_true ) TO mt_controls.
   ENDMETHOD.
 

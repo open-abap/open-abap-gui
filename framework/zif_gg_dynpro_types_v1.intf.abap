@@ -110,8 +110,19 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            screen_field TYPE ty_name,
          END OF ty_subscreen_area.
 
+* The Screen Painter resizing attributes. A resizable control grows and shrinks
+* with the window in that direction, never below its minimum size, which is in
+* pixels like the position.
+  TYPES: BEGIN OF ty_resizing,
+           vertical   TYPE abap_bool,
+           horizontal TYPE abap_bool,
+           min_height TYPE i,
+           min_width  TYPE i,
+         END OF ty_resizing.
+
   TYPES: BEGIN OF ty_custom_control,
-           control TYPE ty_control,
+           control  TYPE ty_control,
+           resizing TYPE ty_resizing,
          END OF ty_custom_control.
 
   TYPES: BEGIN OF ty_tabstrip,
