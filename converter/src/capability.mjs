@@ -71,6 +71,9 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       if (statement) addStatementDiagnostic(diagnostics, statement, `suspending navigation inside ${unsafeContext.kind.toUpperCase()} resumes after the loop; its remaining iterations do not run`, "Move the suspension out of the loop or provide an explicit continuation mapping.", "GGCONV-W402");
     }
   }
+  for (const item of ir.readonlyPerformArguments ?? []) {
+    addStatementDiagnostic(diagnostics, item.statement, `FORM ${item.routine} writes USING parameter ${item.parameter.toUpperCase()}, which becomes CHANGING; the argument ${item.argument} is not a variable, so the call passes a temporary and the FORM's write to it is discarded`, "Pass a variable if the caller needs the value; in ABAP, writing a literal or constant through USING fails at runtime.", "GGCONV-W111");
+  }
   for (const duplicate of ir.duplicateEvents ?? []) {
     addStatementDiagnostic(diagnostics, duplicate.statement, `duplicate singleton event ${duplicate.event} is ambiguous after conversion`, "Merge the event blocks into one ordered handler or provide an explicit event mapping.", "GGCONV-E203");
   }

@@ -3,6 +3,8 @@ import { parsesAsStatement } from "../parser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
+import { isGenericParameterType, methodParameterType } from "./collect-routines.mjs";
+import { isWritableArgument, performArguments } from "./analyze-routine-writes.mjs";
 
 const TYPE_CODES = new Map([
   ["C", "C"], ["N", "N"], ["D", "D"], ["T", "T"], ["I", "I"], ["INT4", "I"],
@@ -457,8 +459,24 @@ function splitOutsideStrings(text, delimiter = ",") {
   return parts;
 }
 
-function splitPerformOperands(text) {
-  return [...String(text ?? "").matchAll(/'(?:''|[^'])*'|[^\s,]+/g)].map((match) => match[0]);
+const splitPerformOperands = performArguments;
+
+// A USING parameter that its FORM writes is CHANGING in the method, which
+// needs a variable. A literal, constant or text symbol argument, or one the
+// class reads through an expression, goes through a temporary of the call.
+function performTemporary(parameter, value, raw, context) {
+  if (!parameter.written) return undefined;
+  if (isWritableArgument(raw, context.constantNames) && !/\(|\bit_values\[/i.test(value)) return undefined;
+  const counter = context.temporaries ?? { count: 0 };
+  counter.count++;
+  const name = `lv_perform_${counter.count}`;
+  const type = methodParameterType(parameter);
+  return {
+    name,
+    declaration: isGenericParameterType(type)
+      ? [`DATA(${name}) = ${value}.`]
+      : [`DATA ${name} TYPE ${type}.`, `${name} = ${value}.`],
+  };
 }
 
 function lowerDynamicAlvFactory(raw, context) {
@@ -561,28 +579,51 @@ function continuationCall(target, parameter, value, id) {
   return `${target}(\n  ${named(parameter, value)}\n  ${named("is_continuation", `VALUE #( id = '${id}' )`)} ).`;
 }
 
+// Applies transform to the code of text, never to the contents of '...' and
+// `...` literals or to the text of a |...| template. The expressions embedded
+// in a template's { } are code again, so they are transformed too.
 function transformOutsideStrings(text, transform) {
   let result = "";
-  let current = "";
-  let quotedString = false;
-  for (let index = 0; index < text.length; index++) {
+  let code = "";
+  for (let index = 0; index < text.length;) {
     const char = text[index];
-    if (char === "'" && quotedString && text[index + 1] === "'") {
-      result += "''";
+    if (!"'`|".includes(char)) {
+      code += char;
       index++;
       continue;
     }
-    if (char === "'") {
-      if (!quotedString) result += transform(current);
-      result += char;
-      current = "";
-      quotedString = !quotedString;
-      continue;
-    }
-    if (quotedString) result += char;
-    else current += char;
+    result += transform(code);
+    code = "";
+    const literal = char === "|"
+      ? transformTemplate(text, index, transform)
+      : { output: text.slice(index, literalEnd(text, index)), end: literalEnd(text, index) };
+    result += literal.output;
+    index = literal.end;
   }
-  return result + (quotedString ? current : transform(current));
+  return result + transform(code);
+}
+
+function transformTemplate(text, start, transform) {
+  let output = "|";
+  let index = start + 1;
+  while (index < text.length) {
+    const char = text[index];
+    if (char === "\\") {
+      output += text.slice(index, index + 2);
+      index += 2;
+    } else if (char === "|") {
+      return { output: `${output}|`, end: index + 1 };
+    } else if (char === "{") {
+      let end = index + 1;
+      while (end < text.length && text[end] !== "}") end = "'`|".includes(text[end]) ? literalEnd(text, end) : end + 1;
+      output += `{${transformOutsideStrings(text.slice(index + 1, end), transform)}${end < text.length ? "}" : ""}`;
+      index = end + 1;
+    } else {
+      output += char;
+      index++;
+    }
+  }
+  return { output, end: text.length };
 }
 
 function replaceOutsideStrings(text, replacements) {
@@ -869,26 +910,55 @@ function parseFormat(raw, context) {
   return `lo_writer->set_format( VALUE #( ${fields.join(" ")} ) ).`;
 }
 
+// A message type is a letter, quoted or not, or a dynamic operand such as
+// sy-msgty.
+function messageTypeExpression(token, context) {
+  const letter = /^'?([AEISWX])'?$/i.exec(token)?.[1];
+  return letter ? `zif_gg_session_types_v1=>${MESSAGE_TYPES[letter.toUpperCase()]}` : valueExpression(token, context);
+}
+
+// The operand after an addition keyword, ignoring keywords inside literals.
+function messageAdditionOperand(body, keyword) {
+  const masked = body.replace(/'(?:''|[^'])*'|`(?:``|[^`])*`|\|(?:\\.|[^|])*\|/g, (literal) => literal[0] + "_".repeat(literal.length - 2) + literal[0]);
+  const match = new RegExp(`(?:^|\\s)${keyword}\\s+(\\S+)`, "i").exec(masked);
+  return match ? body.slice(match.index + match[0].length - match[1].length, match.index + match[0].length) : undefined;
+}
+
 function parseMessage(raw, context) {
   const body = stripPeriod(raw).replace(/^MESSAGE\s+/i, "");
   // DISPLAY LIKE is an addition that sits after TYPE (or after the message
   // operands). Detect it once and strip it from the text/operand payload so it
   // is never copied into the emitted string template.
-  const displayLike = /DISPLAY\s+LIKE\s+'?([AEISWX])'?/i.exec(body)?.[1]?.toUpperCase();
-  const displayField = displayLike ? ` display_like = zif_gg_session_types_v1=>${MESSAGE_TYPES[displayLike]}` : "";
-  const type = /TYPE\s+'?([AEISWX])'?/i.exec(body)?.[1]?.toUpperCase() ?? "I";
-  const typeExpr = `zif_gg_session_types_v1=>${MESSAGE_TYPES[type]}`;
+  const displayLike = messageAdditionOperand(body, "DISPLAY\\s+LIKE");
+  const displayField = displayLike ? ` display_like = ${messageTypeExpression(displayLike, context)}` : "";
+  const typeExpr = messageTypeExpression(messageAdditionOperand(body, "TYPE") ?? "I", context);
   const withPart = (source) => (/\bWITH\s+(.+?)(?:\s+DISPLAY\s+LIKE\b[\s\S]*)?$/i.exec(source)?.[1] ?? "");
+  // MESSAGE ID mid TYPE mtype NUMBER num, where every part may be dynamic.
+  const dynamicId = /^ID\s+(\S+)\s+TYPE\s+\S+\s+NUMBER\s+(\S+)/i.exec(body);
+  if (dynamicId) {
+    const fields = [
+      "type = " + typeExpr,
+      "id = " + valueExpression(dynamicId[1], context),
+      "number = " + valueExpression(dynamicId[2], context),
+    ];
+    splitMessageOperands(withPart(body)).slice(0, 4)
+      .forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
+    return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
+  }
   const text = /^('(?:''|[^'])*')\s+TYPE/i.exec(body)?.[1];
   if (text) {
     return `io_session->message( VALUE #( type = ${typeExpr} text = ${text}${displayField} ) ).`;
   }
-  const messageReference = /^([AEISWX])(\d{3})\(([A-Z0-9_]+)\)/i.exec(body);
-  if (messageReference) {
+  // MESSAGE e017(zmsg), or MESSAGE e017 with the class from REPORT ... MESSAGE-ID.
+  // Without parentheses or TYPE, the operand cannot be a text field.
+  const messageReference = /^([AEISWX])(\d{3})(?:\(([A-Z0-9_/]+)\))?(?=\s|$)/i.exec(body);
+  if (messageReference && (messageReference[3] || !messageAdditionOperand(body, "TYPE"))) {
+    const id = messageReference[3] ?? context.messageId;
+    if (!id) return `* TODO GGCONV-E501: MESSAGE ${messageReference[0]} names no message class and the program declares no MESSAGE-ID.`;
     const operands = splitMessageOperands(withPart(body));
     const fields = [
       "type = zif_gg_session_types_v1=>" + MESSAGE_TYPES[messageReference[1].toUpperCase()],
-      "id = '" + messageReference[3].toUpperCase() + "'",
+      "id = '" + id.toUpperCase() + "'",
       "number = '" + messageReference[2] + "'",
     ];
     operands.slice(0, 4).forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
@@ -906,8 +976,8 @@ function parseMessage(raw, context) {
     return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
   }
   const operand = body
-    .replace(/\s+DISPLAY\s+LIKE\s+'?[AEISWX]'?\s*$/i, "")
-    .replace(/\s+TYPE\s+['"]?[AEISWX]['"]?\s*$/i, "")
+    .replace(/\s+DISPLAY\s+LIKE\s+\S+\s*$/i, "")
+    .replace(/\s+TYPE\s+\S+\s*$/i, "")
     .trim();
   const value = valueExpression(operand, context);
   if (/^'.*'$/s.test(value) || /^\|.*\|$/s.test(value) || /^`.*`$/s.test(value)) {
@@ -1177,7 +1247,11 @@ function lowerSingleStatement(statement, context) {
     // MESSAGE ... INTO sends nothing; it only fills the target and sy-msg*,
     // which is valid in a class method, so it is carried over as written.
     if (/\bINTO\b/i.test(raw.replace(/'(?:''|[^'])*'|`(?:``|[^`])*`/g, ""))) {
-      return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+      // The generated class has no MESSAGE-ID, so a short form names it.
+      const named = context.messageId
+        ? raw.replace(/^(\s*MESSAGE\s+[AEISWX]\d{3})(?=\s)/i, `$1(${context.messageId.toLowerCase()})`)
+        : raw;
+      return rewriteStatementValues(named.replace(/,\s*$/, "."), context);
     }
     return parseMessage(raw, context);
   }
@@ -1434,28 +1508,38 @@ function lowerSingleStatement(statement, context) {
     const receiver = context.ownerPrefix ?? "";
     const session = context.sessionVariable ?? "io_session";
     if (!routine) return name ? `${receiver}form_${name.toLowerCase()}( ).` : "* TODO GGCONV-E401: dynamic PERFORM.";
-    const argumentsByDirection = new Map();
-    let direction;
+    // Arguments pair with parameters per section; TABLES and CHANGING both
+    // become CHANGING, but each keeps its own position count.
+    const argumentsBySection = new Map();
+    let section;
     for (const token of splitPerformOperands(raw.replace(/^PERFORM\s+[^\s.]+\s*/i, "").replace(/\.$/, ""))) {
       const upper = token.toUpperCase();
       if (["USING", "CHANGING", "TABLES"].includes(upper)) {
-        direction = upper === "USING" ? "EXPORTING" : "CHANGING";
-        argumentsByDirection.set(direction, []);
-      } else if (direction) {
-        argumentsByDirection.get(direction).push(token);
+        section = upper;
+        argumentsBySection.set(section, []);
+      } else if (section) {
+        argumentsBySection.get(section).push(token);
       }
     }
     if (!(routine.parameters ?? []).length) return `${receiver}${routine.methodName}( io_session = ${session} ).`;
     const parameterWidth = Math.max("io_session".length, ...(routine.parameters ?? []).map((parameter) => parameter.name.length));
     const fieldsByDirection = { EXPORTING: [`${"io_session".padEnd(parameterWidth, " ")} = ${session}`], CHANGING: [] };
+    const temporaries = [];
     for (const parameter of routine.parameters ?? []) {
-      const values = argumentsByDirection.get(parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING") ?? [];
-      const value = values.shift();
-      if (value) fieldsByDirection[parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING"]
-        .push(`${parameter.name.padEnd(parameterWidth, " ")} = ${valueExpression(value, context)}`);
+      const values = argumentsBySection.get(parameter.section ?? (parameter.direction === "IMPORTING" ? "USING" : "CHANGING")) ?? [];
+      const raw = values.shift();
+      if (!raw) continue;
+      let value = valueExpression(raw, context);
+      const temporary = performTemporary(parameter, value, raw, context);
+      if (temporary) {
+        temporaries.push(...temporary.declaration);
+        value = temporary.name;
+      }
+      fieldsByDirection[parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING"]
+        .push(`${parameter.name.padEnd(parameterWidth, " ")} = ${value}`);
     }
     const fields = Object.entries(fieldsByDirection).filter(([, values]) => values.length);
-    const lines = [`${receiver}${routine.methodName}(`];
+    const lines = [...temporaries, `${receiver}${routine.methodName}(`];
     for (let directionIndex = 0; directionIndex < fields.length; directionIndex++) {
       const [direction, values] = fields[directionIndex];
       lines.push(`  ${direction}`);
@@ -1481,16 +1565,18 @@ function lowerSingleStatement(statement, context) {
     ].join("\n");
   }
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
-  if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
-    return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
+  const tabbedBlocks = (context.tabbedBlocks ?? []).join("|");
+  if (statement.kind === "Case" && tabbedBlocks && new RegExp(`^CASE\\s+(?:${tabbedBlocks})-ACTIVETAB\\s*\\.?$`, "i").test(raw)) {
+    return "CASE mv_active_tab.";
   }
   if (statement.kind === "Move") {
-    let converted = rewriteStatementValues(raw, context);
-    if (/^G_TABS-ACTIVETAB\s*=/i.test(raw)) {
-      const assignment = converted.replace(/^G_TABS-ACTIVETAB/i, "mv_active_tab");
-      return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n  ${assignment}\nENDIF.` : assignment;
+    // A chained MOVE: arrives one part at a time, each ending in a comma.
+    let converted = rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+    if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-ACTIVETAB\\s*=`, "i").test(raw)) {
+      const assignment = converted.replace(new RegExp(`^(?:${tabbedBlocks})-ACTIVETAB`, "i"), "mv_active_tab");
+      return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n${assignment}\nENDIF.` : assignment;
     }
-    if (/^G_TABS-(?:PROG|DYNNR)\s*=/i.test(raw)) return "* Selection tab state is maintained by the host screen.";
+    if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-(?:PROG|DYNNR)\\s*=`, "i").test(raw)) return "* Selection tab state is maintained by the host screen.";
     converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
     converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
     converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");
@@ -1516,8 +1602,8 @@ function lowerSingleStatement(statement, context) {
     }
     return converted;
   }
-  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static"].includes(statement.kind)) {
-    const declaration = statement.kind === "Static" ? raw.replace(/^STATICS\b/i, "DATA") : raw;
+  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "ConstantBegin", "ConstantEnd", "Static", "StaticBegin", "StaticEnd"].includes(statement.kind)) {
+    const declaration = statement.kind.startsWith("Static") ? raw.replace(/^STATICS\b/i, "DATA") : raw;
     // abaplint splits a chained declaration into one statement per element and
     // repeats the keyword while keeping the separating comma. Each emitted
     // element is a standalone statement, so a trailing comma must become its

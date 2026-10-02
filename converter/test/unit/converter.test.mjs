@@ -903,6 +903,292 @@ test("keeps dynamic MESSAGE DISPLAY LIKE out of the text and into display_like",
   assert.match(literal.classSource, /type = zif_gg_session_types_v1=>message_type_success text = 'looks like an error' display_like = zif_gg_session_types_v1=>message_type_error/);
 });
 
+test("lowers a tabbed selection block and tracks its active tab", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT ztabbed.",
+      "SELECTION-SCREEN BEGIN OF SCREEN 101 AS SUBSCREEN.",
+      "PARAMETERS p_one TYPE i.",
+      "SELECTION-SCREEN END OF SCREEN 101.",
+      "SELECTION-SCREEN BEGIN OF SCREEN 102 AS SUBSCREEN.",
+      "SELECTION-SCREEN BEGIN OF BLOCK b2.",
+      "PARAMETERS p_two TYPE i.",
+      "SELECTION-SCREEN END OF BLOCK b2.",
+      "SELECTION-SCREEN END OF SCREEN 102.",
+      "SELECTION-SCREEN BEGIN OF TABBED BLOCK tabs FOR 5 LINES.",
+      "SELECTION-SCREEN TAB (20) tab1 USER-COMMAND ucomm1 DEFAULT SCREEN 101.",
+      "SELECTION-SCREEN TAB (20) tab2 USER-COMMAND ucomm2 DEFAULT SCREEN 102.",
+      "SELECTION-SCREEN END OF BLOCK tabs.",
+      "INITIALIZATION.",
+      "  tabs-activetab = 'UCOMM1'.",
+      "AT SELECTION-SCREEN.",
+      "  CASE tabs-activetab.",
+      "    WHEN 'UCOMM2'.",
+      "      MESSAGE 'second' TYPE 'S'.",
+      "  ENDCASE.",
+      "START-OF-SELECTION.",
+      "  WRITE p_one.",
+    ].join("\n"),
+    filename: "ztabbed.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  // END OF BLOCK closes the tabbed block, and still closes a plain one.
+  assert.match(result.classSource, /add_tab\( VALUE #\( name = 'TAB2'[^\n]*\n\s*io_builder->end_tabbed_block\( \)\./);
+  assert.match(result.classSource, /name = 'P_TWO'[^\n]*\n\s*io_builder->end_block\( \)\./);
+  assert.match(result.classSource, /IF iv_ucomm = 'UCOMM1' OR iv_ucomm = 'UCOMM2'\.\s+mv_active_tab = iv_ucomm\.\s+ENDIF\./);
+  assert.match(result.classSource, /^\s*CASE mv_active_tab\.$/m);
+  assert.match(result.classSource, /IF mv_active_tab IS INITIAL\.\s+mv_active_tab = 'UCOMM1'\./);
+  assert.doesNotMatch(result.classSource, /tabs-activetab/i);
+});
+
+test("types untyped FORM parameters generically", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zform_generic.",
+      "DATA gv_action TYPE i.",
+      "DATA gv_rc TYPE i.",
+      "DATA gt_mara TYPE STANDARD TABLE OF mara.",
+      "START-OF-SELECTION.",
+      "  PERFORM get_path CHANGING gv_action.",
+      "  PERFORM mixed TABLES gt_mara gt_mara USING 'A' 1 gv_rc CHANGING gv_rc.",
+      "FORM get_path CHANGING pv_action.",
+      "  CLEAR pv_action.",
+      "ENDFORM.",
+      "FORM mixed TABLES pt_any pt_mara STRUCTURE mara",
+      "           USING pv_a TYPE c VALUE(pv_b) TYPE i pv_c",
+      "           CHANGING cv_rc LIKE sy-subrc.",
+      "  cv_rc = lines( pt_mara ).",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zform_generic.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /METHODS form_get_path\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_action\s+TYPE any\./);
+  // A typed parameter no longer hides the untyped ones in its section.
+  assert.match(result.classSource, /pv_a\s+TYPE c\s+VALUE\(pv_b\)\s+TYPE i\s+pv_c\s+TYPE any\s+CHANGING\s+pt_any\s+TYPE standard table\s+pt_mara\s+TYPE standard table\s+cv_rc\s+TYPE i\./);
+  // TABLES and CHANGING arguments keep their own positions.
+  assert.match(result.classSource, /CHANGING\s+pt_any\s+= gt_mara\s+pt_mara\s+= gt_mara\s+cv_rc\s+= gv_rc \)\./);
+});
+
+test("keeps multi-word FORM parameter typings and VALUE parameters", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zform_typing.",
+      "TYPES ty_t TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
+      "TYPES ty_pt_tof TYPE i.",
+      "DATA gt TYPE ty_t.",
+      "DATA gr TYPE REF TO data.",
+      "DATA gv TYPE i.",
+      "START-OF-SELECTION.",
+      "  PERFORM f USING gt gt gt gt gt gt gt gr 1 CHANGING gt gv.",
+      "FORM f USING pt_any TYPE ANY TABLE",
+      "             pt_std TYPE STANDARD TABLE",
+      "             pt_idx TYPE INDEX TABLE",
+      "             pt_hsh TYPE HASHED TABLE",
+      "             pt_srt TYPE SORTED TABLE",
+      "             pt_of TYPE STANDARD TABLE OF i",
+      "             pt_tof TYPE TABLE OF i",
+      "             pr_data TYPE REF TO data",
+      "             VALUE(pv_u) TYPE i",
+      "        CHANGING VALUE(pt_c) TYPE ty_t",
+      "             VALUE(pv_c) TYPE i.",
+      "  pv_u = pv_u + lines( pt_any ).",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zform_typing.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  for (const [name, type] of [["pt_any", "any table"], ["pt_std", "standard table"], ["pt_idx", "index table"],
+    ["pt_hsh", "hashed table"], ["pt_srt", "sorted table"], ["pr_data", "ref to data"], ["pt_of", "ty_pt_of"],
+    ["VALUE\\(pv_u\\)", "i"], ["VALUE\\(pt_c\\)", "ty_t"], ["VALUE\\(pv_c\\)", "i"]]) {
+    assert.match(result.classSource, new RegExp(`^\\s+${name}\\s+TYPE ${type}\\.?$`, "m"), name);
+  }
+  // TABLE OF x has no place in a method signature, so it gets a named type,
+  // which avoids the program's own ty_pt_tof.
+  assert.match(result.classSource, /TYPES ty_pt_of TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
+  assert.match(result.classSource, /TYPES ty_pt_tof_2 TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
+  assert.match(result.classSource, /^\s+pt_tof\s+TYPE ty_pt_tof_2$/m);
+});
+
+test("lowers a USING parameter its FORM writes to CHANGING", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zusing_write.",
+      "CONSTANTS gc_max TYPE i VALUE 5.",
+      "DATA gt_t000 TYPE STANDARD TABLE OF t000 WITH DEFAULT KEY.",
+      "DATA gv_n TYPE i.",
+      "START-OF-SELECTION.",
+      "  DATA lv_subrc TYPE sy-subrc.",
+      "  PERFORM get_dai USING lv_subrc CHANGING gt_t000.",
+      "  PERFORM count USING gv_n 'X' gc_max gv_n.",
+      "  PERFORM count USING 3 'Y' gv_n gv_n.",
+      "  PERFORM count USING gc_max 'Z' gv_n gv_n.",
+      "  PERFORM aliased USING gv_n.",
+      "FORM get_dai USING pv_subrc TYPE sy-subrc CHANGING pt_t000 LIKE gt_t000.",
+      "  CLEAR: pt_t000, pv_subrc.",
+      "  SELECT * FROM t000 INTO TABLE @pt_t000.",
+      "  pv_subrc = sy-subrc.",
+      "ENDFORM.",
+      "FORM count USING pv_total TYPE i pv_flag VALUE(pv_max) TYPE i pv_untyped.",
+      "  pv_total = pv_total + 1.",
+      "  pv_max = pv_max - 1.",
+      "  pv_untyped = pv_flag.",
+      "ENDFORM.",
+      "FORM aliased USING pv_x TYPE i.",
+      "  FIELD-SYMBOLS <lv> TYPE i.",
+      "  ASSIGN pv_x TO <lv>.",
+      "  <lv> = 1.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zusing_write.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /METHODS form_get_dai\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_subrc\s+TYPE i\s+pt_t000/);
+  // Read only stays IMPORTING, VALUE() stays by value, a write through ASSIGN counts.
+  assert.match(result.classSource, /METHODS form_count\s+IMPORTING\s+io_session\s+TYPE REF TO zif_gg_session_v1\s+pv_flag\s+TYPE any\s+VALUE\(pv_max\) TYPE i\s+CHANGING\s+pv_total\s+TYPE i\s+pv_untyped\s+TYPE any\./);
+  assert.match(result.classSource, /METHODS form_aliased\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_x\s+TYPE i\./);
+  assert.match(result.classSource, /form_get_dai\(\s+EXPORTING\s+io_session = io_session\s+CHANGING\s+pv_subrc\s+= lv_subrc\s+pt_t000\s+= gt_t000 \)\./);
+  // A literal or a constant cannot take the write, so the call passes a temporary.
+  assert.match(result.classSource, /DATA lv_perform_1 TYPE i\.\s+lv_perform_1 = 3\.\s+form_count\(\s+EXPORTING\s+io_session = io_session\s+pv_flag\s+= 'Y'\s+pv_max\s+= gv_n\s+CHANGING\s+pv_total\s+= lv_perform_1/);
+  assert.match(result.classSource, /DATA lv_perform_2 TYPE i\.\s+lv_perform_2 = gc_max\./);
+  const warnings = result.diagnostics.filter((item) => item.code === "GGCONV-W111");
+  assert.deepEqual(warnings.map((item) => item.construct), ["PERFORM count USING 3 'Y' gv_n gv_n.", "PERFORM count USING gc_max 'Z' gv_n gv_n."]);
+  assert.ok(warnings.every((item) => item.severity === "warning"));
+});
+
+test("converts function module actuals for string-typed compatibility parameters", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zfm_string_args.",
+      "CONSTANTS: BEGIN OF gc_vrm_id,",
+      "             emode TYPE vrm_id VALUE 'P_RMODE',",
+      "           END OF gc_vrm_id.",
+      "DATA gt_values TYPE vrm_values.",
+      "DATA gv_objid TYPE c LENGTH 40.",
+      "DATA gv_url TYPE string.",
+      "PARAMETERS p_rmode TYPE c LENGTH 1 AS LISTBOX VISIBLE LENGTH 10.",
+      "INITIALIZATION.",
+      "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING id = gc_vrm_id-emode values = gt_values.",
+      "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING id = |P_RMODE| values = gt_values.",
+      "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING values = gt_values.",
+      "START-OF-SELECTION.",
+      "  CALL FUNCTION 'DP_PUBLISH_WWW_URL' EXPORTING objid = gv_objid lifetime = 'T' IMPORTING url = gv_url.",
+    ].join("\n"),
+    filename: "zfm_string_args.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /set_selection_list_values\(\s+iv_id\s+= CONV string\( gc_vrm_id-emode \)\s+it_values = gt_values \)\./);
+  // A string template is a string already, and the missing id falls back to ''.
+  assert.match(result.classSource, /iv_id\s+= \|P_RMODE\|/);
+  assert.match(result.classSource, /iv_id\s+= ''\s+it_values/);
+  assert.match(result.classSource, /gv_url = io_session->get_compatibility\( \)->publish_url\(\s+iv_object\s+= CONV string\( gv_objid \)\s+iv_lifetime = CONV string\( 'T' \) \)\./);
+});
+
+test("renames inside string template expressions only, never in template text", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT ztemplate_text.",
+      "DATA gv_text TYPE string.",
+      "PARAMETERS p_rmode TYPE c LENGTH 1.",
+      "START-OF-SELECTION.",
+      "  gv_text = |P_RMODE is { p_rmode }|.",
+      String.raw`  WRITE |it's { p_rmode } and \| p_rmode \{ p_rmode \}|.`,
+      "  WRITE `p_rmode`.",
+      "  WRITE |{ |nested p_rmode { p_rmode }| }|.",
+    ].join("\n"),
+    filename: "ztemplate_text.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /gv_text = \|P_RMODE is \{ mv_p_rmode \}\|\./);
+  assert.ok(result.classSource.includes(String.raw`|it's { mv_p_rmode } and \| p_rmode \{ p_rmode \}|`));
+  assert.ok(result.classSource.includes("`p_rmode`"));
+  assert.ok(result.classSource.includes("|{ |nested p_rmode { mv_p_rmode }| }|"));
+});
+
+test("keeps CONSTANTS and STATICS BEGIN OF structures together", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zconst_struct.",
+      "CONSTANTS: BEGIN OF gc_vrm_id,",
+      "             emode   TYPE vrm_id VALUE 'P_RMODE',",
+      "             grp_int TYPE vrm_id VALUE 'P_GRPINT',",
+      "           END OF gc_vrm_id.",
+      "START-OF-SELECTION.",
+      "  WRITE gc_vrm_id-grp_int.",
+      "  PERFORM f.",
+      "FORM f.",
+      "  STATICS: BEGIN OF ls_count,",
+      "             n TYPE i,",
+      "           END OF ls_count.",
+      "  ls_count-n = ls_count-n + 1.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zconst_struct.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /^\s*CONSTANTS: BEGIN OF gc_vrm_id, emode TYPE vrm_id VALUE 'P_RMODE', grp_int TYPE vrm_id VALUE 'P_GRPINT', END OF gc_vrm_id\.$/m);
+  // Neither the components nor the BEGIN OF and END OF lines stay elsewhere.
+  assert.doesNotMatch(result.classSource, /^\s*CONSTANTS (?:emode|grp_int|BEGIN OF|END OF)\b/m);
+  assert.match(result.classSource, /DATA BEGIN OF ls_count\.\s+DATA n TYPE i\.\s+DATA END OF ls_count\./);
+});
+
+test("ends every part of a chained MOVE with a period", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmove_chain.",
+      "DATA: lv_datab TYPE d, lv_datbi TYPE d.",
+      "DATA: BEGIN OF ls_cond, datab TYPE d, datbi TYPE d, END OF ls_cond.",
+      "START-OF-SELECTION.",
+      "  MOVE: lv_datab TO ls_cond-datab,",
+      "        lv_datbi TO ls_cond-datbi.",
+    ].join("\n"),
+    filename: "zmove_chain.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /^\s*MOVE lv_datab TO ls_cond-datab\.$/m);
+  assert.match(result.classSource, /^\s*MOVE lv_datbi TO ls_cond-datbi\.$/m);
+});
+
+test("takes the message class of a short MESSAGE from REPORT ... MESSAGE-ID", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsg_short MESSAGE-ID zmsg.",
+      "DATA gv_x TYPE string.",
+      "START-OF-SELECTION.",
+      "  MESSAGE e017.",
+      "  MESSAGE s018 WITH gv_x 'two' DISPLAY LIKE 'E'.",
+      "  MESSAGE w020(other).",
+      "  MESSAGE i021 INTO gv_x.",
+    ].join("\n"),
+    filename: "zmsg_short.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_error id = 'ZMSG' number = '017' \) \)\./);
+  assert.match(result.classSource, /type = zif_gg_session_types_v1=>message_type_success id = 'ZMSG' number = '018' v1 = gv_x v2 = 'two' display_like = zif_gg_session_types_v1=>message_type_error/);
+  assert.match(result.classSource, /id = 'OTHER' number = '020'/);
+  assert.match(result.classSource, /^\s*MESSAGE i021\(zmsg\) INTO gv_x\.$/m);
+  assert.doesNotMatch(result.classSource, /ia_text\s+= e017/);
+});
+
+test("lowers MESSAGE ID ... TYPE ... NUMBER with dynamic parts", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsg_dynamic_id.",
+      "START-OF-SELECTION.",
+      "  MESSAGE ID sy-msgid TYPE 'I' NUMBER sy-msgno",
+      "          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 DISPLAY LIKE 'E'.",
+      "  MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno WITH sy-msgv1.",
+      "  MESSAGE 'set TYPE e here' TYPE 'W'.",
+    ].join("\n"),
+    filename: "zmsg_dynamic_id.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = sy-msgid number = sy-msgno v1 = sy-msgv1 v2 = sy-msgv2 v3 = sy-msgv3 v4 = sy-msgv4 display_like = zif_gg_session_types_v1=>message_type_error \) \)\./);
+  // The s of sy-msgty is not a literal type S.
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = sy-msgty id = sy-msgid number = sy-msgno v1 = sy-msgv1 \) \)\./);
+  assert.match(result.classSource, /type = zif_gg_session_types_v1=>message_type_warning text = 'set TYPE e here'/);
+});
+
 test("emits valid hoisted local classes for chained declarations and divider comments", async () => {
   const result = await convertProgram({
     source: [

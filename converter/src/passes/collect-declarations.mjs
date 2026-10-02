@@ -1,5 +1,5 @@
 const DECLARATION_KINDS = new Set([
-  "Data", "DataBegin", "DataEnd", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType", "Constant", "Static", "FieldSymbol",
+  "Data", "DataBegin", "DataEnd", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType", "Constant", "ConstantBegin", "ConstantEnd", "Static", "FieldSymbol",
 ]);
 
 function splitDeclarationParts(body) {

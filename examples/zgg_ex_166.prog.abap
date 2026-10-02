@@ -1,0 +1,41 @@
+REPORT zgg_ex_166.
+
+SELECTION-SCREEN BEGIN OF SCREEN 101 AS SUBSCREEN.
+PARAMETERS p_carr TYPE c LENGTH 3 DEFAULT 'LH'.
+PARAMETERS p_conn TYPE n LENGTH 4 DEFAULT '0400'.
+SELECTION-SCREEN END OF SCREEN 101.
+
+SELECTION-SCREEN BEGIN OF SCREEN 102 AS SUBSCREEN.
+PARAMETERS p_max TYPE i DEFAULT 10.
+PARAMETERS p_det AS CHECKBOX DEFAULT 'X'.
+SELECTION-SCREEN END OF SCREEN 102.
+
+SELECTION-SCREEN BEGIN OF TABBED BLOCK g_tabs FOR 5 LINES.
+SELECTION-SCREEN TAB (20) tab1 USER-COMMAND ucomm1 DEFAULT SCREEN 101.
+SELECTION-SCREEN TAB (20) tab2 USER-COMMAND ucomm2 DEFAULT SCREEN 102.
+SELECTION-SCREEN END OF BLOCK g_tabs.
+
+INITIALIZATION.
+  tab1 = 'Connection'.
+  tab2 = 'Output'.
+  g_tabs-activetab = 'UCOMM1'.
+
+AT SELECTION-SCREEN.
+  CASE g_tabs-activetab.
+    WHEN 'UCOMM1'.
+      IF p_carr IS INITIAL.
+        MESSAGE 'Enter an airline' TYPE 'E'.
+      ENDIF.
+    WHEN 'UCOMM2'.
+      IF p_max <= 0.
+        MESSAGE 'Maximum rows must be positive' TYPE 'E'.
+      ENDIF.
+  ENDCASE.
+
+START-OF-SELECTION.
+  WRITE: / 'Carrier:', p_carr.
+  WRITE: / 'Connection:', p_conn.
+  WRITE: / 'Maximum rows:', p_max.
+  IF p_det = abap_true.
+    WRITE / 'Details requested'.
+  ENDIF.

@@ -6,6 +6,7 @@ import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
 import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.mjs";
 import { isSuspendingStatement } from "../passes/lower-continuations.mjs";
 import { screenOkCode } from "../dynpro-metadata.mjs";
+import { methodParameterType } from "../passes/collect-routines.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -378,7 +379,7 @@ function dataMembers(ir) {
       if (declarations[cursor].kind === end) {
         const endName = /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
         const declaration = structuredDeclaration(keyword, target, components, endName);
-        (keyword === "TYPES" ? typeMembers : dataMembers).push(rename(declaration));
+        ({ TYPES: typeMembers, CONSTANTS: constantMembers }[keyword] ?? dataMembers).push(rename(declaration));
         break;
       }
     }
@@ -397,6 +398,8 @@ function dataMembers(ir) {
       const begin = /BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1];
       const keyword = item.kind === "typebegin" ? "TYPES" : "DATA";
       addStructured(index, item.kind === "typebegin" ? "type" : "data", item.kind === "typebegin" ? "typeend" : "dataend", keyword, begin);
+    } else if (item.kind === "constantbegin") {
+      addStructured(index, "constant", "constantend", "CONSTANTS", /BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1]);
     } else if (item.kind === "type" && !item.complex) {
       typeMembers.push(rename(item.raw.replace(/,\s*$/, ".")));
     } else if (item.kind === "constant" && !item.complex) {
@@ -447,7 +450,7 @@ function dataMembers(ir) {
   for (const name of implicitSelectionLayoutMembers(ir)) {
     if (!declaredNames.has(name)) dataMembers.push(`DATA ${name.toLowerCase()} TYPE string.`);
   }
-  if ((ir.selections ?? []).some((screen) => screen.elements?.some((item) => item.layout === "begin_tabbed_block"))) {
+  if (selectionTabbedBlocks(ir).length) {
     dataMembers.push("DATA mv_active_tab TYPE string.");
   }
   const dynamicTypes = ir.dynamicAlv
@@ -482,20 +485,21 @@ function dataMembers(ir) {
   Object.keys(selectionState).forEach(emitSelection);
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
-    const parameterType = (parameter) => {
-      if (/^SY-UCOMM$/i.test(String(parameter.type ?? ""))) return "zif_gg_session_types_v1=>ty_ucomm";
-      if (/^SY(?:-SUBRC)?$/i.test(String(parameter.type ?? ""))) return "i";
-      return parameter.type;
-    };
+    const parameterType = methodParameterType;
+    for (const parameter of parameters.filter((item) => item.lineType)) {
+      members.push(renameIdentifiers(`TYPES ${parameter.type} TYPE STANDARD TABLE OF ${parameter.lineType} WITH DEFAULT KEY.`, allRenames(ir)));
+    }
     const lines = [`METHODS ${routine.methodName}`];
     const importing = parameters.filter((parameter) => parameter.direction === "IMPORTING");
-    const width = Math.max("io_session".length, ...parameters.map((parameter) => parameter.name.length));
+    const declared = (parameter) => parameter.byValue ? `VALUE(${parameter.name})` : parameter.name;
+    const width = Math.max("io_session".length, ...parameters.map((parameter) => declared(parameter).length));
+    const line = (parameter) => `    ${declared(parameter).padEnd(width, " ")} TYPE ${parameterType(parameter)}`;
     lines.push("  IMPORTING", `    io_session${" ".repeat(width - "io_session".length)} TYPE REF TO zif_gg_session_v1`);
-    lines.push(...importing.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameterType(parameter)}`));
+    lines.push(...importing.map(line));
     for (const direction of ["CHANGING"]) {
       const items = parameters.filter((parameter) => parameter.direction === direction);
       if (!items.length) continue;
-      lines.push(`  ${direction}`, ...items.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameterType(parameter)}`));
+      lines.push(`  ${direction}`, ...items.map(line));
     }
     lines[lines.length - 1] = `${lines.at(-1)}.`;
     members.push(lines.join("\n"));
@@ -724,6 +728,11 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
   return {
     event,
     selections: values,
+    tabbedBlocks: selectionTabbedBlocks(ir),
+    messageId: ir.header?.messageId,
+    constantNames: ir.constantNames,
+    // Shared by every statement of the method, so temporaries get unique names.
+    temporaries: { count: 0 },
     mutableValues: mutable,
     ucomm: event.startsWith("at_selection_screen") || event === "at_user_command" ? "iv_ucomm" : undefined,
     replacements: [
@@ -1083,6 +1092,23 @@ function qualifierGuard(ir, event, body, qualifierOverride) {
   return [...definitions, ...guarded];
 }
 
+// Names of the selection screen's tabbed blocks. Their ACTIVETAB fields all
+// live in mv_active_tab.
+function selectionTabbedBlocks(ir) {
+  return (ir.selections ?? []).flatMap((screen) => screen.elements ?? [])
+    .filter((item) => item.layout === "begin_tabbed_block")
+    .map((item) => item.name);
+}
+
+// Choosing a tab sets <block>-ACTIVETAB to the tab's function code before AT
+// SELECTION-SCREEN runs, so later events, Execute included, see the tab.
+function activeTabCapture(ir) {
+  const ucomms = (ir.selections ?? []).flatMap((screen) => screen.elements ?? [])
+    .filter((item) => item.layout === "tab")
+    .map((item) => `iv_ucomm = '${item.ucomm}'`);
+  return ucomms.length ? [`IF ${ucomms.join(" OR ")}.`, "mv_active_tab = iv_ucomm.", "ENDIF."] : [];
+}
+
 function reportMethods(ir) {
   const methods = [];
   const bodiesFor = (event) => {
@@ -1106,6 +1132,7 @@ function reportMethods(ir) {
       if (event === "load_of_program" && ir.reportTitle) {
         body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
       }
+      if (event === "at_selection_screen") body.unshift(...activeTabCapture(ir));
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
       if (event === "at_selection_screen_output") body.unshift(...selectionStatesSetter(ir));
       methods.push(method(`zif_gg_report_v1~${event}`, body));
@@ -2014,17 +2041,17 @@ function helperDefinitionBody(statements, rename) {
       lines.push(text.split("\n").map((line) => line.trim()).join("\n"));
       continue;
     }
-    if (statement.kind === "DataBegin" || statement.kind === "TypeBegin") {
+    if (["DataBegin", "TypeBegin", "ConstantBegin"].includes(statement.kind)) {
       flushStructured();
       structured = {
-        keyword: statement.kind === "DataBegin" ? "DATA" : "TYPES",
+        keyword: { DataBegin: "DATA", TypeBegin: "TYPES", ConstantBegin: "CONSTANTS" }[statement.kind],
         beginName: /BEGIN OF\s+([A-Z0-9_]+)/i.exec(text)?.[1] ?? "",
         components: [],
         endName: undefined,
       };
       continue;
     }
-    if (structured && (statement.kind === "DataEnd" || statement.kind === "TypeEnd")) {
+    if (structured && ["DataEnd", "TypeEnd", "ConstantEnd"].includes(statement.kind)) {
       structured.endName = /END OF\s+([A-Z0-9_]+)/i.exec(text)?.[1] ?? structured.beginName;
       flushStructured();
       continue;

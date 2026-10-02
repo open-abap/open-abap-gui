@@ -91,6 +91,15 @@ function functionParameter(raw, name) {
   return raw.slice(start, scanParameterEnd(raw, start)).trim().replace(/\.\s*$/, "");
 }
 
+// A by-reference IMPORTING parameter typed string takes no character field
+// or other non-string actual, so a function module actual is converted. A
+// string template or string literal is a string already.
+function stringArgument(value) {
+  if (value === undefined) return "''";
+  if (/^\|[\s\S]*\|$|^`(?:``|[^`])*`$/.test(value)) return value;
+  return `CONV string( ${value} )`;
+}
+
 function field(name, value, outputName = name) {
   return value === undefined ? undefined : `${outputName} = ${value}`;
 }
@@ -101,6 +110,15 @@ function request(fields) {
 
 function call(method, args = "") {
   return `io_session->get_compatibility( )->${method}( ${args} ).`;
+}
+
+// One parameter per line, aligned, for a call with several parameters.
+function parameterCall(method, parameters, target) {
+  const width = Math.max(...parameters.map(([name]) => name.length));
+  const lines = parameters.map(([name, value]) => `  ${name.padEnd(width, " ")} = ${value}`);
+  lines[lines.length - 1] += " ).";
+  const receiver = `io_session->get_compatibility( )->${method}(`;
+  return [target ? `${target} = ${receiver}` : receiver, ...lines].join("\n");
 }
 
 function returningCall(target, method, args) {
@@ -235,11 +253,14 @@ function lowerVariants(raw, name) {
 function lowerFrontend(raw, name) {
   if (name === "CONVERSION_EXIT_ALPHA_INPUT" || name === "CONVERSION_EXIT_ALPHA_OUTPUT") {
     const input = functionParameter(raw, "input");
-    return returningCall(functionParameter(raw, "output"), name.endsWith("INPUT") ? "alpha_input" : "alpha_output", `CONV string( ${input ?? "''"} )`);
+    return returningCall(functionParameter(raw, "output"), name.endsWith("INPUT") ? "alpha_input" : "alpha_output", stringArgument(input));
   }
   if (name === "SCMS_XSTRING_TO_BINARY") return call("xstring_to_binary", `EXPORTING iv_buffer = ${functionParameter(raw, "buffer") ?? "VALUE #( )"} CHANGING cv_output_length = ${functionParameter(raw, "output_length") ?? "VALUE #( )"} ct_binary = ${functionParameter(raw, "binary_tab") ?? "VALUE #( )"}`);
   if (name === "DP_CREATE_URL") return call("create_url", `EXPORTING is_request = ${requestFields(raw, { type: "type", subtype: "subtype", size: "size", lifetime: "lifetime" })} CHANGING cv_url = ${functionParameter(raw, "url") ?? "VALUE #( )"} ct_data = ${functionParameter(raw, "data") ?? "VALUE #( )"}`);
-  return returningCall(functionParameter(raw, "url"), "publish_url", `iv_object = ${functionParameter(raw, "objid") ?? "''"} iv_lifetime = CONV string( ${functionParameter(raw, "lifetime") ?? "''"} )`);
+  return parameterCall("publish_url", [
+    ["iv_object", stringArgument(functionParameter(raw, "objid"))],
+    ["iv_lifetime", stringArgument(functionParameter(raw, "lifetime"))],
+  ], functionParameter(raw, "url") ?? "DATA(lv_ggconv_fm_result)");
 }
 
 export function lowerCompatibilityFunction(raw) {
@@ -251,7 +272,10 @@ export function lowerCompatibilityFunction(raw) {
     : lowerPopup(raw, name);
   if (adapter.family === "classic-alv") return lowerAlv(raw, name);
   if (adapter.family === "dynamic-selection") return name === "VRM_SET_VALUES"
-    ? call("set_selection_list_values", `iv_id = ${functionParameter(raw, "id") ?? "''"} it_values = ${functionParameter(raw, "values") ?? "VALUE #( )"}`)
+    ? parameterCall("set_selection_list_values", [
+      ["iv_id", stringArgument(functionParameter(raw, "id"))],
+      ["it_values", functionParameter(raw, "values") ?? "VALUE #( )"],
+    ])
     : lowerDynamicSelection(raw, name);
   if (adapter.family === "variant") return lowerVariants(raw, name);
   return lowerFrontend(raw, name);
