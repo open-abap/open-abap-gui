@@ -1460,6 +1460,58 @@ test("lowers method-local field symbols only when static binding is provable", a
   assert.doesNotMatch(dereferenced.classSource, /TODO GGCONV/);
 });
 
+test("carries over a static ASSIGN of a table expression like any other statement", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zassign_expr.",
+      "TYPES: BEGIN OF ty_legag,",
+      "         werks TYPE c LENGTH 4,",
+      "         lgort TYPE c LENGTH 4,",
+      "       END OF ty_legag.",
+      "DATA lt_legag_cms TYPE STANDARD TABLE OF ty_legag WITH DEFAULT KEY.",
+      "DATA lt_marc TYPE STANDARD TABLE OF ty_legag WITH DEFAULT KEY.",
+      "FIELD-SYMBOLS <declared> TYPE LINE OF lt_legag_cms.",
+      "START-OF-SELECTION.",
+      "  PERFORM run.",
+      "FORM run.",
+      "  LOOP AT lt_marc ASSIGNING FIELD-SYMBOL(<update_marc>).",
+      "    ASSIGN lt_legag_cms[ werks = <update_marc>-werks ]-lgort TO FIELD-SYMBOL(<lgort>).",
+      "    IF sy-subrc = 0.",
+      "      WRITE <lgort>.",
+      "    ENDIF.",
+      "  ENDLOOP.",
+      "  ASSIGN lt_legag_cms[ 1 ] TO <declared>.",
+      "  WRITE <declared>-werks.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zassign_expr.prog.abap",
+  });
+  assert.equal(result.supported, true);
+  assert.deepEqual(result.reportIR.safeFieldSymbols, ["DECLARED"]);
+  assert.match(result.classSource, /ASSIGN lt_legag_cms\[ werks = <update_marc>-werks \]-lgort TO FIELD-SYMBOL\(<lgort>\)\./);
+  assert.match(result.classSource, /ASSIGN lt_legag_cms\[ 1 \] TO <declared>\./);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
+
+  // A source named at runtime is the one ASSIGN that cannot keep its meaning,
+  // and the field symbol it declares inline goes with it.
+  const dynamic = await convertProgram({
+    source: [
+      "REPORT zassign_dynamic.",
+      "DATA gv_name TYPE string VALUE 'GV_TEXT'.",
+      "DATA gv_text TYPE string.",
+      "START-OF-SELECTION.",
+      "  ASSIGN (gv_name) TO FIELD-SYMBOL(<value>).",
+      "  WRITE <value>.",
+    ].join("\n"),
+    filename: "zassign_dynamic.prog.abap",
+    mode: "partial",
+  });
+  assert.equal(dynamic.supported, false);
+  assert.ok(dynamic.diagnostics.some((item) => item.code === "GGCONV-E515"));
+  assert.ok(!dynamic.diagnostics.some((item) => item.code === "GGCONV-E205"));
+  assert.match(dynamic.classSource, /TODO GGCONV-E515: statement omitted, field symbol <value> has no convertible binding/);
+});
+
 test("renders an honest boundary for an unsupported dynamic ALV table", async () => {
   const result = await convertProgram({
     source: [

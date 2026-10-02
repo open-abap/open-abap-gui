@@ -312,6 +312,28 @@ export function isMethodSafeLoop(statement) {
     && !/^\s*LOOP\s+AT\s+SCREEN\b/i.test(body);
 }
 
+// ASSIGN is an ordinary statement in a class method, whatever its source
+// operand: a data object, a dereference, a table expression or a component of
+// one. Only a name resolved at runtime - `(name)`, `->(attr)`, `=>(attr)`,
+// TABLE FIELD - loses its meaning, because the program's data was renamed and
+// moved into the class. The additions here are obsolete forms classes reject.
+// A component or key of the same name, `-range` or `range = x`, is no addition.
+const UNSAFE_ASSIGN_ADDITIONS = /(?<![-~>])\b(?:CASTING|INCREMENTING|DECIMALS|RANGE|ELSEWHERE|LOCAL\s+COPY)\b(?!\s*=)/i;
+
+export function isStaticAssign(text) {
+  const body = withoutLiteralTemplateText(String(text ?? ""))
+    .replace(/'(?:''|[^'])*'/g, "''")
+    .replace(/`(?:``|[^`])*`/g, "``");
+  if (!/^\s*ASSIGN\b/i.test(body) || UNSAFE_ASSIGN_ADDITIONS.test(body)) return false;
+  return !/(?:^\s*ASSIGN\s+|->|=>|\bTABLE\s+FIELD\s+)\(/i.test(body);
+}
+
+// The field symbol an ASSIGN binds, declared inline or not.
+export function assignTarget(text) {
+  const body = String(text ?? "").replace(/'(?:''|[^'])*'/g, "''");
+  return /\bTO\s+(?:FIELD-SYMBOL\s*\(\s*)?<([A-Z][A-Z0-9_]*)>/i.exec(body)?.[1]?.toUpperCase();
+}
+
 function dynamicWriteExpressionSupported(operand) {
   if (!operand || /\b(?:CALL|COMMIT|GET|MESSAGE|PERFORM|RAISE|ROLLBACK|SELECT|SUBMIT|WAIT)\b|(?:->|=>)/i.test(operand)) return false;
   const callLike = /\b[A-Z][A-Z0-9_]*\s*\(/i.test(operand);
@@ -1170,10 +1192,9 @@ function lowerSingleStatement(statement, context) {
     const type = context.rangeDeclarations?.[match[1].toUpperCase()] ?? "TYPE RANGE OF string";
     return `DATA ${name} ${type}.`;
   }
-  if (statement.kind === "Assign") {
-    const name = /\bTO\s+<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
-    return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw, context.replacements) : undefined;
-  }
+  // A static ASSIGN is carried over like any other statement. Whether its
+  // target has a declaration is settled in lowerStatements, as for every use.
+  if (statement.kind === "Assign" && !isStaticAssign(raw)) return undefined;
   if (statement.kind === "SetPFStatus") {
     const name = /SET PF-STATUS\s+['"]?([^\s.'"]+)/i.exec(raw)?.[1];
     if (!name) return "* TODO GGCONV-E501: dynamic PF-STATUS.";
@@ -1634,9 +1655,13 @@ function referencedFieldSymbols(text) {
   return [...body.matchAll(/<([A-Z][A-Z0-9_]*)>/gi)].map((match) => match[1].toUpperCase());
 }
 
+// A dynamic ASSIGN is omitted, so a field symbol it declares inline is never
+// declared either.
 function inlineFieldSymbols(statements) {
-  return (statements ?? []).flatMap((statement) =>
-    [...statement.text.matchAll(/\bFIELD-SYMBOL\s*\(\s*<([A-Z][A-Z0-9_]*)>\s*\)/gi)].map((match) => match[1].toUpperCase()));
+  return (statements ?? [])
+    .filter((statement) => statement.kind !== "Assign" || isStaticAssign(statement.text))
+    .flatMap((statement) =>
+      [...statement.text.matchAll(/\bFIELD-SYMBOL\s*\(\s*<([A-Z][A-Z0-9_]*)>\s*\)/gi)].map((match) => match[1].toUpperCase()));
 }
 
 // A field symbol whose declaration and binding were both dropped as

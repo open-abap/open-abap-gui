@@ -1,4 +1,6 @@
-const ELEMENTARY_TYPES = new Set(["C", "N", "D", "T", "I", "P", "F", "X", "STRING", "ABAP_BOOL"]);
+import { assignTarget, isStaticAssign } from "./lower-statements.mjs";
+
+const ELEMENTARY_TYPES =new Set(["C", "N", "D", "T", "I", "P", "F", "X", "STRING", "ABAP_BOOL"]);
 
 function ownerStatements(ir, statement) {
   const event = ir.eventBlocks?.find((block) => block.statements?.includes(statement));
@@ -31,14 +33,11 @@ function staticType(raw, tables) {
 
 // `LOOP AT itab ASSIGNING <fs>` and `READ TABLE itab ... ASSIGNING <fs>` bind
 // the field symbol to a row of a statically named table, which is exactly as
-// determined as the `ASSIGN x TO <fs>` form. Both are lowered and emitted, so
-// both have to count as bindings or the emitted use loses its declaration.
+// determined as an ASSIGN with a static source. All are lowered and emitted, so
+// all have to count as bindings or the emitted use loses its declaration.
 function bindsStatically(text, name) {
+  if (/^\s*ASSIGN\b/i.test(text)) return isStaticAssign(text) && assignTarget(text) === name;
   if (UNSAFE_ASSIGN_ADDITIONS.test(text)) return false;
-  const assign = /^\s*ASSIGN\s+([A-Z][A-Z0-9_-]*)\s+TO\s+<([A-Z][A-Z0-9_]*)>\.?\s*$/i.exec(text);
-  if (assign) return assign[2].toUpperCase() === name;
-  const dereference = /^\s*ASSIGN\s+[A-Z][A-Z0-9_-]*->\*\s+TO\s+<([A-Z][A-Z0-9_]*)>\.?\s*$/i.exec(text);
-  if (dereference) return dereference[1].toUpperCase() === name;
   if (!/^\s*(?:LOOP\s+AT|READ\s+TABLE)\s+[A-Z][A-Z0-9_]*\b/i.test(text)) return false;
   if (/^\s*LOOP\s+AT\s+SCREEN\b/i.test(text)) return false;
   const assigning = /\bASSIGNING\s+<([A-Z][A-Z0-9_]*)>/i.exec(text)?.[1]?.toUpperCase();
