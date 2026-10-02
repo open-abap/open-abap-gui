@@ -463,6 +463,10 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro input,.gg-dynpro select,.gg-dynpro button\{font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text],.gg-dynpro input[type=password],.gg-dynpro select\{height:var(--gg-row);padding:2px 6px;border:1px solid var(--gg-border-dark);border-radius:1px;background:var(--gg-input);color:#123b64;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
     rv_html = rv_html && |.gg-dynpro .gg-type-text,.gg-dynpro .gg-type-date,.gg-dynpro .gg-type-time\{text-align:left;\}|.
+* Dates and times are fixed width masks, so their digits sit in a fixed pitch
+* font that fills the size the renderer derives from the formatted length. The
+* element in the selector outranks the font:inherit of the input rules above.
+    rv_html = rv_html && |.gg-selection input.gg-type-date,.gg-selection input.gg-type-time,.gg-dynpro input.gg-type-date,.gg-dynpro input.gg-type-time\{font-family:var(--gg-mono-font);\}|.
     rv_html = rv_html && |.gg-dynpro input[type=checkbox],.gg-dynpro input[type=radio]\{width:14px;height:14px;margin:0;flex:0 0 auto;accent-color:#28679e;\}|.
     rv_html = rv_html && |.gg-dynpro-control>input[type=text],.gg-dynpro-control>input[type=password]\{width:100%;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text]:focus:not([readonly]),.gg-dynpro input[type=password]:focus:not([readonly]),.gg-dynpro select:focus\{background-color:#fff1a6;\}|.
