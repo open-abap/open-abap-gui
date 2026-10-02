@@ -1330,6 +1330,23 @@ function dynproControl(element) {
   return "VALUE #( " + fields.join(" ") + " )";
 }
 
+// The Screen Painter resizing attributes of a container, with the minimum size
+// in the same pixel units as dynproPosition; empty for a fixed size control.
+function dynproResizing(container) {
+  const resizable = container.resizable ?? {};
+  if (!resizable.vertical && !resizable.horizontal) return "";
+  const fields = [];
+  if (resizable.vertical) {
+    fields.push("vertical = abap_true");
+    if (resizable.minLines > 0) fields.push("min_height = " + resizable.minLines * 26);
+  }
+  if (resizable.horizontal) {
+    fields.push("horizontal = abap_true");
+    if (resizable.minColumns > 0) fields.push("min_width = " + resizable.minColumns * 10);
+  }
+  return " resizing = VALUE #( " + fields.join(" ") + " )";
+}
+
 function dynproTabDefinitions(screen, flowLogic) {
   const screenNumber = String(screen.number ?? "").padStart(4, "0");
   const flows = (flowLogic ?? []).filter((flow) => String(flow.screen ?? "").padStart(4, "0") === screenNumber);
@@ -1627,7 +1644,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
         continue;
       }
       if (element.kind === "custom-control") {
-        buildScreens.push(`io_builder->add_custom_control( VALUE #( control = ${dynproControl(element.customControl)} ) ).`);
+        buildScreens.push(`io_builder->add_custom_control( VALUE #( control = ${dynproControl(element.customControl)}${dynproResizing(element.customControl)} ) ).`);
         continue;
       }
       const control = dynproControl(element);

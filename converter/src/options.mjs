@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import path from "node:path";
 
 export const CONVERTER_VERSION = "0.1.0";
@@ -19,14 +20,27 @@ export function normalizeObjectName(value, kind = "object") {
   return normalized;
 }
 
-export function defaultClassName(programName) {
+// The class name the report name implies, before it is fitted to 30 characters.
+export function fullClassName(programName) {
   const normalized = programName.toUpperCase();
   const match = REPORT_NAME.exec(normalized);
   if (match === null || normalized.includes("/")) {
     return undefined;
   }
-  const candidate = `${match.groups.prefix}CL_${match.groups.rest}`;
-  return SIMPLE_OBJECT.test(candidate) && candidate.length <= 30 ? candidate : undefined;
+  return `${match.groups.prefix}CL_${match.groups.rest}`;
+}
+
+// A program name may have 40 characters and a class name only 30, so a long
+// report name is cut down. Cutting alone would map names that differ only in
+// their tail, such as ..._PROMO and ..._PROMO2, to one class; a hash of the
+// full program name keeps them apart and gives the same name on every run.
+export function defaultClassName(programName) {
+  const candidate = fullClassName(programName);
+  if (candidate === undefined) return undefined;
+  if (candidate.length <= 30) return SIMPLE_OBJECT.test(candidate) ? candidate : undefined;
+  const hash = createHash("sha1").update(programName.toUpperCase()).digest("hex").slice(0, 4).toUpperCase();
+  const shortened = `${candidate.slice(0, 25).replace(/_+$/, "")}_${hash}`;
+  return SIMPLE_OBJECT.test(shortened) ? shortened : undefined;
 }
 
 export function defaultTransactionCode(programName) {

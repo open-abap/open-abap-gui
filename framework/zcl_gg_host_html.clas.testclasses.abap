@@ -4,6 +4,7 @@ CLASS ltcl_gg_host_html DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL H
     METHODS escapes_text FOR TESTING.
     METHODS builds_attributes FOR TESTING.
     METHODS builds_document FOR TESTING.
+    METHODS formats_external_values FOR TESTING.
 
 ENDCLASS.
 
@@ -119,6 +120,31 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
       iv_readonly = abap_true ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_states CS 'gg-state-focused' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_states CS 'gg-state-readonly' ) ).
+  ENDMETHOD.
+
+  METHOD formats_external_values.
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_html=>format_external_value( iv_value = `20260830`
+                                                     iv_type  = `D` )
+      exp = `30.08.2026` ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_html=>format_external_value( iv_value = ``
+                                                     iv_type  = `D` )
+      exp = ``
+      msg = 'an initial date stays blank' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_html=>format_external_value( iv_value = `123456`
+                                                     iv_type  = `T` )
+      exp = `12:34:56` ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_html=>format_external_value( iv_value = ``
+                                                     iv_type  = `T` )
+      exp = `00:00:00`
+      msg = 'an initial time is midnight' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_html=>format_external_value( iv_value = `000000`
+                                                     iv_type  = `T` )
+      exp = `00:00:00` ).
   ENDMETHOD.
 
 ENDCLASS.

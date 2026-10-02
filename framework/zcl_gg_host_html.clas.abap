@@ -290,6 +290,12 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-list .gg-state-changed\{border-left:3px solid #d4a000;padding-left:4px;\}|.
     rv_html = rv_html && |.gg-alv table\{border-collapse:collapse;min-width:100%;background:#fff;color:#123b64;font-size:13px;\}|.
     rv_html = rv_html && |.gg-alv\{max-width:100%;overflow:auto;\}|.
+* In a control the grid fills the whole box, as an ALV grid fills its
+* container: title and toolbar keep their height and the table area takes the
+* rest, scrolling inside it while the toolbar stays in place.
+    rv_html = rv_html && |.gg-control>.gg-alv\{display:flex;flex-direction:column;height:100%;box-sizing:border-box;overflow:hidden;\}|.
+    rv_html = rv_html && |.gg-control>.gg-alv>header,.gg-control>.gg-alv>.gg-alv-toolbar\{flex:0 0 auto;\}|.
+    rv_html = rv_html && |.gg-control>.gg-alv>.gg-alv-grid-area\{flex:1 1 auto;min-height:0;overflow:auto;background:#fff;border:1px solid #c1d2e0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-alv th,.gg-alv td\{height:28px;padding:3px 8px;border:1px solid #c1d2e0;white-space:nowrap;text-align:left;\}|.
     rv_html = rv_html && |.gg-alv th\{background:linear-gradient(#e9f3fa,#c7dae9);border-color:#8daac4;font-weight:700;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-row:nth-child(even) td\{background:#f3f8fc;\}|.
@@ -463,6 +469,10 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dynpro input,.gg-dynpro select,.gg-dynpro button\{font:inherit;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text],.gg-dynpro input[type=password],.gg-dynpro select\{height:var(--gg-row);padding:2px 6px;border:1px solid var(--gg-border-dark);border-radius:1px;background:var(--gg-input);color:#123b64;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
     rv_html = rv_html && |.gg-dynpro .gg-type-text,.gg-dynpro .gg-type-date,.gg-dynpro .gg-type-time\{text-align:left;\}|.
+* Dates and times are fixed width masks, so their digits sit in a fixed pitch
+* font that fills the size the renderer derives from the formatted length. The
+* element in the selector outranks the font:inherit of the input rules above.
+    rv_html = rv_html && |.gg-selection input.gg-type-date,.gg-selection input.gg-type-time,.gg-dynpro input.gg-type-date,.gg-dynpro input.gg-type-time\{font-family:var(--gg-mono-font);\}|.
     rv_html = rv_html && |.gg-dynpro input[type=checkbox],.gg-dynpro input[type=radio]\{width:14px;height:14px;margin:0;flex:0 0 auto;accent-color:#28679e;\}|.
     rv_html = rv_html && |.gg-dynpro-control>input[type=text],.gg-dynpro-control>input[type=password]\{width:100%;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text]:focus:not([readonly]),.gg-dynpro input[type=password]:focus:not([readonly]),.gg-dynpro select:focus\{background-color:#fff1a6;\}|.
@@ -672,7 +682,11 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
           rv_value = |{ lv_first }.{ lv_second }.{ lv_third }|.
         ENDIF.
       WHEN 'T'.
-        IF strlen( iv_value ) = 6 AND iv_value CO '0123456789'.
+* An initial time is still a time, midnight, and SAP GUI shows it as such
+* rather than as a blank field, unlike an initial date.
+        IF iv_value IS INITIAL.
+          rv_value = '00:00:00'.
+        ELSEIF strlen( iv_value ) = 6 AND iv_value CO '0123456789'.
           lv_first = substring(
             val = iv_value
             off = 0

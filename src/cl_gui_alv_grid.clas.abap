@@ -1591,7 +1591,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     ENDIF.
     lv_toolbar = render_toolbar( ).
     lv_row_marks = xsdbool( ms_layout-no_rowmark = abap_false ).
-    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }<table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"{ COND string( WHEN mv_gridtitle IS NOT INITIAL THEN | aria-label="{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }"| ) }><thead><tr>{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col">Select</th>` ) }|.
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }<div class="gg-alv-grid-area"><table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"{ COND string( WHEN mv_gridtitle IS NOT INITIAL THEN | aria-label="{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }"| ) }><thead><tr>{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col">Select</th>` ) }|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         DATA(lv_heading) = ls_fieldcat-coltext.
@@ -1648,7 +1648,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     IF lv_has_total = abap_true.
       result = result && '<tfoot>' && render_aggregate_row( it_rows = mt_html_rows ) && '</tfoot>'.
     ENDIF.
-    result = result && |</table></section>|.
+    result = result && |</table></div></section>|.
   ENDMETHOD.
 
   METHOD get_selected_rows.

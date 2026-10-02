@@ -1,4 +1,6 @@
-const ELEMENTARY_TYPES = new Set(["C", "N", "D", "T", "I", "P", "F", "X", "STRING", "ABAP_BOOL"]);
+import { assignTarget, isStaticAssign } from "./lower-statements.mjs";
+
+const ELEMENTARY_TYPES =new Set(["C", "N", "D", "T", "I", "P", "F", "X", "STRING", "ABAP_BOOL"]);
 
 function ownerStatements(ir, statement) {
   const event = ir.eventBlocks?.find((block) => block.statements?.includes(statement));
@@ -31,15 +33,12 @@ function staticType(raw, tables) {
 
 // `LOOP AT itab ASSIGNING <fs>` and `READ TABLE itab ... ASSIGNING <fs>` bind
 // the field symbol to a row of a statically named table, which is exactly as
-// determined as the `ASSIGN x TO <fs>` form. Both are lowered and emitted, so
-// both have to count as bindings or the emitted use loses its declaration.
+// determined as an ASSIGN with a static source. All are lowered and emitted, so
+// all have to count as bindings or the emitted use loses its declaration.
 function bindsStatically(text, name) {
+  if (/^\s*ASSIGN\b/i.test(text)) return isStaticAssign(text) && assignTarget(text) === name;
   if (UNSAFE_ASSIGN_ADDITIONS.test(text)) return false;
-  const assign = /^\s*ASSIGN\s+([A-Z][A-Z0-9_-]*)\s+TO\s+<([A-Z][A-Z0-9_]*)>\.?\s*$/i.exec(text);
-  if (assign) return assign[2].toUpperCase() === name;
-  const dereference = /^\s*ASSIGN\s+[A-Z][A-Z0-9_-]*->\*\s+TO\s+<([A-Z][A-Z0-9_]*)>\.?\s*$/i.exec(text);
-  if (dereference) return dereference[1].toUpperCase() === name;
-  if (!/^\s*(?:LOOP\s+AT|READ\s+TABLE)\s+[A-Z][A-Z0-9_]*\b/i.test(text)) return false;
+  if (!/^\s*(?:LOOP\s+AT|READ\s+TABLE)\s+(?:[A-Z][A-Z0-9_]*\b|<[A-Z][A-Z0-9_]*>)/i.test(text)) return false;
   if (/^\s*LOOP\s+AT\s+SCREEN\b/i.test(text)) return false;
   const assigning = /\bASSIGNING\s+<([A-Z][A-Z0-9_]*)>/i.exec(text)?.[1]?.toUpperCase();
   return assigning === name;
@@ -62,12 +61,22 @@ function globalOwners(ir, name) {
   return owners.filter((statements) => references(statements, name));
 }
 
+// A declaration local to a FORM, method or module is emitted unchanged into the
+// one generated method that replaces it, so any type the original accepted is
+// still valid there, generic ones such as `TYPE STANDARD TABLE` included. Only
+// the obsolete untyped and STRUCTURE forms, which classes reject, are not.
+function methodType(raw) {
+  return /\b(?:TYPE|LIKE)\b/i.test(raw) && !/\bSTRUCTURE\b/i.test(raw);
+}
+
 export function analyzeFieldSymbols(ir) {
   const safe = new Set();
   const tables = declaredTables(ir);
   for (const declaration of ir.declarations ?? []) {
     for (const name of declaration.names ?? []) {
-      if (declaration.kind !== "field-symbol" || !staticType(declaration.raw, tables)) continue;
+      if (declaration.kind !== "field-symbol") continue;
+      const typed = declaration.statement?.scope === "local" ? methodType(declaration.raw) : staticType(declaration.raw, tables);
+      if (!typed) continue;
       const owner = declaration.statement?.scope === "local"
         ? [ownerStatements(ir, declaration.statement)]
         : globalOwners(ir, name);

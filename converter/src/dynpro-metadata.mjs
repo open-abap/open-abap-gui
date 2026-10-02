@@ -232,6 +232,8 @@ function parseContainer(node) {
     resizable: {
       horizontal: flag(attributes.C_RESIZE_H),
       vertical: flag(attributes.C_RESIZE_V),
+      minLines: integer(attributes.C_LINE_MIN),
+      minColumns: integer(attributes.C_COLN_MIN),
     },
     attributes: publicRecord(attributes),
   };

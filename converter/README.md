@@ -115,7 +115,11 @@ programs map to the same class writes nothing at all and reports
 `GGCONV-E115`, rather than keeping one class and losing the other.
 
 A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`) unless
-`--class` names it. When that default name is already taken by a class or
+`--class` names it. A program name may have 40 characters but a class name only
+30, so a longer default name is cut to 25 characters and given a four-character
+hash of the program name (`ZRLX_SDFDDDDD_DATE_COND_PROMO` becomes
+`ZCL_RLX_SDFDDDDD_DATE_CON_3539`), reported as `GGCONV-W107`; the hash keeps
+reports that differ only in the cut-off tail apart. When that default name is already taken by a class or
 interface in `input_folder`, `converter.input_folder` or the libs, the report
 is generated as the next free name (`ZCL_FOO_1`, `ZCL_FOO_2`, …) and
 `GGCONV-W106` names the file that holds the original. The generated

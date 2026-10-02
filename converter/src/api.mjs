@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { normalizeOptions, defaultClassName, defaultTransactionCode, normalizeObjectName, normalizeTransactionCode } from "./options.mjs";
+import { normalizeOptions, defaultClassName, fullClassName, defaultTransactionCode,normalizeObjectName, normalizeTransactionCode } from "./options.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
 import { resolveSources } from "./source-resolver.mjs";
 import { parseUnits, readConfig } from "./parser.mjs";
@@ -401,21 +401,34 @@ function validateNames(ir, options, diagnostics) {
     transactionCode = defaultTransactionCode(ir.programName ?? "");
     if (!transactionCode) diagnostics.push(diagnostic({ code: "GGCONV-W105", severity: "warning", filename: options.filename, construct: "transaction code", message: `the program name cannot be used as a scaffold transaction code; ${withoutTransaction}`, suggestion: "Pass transactionCode/--tcode explicitly.", phase: "options" }));
   }
+  // SUBMIT derives the class from the program name, so a renamed or shortened
+  // class is only found through the program in its transaction or program
+  // metadata.
+  const reachability = transactionCode
+    ? "SUBMIT finds it through the transaction registry"
+    : programRegistered
+      ? "SUBMIT finds it through the program registry"
+      : "without a transaction code, SUBMIT cannot find it";
   if (renamedFrom) {
-    // SUBMIT derives the class from the program name, so a renamed class is
-    // only found through the program in its transaction or program metadata.
     const location = options.existingClassFiles?.[renamedFrom];
-    const reachability = transactionCode
-      ? "SUBMIT finds it through the transaction registry"
-      : programRegistered
-        ? "SUBMIT finds it through the program registry"
-        : "without a transaction code, SUBMIT cannot find it";
     diagnostics.push(diagnostic({
       code: "GGCONV-W106",
       severity: "warning",
       filename: options.filename,
       construct: renamedFrom,
       message: `class ${renamedFrom} already exists${location ? ` in ${location}` : ""}; the report is generated as ${className} instead, and ${reachability}`,
+      suggestion: "Pass className/--class to choose the name yourself.",
+      phase: "options",
+    }));
+  }
+  const fullName = options.className ? undefined : fullClassName(ir.programName ?? "");
+  if (fullName && fullName.length > 30 && className && !diagnostics.some((item) => item.code === "GGCONV-E101")) {
+    diagnostics.push(diagnostic({
+      code: "GGCONV-W107",
+      severity: "warning",
+      filename: options.filename,
+      construct: fullName,
+      message: `class name ${fullName} exceeds 30 characters; the report is generated as ${className} instead, and ${reachability}`,
       suggestion: "Pass className/--class to choose the name yourself.",
       phase: "options",
     }));

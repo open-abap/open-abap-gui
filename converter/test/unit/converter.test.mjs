@@ -1210,6 +1210,25 @@ test("validates explicit class and transaction names", async () => {
   assert.equal(long.reportIR.targetClassName, "ZCL_ABCDEFGHIJKLMNOPQRSTUVWX_1");
 });
 
+test("shortens a default class name past 30 characters, keeping long names apart", async () => {
+  const convert = (name) => convertProgram({
+    source: `REPORT ${name}.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n`,
+    filename: `${name}.prog.abap`,
+  });
+  const result = await convert("zrlx_sdfddddd_date_cond_promo");
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const className = result.reportIR.targetClassName;
+  assert.match(className, /^ZCL_RLX_SDFDDDDD_DATE_CON_[0-9A-F]{4}$/);
+  assert.equal(className.length, 30);
+  assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W107", "warning"]]);
+  assert.match(result.diagnostics[0].message, /ZCL_RLX_SDFDDDDD_DATE_COND_PROMO exceeds 30 characters; the report is generated as ZCL_RLX_SDFDDDDD_DATE_CON_[0-9A-F]{4} instead, and SUBMIT finds it through the program registry/);
+  assert.match(result.classSource, /rs_program = VALUE #\( program = 'ZRLX_SDFDDDDD_DATE_COND_PROMO'/);
+
+  // Deterministic, and a name differing only in the cut-off tail gets its own class.
+  assert.equal((await convert("zrlx_sdfddddd_date_cond_promo")).reportIR.targetClassName, className);
+  assert.notEqual((await convert("zrlx_sdfddddd_date_cond_promo2")).reportIR.targetClassName, className);
+});
+
 test("lowers interactive list context and keeps GET CURSOR in its list event", async () => {
   const source = await fixture("zgg_ex_047.prog.abap");
   const result = await convertProgram({ source, filename: "zgg_ex_047.prog.abap" });
@@ -1300,6 +1319,29 @@ test("discovers each screen's OK-code field in the screen XML and binds it in th
     },
   });
   assert.match(supplied.classSource, /begin_screen\( VALUE #\( number = '0100' [^)]*ok_code = 'SAVE_OK' /);
+});
+
+test("passes the resizing attributes of a custom control to the dynpro builder", async () => {
+  const container = (name, line, resizable) => ({
+    kind: "cust_ctrl", type: "CUST_CTRL", name, elementOf: "SCREEN",
+    line, column: 1, length: 118, height: 21, position: { line, column: 1, width: 118, height: 21 }, resizable,
+  });
+  const converted = await convertProgram({
+    source: "PROGRAM zresizing.\nMODULE status_0100 OUTPUT.\nENDMODULE.\n",
+    filename: "zresizing.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Resizing", elements: [], containers: [
+        container("CC_MAIN", 1, { vertical: true, horizontal: true, minLines: 9, minColumns: 35 }),
+        container("CC_FIXED", 23, { vertical: false, horizontal: false }),
+      ] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [] }],
+    },
+  });
+  assert.match(converted.classSource,
+    /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_MAIN' [^\n]* \) resizing = VALUE #\( vertical = abap_true min_height = 234 horizontal = abap_true min_width = 350 \) \) \)\./);
+  assert.match(converted.classSource, /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_FIXED' [^\n]*\) \) \) \)\./);
+  assert.doesNotMatch(converted.classSource, /name = 'CC_FIXED'[^\n]*resizing/);
 });
 
 test("loads report-owned dynpro XML and every matching screen flow file", async () => {
@@ -1435,6 +1477,87 @@ test("lowers method-local field symbols only when static binding is provable", a
   assert.deepEqual(dereferenced.reportIR.safeFieldSymbols, ["VALUE"]);
   assert.match(dereferenced.classSource, /ASSIGN lr_value->\* TO <value>/);
   assert.doesNotMatch(dereferenced.classSource, /TODO GGCONV/);
+});
+
+test("keeps generically typed field symbols declared inside a FORM", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zfs_generic.",
+      "DATA gt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
+      "START-OF-SELECTION.",
+      "  PERFORM run.",
+      "FORM run.",
+      "  FIELD-SYMBOLS: <table> TYPE STANDARD TABLE .",
+      "  FIELD-SYMBOLS: <any_table> TYPE ANY TABLE, <row> TYPE any.",
+      "  ASSIGN gt_rows TO <table>.",
+      "  WRITE lines( <table> ).",
+      "  ASSIGN gt_rows TO <any_table>.",
+      "  LOOP AT <any_table> ASSIGNING <row>.",
+      "  ENDLOOP.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zfs_generic.prog.abap",
+  });
+  assert.equal(result.supported, true);
+  assert.deepEqual(result.reportIR.safeFieldSymbols, ["ANY_TABLE", "ROW", "TABLE"]);
+  assert.match(result.classSource, /FIELD-SYMBOLS <table> TYPE STANDARD TABLE \./);
+  // A chain arrives split per element; each element ends its own statement.
+  assert.match(result.classSource, /FIELD-SYMBOLS <any_table> TYPE ANY TABLE\./);
+  assert.match(result.classSource, /FIELD-SYMBOLS <row> TYPE any\./);
+  assert.match(result.classSource, /LOOP AT <any_table> ASSIGNING <row>\./);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
+});
+
+test("carries over a static ASSIGN of a table expression like any other statement", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zassign_expr.",
+      "TYPES: BEGIN OF ty_legag,",
+      "         werks TYPE c LENGTH 4,",
+      "         lgort TYPE c LENGTH 4,",
+      "       END OF ty_legag.",
+      "DATA lt_legag_cms TYPE STANDARD TABLE OF ty_legag WITH DEFAULT KEY.",
+      "DATA lt_marc TYPE STANDARD TABLE OF ty_legag WITH DEFAULT KEY.",
+      "FIELD-SYMBOLS <declared> TYPE LINE OF lt_legag_cms.",
+      "START-OF-SELECTION.",
+      "  PERFORM run.",
+      "FORM run.",
+      "  LOOP AT lt_marc ASSIGNING FIELD-SYMBOL(<update_marc>).",
+      "    ASSIGN lt_legag_cms[ werks = <update_marc>-werks ]-lgort TO FIELD-SYMBOL(<lgort>).",
+      "    IF sy-subrc = 0.",
+      "      WRITE <lgort>.",
+      "    ENDIF.",
+      "  ENDLOOP.",
+      "  ASSIGN lt_legag_cms[ 1 ] TO <declared>.",
+      "  WRITE <declared>-werks.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zassign_expr.prog.abap",
+  });
+  assert.equal(result.supported, true);
+  assert.deepEqual(result.reportIR.safeFieldSymbols, ["DECLARED"]);
+  assert.match(result.classSource, /ASSIGN lt_legag_cms\[ werks = <update_marc>-werks \]-lgort TO FIELD-SYMBOL\(<lgort>\)\./);
+  assert.match(result.classSource, /ASSIGN lt_legag_cms\[ 1 \] TO <declared>\./);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
+
+  // A source named at runtime is the one ASSIGN that cannot keep its meaning,
+  // and the field symbol it declares inline goes with it.
+  const dynamic = await convertProgram({
+    source: [
+      "REPORT zassign_dynamic.",
+      "DATA gv_name TYPE string VALUE 'GV_TEXT'.",
+      "DATA gv_text TYPE string.",
+      "START-OF-SELECTION.",
+      "  ASSIGN (gv_name) TO FIELD-SYMBOL(<value>).",
+      "  WRITE <value>.",
+    ].join("\n"),
+    filename: "zassign_dynamic.prog.abap",
+    mode: "partial",
+  });
+  assert.equal(dynamic.supported, false);
+  assert.ok(dynamic.diagnostics.some((item) => item.code === "GGCONV-E515"));
+  assert.ok(!dynamic.diagnostics.some((item) => item.code === "GGCONV-E205"));
+  assert.match(dynamic.classSource, /TODO GGCONV-E515: statement omitted, field symbol <value> has no convertible binding/);
 });
 
 test("renders an honest boundary for an unsupported dynamic ALV table", async () => {

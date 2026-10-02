@@ -1,7 +1,7 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop } from "./passes/lower-statements.mjs";
+import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop, isStaticAssign } from "./passes/lower-statements.mjs";
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
 import { LOOP_BLOCKS } from "./passes/blocks.mjs";
 
@@ -88,8 +88,8 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "field-symbol declarations require method-local binding analysis", "Move the field symbol into a generated method or provide an explicit field-symbol lowering rule.", "GGCONV-E501");
       continue;
     }
-    if (statement.kind === "Assign" && !ir.safeFieldSymbols?.includes(/\bTO\s+<([A-Z][A-Z0-9_]*)>/i.exec(statement.text)?.[1]?.toUpperCase())) {
-      addStatementDiagnostic(diagnostics, statement, "dynamic or unproven ASSIGN cannot be lowered safely", "Use a method-local elementary field symbol with a static ASSIGN target, or convert it manually.", "GGCONV-E501");
+    if (statement.kind === "Assign" && !isStaticAssign(statement.text)) {
+      addStatementDiagnostic(diagnostics, statement, "dynamic ASSIGN names its source at runtime, which the converted class cannot resolve", "Name the source statically, or convert the ASSIGN manually.", "GGCONV-E501");
       continue;
     }
     if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)) {
