@@ -903,6 +903,42 @@ test("keeps dynamic MESSAGE DISPLAY LIKE out of the text and into display_like",
   assert.match(literal.classSource, /type = zif_gg_session_types_v1=>message_type_success text = 'looks like an error' display_like = zif_gg_session_types_v1=>message_type_error/);
 });
 
+test("ends every part of a chained MOVE with a period", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmove_chain.",
+      "DATA: lv_datab TYPE d, lv_datbi TYPE d.",
+      "DATA: BEGIN OF ls_cond, datab TYPE d, datbi TYPE d, END OF ls_cond.",
+      "START-OF-SELECTION.",
+      "  MOVE: lv_datab TO ls_cond-datab,",
+      "        lv_datbi TO ls_cond-datbi.",
+    ].join("\n"),
+    filename: "zmove_chain.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /^\s*MOVE lv_datab TO ls_cond-datab\.$/m);
+  assert.match(result.classSource, /^\s*MOVE lv_datbi TO ls_cond-datbi\.$/m);
+});
+
+test("lowers MESSAGE ID ... TYPE ... NUMBER with dynamic parts", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsg_dynamic_id.",
+      "START-OF-SELECTION.",
+      "  MESSAGE ID sy-msgid TYPE 'I' NUMBER sy-msgno",
+      "          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 DISPLAY LIKE 'E'.",
+      "  MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno WITH sy-msgv1.",
+      "  MESSAGE 'set TYPE e here' TYPE 'W'.",
+    ].join("\n"),
+    filename: "zmsg_dynamic_id.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = sy-msgid number = sy-msgno v1 = sy-msgv1 v2 = sy-msgv2 v3 = sy-msgv3 v4 = sy-msgv4 display_like = zif_gg_session_types_v1=>message_type_error \) \)\./);
+  // The s of sy-msgty is not a literal type S.
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = sy-msgty id = sy-msgid number = sy-msgno v1 = sy-msgv1 \) \)\./);
+  assert.match(result.classSource, /type = zif_gg_session_types_v1=>message_type_warning text = 'set TYPE e here'/);
+});
+
 test("emits valid hoisted local classes for chained declarations and divider comments", async () => {
   const result = await convertProgram({
     source: [

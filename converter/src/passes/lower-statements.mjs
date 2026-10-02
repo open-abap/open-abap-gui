@@ -869,16 +869,41 @@ function parseFormat(raw, context) {
   return `lo_writer->set_format( VALUE #( ${fields.join(" ")} ) ).`;
 }
 
+// A message type is a letter, quoted or not, or a dynamic operand such as
+// sy-msgty.
+function messageTypeExpression(token, context) {
+  const letter = /^'?([AEISWX])'?$/i.exec(token)?.[1];
+  return letter ? `zif_gg_session_types_v1=>${MESSAGE_TYPES[letter.toUpperCase()]}` : valueExpression(token, context);
+}
+
+// The operand after an addition keyword, ignoring keywords inside literals.
+function messageAdditionOperand(body, keyword) {
+  const masked = body.replace(/'(?:''|[^'])*'|`(?:``|[^`])*`|\|(?:\\.|[^|])*\|/g, (literal) => literal[0] + "_".repeat(literal.length - 2) + literal[0]);
+  const match = new RegExp(`(?:^|\\s)${keyword}\\s+(\\S+)`, "i").exec(masked);
+  return match ? body.slice(match.index + match[0].length - match[1].length, match.index + match[0].length) : undefined;
+}
+
 function parseMessage(raw, context) {
   const body = stripPeriod(raw).replace(/^MESSAGE\s+/i, "");
   // DISPLAY LIKE is an addition that sits after TYPE (or after the message
   // operands). Detect it once and strip it from the text/operand payload so it
   // is never copied into the emitted string template.
-  const displayLike = /DISPLAY\s+LIKE\s+'?([AEISWX])'?/i.exec(body)?.[1]?.toUpperCase();
-  const displayField = displayLike ? ` display_like = zif_gg_session_types_v1=>${MESSAGE_TYPES[displayLike]}` : "";
-  const type = /TYPE\s+'?([AEISWX])'?/i.exec(body)?.[1]?.toUpperCase() ?? "I";
-  const typeExpr = `zif_gg_session_types_v1=>${MESSAGE_TYPES[type]}`;
+  const displayLike = messageAdditionOperand(body, "DISPLAY\\s+LIKE");
+  const displayField = displayLike ? ` display_like = ${messageTypeExpression(displayLike, context)}` : "";
+  const typeExpr = messageTypeExpression(messageAdditionOperand(body, "TYPE") ?? "I", context);
   const withPart = (source) => (/\bWITH\s+(.+?)(?:\s+DISPLAY\s+LIKE\b[\s\S]*)?$/i.exec(source)?.[1] ?? "");
+  // MESSAGE ID mid TYPE mtype NUMBER num, where every part may be dynamic.
+  const dynamicId = /^ID\s+(\S+)\s+TYPE\s+\S+\s+NUMBER\s+(\S+)/i.exec(body);
+  if (dynamicId) {
+    const fields = [
+      "type = " + typeExpr,
+      "id = " + valueExpression(dynamicId[1], context),
+      "number = " + valueExpression(dynamicId[2], context),
+    ];
+    splitMessageOperands(withPart(body)).slice(0, 4)
+      .forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
+    return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
+  }
   const text = /^('(?:''|[^'])*')\s+TYPE/i.exec(body)?.[1];
   if (text) {
     return `io_session->message( VALUE #( type = ${typeExpr} text = ${text}${displayField} ) ).`;
@@ -906,8 +931,8 @@ function parseMessage(raw, context) {
     return "io_session->message( VALUE #( " + fields.join(" ") + displayField + " ) ).";
   }
   const operand = body
-    .replace(/\s+DISPLAY\s+LIKE\s+'?[AEISWX]'?\s*$/i, "")
-    .replace(/\s+TYPE\s+['"]?[AEISWX]['"]?\s*$/i, "")
+    .replace(/\s+DISPLAY\s+LIKE\s+\S+\s*$/i, "")
+    .replace(/\s+TYPE\s+\S+\s*$/i, "")
     .trim();
   const value = valueExpression(operand, context);
   if (/^'.*'$/s.test(value) || /^\|.*\|$/s.test(value) || /^`.*`$/s.test(value)) {
@@ -1485,7 +1510,8 @@ function lowerSingleStatement(statement, context) {
     return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
   }
   if (statement.kind === "Move") {
-    let converted = rewriteStatementValues(raw, context);
+    // A chained MOVE: arrives one part at a time, each ending in a comma.
+    let converted = rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
     if (/^G_TABS-ACTIVETAB\s*=/i.test(raw)) {
       const assignment = converted.replace(/^G_TABS-ACTIVETAB/i, "mv_active_tab");
       return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n  ${assignment}\nENDIF.` : assignment;
