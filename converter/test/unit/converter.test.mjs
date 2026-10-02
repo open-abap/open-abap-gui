@@ -2855,3 +2855,13 @@ test("resolves dictionary-typed selection fields to their built-in types through
   assert.equal(unresolved.supported, true, JSON.stringify(unresolved.diagnostics));
   assert.match(unresolved.classSource, /name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #\( typ = 'ZEXAMPLE_COUNT' \)/);
 });
+
+test("emits a select-option default that is not a literal as an expression", async () => {
+  const result = await convertProgram({
+    source: "REPORT zsodef.\nSELECT-OPTIONS s_date FOR sy-datum DEFAULT sy-datum.\nSELECT-OPTIONS s_char FOR sy-ucomm DEFAULT 'A' TO 'B'.\nSTART-OF-SELECTION.\nWRITE / 'x'.\n",
+    filename: "zsodef.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /default = VALUE #\( sign = 'I' option = 'EQ' low = CONV string\( sy-datum \) \)/);
+  assert.match(result.classSource, /default = VALUE #\( sign = 'I' option = 'BT' low = 'A' high = 'B' \)/);
+});
