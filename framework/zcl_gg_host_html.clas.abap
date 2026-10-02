@@ -676,7 +676,11 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
           rv_value = |{ lv_first }.{ lv_second }.{ lv_third }|.
         ENDIF.
       WHEN 'T'.
-        IF strlen( iv_value ) = 6 AND iv_value CO '0123456789'.
+* An initial time is still a time, midnight, and SAP GUI shows it as such
+* rather than as a blank field, unlike an initial date.
+        IF iv_value IS INITIAL.
+          rv_value = '00:00:00'.
+        ELSEIF strlen( iv_value ) = 6 AND iv_value CO '0123456789'.
           lv_first = substring(
             val = iv_value
             off = 0
