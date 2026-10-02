@@ -6,6 +6,7 @@ import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
 import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.mjs";
 import { isSuspendingStatement } from "../passes/lower-continuations.mjs";
 import { screenOkCode } from "../dynpro-metadata.mjs";
+import { methodParameterType } from "../passes/collect-routines.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -484,11 +485,7 @@ function dataMembers(ir) {
   Object.keys(selectionState).forEach(emitSelection);
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
-    const parameterType = (parameter) => {
-      if (/^SY-UCOMM$/i.test(String(parameter.type ?? ""))) return "zif_gg_session_types_v1=>ty_ucomm";
-      if (/^SY(?:-SUBRC)?$/i.test(String(parameter.type ?? ""))) return "i";
-      return parameter.type;
-    };
+    const parameterType = methodParameterType;
     for (const parameter of parameters.filter((item) => item.lineType)) {
       members.push(renameIdentifiers(`TYPES ${parameter.type} TYPE STANDARD TABLE OF ${parameter.lineType} WITH DEFAULT KEY.`, allRenames(ir)));
     }
@@ -733,6 +730,9 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
     selections: values,
     tabbedBlocks: selectionTabbedBlocks(ir),
     messageId: ir.header?.messageId,
+    constantNames: ir.constantNames,
+    // Shared by every statement of the method, so temporaries get unique names.
+    temporaries: { count: 0 },
     mutableValues: mutable,
     ucomm: event.startsWith("at_selection_screen") || event === "at_user_command" ? "iv_ucomm" : undefined,
     replacements: [

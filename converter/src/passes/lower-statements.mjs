@@ -3,6 +3,8 @@ import { parsesAsStatement } from "../parser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
+import { isGenericParameterType, methodParameterType } from "./collect-routines.mjs";
+import { isWritableArgument, performArguments } from "./analyze-routine-writes.mjs";
 
 const TYPE_CODES = new Map([
   ["C", "C"], ["N", "N"], ["D", "D"], ["T", "T"], ["I", "I"], ["INT4", "I"],
@@ -457,8 +459,24 @@ function splitOutsideStrings(text, delimiter = ",") {
   return parts;
 }
 
-function splitPerformOperands(text) {
-  return [...String(text ?? "").matchAll(/'(?:''|[^'])*'|[^\s,]+/g)].map((match) => match[0]);
+const splitPerformOperands = performArguments;
+
+// A USING parameter that its FORM writes is CHANGING in the method, which
+// needs a variable. A literal, constant or text symbol argument, or one the
+// class reads through an expression, goes through a temporary of the call.
+function performTemporary(parameter, value, raw, context) {
+  if (!parameter.written) return undefined;
+  if (isWritableArgument(raw, context.constantNames) && !/\(|\bit_values\[/i.test(value)) return undefined;
+  const counter = context.temporaries ?? { count: 0 };
+  counter.count++;
+  const name = `lv_perform_${counter.count}`;
+  const type = methodParameterType(parameter);
+  return {
+    name,
+    declaration: isGenericParameterType(type)
+      ? [`DATA(${name}) = ${value}.`]
+      : [`DATA ${name} TYPE ${type}.`, `${name} = ${value}.`],
+  };
 }
 
 function lowerDynamicAlvFactory(raw, context) {
@@ -1483,14 +1501,22 @@ function lowerSingleStatement(statement, context) {
     if (!(routine.parameters ?? []).length) return `${receiver}${routine.methodName}( io_session = ${session} ).`;
     const parameterWidth = Math.max("io_session".length, ...(routine.parameters ?? []).map((parameter) => parameter.name.length));
     const fieldsByDirection = { EXPORTING: [`${"io_session".padEnd(parameterWidth, " ")} = ${session}`], CHANGING: [] };
+    const temporaries = [];
     for (const parameter of routine.parameters ?? []) {
       const values = argumentsBySection.get(parameter.section ?? (parameter.direction === "IMPORTING" ? "USING" : "CHANGING")) ?? [];
-      const value = values.shift();
-      if (value) fieldsByDirection[parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING"]
-        .push(`${parameter.name.padEnd(parameterWidth, " ")} = ${valueExpression(value, context)}`);
+      const raw = values.shift();
+      if (!raw) continue;
+      let value = valueExpression(raw, context);
+      const temporary = performTemporary(parameter, value, raw, context);
+      if (temporary) {
+        temporaries.push(...temporary.declaration);
+        value = temporary.name;
+      }
+      fieldsByDirection[parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING"]
+        .push(`${parameter.name.padEnd(parameterWidth, " ")} = ${value}`);
     }
     const fields = Object.entries(fieldsByDirection).filter(([, values]) => values.length);
-    const lines = [`${receiver}${routine.methodName}(`];
+    const lines = [...temporaries, `${receiver}${routine.methodName}(`];
     for (let directionIndex = 0; directionIndex < fields.length; directionIndex++) {
       const [direction, values] = fields[directionIndex];
       lines.push(`  ${direction}`);

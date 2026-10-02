@@ -1010,6 +1010,52 @@ test("keeps multi-word FORM parameter typings and VALUE parameters", async () =>
   assert.match(result.classSource, /^\s+pt_tof\s+TYPE ty_pt_tof_2$/m);
 });
 
+test("lowers a USING parameter its FORM writes to CHANGING", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zusing_write.",
+      "CONSTANTS gc_max TYPE i VALUE 5.",
+      "DATA gt_t000 TYPE STANDARD TABLE OF t000 WITH DEFAULT KEY.",
+      "DATA gv_n TYPE i.",
+      "START-OF-SELECTION.",
+      "  DATA lv_subrc TYPE sy-subrc.",
+      "  PERFORM get_dai USING lv_subrc CHANGING gt_t000.",
+      "  PERFORM count USING gv_n 'X' gc_max gv_n.",
+      "  PERFORM count USING 3 'Y' gv_n gv_n.",
+      "  PERFORM count USING gc_max 'Z' gv_n gv_n.",
+      "  PERFORM aliased USING gv_n.",
+      "FORM get_dai USING pv_subrc TYPE sy-subrc CHANGING pt_t000 LIKE gt_t000.",
+      "  CLEAR: pt_t000, pv_subrc.",
+      "  SELECT * FROM t000 INTO TABLE @pt_t000.",
+      "  pv_subrc = sy-subrc.",
+      "ENDFORM.",
+      "FORM count USING pv_total TYPE i pv_flag VALUE(pv_max) TYPE i pv_untyped.",
+      "  pv_total = pv_total + 1.",
+      "  pv_max = pv_max - 1.",
+      "  pv_untyped = pv_flag.",
+      "ENDFORM.",
+      "FORM aliased USING pv_x TYPE i.",
+      "  FIELD-SYMBOLS <lv> TYPE i.",
+      "  ASSIGN pv_x TO <lv>.",
+      "  <lv> = 1.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zusing_write.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /METHODS form_get_dai\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_subrc\s+TYPE i\s+pt_t000/);
+  // Read only stays IMPORTING, VALUE() stays by value, a write through ASSIGN counts.
+  assert.match(result.classSource, /METHODS form_count\s+IMPORTING\s+io_session\s+TYPE REF TO zif_gg_session_v1\s+pv_flag\s+TYPE any\s+VALUE\(pv_max\) TYPE i\s+CHANGING\s+pv_total\s+TYPE i\s+pv_untyped\s+TYPE any\./);
+  assert.match(result.classSource, /METHODS form_aliased\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_x\s+TYPE i\./);
+  assert.match(result.classSource, /form_get_dai\(\s+EXPORTING\s+io_session = io_session\s+CHANGING\s+pv_subrc\s+= lv_subrc\s+pt_t000\s+= gt_t000 \)\./);
+  // A literal or a constant cannot take the write, so the call passes a temporary.
+  assert.match(result.classSource, /DATA lv_perform_1 TYPE i\.\s+lv_perform_1 = 3\.\s+form_count\(\s+EXPORTING\s+io_session = io_session\s+pv_flag\s+= 'Y'\s+pv_max\s+= gv_n\s+CHANGING\s+pv_total\s+= lv_perform_1/);
+  assert.match(result.classSource, /DATA lv_perform_2 TYPE i\.\s+lv_perform_2 = gc_max\./);
+  const warnings = result.diagnostics.filter((item) => item.code === "GGCONV-W111");
+  assert.deepEqual(warnings.map((item) => item.construct), ["PERFORM count USING 3 'Y' gv_n gv_n.", "PERFORM count USING gc_max 'Z' gv_n gv_n."]);
+  assert.ok(warnings.every((item) => item.severity === "warning"));
+});
+
 test("keeps CONSTANTS and STATICS BEGIN OF structures together", async () => {
   const result = await convertProgram({
     source: [

@@ -14,6 +14,20 @@ function parameterType(section, typing) {
   return typing.replace(/^(?:TYPE|LIKE|STRUCTURE)\s+/i, "").toLowerCase();
 }
 
+// The type a FORM parameter has in its method signature. System fields are
+// typed by their meaning, as the generated class has no sy structure of its own.
+export function methodParameterType(parameter) {
+  if (/^SY-UCOMM$/i.test(String(parameter.type ?? ""))) return "zif_gg_session_types_v1=>ty_ucomm";
+  if (/^SY(?:-SUBRC)?$/i.test(String(parameter.type ?? ""))) return "i";
+  return parameter.type;
+}
+
+// Generic types cannot declare a variable, so a temporary of such a parameter
+// takes its type from the value instead.
+export function isGenericParameterType(type) {
+  return /^(?:any|data|simple|clike|csequence|xsequence|numeric|decfloat|c|n|x|p)$|\btable$/i.test(String(type ?? "").trim());
+}
+
 function sectionParameters(section, text) {
   const tokens = text.split(/\s+/).filter(Boolean);
   const result = [];

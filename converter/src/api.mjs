@@ -13,6 +13,7 @@ import { collectSelectionScreens } from "./passes/collect-selection-screens.mjs"
 import { collectEvents } from "./passes/collect-events.mjs";
 import { collectLocalClasses } from "./passes/collect-local-classes.mjs";
 import { collectRoutines } from "./passes/collect-routines.mjs";
+import { analyzeRoutineWrites } from "./passes/analyze-routine-writes.mjs";
 import { collectModules } from "./passes/collect-modules.mjs";
 import { buildSourceIndex } from "./source-index.mjs";
 import { buildStatePlan } from "./passes/lower-state.mjs";
@@ -201,6 +202,7 @@ function buildReportIR(parsed, resolved, options) {
   ir.modules = collectModules(allStatements);
   const moduleStatements = new Set(ir.modules.flatMap((module) => module.statements));
   const programScope = lazyProgramScope(parsed.units, parsed.config, dictionaryIndex(options.dictionaryFiles));
+  analyzeRoutineWrites(ir, programScope);
   ir.declarations.push(...liftInlineDeclarations(programScope, ir.eventBlocks
     .flatMap((block) => block.statements)
     .filter((statement) => !statement.localClassName && !moduleStatements.has(statement))));
