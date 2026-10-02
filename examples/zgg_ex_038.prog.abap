@@ -1,8 +1,6 @@
 REPORT zgg_ex_038.
 
-DATA: BEGIN OF sscrfields,
-        ucomm TYPE c LENGTH 70,
-      END OF sscrfields.
+TABLES sscrfields.
 
 PARAMETERS p_a TYPE c LENGTH 1 DEFAULT 'X'.
 
