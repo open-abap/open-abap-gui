@@ -1506,17 +1506,18 @@ function lowerSingleStatement(statement, context) {
     ].join("\n");
   }
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
-  if (statement.kind === "Case" && context.event === "at_selection_screen" && /^CASE\s+G_TABS-ACTIVETAB\b/i.test(raw)) {
-    return "CASE COND string( WHEN iv_ucomm <> 'ONLI' THEN iv_ucomm ELSE mv_active_tab ).";
+  const tabbedBlocks = (context.tabbedBlocks ?? []).join("|");
+  if (statement.kind === "Case" && tabbedBlocks && new RegExp(`^CASE\\s+(?:${tabbedBlocks})-ACTIVETAB\\s*\\.?$`, "i").test(raw)) {
+    return "CASE mv_active_tab.";
   }
   if (statement.kind === "Move") {
     // A chained MOVE: arrives one part at a time, each ending in a comma.
     let converted = rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
-    if (/^G_TABS-ACTIVETAB\s*=/i.test(raw)) {
-      const assignment = converted.replace(/^G_TABS-ACTIVETAB/i, "mv_active_tab");
-      return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n  ${assignment}\nENDIF.` : assignment;
+    if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-ACTIVETAB\\s*=`, "i").test(raw)) {
+      const assignment = converted.replace(new RegExp(`^(?:${tabbedBlocks})-ACTIVETAB`, "i"), "mv_active_tab");
+      return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n${assignment}\nENDIF.` : assignment;
     }
-    if (/^G_TABS-(?:PROG|DYNNR)\s*=/i.test(raw)) return "* Selection tab state is maintained by the host screen.";
+    if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-(?:PROG|DYNNR)\\s*=`, "i").test(raw)) return "* Selection tab state is maintained by the host screen.";
     converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
     converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
     converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");

@@ -903,6 +903,44 @@ test("keeps dynamic MESSAGE DISPLAY LIKE out of the text and into display_like",
   assert.match(literal.classSource, /type = zif_gg_session_types_v1=>message_type_success text = 'looks like an error' display_like = zif_gg_session_types_v1=>message_type_error/);
 });
 
+test("lowers a tabbed selection block and tracks its active tab", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT ztabbed.",
+      "SELECTION-SCREEN BEGIN OF SCREEN 101 AS SUBSCREEN.",
+      "PARAMETERS p_one TYPE i.",
+      "SELECTION-SCREEN END OF SCREEN 101.",
+      "SELECTION-SCREEN BEGIN OF SCREEN 102 AS SUBSCREEN.",
+      "SELECTION-SCREEN BEGIN OF BLOCK b2.",
+      "PARAMETERS p_two TYPE i.",
+      "SELECTION-SCREEN END OF BLOCK b2.",
+      "SELECTION-SCREEN END OF SCREEN 102.",
+      "SELECTION-SCREEN BEGIN OF TABBED BLOCK tabs FOR 5 LINES.",
+      "SELECTION-SCREEN TAB (20) tab1 USER-COMMAND ucomm1 DEFAULT SCREEN 101.",
+      "SELECTION-SCREEN TAB (20) tab2 USER-COMMAND ucomm2 DEFAULT SCREEN 102.",
+      "SELECTION-SCREEN END OF BLOCK tabs.",
+      "INITIALIZATION.",
+      "  tabs-activetab = 'UCOMM1'.",
+      "AT SELECTION-SCREEN.",
+      "  CASE tabs-activetab.",
+      "    WHEN 'UCOMM2'.",
+      "      MESSAGE 'second' TYPE 'S'.",
+      "  ENDCASE.",
+      "START-OF-SELECTION.",
+      "  WRITE p_one.",
+    ].join("\n"),
+    filename: "ztabbed.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  // END OF BLOCK closes the tabbed block, and still closes a plain one.
+  assert.match(result.classSource, /add_tab\( VALUE #\( name = 'TAB2'[^\n]*\n\s*io_builder->end_tabbed_block\( \)\./);
+  assert.match(result.classSource, /name = 'P_TWO'[^\n]*\n\s*io_builder->end_block\( \)\./);
+  assert.match(result.classSource, /IF iv_ucomm = 'UCOMM1' OR iv_ucomm = 'UCOMM2'\.\s+mv_active_tab = iv_ucomm\.\s+ENDIF\./);
+  assert.match(result.classSource, /^\s*CASE mv_active_tab\.$/m);
+  assert.match(result.classSource, /IF mv_active_tab IS INITIAL\.\s+mv_active_tab = 'UCOMM1'\./);
+  assert.doesNotMatch(result.classSource, /tabs-activetab/i);
+});
+
 test("ends every part of a chained MOVE with a period", async () => {
   const result = await convertProgram({
     source: [

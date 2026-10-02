@@ -23,7 +23,9 @@ function defaultScreen(result) {
   return screen;
 }
 
-function layoutItem(raw, span) {
+// END OF BLOCK closes plain and tabbed blocks alike, so the names of open
+// tabbed blocks decide which one it ends.
+function layoutItem(raw, span, tabbedBlocks) {
   const text = raw.replace(/\.$/, "");
   let match = /COMMENT\s+\/?(\d+)?(?:\((\d+)\))?\s+([^\s]+)/i.exec(text);
   if (match) {
@@ -42,16 +44,18 @@ function layoutItem(raw, span) {
   match = /BEGIN OF BLOCK\s+(\w+)(.*)$/i.exec(text);
   if (match) return { kind: "layout", layout: "begin_block", name: match[1].toUpperCase(), title: /TITLE\s+([^\s]+)/i.exec(match[2])?.[1]?.toUpperCase(), withFrame: /WITH FRAME/i.test(match[2]), span };
   match = /END OF BLOCK\s+(\w+)/i.exec(text);
-  if (match) return { kind: "layout", layout: "end_block", span };
+  if (match) return { kind: "layout", layout: tabbedBlocks.delete(match[1].toUpperCase()) ? "end_tabbed_block" : "end_block", span };
   match = /PUSHBUTTON\s+\/?(\d+)?(?:\((\d+)\))?\s+([^\s]+).*USER-COMMAND\s+(\w+)/i.exec(text);
   if (match) return { kind: "layout", layout: "pushbutton", name: `PB_${match[4].toUpperCase()}`, text: match[3].toUpperCase(), position: match[1] ? Number(match[1]) : undefined, length: match[2] ? Number(match[2]) : undefined, ucomm: match[4].toUpperCase(), span };
   match = /FUNCTION KEY\s+(\d+)/i.exec(text);
   if (match) return { kind: "layout", layout: "function_key", number: Number(match[1]), text: `FUNCTION_KEY_${match[1]}`, span };
   match = /BEGIN OF TABBED BLOCK\s+(\w+)\s+FOR\s+(\d+)\s+LINES/i.exec(text);
-  if (match) return { kind: "layout", layout: "begin_tabbed_block", name: match[1].toUpperCase(), lines: Number(match[2]), span };
+  if (match) {
+    tabbedBlocks.add(match[1].toUpperCase());
+    return { kind: "layout", layout: "begin_tabbed_block", name: match[1].toUpperCase(), lines: Number(match[2]), span };
+  }
   match = /TAB\s+\((\d+)\)\s+(\w+).*USER-COMMAND\s+(\w+).*DEFAULT SCREEN\s+(\d+)/i.exec(text);
   if (match) return { kind: "layout", layout: "tab", name: match[2].toUpperCase(), text: match[2].toUpperCase(), ucomm: match[3].toUpperCase(), subscreen: match[4].padStart(4, "0"), span };
-  if (/END OF BLOCK/i.test(text)) return { kind: "layout", layout: "end_tabbed_block", span };
   return undefined;
 }
 
@@ -59,6 +63,7 @@ export function collectSelectionScreens(declarations) {
   const result = [];
   let currentScreen = undefined;
   let inLine = false;
+  const tabbedBlocks = new Set();
   for (const declaration of declarations) {
     if (declaration.kind === "selectionscreen") {
       const begin = /BEGIN OF SCREEN\s+(\d+)(.*)$/i.exec(declaration.raw);
@@ -76,14 +81,14 @@ export function collectSelectionScreens(declarations) {
       } else if (end) {
         currentScreen = undefined;
       } else if (currentScreen) {
-        const item = layoutItem(declaration.raw, declaration.statement.span);
+        const item = layoutItem(declaration.raw, declaration.statement.span, tabbedBlocks);
         if (item) {
           currentScreen.elements.push(item);
           if (item.layout === "begin_line") inLine = true;
           if (item.layout === "end_line") inLine = false;
         }
       } else {
-        const item = layoutItem(declaration.raw, declaration.statement.span);
+        const item = layoutItem(declaration.raw, declaration.statement.span, tabbedBlocks);
         if (item) {
           defaultScreen(result).elements.push(item);
           if (item.layout === "begin_line") inLine = true;

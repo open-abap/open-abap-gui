@@ -447,7 +447,7 @@ function dataMembers(ir) {
   for (const name of implicitSelectionLayoutMembers(ir)) {
     if (!declaredNames.has(name)) dataMembers.push(`DATA ${name.toLowerCase()} TYPE string.`);
   }
-  if ((ir.selections ?? []).some((screen) => screen.elements?.some((item) => item.layout === "begin_tabbed_block"))) {
+  if (selectionTabbedBlocks(ir).length) {
     dataMembers.push("DATA mv_active_tab TYPE string.");
   }
   const dynamicTypes = ir.dynamicAlv
@@ -724,6 +724,7 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
   return {
     event,
     selections: values,
+    tabbedBlocks: selectionTabbedBlocks(ir),
     mutableValues: mutable,
     ucomm: event.startsWith("at_selection_screen") || event === "at_user_command" ? "iv_ucomm" : undefined,
     replacements: [
@@ -1083,6 +1084,23 @@ function qualifierGuard(ir, event, body, qualifierOverride) {
   return [...definitions, ...guarded];
 }
 
+// Names of the selection screen's tabbed blocks. Their ACTIVETAB fields all
+// live in mv_active_tab.
+function selectionTabbedBlocks(ir) {
+  return (ir.selections ?? []).flatMap((screen) => screen.elements ?? [])
+    .filter((item) => item.layout === "begin_tabbed_block")
+    .map((item) => item.name);
+}
+
+// Choosing a tab sets <block>-ACTIVETAB to the tab's function code before AT
+// SELECTION-SCREEN runs, so later events, Execute included, see the tab.
+function activeTabCapture(ir) {
+  const ucomms = (ir.selections ?? []).flatMap((screen) => screen.elements ?? [])
+    .filter((item) => item.layout === "tab")
+    .map((item) => `iv_ucomm = '${item.ucomm}'`);
+  return ucomms.length ? [`IF ${ucomms.join(" OR ")}.`, "mv_active_tab = iv_ucomm.", "ENDIF."] : [];
+}
+
 function reportMethods(ir) {
   const methods = [];
   const bodiesFor = (event) => {
@@ -1106,6 +1124,7 @@ function reportMethods(ir) {
       if (event === "load_of_program" && ir.reportTitle) {
         body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
       }
+      if (event === "at_selection_screen") body.unshift(...activeTabCapture(ir));
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
       if (event === "at_selection_screen_output") body.unshift(...selectionStatesSetter(ir));
       methods.push(method(`zif_gg_report_v1~${event}`, body));
