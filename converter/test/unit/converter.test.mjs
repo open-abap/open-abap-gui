@@ -965,9 +965,49 @@ test("types untyped FORM parameters generically", async () => {
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /METHODS form_get_path\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_action\s+TYPE any\./);
   // A typed parameter no longer hides the untyped ones in its section.
-  assert.match(result.classSource, /pv_a\s+TYPE c\s+pv_b\s+TYPE i\s+pv_c\s+TYPE any\s+CHANGING\s+pt_any\s+TYPE standard table\s+pt_mara\s+TYPE standard table\s+cv_rc\s+TYPE i\./);
+  assert.match(result.classSource, /pv_a\s+TYPE c\s+VALUE\(pv_b\)\s+TYPE i\s+pv_c\s+TYPE any\s+CHANGING\s+pt_any\s+TYPE standard table\s+pt_mara\s+TYPE standard table\s+cv_rc\s+TYPE i\./);
   // TABLES and CHANGING arguments keep their own positions.
   assert.match(result.classSource, /CHANGING\s+pt_any\s+= gt_mara\s+pt_mara\s+= gt_mara\s+cv_rc\s+= gv_rc \)\./);
+});
+
+test("keeps multi-word FORM parameter typings and VALUE parameters", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zform_typing.",
+      "TYPES ty_t TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
+      "TYPES ty_pt_tof TYPE i.",
+      "DATA gt TYPE ty_t.",
+      "DATA gr TYPE REF TO data.",
+      "DATA gv TYPE i.",
+      "START-OF-SELECTION.",
+      "  PERFORM f USING gt gt gt gt gt gt gt gr 1 CHANGING gt gv.",
+      "FORM f USING pt_any TYPE ANY TABLE",
+      "             pt_std TYPE STANDARD TABLE",
+      "             pt_idx TYPE INDEX TABLE",
+      "             pt_hsh TYPE HASHED TABLE",
+      "             pt_srt TYPE SORTED TABLE",
+      "             pt_of TYPE STANDARD TABLE OF i",
+      "             pt_tof TYPE TABLE OF i",
+      "             pr_data TYPE REF TO data",
+      "             VALUE(pv_u) TYPE i",
+      "        CHANGING VALUE(pt_c) TYPE ty_t",
+      "             VALUE(pv_c) TYPE i.",
+      "  pv_u = pv_u + lines( pt_any ).",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zform_typing.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  for (const [name, type] of [["pt_any", "any table"], ["pt_std", "standard table"], ["pt_idx", "index table"],
+    ["pt_hsh", "hashed table"], ["pt_srt", "sorted table"], ["pr_data", "ref to data"], ["pt_of", "ty_pt_of"],
+    ["VALUE\\(pv_u\\)", "i"], ["VALUE\\(pt_c\\)", "ty_t"], ["VALUE\\(pv_c\\)", "i"]]) {
+    assert.match(result.classSource, new RegExp(`^\\s+${name}\\s+TYPE ${type}\\.?$`, "m"), name);
+  }
+  // TABLE OF x has no place in a method signature, so it gets a named type,
+  // which avoids the program's own ty_pt_tof.
+  assert.match(result.classSource, /TYPES ty_pt_of TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
+  assert.match(result.classSource, /TYPES ty_pt_tof_2 TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
+  assert.match(result.classSource, /^\s+pt_tof\s+TYPE ty_pt_tof_2$/m);
 });
 
 test("keeps CONSTANTS and STATICS BEGIN OF structures together", async () => {

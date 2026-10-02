@@ -489,15 +489,20 @@ function dataMembers(ir) {
       if (/^SY(?:-SUBRC)?$/i.test(String(parameter.type ?? ""))) return "i";
       return parameter.type;
     };
+    for (const parameter of parameters.filter((item) => item.lineType)) {
+      members.push(renameIdentifiers(`TYPES ${parameter.type} TYPE STANDARD TABLE OF ${parameter.lineType} WITH DEFAULT KEY.`, allRenames(ir)));
+    }
     const lines = [`METHODS ${routine.methodName}`];
     const importing = parameters.filter((parameter) => parameter.direction === "IMPORTING");
-    const width = Math.max("io_session".length, ...parameters.map((parameter) => parameter.name.length));
+    const declared = (parameter) => parameter.byValue ? `VALUE(${parameter.name})` : parameter.name;
+    const width = Math.max("io_session".length, ...parameters.map((parameter) => declared(parameter).length));
+    const line = (parameter) => `    ${declared(parameter).padEnd(width, " ")} TYPE ${parameterType(parameter)}`;
     lines.push("  IMPORTING", `    io_session${" ".repeat(width - "io_session".length)} TYPE REF TO zif_gg_session_v1`);
-    lines.push(...importing.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameterType(parameter)}`));
+    lines.push(...importing.map(line));
     for (const direction of ["CHANGING"]) {
       const items = parameters.filter((parameter) => parameter.direction === direction);
       if (!items.length) continue;
-      lines.push(`  ${direction}`, ...items.map((parameter) => `    ${parameter.name}${" ".repeat(width - parameter.name.length)} TYPE ${parameterType(parameter)}`));
+      lines.push(`  ${direction}`, ...items.map(line));
     }
     lines[lines.length - 1] = `${lines.at(-1)}.`;
     members.push(lines.join("\n"));

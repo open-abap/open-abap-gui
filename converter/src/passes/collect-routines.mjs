@@ -29,11 +29,16 @@ function sectionParameters(section, text) {
         needsOperand = TYPING_OPERAND.has(word.toUpperCase());
       }
     }
+    // A method parameter cannot be typed TABLE OF x, so the table type gets a
+    // name of its own in collectRoutines.
+    const lineType = /^TYPE\s+(?:STANDARD\s+)?TABLE\s+OF\s+(.+)$/i.exec(typing.join(" "))?.[1];
     result.push({
       name: (name[1] ?? name[2]).toLowerCase(),
       section,
       direction: section === "USING" ? "IMPORTING" : "CHANGING",
+      byValue: Boolean(name[1]),
       type: parameterType(section, typing.join(" ")),
+      ...(lineType ? { lineType: lineType.toLowerCase() } : {}),
     });
   }
   return result;
@@ -48,8 +53,21 @@ function parseParameters(header) {
   return result;
 }
 
+function uniqueName(base, used) {
+  let name = base.slice(0, 30);
+  for (let suffix = 2; used.has(name); suffix++) {
+    const marker = `_${suffix}`;
+    name = `${base.slice(0, 30 - marker.length)}${marker}`;
+  }
+  used.add(name);
+  return name;
+}
+
 export function collectRoutines(ir) {
   const usedMethodNames = new Set();
+  const usedTypeNames = new Set((ir.statements ?? [])
+    .map((statement) => /^\s*TYPES\s*:?\s*(?:BEGIN\s+OF\s+)?([A-Z][A-Z0-9_]*)/i.exec(statement.text ?? "")?.[1]?.toLowerCase())
+    .filter(Boolean));
   for (const routine of ir.routines) {
     const baseName = `form_${routine.name.toLowerCase()}`;
     let methodName = baseName.slice(0, 30);
@@ -61,6 +79,9 @@ export function collectRoutines(ir) {
     usedMethodNames.add(methodName);
     routine.methodName = methodName;
     routine.parameters = parseParameters(routine.statement.text);
+    for (const parameter of routine.parameters) {
+      if (parameter.lineType) parameter.type = uniqueName(`ty_${parameter.name}`, usedTypeNames);
+    }
   }
   return ir;
 }
