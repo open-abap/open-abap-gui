@@ -338,15 +338,28 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
 
   METHOD zif_gg_selection_screen_builder_v1~add_radiobutton.
     DATA lv_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
+    DATA lv_default TYPE abap_bool.
 
 * USER-COMMAND is written on one button of a radio group and belongs to the
 * whole group: selecting any of its buttons raises it.
+* Exactly one button of a group is selected. Without a DEFAULT 'X' that is the
+* first button, so the first one starts selected and a DEFAULT 'X' on a later
+* button takes the selection over from it.
     lv_ucomm = is_radiobutton-ucomm.
+    lv_default = abap_true.
     LOOP AT mt_states INTO DATA(ls_member) WHERE group1 = is_radiobutton-radio_group.
       READ TABLE mt_elements ASSIGNING FIELD-SYMBOL(<ls_member>)
         WITH KEY kind = 'RADIOBUTTON' name = ls_member-name.
       IF sy-subrc <> 0.
         CONTINUE.
+      ENDIF.
+      lv_default = is_radiobutton-default.
+      IF is_radiobutton-default = abap_true.
+        READ TABLE mt_values ASSIGNING FIELD-SYMBOL(<ls_member_value>)
+          WITH KEY name = ls_member-name.
+        IF sy-subrc = 0.
+          CLEAR <ls_member_value>-value.
+        ENDIF.
       ENDIF.
       IF lv_ucomm IS INITIAL.
         lv_ucomm = <ls_member>-ucomm.
@@ -356,7 +369,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     ENDLOOP.
     add_value(
       iv_name  = is_radiobutton-name
-      iv_value = CONV string( is_radiobutton-default ) ).
+      iv_value = CONV string( lv_default ) ).
     add_state(
       iv_name       = is_radiobutton-name
       iv_text       = is_radiobutton-text
