@@ -579,28 +579,51 @@ function continuationCall(target, parameter, value, id) {
   return `${target}(\n  ${named(parameter, value)}\n  ${named("is_continuation", `VALUE #( id = '${id}' )`)} ).`;
 }
 
+// Applies transform to the code of text, never to the contents of '...' and
+// `...` literals or to the text of a |...| template. The expressions embedded
+// in a template's { } are code again, so they are transformed too.
 function transformOutsideStrings(text, transform) {
   let result = "";
-  let current = "";
-  let quotedString = false;
-  for (let index = 0; index < text.length; index++) {
+  let code = "";
+  for (let index = 0; index < text.length;) {
     const char = text[index];
-    if (char === "'" && quotedString && text[index + 1] === "'") {
-      result += "''";
+    if (!"'`|".includes(char)) {
+      code += char;
       index++;
       continue;
     }
-    if (char === "'") {
-      if (!quotedString) result += transform(current);
-      result += char;
-      current = "";
-      quotedString = !quotedString;
-      continue;
-    }
-    if (quotedString) result += char;
-    else current += char;
+    result += transform(code);
+    code = "";
+    const literal = char === "|"
+      ? transformTemplate(text, index, transform)
+      : { output: text.slice(index, literalEnd(text, index)), end: literalEnd(text, index) };
+    result += literal.output;
+    index = literal.end;
   }
-  return result + (quotedString ? current : transform(current));
+  return result + transform(code);
+}
+
+function transformTemplate(text, start, transform) {
+  let output = "|";
+  let index = start + 1;
+  while (index < text.length) {
+    const char = text[index];
+    if (char === "\\") {
+      output += text.slice(index, index + 2);
+      index += 2;
+    } else if (char === "|") {
+      return { output: `${output}|`, end: index + 1 };
+    } else if (char === "{") {
+      let end = index + 1;
+      while (end < text.length && text[end] !== "}") end = "'`|".includes(text[end]) ? literalEnd(text, end) : end + 1;
+      output += `{${transformOutsideStrings(text.slice(index + 1, end), transform)}${end < text.length ? "}" : ""}`;
+      index = end + 1;
+    } else {
+      output += char;
+      index++;
+    }
+  }
+  return { output, end: text.length };
 }
 
 function replaceOutsideStrings(text, replacements) {

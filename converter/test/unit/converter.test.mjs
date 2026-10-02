@@ -1056,6 +1056,55 @@ test("lowers a USING parameter its FORM writes to CHANGING", async () => {
   assert.ok(warnings.every((item) => item.severity === "warning"));
 });
 
+test("converts function module actuals for string-typed compatibility parameters", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zfm_string_args.",
+      "CONSTANTS: BEGIN OF gc_vrm_id,",
+      "             emode TYPE vrm_id VALUE 'P_RMODE',",
+      "           END OF gc_vrm_id.",
+      "DATA gt_values TYPE vrm_values.",
+      "DATA gv_objid TYPE c LENGTH 40.",
+      "DATA gv_url TYPE string.",
+      "PARAMETERS p_rmode TYPE c LENGTH 1 AS LISTBOX VISIBLE LENGTH 10.",
+      "INITIALIZATION.",
+      "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING id = gc_vrm_id-emode values = gt_values.",
+      "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING id = |P_RMODE| values = gt_values.",
+      "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING values = gt_values.",
+      "START-OF-SELECTION.",
+      "  CALL FUNCTION 'DP_PUBLISH_WWW_URL' EXPORTING objid = gv_objid lifetime = 'T' IMPORTING url = gv_url.",
+    ].join("\n"),
+    filename: "zfm_string_args.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /set_selection_list_values\(\s+iv_id\s+= CONV string\( gc_vrm_id-emode \)\s+it_values = gt_values \)\./);
+  // A string template is a string already, and the missing id falls back to ''.
+  assert.match(result.classSource, /iv_id\s+= \|P_RMODE\|/);
+  assert.match(result.classSource, /iv_id\s+= ''\s+it_values/);
+  assert.match(result.classSource, /gv_url = io_session->get_compatibility\( \)->publish_url\(\s+iv_object\s+= CONV string\( gv_objid \)\s+iv_lifetime = CONV string\( 'T' \) \)\./);
+});
+
+test("renames inside string template expressions only, never in template text", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT ztemplate_text.",
+      "DATA gv_text TYPE string.",
+      "PARAMETERS p_rmode TYPE c LENGTH 1.",
+      "START-OF-SELECTION.",
+      "  gv_text = |P_RMODE is { p_rmode }|.",
+      String.raw`  WRITE |it's { p_rmode } and \| p_rmode \{ p_rmode \}|.`,
+      "  WRITE `p_rmode`.",
+      "  WRITE |{ |nested p_rmode { p_rmode }| }|.",
+    ].join("\n"),
+    filename: "ztemplate_text.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /gv_text = \|P_RMODE is \{ mv_p_rmode \}\|\./);
+  assert.ok(result.classSource.includes(String.raw`|it's { mv_p_rmode } and \| p_rmode \{ p_rmode \}|`));
+  assert.ok(result.classSource.includes("`p_rmode`"));
+  assert.ok(result.classSource.includes("|{ |nested p_rmode { mv_p_rmode }| }|"));
+});
+
 test("keeps CONSTANTS and STATICS BEGIN OF structures together", async () => {
   const result = await convertProgram({
     source: [
