@@ -132,6 +132,7 @@ function headerSettings(raw) {
     lineCount: lineCount ? Number(lineCount[1]) : undefined,
     footerLines: lineCount?.[2] ? Number(lineCount[2]) : undefined,
     noStandardPageHeading: /NO STANDARD PAGE HEADING/.test(text),
+    messageId: /MESSAGE-ID\s+([A-Z0-9_/]+)/.exec(text)?.[1],
   };
 }
 

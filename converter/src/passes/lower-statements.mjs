@@ -908,12 +908,16 @@ function parseMessage(raw, context) {
   if (text) {
     return `io_session->message( VALUE #( type = ${typeExpr} text = ${text}${displayField} ) ).`;
   }
-  const messageReference = /^([AEISWX])(\d{3})\(([A-Z0-9_]+)\)/i.exec(body);
-  if (messageReference) {
+  // MESSAGE e017(zmsg), or MESSAGE e017 with the class from REPORT ... MESSAGE-ID.
+  // Without parentheses or TYPE, the operand cannot be a text field.
+  const messageReference = /^([AEISWX])(\d{3})(?:\(([A-Z0-9_/]+)\))?(?=\s|$)/i.exec(body);
+  if (messageReference && (messageReference[3] || !messageAdditionOperand(body, "TYPE"))) {
+    const id = messageReference[3] ?? context.messageId;
+    if (!id) return `* TODO GGCONV-E501: MESSAGE ${messageReference[0]} names no message class and the program declares no MESSAGE-ID.`;
     const operands = splitMessageOperands(withPart(body));
     const fields = [
       "type = zif_gg_session_types_v1=>" + MESSAGE_TYPES[messageReference[1].toUpperCase()],
-      "id = '" + messageReference[3].toUpperCase() + "'",
+      "id = '" + id.toUpperCase() + "'",
       "number = '" + messageReference[2] + "'",
     ];
     operands.slice(0, 4).forEach((operand, index) => fields.push("v" + (index + 1) + " = " + valueExpression(operand, context)));
@@ -1202,7 +1206,11 @@ function lowerSingleStatement(statement, context) {
     // MESSAGE ... INTO sends nothing; it only fills the target and sy-msg*,
     // which is valid in a class method, so it is carried over as written.
     if (/\bINTO\b/i.test(raw.replace(/'(?:''|[^'])*'|`(?:``|[^`])*`/g, ""))) {
-      return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+      // The generated class has no MESSAGE-ID, so a short form names it.
+      const named = context.messageId
+        ? raw.replace(/^(\s*MESSAGE\s+[AEISWX]\d{3})(?=\s)/i, `$1(${context.messageId.toLowerCase()})`)
+        : raw;
+      return rewriteStatementValues(named.replace(/,\s*$/, "."), context);
     }
     return parseMessage(raw, context);
   }

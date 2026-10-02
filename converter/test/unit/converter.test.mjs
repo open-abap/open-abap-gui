@@ -958,6 +958,27 @@ test("ends every part of a chained MOVE with a period", async () => {
   assert.match(result.classSource, /^\s*MOVE lv_datbi TO ls_cond-datbi\.$/m);
 });
 
+test("takes the message class of a short MESSAGE from REPORT ... MESSAGE-ID", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zmsg_short MESSAGE-ID zmsg.",
+      "DATA gv_x TYPE string.",
+      "START-OF-SELECTION.",
+      "  MESSAGE e017.",
+      "  MESSAGE s018 WITH gv_x 'two' DISPLAY LIKE 'E'.",
+      "  MESSAGE w020(other).",
+      "  MESSAGE i021 INTO gv_x.",
+    ].join("\n"),
+    filename: "zmsg_short.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_error id = 'ZMSG' number = '017' \) \)\./);
+  assert.match(result.classSource, /type = zif_gg_session_types_v1=>message_type_success id = 'ZMSG' number = '018' v1 = gv_x v2 = 'two' display_like = zif_gg_session_types_v1=>message_type_error/);
+  assert.match(result.classSource, /id = 'OTHER' number = '020'/);
+  assert.match(result.classSource, /^\s*MESSAGE i021\(zmsg\) INTO gv_x\.$/m);
+  assert.doesNotMatch(result.classSource, /ia_text\s+= e017/);
+});
+
 test("lowers MESSAGE ID ... TYPE ... NUMBER with dynamic parts", async () => {
   const result = await convertProgram({
     source: [

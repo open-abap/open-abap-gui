@@ -725,6 +725,7 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
     event,
     selections: values,
     tabbedBlocks: selectionTabbedBlocks(ir),
+    messageId: ir.header?.messageId,
     mutableValues: mutable,
     ucomm: event.startsWith("at_selection_screen") || event === "at_user_command" ? "iv_ucomm" : undefined,
     replacements: [
