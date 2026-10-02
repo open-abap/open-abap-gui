@@ -378,7 +378,7 @@ function dataMembers(ir) {
       if (declarations[cursor].kind === end) {
         const endName = /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
         const declaration = structuredDeclaration(keyword, target, components, endName);
-        (keyword === "TYPES" ? typeMembers : dataMembers).push(rename(declaration));
+        ({ TYPES: typeMembers, CONSTANTS: constantMembers }[keyword] ?? dataMembers).push(rename(declaration));
         break;
       }
     }
@@ -397,6 +397,8 @@ function dataMembers(ir) {
       const begin = /BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1];
       const keyword = item.kind === "typebegin" ? "TYPES" : "DATA";
       addStructured(index, item.kind === "typebegin" ? "type" : "data", item.kind === "typebegin" ? "typeend" : "dataend", keyword, begin);
+    } else if (item.kind === "constantbegin") {
+      addStructured(index, "constant", "constantend", "CONSTANTS", /BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1]);
     } else if (item.kind === "type" && !item.complex) {
       typeMembers.push(rename(item.raw.replace(/,\s*$/, ".")));
     } else if (item.kind === "constant" && !item.complex) {
@@ -2034,17 +2036,17 @@ function helperDefinitionBody(statements, rename) {
       lines.push(text.split("\n").map((line) => line.trim()).join("\n"));
       continue;
     }
-    if (statement.kind === "DataBegin" || statement.kind === "TypeBegin") {
+    if (["DataBegin", "TypeBegin", "ConstantBegin"].includes(statement.kind)) {
       flushStructured();
       structured = {
-        keyword: statement.kind === "DataBegin" ? "DATA" : "TYPES",
+        keyword: { DataBegin: "DATA", TypeBegin: "TYPES", ConstantBegin: "CONSTANTS" }[statement.kind],
         beginName: /BEGIN OF\s+([A-Z0-9_]+)/i.exec(text)?.[1] ?? "",
         components: [],
         endName: undefined,
       };
       continue;
     }
-    if (structured && (statement.kind === "DataEnd" || statement.kind === "TypeEnd")) {
+    if (structured && ["DataEnd", "TypeEnd", "ConstantEnd"].includes(statement.kind)) {
       structured.endName = /END OF\s+([A-Z0-9_]+)/i.exec(text)?.[1] ?? structured.beginName;
       flushStructured();
       continue;

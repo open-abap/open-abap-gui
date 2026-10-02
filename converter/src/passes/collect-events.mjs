@@ -23,7 +23,7 @@ export function collectEvents(ir, statements) {
   let moduleDepth = 0;
   let currentBlock;
   let localClassDepth = 0;
-  const declarationKinds = new Set(["Data", "Constant", "Static", "FieldSymbol", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType", "DataBegin", "DataEnd", "TypePools"]);
+  const declarationKinds = new Set(["Data", "Constant", "ConstantBegin", "ConstantEnd", "Static", "StaticBegin", "StaticEnd", "FieldSymbol", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType", "DataBegin", "DataEnd", "TypePools"]);
   ir.eventQualifiers ??= {};
   for (const statement of statements) {
     if (statement.kind === "Include") continue;

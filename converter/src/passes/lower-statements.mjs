@@ -1551,8 +1551,8 @@ function lowerSingleStatement(statement, context) {
     }
     return converted;
   }
-  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "Static"].includes(statement.kind)) {
-    const declaration = statement.kind === "Static" ? raw.replace(/^STATICS\b/i, "DATA") : raw;
+  if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "ConstantBegin", "ConstantEnd", "Static", "StaticBegin", "StaticEnd"].includes(statement.kind)) {
+    const declaration = statement.kind.startsWith("Static") ? raw.replace(/^STATICS\b/i, "DATA") : raw;
     // abaplint splits a chained declaration into one statement per element and
     // repeats the keyword while keeping the separating comma. Each emitted
     // element is a standalone statement, so a trailing comma must become its

@@ -941,6 +941,33 @@ test("lowers a tabbed selection block and tracks its active tab", async () => {
   assert.doesNotMatch(result.classSource, /tabs-activetab/i);
 });
 
+test("keeps CONSTANTS and STATICS BEGIN OF structures together", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zconst_struct.",
+      "CONSTANTS: BEGIN OF gc_vrm_id,",
+      "             emode   TYPE vrm_id VALUE 'P_RMODE',",
+      "             grp_int TYPE vrm_id VALUE 'P_GRPINT',",
+      "           END OF gc_vrm_id.",
+      "START-OF-SELECTION.",
+      "  WRITE gc_vrm_id-grp_int.",
+      "  PERFORM f.",
+      "FORM f.",
+      "  STATICS: BEGIN OF ls_count,",
+      "             n TYPE i,",
+      "           END OF ls_count.",
+      "  ls_count-n = ls_count-n + 1.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zconst_struct.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /^\s*CONSTANTS: BEGIN OF gc_vrm_id, emode TYPE vrm_id VALUE 'P_RMODE', grp_int TYPE vrm_id VALUE 'P_GRPINT', END OF gc_vrm_id\.$/m);
+  // Neither the components nor the BEGIN OF and END OF lines stay elsewhere.
+  assert.doesNotMatch(result.classSource, /^\s*CONSTANTS (?:emode|grp_int|BEGIN OF|END OF)\b/m);
+  assert.match(result.classSource, /DATA BEGIN OF ls_count\.\s+DATA n TYPE i\.\s+DATA END OF ls_count\./);
+});
+
 test("ends every part of a chained MOVE with a period", async () => {
   const result = await convertProgram({
     source: [
