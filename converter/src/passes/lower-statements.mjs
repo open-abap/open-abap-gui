@@ -1467,22 +1467,24 @@ function lowerSingleStatement(statement, context) {
     const receiver = context.ownerPrefix ?? "";
     const session = context.sessionVariable ?? "io_session";
     if (!routine) return name ? `${receiver}form_${name.toLowerCase()}( ).` : "* TODO GGCONV-E401: dynamic PERFORM.";
-    const argumentsByDirection = new Map();
-    let direction;
+    // Arguments pair with parameters per section; TABLES and CHANGING both
+    // become CHANGING, but each keeps its own position count.
+    const argumentsBySection = new Map();
+    let section;
     for (const token of splitPerformOperands(raw.replace(/^PERFORM\s+[^\s.]+\s*/i, "").replace(/\.$/, ""))) {
       const upper = token.toUpperCase();
       if (["USING", "CHANGING", "TABLES"].includes(upper)) {
-        direction = upper === "USING" ? "EXPORTING" : "CHANGING";
-        argumentsByDirection.set(direction, []);
-      } else if (direction) {
-        argumentsByDirection.get(direction).push(token);
+        section = upper;
+        argumentsBySection.set(section, []);
+      } else if (section) {
+        argumentsBySection.get(section).push(token);
       }
     }
     if (!(routine.parameters ?? []).length) return `${receiver}${routine.methodName}( io_session = ${session} ).`;
     const parameterWidth = Math.max("io_session".length, ...(routine.parameters ?? []).map((parameter) => parameter.name.length));
     const fieldsByDirection = { EXPORTING: [`${"io_session".padEnd(parameterWidth, " ")} = ${session}`], CHANGING: [] };
     for (const parameter of routine.parameters ?? []) {
-      const values = argumentsByDirection.get(parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING") ?? [];
+      const values = argumentsBySection.get(parameter.section ?? (parameter.direction === "IMPORTING" ? "USING" : "CHANGING")) ?? [];
       const value = values.shift();
       if (value) fieldsByDirection[parameter.direction === "IMPORTING" ? "EXPORTING" : "CHANGING"]
         .push(`${parameter.name.padEnd(parameterWidth, " ")} = ${valueExpression(value, context)}`);

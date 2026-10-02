@@ -941,6 +941,35 @@ test("lowers a tabbed selection block and tracks its active tab", async () => {
   assert.doesNotMatch(result.classSource, /tabs-activetab/i);
 });
 
+test("types untyped FORM parameters generically", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zform_generic.",
+      "DATA gv_action TYPE i.",
+      "DATA gv_rc TYPE i.",
+      "DATA gt_mara TYPE STANDARD TABLE OF mara.",
+      "START-OF-SELECTION.",
+      "  PERFORM get_path CHANGING gv_action.",
+      "  PERFORM mixed TABLES gt_mara gt_mara USING 'A' 1 gv_rc CHANGING gv_rc.",
+      "FORM get_path CHANGING pv_action.",
+      "  CLEAR pv_action.",
+      "ENDFORM.",
+      "FORM mixed TABLES pt_any pt_mara STRUCTURE mara",
+      "           USING pv_a TYPE c VALUE(pv_b) TYPE i pv_c",
+      "           CHANGING cv_rc LIKE sy-subrc.",
+      "  cv_rc = lines( pt_mara ).",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zform_generic.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /METHODS form_get_path\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_action\s+TYPE any\./);
+  // A typed parameter no longer hides the untyped ones in its section.
+  assert.match(result.classSource, /pv_a\s+TYPE c\s+pv_b\s+TYPE i\s+pv_c\s+TYPE any\s+CHANGING\s+pt_any\s+TYPE standard table\s+pt_mara\s+TYPE standard table\s+cv_rc\s+TYPE i\./);
+  // TABLES and CHANGING arguments keep their own positions.
+  assert.match(result.classSource, /CHANGING\s+pt_any\s+= gt_mara\s+pt_mara\s+= gt_mara\s+cv_rc\s+= gv_rc \)\./);
+});
+
 test("keeps CONSTANTS and STATICS BEGIN OF structures together", async () => {
   const result = await convertProgram({
     source: [
