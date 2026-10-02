@@ -304,7 +304,7 @@ export const LOWERING_RULES = new Map([
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
-  const loopTarget = "(?:[A-Z][A-Z0-9_-]*(?:(?:->|-)[A-Z][A-Z0-9_-]*)+|[A-Z][A-Z0-9_-]*)";
+  const loopTarget = "(?:(?:[A-Z][A-Z0-9_-]*|<[A-Z][A-Z0-9_]*>)(?:(?:->|-)[A-Z][A-Z0-9_-]*)*)";
   // The target may end in `>` or `)`, so the trailing guard has to be a
   // lookahead: a `\b` after either of those can never match. TRANSPORTING NO
   // FIELDS reads no row at all, so it needs no target either.
@@ -1183,7 +1183,8 @@ function lowerSingleStatement(statement, context) {
   }
   if (statement.kind === "FieldSymbol") {
     const name = /<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
-    return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw, context.replacements) : undefined;
+    // Like DATA, a chain arrives one element per statement with its comma.
+    return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw.replace(/,\s*$/, "."), context.replacements) : undefined;
   }
   if (statement.kind === "Ranges") {
     const match = /^RANGES\s+([A-Z][A-Z0-9_]*)\s+FOR\s+(.+)$/i.exec(stripPeriod(raw));

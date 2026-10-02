@@ -1460,6 +1460,35 @@ test("lowers method-local field symbols only when static binding is provable", a
   assert.doesNotMatch(dereferenced.classSource, /TODO GGCONV/);
 });
 
+test("keeps generically typed field symbols declared inside a FORM", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zfs_generic.",
+      "DATA gt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
+      "START-OF-SELECTION.",
+      "  PERFORM run.",
+      "FORM run.",
+      "  FIELD-SYMBOLS: <table> TYPE STANDARD TABLE .",
+      "  FIELD-SYMBOLS: <any_table> TYPE ANY TABLE, <row> TYPE any.",
+      "  ASSIGN gt_rows TO <table>.",
+      "  WRITE lines( <table> ).",
+      "  ASSIGN gt_rows TO <any_table>.",
+      "  LOOP AT <any_table> ASSIGNING <row>.",
+      "  ENDLOOP.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zfs_generic.prog.abap",
+  });
+  assert.equal(result.supported, true);
+  assert.deepEqual(result.reportIR.safeFieldSymbols, ["ANY_TABLE", "ROW", "TABLE"]);
+  assert.match(result.classSource, /FIELD-SYMBOLS <table> TYPE STANDARD TABLE \./);
+  // A chain arrives split per element; each element ends its own statement.
+  assert.match(result.classSource, /FIELD-SYMBOLS <any_table> TYPE ANY TABLE\./);
+  assert.match(result.classSource, /FIELD-SYMBOLS <row> TYPE any\./);
+  assert.match(result.classSource, /LOOP AT <any_table> ASSIGNING <row>\./);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
+});
+
 test("carries over a static ASSIGN of a table expression like any other statement", async () => {
   const result = await convertProgram({
     source: [
