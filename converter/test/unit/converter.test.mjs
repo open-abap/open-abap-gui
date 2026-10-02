@@ -1210,6 +1210,25 @@ test("validates explicit class and transaction names", async () => {
   assert.equal(long.reportIR.targetClassName, "ZCL_ABCDEFGHIJKLMNOPQRSTUVWX_1");
 });
 
+test("shortens a default class name past 30 characters, keeping long names apart", async () => {
+  const convert = (name) => convertProgram({
+    source: `REPORT ${name}.\nSTART-OF-SELECTION.\nWRITE 'ok'.\n`,
+    filename: `${name}.prog.abap`,
+  });
+  const result = await convert("zrlx_sdfddddd_date_cond_promo");
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const className = result.reportIR.targetClassName;
+  assert.match(className, /^ZCL_RLX_SDFDDDDD_DATE_CON_[0-9A-F]{4}$/);
+  assert.equal(className.length, 30);
+  assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W107", "warning"]]);
+  assert.match(result.diagnostics[0].message, /ZCL_RLX_SDFDDDDD_DATE_COND_PROMO exceeds 30 characters; the report is generated as ZCL_RLX_SDFDDDDD_DATE_CON_[0-9A-F]{4} instead, and SUBMIT finds it through the program registry/);
+  assert.match(result.classSource, /rs_program = VALUE #\( program = 'ZRLX_SDFDDDDD_DATE_COND_PROMO'/);
+
+  // Deterministic, and a name differing only in the cut-off tail gets its own class.
+  assert.equal((await convert("zrlx_sdfddddd_date_cond_promo")).reportIR.targetClassName, className);
+  assert.notEqual((await convert("zrlx_sdfddddd_date_cond_promo2")).reportIR.targetClassName, className);
+});
+
 test("lowers interactive list context and keeps GET CURSOR in its list event", async () => {
   const source = await fixture("zgg_ex_047.prog.abap");
   const result = await convertProgram({ source, filename: "zgg_ex_047.prog.abap" });
