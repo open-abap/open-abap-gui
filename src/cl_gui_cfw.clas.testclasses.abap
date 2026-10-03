@@ -659,10 +659,10 @@ CLASS ltcl_test IMPLEMENTATION.
       hierarchy_column_name = 'NODE'
       hierarchy_header      = ls_header ).
     lt_nodes = VALUE #(
-      ( node_key = 'ROOT' isfolder = abap_true n_image = '@04@' exp_image = '@05@' )
-      ( node_key = 'CORE' relatkey = 'ROOT' isfolder = abap_true n_image = '@04@' exp_image = '@05@' )
+      ( node_key = 'ROOT' isfolder = abap_true n_image = '@FN@' exp_image = '@FO@' )
+      ( node_key = 'CORE' relatkey = 'ROOT' isfolder = abap_true n_image = '@FN@' exp_image = '@FO@' )
       ( node_key = 'LEAF' relatkey = 'CORE' n_image = '@3Y@' )
-      ( node_key = 'LAZY' relatkey = 'ROOT' isfolder = abap_true expander = abap_true n_image = '@04@' exp_image = '@05@' ) ).
+      ( node_key = 'LAZY' relatkey = 'ROOT' isfolder = abap_true expander = abap_true n_image = '@FN@' exp_image = '@FO@' ) ).
     lt_items = VALUE #(
       ( node_key = 'ROOT' item_name = 'NODE' class = cl_gui_column_tree=>item_class_text text = 'Tree controls' )
       ( node_key = 'CORE' item_name = 'NODE' class = cl_gui_column_tree=>item_class_text text = 'Core API' )
@@ -684,7 +684,7 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-node-key="LAZY"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-folder-open"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-file-code"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-map-pin"' ) ).
     cl_gui_control=>clear( ).
   ENDMETHOD.
 

@@ -313,26 +313,15 @@ CLASS cl_dd_area IMPLEMENTATION.
     DATA lv_icon_label TYPE string.
     DATA lv_icon_token TYPE string.
 
-    lv_icon_name = CONV string( sap_icon ).
-    TRANSLATE lv_icon_name TO LOWER CASE.
-    CONDENSE lv_icon_name NO-GAPS.
+    lv_icon_name = condense( CONV string( sap_icon ) ).
     lv_icon_label = alternative_text.
-    CASE lv_icon_name.
-      WHEN 'icon_display' OR 'icon_screen'.
-        lv_icon_name = 'icon_display'.
-        IF lv_icon_label IS INITIAL.
-          lv_icon_label = 'Display'.
-        ENDIF.
-      WHEN 'icon_okay' OR 'icon_green_light' OR '@5b@'.
-        lv_icon_name = 'circle-check'.
-        IF lv_icon_label IS INITIAL.
-          lv_icon_label = 'Success'.
-        ENDIF.
-      WHEN OTHERS.
-        IF lv_icon_label IS INITIAL.
-          lv_icon_label = lv_icon_name.
-        ENDIF.
-    ENDCASE.
+    IF lv_icon_label IS INITIAL.
+      DATA(ls_icon) = zcl_gg_host_icons=>resolve( lv_icon_name ).
+      lv_icon_label = ls_icon-label.
+    ENDIF.
+    IF lv_icon_label IS INITIAL.
+      lv_icon_label = lv_icon_name.
+    ENDIF.
     lv_icon_token = escape_html( CONV string( sap_icon ) ).
     result = |<span class="gg-dd-icon" role="img" aria-label="{ escape_html( lv_icon_label ) }" data-icon="{ lv_icon_token }">{ zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) }</span>|.
   ENDMETHOD.
