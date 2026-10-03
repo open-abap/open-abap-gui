@@ -1,7 +1,8 @@
 CLASS zcl_gg_ex_019 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Feature 19, PARAMETERS AS LISTBOX. Counterpart of zgg_ex_019.prog.abap.
-* Self contained: no superclass, every callback present.
+* Self contained: no superclass, every callback present. The entries are the
+* fixed values of domain ZGG_MODE, which the host reads from the rollname.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -17,13 +18,10 @@ CLASS zcl_gg_ex_019 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~build_screen.
     io_builder->add_listbox( VALUE #(
-      name         = 'P_MODE'
-      text         = 'Mode'
-      data_type    = VALUE #( typ = 'C' length = 1 visible_length = 10 )
-      default      = 'A'
-      fixed_values = VALUE #(
-        ( key = 'A' text = 'Add' )
-        ( key = 'D' text = 'Delete' ) ) ) ).
+      name      = 'P_MODE'
+      text      = 'Mode'
+      data_type = VALUE #( rollname = 'ZGG_MODE' typ = 'C' length = 1 visible_length = 10 )
+      default   = 'A' ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

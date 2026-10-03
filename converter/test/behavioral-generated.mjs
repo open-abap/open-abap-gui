@@ -49,8 +49,10 @@ async function prepare() {
     const source = await fs.readFile(path.join(examples, name), "utf8");
     const id = name.slice(7, 10);
     const className = `ZCL_BV_${id}`;
+    // Only the batch conversion reads the dictionary files next to a report;
+    // here the data elements are supplied, and the host reads the domains.
     const selectionMetadata = id === "019"
-      ? { P_MODE: { fixedValues: [{ key: "A", text: "Add" }, { key: "D", text: "Delete" }] } }
+      ? { P_MODE: { dataType: { rollname: "ZGG_MODE", typ: "C", length: 1 } } }
       : ["020", "032"].includes(id)
         ? { S_CARR: { dataType: { rollname: "S_CARR_ID", typ: "C", length: 3 } } }
         : undefined;

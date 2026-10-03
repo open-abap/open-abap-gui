@@ -642,7 +642,6 @@ function selectionBuilder(ir) {
           if (modif) fields.push(`modif_id = '${modif.toUpperCase()}'`);
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
           if (ucomm) fields.push(`ucomm = '${ucomm.toUpperCase()}'`);
-          if (item.fixedValues?.length) fields.push(`fixed_values = VALUE #( ${item.fixedValues.map((fixed) => `( key = ${literal(fixed.key ?? fixed.value ?? "")} text = ${literal(fixed.text ?? fixed.label ?? fixed.key ?? "")} )`).join(" ")} )`);
           lines.push(`io_builder->add_listbox( VALUE #( ${fields.join(" ")} ) ).`);
         } else {
           const fields = [`name = '${item.name}'`, `text = ${selectionText(ir, item)}`, type];

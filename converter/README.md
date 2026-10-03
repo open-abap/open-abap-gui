@@ -230,13 +230,15 @@ provide the default transaction heading. Explicit `textPool` input still
 takes precedence. The same lookup is applied to
 metadata-backed dynpro titles, headings, and pushbuttons.
 
-Selection-screen domain values and GUI status definitions can be supplied as
+Selection-screen field types and GUI status definitions can be supplied as
 metadata when the classic repository does not carry those definitions in the
-program source:
+program source. Listbox entries are not copied into the generated class: as in
+SAP, the host reads the fixed values of the field's domain at runtime from its
+data element, so a `rollname` is all a listbox needs:
 
 ```js
 selectionMetadata: {
-  P_MODE: { fixedValues: [{ key: "A", text: "Add" }] },
+  P_MODE: { dataType: { rollname: "ZMODE" } },
 },
 guiStatusMetadata: {
   LIST: { activeUcomm: ["PRI"], activePFKeys: [5] },

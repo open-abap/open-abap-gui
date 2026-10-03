@@ -180,6 +180,13 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_attrs) TYPE string.
 
+    CLASS-METHODS listbox_options
+      IMPORTING
+        it_fixed_values TYPE zif_gg_selection_screen_types=>ty_fixed_values
+        iv_value        TYPE string
+      RETURNING
+        VALUE(rv_html)  TYPE string.
+
     CLASS-METHODS active_selection_screen
       IMPORTING
         iv_default       TYPE string
@@ -761,10 +768,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF lt_fixed_values IS INITIAL.
             lt_fixed_values = ls_element-fixed_values.
           ENDIF.
-          LOOP AT lt_fixed_values INTO DATA(ls_fixed).
-            lv_body = lv_body && |<option value="{ zcl_gg_host_html=>escape_attribute( ls_fixed-key ) }"{ COND string( WHEN ls_fixed-key = ls_value-value THEN ` selected` ELSE `` ) }>{ zcl_gg_host_html=>escape_text( ls_fixed-text ) }</option>|.
-          ENDLOOP.
-          lv_body = lv_body && |</select></div>|.
+          lv_body = lv_body && listbox_options( it_fixed_values = lt_fixed_values
+                                                iv_value        = ls_value-value ) && |</select></div>|.
         WHEN 'SELECT_OPTION'.
           CLEAR: ls_value, ls_state, ls_range.
           READ TABLE it_values INTO ls_value WITH KEY name = ls_element-name.
@@ -1468,10 +1473,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input class="{ iv_state_class }" type="radio" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-group ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ iv_attrs }>{ zcl_gg_host_html=>escape_text( is_control-text ) }</label>|.
       WHEN 'LISTBOX'.
         rv_html = |<select class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ iv_attrs }>|.
-        LOOP AT is_control-fixed_values INTO DATA(ls_fixed).
-          rv_html = rv_html && |<option value="{ zcl_gg_host_html=>escape_attribute( ls_fixed-key ) }"{ COND string( WHEN ls_fixed-key = is_value-value THEN ` selected` ELSE `` ) }>{ zcl_gg_host_html=>escape_text( ls_fixed-text ) }</option>|.
-        ENDLOOP.
-        rv_html = rv_html && |</select>|.
+        rv_html = rv_html && listbox_options( it_fixed_values = CORRESPONDING #( is_control-fixed_values )
+                                              iv_value        = CONV #( is_value-value ) ) && |</select>|.
       WHEN 'BOX'.
         rv_html = |<fieldset class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><legend>{ zcl_gg_host_html=>escape_text( is_control-text ) }</legend></fieldset>|.
       WHEN 'TABSTRIP'.
@@ -1656,6 +1659,19 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           THEN ` data-state="error gg-state-error"`
         ELSE `` ).
       rv_html = rv_html && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_message_id ) }" class="gg-message { zcl_gg_host_html=>message_class( lv_display_type ) }" role="alert" aria-live="polite"{ lv_state_attr } data-field="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_message-field ) ) }">{ zcl_gg_host_html=>escape_text( ls_message-text ) }</div>|.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD listbox_options.
+* The current value is always the selected entry. A value missing from the
+* list, the initial one included, gets an entry of its own: otherwise the
+* browser would select the first entry and the next submit would change it.
+    DATA(lv_value) = condense( iv_value ).
+    IF NOT line_exists( it_fixed_values[ key = lv_value ] ).
+      rv_html = |<option value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }" selected>{ zcl_gg_host_html=>escape_text( lv_value ) }</option>|.
+    ENDIF.
+    LOOP AT it_fixed_values INTO DATA(ls_fixed).
+      rv_html = rv_html && |<option value="{ zcl_gg_host_html=>escape_attribute( ls_fixed-key ) }"{ COND string( WHEN ls_fixed-key = lv_value THEN ` selected` ELSE `` ) }>{ zcl_gg_host_html=>escape_text( ls_fixed-text ) }</option>|.
     ENDLOOP.
   ENDMETHOD.
 
