@@ -4,6 +4,46 @@ import { convertProgram } from "../../src/api.mjs";
 
 const builderCall = (source, name) => source.match(new RegExp(`io_builder->add_\\w+\\( VALUE #\\( name = '${name}'[^\\n]*`))?.[0] ?? "";
 
+test("keeps the selection screen number in events, FORM calls and compatibility functions", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zscreen_number.",
+      "DATA gv_screen TYPE sy-dynnr.",
+      "AT SELECTION-SCREEN OUTPUT.",
+      "  gv_screen = sy-dynnr.",
+      "  PERFORM screen_number.",
+      "AT SELECTION-SCREEN.",
+      "  IF sy-dynnr = '1000'.",
+      "    MESSAGE sy-dynnr TYPE 'S'.",
+      "  ENDIF.",
+      "  CALL FUNCTION 'RS_SET_SELSCREEN_STATUS' EXPORTING p_status = 'MAIN' p_program = sy-repid p_dynnr = sy-dynnr.",
+      "  CALL FUNCTION 'POPUP_TO_INFORM' EXPORTING titel = sy-dynnr txt1 = 'Screen'.",
+      "FORM screen_number.",
+      "  gv_screen = sy-dynnr.",
+      "  IF sy-dynnr = '0100'.",
+      "    MESSAGE sy-dynnr TYPE 'S'.",
+      "  ENDIF.",
+      "  CALL FUNCTION 'RS_SET_SELSCREEN_STATUS' EXPORTING p_status = 'TAB' p_program = sy-repid p_dynnr = sy-dynnr.",
+      "  CALL FUNCTION 'POPUP_TO_INFORM' EXPORTING titel = sy-dynnr txt1 = 'Screen'.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zscreen_number.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /gv_screen = iv_screen\./);
+  assert.match(result.classSource, /IF iv_screen = '1000'\./);
+  assert.match(result.classSource, /ia_text\s*= iv_screen/);
+  assert.match(result.classSource, /p_dynnr = iv_screen/);
+  assert.match(result.classSource, /title = iv_screen/);
+  assert.match(result.classSource, /gv_screen = io_session->get_context\( \)-selection-screen\./);
+  assert.match(result.classSource, /IF io_session->get_context\( \)-selection-screen = '0100'\./);
+  assert.match(result.classSource, /ia_text\s*= io_session->get_context\( \)-selection-screen/);
+  assert.match(result.classSource, /p_dynnr = io_session->get_context\( \)-selection-screen/);
+  assert.match(result.classSource, /title = io_session->get_context\( \)-selection-screen/);
+  assert.match(result.classSource, /gv_screen TYPE sy-dynnr/);
+  assert.doesNotMatch(result.classSource, /gv_screen = ''|IF '' =|iv_screen = ''/);
+});
+
 test("applies a radio group's USER-COMMAND to every button of the group", async () => {
   const result = await convertProgram({
     source: [
