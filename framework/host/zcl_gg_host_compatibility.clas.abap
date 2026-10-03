@@ -305,6 +305,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD zif_gg_compatibility_v1~refresh_selection_list_values.
+    CLEAR mt_selection_lists.
+  ENDMETHOD.
+
   METHOD clear_selection_list_values.
     CLEAR mt_selection_lists.
   ENDMETHOD.

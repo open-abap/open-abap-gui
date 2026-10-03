@@ -1074,6 +1074,7 @@ test("converts function module actuals for string-typed compatibility parameters
       "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING id = gc_vrm_id-emode values = gt_values.",
       "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING id = |P_RMODE| values = gt_values.",
       "  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING values = gt_values.",
+      "  CALL FUNCTION 'VRM_REFRESH_VALUES'.",
       "START-OF-SELECTION.",
       "  CALL FUNCTION 'DP_PUBLISH_WWW_URL' EXPORTING objid = gv_objid lifetime = 'T' IMPORTING url = gv_url.",
     ].join("\n"),
@@ -1084,6 +1085,7 @@ test("converts function module actuals for string-typed compatibility parameters
   // A string template is a string already, and the missing id falls back to ''.
   assert.match(result.classSource, /iv_id\s+= \|P_RMODE\|/);
   assert.match(result.classSource, /iv_id\s+= ''\s+it_values/);
+  assert.match(result.classSource, /io_session->get_compatibility\( \)->refresh_selection_list_values\( \)\./);
   assert.match(result.classSource, /gv_url = io_session->get_compatibility\( \)->publish_url\(\s+iv_object\s+= CONV string\( gv_objid \)\s+iv_lifetime = CONV string\( 'T' \) \)\./);
 });
 
@@ -2173,7 +2175,7 @@ test("lowers the finite gg-gui function-module families through typed adapters",
     "RS_VARIANT_CONTENTS",
     "SELECT_OPTIONS_RESTRICT",
   ]);
-  assert.equal(Object.keys(COMPATIBILITY_FUNCTION_MODULES).length, 34);
+  assert.equal(Object.keys(COMPATIBILITY_FUNCTION_MODULES).length, 35);
 });
 
 test("keeps scaffold-owned control constructors and methods type-aware", async () => {

@@ -8,6 +8,7 @@ const ADAPTERS = new Map([
   ["POPUP_TO_SELECT_MONTH", { family: "popup", method: "popup_to_select_month" }],
   ["F4IF_INT_TABLE_VALUE_REQUEST", { family: "f4", method: "f4_table_value_request" }],
   ["VRM_SET_VALUES", { family: "dynamic-selection", method: "set_selection_list_values" }],
+  ["VRM_REFRESH_VALUES", { family: "dynamic-selection", method: "refresh_selection_list_values" }],
   ["CONVERSION_EXIT_ALPHA_INPUT", { family: "frontend", method: "alpha_input" }],
   ["CONVERSION_EXIT_ALPHA_OUTPUT", { family: "frontend", method: "alpha_output" }],
   ["LVC_FIELDCATALOG_MERGE", { family: "classic-alv", method: "alv_fieldcatalog_merge" }],
@@ -109,7 +110,7 @@ function request(fields) {
 }
 
 function call(method, args = "") {
-  return `io_session->get_compatibility( )->${method}( ${args} ).`;
+  return `io_session->get_compatibility( )->${method}(${args ? ` ${args} ` : " "}).`;
 }
 
 // One parameter per line, aligned, for a call with several parameters.
@@ -224,6 +225,7 @@ function lowerAlv(raw, name) {
 }
 
 function lowerDynamicSelection(raw, name) {
+  if (name === "VRM_REFRESH_VALUES") return call("refresh_selection_list_values");
   if (name === "SELECT_OPTIONS_RESTRICT") return call("select_options_restrict", `is_restriction = ${functionParameter(raw, "restriction") ?? "VALUE #( )"}`);
   if (name === "FREE_SELECTIONS_RANGE_2_WHERE") {
     return call("free_selections_range_to_where", `EXPORTING it_field_ranges = ${functionParameter(raw, "field_ranges") ?? "VALUE #( )"} CHANGING ct_where_clauses = ${functionParameter(raw, "where_clauses") ?? "VALUE #( )"}`);
