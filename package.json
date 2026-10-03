@@ -15,7 +15,8 @@
     "start": "node test/convert-examples.mjs && abap_transpile build/abap_transpile.start.json && node test/start-server.mjs",
     "web:screenshots": "node test/capture-web-screenshots.mjs",
     "web:diff": "node test/generate-screenshot-diffs.mjs deployment/main/screenshots build/screenshots build/visual-diffs",
-    "web:build": "npm run transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots && npm run web:diff",
+    "web:transpile": "node test/web-converter-examples.mjs && abap_transpile build/abap_transpile.web.json",
+    "web:build": "npm run web:transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots && npm run web:diff",
     "test:converter": "npm --prefix converter run test",
     "test": "npm run lint && npm run lint:framework && npm run unit && npm run test:crash && npm run test:html-browser && npm run test:converter",
     "regression": "node .github/regression/run.js"

@@ -293,6 +293,12 @@ writes one browser screenshot per report plus an HTML index under
 `gg-gui-validation/screenshots/`. It is intentionally separate
 from the offline verification gate because it resolves an external repository.
 
+The repository's `npm run web:build` also compiles the checked-in output of
+the `test/examples` folders into the web preview, see
+`test/web-converter-examples.mjs`, so each converted screen gets a screenshot
+and appears in the preview deployment's visual diffs. Examples whose output
+does not compile there are listed in that script with the reason.
+
 `behavior` compiles generated and hand-written report classes under
 distinct names, runs examples `001`-`057` through `zcl_gg_host`, and compares
 typed result models, plus selected user-input, validation-failure, and
