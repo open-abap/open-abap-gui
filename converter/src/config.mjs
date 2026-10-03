@@ -217,6 +217,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
   const converter = parsed.converter;
   let converterInputFolders = [];
   let generatedFolder;
+  let language;
   if (converter === null || typeof converter !== "object" || Array.isArray(converter)) {
     diagnostics.push(configDiagnostic(
       filename,
@@ -242,6 +243,19 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
       ));
     } else {
       generatedFolder = path.resolve(root, withoutTrailingSeparator(declaredOutput.trim()));
+    }
+    if (converter.language !== undefined) {
+      if (typeof converter.language === "string" && /^[A-Za-z0-9]$/.test(converter.language)) {
+        language = converter.language.toUpperCase();
+      } else {
+        diagnostics.push(configDiagnostic(
+          filename,
+          "GGCONV-E120",
+          "converter.language must be a one-character SAP language key",
+          'Use the key abapGit writes, such as "E" or "D", or leave it out.',
+          "converter.language",
+        ));
+      }
     }
   }
 
@@ -319,6 +333,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
     converterInputFolders,
     libs,
     generatedFolder,
+    ...(language === undefined ? {} : { language }),
     diagnostics,
     valid: !diagnostics.some((item) => item.severity === "error"),
   };
@@ -363,7 +378,7 @@ export async function discoverTransactions(config) {
   for (const filename of [...found.keys()].sort((left, right) => left.localeCompare(right))) {
     let transaction;
     try {
-      transaction = parseTransactionXml(await fs.readFile(filename, "utf8"));
+      transaction = parseTransactionXml(await fs.readFile(filename, "utf8"), { language: config.language });
     } catch {
       continue;
     }
@@ -495,6 +510,7 @@ export function conversionPlan(config, program, overrides = {}) {
     ddicTypes,
     transactions,
     includeFolders,
+    language = config.language,
     ...rest
   } = overrides;
   // A transaction object that starts this program names its transaction code
@@ -525,6 +541,7 @@ export function conversionPlan(config, program, overrides = {}) {
     className: resolveOverride(className, program.programName),
     transactionCode: resolveOverride(transactionCode, program.programName) ?? transaction?.transactionCode,
     ...(resolvedDescription === undefined ? {} : { description: resolvedDescription }),
+    ...(language === undefined ? {} : { language }),
     mode: mode ?? "strict",
     ...(partialStrategy === undefined ? {} : { partialStrategy }),
     ...(ddicTypes === undefined ? {} : { ddicTypes }),

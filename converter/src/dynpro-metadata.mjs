@@ -350,8 +350,14 @@ function parseFlowLogic(source, filename, number) {
   return flow;
 }
 
-function parseTextPool(values) {
-  const entries = children(child(values, "TPOOL"), "item").map((item) => {
+// The item in the requested language, else the English one, else the first.
+function pickLanguage(items, languageOf, language) {
+  const find = (wanted) => items.find((item) => String(languageOf(item) ?? "").toUpperCase() === wanted);
+  return (language ? find(language.toUpperCase()) : undefined) ?? find("E") ?? items[0];
+}
+
+function textPoolItems(node) {
+  return children(node, "item").map((item) => {
     const attributes = leafRecord(item);
     return {
       id: recordValue(attributes, "ID"),
@@ -361,9 +367,26 @@ function parseTextPool(values) {
       attributes: publicRecord(attributes),
     };
   });
+}
+
+// abapGit writes the texts in the main language to TPOOL and each translation
+// to I18N_TPOOL. A requested language is taken from the translations when it
+// is there; otherwise TPOOL is used, and when TPOOL is missing or empty, one
+// translation is picked. TPOOL still supplies what the translation lacks.
+function parseTextPool(values, { language } = {}) {
+  const main = textPoolItems(child(values, "TPOOL"));
+  const translations = children(child(values, "I18N_TPOOL"), "item").map((item) => ({
+    language: recordValue(leafRecord(item), "LANGUAGE"),
+    entries: textPoolItems(child(item, "TEXTPOOL")),
+  })).filter((item) => item.entries.length > 0);
+  const requested = language
+    ? translations.find((item) => String(item.language ?? "").toUpperCase() === language.toUpperCase())
+    : undefined;
+  const translation = requested ?? (main.length === 0 ? pickLanguage(translations, (item) => item.language, language) : undefined);
+  const entries = [...(translation?.entries ?? []), ...main];
   const textPool = {};
   for (const entry of entries) {
-    if (entry.key && entry.entry) textPool[entry.key] = entry.entry;
+    if (entry.key && entry.entry && !(entry.key in textPool)) textPool[entry.key] = entry.entry;
   }
   return {
     entries,
@@ -483,7 +506,7 @@ function parseGuiStatus(values) {
   };
 }
 
-function parseXmlMetadata(xml, { metadataFilename } = {}) {
+function parseXmlMetadata(xml, { metadataFilename, language } = {}) {
   const document = parseXml(xml);
   const values = firstDescendant(document, "values");
   if (!values) throw new Error("dynpro metadata XML does not contain asx:values");
@@ -515,7 +538,7 @@ function parseXmlMetadata(xml, { metadataFilename } = {}) {
       elements,
     };
   });
-  const textPool = parseTextPool(values);
+  const textPool = parseTextPool(values, { language });
   const guiStatus = parseGuiStatus(values);
   const statusNames = Object.keys(guiStatus.guiStatuses);
   const statuses = statusNames.length === 1
@@ -570,6 +593,7 @@ export async function loadDynproMetadata({
   readFile = fs.readFile,
   readDirectory = fs.readdir,
   required = false,
+  language,
 } = {}) {
   const reportFilename = path.normalize(filename);
   const xmlFilename = path.normalize(metadataFilename ?? replaceProgramExtension(reportFilename, ".prog.xml"));
@@ -583,7 +607,7 @@ export async function loadDynproMetadata({
   const directory = path.normalize(screenDirectory ?? path.dirname(xmlFilename));
   const candidates = screenFiles ?? await readDirectory(directory);
   const matching = screenFilesForReport(reportFilename, candidates);
-  const metadata = parseXmlMetadata(xml, { metadataFilename: xmlFilename });
+  const metadata = parseXmlMetadata(xml, { metadataFilename: xmlFilename, language });
   const flowByNumber = new Map();
   const loadedFiles = [];
   for (const item of matching) {
@@ -615,16 +639,18 @@ export async function loadDynproMetadata({
 /**
  * Read an abapGit TRAN object (`<tcode>.tran.xml`): the transaction code, the
  * program it starts, and its short text. Returns undefined for a transaction
- * that starts no program, such as a parameter transaction.
+ * that starts no program, such as a parameter transaction. The short text is
+ * taken in `language` when given, else in English, else the first one; the
+ * translations abapGit writes to I18N_TPOOL count as well.
  */
-export function parseTransactionXml(xml) {
+export function parseTransactionXml(xml, { language } = {}) {
   const values = firstDescendant(parseXml(xml), "values");
   const tstc = leafRecord(child(values, "TSTC"));
   const transactionCode = recordValue(tstc, "TCODE");
   const program = recordValue(tstc, "PGMNA");
   if (!transactionCode || !program) return undefined;
-  const texts = children(values, "TSTCT").map(leafRecord);
-  const text = texts.find((item) => String(item.SPRSL ?? "").toUpperCase() === "E") ?? texts[0];
+  const texts = [...children(values, "TSTCT"), ...children(child(values, "I18N_TPOOL"))].map(leafRecord);
+  const text = pickLanguage(texts.filter((item) => recordValue(item, "TTEXT")), (item) => item.SPRSL, language);
   return {
     transactionCode: transactionCode.toUpperCase(),
     program: program.toUpperCase(),

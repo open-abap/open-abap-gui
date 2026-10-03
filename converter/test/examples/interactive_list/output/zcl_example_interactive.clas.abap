@@ -22,7 +22,7 @@ ENDCLASS.
 CLASS zcl_example_interactive IMPLEMENTATION.
 
   METHOD zif_gg_program_v1~get_program.
-    rs_program = VALUE #( program = 'ZEXAMPLE_INTERACTIVE' description = 'Converted executable report' ).
+    rs_program = VALUE #( program = 'ZEXAMPLE_INTERACTIVE' description = 'ZEXAMPLE_INTERACTIVE' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

@@ -31,7 +31,7 @@ const COCKPIT = [
 test("keeps every CASE branch around a suspending CALL TRANSACTION", async () => {
   const result = await convertProgram({ source: COCKPIT, filename: "zcockpit.prog.abap" });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.deepEqual(result.diagnostics, []);
+  assert.deepEqual(result.diagnostics.filter((item) => item.code !== "GGCONV-W108"), []);
   const start = methodBody(result.classSource, "zif_gg_report_v1~start_of_selection");
   assert.match(start, /WHEN 'CFG'\.\s+io_session->get_navigation\( \)->call_transaction\([\s\S]*tcode = 'ZCFG' skip_first_screen = abap_true[\s\S]*\)\.\s+WHEN 'LOG'\./);
   assert.match(start, /WHEN 'LOG'\.[\s\S]*log inline/);

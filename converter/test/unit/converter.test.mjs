@@ -9,6 +9,9 @@ import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
 import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../src/capability.mjs";
 import { repositoryRoot } from "../repository.mjs";
 
+// A bare source has no .prog.xml and so no title; GGCONV-W108 says so.
+const untitled = (diagnostics) => diagnostics.filter((item) => item.code !== "GGCONV-W108");
+
 const fixture = (name) => fs.readFile(path.join(repositoryRoot, "examples", name), "utf8");
 const compositeFixture = (name) => fs.readFile(path.join(repositoryRoot, "converter", "test", "fixtures", name), "utf8");
 
@@ -361,7 +364,7 @@ test("lowers classic currency WRITE formatting and list paging commands", async 
     transactionCode: "ZWRCUR",
   });
   assert.equal(result.supported, true);
-  assert.deepEqual(result.diagnostics, []);
+  assert.deepEqual(untitled(result.diagnostics), []);
   assert.match(result.classSource, /write_format = VALUE #\( currency = \|\{ gv_currency \}\| \)/);
   assert.match(result.classSource, /lo_writer->scroll_to_first_page\( \)\./);
   assert.match(result.classSource, /lo_writer->scroll_to_last_page\( \)\./);
@@ -590,7 +593,7 @@ test("carries statements without a lowering rule over as written", async () => {
     filename: "zno_rule.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.deepEqual(result.diagnostics.filter((item) => item.severity !== "info"), []);
+  assert.deepEqual(untitled(result.diagnostics).filter((item) => item.severity !== "info"), []);
   for (const statement of ["GET RUN TIME FIELD gv_start.", "CONCATENATE 'a' 'b' INTO gv_text.", "CONDENSE gv_text.", "WHILE gv_start < 10.", "ENDWHILE.", "WAIT UP TO 1 SECONDS."]) {
     assert.ok(result.classSource.includes(statement), `expected ${statement} in the generated class`);
   }
@@ -1435,7 +1438,7 @@ test("generates a report without a transaction code as a program", async () => {
   ]) {
     const result = await convertProgram({ ...input, filename: "zreport.prog.abap" });
     assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-    assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), diagnostics);
+    assert.deepEqual(untitled(result.diagnostics).map((item) => [item.code, item.severity]), diagnostics);
     // No transaction code is made up from the report name.
     assert.equal(result.reportIR.transactionCode, undefined);
     assert.equal(result.manifest.transactionCode, undefined);
@@ -1473,8 +1476,8 @@ test("validates explicit class and transaction names", async () => {
   });
   assert.equal(collision.supported, true, JSON.stringify(collision.diagnostics));
   assert.equal(collision.reportIR.targetClassName, "ZCL_VALID_2");
-  assert.deepEqual(collision.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W106", "warning"]]);
-  assert.match(collision.diagnostics[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the program registry/);
+  assert.deepEqual(untitled(collision.diagnostics).map((item) => [item.code, item.severity]), [["GGCONV-W106", "warning"]]);
+  assert.match(untitled(collision.diagnostics)[0].message, /ZCL_VALID already exists in src\/zcl_valid\.clas\.abap; the report is generated as ZCL_VALID_2 instead, and SUBMIT finds it through the program registry/);
   assert.match(collision.classSource, /rs_program = VALUE #\( program = 'ZVALID' description = '[^']*' \)\./);
 
   const explicit = await convertProgram({
@@ -1506,8 +1509,8 @@ test("shortens a default class name past 30 characters, keeping long names apart
   const className = result.reportIR.targetClassName;
   assert.match(className, /^ZCL_RLX_SDFDDDDD_DATE_CON_[0-9A-F]{4}$/);
   assert.equal(className.length, 30);
-  assert.deepEqual(result.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W107", "warning"]]);
-  assert.match(result.diagnostics[0].message, /ZCL_RLX_SDFDDDDD_DATE_COND_PROMO exceeds 30 characters; the report is generated as ZCL_RLX_SDFDDDDD_DATE_CON_[0-9A-F]{4} instead, and SUBMIT finds it through the program registry/);
+  assert.deepEqual(untitled(result.diagnostics).map((item) => [item.code, item.severity]), [["GGCONV-W107", "warning"]]);
+  assert.match(untitled(result.diagnostics)[0].message, /ZCL_RLX_SDFDDDDD_DATE_COND_PROMO exceeds 30 characters; the report is generated as ZCL_RLX_SDFDDDDD_DATE_CON_[0-9A-F]{4} instead, and SUBMIT finds it through the program registry/);
   assert.match(result.classSource, /rs_program = VALUE #\( program = 'ZRLX_SDFDDDDD_DATE_COND_PROMO'/);
 
   // Deterministic, and a name differing only in the cut-off tail gets its own class.
@@ -2543,7 +2546,7 @@ test("assumes referenced types exist and emits them as written", async () => {
     filename: "zassumed_types.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.deepEqual(result.diagnostics.filter((item) => item.severity !== "info"), []);
+  assert.deepEqual(untitled(result.diagnostics).filter((item) => item.severity !== "info"), []);
   assert.match(result.classSource, /DATA sflight TYPE sflight\./);
   assert.match(result.classSource, /TYPES ty_nodes TYPE treev_ntab\./);
   assert.match(result.classSource, /TYPES ty_keys TYPE STANDARD TABLE OF salv_de_node_key WITH EMPTY KEY\./);
@@ -2613,7 +2616,7 @@ test("splits nested conditional continuations and skips sibling branches", async
 test("warns about continuations inside loops and exception blocks", async () => {
   const loop = await convertProgram({ source: "REPORT zloop.\nSTART-OF-SELECTION.\nDO 2 TIMES.\n  CALL SCREEN 100.\nENDDO.\n", filename: "zloop.prog.abap" });
   assert.equal(loop.supported, true, JSON.stringify(loop.diagnostics));
-  assert.deepEqual(loop.diagnostics.map((item) => [item.code, item.severity]), [["GGCONV-W402", "warning"]]);
+  assert.deepEqual(untitled(loop.diagnostics).map((item) => [item.code, item.severity]), [["GGCONV-W402", "warning"]]);
   assert.match(loop.classSource, /DO 2 TIMES\.\s+io_session->get_dialog\( \)->call_screen\(/);
 });
 
@@ -2706,7 +2709,7 @@ test("assumes message classes are known", async () => {
     filename: "zmsgmeta.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.deepEqual(result.diagnostics, []);
+  assert.deepEqual(untitled(result.diagnostics), []);
 });
 
 test("drops DEFERRED and LOAD forward declarations", async () => {
@@ -2864,4 +2867,64 @@ test("emits a select-option default that is not a literal as an expression", asy
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /default = VALUE #\( sign = 'I' option = 'EQ' low = CONV string\( sy-datum \) \)/);
   assert.match(result.classSource, /default = VALUE #\( sign = 'I' option = 'BT' low = 'A' high = 'B' \)/);
+});
+
+test("takes the text pool from I18N_TPOOL when TPOOL is empty or another language is asked for", async () => {
+  const items = (entries) => entries.map(([id, key, entry]) => `<item><ID>${id}</ID>${key ? `<KEY>${key}</KEY>` : ""}<ENTRY>${entry}</ENTRY></item>`).join("");
+  const xml = (main, translations) => [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">',
+    ' <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">',
+    "  <asx:values>",
+    "   <PROGDIR><NAME>ZI18N</NAME><SUBC>1</SUBC></PROGDIR>",
+    main ? `   <TPOOL>${items(main)}</TPOOL>` : "",
+    `   <I18N_TPOOL>${translations.map(([language, entries]) => `<item><LANGUAGE>${language}</LANGUAGE><TEXTPOOL>${items(entries)}</TEXTPOOL></item>`).join("")}</I18N_TPOOL>`,
+    "  </asx:values>",
+    " </asx:abap>",
+    "</abapGit>",
+  ].join("\n");
+  const load = (source, language) => loadDynproMetadata({ filename: "zi18n.prog.abap", readFile: async () => source, screenFiles: [], language });
+  const translations = [
+    ["D", [["R", "", "Bericht"], ["S", "P_TEXT", "Wert"]]],
+    ["E", [["R", "", "Report"], ["S", "P_TEXT", "Value"]]],
+    ["I", [["R", "", "Rapporto"], ["S", "P_DATE", "."]]],
+  ];
+
+  const english = await load(xml(undefined, translations));
+  assert.equal(english.reportTitle, "Report");
+  assert.equal(english.textPool.P_TEXT, "Value");
+  assert.equal((await load(xml(undefined, translations), "X")).reportTitle, "Report");
+  assert.equal((await load(xml(undefined, translations.filter(([language]) => language !== "E")))).reportTitle, "Bericht");
+
+  const main = [["R", "", "Main"], ["S", "P_TEXT", "Main value"], ["S", "P_DATE", "Main date"]];
+  const untranslated = await load(xml(main, translations));
+  assert.equal(untranslated.reportTitle, "Main");
+  assert.equal(untranslated.textPool.P_TEXT, "Main value");
+  // The requested translation wins; TPOOL fills in what it lacks.
+  const german = await load(xml(main, translations), "d");
+  assert.equal(german.reportTitle, "Bericht");
+  assert.equal(german.textPool.P_TEXT, "Wert");
+  assert.equal(german.textPool.P_DATE, "Main date");
+
+  // A translated selection text with dictionary reference reads the data element's label.
+  const italian = await load(xml(undefined, translations), "I");
+  const converted = await convertProgram({
+    source: "REPORT zi18n.\nPARAMETERS: p_text TYPE c LENGTH 10,\n            p_date TYPE sy-datum.\nSTART-OF-SELECTION.\nWRITE / p_text.\n",
+    filename: "zi18n.prog.abap",
+    screenMetadata: italian,
+  });
+  assert.equal(converted.supported, true, JSON.stringify(converted.diagnostics));
+  assert.match(converted.classSource, /program = 'ZI18N' description = 'Rapporto'/);
+  assert.match(converted.classSource, /name = 'P_DATE' text = io_builder->get_ddic_text\( ig_field = mv_p_date iv_name = 'P_DATE' \)/);
+  assert.ok(!converted.diagnostics.some((item) => item.code === "GGCONV-W108"));
+});
+
+test("describes a report without any title by its name, and says so", async () => {
+  const result = await convertProgram({ source: "REPORT znotitle.\nSTART-OF-SELECTION.\nWRITE / 'x'.\n", filename: "znotitle.prog.abap" });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /program = 'ZNOTITLE' description = 'ZNOTITLE'/);
+  assert.deepEqual(result.diagnostics.filter((item) => item.code === "GGCONV-W108").map((item) => item.severity), ["warning"]);
+  const described = await convertProgram({ source: "REPORT znotitle.\nSTART-OF-SELECTION.\nWRITE / 'x'.\n", filename: "znotitle.prog.abap", description: "Given" });
+  assert.match(described.classSource, /description = 'Given'/);
+  assert.ok(!described.diagnostics.some((item) => item.code === "GGCONV-W108"));
 });

@@ -54,6 +54,7 @@ The keys it reads are:
 | --- | --- |
 | `converter.input_folder` | folders scanned for `*.prog.abap` and `*.tran.xml`; searched first for INCLUDEs |
 | `converter.output_folder` | where the generated classes are written; owned by the converter |
+| `converter.language` | optional one-character language key, such as `D`, for the texts to take; see below |
 | `input_folder` | searched for INCLUDEs after the converter input; must list `converter.output_folder` |
 | `libs` | dependencies searched for INCLUDEs; their programs are never converted |
 
@@ -92,7 +93,8 @@ same folders for both tools.
 A report's transaction code comes from `--tcode` when given, otherwise from an
 abapGit transaction object (`<tcode>.tran.xml`) in the converter input folders whose
 program is the report. The transaction's short text becomes the default
-description. When several transactions start the same report, the
+description, else the report's title (text pool entry `R`), else the program
+name, reported as `GGCONV-W108`. When several transactions start the same report, the
 alphabetically first transaction code is used. A report with neither gets no
 transaction code: its class implements `zif_gg_program_v1` instead of
 `zif_gg_transaction_v1`, and the workbench lists it under Reports rather than
@@ -140,6 +142,15 @@ through `textPool`; unresolved `TEXT-*` keys remain deterministic and produce a
 `.`, the dictionary reference, gets its label at runtime from
 `io_builder->get_ddic_text( )`: the field label of the data element its member
 is typed with. Include content participates in the source hash.
+
+Texts are read from the `.prog.xml` and `.tran.xml` abapGit writes. Those hold
+the main language in `TPOOL` and `TSTCT` and each translation in `I18N_TPOOL`.
+With `converter.language` set, the texts in that language are used where a
+translation has them, and the main language fills in the rest. Without it, the
+main language is used. When a program has no `TPOOL`, one translation is
+picked: the configured language, then English, then the first one. A
+transaction's short text is picked the same way, configured language first,
+then English.
 
 Every message class a `MESSAGE` statement names is assumed to exist in the
 target system; the message is raised through the session at runtime and the

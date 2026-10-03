@@ -91,7 +91,7 @@ for (let number = 1; number <= 58; number++) {
   const example = String(number).padStart(3, "0");
   const filename = `zgg_ex_${example}.prog.abap`;
   const source = await fs.readFile(path.join(examples, filename), "utf8");
-  const result = await convertProgram({ source, filename, className: `ZCL_SNAP_${example}`, transactionCode: `ZSN${example}`, mode: "partial" });
+  const result = await convertProgram({ source, filename, className: `ZCL_SNAP_${example}`, transactionCode: `ZSN${example}`, description: `Snapshot ${example}`, mode: "partial" });
   const hash = crypto.createHash("sha256").update(JSON.stringify(snapshot(result, example))).digest("hex");
   assert.equal(hash, expected[example], `structural snapshot changed for example ${example}`);
 }

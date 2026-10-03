@@ -440,3 +440,46 @@ test("the CLI converts every selected program and exits 0 when all are supported
   assert.equal(parsed.summary.programCount, 1, "npm run check must stay a one-program smoke test");
   assert.equal(parsed.summary.supportedCount, 1);
 });
+
+test("reads converter.language and takes transaction texts from I18N_TPOOL in that language", async () => {
+  const tran = (tcode, program, texts, translations) => [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    '<abapGit version="v1.0.0" serializer="LCL_OBJECT_TRAN" serializer_version="v1.0.0">',
+    ' <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">',
+    "  <asx:values>",
+    `   <TSTC><TCODE>${tcode}</TCODE><PGMNA>${program}</PGMNA></TSTC>`,
+    ...texts.map(([language, text]) => `   <TSTCT><SPRSL>${language}</SPRSL><TCODE>${tcode}</TCODE><TTEXT>${text}</TTEXT></TSTCT>`),
+    `   <I18N_TPOOL>${translations.map(([language, text]) => `<TSTCT><SPRSL>${language}</SPRSL><TCODE>${tcode}</TCODE><TTEXT>${text}</TTEXT></TSTCT>`).join("")}</I18N_TPOOL>`,
+    "  </asx:values>",
+    " </asx:abap>",
+    "</abapGit>",
+  ].join("\n");
+  const files = {
+    "src/zone.prog.abap": REPORT("zone"),
+    "src/ztwo.prog.abap": REPORT("ztwo"),
+    "src/zone.tran.xml": tran("ZONE", "ZONE", [["D", "Eins"]], [["E", "One"], ["I", "Uno"]]),
+    "src/ztwo.tran.xml": tran("ZTWO", "ZTWO", [], [["D", "Zwei"], ["I", "Due"]]),
+  };
+  const descriptions = async (converter) => {
+    const project = await workspace(files, { ...LISTED, converter });
+    const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+    assert.deepEqual(codes(config.diagnostics), []);
+    const transactions = await discoverTransactions(config);
+    return [config.language, transactions.get("ZONE").description, transactions.get("ZTWO").description];
+  };
+  assert.deepEqual(await descriptions(CONVERTER), [undefined, "One", "Zwei"]);
+  assert.deepEqual(await descriptions({ ...CONVERTER, language: "i" }), ["I", "Uno", "Due"]);
+
+  const project = await workspace(files, { ...LISTED, converter: { ...CONVERTER, language: "EN" } });
+  const invalid = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  assert.deepEqual(codes(invalid.diagnostics), ["GGCONV-E120"]);
+  assert.equal(invalid.valid, false);
+
+  // The language reaches each conversion, where it picks the program's texts.
+  const italian = await workspace(files, { ...LISTED, converter: { ...CONVERTER, language: "I" } });
+  const config = await loadTranspileConfig(italian.configPath, { cwd: italian.root });
+  const [program] = await discoverPrograms(config);
+  assert.equal(conversionPlan(config, program).language, "I");
+  assert.equal(conversionPlan(config, program, { language: "D" }).language, "D");
+  assert.ok(!("language" in conversionPlan({ ...config, language: undefined }, program)));
+});

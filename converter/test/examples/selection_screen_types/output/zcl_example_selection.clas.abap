@@ -29,7 +29,7 @@ ENDCLASS.
 CLASS zcl_example_selection IMPLEMENTATION.
 
   METHOD zif_gg_program_v1~get_program.
-    rs_program = VALUE #( program = 'ZEXAMPLE_SELECTION' description = 'Converted executable report' ).
+    rs_program = VALUE #( program = 'ZEXAMPLE_SELECTION' description = 'ZEXAMPLE_SELECTION' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

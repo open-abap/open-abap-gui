@@ -558,9 +558,9 @@ function staticSelectionText(ir, token) {
 // SAP shows the field label of the data element the field is typed with. The
 // label is read at runtime from the member holding the field's value.
 function selectionText(ir, item) {
-  const member = ir.statePlan?.selectionState?.[item.name?.toUpperCase()]?.member;
-  if (member && /^(?:D\s+)?\.$/.test(String(item.text ?? "").trim())) {
-    return `io_builder->get_ddic_text( ig_field = ${member} iv_name = '${item.name}' )`;
+  if (/^(?:D\s+)?\.$/.test(String(item.text ?? "").trim())) {
+    const member = ir.statePlan?.selectionState?.[item.name?.toUpperCase()]?.member;
+    return member ? `io_builder->get_ddic_text( ig_field = ${member} iv_name = '${item.name}' )` : literal(item.name);
   }
   return literal(item.text ?? item.name);
 }
