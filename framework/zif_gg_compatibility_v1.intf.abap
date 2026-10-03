@@ -129,7 +129,9 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
            variant TYPE string,
            title   TYPE string,
          END OF ty_variant_request.
-  TYPES ty_variant_parameters TYPE STANDARD TABLE OF rsparams WITH EMPTY KEY.
+* A default key, as a program's TABLE OF rsparams has, so the program's
+* table is passed as is.
+  TYPES ty_variant_parameters TYPE STANDARD TABLE OF rsparams WITH DEFAULT KEY.
 
   TYPES: BEGIN OF ty_frontend_url_request,
            type     TYPE string,
@@ -163,7 +165,7 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
   METHODS f4_table_value_request
     IMPORTING is_request    TYPE ty_f4_request
     CHANGING  ct_value_tab  TYPE STANDARD TABLE
-              ct_return_tab TYPE STANDARD TABLE.
+              ct_return_tab TYPE STANDARD TABLE OPTIONAL.
 
   METHODS set_popup_request
     IMPORTING iv_action TYPE string
@@ -174,6 +176,8 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
 
   METHODS get_value_help_values
     RETURNING VALUE(rt_values) TYPE zif_gg_dynpro_types_v1=>ty_values.
+
+  METHODS clear_value_help_values.
 
   METHODS set_selection_list_values
     IMPORTING iv_id     TYPE string

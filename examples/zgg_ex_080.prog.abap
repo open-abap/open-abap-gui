@@ -1,9 +1,45 @@
 REPORT zgg_ex_080.
 
 TABLES zsflight.
+
+DATA gv_order TYPE string.
+
 PARAMETERS p_fld TYPE c LENGTH 20.
-SELECT-OPTIONS s_end FOR zsflight-carrid.
+SELECTION-SCREEN BEGIN OF BLOCK b_val WITH FRAME TITLE TEXT-001.
+PARAMETERS p_rad1 RADIOBUTTON GROUP vg1 DEFAULT 'X'.
+PARAMETERS p_rad2 RADIOBUTTON GROUP vg1.
+SELECTION-SCREEN END OF BLOCK b_val.
+SELECT-OPTIONS s_end FOR zsflight-carrid DEFAULT 'AA'.
 PARAMETERS p_req TYPE c LENGTH 20 OBLIGATORY.
 
+AT SELECTION-SCREEN OUTPUT.
+  CLEAR gv_order.
+
+AT SELECTION-SCREEN ON p_fld.
+  PERFORM record USING 'FIELD'.
+  IF p_fld = 'bad'.
+    MESSAGE 'Field validation failed' TYPE 'E'.
+  ENDIF.
+
+AT SELECTION-SCREEN ON RADIOBUTTON GROUP vg1.
+  PERFORM record USING 'RADIO'.
+
+AT SELECTION-SCREEN ON BLOCK b_val.
+  PERFORM record USING 'BLOCK'.
+
+AT SELECTION-SCREEN ON END OF s_end.
+  PERFORM record USING 'END'.
+
+AT SELECTION-SCREEN.
+  PERFORM record USING 'SCREEN'.
+
 START-OF-SELECTION.
-  WRITE p_fld.
+  WRITE gv_order.
+
+FORM record USING iv_step TYPE csequence.
+  IF gv_order IS INITIAL.
+    gv_order = iv_step.
+  ELSE.
+    gv_order = |{ gv_order }>{ iv_step }|.
+  ENDIF.
+ENDFORM.

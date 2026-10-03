@@ -295,6 +295,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     rt_values = mt_value_help_values.
   ENDMETHOD.
 
+  METHOD zif_gg_compatibility_v1~clear_value_help_values.
+    CLEAR mt_value_help_values.
+  ENDMETHOD.
+
   METHOD zif_gg_compatibility_v1~set_selection_list_values.
     READ TABLE mt_selection_lists ASSIGNING FIELD-SYMBOL(<ls_list>)
       WITH KEY id = iv_id.

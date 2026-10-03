@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Checkbox-controlled field group</ENTRY>
+     <LENGTH>31</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_ENABLE</KEY>
      <ENTRY>Enable group</ENTRY>

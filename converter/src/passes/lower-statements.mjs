@@ -642,6 +642,8 @@ function dataValueRewrites(context) {
     ...(context.replacements ?? []),
     ...Object.entries(LIST_COLOR_CONSTANTS).map(([name, constant]) => [name, `zif_gg_list_processing_types_v1=>${constant}`]),
     ["sy-ucomm", context.ucomm ?? "sy-ucomm"],
+    // SSCRFIELDS-UCOMM holds the selection screen's function code during PAI.
+    ["sscrfields-ucomm", context.ucomm ?? "sscrfields-ucomm"],
     ["sy-subrc", context.subrc ?? "sy-subrc"],
     ["sy-dynnr", context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''"],
     ["screen-name", `${screen}-name`],
@@ -1253,7 +1255,12 @@ function lowerSingleStatement(statement, context) {
         : raw;
       return rewriteStatementValues(named.replace(/,\s*$/, "."), context);
     }
-    return parseMessage(raw, context);
+    // A message in AT SELECTION-SCREEN ON <field> belongs to that field, which
+    // gets the cursor, as on SAP.
+    const message = parseMessage(raw, context);
+    return context.messageField && message.startsWith("io_session->message( VALUE #(")
+      ? message.replace(/ \) \)\.$/, ` field = ${context.messageField} ) ).`)
+      : message;
   }
   if (statement.kind === "FieldSymbol") {
     const name = /<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
@@ -1540,6 +1547,12 @@ function lowerSingleStatement(statement, context) {
     }
     const fields = Object.entries(fieldsByDirection).filter(([, values]) => values.length);
     const lines = [...temporaries, `${receiver}${routine.methodName}(`];
+    // A call with importing parameters only leaves out EXPORTING.
+    if (fields.length === 1 && fields[0][0] === "EXPORTING") {
+      const values = fields[0][1];
+      lines.push(...values.map((value, valueIndex) => `  ${value}${valueIndex === values.length - 1 ? " )." : ""}`));
+      return lines.join("\n");
+    }
     for (let directionIndex = 0; directionIndex < fields.length; directionIndex++) {
       const [direction, values] = fields[directionIndex];
       lines.push(`  ${direction}`);
@@ -1577,21 +1590,15 @@ function lowerSingleStatement(statement, context) {
       return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n${assignment}\nENDIF.` : assignment;
     }
     if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-(?:PROG|DYNNR)\\s*=`, "i").test(raw)) return "* Selection tab state is maintained by the host screen.";
-    converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
-    converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
-    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");
-    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?0['"]?/i, "<ls_state>-no_display = abap_false");
-    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?1['"]?/gi, "<ls_state>-$1 = abap_true");
-    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?0['"]?/gi, "<ls_state>-$1 = abap_false");
-    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?1['"]?/i, "<ls_state>-intensified = abap_true");
-    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?0['"]?/i, "<ls_state>-intensified = abap_false");
-    // SCREEN flags are '1' or '0'; the state flags they map to are abap_bool.
-    converted = converted.replace(/<ls_state>-(visible|intensified|input|output|password|no_display)\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-$1 = xsdbool( $2 ).");
-    converted = converted.replace(/<ls_state>-(visible|intensified|input|output|password|no_display)\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'0'\s+ELSE\s+'1'\s*\)\./i, "<ls_state>-$1 = xsdbool( NOT ( $2 ) ).");
-    converted = converted.replace(/<ls_state>-visible\s*=\s*'1'/i, "<ls_state>-visible = abap_true");
-    converted = converted.replace(/<ls_state>-visible\s*=\s*'0'/i, "<ls_state>-visible = abap_false");
-    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'2'/i, "<ls_state>-obligatory = abap_true");
-    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'0'/i, "<ls_state>-obligatory = abap_false");
+    // SCREEN flags are 1 or 0, quoted or not; the state flags they map to are
+    // abap_bool. SCREEN-REQUIRED 2 (recommended) is kept as required.
+    const flags = "visible|intensified|input|output|password|no_display|obligatory";
+    const one = String.raw`['"]?[12]['"]?`;
+    const zero = String.raw`['"]?0['"]?`;
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+${one}\s+ELSE\s+${zero}\s*\)\.`, "i"), "<ls_state>-$1 = xsdbool( $2 ).");
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+${zero}\s+ELSE\s+${one}\s*\)\.`, "i"), "<ls_state>-$1 = xsdbool( NOT ( $2 ) ).");
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*${one}(?=\s*\.)`, "gi"), "<ls_state>-$1 = abap_true");
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*${zero}(?=\s*\.)`, "gi"), "<ls_state>-$1 = abap_false");
     const target = /^\s*([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1]?.toUpperCase();
     if (target && context.dynamicCommentNames?.includes(target)
         && context.event !== "local_class") {

@@ -11,6 +11,29 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Variant manager selection screen</ENTRY>
+     <LENGTH>32</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>001</KEY>
+     <ENTRY>Save</ENTRY>
+     <LENGTH>4</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>002</KEY>
+     <ENTRY>Load</ENTRY>
+     <LENGTH>4</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>003</KEY>
+     <ENTRY>Delete</ENTRY>
+     <LENGTH>6</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_NAME</KEY>
      <ENTRY>Variant name</ENTRY>

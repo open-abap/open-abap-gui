@@ -4,18 +4,11 @@ test("ZCL_GG_EX_068 — toggles dependent visible/input/required state", async (
   await openExample(page, host, 68);
   await expectPageKind(page, "SELECTION");
   await expect(page.locator('[name="P_DETAIL"]')).toBeHidden();
-  await page.locator('[name="P_REQUIRED"]').fill("ready");
+  await page.locator('[name="P_REQ"]').fill("ready");
   await Promise.all([
     page.waitForNavigation({waitUntil: "load"}),
     page.locator('input[type="checkbox"][name="P_SHOW"]').check(),
   ]);
-  await dispatch(page, {
-    action: "SUBMIT",
-    values: [
-      {name: "P_SHOW", value: "X"},
-      {name: "P_REQUIRED", value: "ready"},
-    ],
-  });
   await expectPageKind(page, "SELECTION");
   await expect(page.locator('[name="P_DETAIL"]')).toBeVisible();
   await expect(page.locator('[name="P_DETAIL"]')).toHaveAttribute("required", "");
@@ -23,7 +16,7 @@ test("ZCL_GG_EX_068 — toggles dependent visible/input/required state", async (
     action: "SUBMIT",
     values: [
       {name: "P_SHOW", value: "X"},
-      {name: "P_REQUIRED", value: "ready"},
+      {name: "P_REQ", value: "ready"},
     ],
   });
   await expectPageKind(page, "SELECTION");

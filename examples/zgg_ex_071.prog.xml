@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Dependent listboxes</ENTRY>
+     <LENGTH>19</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_CAR</KEY>
      <ENTRY>Carrier</ENTRY>
@@ -21,12 +26,6 @@
      <KEY>P_CON</KEY>
      <ENTRY>Connection</ENTRY>
      <LENGTH>10</LENGTH>
-    </item>
-    <item>
-     <ID>S</ID>
-     <KEY>P_REQ</KEY>
-     <ENTRY>Required value</ENTRY>
-     <LENGTH>14</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

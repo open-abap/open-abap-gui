@@ -11,16 +11,21 @@
    </PROGDIR>
    <TPOOL>
     <item>
-     <ID>S</ID>
-     <KEY>P_GOOD</KEY>
-     <ENTRY>Valid sibling</ENTRY>
-     <LENGTH>13</LENGTH>
+     <ID>R</ID>
+     <ENTRY>Selection error recovery and focus</ENTRY>
+     <LENGTH>34</LENGTH>
     </item>
     <item>
      <ID>S</ID>
      <KEY>P_BAD</KEY>
-     <ENTRY>Invalid field</ENTRY>
+     <ENTRY>Failing value</ENTRY>
      <LENGTH>13</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_GOOD</KEY>
+     <ENTRY>Good value</ENTRY>
+     <LENGTH>10</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

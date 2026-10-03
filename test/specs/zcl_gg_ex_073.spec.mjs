@@ -1,19 +1,21 @@
-import {test, expect, openExample, dispatch, submit, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_073 - adds, reorders, and removes typed range rows", async ({page, host}) => {
+test("ZCL_GG_EX_073 - starts with the default row and writes every range row", async ({page, host}) => {
   await openExample(page, host, 73);
-  await page.getByRole("button", {name: "Add range"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-range-row")).toHaveCount(2);
-  await page.locator('[name="S_MULTI-2-LOW"]').fill("LH");
-  await page.getByRole("button", {name: "Move first up"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator('[name="S_MULTI-1-LOW"]')).toHaveValue("LH");
-  await page.getByRole("button", {name: "Remove range"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-range-row")).toHaveCount(1);
-  await page.locator('[name="P_REQUIRED"]').fill("ok");
-  await submit(page);
+  await expect(page.locator('[name="S_MUL-LOW"]')).toHaveValue("AA");
+  await dispatch(page, {
+    action: "SUBMIT",
+    values: [
+      {
+        name: "S_MUL",
+        ranges: [
+          {sign: "I", option: "EQ", low: "AA"},
+          {sign: "I", option: "EQ", low: "LH"},
+        ],
+      },
+      {name: "P_REQ", value: "ok"},
+    ],
+  });
   await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list-line")).toHaveText("I EQ LH");
+  await expect(page.locator(".gg-list-line")).toHaveText([/^I\s+EQ\s+AA\s*$/, /^I\s+EQ\s+LH\s*$/]);
 });

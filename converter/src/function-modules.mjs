@@ -169,6 +169,14 @@ function lowerPopup(raw, name) {
   })}${returnCode || selected ? ` CHANGING${returnCode ? ` cv_return_code = ${returnCode}` : ""}${selected ? ` cv_selected_month = ${selected}` : ""}` : ""}`);
 }
 
+// RETURN_TAB is optional, as in the function module.
+function lowerF4(raw) {
+  const returnTab = functionParameter(raw, "return_tab");
+  return call("f4_table_value_request", `EXPORTING is_request = ${requestFields(raw, {
+    retfield: "retfield", dynpprog: "dynpprog", dynpnr: "dynpnr", dynprofield: "dynprofield", value_org: "value_org",
+  })} CHANGING ct_value_tab = ${functionParameter(raw, "value_tab") ?? "VALUE #( )"}${returnTab ? ` ct_return_tab = ${returnTab}` : ""}`);
+}
+
 function lowerAlv(raw, name) {
   if (name === "LVC_FIELDCATALOG_MERGE" || name === "REUSE_ALV_FIELDCATALOG_MERGE") {
     const fieldcat = functionParameter(raw, "ct_fieldcat");
@@ -264,7 +272,7 @@ export function lowerCompatibilityFunction(raw) {
   const adapter = name ? ADAPTERS.get(name) : undefined;
   if (!adapter) return undefined;
   if (adapter.family === "popup" || adapter.family === "f4") return adapter.family === "f4"
-    ? call("f4_table_value_request", `EXPORTING is_request = ${requestFields(raw, { retfield: "retfield", dynpprog: "dynpprog", dynpnr: "dynpnr", dynprofield: "dynprofield", value_org: "value_org" })} CHANGING ct_value_tab = ${functionParameter(raw, "value_tab") ?? "VALUE #( )"} ct_return_tab = ${functionParameter(raw, "return_tab") ?? "VALUE #( )"}`)
+    ? lowerF4(raw)
     : lowerPopup(raw, name);
   if (adapter.family === "classic-alv") return lowerAlv(raw, name);
   if (adapter.family === "dynamic-selection") return name === "VRM_SET_VALUES"

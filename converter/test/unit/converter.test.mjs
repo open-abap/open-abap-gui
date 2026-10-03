@@ -979,6 +979,65 @@ test("passes an integer selection default as text without the sign blank", async
   assert.match(result.classSource, /name = 'S_COUNT'[^\n]*low = '1' high = '9' \)/);
 });
 
+test("lowers selection-screen PAI details the way SAP runs them", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zpai_details.",
+      "TABLES sscrfields.",
+      "DATA gt_values TYPE STANDARD TABLE OF ddshretval WITH DEFAULT KEY.",
+      "PARAMETERS p_show AS CHECKBOX USER-COMMAND toggle.",
+      "PARAMETERS p_det TYPE c LENGTH 10 MODIF ID det.",
+      "PARAMETERS p_list TYPE c LENGTH 5 AS LISTBOX VISIBLE LENGTH 10 OBLIGATORY.",
+      "SELECTION-SCREEN BEGIN OF BLOCK b1.",
+      "PARAMETERS p_blk TYPE c LENGTH 10.",
+      "SELECTION-SCREEN END OF BLOCK b1.",
+      "AT SELECTION-SCREEN OUTPUT.",
+      "  LOOP AT SCREEN.",
+      "    IF screen-group1 = 'DET'.",
+      "      screen-active = 0.",
+      "      screen-required = 1.",
+      "      screen-input = COND #( WHEN p_show = abap_true THEN 1 ELSE 0 ).",
+      "      MODIFY SCREEN.",
+      "    ENDIF.",
+      "  ENDLOOP.",
+      "AT SELECTION-SCREEN ON BLOCK b1.",
+      "  IF sy-ucomm = 'ONLI'.",
+      "    PERFORM check USING p_blk.",
+      "  ENDIF.",
+      "AT SELECTION-SCREEN ON p_det.",
+      "  MESSAGE 'Wrong detail' TYPE 'E'.",
+      "AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_det.",
+      "  p_det = 'picked'.",
+      "AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_blk.",
+      "  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST' EXPORTING retfield = 'X' dynprofield = 'P_BLK' TABLES value_tab = gt_values.",
+      "AT SELECTION-SCREEN.",
+      "  IF sscrfields-ucomm = 'TOGGLE'.",
+      "    CLEAR p_det.",
+      "  ENDIF.",
+      "FORM check USING iv_value TYPE csequence.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zpai_details.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  // SCREEN flags become abap_bool, quoted or not.
+  assert.match(result.classSource, /<ls_state>-visible = abap_false\./);
+  assert.match(result.classSource, /<ls_state>-obligatory = abap_true\./);
+  assert.match(result.classSource, /<ls_state>-input = xsdbool\( mv_p_show = abap_true \)\./);
+  // Only AT SELECTION-SCREEN has iv_ucomm; the other events ask the session.
+  assert.match(result.classSource, /IF io_session->get_context\( \)-selection-ucomm = 'ONLI'\./);
+  assert.match(result.classSource, /IF iv_ucomm = 'TOGGLE'\./);
+  // A FORM call with importing parameters only leaves out EXPORTING.
+  assert.match(result.classSource, /form_check\(\n\s+io_session = io_session\n\s+iv_value\s+= mv_p_blk \)\./);
+  // A message of ON <field> belongs to that field.
+  assert.match(result.classSource, /text = 'Wrong detail' field = iv_name \)/);
+  // A value request runs as written and offers the value it assigns.
+  assert.match(result.classSource, /mv_p_det = 'picked'\.\s+IF mv_p_det <> it_values\[ name = 'P_DET' \]-value\./);
+  // RETURN_TAB is optional.
+  assert.match(result.classSource, /f4_table_value_request\( [^\n]*CHANGING ct_value_tab = gt_values \)\./);
+  assert.match(result.classSource, /add_listbox\( VALUE #\( name = 'P_LIST'[^\n]*obligatory = abap_true/);
+});
+
 test("types untyped FORM parameters generically", async () => {
   const result = await convertProgram({
     source: [

@@ -105,9 +105,8 @@ CLASS zcl_example_forms IMPLEMENTATION.
       CHANGING
         cv_total   = gv_total ).
     form_print_total(
-      EXPORTING
-        io_session = io_session
-        iv_total   = gv_total ).
+      io_session = io_session
+      iv_total   = gv_total ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

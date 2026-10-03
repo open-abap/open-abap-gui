@@ -1,7 +1,8 @@
 REPORT zgg_ex_073.
 
 TABLES zsflight.
-SELECT-OPTIONS s_mul FOR zsflight-carrid.
+
+SELECT-OPTIONS s_mul FOR zsflight-carrid DEFAULT 'AA'.
 PARAMETERS p_req TYPE c LENGTH 20 OBLIGATORY.
 
 START-OF-SELECTION.
