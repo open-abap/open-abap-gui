@@ -337,6 +337,9 @@ CLASS cl_dd_area IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD fill_html_table.
+* The lines are fixed-length character fields, and callers join them with
+* && or CONCATENATE, which drop trailing blanks. So no line ends in a blank;
+* such blanks start the next line instead, where they are kept.
     DATA lv_offset TYPE i.
     DATA lv_length TYPE i.
     DATA lv_chunk TYPE i.
@@ -347,10 +350,15 @@ CLASS cl_dd_area IMPLEMENTATION.
       IF lv_chunk > 255.
         lv_chunk = 255.
       ENDIF.
+      WHILE lv_chunk > 1 AND substring( val = html_content
+                                        off = lv_offset + lv_chunk - 1
+                                        len = 1 ) = ` `.
+        lv_chunk = lv_chunk - 1.
+      ENDWHILE.
       APPEND VALUE #( line = substring( val = html_content
                                         off = lv_offset
                                         len = lv_chunk ) ) TO html_table.
-      lv_offset = lv_offset + 255.
+      lv_offset = lv_offset + lv_chunk.
     ENDWHILE.
   ENDMETHOD.
 
