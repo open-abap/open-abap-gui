@@ -63,6 +63,8 @@ INTERFACE zif_gg_selection_screen_builder_v1 PUBLIC.
     IMPORTING
       is_tabbed_block TYPE zif_gg_selection_screen_types=>ty_tabbed_block.
 
+* The tab's field, named like the tab, holds its label at runtime: ty_values
+* carries a value for it, and a non-initial value replaces is_tab-text.
   METHODS add_tab
     IMPORTING
       is_tab TYPE zif_gg_selection_screen_types=>ty_tab.

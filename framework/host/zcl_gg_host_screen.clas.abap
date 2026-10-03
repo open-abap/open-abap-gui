@@ -524,6 +524,9 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_tab.
+* The label set in the tab field at runtime travels in the values; it has no
+* state, as it is no input field.
+    add_value( is_tab-name ).
     add_element(
       iv_kind      = 'TAB'
       iv_name      = is_tab-name
