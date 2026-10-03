@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Obligatory selection parameter</ENTRY>
+     <LENGTH>30</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_GEN</KEY>
      <ENTRY>General</ENTRY>

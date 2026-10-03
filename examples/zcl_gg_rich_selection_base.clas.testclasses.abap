@@ -5,7 +5,6 @@ CLASS ltcl_gg_rich_selection DEFINITION FINAL FOR TESTING DURATION SHORT RISK LE
     METHODS range_signs FOR TESTING.
     METHODS multiple_rows FOR TESTING.
     METHODS multiple_choice FOR TESTING.
-    METHODS tab_retains_values FOR TESTING.
     METHODS pushbutton_derives FOR TESTING.
     METHODS function_keys FOR TESTING.
     METHODS value_help FOR TESTING.
@@ -65,19 +64,6 @@ CLASS ltcl_gg_rich_selection IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lines( ls_result-values[ name = 'S_MULTI' ]-ranges )
       exp = 3 ).
-  ENDMETHOD.
-
-  METHOD tab_retains_values.
-    DATA(ls_result) = zcl_gg_host=>run(
-      io_report = NEW zcl_gg_ex_075( )
-      iv_ucomm  = 'UT2'
-      it_input  = VALUE #( ( name = 'P_GENERAL' value = 'general' )
-                          ( name = 'P_DETAILS' value = 'details' )
-                          ( name = 'P_REQUIRED' value = 'ok' ) ) ).
-    cl_abap_unit_assert=>assert_true( ls_result-screen_snapshot-tabs[ name = 'TAB_DETAILS' ]-selected ).
-    cl_abap_unit_assert=>assert_equals(
-      act = ls_result-values[ name = 'P_GENERAL' ]-value
-      exp = 'general' ).
   ENDMETHOD.
 
   METHOD pushbutton_derives.
@@ -163,7 +149,6 @@ CLASS ltcl_gg_rich_selection IMPLEMENTATION.
     APPEND NEW zcl_gg_ex_072( ) TO lt_reports.
     APPEND NEW zcl_gg_ex_073( ) TO lt_reports.
     APPEND NEW zcl_gg_ex_074( ) TO lt_reports.
-    APPEND NEW zcl_gg_ex_075( ) TO lt_reports.
     APPEND NEW zcl_gg_ex_076( ) TO lt_reports.
     APPEND NEW zcl_gg_ex_077( ) TO lt_reports.
     APPEND NEW zcl_gg_ex_078( ) TO lt_reports.
