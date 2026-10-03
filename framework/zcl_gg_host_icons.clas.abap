@@ -39,6 +39,23 @@ CLASS zcl_gg_host_icons DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+    "! Escaped text, with a leading icon (@xx@, @xx\Qtooltip@ or the
+    "! converter's @ICON:name) rendered as an icon, as SAP GUI does in
+    "! tab, pushbutton and output texts.
+    CLASS-METHODS text_html
+      IMPORTING
+        iv_text        TYPE string
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    "! The same text without its leading icon, for labels and attributes;
+    "! an icon-only text gives the icon's label.
+    CLASS-METHODS plain_text
+      IMPORTING
+        iv_text        TYPE string
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
   PRIVATE SECTION.
     TYPES:
       BEGIN OF ty_entry,
@@ -56,6 +73,14 @@ CLASS zcl_gg_host_icons DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_tone         TYPE string
       RETURNING
         VALUE(rv_color) TYPE string.
+
+    CLASS-METHODS split_text
+      IMPORTING
+        iv_text    TYPE string
+      EXPORTING
+        ev_icon    TYPE string
+        ev_tooltip TYPE string
+        ev_text    TYPE string.
 ENDCLASS.
 
 CLASS zcl_gg_host_icons IMPLEMENTATION.
@@ -351,6 +376,64 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       rv_html = |<svg class="wb-icon{ lv_class }"{ lv_style } aria-hidden="true" focusable="false"><use href="#wb-icon-{ ls_icon-symbol }"></use></svg>|.
     ELSE.
       rv_html = |<svg class="wb-icon{ lv_class }"{ lv_style } role="img" aria-label="{ zcl_gg_host_html=>escape_attribute( iv_label ) }" focusable="false"><use href="#wb-icon-{ ls_icon-symbol }"></use></svg>|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD split_text.
+    DATA lv_end TYPE i.
+
+    CLEAR: ev_icon, ev_tooltip.
+    ev_text = iv_text.
+    IF ev_text CP '@ICON:*'.
+      ev_text = substring( val = ev_text
+                           off = 6 ).
+      SPLIT ev_text AT space INTO ev_icon ev_text.
+      ev_icon = |icon_{ ev_icon }|.
+    ELSEIF ev_text CP '@++@*' OR ev_text CP '@++\Q*@*'.
+      lv_end = find( val = ev_text
+                     sub = '@'
+                     off = 1 ).
+      ev_icon = substring( val = ev_text
+                           len = lv_end + 1 ).
+      ev_text = substring( val = ev_text
+                           off = lv_end + 1 ).
+      ev_tooltip = substring_after( val = ev_icon
+                                    sub = '\Q' ).
+      REPLACE ALL OCCURRENCES OF '@' IN ev_tooltip WITH ``.
+    ELSE.
+      RETURN.
+    ENDIF.
+    SHIFT ev_text LEFT DELETING LEADING space.
+  ENDMETHOD.
+
+  METHOD plain_text.
+    split_text( EXPORTING iv_text = iv_text
+                IMPORTING ev_icon = DATA(lv_icon)
+                          ev_text = rv_text ).
+    IF rv_text IS INITIAL AND lv_icon IS NOT INITIAL.
+      DATA(ls_icon) = resolve( lv_icon ).
+      rv_text = ls_icon-label.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD text_html.
+    split_text( EXPORTING iv_text    = iv_text
+                IMPORTING ev_icon    = DATA(lv_icon)
+                          ev_tooltip = DATA(lv_tooltip)
+                          ev_text    = DATA(lv_text) ).
+    IF lv_icon IS INITIAL.
+      rv_html = zcl_gg_host_html=>escape_text( iv_text ).
+      RETURN.
+    ENDIF.
+
+    DATA(ls_icon) = resolve( lv_icon ).
+    rv_html = icon( iv_name  = lv_icon
+                    iv_label = COND #( WHEN lv_text IS INITIAL THEN ls_icon-label ) ).
+    IF lv_tooltip IS NOT INITIAL.
+      rv_html = |<span title="{ zcl_gg_host_html=>escape_attribute( lv_tooltip ) }">{ rv_html }</span>|.
+    ENDIF.
+    IF lv_text IS NOT INITIAL.
+      rv_html = |{ rv_html } { zcl_gg_host_html=>escape_text( lv_text ) }|.
     ENDIF.
   ENDMETHOD.
 

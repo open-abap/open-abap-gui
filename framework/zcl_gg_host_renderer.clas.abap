@@ -878,7 +878,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             lv_body = lv_body && |<div class="gg-tabstrip">| && render_selection_tabs(
               it_tabs  = lt_tabs
               iv_block = CONV #( ls_element-name ) ).
-            lv_body = lv_body && |<div class="gg-tab-panel" role="tabpanel" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_active_tab-text ) }">|.
+            lv_body = lv_body && |<div class="gg-tab-panel" role="tabpanel" aria-label="{ zcl_gg_host_html=>escape_attribute( zcl_gg_host_icons=>plain_text( ls_active_tab-text ) ) }">|.
             lv_in_panel = abap_true.
             lt_panel_blocks = lt_open_blocks.
           ENDIF.
@@ -1713,7 +1713,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     LOOP AT it_tabs INTO DATA(ls_tab).
       CHECK iv_block IS INITIAL OR ls_tab-block = iv_block.
       lv_tab_action = |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }|.
-      rv_html = rv_html && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ) }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_html=>escape_text( ls_tab-text ) }</button>|.
+      rv_html = rv_html && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ) }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_icons=>text_html( ls_tab-text ) }</button>|.
     ENDLOOP.
     rv_html = rv_html && |</nav>|.
   ENDMETHOD.

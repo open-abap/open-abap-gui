@@ -551,7 +551,7 @@ function staticSelectionText(ir, token) {
     }
     const offset = Number(move[2]);
     const previous = values.get(name) ?? "";
-    if (previous.startsWith("@ICON:")) values.set(name, `${previous}${value}`);
+    if (previous.startsWith("@ICON:")) values.set(name, `${previous} ${value.trimStart()}`);
     else values.set(name, `${previous.slice(0, offset).padEnd(offset, " ")}${value}`);
   }
   return values.get(key) ?? token;

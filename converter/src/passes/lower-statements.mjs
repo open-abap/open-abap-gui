@@ -1845,7 +1845,7 @@ export function lowerStatements(statements, context) {
       : undefined;
     if (iconAppend && iconWrite && iconAppend[1].toUpperCase() === iconWrite[2].toUpperCase()
       && output.at(-1)?.text === `${iconWrite[2].toLowerCase()} = '@ICON:${iconWrite[1].toLowerCase().replace(/^icon_/, "")}'.`) {
-      output.at(-1).text = `${iconWrite[2].toLowerCase()} = '@ICON:${iconWrite[1].toLowerCase().replace(/^icon_/, "")}${iconAppend[3].slice(1, -1)}'.`;
+      output.at(-1).text = `${iconWrite[2].toLowerCase()} = '@ICON:${iconWrite[1].toLowerCase().replace(/^icon_/, "")} ${iconAppend[3].slice(1, -1).trimStart()}'.`;
       continue;
     }
     const lowerInput = statement.kind === "Write"

@@ -9,6 +9,10 @@ CLASS ltcl_gg_host_icons DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL 
     METHODS renders_tone FOR TESTING.
     METHODS renders_fallback FOR TESTING.
     METHODS sprite_has_every_symbol FOR TESTING.
+    METHODS text_html_plain FOR TESTING.
+    METHODS text_html_leading_icon FOR TESTING.
+    METHODS text_html_icon_only FOR TESTING.
+    METHODS plain_text FOR TESTING.
 
 ENDCLASS.
 
@@ -112,6 +116,43 @@ CLASS ltcl_gg_host_icons IMPLEMENTATION.
       cl_abap_unit_assert=>assert_true( act = xsdbool( lv_sprite CS |id="wb-icon-{ ls_icon-symbol }"| )
                                         msg = lv_name ).
     ENDLOOP.
+  ENDMETHOD.
+
+  METHOD text_html_plain.
+    cl_abap_unit_assert=>assert_equals( exp = 'A &amp; B'
+                                        act = zcl_gg_host_icons=>text_html( 'A & B' ) ).
+    cl_abap_unit_assert=>assert_equals( exp = 'mail@host'
+                                        act = zcl_gg_host_icons=>text_html( 'mail@host' ) ).
+  ENDMETHOD.
+
+  METHOD text_html_leading_icon.
+    DATA(lv_html) = zcl_gg_host_icons=>text_html( '@XC@ Output' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<use href="#wb-icon-settings"></use></svg> Output' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-hidden="true"' ) ).
+
+    lv_html = zcl_gg_host_icons=>text_html( '@ICON:position Connection' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<use href="#wb-icon-map-pin"></use></svg> Connection' ) ).
+
+    lv_html = zcl_gg_host_icons=>text_html( '@DR\QError <log>@Log' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<span title="Error &lt;log&gt;"><svg' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '</svg></span> Log' ) ).
+  ENDMETHOD.
+
+  METHOD text_html_icon_only.
+    DATA(lv_html) = zcl_gg_host_icons=>text_html( '@0A@' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'role="img" aria-label="Red light"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '@0A@' ) ).
+  ENDMETHOD.
+
+  METHOD plain_text.
+    cl_abap_unit_assert=>assert_equals( exp = 'Connection'
+                                        act = zcl_gg_host_icons=>plain_text( '@ICON:position Connection' ) ).
+    cl_abap_unit_assert=>assert_equals( exp = 'Log'
+                                        act = zcl_gg_host_icons=>plain_text( '@DR\QError log@Log' ) ).
+    cl_abap_unit_assert=>assert_equals( exp = 'Red light'
+                                        act = zcl_gg_host_icons=>plain_text( '@0A@' ) ).
+    cl_abap_unit_assert=>assert_equals( exp = 'General'
+                                        act = zcl_gg_host_icons=>plain_text( 'General' ) ).
   ENDMETHOD.
 
 ENDCLASS.
