@@ -7,6 +7,7 @@ import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passe
 import { isSuspendingStatement } from "../passes/lower-continuations.mjs";
 import { screenOkCode } from "../dynpro-metadata.mjs";
 import { methodParameterType } from "../passes/collect-routines.mjs";
+import { DEFAULT_SELECTION_SCREEN } from "../passes/collect-selection-screens.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -521,6 +522,8 @@ function selectionDefault(item) {
   const value = item.default;
   if (!value) return undefined;
   if (/^'(?:''|[^'])*'$|^\|[^|]*\|$/s.test(value)) return value;
+  // CONV string( 3 ) is '3 ', the blank reserved for the sign.
+  if (/^\d+$/.test(value)) return `'${value}'`;
   return `CONV string( ${value} )`;
 }
 
@@ -558,9 +561,9 @@ function staticSelectionText(ir, token) {
 // SAP shows the field label of the data element the field is typed with. The
 // label is read at runtime from the member holding the field's value.
 function selectionText(ir, item) {
-  const member = ir.statePlan?.selectionState?.[item.name?.toUpperCase()]?.member;
-  if (member && /^(?:D\s+)?\.$/.test(String(item.text ?? "").trim())) {
-    return `io_builder->get_ddic_text( ig_field = ${member} iv_name = '${item.name}' )`;
+  if (/^(?:D\s+)?\.$/.test(String(item.text ?? "").trim())) {
+    const member = ir.statePlan?.selectionState?.[item.name?.toUpperCase()]?.member;
+    return member ? `io_builder->get_ddic_text( ig_field = ${member} iv_name = '${item.name}' )` : literal(item.name);
   }
   return literal(item.text ?? item.name);
 }
@@ -580,7 +583,7 @@ function hasSelectionValueRequest(ir, name) {
 function selectionBuilder(ir) {
   const lines = [];
   for (const screen of ir.selections) {
-    if (screen.number !== "0100" || screen.asWindow || screen.asSubscreen) {
+    if (screen.number !== DEFAULT_SELECTION_SCREEN || screen.asWindow || screen.asSubscreen) {
       lines.push(`io_builder->begin_screen( VALUE #( number = '${screen.number}'${screen.asWindow ? " as_window = abap_true" : ""}${screen.asSubscreen ? " as_subscreen = abap_true" : ""} ) ).`);
     }
     // USER-COMMAND is written on one button of a radio group, usually the
@@ -677,7 +680,7 @@ function selectionBuilder(ir) {
         lines.push(`io_builder->add_select_option( VALUE #( ${fields.join(" ")} ) ).`);
       }
     }
-    if (screen.number !== "0100" || screen.asWindow || screen.asSubscreen) lines.push("io_builder->end_screen( ).");
+    if (screen.number !== DEFAULT_SELECTION_SCREEN || screen.asWindow || screen.asSubscreen) lines.push("io_builder->end_screen( ).");
   }
   return lines;
 }
@@ -868,7 +871,7 @@ function selectionStateTransport(ir, event) {
 
 function nestedSelectionCaptures(ir) {
   const fields = ir.selections
-    .filter((screen) => screen.number !== "0100")
+    .filter((screen) => screen.number !== DEFAULT_SELECTION_SCREEN)
     .flatMap((screen) => screen.elements
       .filter((item) => item.kind === "parameter" || item.kind === "select-option")
       .map((item) => ({ screen: screen.number, ...item })));

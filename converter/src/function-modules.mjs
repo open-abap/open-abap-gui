@@ -8,8 +8,7 @@ const ADAPTERS = new Map([
   ["POPUP_TO_SELECT_MONTH", { family: "popup", method: "popup_to_select_month" }],
   ["F4IF_INT_TABLE_VALUE_REQUEST", { family: "f4", method: "f4_table_value_request" }],
   ["VRM_SET_VALUES", { family: "dynamic-selection", method: "set_selection_list_values" }],
-  ["CONVERSION_EXIT_ALPHA_INPUT", { family: "frontend", method: "alpha_input" }],
-  ["CONVERSION_EXIT_ALPHA_OUTPUT", { family: "frontend", method: "alpha_output" }],
+  ["VRM_REFRESH_VALUES", { family: "dynamic-selection", method: "refresh_selection_list_values" }],
   ["LVC_FIELDCATALOG_MERGE", { family: "classic-alv", method: "alv_fieldcatalog_merge" }],
   ["REUSE_ALV_FIELDCATALOG_MERGE", { family: "classic-alv", method: "alv_fieldcatalog_merge" }],
   ["REUSE_ALV_GRID_DISPLAY", { family: "classic-alv", method: "alv_display" }],
@@ -109,7 +108,7 @@ function request(fields) {
 }
 
 function call(method, args = "") {
-  return `io_session->get_compatibility( )->${method}( ${args} ).`;
+  return `io_session->get_compatibility( )->${method}(${args ? ` ${args} ` : " "}).`;
 }
 
 // One parameter per line, aligned, for a call with several parameters.
@@ -224,6 +223,7 @@ function lowerAlv(raw, name) {
 }
 
 function lowerDynamicSelection(raw, name) {
+  if (name === "VRM_REFRESH_VALUES") return call("refresh_selection_list_values");
   if (name === "SELECT_OPTIONS_RESTRICT") return call("select_options_restrict", `is_restriction = ${functionParameter(raw, "restriction") ?? "VALUE #( )"}`);
   if (name === "FREE_SELECTIONS_RANGE_2_WHERE") {
     return call("free_selections_range_to_where", `EXPORTING it_field_ranges = ${functionParameter(raw, "field_ranges") ?? "VALUE #( )"} CHANGING ct_where_clauses = ${functionParameter(raw, "where_clauses") ?? "VALUE #( )"}`);
@@ -251,10 +251,6 @@ function lowerVariants(raw, name) {
 }
 
 function lowerFrontend(raw, name) {
-  if (name === "CONVERSION_EXIT_ALPHA_INPUT" || name === "CONVERSION_EXIT_ALPHA_OUTPUT") {
-    const input = functionParameter(raw, "input");
-    return returningCall(functionParameter(raw, "output"), name.endsWith("INPUT") ? "alpha_input" : "alpha_output", stringArgument(input));
-  }
   if (name === "SCMS_XSTRING_TO_BINARY") return call("xstring_to_binary", `EXPORTING iv_buffer = ${functionParameter(raw, "buffer") ?? "VALUE #( )"} CHANGING cv_output_length = ${functionParameter(raw, "output_length") ?? "VALUE #( )"} ct_binary = ${functionParameter(raw, "binary_tab") ?? "VALUE #( )"}`);
   if (name === "DP_CREATE_URL") return call("create_url", `EXPORTING is_request = ${requestFields(raw, { type: "type", subtype: "subtype", size: "size", lifetime: "lifetime" })} CHANGING cv_url = ${functionParameter(raw, "url") ?? "VALUE #( )"} ct_data = ${functionParameter(raw, "data") ?? "VALUE #( )"}`);
   return parameterCall("publish_url", [

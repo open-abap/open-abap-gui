@@ -276,6 +276,7 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS selection_output_snapshot FOR TESTING.
     METHODS selection_renderer_controls FOR TESTING.
     METHODS selection_sibling_blocks FOR TESTING.
+    METHODS selection_tab_panel FOR TESTING.
     METHODS html_gui_fixture FOR TESTING.
     METHODS replaces_a_host_session FOR TESTING.
 
@@ -523,6 +524,45 @@ CLASS ltcl_host IMPLEMENTATION.
     FIND '<legend>Second</legend>' IN lv_html MATCH OFFSET DATA(lv_second).
     FIND 'P_MAXRUN' IN lv_html MATCH OFFSET DATA(lv_first_field).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_second > lv_first_field ) ).
+  ENDMETHOD.
+
+  METHOD selection_tab_panel.
+* The active tab's subscreen is framed in a panel right under its tab strip,
+* ahead of fields declared after the tabbed block; the other tab is not shown.
+    DATA(lo_screen) = NEW zcl_gg_host_screen( ).
+    lo_screen->zif_gg_selection_screen_builder_v1~begin_tabbed_block( VALUE #( name = 'TB' lines = 5 ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_tab( VALUE #(
+      name = 'TAB1' text = 'General' subscreen = '0100' ucomm = 'UT1' ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_tab( VALUE #(
+      name = 'TAB2' text = 'Details' subscreen = '0200' ucomm = 'UT2' ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~end_tabbed_block( ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+      name = 'P_MAIN' text = 'Main' data_type = VALUE #( typ = 'C' length = 10 ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~begin_screen( VALUE #( number = '0100' as_subscreen = abap_true ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+      name = 'P_NAME' text = 'Name' data_type = VALUE #( typ = 'C' length = 10 ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~end_screen( ).
+    lo_screen->zif_gg_selection_screen_builder_v1~begin_screen( VALUE #( number = '0200' as_subscreen = abap_true ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+      name = 'P_COUNT' text = 'Count' data_type = VALUE #( typ = 'I' ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~end_screen( ).
+    DATA(lv_html) = zcl_gg_host_renderer=>render_selection(
+      iv_session_id = 'S'
+      iv_page_id    = 'P'
+      iv_title      = 'Selection'
+      it_values     = lo_screen->get_values( )
+      it_states     = lo_screen->get_states( )
+      it_blocks     = lo_screen->get_blocks( )
+      it_elements   = lo_screen->get_elements( )
+      it_tabs       = lo_screen->get_tabs( )
+      is_context    = VALUE #( screen = '1000' ) ).
+    FIND '<div class="gg-tab-panel" role="tabpanel"' IN lv_html MATCH OFFSET DATA(lv_panel).
+    cl_abap_unit_assert=>assert_subrc( ).
+    FIND 'name="P_NAME"' IN lv_html MATCH OFFSET DATA(lv_name).
+    FIND 'name="P_MAIN"' IN lv_html MATCH OFFSET DATA(lv_main).
+    FIND '</div></div>' IN SECTION OFFSET lv_name OF lv_html MATCH OFFSET DATA(lv_panel_end).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_panel < lv_name AND lv_name < lv_panel_end AND lv_panel_end < lv_main ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'name="P_COUNT"' ) ).
   ENDMETHOD.
 
   METHOD html_gui_fixture.

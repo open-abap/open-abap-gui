@@ -29,7 +29,7 @@ ENDCLASS.
 CLASS zcl_example_selection IMPLEMENTATION.
 
   METHOD zif_gg_program_v1~get_program.
-    rs_program = VALUE #( program = 'ZEXAMPLE_SELECTION' description = 'Converted executable report' ).
+    rs_program = VALUE #( program = 'ZEXAMPLE_SELECTION' description = 'ZEXAMPLE_SELECTION' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.
@@ -45,7 +45,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_parameter( VALUE #( name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #( typ = 'I' ) default = CONV string( 5 ) ) ).
+    io_builder->add_parameter( VALUE #( name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #( typ = 'I' ) default = '5' ) ).
     io_builder->add_parameter( VALUE #( name = 'P_DATE' text = 'P_DATE' data_type = VALUE #( typ = 'D' length = 8 ) ) ).
     io_builder->add_parameter( VALUE #( name = 'P_AMOUNT' text = 'P_AMOUNT' data_type = VALUE #( typ = 'P' length = 8 decimals = 2 ) ) ).
     io_builder->add_parameter( VALUE #( name = 'P_NAME' text = 'P_NAME' data_type = VALUE #( typ = 'C' length = 20 ) lower_case = abap_true ) ).

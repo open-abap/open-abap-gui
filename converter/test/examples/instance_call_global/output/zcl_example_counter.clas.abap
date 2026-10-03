@@ -22,7 +22,7 @@ ENDCLASS.
 CLASS zcl_example_counter IMPLEMENTATION.
 
   METHOD zif_gg_program_v1~get_program.
-    rs_program = VALUE #( program = 'ZEXAMPLE_COUNTER' description = 'Converted executable report' ).
+    rs_program = VALUE #( program = 'ZEXAMPLE_COUNTER' description = 'ZEXAMPLE_COUNTER' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

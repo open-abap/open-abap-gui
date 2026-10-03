@@ -11,16 +11,28 @@
    </PROGDIR>
    <TPOOL>
     <item>
-     <ID>I</ID>
-     <KEY>TAB1</KEY>
-     <ENTRY>General</ENTRY>
-     <LENGTH>7</LENGTH>
+     <ID>S</ID>
+     <KEY>P_ACTIVE</KEY>
+     <ENTRY>Active</ENTRY>
+     <LENGTH>6</LENGTH>
     </item>
     <item>
-     <ID>I</ID>
-     <KEY>TAB2</KEY>
-     <ENTRY>Details</ENTRY>
-     <LENGTH>7</LENGTH>
+     <ID>S</ID>
+     <KEY>P_CITY</KEY>
+     <ENTRY>City</ENTRY>
+     <LENGTH>4</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_COUNT</KEY>
+     <ENTRY>Count</ENTRY>
+     <LENGTH>5</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_NAME</KEY>
+     <ENTRY>Name</ENTRY>
+     <LENGTH>4</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

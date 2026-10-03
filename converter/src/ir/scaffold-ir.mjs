@@ -1,3 +1,5 @@
+import { DEFAULT_SELECTION_SCREEN } from "../passes/collect-selection-screens.mjs";
+
 function operationKind(source) {
   const value = source.trim().toUpperCase();
   if (value.startsWith("IO_SESSION->GET_LIST( )->GET_WRITER( )->WRITE_") || value.includes("LO_WRITER->WRITE_")) return "list-write";
@@ -44,7 +46,7 @@ function selectionOperations(screenBuilder) {
   }
   const operations = [];
   for (const screen of screenBuilder.selections ?? []) {
-    if (screen.number !== "0100" || screen.asWindow || screen.asSubscreen) operations.push({ kind: "begin-screen", number: screen.number, asWindow: Boolean(screen.asWindow), asSubscreen: Boolean(screen.asSubscreen) });
+    if (screen.number !== DEFAULT_SELECTION_SCREEN || screen.asWindow || screen.asSubscreen) operations.push({ kind: "begin-screen", number: screen.number, asWindow: Boolean(screen.asWindow), asSubscreen: Boolean(screen.asSubscreen) });
     for (const item of screen.elements ?? []) {
       if (item.kind === "layout") {
         operations.push({ kind: `layout-${item.layout}`, ...Object.fromEntries(Object.entries(item).filter(([key]) => !["statement", "span"].includes(key))) });
@@ -52,7 +54,7 @@ function selectionOperations(screenBuilder) {
         operations.push({ kind: `add-${item.kind}`, ...Object.fromEntries(Object.entries(item).filter(([key]) => !["statement", "span"].includes(key))) });
       }
     }
-    if (screen.number !== "0100" || screen.asWindow || screen.asSubscreen) operations.push({ kind: "end-screen", number: screen.number });
+    if (screen.number !== DEFAULT_SELECTION_SCREEN || screen.asWindow || screen.asSubscreen) operations.push({ kind: "end-screen", number: screen.number });
   }
   return operations;
 }

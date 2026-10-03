@@ -305,6 +305,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD zif_gg_compatibility_v1~refresh_selection_list_values.
+    CLEAR mt_selection_lists.
+  ENDMETHOD.
+
   METHOD clear_selection_list_values.
     CLEAR mt_selection_lists.
   ENDMETHOD.
@@ -315,14 +319,6 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
   METHOD get_selection_list_values.
     rt_lists = mt_selection_lists.
-  ENDMETHOD.
-
-  METHOD zif_gg_compatibility_v1~alpha_input.
-    rv_output = iv_input.
-  ENDMETHOD.
-
-  METHOD zif_gg_compatibility_v1~alpha_output.
-    rv_output = iv_input.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_fieldcatalog_merge.

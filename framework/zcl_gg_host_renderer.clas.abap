@@ -187,6 +187,33 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_screen) TYPE string.
 
+    CLASS-METHODS order_selection_elements
+      IMPORTING
+        it_elements        TYPE zcl_gg_host_screen=>ty_elements
+        iv_screen          TYPE string
+        iv_tab_screen      TYPE string
+        iv_tab_block       TYPE string
+      RETURNING
+        VALUE(rt_elements) TYPE zcl_gg_host_screen=>ty_elements.
+
+    CLASS-METHODS close_tab_panel
+      IMPORTING
+        iv_screen       TYPE string
+        iv_tab_screen   TYPE string
+      CHANGING
+        cv_body         TYPE string
+        cv_in_panel     TYPE abap_bool
+        cv_open_line    TYPE i
+        ct_open_blocks  TYPE ty_block_path
+        ct_panel_blocks TYPE ty_block_path.
+
+    CLASS-METHODS render_selection_tabs
+      IMPORTING
+        it_tabs        TYPE zcl_gg_host_screen=>ty_tabs
+        iv_block       TYPE string OPTIONAL
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
     CLASS-METHODS selection_block_path
       IMPORTING
         iv_block       TYPE i
@@ -503,7 +530,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_title TYPE string.
     DATA ls_value TYPE zif_gg_selection_screen_types=>ty_value.
     DATA ls_state TYPE zif_gg_selection_screen_types=>ty_state.
-    DATA lv_tab_action TYPE string.
     DATA ls_range TYPE zif_gg_selection_screen_types=>ty_range.
     DATA lv_element_id TYPE string.
     DATA lv_message_attrs TYPE string.
@@ -530,33 +556,59 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lt_block_path TYPE ty_block_path.
     DATA lv_common_blocks TYPE i.
     DATA lv_block_change TYPE abap_bool.
+    DATA lv_tab_panel TYPE abap_bool.
+    DATA lv_screen TYPE string.
+    DATA lv_in_panel TYPE abap_bool.
+    DATA lt_panel_blocks TYPE ty_block_path.
+    DATA lt_ordered TYPE zcl_gg_host_screen=>ty_elements.
 
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page"><header class="gg-status-region" aria-label="Selection status"><p class="gg-selection-status"{ COND string( WHEN is_status-status IS INITIAL THEN `` ELSE ` role="status"` ) }>{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section>|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
     lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
 
-    IF it_tabs IS NOT INITIAL.
-      lv_body = lv_body && |<nav role="tablist" aria-label="Selection tabs">|.
-      LOOP AT it_tabs INTO DATA(ls_tab).
-        lv_tab_action = |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }|.
-        lv_state_class = zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ).
-        lv_body = lv_body && |<button class="{ lv_state_class }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_html=>escape_text( ls_tab-text ) }</button>|.
-      ENDLOOP.
-      lv_body = lv_body && |</nav>|.
-    ENDIF.
-
     lv_active_tab_screen = active_selection_screen(
       iv_default = is_context-screen
       it_tabs    = it_tabs ).
-    LOOP AT it_elements INTO DATA(ls_element).
-      CHECK ls_element-kind <> 'SCREEN'
-        AND ( ls_element-screen = is_context-screen
-          OR ls_element-screen = lv_active_tab_screen ).
+* The tab strip and the active tab's subscreen sit where the tabbed block is
+* declared, the subscreen framed like a block. Without a tabbed block element
+* to anchor them, the strip leads the form.
+    READ TABLE it_tabs INTO DATA(ls_active_tab) WITH KEY selected = abap_true.
+    IF sy-subrc <> 0.
+      READ TABLE it_tabs INTO ls_active_tab INDEX 1.
+    ENDIF.
+    lv_screen = active_selection_screen(
+      iv_default = is_context-screen
+      it_tabs    = VALUE #( ) ).
+    lv_tab_panel = xsdbool( it_tabs IS NOT INITIAL
+      AND lv_active_tab_screen <> lv_screen
+      AND line_exists( it_elements[ kind = 'TABBED_BLOCK' name = ls_active_tab-block ] ) ).
+    IF it_tabs IS NOT INITIAL AND lv_tab_panel = abap_false.
+      lv_body = lv_body && render_selection_tabs( it_tabs ).
+    ENDIF.
+    lt_ordered = order_selection_elements(
+      it_elements   = it_elements
+      iv_screen     = lv_screen
+      iv_tab_screen = lv_active_tab_screen
+      iv_tab_block  = COND #( WHEN lv_tab_panel = abap_true THEN ls_active_tab-block ) ).
+
+    LOOP AT lt_ordered INTO DATA(ls_element).
+      close_tab_panel(
+        EXPORTING
+          iv_screen       = CONV #( ls_element-screen )
+          iv_tab_screen   = lv_active_tab_screen
+        CHANGING
+          cv_body         = lv_body
+          cv_in_panel     = lv_in_panel
+          cv_open_line    = lv_open_line
+          ct_open_blocks  = lt_open_blocks
+          ct_panel_blocks = lt_panel_blocks ).
 * Sibling blocks share a depth, so fieldsets follow the block identity path:
-* keep the common prefix open, close the rest, open the new tail.
-      lt_block_path = selection_block_path(
+* keep the common prefix open, close the rest, open the new tail. A
+* subscreen's blocks nest inside the blocks around its tabbed block.
+      lt_block_path = lt_panel_blocks.
+      APPEND LINES OF selection_block_path(
         iv_block  = ls_element-block
-        it_blocks = it_blocks ).
+        it_blocks = it_blocks ) TO lt_block_path.
       lv_common_blocks = 0.
       LOOP AT lt_open_blocks INTO lv_open_block.
         READ TABLE lt_block_path WITH KEY table_line = lv_open_block TRANSPORTING NO FIELDS.
@@ -809,12 +861,29 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_body = lv_body && |<hr class="gg-selection-uline">|.
         WHEN 'SKIP'.
           lv_body = lv_body && |<div class="gg-selection-skip" data-lines="{ ls_element-length }" aria-hidden="true"></div>|.
-        WHEN 'TAB'.
-          CONTINUE.
+        WHEN 'TABBED_BLOCK'.
+          IF lv_tab_panel = abap_true AND ls_element-name = ls_active_tab-block.
+            lv_body = lv_body && |<div class="gg-tabstrip">| && render_selection_tabs(
+              it_tabs  = it_tabs
+              iv_block = CONV #( ls_element-name ) ).
+            lv_body = lv_body && |<div class="gg-tab-panel" role="tabpanel" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_active_tab-text ) }">|.
+            lv_in_panel = abap_true.
+            lt_panel_blocks = lt_open_blocks.
+          ENDIF.
         WHEN OTHERS.
           CONTINUE.
       ENDCASE.
     ENDLOOP.
+    close_tab_panel(
+      EXPORTING
+        iv_screen       = ``
+        iv_tab_screen   = lv_active_tab_screen
+      CHANGING
+        cv_body         = lv_body
+        cv_in_panel     = lv_in_panel
+        cv_open_line    = lv_open_line
+        ct_open_blocks  = lt_open_blocks
+        ct_panel_blocks = lt_panel_blocks ).
     lv_body = lv_body && COND string( WHEN lv_open_line > 0 THEN `</div>` ELSE `` ).
     DO lines( lt_open_blocks ) TIMES.
       lv_body = lv_body && |</fieldset>|.
@@ -1588,6 +1657,53 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         iv_index = sy-tabix ).
       rv_attrs = | aria-describedby="{ zcl_gg_host_html=>escape_attribute( lv_message_id ) }" aria-invalid="true" autofocus|.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD order_selection_elements.
+* The elements shown are those of the screen and of the active tab's
+* subscreen. With iv_tab_block set, the subscreen follows that tabbed block
+* instead of its own declaration.
+    LOOP AT it_elements INTO DATA(ls_element) WHERE kind <> 'SCREEN'.
+      CHECK ls_element-screen = iv_screen
+        OR ( ls_element-screen = iv_tab_screen AND iv_tab_block IS INITIAL ).
+      APPEND ls_element TO rt_elements.
+      IF iv_tab_block IS NOT INITIAL
+          AND ls_element-kind = 'TABBED_BLOCK'
+          AND ls_element-name = iv_tab_block.
+        LOOP AT it_elements INTO DATA(ls_tab_element)
+            WHERE kind <> 'SCREEN' AND screen = iv_tab_screen.
+          APPEND ls_tab_element TO rt_elements.
+        ENDLOOP.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD close_tab_panel.
+* The panel closes before the first element after the subscreen, together
+* with the line and blocks the subscreen left open inside it.
+    IF cv_in_panel = abap_false OR iv_screen = iv_tab_screen.
+      RETURN.
+    ENDIF.
+    cv_body = cv_body && COND string( WHEN cv_open_line > 0 THEN `</div>` ELSE `` ).
+    cv_open_line = 0.
+    WHILE lines( ct_open_blocks ) > lines( ct_panel_blocks ).
+      cv_body = cv_body && |</fieldset>|.
+      DELETE ct_open_blocks INDEX lines( ct_open_blocks ).
+    ENDWHILE.
+    cv_body = cv_body && |</div></div>|.
+    cv_in_panel = abap_false.
+    CLEAR ct_panel_blocks.
+  ENDMETHOD.
+
+  METHOD render_selection_tabs.
+    DATA lv_tab_action TYPE string.
+    rv_html = |<nav role="tablist" aria-label="Selection tabs">|.
+    LOOP AT it_tabs INTO DATA(ls_tab).
+      CHECK iv_block IS INITIAL OR ls_tab-block = iv_block.
+      lv_tab_action = |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }|.
+      rv_html = rv_html && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ) }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_html=>escape_text( ls_tab-text ) }</button>|.
+    ENDLOOP.
+    rv_html = rv_html && |</nav>|.
   ENDMETHOD.
 
   METHOD active_selection_screen.

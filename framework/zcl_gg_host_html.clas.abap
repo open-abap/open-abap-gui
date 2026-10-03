@@ -422,9 +422,14 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection button:not(.gg-help-button):disabled\{background:#d1d1d1;color:#808080;cursor:default;\}|.
     rv_html = rv_html && |.gg-selection>form>button.gg-selection-button\{align-self:flex-start;width:auto;background:linear-gradient(#fffbd2,var(--gg-action));border-color:#a68e37;color:#2b2a13;\}|.
     rv_html = rv_html && |.gg-selection-button .wb-icon\{width:14px;height:14px;vertical-align:-2px;margin-right:5px;\}|.
-    rv_html = rv_html && |.gg-selection nav[role=tablist]\{display:flex;align-items:flex-end;gap:2px;padding:0 4px;border-bottom:2px solid #6f9ac1;background:#d0e1ef;\}|.
-    rv_html = rv_html && |.gg-selection nav[role=tablist] button\{min-height:28px;margin:0;padding:3px 15px;border:1px solid #8eacc8;border-bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(#e8f2fa,#bfd5e8);color:#163e6b;white-space:nowrap;box-shadow:none;\}|.
-    rv_html = rv_html && |.gg-selection nav[role=tablist] button[aria-selected=true]\{background:#e3eff8;color:#102f4d;font-weight:600;position:relative;top:2px;\}|.
+* The tab strip stands on the page background. The panel below it is framed
+* like a block, and the selected tab joins the panel by covering its top border.
+    rv_html = rv_html && |.gg-selection nav[role=tablist]\{position:relative;z-index:1;display:flex;align-items:flex-end;gap:2px;padding:0 6px;background:transparent;\}|.
+    rv_html = rv_html && |.gg-selection nav[role=tablist] button\{min-height:28px;margin:0;padding:3px 15px;border:1px solid var(--gg-border-dark);border-bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(#e8f2fa,#bfd5e8);color:#163e6b;white-space:nowrap;box-shadow:none;\}|.
+    rv_html = rv_html && |.gg-selection nav[role=tablist] button[aria-selected=true]\{margin-bottom:-1px;padding-bottom:4px;background:var(--gg-panel);color:#102f4d;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-tabstrip\{min-width:0;margin:.75rem 0;\}|.
+    rv_html = rv_html && |.gg-selection>form>input[type=hidden]+.gg-tabstrip\{margin-top:0;\}|.
+    rv_html = rv_html && |.gg-tab-panel\{min-width:0;padding:.75rem;border:1px solid var(--gg-border-dark);border-radius:2px;background:linear-gradient(var(--gg-panel),var(--gg-work-area));box-shadow:0 1px 4px rgba(34,67,102,.12);\}|.
     rv_html = rv_html && |.gg-selection .gg-message\{margin:0 0 8px;padding:8px 10px;border-radius:2px;box-shadow:none;\}|.
     rv_html = rv_html && |.gg-selection>form>p\{margin:4px 0;color:#315a7f;\}|.
     rv_html = rv_html && |.gg-selection>form>hr\{width:100%;margin:4px 0;border:0;border-top:1px solid #8daac4;\}|.

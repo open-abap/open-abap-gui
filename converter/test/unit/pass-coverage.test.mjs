@@ -59,7 +59,7 @@ test("directly exercises every report-IR collector and analysis pass", () => {
   const declarations = collectDeclarations([data, parameter, selection, selectionEnd]);
   assert.deepEqual(declarations.map((item) => item.kind), ["data", "parameter", "selectionscreen", "selectionscreen"]);
   const screens = collectSelectionScreens(declarations);
-  assert.equal(screens[0].number, "0100");
+  assert.equal(screens[0].number, "1000");
   assert.ok(screens[0].elements.some((item) => item.kind === "parameter"));
 
   const ir = emptyReportIR({ filename: report.filename, source: "", sourceHash: "hash", newline: "\n" });

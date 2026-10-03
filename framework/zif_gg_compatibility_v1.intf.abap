@@ -179,13 +179,7 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
     IMPORTING iv_id     TYPE string
               it_values TYPE vrm_values.
 
-  METHODS alpha_input
-    IMPORTING iv_input         TYPE string
-    RETURNING VALUE(rv_output) TYPE string.
-
-  METHODS alpha_output
-    IMPORTING iv_input         TYPE string
-    RETURNING VALUE(rv_output) TYPE string.
+  METHODS refresh_selection_list_values.
 
   METHODS alv_fieldcatalog_merge
     IMPORTING is_request  TYPE ty_alv_request

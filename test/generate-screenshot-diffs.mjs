@@ -1,3 +1,4 @@
+import {execFileSync} from "node:child_process";
 import {copyFile, mkdir, readdir, readFile, rm, writeFile} from "node:fs/promises";
 import {basename, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
@@ -49,6 +50,21 @@ async function loadMasks(filename) {
     }
   }
   return definition;
+}
+
+// The time the page reports as its generation time. It is the time of the
+// commit being built, not the wall clock, so building the same commit twice
+// writes identical files and the preview deployment does not commit again.
+function generationTime() {
+  const override = process.env.VISUAL_DIFF_GENERATED_AT;
+  if (override) return new Date(override).toISOString();
+  try {
+    const committed = execFileSync("git", ["log", "-1", "--format=%cI"], {encoding: "utf8"}).trim();
+    if (committed) return new Date(committed).toISOString();
+  } catch {
+    // Not a git checkout: fall back to the wall clock.
+  }
+  return new Date().toISOString();
 }
 
 function escapeHtml(value) {
@@ -269,6 +285,8 @@ await Promise.all(differences
     resolve(baselineDirectory, comparison.name),
     resolve(baselineOutputDirectory, comparison.name),
   )));
+const generatedAt = generationTime();
+const generatedText = `${generatedAt.slice(0, 16).replace("T", " ")} UTC`;
 const cards = differences.map((comparison) => {
   const label = escapeHtml(basename(comparison.name, ".png"));
   const filename = urlSegment(comparison.name);
@@ -299,6 +317,8 @@ const html = `<!doctype html>
       :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172b3f; background: #eef3f8; }
       body { margin: 0; padding: 2rem; }
       h1 { margin: 0 0 .35rem; }
+      .generated { margin: 0 0 .5rem; color: #52677c; font-weight: 650; }
+      .generated time { color: #172b3f; }
       .intro { margin: 0 0 1.5rem; color: #52677c; }
       .summary { display: flex; flex-wrap: wrap; gap: .65rem; margin-bottom: 1.5rem; }
       .summary span, .status { padding: .3rem .6rem; border-radius: 999px; background: #dce8f3; font-weight: 650; }
@@ -321,6 +341,24 @@ const html = `<!doctype html>
   </head>
   <body>
     <h1>Screenshot visual diffs</h1>
+    <p class="generated">Generated <time id="generated-at" datetime="${generatedAt}" title="${generatedText}">${generatedText}</time></p>
+    <script>
+      // Shows the age of the data when the page is viewed; without scripts the
+      // absolute time above stays.
+      (() => {
+        const element = document.getElementById("generated-at");
+        const generated = Date.parse(element.dateTime);
+        const format = new Intl.RelativeTimeFormat("en", {numeric: "auto"});
+        const units = [["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600], ["minute", 60]];
+        function render() {
+          const seconds = Math.round((generated - Date.now()) / 1000);
+          const [unit, size] = units.find(([, size]) => Math.abs(seconds) >= size) || ["second", 1];
+          element.textContent = Math.abs(seconds) < 60 ? "just now" : format.format(Math.round(seconds / size), unit);
+        }
+        render();
+        setInterval(render, 60000);
+      })();
+    </script>
     <p class="intro">Browser screenshots compared pixel-by-pixel with the native reference set. Pink pixels differ. Content region: ${contentRegion ? `${contentRegion.x},${contentRegion.y},${contentRegion.width},${contentRegion.height}` : "separate native/browser regions"}; native content region: ${baselineRegion ? `${baselineRegion.x},${baselineRegion.y},${baselineRegion.width},${baselineRegion.height}` : "full image"}; browser content region: ${currentRegion ? `${currentRegion.x},${currentRegion.y},${currentRegion.width},${currentRegion.height}` : "full image"}. Semantic masks: ${maskDefinition.regions.length === 0 ? "none" : maskDefinition.regions.map(({id}) => escapeHtml(id)).join(", ")}.</p>
     <div class="summary">
       <span>${counts.changed} changed</span><span>${counts.added} added</span><span>${counts.removed} removed</span><span>${counts.unchanged} unchanged</span>
@@ -334,9 +372,9 @@ ${cards || '      <p class="empty">No visual differences detected.</p>'}
 
 await writeFile(resolve(outputDirectory, "index.html"), html, "utf8");
 
-// Keep this deterministic (no timestamps): the preview deployment only commits when
-// the generated files actually change.
-const summary = {compared: comparisons.length, differences: differences.length, contentRegion, masks: maskDefinition, ...counts, comparisons};
+// Keep this deterministic (no wall-clock timestamps; generatedAt is the commit
+// time): the preview deployment only commits when the generated files actually change.
+const summary = {generatedAt, compared: comparisons.length, differences: differences.length, contentRegion, masks: maskDefinition, ...counts, comparisons};
 await writeFile(resolve(outputDirectory, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 
 console.log(`Compared ${comparisons.length} screenshots: ${differences.length} visual differences`);

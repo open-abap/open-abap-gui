@@ -6,6 +6,7 @@ CLASS ltcl_gg_compatibility_popup DEFINITION FINAL FOR TESTING
     METHODS classic_alv_renders_rows FOR TESTING.
     METHODS classic_alv_metadata_events FOR TESTING.
     METHODS classic_alv_blocks_are_grouped FOR TESTING.
+    METHODS selection_lists_are_refreshed FOR TESTING.
 
 ENDCLASS.
 
@@ -132,6 +133,18 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
     DATA(lv_html) = cl_gui_control=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-classic-alv-blocks' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Block row' ) ).
+  ENDMETHOD.
+
+  METHOD selection_lists_are_refreshed.
+    DATA lo_compatibility TYPE REF TO zif_gg_compatibility_v1.
+    lo_compatibility ?= NEW zcl_gg_host_compatibility( ).
+    lo_compatibility->set_selection_list_values(
+      iv_id     = 'P_MODE'
+      it_values = VALUE #( ( key = 'A' text = 'Alpha' ) ) ).
+    cl_abap_unit_assert=>assert_equals( act = lines( zcl_gg_host_compatibility=>get_selection_list_values( ) )
+                                        exp = 1 ).
+    lo_compatibility->refresh_selection_list_values( ).
+    cl_abap_unit_assert=>assert_initial( zcl_gg_host_compatibility=>get_selection_list_values( ) ).
   ENDMETHOD.
 
 ENDCLASS.

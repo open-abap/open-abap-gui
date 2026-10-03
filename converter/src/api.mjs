@@ -440,7 +440,21 @@ function validateNames(ir, options, diagnostics) {
   ir.transactionCode = transactionCode;
   const metadataDescription = ir.screenMetadata?.reportTitle ?? ir.dynproMetadata?.reportTitle;
   ir.reportTitle = metadataDescription;
-  ir.description = !options.descriptionProvided && metadataDescription ? metadataDescription : options.description;
+  ir.description = options.descriptionProvided ? options.description : metadataDescription;
+  if (ir.description === undefined || ir.description === "") {
+    ir.description = ir.programName ?? transactionCode ?? className;
+    if (ir.description) {
+      diagnostics.push(diagnostic({
+        code: "GGCONV-W108",
+        severity: "warning",
+        filename: options.filename,
+        construct: ir.description,
+        message: `no title was found for ${ir.description}; its name is used as the description`,
+        suggestion: "Add a title (text pool entry R) to the .prog.xml, a short text to its transaction, or pass description/--description.",
+        phase: "options",
+      }));
+    }
+  }
 }
 
 function validateSymbolCollisions(ir, diagnostics) {
@@ -587,6 +601,7 @@ export async function convertProgram(input = {}) {
       try {
         ir.dynproMetadata = await loadDynproMetadata({
           filename: options.filename,
+          language: options.language,
           metadataFilename: options.dynproMetadataFilename,
           screenDirectory: options.dynproScreenDirectory,
           screenFiles: options.dynproScreenFiles,
@@ -602,6 +617,7 @@ export async function convertProgram(input = {}) {
     try {
       ir.screenMetadata = await loadDynproMetadata({
         filename: options.filename,
+        language: options.language,
         metadataFilename: options.dynproMetadataFilename,
         screenDirectory: options.dynproScreenDirectory,
         screenFiles: options.dynproScreenFiles,

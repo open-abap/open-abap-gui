@@ -122,26 +122,6 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
           text       = 'Required'
           obligatory = abap_true
           data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
-      WHEN '75'.
-        io_builder->begin_tabbed_block( VALUE #( name = 'TB' lines = 5 ) ).
-        io_builder->add_tab( VALUE #(
-          name = 'TAB_GENERAL' text = 'General' subscreen = '0100' ucomm = 'UT1' ) ).
-        io_builder->add_tab( VALUE #(
-          name = 'TAB_DETAILS' text = 'Details' subscreen = '0200' ucomm = 'UT2' ) ).
-        io_builder->end_tabbed_block( ).
-        io_builder->add_parameter( VALUE #(
-          name      = 'P_GENERAL'
-          text      = 'General value'
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
-        io_builder->add_parameter( VALUE #(
-          name      = 'P_DETAILS'
-          text      = 'Detail value'
-          data_type = VALUE #( typ = 'C' length = 20 ) ) ).
-        io_builder->add_parameter( VALUE #(
-          name       = 'P_REQUIRED'
-          text       = 'Required'
-          obligatory = abap_true
-          data_type  = VALUE #( typ = 'C' length = 20 ) ) ).
       WHEN '76'.
         io_builder->add_parameter( VALUE #(
           name      = 'P_DERIVED'
@@ -287,11 +267,6 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
             stop_with_message( iv_text    = 'Range rows reordered'
                                io_session = io_session ).
         ENDCASE.
-      WHEN '75'.
-        IF iv_ucomm = 'UT1' OR iv_ucomm = 'UT2'.
-          stop_with_message( iv_text    = |Tab { iv_ucomm } selected|
-                             io_session = io_session ).
-        ENDIF.
       WHEN '76'.
         IF iv_ucomm = 'DERIVE'.
           ct_values[ name = 'P_DERIVED' ]-value = 'derived by pushbutton'.
@@ -412,9 +387,6 @@ CLASS zcl_gg_rich_selection_base IMPLEMENTATION.
           lv_range_text = range_text( is_range = ls_73_range ).
           lo_writer->write_field( VALUE #( text = lv_range_text placement = VALUE #( new_line = xsdbool( sy-tabix > 1 ) ) ) ).
         ENDLOOP.
-      WHEN '75'.
-        lo_writer->write_field( VALUE #( text = it_values[ name = 'P_GENERAL' ]-value ) ).
-        lo_writer->write_field( VALUE #( text = it_values[ name = 'P_DETAILS' ]-value placement = VALUE #( new_line = abap_true ) ) ).
       WHEN '76'.
         lo_writer->write_field( VALUE #( text = it_values[ name = 'P_DERIVED' ]-value ) ).
       WHEN '77'.

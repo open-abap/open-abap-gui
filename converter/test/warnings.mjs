@@ -5,7 +5,8 @@ import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot } from "./repository.mjs";
 
 const examples = path.join(repositoryRoot, "examples");
-const expectedWarningCodes = new Set(["GGCONV-W101"]);
+// Without the .prog.xml the selection texts (W101) and the title (W108) are missing.
+const expectedWarningCodes = new Set(["GGCONV-W101", "GGCONV-W108"]);
 const seen = new Map();
 
 for (let number = 1; number <= 58; number++) {

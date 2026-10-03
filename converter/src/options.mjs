@@ -68,13 +68,16 @@ export function normalizeOptions(options = {}) {
   if (options.source !== undefined && typeof options.source !== "string") {
     throw new Error("source must be a string when supplied");
   }
+  if (options.language !== undefined && (typeof options.language !== "string" || !/^[A-Za-z0-9]$/.test(options.language))) {
+    throw new Error(`language must be a one-character SAP language key, got ${options.language}`);
+  }
   return {
     ...options,
     filename,
+    ...(options.language === undefined ? {} : { language: options.language.toUpperCase() }),
     mode,
     partialStrategy,
     descriptionProvided: options.description !== undefined,
-    description: options.description ?? "Converted executable report",
     configPath: options.configPath ?? "abaplint.jsonc",
     converterVersion: options.converterVersion ?? CONVERTER_VERSION,
     maxSourceBytes: options.maxSourceBytes ?? 5 * 1024 * 1024,

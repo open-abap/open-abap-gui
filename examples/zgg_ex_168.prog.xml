@@ -3,7 +3,7 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <PROGDIR>
-    <NAME>ZGG_EX_075</NAME>
+    <NAME>ZGG_EX_168</NAME>
     <SUBC>1</SUBC>
     <RLOAD>E</RLOAD>
     <FIXPT>X</FIXPT>
@@ -12,26 +12,14 @@
    <TPOOL>
     <item>
      <ID>R</ID>
-     <ENTRY>Obligatory selection parameter</ENTRY>
-     <LENGTH>30</LENGTH>
+     <ENTRY>Select-options defaulting to today</ENTRY>
+     <LENGTH>34</LENGTH>
     </item>
     <item>
      <ID>S</ID>
-     <KEY>P_GEN</KEY>
-     <ENTRY>General</ENTRY>
-     <LENGTH>7</LENGTH>
-    </item>
-    <item>
-     <ID>S</ID>
-     <KEY>P_DET</KEY>
-     <ENTRY>Details</ENTRY>
-     <LENGTH>7</LENGTH>
-    </item>
-    <item>
-     <ID>S</ID>
-     <KEY>P_REQ</KEY>
-     <ENTRY>Required value</ENTRY>
-     <LENGTH>14</LENGTH>
+     <KEY>S_DATA</KEY>
+     <ENTRY>Date</ENTRY>
+     <LENGTH>4</LENGTH>
     </item>
    </TPOOL>
   </asx:values>
