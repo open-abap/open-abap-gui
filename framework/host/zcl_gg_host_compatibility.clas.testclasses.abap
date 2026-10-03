@@ -7,6 +7,7 @@ CLASS ltcl_gg_compatibility_popup DEFINITION FINAL FOR TESTING
     METHODS classic_alv_metadata_events FOR TESTING.
     METHODS classic_alv_blocks_are_grouped FOR TESTING.
     METHODS selection_lists_are_refreshed FOR TESTING.
+    METHODS refresh_skips_tab_labels FOR TESTING.
 
 ENDCLASS.
 
@@ -145,6 +146,26 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
                                         exp = 1 ).
     lo_compatibility->refresh_selection_list_values( ).
     cl_abap_unit_assert=>assert_initial( zcl_gg_host_compatibility=>get_selection_list_values( ) ).
+  ENDMETHOD.
+
+  METHOD refresh_skips_tab_labels.
+* A tab label travels in the values but is no selection.
+    DATA lo_compatibility TYPE REF TO zif_gg_compatibility_v1.
+    DATA lt_selection TYPE zif_gg_compatibility_v1=>ty_variant_parameters.
+    lo_compatibility ?= NEW zcl_gg_host_compatibility( ).
+    lo_compatibility->set_selection_context(
+      iv_report = 'ZREPORT'
+      it_values = VALUE #( ( name = 'P_NAME' value = 'Ada' ) ( name = 'TAB1' value = 'General' ) )
+      it_states = VALUE #( ( name = 'P_NAME' ) ) ).
+    lo_compatibility->variant_refresh(
+      EXPORTING
+        is_request   = VALUE #( )
+      CHANGING
+        ct_selection = lt_selection ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_selection )
+                                        exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lt_selection[ 1 ]-selname
+                                        exp = 'P_NAME' ).
   ENDMETHOD.
 
 ENDCLASS.

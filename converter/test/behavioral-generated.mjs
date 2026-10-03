@@ -183,6 +183,15 @@ async function prepare() {
   if (!selectionComposite.classSource) throw new Error("converter produced no selection composite class");
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_CSELECT.clas.abap"), selectionComposite.classSource, "utf8");
 
+  const tabTexts = await convertProgram({
+    source: await fs.readFile(path.join(repository, "converter", "test", "examples", "selection_tab_texts", "input", "zexample_tabs.prog.abap"), "utf8"),
+    filename: "zexample_tabs.prog.abap",
+    className: "ZCL_BV_TABS",
+    transactionCode: "ZBVTABS",
+  });
+  if (!tabTexts.classSource) throw new Error("converter produced no tab text class");
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_TABS.clas.abap"), tabTexts.classSource, "utf8");
+
   const lifecycleOrderResult = await convertProgram({
     source: [
       "REPORT zlifecycle_order.",
@@ -505,6 +514,20 @@ try {
     rs_result: 1,
   }));
   assert.deepEqual(selectionComposite.lines, ["ABAP"]);
+
+  // The tab labels are set in FORMs called from INITIALIZATION and changed in
+  // AT SELECTION-SCREEN OUTPUT, so only the running program knows them.
+  const tabHtml = async (input) => plain(await zcl_gg_host.run({
+    io_report: new abap.Classes.ZCL_BV_TABS(),
+    rs_result: 1,
+    iv_present_selection: abap.builtin.abap_true,
+    ...(input ? { it_input: inputValues(input, zcl_gg_host) } : {}),
+  })).html;
+  const initialTabs = await tabHtml();
+  assert.match(initialTabs, />Carrier<\/button>/);
+  assert.match(initialTabs, />Options<\/button>/);
+  assert.doesNotMatch(initialTabs, />TAB[12]<\/button>/);
+  assert.match(await tabHtml([["P_ROWS", "200"]]), />Many rows<\/button>/);
   const lifecycleOrder = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_LORDER(),
     rs_result: 1,

@@ -1,4 +1,4 @@
-import {access, mkdir, readdir, rm, writeFile} from "node:fs/promises";
+import {access, mkdir, readdir, readFile, rm, writeFile} from "node:fs/promises";
 import {resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {chromium} from "playwright";
@@ -11,6 +11,24 @@ const viewport = {width: 1440, height: 900};
 
 function escapeHtml(value) {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+// The reports the converter examples define, see test/web-converter-examples.mjs.
+// Only these reports are captured: other reports may stop the server on
+// purpose, like ZGG_INT_CAST_FAILURE.
+async function converterExamplePrograms() {
+  const examplesDirectory = resolve(process.cwd(), "converter", "test", "examples");
+  const programs = new Set();
+  for (const example of await readdir(examplesDirectory, {withFileTypes: true})) {
+    if (!example.isDirectory()) continue;
+    const outputDirectory = resolve(examplesDirectory, example.name, "output");
+    for (const filename of await readdir(outputDirectory)) {
+      const source = await readFile(resolve(outputDirectory, filename), "utf8");
+      const program = /METHOD zif_gg_program_v1~get_program\.\s*rs_program = VALUE #\( program = '([^']+)'/i.exec(source)?.[1];
+      if (program) programs.add(program.toUpperCase());
+    }
+  }
+  return programs;
 }
 
 async function writeScreenshotIndex(transactions) {
@@ -107,6 +125,16 @@ try {
     throw new Error("No transaction links found in the rendered workbench");
   }
 
+  const examplePrograms = await converterExamplePrograms();
+  const programs = (await page.locator('a[href^="/program?name="]').evaluateAll((links) => links.map((link) => {
+    const href = link.getAttribute("href") || "";
+    const program = new URL(href, "https://open-abap-gui.invalid").searchParams.get("name");
+    const description = link.querySelector(".wb-app-description")?.textContent?.trim() || "";
+    return {program, description};
+  })))
+    .filter(({program}) => program && examplePrograms.has(program.toUpperCase()))
+    .sort((a, b) => a.program.localeCompare(b.program, undefined, {numeric: true}));
+
   for (const {tcode} of transactions) {
     await page.goto(`${previewUrl}#/transaction?tcode=${encodeURIComponent(tcode)}`, {waitUntil: "load"});
     await waitForPreview();
@@ -116,12 +144,24 @@ try {
     });
   }
 
+  for (const {program} of programs) {
+    await page.goto(`${previewUrl}#/program?name=${encodeURIComponent(program)}`, {waitUntil: "load"});
+    await waitForPreview();
+    await page.screenshot({
+      path: resolve(screenshotsDirectory, `${program.toLowerCase()}.png`),
+      fullPage: false,
+    });
+  }
+
   if (browserErrors.length > 0) {
     throw new Error(browserErrors.join("\n"));
   }
 
-  const screenshotCount = await writeScreenshotIndex(transactions);
-  console.log(`Captured ${screenshotCount} transaction screenshots and wrote ${resolve(screenshotsDirectory, "index.html")}`);
+  const screenshotCount = await writeScreenshotIndex([
+    ...transactions,
+    ...programs.map(({program, description}) => ({tcode: program, description})),
+  ]);
+  console.log(`Captured ${screenshotCount} screenshots (${transactions.length} transactions, ${programs.length} converter example reports) and wrote ${resolve(screenshotsDirectory, "index.html")}`);
 } finally {
   await browser.close();
 }

@@ -366,7 +366,11 @@ CLASS zcl_gg_host IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+* Input fields have a state; a tab label in the values has none.
     LOOP AT ct_values INTO DATA(ls_value).
+      IF NOT line_exists( ct_states[ name = ls_value-name ] ).
+        CONTINUE.
+      ENDIF.
       io_session->set_event( 'AT SELECTION-SCREEN ON FIELD' ).
       io_report->at_selection_screen_on_field(
         EXPORTING

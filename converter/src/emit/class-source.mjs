@@ -873,7 +873,21 @@ function selectionStateTransport(ir, event) {
       "ENDIF.",
     ].join("\n"));
   }
+  // build_screen only knows the declared tab text. The label the program puts
+  // in the tab field, in a FORM or in any event, reaches the screen through
+  // the tab's value.
+  if (source === "ct_values") {
+    for (const name of selectionTabFields(ir)) {
+      flush.push(`ct_values[ name = '${name}' ]-value = ${renameIdentifiers(name.toLowerCase(), allRenames(ir))}.`);
+    }
+  }
   return { hydrate, flush };
+}
+
+function selectionTabFields(ir) {
+  return (ir.selections ?? []).flatMap((screen) => screen.elements ?? [])
+    .filter((item) => item.layout === "tab")
+    .map((item) => item.name);
 }
 
 function nestedSelectionCaptures(ir) {
