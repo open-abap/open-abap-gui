@@ -214,6 +214,13 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+    CLASS-METHODS selection_tab_labels
+      IMPORTING
+        it_tabs        TYPE zcl_gg_host_screen=>ty_tabs
+        it_values      TYPE zif_gg_selection_screen_types=>ty_values
+      RETURNING
+        VALUE(rt_tabs) TYPE zcl_gg_host_screen=>ty_tabs.
+
     CLASS-METHODS selection_block_path
       IMPORTING
         iv_block       TYPE i
@@ -561,6 +568,11 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_in_panel TYPE abap_bool.
     DATA lt_panel_blocks TYPE ty_block_path.
     DATA lt_ordered TYPE zcl_gg_host_screen=>ty_elements.
+    DATA lt_tabs TYPE zcl_gg_host_screen=>ty_tabs.
+
+    lt_tabs = selection_tab_labels(
+      it_tabs   = it_tabs
+      it_values = it_values ).
 
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page"><header class="gg-status-region" aria-label="Selection status"><p class="gg-selection-status"{ COND string( WHEN is_status-status IS INITIAL THEN `` ELSE ` role="status"` ) }>{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section>|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
@@ -568,22 +580,22 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 
     lv_active_tab_screen = active_selection_screen(
       iv_default = is_context-screen
-      it_tabs    = it_tabs ).
+      it_tabs    = lt_tabs ).
 * The tab strip and the active tab's subscreen sit where the tabbed block is
 * declared, the subscreen framed like a block. Without a tabbed block element
 * to anchor them, the strip leads the form.
-    READ TABLE it_tabs INTO DATA(ls_active_tab) WITH KEY selected = abap_true.
+    READ TABLE lt_tabs INTO DATA(ls_active_tab) WITH KEY selected = abap_true.
     IF sy-subrc <> 0.
-      READ TABLE it_tabs INTO ls_active_tab INDEX 1.
+      READ TABLE lt_tabs INTO ls_active_tab INDEX 1.
     ENDIF.
     lv_screen = active_selection_screen(
       iv_default = is_context-screen
       it_tabs    = VALUE #( ) ).
-    lv_tab_panel = xsdbool( it_tabs IS NOT INITIAL
+    lv_tab_panel = xsdbool( lt_tabs IS NOT INITIAL
       AND lv_active_tab_screen <> lv_screen
       AND line_exists( it_elements[ kind = 'TABBED_BLOCK' name = ls_active_tab-block ] ) ).
-    IF it_tabs IS NOT INITIAL AND lv_tab_panel = abap_false.
-      lv_body = lv_body && render_selection_tabs( it_tabs ).
+    IF lt_tabs IS NOT INITIAL AND lv_tab_panel = abap_false.
+      lv_body = lv_body && render_selection_tabs( lt_tabs ).
     ENDIF.
     lt_ordered = order_selection_elements(
       it_elements   = it_elements
@@ -864,7 +876,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         WHEN 'TABBED_BLOCK'.
           IF lv_tab_panel = abap_true AND ls_element-name = ls_active_tab-block.
             lv_body = lv_body && |<div class="gg-tabstrip">| && render_selection_tabs(
-              it_tabs  = it_tabs
+              it_tabs  = lt_tabs
               iv_block = CONV #( ls_element-name ) ).
             lv_body = lv_body && |<div class="gg-tab-panel" role="tabpanel" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_active_tab-text ) }">|.
             lv_in_panel = abap_true.
@@ -1704,6 +1716,18 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       rv_html = rv_html && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ) }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_html=>escape_text( ls_tab-text ) }</button>|.
     ENDLOOP.
     rv_html = rv_html && |</nav>|.
+  ENDMETHOD.
+
+  METHOD selection_tab_labels.
+* A tab shows the label the program put in its tab field, as a dynpro
+* tabstrip does, and the declared text while that field is empty.
+    rt_tabs = it_tabs.
+    LOOP AT rt_tabs ASSIGNING FIELD-SYMBOL(<ls_tab>).
+      READ TABLE it_values INTO DATA(ls_value) WITH KEY name = <ls_tab>-name.
+      IF sy-subrc = 0 AND ls_value-value IS NOT INITIAL.
+        <ls_tab>-text = ls_value-value.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD active_selection_screen.

@@ -184,7 +184,8 @@ INTERFACE zif_gg_selection_screen_types PUBLIC.
          END OF ty_screen.
 
 * Current input, separate from the immutable screen definition. Parameters
-* use value; select-options use ranges.
+* use value; select-options use ranges. A tab's value is its label, which the
+* program sets in its tab field, see zif_gg_selection_screen_builder_v1.
   TYPES: BEGIN OF ty_value,
            name   TYPE ty_name,
            value  TYPE string,

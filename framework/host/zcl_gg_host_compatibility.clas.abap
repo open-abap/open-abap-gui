@@ -785,7 +785,14 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
   METHOD zif_gg_compatibility_v1~set_selection_context.
     mv_context_report = iv_report.
-    mt_context_values = it_values.
+* Only input fields, the ones with a state, are selections; a tab label in the
+* values is not.
+    CLEAR mt_context_values.
+    LOOP AT it_values INTO DATA(ls_value).
+      IF it_states IS INITIAL OR line_exists( it_states[ name = ls_value-name ] ).
+        INSERT ls_value INTO TABLE mt_context_values.
+      ENDIF.
+    ENDLOOP.
     mt_context_states = it_states.
     mv_context_screen = iv_screen.
   ENDMETHOD.

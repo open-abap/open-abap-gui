@@ -69,7 +69,9 @@ CLASS zcl_gg_ex_026 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.
-    RETURN.
+* The report sets the tab fields tab1 and tab2, their values are the labels.
+    ct_values[ name = 'TAB1' ]-value = 'General'.
+    ct_values[ name = 'TAB2' ]-value = 'Details'.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
