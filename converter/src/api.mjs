@@ -333,7 +333,6 @@ function applySelectionMetadata(ir, options) {
     for (const item of screen.elements) {
       const details = metadata[item.name?.toUpperCase()];
       if (!details || typeof details !== "object") continue;
-      if (Array.isArray(details.fixedValues ?? details.values)) item.fixedValues = details.fixedValues ?? details.values;
       if (details.dataType && typeof details.dataType === "object") item.dataType = { ...item.dataType, ...details.dataType };
     }
   }

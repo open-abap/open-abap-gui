@@ -11,7 +11,9 @@ test("ZCL_GG_EX_071 - refreshes dependent listbox choices", async ({page, host})
     ],
   });
   await expect(page.getByRole("alert")).toContainText("P_CONNECTION");
-  await expect(page.locator('[name="P_CONNECTION"] option')).toHaveText(["LH-1", "LH-2"]);
+  // The empty value stays selected as a blank entry ahead of the refreshed choices.
+  await expect(page.locator('[name="P_CONNECTION"] option')).toHaveText(["", "LH-1", "LH-2"]);
+  await expect(page.locator('[name="P_CONNECTION"]')).toHaveValue("");
   await page.locator('[name="P_CONNECTION"]').selectOption("LH-1");
   await submit(page);
   await expectPageKind(page, "LIST");

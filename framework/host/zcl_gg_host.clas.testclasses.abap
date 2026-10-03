@@ -275,6 +275,7 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS terminal_page FOR TESTING.
     METHODS selection_output_snapshot FOR TESTING.
     METHODS selection_renderer_controls FOR TESTING.
+    METHODS selection_listbox_values FOR TESTING.
     METHODS selection_sibling_blocks FOR TESTING.
     METHODS selection_tab_panel FOR TESTING.
     METHODS selection_tab_label_value FOR TESTING.
@@ -489,6 +490,45 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<label for=' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label=' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-instruction-region"' ) ).
+  ENDMETHOD.
+
+  METHOD selection_listbox_values.
+* Entries come from the domain of the rollname, a VRM list replaces them, and
+* the current value stays selected even when no entry has it.
+    DATA(lo_screen) = NEW zcl_gg_host_screen( ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+      name = 'P_BOOL' text = 'Boolean' default = 'X'
+      data_type = VALUE #( rollname = 'ABAP_BOOLEAN' typ = 'C' length = 1 ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+      name = 'P_OTHER' text = 'Other' default = 'Z'
+      fixed_values = VALUE #( ( key = 'A' text = 'Add' ) ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+      name = 'P_EMPTY' text = 'Empty'
+      fixed_values = VALUE #( ( key = 'A' text = 'Add' ) ) ) ).
+    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+      name = 'P_VRM' text = 'VRM' default = 'V'
+      data_type = VALUE #( rollname = 'ABAP_BOOLEAN' typ = 'C' length = 1 ) ) ).
+    DATA(lt_states) = lo_screen->get_states( ).
+    lt_states[ name = 'P_VRM' ]-fixed_values = VALUE #( ( key = 'V' text = 'From VRM' ) ).
+
+    DATA(lv_html) = zcl_gg_host_renderer=>render_selection(
+      iv_session_id = 'S'
+      iv_page_id    = 'P'
+      iv_title      = 'Selection'
+      it_values     = lo_screen->get_values( )
+      it_states     = lt_states
+      it_blocks     = lo_screen->get_blocks( )
+      it_elements   = lo_screen->get_elements( )
+      it_tabs       = lo_screen->get_tabs( ) ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<option value="">False</option><option value="X" selected>True</option></select>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<option value="Z" selected>Z</option><option value="A">Add</option></select>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<option value="" selected></option><option value="A">Add</option></select>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<option value="V" selected>From VRM</option></select>' ) ).
   ENDMETHOD.
 
   METHOD selection_sibling_blocks.

@@ -49,8 +49,10 @@ async function prepare() {
     const source = await fs.readFile(path.join(examples, name), "utf8");
     const id = name.slice(7, 10);
     const className = `ZCL_BV_${id}`;
+    // Only the batch conversion reads the dictionary files next to a report;
+    // here the data elements are supplied, and the host reads the domains.
     const selectionMetadata = id === "019"
-      ? { P_MODE: { fixedValues: [{ key: "A", text: "Add" }, { key: "D", text: "Delete" }] } }
+      ? { P_MODE: { dataType: { rollname: "ZGG_MODE", typ: "C", length: 1 } } }
       : ["020", "032"].includes(id)
         ? { S_CARR: { dataType: { rollname: "S_CARR_ID", typ: "C", length: 3 } } }
         : undefined;
@@ -191,6 +193,15 @@ async function prepare() {
   });
   if (!tabTexts.classSource) throw new Error("converter produced no tab text class");
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_TABS.clas.abap"), tabTexts.classSource, "utf8");
+
+  const tabIcons = await convertProgram({
+    source: await fs.readFile(path.join(examples, "zgg_ex_169.prog.abap"), "utf8"),
+    filename: "zgg_ex_169.prog.abap",
+    className: "ZCL_BV_TAB_ICONS",
+    transactionCode: "ZBVTABICONS",
+  });
+  if (!tabIcons.classSource) throw new Error("converter produced no tab icon class");
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_TAB_ICONS.clas.abap"), tabIcons.classSource, "utf8");
 
   const lifecycleOrderResult = await convertProgram({
     source: [
@@ -528,6 +539,19 @@ try {
   assert.match(initialTabs, />Options<\/button>/);
   assert.doesNotMatch(initialTabs, />TAB[12]<\/button>/);
   assert.match(await tabHtml([["P_ROWS", "200"]]), />Many rows<\/button>/);
+
+  // Tab labels starting with an icon, written AS ICON, concatenated from an
+  // ICON_* constant or given as a code with quickinfo, render as icons.
+  const tabIconHtml = plain(await zcl_gg_host.run({
+    io_report: new abap.Classes.ZCL_BV_TAB_ICONS(),
+    rs_result: 1,
+    iv_present_selection: abap.builtin.abap_true,
+  })).html;
+  assert.match(tabIconHtml, /<use href="#wb-icon-map-pin"><\/use><\/svg> Connection<\/button>/);
+  assert.match(tabIconHtml, /<use href="#wb-icon-settings"><\/use><\/svg> Output<\/button>/);
+  assert.match(tabIconHtml, /<span title="Error log"><svg [^>]*><use href="#wb-icon-file-alert"><\/use><\/svg><\/span> Log<\/button>/);
+  assert.match(tabIconHtml, /role="tabpanel" aria-label="Connection"/);
+  assert.doesNotMatch(tabIconHtml, /@ICON:|@XC@|@DR/);
   const lifecycleOrder = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_LORDER(),
     rs_result: 1,

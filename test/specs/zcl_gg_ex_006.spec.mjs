@@ -9,10 +9,10 @@ test(`ZCL_GG_EX_006 — renders checkbox, icon, and symbol fields`, async ({page
   await expect(page.locator(".gg-list-fragment").nth(2)).toHaveText("[@SYM_PHONE@]");
   await expect(page.locator(".gg-list-fragment").nth(1).locator("use")).toHaveAttribute(
     "href",
-    "#wb-icon-circle-check",
+    "#wb-icon-status-light",
   );
   await expect(page.locator(".gg-list-fragment").nth(2).locator("use")).toHaveAttribute(
     "href",
-    "#wb-icon-help-circle",
+    "#wb-icon-square-dashed",
   );
 });
