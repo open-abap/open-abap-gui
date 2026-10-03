@@ -42,7 +42,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_parameter( VALUE #( name = 'P_FACTOR' text = 'P_FACTOR' data_type = VALUE #( typ = 'I' ) default = CONV string( 2 ) ) ).
+    io_builder->add_parameter( VALUE #( name = 'P_FACTOR' text = 'P_FACTOR' data_type = VALUE #( typ = 'I' ) default = '2' ) ).
     io_builder->add_select_option( VALUE #( name = 'S_DATE' text = 'S_DATE' data_type = VALUE #( typ = 'D' ) ) ).
   ENDMETHOD.
 

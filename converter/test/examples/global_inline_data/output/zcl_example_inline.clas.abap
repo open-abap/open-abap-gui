@@ -45,7 +45,7 @@ CLASS zcl_example_inline IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_parameter( VALUE #( name = 'P_FACTOR' text = 'P_FACTOR' data_type = VALUE #( typ = 'I' ) default = CONV string( 1 ) obligatory = abap_true ) ).
+    io_builder->add_parameter( VALUE #( name = 'P_FACTOR' text = 'P_FACTOR' data_type = VALUE #( typ = 'I' ) default = '1' obligatory = abap_true ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.

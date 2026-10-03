@@ -14,10 +14,14 @@ function typeDefinition(additions) {
   };
 }
 
+// The standard selection screen is 1000, a number no program can declare, so
+// SELECTION-SCREEN BEGIN OF SCREEN 100 stays a screen of its own.
+export const DEFAULT_SELECTION_SCREEN = "1000";
+
 function defaultScreen(result) {
-  let screen = result.find((item) => item.number === "0100");
+  let screen = result.find((item) => item.number === DEFAULT_SELECTION_SCREEN);
   if (!screen) {
-    screen = { number: "0100", elements: [] };
+    screen = { number: DEFAULT_SELECTION_SCREEN, elements: [] };
     result.unshift(screen);
   }
   return screen;
@@ -102,7 +106,7 @@ export function collectSelectionScreens(declarations) {
         ...declaration,
         dataType: typeDefinition(declaration.additions),
         default: defaultValue(declaration.additions),
-        screen: currentScreen?.number ?? "0100",
+        screen: currentScreen?.number ?? DEFAULT_SELECTION_SCREEN,
         text: inLine ? "" : declaration.name,
         suppressTextPool: inLine,
       };

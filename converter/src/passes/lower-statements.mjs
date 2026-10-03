@@ -1916,5 +1916,7 @@ export function selectionType(additions) {
 
 export function selectionExpression(value) {
   if (!value) return undefined;
-  return /^'(?:''|[^'])*'$|^\|[^|]*\|$/s.test(value) ? value : `CONV string( ${value} )`;
+  if (/^'(?:''|[^'])*'$|^\|[^|]*\|$/s.test(value)) return value;
+  // CONV string( 3 ) is '3 ', the blank reserved for the sign.
+  return /^\d+$/.test(value) ? `'${value}'` : `CONV string( ${value} )`;
 }

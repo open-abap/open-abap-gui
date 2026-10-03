@@ -41,7 +41,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_parameter( VALUE #( name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #( rollname = 'ZEXAMPLE_COUNT' typ = 'I' ) default = CONV string( 3 ) ) ).
+    io_builder->add_parameter( VALUE #( name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #( rollname = 'ZEXAMPLE_COUNT' typ = 'I' ) default = '3' ) ).
     io_builder->add_parameter( VALUE #( name = 'P_AMOUNT' text = 'P_AMOUNT' data_type = VALUE #( rollname = 'ZEXAMPLE_AMOUNT' typ = 'P' length = 7 decimals = 2 ) ) ).
     io_builder->add_parameter( VALUE #( name = 'P_DATE' text = 'P_DATE' data_type = VALUE #( rollname = 'ZEXAMPLE_DATE' typ = 'D' length = 8 ) ) ).
     io_builder->add_parameter( VALUE #( name = 'P_CARR' text = 'P_CARR' data_type = VALUE #( rollname = 'ZEXAMPLE_CARRIER' typ = 'C' length = 3 ) ) ).

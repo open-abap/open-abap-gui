@@ -944,6 +944,41 @@ test("lowers a tabbed selection block and tracks its active tab", async () => {
   assert.doesNotMatch(result.classSource, /tabs-activetab/i);
 });
 
+test("keeps selection subscreen 100 apart from the standard selection screen", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zsubscreen100.",
+      "SELECTION-SCREEN BEGIN OF SCREEN 100 AS SUBSCREEN.",
+      "PARAMETERS p_one TYPE i.",
+      "SELECTION-SCREEN END OF SCREEN 100.",
+      "SELECTION-SCREEN BEGIN OF TABBED BLOCK tabs FOR 5 LINES.",
+      "SELECTION-SCREEN TAB (20) tab1 USER-COMMAND ucomm1 DEFAULT SCREEN 100.",
+      "SELECTION-SCREEN END OF BLOCK tabs.",
+      "PARAMETERS p_main TYPE i.",
+    ].join("\n"),
+    filename: "zsubscreen100.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /begin_screen\( VALUE #\( number = '0100' as_subscreen = abap_true \) \)\.\s+io_builder->add_parameter\( VALUE #\( name = 'P_ONE'[^\n]*\n\s*io_builder->end_screen\( \)\./);
+  // The tabbed block and P_MAIN belong to the standard selection screen.
+  assert.match(result.classSource, /build_screen\.\s+io_builder->begin_tabbed_block\(/);
+  assert.match(result.classSource, /end_tabbed_block\( \)\.\s+io_builder->add_parameter\( VALUE #\( name = 'P_MAIN'/);
+});
+
+test("passes an integer selection default as text without the sign blank", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zintdefault.",
+      "PARAMETERS p_count TYPE i DEFAULT 3.",
+      "SELECT-OPTIONS s_count FOR p_count DEFAULT 1 TO 9.",
+    ].join("\n"),
+    filename: "zintdefault.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /name = 'P_COUNT'[^\n]*default = '3' \)/);
+  assert.match(result.classSource, /name = 'S_COUNT'[^\n]*low = '1' high = '9' \)/);
+});
+
 test("types untyped FORM parameters generically", async () => {
   const result = await convertProgram({
     source: [

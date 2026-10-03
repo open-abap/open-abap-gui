@@ -40,7 +40,7 @@ CLASS zcl_example_texts IMPLEMENTATION.
   METHOD zif_gg_report_v1~build_screen.
     io_builder->begin_block( VALUE #( name = 'B1' title = 'Selection' with_frame = abap_true ) ).
     io_builder->add_parameter( VALUE #( name = 'P_USER' text = 'User name' data_type = VALUE #( typ = 'C' length = 12 ) ) ).
-    io_builder->add_parameter( VALUE #( name = 'P_DAYS' text = 'Number of days' data_type = VALUE #( typ = 'I' ) default = CONV string( 7 ) ) ).
+    io_builder->add_parameter( VALUE #( name = 'P_DAYS' text = 'Number of days' data_type = VALUE #( typ = 'I' ) default = '7' ) ).
     io_builder->add_comment( VALUE #( name = 'C01' text = 'Leave the user empty to include everyone' position = 1 visible_length = 40 ) ).
     io_builder->end_block( ).
   ENDMETHOD.

@@ -38,7 +38,7 @@ CLASS zcl_example_calc IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_parameter( VALUE #( name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #( typ = 'I' ) default = CONV string( 3 ) ) ).
+    io_builder->add_parameter( VALUE #( name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #( typ = 'I' ) default = '3' ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.
