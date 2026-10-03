@@ -2148,6 +2148,23 @@ test("carries statements that are valid in a method over as written", async () =
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
+test("calls function modules that open-abap-core implements as written", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zalpha.",
+      "DATA gv_matnr TYPE c LENGTH 18.",
+      "START-OF-SELECTION.",
+      "  CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT' EXPORTING input = gv_matnr IMPORTING output = gv_matnr.",
+      "  CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT' EXPORTING input = gv_matnr IMPORTING output = gv_matnr.",
+    ].join("\n"),
+    filename: "zalpha.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT' EXPORTING input = gv_matnr IMPORTING output = gv_matnr\./);
+  assert.match(result.classSource, /CALL FUNCTION 'CONVERSION_EXIT_ALPHA_OUTPUT' EXPORTING input = gv_matnr IMPORTING output = gv_matnr\./);
+  assert.deepEqual(result.manifest.metadataInputs.compatibilityAdapters, []);
+});
+
 test("lowers the finite gg-gui function-module families through typed adapters", async () => {
   const source = [
     "REPORT zcompatibility.",
@@ -2175,7 +2192,7 @@ test("lowers the finite gg-gui function-module families through typed adapters",
     "RS_VARIANT_CONTENTS",
     "SELECT_OPTIONS_RESTRICT",
   ]);
-  assert.equal(Object.keys(COMPATIBILITY_FUNCTION_MODULES).length, 35);
+  assert.equal(Object.keys(COMPATIBILITY_FUNCTION_MODULES).length, 33);
 });
 
 test("keeps scaffold-owned control constructors and methods type-aware", async () => {

@@ -181,14 +181,6 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
 
   METHODS refresh_selection_list_values.
 
-  METHODS alpha_input
-    IMPORTING iv_input         TYPE string
-    RETURNING VALUE(rv_output) TYPE string.
-
-  METHODS alpha_output
-    IMPORTING iv_input         TYPE string
-    RETURNING VALUE(rv_output) TYPE string.
-
   METHODS alv_fieldcatalog_merge
     IMPORTING is_request  TYPE ty_alv_request
     CHANGING  ct_fieldcat TYPE STANDARD TABLE.

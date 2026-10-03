@@ -321,14 +321,6 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     rt_lists = mt_selection_lists.
   ENDMETHOD.
 
-  METHOD zif_gg_compatibility_v1~alpha_input.
-    rv_output = iv_input.
-  ENDMETHOD.
-
-  METHOD zif_gg_compatibility_v1~alpha_output.
-    rv_output = iv_input.
-  ENDMETHOD.
-
   METHOD zif_gg_compatibility_v1~alv_fieldcatalog_merge.
     IF ct_fieldcat IS INITIAL.
       APPEND INITIAL LINE TO ct_fieldcat ASSIGNING FIELD-SYMBOL(<ls_fieldcat>).
