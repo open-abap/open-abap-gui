@@ -11,10 +11,15 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Contextual field help</ENTRY>
+     <LENGTH>21</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_HELP</KEY>
-     <ENTRY>Help text</ENTRY>
-     <LENGTH>9</LENGTH>
+     <ENTRY>Field with help</ENTRY>
+     <LENGTH>15</LENGTH>
     </item>
     <item>
      <ID>S</ID>

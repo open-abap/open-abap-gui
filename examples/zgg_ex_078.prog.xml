@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Field and range value help</ENTRY>
+     <LENGTH>26</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_CAR</KEY>
      <ENTRY>Carrier</ENTRY>
@@ -18,15 +23,15 @@
     </item>
     <item>
      <ID>S</ID>
-     <KEY>S_RNG</KEY>
-     <ENTRY>Range</ENTRY>
-     <LENGTH>5</LENGTH>
-    </item>
-    <item>
-     <ID>S</ID>
      <KEY>P_REQ</KEY>
      <ENTRY>Required value</ENTRY>
      <LENGTH>14</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>S_RNG</KEY>
+     <ENTRY>Range</ENTRY>
+     <LENGTH>5</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

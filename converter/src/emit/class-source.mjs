@@ -642,6 +642,7 @@ function selectionBuilder(ir) {
           if (modif) fields.push(`modif_id = '${modif.toUpperCase()}'`);
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
           if (ucomm) fields.push(`ucomm = '${ucomm.toUpperCase()}'`);
+          if (/OBLIGATORY/i.test(additions)) fields.push("obligatory = abap_true");
           if (item.fixedValues?.length) fields.push(`fixed_values = VALUE #( ${item.fixedValues.map((fixed) => `( key = ${literal(fixed.key ?? fixed.value ?? "")} text = ${literal(fixed.text ?? fixed.label ?? fixed.key ?? "")} )`).join(" ")} )`);
           lines.push(`io_builder->add_listbox( VALUE #( ${fields.join(" ")} ) ).`);
         } else {
@@ -737,7 +738,13 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
     // Shared by every statement of the method, so temporaries get unique names.
     temporaries: { count: 0 },
     mutableValues: mutable,
-    ucomm: event.startsWith("at_selection_screen") || event === "at_user_command" ? "iv_ucomm" : undefined,
+    messageField: ["at_selection_screen_on_field", "at_selection_screen_on_end_of"].includes(event) ? "iv_name" : undefined,
+    // Only AT SELECTION-SCREEN itself, ON EXIT-COMMAND and AT USER-COMMAND get
+    // the function code as a parameter; the other selection events read the
+    // PAI's function code from the session.
+    ucomm: ["at_selection_screen", "at_selection_screen_on_exit", "at_user_command"].includes(event)
+      ? "iv_ucomm"
+      : event.startsWith("at_selection_screen") ? "io_session->get_context( )-selection-ucomm" : undefined,
     replacements: [
       ...Object.entries(ir.statePlan?.renames ?? {}),
       ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]) => [name, String(value).toLowerCase()]),
@@ -833,7 +840,7 @@ function globalFieldSymbolDeclarations(ir, statements) {
 
 function selectionStateTransport(ir, event) {
   const state = ir.statePlan?.selectionState ?? {};
-  const values = ["initialization", "at_selection_screen_output", "at_selection_screen", "at_selection_screen_on_field", "at_selection_screen_on_end_of", "at_selection_screen_on_block", "at_selection_screen_on_radio", "at_selection_screen_on_exit", "start_of_selection", "end_of_selection"].includes(event);
+  const values = ["initialization", "at_selection_screen_output", "at_selection_screen", "at_selection_screen_on_field", "at_selection_screen_on_end_of", "at_selection_screen_on_block", "at_selection_screen_on_radio", "at_selection_screen_on_exit", "at_selection_screen_value_req", "at_selection_screen_help_req", "start_of_selection", "end_of_selection"].includes(event);
   if (!values) return { hydrate: [], flush: [] };
   const source = ["initialization", "at_selection_screen_output", "at_selection_screen", "at_selection_screen_on_field", "at_selection_screen_on_end_of", "at_selection_screen_on_block", "at_selection_screen_on_radio"].includes(event) ? "ct_values" : "it_values";
   const hydrate = [];
@@ -1033,45 +1040,41 @@ function truncateTerminalPaths(statements) {
   return output;
 }
 
-function eventBody(ir, event, sourceStatements = ir.events[event] ?? []) {
+// A value request that assigns its own parameter offers that value. Values an
+// F4 function module offers reach the host through the compatibility layer.
+function valueRequestResult(ir, qualifier) {
+  const field = /ON\s+VALUE-REQUEST\s+FOR\s+(\w+)/i.exec(qualifier ?? "")?.[1]?.toUpperCase();
+  const state = field && ir.statePlan?.selectionState?.[field];
+  if (!state || state.ranges) return [];
+  return [
+    `IF ${state.member} <> it_values[ name = '${field}' ]-value.`,
+    `rt_values = VALUE #( ( sign = zif_gg_selection_screen_types=>sign_include option = zif_gg_selection_screen_types=>option_eq low = |{ ${state.member} }| ) ).`,
+    "ENDIF.",
+  ];
+}
+
+function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifier = ir.eventQualifiers?.[event]) {
   const statements = truncateTerminalPaths(sourceStatements);
   const context = methodContext(ir, event, {statements: sourceStatements});
   context.screenStates = event === "at_selection_screen_output"
     ? { kind: "selection", table: "ct_states" }
     : storedScreenStates(screenStatePlan(ir).defaultKind);
-  if (event === "at_selection_screen_value_req") {
-    const f4Call = statements.find((statement) => statement.kind === "CallFunction" && /F4IF_INT_TABLE_VALUE_REQUEST/i.test(statement.text));
-    if (f4Call) {
-      const literalValues = statements
-        .flatMap((statement) => [...String(statement.text ?? "").matchAll(/\bcity\s*=\s*('(?:''|[^'])*')/gi)].map((match) => match[1]))
-        .filter((value, index, values) => values.indexOf(value) === index);
-      if (literalValues.length) {
-        return {
-          body: [`rt_values = VALUE #( ${literalValues.map((value) => `( sign = zif_gg_selection_screen_types=>sign_include option = zif_gg_selection_screen_types=>option_eq low = ${value} )`).join(" ")} ).`],
-          lowered: [],
-        };
-      }
-    }
-    const assignment = statements.find((statement) => statement.kind === "Move");
-    const match = assignment && /^([A-Z][A-Z0-9_]*)\s*=\s*(.+)\.$/i.exec(assignment.text.trim());
-    if (match) {
-      const value = match[2].trim();
-      return { body: [`rt_values = VALUE #( ( sign = zif_gg_selection_screen_types=>sign_include option = zif_gg_selection_screen_types=>option_eq low = ${value} ) ).`], lowered: [] };
-    }
-  }
   if (event === "at_selection_screen_help_req") {
     const write = statements.find((statement) => statement.kind === "Write");
     const match = write && /^WRITE\s+('(?:''|[^'])*')/i.exec(write.text.trim());
     if (match) return { body: [`rv_text = ${match[1]}.`], lowered: [] };
   }
   const lowered = lowerStatements(statements, context);
-  const transport = selectionStateTransport(ir, event);
+  // A value or help request without a block of its own needs no values.
+  const requestEvent = ["at_selection_screen_value_req", "at_selection_screen_help_req"].includes(event);
+  const transport = requestEvent && !statements.length ? { hydrate: [], flush: [] } : selectionStateTransport(ir, event);
   const fieldSymbols = globalFieldSymbolDeclarations(ir, statements);
   let body = [
     ...fieldSymbols,
     ...transport.hydrate,
     ...removePromotedDeclarations(ir, lowered.map((item) => item.text)),
     ...transport.flush,
+    ...(event === "at_selection_screen_value_req" ? valueRequestResult(ir, qualifier) : []),
   ];
   const hasWriter = body.some((line) => line.includes("lo_writer->"));
   if (hasWriter) body = addWriterDeclaration(body);
@@ -1131,7 +1134,7 @@ function reportMethods(ir) {
   const bodiesFor = (event) => {
     const blocks = ir.eventBlocks?.filter((block) => block.event === event) ?? [];
     if (!blocks.length) return eventBody(ir, event).body;
-    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements).body, block.qualifier));
+    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements, block.qualifier).body, block.qualifier));
   };
   for (const event of REPORT_METHODS) {
     if (event === "get_logical_database") {
@@ -1163,7 +1166,7 @@ function listMethods(ir) {
   const bodiesFor = (event) => {
     const blocks = ir.eventBlocks?.filter((block) => block.event === event) ?? [];
     if (!blocks.length) return eventBody(ir, event).body;
-    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements).body, block.qualifier));
+    return blocks.flatMap((block) => qualifierGuard(ir, event, eventBody(ir, event, block.statements, block.qualifier).body, block.qualifier));
   };
   for (const name of LIST_METHODS) {
     if (name === "get_settings") {

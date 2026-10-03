@@ -40,6 +40,12 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_event TYPE zif_gg_session_types_v1=>ty_event.
 
+    "! The function code of the selection screen's PAI, sy-ucomm and
+    "! sscrfields-ucomm in every AT SELECTION-SCREEN event.
+    METHODS set_selection_ucomm
+      IMPORTING
+        iv_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
+
     METHODS get_messages
       RETURNING
         VALUE(rt_messages) TYPE ty_messages.
@@ -110,6 +116,7 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mo_compatibility TYPE REF TO zif_gg_compatibility_v1.
     DATA mv_program   TYPE zif_gg_session_types_v1=>ty_program.
     DATA mv_event     TYPE zif_gg_session_types_v1=>ty_event.
+    DATA mv_selection_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
     DATA mv_batch     TYPE abap_bool.
     DATA mv_processor TYPE zif_gg_session_types_v1=>ty_processor.
     DATA mv_screen    TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
@@ -156,6 +163,10 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD set_event.
     mv_event = iv_event.
+  ENDMETHOD.
+
+  METHOD set_selection_ucomm.
+    mv_selection_ucomm = iv_ucomm.
   ENDMETHOD.
 
   METHOD get_messages.
@@ -262,6 +273,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     rs_context-selection-active = xsdbool(
       mv_processor = zif_gg_session_types_v1=>processor_selection ).
     rs_context-selection-screen = mv_screen.
+    rs_context-selection-ucomm = mv_selection_ucomm.
     IF rs_context-selection-screen IS INITIAL.
       rs_context-selection-screen = '1000'.
     ENDIF.

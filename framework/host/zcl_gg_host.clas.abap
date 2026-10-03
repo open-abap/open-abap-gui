@@ -276,6 +276,10 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         cs_result              TYPE ty_result.
 
+    CLASS-METHODS apply_selection_lists
+      CHANGING
+        ct_states TYPE zif_gg_selection_screen_types=>ty_states.
+
     CLASS-METHODS apply_action_receipt
       IMPORTING
         iv_receipt  TYPE string
@@ -335,6 +339,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         ct_values  = ct_values
         ct_states  = ct_states ).
 
+    io_session->set_selection_ucomm( iv_ucomm ).
     IF iv_ucomm <> 'ONLI'
         AND iv_ucomm <> 'ECAN'
         AND NOT line_exists( it_elements[ ucomm = iv_ucomm ] ).
@@ -437,6 +442,23 @@ CLASS zcl_gg_host IMPLEMENTATION.
         ct_values  = ct_values ).
   ENDMETHOD.
 
+  METHOD apply_selection_lists.
+    LOOP AT zcl_gg_host_compatibility=>get_selection_list_values( ) INTO DATA(ls_list).
+      READ TABLE ct_states ASSIGNING FIELD-SYMBOL(<ls_state>)
+        WITH KEY name = ls_list-id.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      CLEAR <ls_state>-fixed_values.
+      LOOP AT ls_list-values INTO DATA(ls_value).
+        APPEND VALUE #(
+          key  = CONV string( ls_value-key )
+          text = CONV string( ls_value-text ) )
+          TO <ls_state>-fixed_values.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD apply_action_receipt.
     " Action receipts are host chrome, not application effects. The report
     " must own any status or message returned after a dispatch.
@@ -464,7 +486,6 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lv_page_id TYPE string.
     DATA lv_display_screen TYPE zif_gg_selection_screen_types=>ty_screen_number.
     DATA lt_elements TYPE zcl_gg_host_screen=>ty_elements.
-    DATA lt_dynamic_lists TYPE zcl_gg_host_compatibility=>ty_selection_lists.
     DATA lv_stop_before_start TYPE abap_bool.
 
     lv_session_id = COND #( WHEN iv_session_id IS INITIAL
@@ -536,21 +557,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
             ct_radio_groups     = lt_radio_groups
             cs_result           = rs_result ).
 
-        lt_dynamic_lists = zcl_gg_host_compatibility=>get_selection_list_values( ).
-        LOOP AT lt_dynamic_lists INTO DATA(ls_dynamic_list).
-          READ TABLE lt_states ASSIGNING FIELD-SYMBOL(<ls_dynamic_state>)
-            WITH KEY name = ls_dynamic_list-id.
-          IF sy-subrc <> 0.
-            CONTINUE.
-          ENDIF.
-          CLEAR <ls_dynamic_state>-fixed_values.
-          LOOP AT ls_dynamic_list-values INTO DATA(ls_dynamic_value).
-            APPEND VALUE #(
-              key  = CONV string( ls_dynamic_value-key )
-              text = CONV string( ls_dynamic_value-text ) )
-              TO <ls_dynamic_state>-fixed_values.
-          ENDLOOP.
-        ENDLOOP.
+        apply_selection_lists( CHANGING ct_states = lt_states ).
 
         IF lv_stop_before_start = abap_false AND iv_ucomm <> 'ECAN'.
           validate_required(
@@ -589,6 +596,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
           io_session = lo_session ).
         lv_selection_screen_active = xsdbool(
           lx_flow->mv_kind = zcx_gg_control_flow=>kind_message ).
+* VRM_SET_VALUES lists outlive an error message in PAI, as SAP keeps them.
+        apply_selection_lists( CHANGING ct_states = lt_states ).
     ENDTRY.
 
     DATA(lv_paused) = xsdbool(
@@ -1024,12 +1033,21 @@ CLASS zcl_gg_host IMPLEMENTATION.
   METHOD run_value_request.
     DATA lt_requested_ranges TYPE zif_gg_selection_screen_types=>ty_ranges.
 
+    DATA(lo_compatibility) = io_session->zif_gg_session_v1~get_compatibility( ).
+    lo_compatibility->clear_value_help_values( ).
     io_session->set_event( 'AT SELECTION-SCREEN ON VALUE-REQUEST' ).
     lt_requested_ranges = io_report->at_selection_screen_value_req(
       iv_screen  = iv_screen
       iv_name    = iv_name
       it_values  = ct_values
       io_session = io_session ).
+* F4IF_INT_TABLE_VALUE_REQUEST in the event offers its value table, as the
+* value help dialog would.
+    IF lt_requested_ranges IS INITIAL.
+      LOOP AT lo_compatibility->get_value_help_values( ) INTO DATA(ls_offered).
+        APPEND VALUE #( sign = 'I' option = 'EQ' low = ls_offered-value ) TO lt_requested_ranges.
+      ENDLOOP.
+    ENDIF.
     IF line_exists( ct_values[ name = iv_name ] ) AND lt_requested_ranges IS NOT INITIAL.
       ct_values[ name = iv_name ]-ranges = lt_requested_ranges.
     ELSEIF line_exists( ct_values[ name = iv_name ] ) AND lt_requested_ranges IS INITIAL.

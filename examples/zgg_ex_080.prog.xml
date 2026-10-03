@@ -11,6 +11,17 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Selection validation order</ENTRY>
+     <LENGTH>26</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>001</KEY>
+     <ENTRY>Validation</ENTRY>
+     <LENGTH>10</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_FLD</KEY>
      <ENTRY>Field</ENTRY>
@@ -18,15 +29,27 @@
     </item>
     <item>
      <ID>S</ID>
-     <KEY>S_END</KEY>
-     <ENTRY>End range</ENTRY>
-     <LENGTH>9</LENGTH>
+     <KEY>P_RAD1</KEY>
+     <ENTRY>First option</ENTRY>
+     <LENGTH>12</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_RAD2</KEY>
+     <ENTRY>Second option</ENTRY>
+     <LENGTH>13</LENGTH>
     </item>
     <item>
      <ID>S</ID>
      <KEY>P_REQ</KEY>
      <ENTRY>Required value</ENTRY>
      <LENGTH>14</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>S_END</KEY>
+     <ENTRY>End range</ENTRY>
+     <LENGTH>9</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

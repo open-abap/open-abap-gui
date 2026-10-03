@@ -11,6 +11,17 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Selection-screen pushbutton workflow</ENTRY>
+     <LENGTH>36</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>001</KEY>
+     <ENTRY>Derive</ENTRY>
+     <LENGTH>6</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_DER</KEY>
      <ENTRY>Derived value</ENTRY>
