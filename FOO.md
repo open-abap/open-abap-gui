@@ -197,10 +197,3 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   class of `io_owner`, not of the attribute's declared type. The converter
   works around it in helper classes by naming the type
   (`CREATE OBJECT io_owner->go_tree TYPE cl_gui_list_tree ...`).
-
-## abaplint
-
-- `MODIFY LINE n LINE FORMAT INVERSE ON` does not parse (`INVERSE` without
-  `ON` does).
-- `USER-COMMAND` together with any `LENGTH` addition is rejected
-  (`PARAMETERS p TYPE c LENGTH 2 AS LISTBOX ... USER-COMMAND x`).
