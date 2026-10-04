@@ -68,6 +68,12 @@ CLASS cl_gui_html_viewer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cnht_error_parameter
         dp_error_general.
 
+  PROTECTED SECTION.
+* An anchor with the sapevent scheme posts SAPEVENT with what follows the
+* scheme; the part after ? is the getdata of the event.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
+
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_history,
              url         TYPE string,
@@ -92,8 +98,30 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
 * sapevent is the only event this control raises, so registering events on it
 * means the loaded document wants its sapevent anchors dispatched. The generic
 * events table of the base class is not inspected any further.
+    super->set_registered_events( events ).
     cl_gui_control=>set_sapevent( control    = me
                                   registered = abap_true ).
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    DATA lv_action TYPE string.
+    DATA lv_getdata TYPE string.
+
+    IF event <> 'SAPEVENT'
+        OR NOT line_exists( mt_frontend_events[ eventid = m_id_sapevent ] ).
+      RETURN.
+    ENDIF.
+    SPLIT concat_lines_of( table = params
+                           sep   = `|` ) AT '?' INTO lv_action lv_getdata.
+    RAISE EVENT sapevent
+      EXPORTING
+        action  = lv_action
+        getdata = lv_getdata.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+    READ TABLE mt_frontend_events INTO DATA(ls_event) WITH KEY eventid = m_id_sapevent.
+    result = xsdbool( sy-subrc = 0 AND ls_event-appl_event = abap_true ).
   ENDMETHOD.
 
   METHOD set_ui_flag.

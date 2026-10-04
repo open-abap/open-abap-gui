@@ -1835,7 +1835,9 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
   }
   const dispatch = (direction) => {
     const modules = ir.modules.filter((item) => item.direction === direction);
-    if (!modules.length) return ["RETURN."];
+    // A screen without modules of this direction has nothing to dispatch; a
+    // RETURN here would skip writing the values back.
+    if (!modules.length) return [];
     const lines = ["CASE is_context-module."];
     for (const module of modules) {
       const context = {
@@ -2159,7 +2161,32 @@ function withImportingParameters(definition, parameters) {
   // Insert after the last code ahead of that keyword, not into a " comment.
   const at = masked.slice(0, next ? from + next.index : masked.length).trimEnd().length;
   if (!importing) return `${text.slice(0, at)}\n      IMPORTING\n        ${parameters}${text.slice(at)}.`;
-  return `${text.slice(0, at)}\n        ${parameters}${text.slice(at)}.`;
+  return alignImporting(`${text.slice(0, at)}\n        ${parameters}${text.slice(at)}.`);
+}
+
+// A definition written on one line, METHODS m IMPORTING p TYPE t, gets its
+// parameters below IMPORTING, one per line with aligned types, as the lint
+// rules ask once more parameters follow.
+function alignImporting(definition) {
+  const lines = definition.split("\n");
+  const at = lines.findIndex((line) => /\bIMPORTING\b/i.test(line));
+  if (at < 0) return definition;
+  const sameLine = /^(\s*)(.*?)\s*\bIMPORTING\s+(\S.*)$/i.exec(lines[at]);
+  if (sameLine) {
+    const head = sameLine[2] ? [`${sameLine[1]}${sameLine[2]}`] : [];
+    lines.splice(at, 1, ...head, "      IMPORTING", `        ${sameLine[3]}`);
+  }
+  const start = lines.findIndex((line) => /^\s*IMPORTING\s*$/i.test(line));
+  if (start < 0) return lines.join("\n");
+  let end = start + 1;
+  while (end < lines.length && !/^\s*(?:EXPORTING|CHANGING|RETURNING|RAISING|EXCEPTIONS)\b/i.test(lines[end])) end++;
+  const parameters = lines.slice(start + 1, end).map((line) => /^\s*(\S+)\s+(TYPE\b.*)$/i.exec(line));
+  if (!parameters.length || parameters.some((match) => !match)) return lines.join("\n");
+  const width = Math.max(...parameters.map((match) => match[1].length));
+  parameters.forEach((match, index) => {
+    lines[start + 1 + index] = `        ${match[1].padEnd(width, " ")} ${match[2]}`;
+  });
+  return lines.join("\n");
 }
 
 function helperSource(ir, options, localClass) {

@@ -39,9 +39,6 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   dynpro programs, the programs define no screens. zcl_gg_rich_dynpro_base
   (100) derived P_OUTPUT in PBO and relied on PBO not following PAI; its PBO
   now keeps an output PAI set.
-- **151–159** have hand-written classes but no program. They still use
-  zcl_gg_host_surface (zcl_gg_plan9_examples_base), an invented surface
-  renderer the generated examples no longer need.
 - **019, 020, 032, 058** pass converter parity only because
   behavioral-generated.mjs injects metadata the repo lacks (fixed values,
   DDIC, dynpro screens).
@@ -56,6 +53,11 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   unsupported.
 - `DECIMALS 0` is not distinguishable from no `DECIMALS` in
   `ty_write_format`.
+- Fixed with 151–159: a screen without PBO (or PAI) modules got a `RETURN`
+  before the values were written back (unreachable code); a static method of
+  a local class defined on one line (`CLASS-METHODS m IMPORTING p TYPE t`) got
+  the owner and session parameters unaligned, and a positional argument to it
+  became an upper case named one (`IV_HTML = ...`).
 - A continuation whose tail contains `LIST_FROM_MEMORY` replaces the
   program's code with its own "write every memory line" body
   (class-source.mjs, resume dispatcher). The `LIST_FROM_MEMORY` lowering also
@@ -112,9 +114,16 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   without `inttype` printed dates raw; `toolbar` was never raised, so
   application toolbar buttons did not exist; `check_changed_data` did
   nothing.
+- ALV grid, layouts (zgg_ex_157): Change layout (`&COL0`), Choose layout
+  (`&LOAD`) and Save layout (`&SAVE`) are dialogs of the grid; a layout holds
+  the visible columns in order and the sort, is kept in cl_alv_variant for the
+  lifetime of the server (no database), and the default layout of the
+  report/handle starts the grid. `i_save` takes A/U/X as on SAP. Open: Manage
+  layouts (`&MAINTAIN`), user-specific versus global layouts (the `/` prefix
+  and `i_save` U/X are not enforced), column order changes in the dialog.
 - ALV grid, open: standard functions other than select all, deselect all,
-  append row and delete rows do nothing (sort, filter, find, sum, print,
-  export, layout and variant dialogs); the row selector is a "Select"
+  append row, delete rows and the layouts do nothing (sort, filter, find,
+  sum, print, export); the row selector is a "Select"
   checkbox column; the error log of `data_changed` shows `msgv1`..`msgv4`
   only (no message class lookup) and does not mark the bad cells; `onf4`,
   `menu_button`, `context_menu_request` and drag and drop are not raised.
@@ -135,6 +144,18 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   named `NODE` instead of the hierarchy column (column tree) or the first item
   (list tree); `cl_gui_alv_tree->add_node` kept a reference to the caller's
   variable, so every node showed the last line.
+- Drag and drop (zgg_ex_153): a tree node with a `DRAGDROPID` and a grid with
+  `s_dragdrop-row_ddid`/`grid_ddid`/`cntr_ddid` are HTML5 drag sources and
+  drop targets; a drop raises `on_drag` of the simple tree, `ondrop` of the
+  grid and `on_drop_complete`, in SAP's order. Open: no keyboard alternative;
+  only the simple tree drags and only the grid takes drops (no grid drag
+  source, no tree drop target, no `on_drop_get_flavor`); the effect (copy or
+  move) is not shown while dragging.
+- Hierarchical-sequential SALV (zgg_ex_158) is one list now, each header line
+  followed by its items, with the totals of the aggregated item columns;
+  before, it showed two separate tables with invented headings and summed
+  columns by their names. Open: expanding or collapsing a header line in the
+  browser.
 - Trees, open: a list tree does not show its `hierarchy_header`; items of
   class checkbox, button and link are not interactive and raise no item
   events; node images (`n_image`) are not shown in simple and list trees.
@@ -146,7 +167,8 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 ## Host
 
-- **Control Framework events, done for the grid, toolbar and trees.** A
+- **Control Framework events, done for the grid, toolbar, trees, timer,
+  dialog box, calendar, HTML viewer and drag and drop.** A
   control's submit element posts `gg_control_event=<control id>|<event>|...`
   and its fields `gg-ctl:<control id>:<key>` (selection, edited cells) on
   every round trip. Before PAI, cl_gui_cfw hands the values to the controls
@@ -157,10 +179,36 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   row selection, edited cells with `data_changed`), cl_gui_toolbar
   (`function_selected`, static menus), simple/list/column trees (expand with
   `expand_no_children`, `selection_changed`, `node_double_click`).
-- **Still not routed:** `SAPEVENT` links of the HTML viewer (128),
-  `date_selected` of the calendar (126), `clicked` of a dynamic-document link
-  (130), item events of list and column trees; the ALV tree keeps its own
-  `TREE_EVENT` transport and the invented OK code `GG_TREE_EVENT`.
+  Added with 151–159: `cl_gui_timer` counts its `interval` (seconds) down in
+  the browser and raises `finished` (system event) once per `run`; the close
+  button of a `cl_gui_dialogbox_container` raises `close`, and the dialog box
+  sits at its `left`/`top` with its caption (it showed an invented title at a
+  fixed position, and nothing in it could be clicked); a day of
+  `cl_gui_calendar` raises `date_selected` with the day, week or month of the
+  selection style; a `SAPEVENT:` anchor (any case) raises `sapevent` of its
+  HTML viewer with `action` and `getdata` (it was posted as a function code).
+- **Still not routed:** `clicked` of a dynamic-document link (130), item
+  events of list and column trees; the ALV tree keeps its own `TREE_EVENT`
+  transport and the invented OK code `GG_TREE_EVENT`.
+- Popups, fixed: the answer of a popup replayed PAI with the popup kind as
+  function code (`VALUE`, `TABLE`), not the function code that called it; the
+  popup markup closed one `</div>` too many, so the screen behind it lost its
+  form; the table popup added a "Select row n" button per line and a Row
+  column; `POPUP_GET_VALUES` cancelled with returncode 1 instead of `A`.
+- Frontend services (zgg_ex_154): `file_save_dialog`/`file_open_dialog` are
+  popups of the screen, `gui_download` hands the file to the browser with the
+  page, `gui_upload` reads the bytes picked in the open dialog. Only in dialog
+  processing; elsewhere they raise `not_supported_by_gui` (or cancel). Open:
+  clipboard, `execute`, directories, registry and the other methods are still
+  stubs.
+- A request from a page that is no longer current gets the raw JSON
+  `{"valid":false,"error":"Stale host page"}` as the page. The timer page
+  drops a second submit once one is under way (a Stop click meeting the
+  timer's round trip), but double clicks and two tabs still hit it.
+- A dynpro module's `sy-repid` was empty; the dynpro session now knows its
+  program.
+- An initial date screen field showed `00.00.0000`; it is blank, as in SAP
+  GUI.
 - **Text typed into a `cl_gui_textedit` is not transported back** to the
   control: `get_textstream` in PAI returns the program's last text, not the
   user's (zgg_ex_133, 134). An editor is display-only. The new `gg-ctl:`

@@ -64,8 +64,8 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         IMPORTING
           bin_filesize              TYPE i OPTIONAL
           filename                  TYPE string
-          filetype                  TYPE clike OPTIONAL
-          write_lf                  TYPE abap_bool OPTIONAL
+          filetype                  TYPE clike DEFAULT 'ASC'
+          write_lf                  TYPE abap_bool DEFAULT abap_true
           write_field_separator     TYPE char1 OPTIONAL
           show_transfer_status      TYPE char1 OPTIONAL
           codepage                  TYPE abap_encoding OPTIONAL
@@ -74,8 +74,34 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           trunc_trailing_blanks_eol TYPE abap_bool OPTIONAL
           append                    TYPE abap_bool OPTIONAL
           no_auth_check             TYPE abap_bool OPTIONAL
+        EXPORTING
+          filelength                TYPE i
         CHANGING
-          data_tab                  TYPE any.
+          data_tab                  TYPE STANDARD TABLE
+        EXCEPTIONS
+          file_write_error
+          no_batch
+          gui_refuse_filetransfer
+          invalid_type
+          no_authority
+          unknown_error
+          header_not_allowed
+          separator_not_allowed
+          filesize_not_allowed
+          header_too_long
+          dp_error_create
+          dp_error_send
+          dp_error_write
+          unknown_dp_error
+          access_denied
+          dp_out_of_memory
+          disk_full
+          dp_timeout
+          file_not_found
+          dataprovider_exception
+          control_flush_error
+          not_supported_by_gui
+          error_no_gui.
 
     CLASS-METHODS file_exist
       IMPORTING
@@ -110,15 +136,34 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
       gui_upload
         IMPORTING
           filename            TYPE string
-          filetype            TYPE char10 OPTIONAL
+          filetype            TYPE char10 DEFAULT 'ASC'
           codepage            TYPE abap_encoding DEFAULT space
           has_field_separator TYPE abap_bool OPTIONAL
-          read_by_line        TYPE abap_bool OPTIONAL
+          read_by_line        TYPE abap_bool DEFAULT abap_true
         EXPORTING
           filelength          TYPE i
           header              TYPE xstring
         CHANGING
-          data_tab            TYPE any.
+          data_tab            TYPE STANDARD TABLE
+        EXCEPTIONS
+          file_open_error
+          file_read_error
+          no_batch
+          gui_refuse_filetransfer
+          invalid_type
+          no_authority
+          unknown_error
+          bad_data_format
+          header_not_allowed
+          separator_not_allowed
+          header_too_long
+          unknown_dp_error
+          access_denied
+          dp_out_of_memory
+          disk_full
+          dp_timeout
+          not_supported_by_gui
+          error_no_gui.
 
     CLASS-METHODS
       file_open_dialog
@@ -132,7 +177,12 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         CHANGING
           file_table        TYPE filetable
           rc                TYPE i
-          user_action       TYPE i OPTIONAL.
+          user_action       TYPE i OPTIONAL
+        EXCEPTIONS
+          file_open_dialog_failed
+          cntl_error
+          error_no_gui
+          not_supported_by_gui.
 
     CLASS-METHODS
       get_platform
@@ -152,7 +202,12 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           filename            TYPE string
           path                TYPE string
           fullpath            TYPE string
-          user_action         TYPE i OPTIONAL.
+          user_action         TYPE i OPTIONAL
+        EXCEPTIONS
+          cntl_error
+          error_no_gui
+          not_supported_by_gui
+          invalid_default_file_name.
 
     CLASS-METHODS
       directory_browse
@@ -299,6 +354,21 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         gui_upload_download_path
         upload_download_path_failed.
 
+  PRIVATE SECTION.
+* A browser saves a download under the last segment of the path only.
+    CLASS-METHODS file_name_only
+      IMPORTING
+        iv_path        TYPE string
+      RETURNING
+        VALUE(rv_name) TYPE string.
+
+    CLASS-METHODS line_text
+      IMPORTING
+        is_line        TYPE any
+        iv_separator   TYPE abap_bool
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
 ENDCLASS.
 
 CLASS cl_gui_frontend_services IMPLEMENTATION.
@@ -383,7 +453,63 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD gui_download.
-    CLEAR data_tab.
+    FIELD-SYMBOLS <lv_line> TYPE any.
+    DATA lv_text TYPE string.
+    DATA lv_content TYPE xstring.
+
+    DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
+    IF lo_host IS NOT BOUND.
+      RAISE not_supported_by_gui.
+    ENDIF.
+    IF to_upper( filetype ) = 'BIN'.
+      LOOP AT data_tab ASSIGNING <lv_line>.
+        CONCATENATE lv_content <lv_line> INTO lv_content IN BYTE MODE.
+      ENDLOOP.
+      IF bin_filesize > 0 AND bin_filesize < xstrlen( lv_content ).
+        lv_content = lv_content(bin_filesize).
+      ENDIF.
+    ELSE.
+      LOOP AT data_tab ASSIGNING <lv_line>.
+        lv_text = lv_text && line_text( is_line      = <lv_line>
+                                        iv_separator = xsdbool( write_field_separator IS NOT INITIAL ) ).
+        IF write_lf = abap_true.
+          lv_text = lv_text && cl_abap_char_utilities=>cr_lf.
+        ENDIF.
+      ENDLOOP.
+      lv_content = cl_abap_codepage=>convert_to( lv_text ).
+    ENDIF.
+    lo_host->add_download( iv_filename = file_name_only( filename )
+                           iv_content  = lv_content ).
+    filelength = xstrlen( lv_content ).
+  ENDMETHOD.
+
+  METHOD file_name_only.
+    DATA lt_parts TYPE string_table.
+
+    SPLIT replace( val  = iv_path
+                   sub  = `\`
+                   with = `/`
+                   occ  = 0 ) AT '/' INTO TABLE lt_parts.
+    rv_name = VALUE #( lt_parts[ lines( lt_parts ) ] OPTIONAL ).
+  ENDMETHOD.
+
+  METHOD line_text.
+    FIELD-SYMBOLS <lv_component> TYPE any.
+
+    IF cl_abap_typedescr=>describe_by_data( is_line )->kind <> cl_abap_typedescr=>kind_struct.
+      rv_text = is_line.
+      RETURN.
+    ENDIF.
+    DO.
+      ASSIGN COMPONENT sy-index OF STRUCTURE is_line TO <lv_component>.
+      IF sy-subrc <> 0.
+        EXIT.
+      ENDIF.
+      IF sy-index > 1 AND iv_separator = abap_true.
+        rv_text = rv_text && cl_abap_char_utilities=>horizontal_tab.
+      ENDIF.
+      rv_text = rv_text && condense( CONV string( <lv_component> ) ).
+    ENDDO.
   ENDMETHOD.
 
   METHOD get_file_separator.
@@ -399,22 +525,94 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD gui_upload.
-    CLEAR data_tab.
-    CLEAR filelength.
+    FIELD-SYMBOLS <lv_line> TYPE any.
+    FIELD-SYMBOLS <lv_component> TYPE any.
+    DATA lt_lines TYPE string_table.
+    DATA lt_fields TYPE string_table.
+    DATA lv_length TYPE i.
+    DATA lv_offset TYPE i.
+
+    DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
+    IF lo_host IS NOT BOUND.
+      RAISE not_supported_by_gui.
+    ENDIF.
+    DATA(lv_content) = lo_host->uploaded_file( filename ).
+    IF lv_content IS INITIAL.
+      RAISE file_open_error.
+    ENDIF.
+    filelength = xstrlen( lv_content ).
     CLEAR header.
+    IF to_upper( filetype ) = 'BIN'.
+      WHILE lv_offset < filelength.
+        APPEND INITIAL LINE TO data_tab ASSIGNING <lv_line>.
+        DESCRIBE FIELD <lv_line> LENGTH lv_length IN BYTE MODE.
+        lv_length = nmin( val1 = lv_length
+                          val2 = filelength - lv_offset ).
+        <lv_line> = lv_content+lv_offset(lv_length).
+        lv_offset = lv_offset + lv_length.
+      ENDWHILE.
+      RETURN.
+    ENDIF.
+    SPLIT replace( val  = cl_abap_codepage=>convert_from( lv_content )
+                   sub  = cl_abap_char_utilities=>cr_lf
+                   with = cl_abap_char_utilities=>newline
+                   occ  = 0 ) AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
+* A last line break ends the last line, it does not start an empty one.
+    IF lt_lines IS NOT INITIAL AND lt_lines[ lines( lt_lines ) ] IS INITIAL.
+      DELETE lt_lines INDEX lines( lt_lines ).
+    ENDIF.
+    LOOP AT lt_lines INTO DATA(lv_text).
+      APPEND INITIAL LINE TO data_tab ASSIGNING <lv_line>.
+      IF has_field_separator = abap_true
+          AND cl_abap_typedescr=>describe_by_data( <lv_line> )->kind = cl_abap_typedescr=>kind_struct.
+        SPLIT lv_text AT cl_abap_char_utilities=>horizontal_tab INTO TABLE lt_fields.
+        LOOP AT lt_fields INTO DATA(lv_field).
+          ASSIGN COMPONENT sy-tabix OF STRUCTURE <lv_line> TO <lv_component>.
+          IF sy-subrc = 0.
+            <lv_component> = lv_field.
+          ENDIF.
+        ENDLOOP.
+      ELSE.
+        <lv_line> = lv_text.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD file_open_dialog.
-    CLEAR file_table.
-    rc = action_cancel.
+    DATA lv_filename TYPE string.
+
+    CLEAR: file_table, rc.
     user_action = action_cancel.
+    DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
+    IF lo_host IS BOUND.
+      lv_filename = lo_host->file_dialog( iv_kind         = 'FILE_OPEN'
+                                          iv_title        = window_title
+                                          iv_default_name = default_filename ).
+    ENDIF.
+    IF lv_filename IS NOT INITIAL.
+      APPEND VALUE #( filename = lv_filename ) TO file_table.
+      rc = 1.
+      user_action = action_ok.
+    ENDIF.
   ENDMETHOD.
 
   METHOD file_save_dialog.
-    CLEAR filename.
-    CLEAR path.
-    CLEAR fullpath.
+    CLEAR: filename, path, fullpath.
     user_action = action_cancel.
+    DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
+    IF lo_host IS BOUND.
+      filename = lo_host->file_dialog( iv_kind         = 'FILE_SAVE'
+                                       iv_title        = window_title
+                                       iv_default_name = default_file_name ).
+    ENDIF.
+    IF filename IS INITIAL.
+      RETURN.
+    ENDIF.
+    IF default_extension IS NOT INITIAL AND filename NS '.'.
+      filename = |{ filename }.{ default_extension }|.
+    ENDIF.
+    fullpath = filename.
+    user_action = action_ok.
   ENDMETHOD.
 
   METHOD get_platform.

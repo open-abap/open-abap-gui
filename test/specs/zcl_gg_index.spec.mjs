@@ -165,10 +165,10 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
     "Analytics cockpit",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_151"})).toContainText(
-    "Full-screen HTML viewer shell",
+    "HTML viewer with SAPEVENT",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_152"})).toContainText(
-    "Timer lifecycle",
+    "Timer",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_159"})).toContainText(
     "Multi-month calendar",

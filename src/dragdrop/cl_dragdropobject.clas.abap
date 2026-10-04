@@ -1,4 +1,4 @@
-CLASS cl_dragdropobject DEFINITION PUBLIC.
+CLASS cl_dragdropobject DEFINITION PUBLIC FRIENDS cl_gui_control.
   PUBLIC SECTION.
     DATA object TYPE REF TO object.
     DATA effect TYPE i.

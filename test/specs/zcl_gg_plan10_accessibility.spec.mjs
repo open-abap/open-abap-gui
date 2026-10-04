@@ -60,15 +60,16 @@ test("PLAN10 - representative renderers remain usable at narrow and reference wi
 test("PLAN10 - high zoom, forced colors, and reduced motion preserve names and keyboard input", async ({page, host}) => {
   await page.setViewportSize({width: 1299, height: 1009});
   await page.emulateMedia({forcedColors: "active", reducedMotion: "reduce"});
-  await openExample(page, host, 152);
+  await openExample(page, host, 155);
   await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
 
-  const start = page.getByRole("button", {name: "Start timer"});
-  await expect(start).toBeVisible();
-  await start.focus();
+  const open = page.getByRole("button", {name: "Open dialog"});
+  await expect(open).toBeVisible();
+  await open.focus();
   await page.keyboard.press("Enter");
   await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-status")).toHaveText("TIMER RUNNING");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Dialog box open");
+  await expect(page.getByRole("dialog", {name: "Flight notes"})).toBeVisible();
   await expect(await visibleUnnamedControls(page), "Zoomed forced-colors page has an unnamed control").toEqual([]);
-  await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "LIST");
+  await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "DYNPRO");
 });

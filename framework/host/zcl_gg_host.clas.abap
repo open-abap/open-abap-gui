@@ -572,7 +572,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       THEN |{ lv_session_id }-1| ELSE iv_page_id ).
     lv_display_screen = iv_selection_screen.
     cl_gui_control=>clear( ).
-    zcl_gg_host_surface=>clear( ).
+    cl_gui_control=>clear_external_html( ).
 
     lo_list   = NEW zcl_gg_host_list( ).
     lo_screen = NEW zcl_gg_host_screen( ).

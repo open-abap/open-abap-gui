@@ -492,7 +492,7 @@ test("keeps the event signature of a static event handler and binds owner and se
   assert.match(helper, /CLASS-DATA go_session TYPE REF TO zif_gg_session_v1\./);
   // Other static methods keep the bridge parameters, and calls to them pass the stored pair.
   assert.match(flat(helper), /CLASS-METHODS add IMPORTING iv_value TYPE i io_owner TYPE REF TO zcl_evt io_session TYPE REF TO zif_gg_session_v1\./);
-  assert.match(flat(helper), / add\( io_owner = go_owner io_session = go_session IV_VALUE = 1 \)\./);
+  assert.match(flat(helper), / add\( io_owner = go_owner io_session = go_session iv_value = 1 \)\./);
   assert.match(helper, /go_session->message\(/);
   assert.match(result.classSource, /zcl_evt_h1=>go_owner = me\.\s+zcl_evt_h1=>go_session = io_session\.\s+SET HANDLER zcl_evt_h1=>handle_toolbar FOR go_grid\./);
 });
@@ -2515,7 +2515,7 @@ test("passes the owner and session to every local static method call", async () 
   const statics = "io_owner = io_owner io_session = io_session";
   assert.ok(helper.includes(`DATA(lv_count) = count( ${statics} ).`), helper);
   assert.ok(helper.includes(`IF count( ${statics} ) > 1.`), helper);
-  assert.ok(helper.includes(`add( ${statics} IV_VALUE = count( ${statics} ) ).`), helper);
+  assert.ok(helper.includes(`add( ${statics} iv_value = count( ${statics} ) ).`), helper);
   assert.ok(helper.includes(`add( EXPORTING ${statics} iv_value = 2 ).`), helper);
   assert.ok(helper.includes(`DATA(lv_text) = |count( { count( ${statics} ) }|.`), helper);
   const instance = "io_owner = mo_owner io_session = mo_session";

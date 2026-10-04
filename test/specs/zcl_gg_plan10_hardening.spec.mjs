@@ -44,16 +44,19 @@ test("PLAN10 - rejects forged commands, rows, paths, and node-like identifiers",
 });
 
 test("PLAN10 - keeps URL and upload metadata browser-owned", async ({page, host}) => {
+  // An upload hands the program the bytes the user picked; no path of the
+  // file name reaches anything on the server.
   await openExample(page, host, 154);
-  await page.locator('[name="UPLOAD_FILE"]').setInputFiles({
+  await page.getByRole("button", {name: "Upload file"}).click();
+  await page.waitForLoadState("load");
+  await page.getByRole("dialog", {name: "Upload text file"}).getByLabel("File").setInputFiles({
     name: "../../outside.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("browser-owned fixture"),
   });
-  await page.getByRole("button", {name: "Inspect upload"}).click();
+  await page.getByRole("button", {name: "Open"}).click();
   await page.waitForLoadState("load");
-  await expect(page.locator("body")).toContainText("Upload metadata inspected");
-  await expect(page.locator("body")).not.toContainText("uploaded to server");
+  await expect(page.locator("#gg-dynpro-control-n-GV_FIRST_LINE")).toHaveText("browser-owned fixture");
 
   const unsafeLinks = await page.locator("a[href], iframe[src]").evaluateAll((elements) => elements
     .map((element) => element.getAttribute("href") || element.getAttribute("src") || "")

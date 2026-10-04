@@ -20,7 +20,6 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS html_alv_structured_rows FOR TESTING.
     METHODS html_alv_formatting FOR TESTING.
     METHODS control_capability_boundary FOR TESTING.
-    METHODS html_typed_surface FOR TESTING.
     METHODS html_viewer_sapevent FOR TESTING.
     METHODS html_viewer_without_sapevent FOR TESTING.
 
@@ -430,7 +429,8 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>2027/1</th>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>MO</th>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>SU</th>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-date="20260824" aria-selected="true"' ) ).
+* The focus date decides what is shown; it is no selection.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-date="20260824" aria-selected="false"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'type="date"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-date-range="/"' ) ).
     FIND FIRST OCCURRENCE OF '>2026/4</th>' IN lv_html MATCH OFFSET lv_april_offset.
@@ -462,7 +462,8 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       exp = 1
       act = lv_textedit_count ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-dialog-title">SAP GUI modeless control dialog</header>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-dialog-title"><span>SAP GUI modeless control dialog</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |value="{ lo_dialog->control_id }\|CLOSE"| ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-dialog-body"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-dialog-width="600"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-dialog-height="320"' ) ).
@@ -800,84 +801,6 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_gui_control=>clear( ).
   ENDMETHOD.
 
-  METHOD html_typed_surface.
-    cl_gui_control=>clear( ).
-    zcl_gg_host_surface=>clear( ).
-    zcl_gg_host_surface=>set_surface( VALUE #(
-      kind       = zcl_gg_host_surface=>surface_document
-      aria_label = `Typed <surface>`
-      title      = `"><script>alert(1)</script>`
-      text       = `A & B`
-      link_label = 'Unsafe link'
-      link_href  = `javascript:alert(1)`
-      actions    = VALUE #( ( transport = zcl_gg_host_surface=>surface_action_ucomm
-                               value    = `SAVE" onclick="alert(1)`
-                               label    = `Save & go` ) ) ) ).
-    zcl_gg_host_surface=>set_surface( VALUE #(
-      kind          = zcl_gg_host_surface=>surface_table
-      aria_label    = `<typed-table>`
-      table_caption = `<typed-caption>`
-      columns       = VALUE #( ( `<typed-column>` ) )
-      rows          = VALUE #( ( cell1 = `<typed-cell>` cell2 = `&typed-value`
-                                 cell3 = `"` row_header = abap_true ) )
-      text          = `<typed-text>`
-      criteria      = `<typed-criteria>`
-      input_label   = `<typed-input-label>`
-      input_name    = `"><typed-input-name`
-      input_value   = `<typed-input-value>`
-      token_label   = `<typed-token-label>`
-      token_value   = `"><typed-token`
-      data_value    = `<typed-aggregate>`
-      actions       = VALUE #( ( value = `"><script>alert(1)</script>`
-                                 label = `<typed-action>` ) ) ) ).
-    zcl_gg_host_surface=>set_surface( VALUE #(
-      kind        = zcl_gg_host_surface=>surface_tree
-      aria_label  = `<typed-tree>`
-      nodes       = VALUE #( ( text = `<typed-node>` node_key = `"><typed-key>`
-                              level = 1 expanded = abap_true ) )
-      token_label = `<typed-tree-token-label>`
-      token_value = `<typed-tree-token>` ) ).
-    zcl_gg_host_surface=>set_surface( VALUE #(
-      kind       = zcl_gg_host_surface=>surface_chart
-      aria_label = `<typed-chart>`
-      title      = `<typed-chart-title>`
-      columns    = VALUE #( ( `<typed-chart-column>` ) )
-      rows       = VALUE #( ( cell1 = `<typed-chart-cell>` ) )
-      payload    = `<typed-chart-payload>` ) ).
-    zcl_gg_host_surface=>set_surface( VALUE #(
-      kind       = zcl_gg_host_surface=>surface_alert
-      control_id = `"><typed-control`
-      text       = `<typed-alert>` ) ).
-    zcl_gg_host_surface=>set_surface( VALUE #(
-      kind = zcl_gg_host_surface=>surface_caption
-      text = `<typed-caption-text>` ) ).
-    zcl_gg_host_surface=>set_surface( VALUE #(
-      kind       = zcl_gg_host_surface=>surface_cockpit
-      aria_label = `<typed-cockpit>`
-      title      = `<typed-cockpit-title>`
-      text       = `<typed-cockpit-text>`
-      data_value = `<typed-cockpit-filter>`
-      payload    = `<typed-cockpit-payload>` ) ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
-
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;script&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'A &amp; B' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Save &amp; go' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-table&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-column&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-cell&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-node&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-key&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-chart-payload&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;typed-control' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'javascript:alert' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'onclick="' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'onerror=' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<script>alert(1)</script>' ) ).
-    cl_gui_control=>clear( ).
-    zcl_gg_host_surface=>clear( ).
-  ENDMETHOD.
-
   METHOD viewer_html.
     DATA lt_events TYPE cntl_simple_events.
     DATA lt_document TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
@@ -896,9 +819,8 @@ CLASS ltcl_test IMPLEMENTATION.
     IF iv_transport = abap_true.
       ls_sapevent = VALUE #(
         url          = '/dispatch'
-        action_field = 'ucomm'
-        fields       = VALUE #( ( name = 'session_id' value = 'HOST-1' )
-                                ( name = 'action' value = 'COMMAND' ) ) ).
+        action_field = 'gg_control_event'
+        fields       = VALUE #( ( name = 'session_id' value = 'HOST-1' ) ) ).
     ENDIF.
     rv_html = cl_gui_control=>render_html( iv_document = abap_false
                                            is_sapevent = ls_sapevent ).
@@ -909,7 +831,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA(lv_html) = viewer_html(
       iv_register  = abap_true
       iv_transport = abap_true
-      iv_document  = '<p><a class="keep" href="sapevent:STAGE" title="t">Stage &amp; go</a>' &&
+      iv_document  = '<p><a class="keep" href="SAPEVENT:STAGE" title="t">Stage &amp; go</a>' &&
                      '<a href="/manual">plain</a></p>' ).
 
 * The document reaches the browser through srcdoc, so the whole rewritten
@@ -920,10 +842,10 @@ CLASS ltcl_test IMPLEMENTATION.
       '&lt;form class=&quot;gg-sapevent&quot; method=&quot;post&quot; action=&quot;/dispatch&quot; target=&quot;_top&quot;&gt;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
       'name=&quot;session_id&quot; value=&quot;HOST-1&quot;' ) ).
+* The anchor posts the SAPEVENT event of its viewer, whatever case the scheme
+* is written in.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
-      'name=&quot;action&quot; value=&quot;COMMAND&quot;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
-      '&lt;button type=&quot;submit&quot; name=&quot;ucomm&quot; value=&quot;STAGE&quot;' ) ).
+      '&lt;button type=&quot;submit&quot; name=&quot;gg_control_event&quot; value=&quot;GUI-2|SAPEVENT|STAGE&quot;' ) ).
 * Everything else the program put on the anchor survives on the button, and
 * the markup the anchor wrapped becomes its label.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class=&quot;keep&quot;' ) ).
@@ -932,7 +854,7 @@ CLASS ltcl_test IMPLEMENTATION.
 * A link that is not a sapevent stays a link, and no sapevent href is left.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
       '&lt;a href=&quot;/manual&quot;&gt;plain&lt;/a&gt;' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'sapevent:STAGE' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( to_upper( lv_html ) CS 'SAPEVENT:STAGE' ) ).
   ENDMETHOD.
 
   METHOD html_viewer_without_sapevent.

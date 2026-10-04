@@ -53,11 +53,20 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
 
     CLASS-METHODS render_html
       IMPORTING
-        iv_document       TYPE abap_bool DEFAULT abap_true
-        iv_container_name TYPE string OPTIONAL
-        is_sapevent       TYPE ty_sapevent OPTIONAL
+        iv_document        TYPE abap_bool DEFAULT abap_true
+        iv_container_name  TYPE string OPTIONAL
+        is_sapevent        TYPE ty_sapevent OPTIONAL
+        iv_without_dialogs TYPE abap_bool DEFAULT abap_false
       RETURNING
-        VALUE(result)     TYPE string.
+        VALUE(result)      TYPE string.
+
+* The dialog boxes, each at its position on the screen. A screen renders them
+* apart from its containers, so no container clips them.
+    CLASS-METHODS render_dialogs_html
+      IMPORTING
+        is_sapevent   TYPE ty_sapevent OPTIONAL
+      RETURNING
+        VALUE(result) TYPE string.
 
     CLASS-METHODS has_content
       RETURNING
@@ -284,6 +293,50 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         state        TYPE string OPTIONAL
         alt_text     TYPE string OPTIONAL.
 
+* Drag and drop between controls. A drag source carries data-gg-drag, a drop
+* target data-gg-drop, each with the flavors of its handle; a drop posts the
+* DROP event of the target. As on SAP, the source raises its drag event first,
+* the target its drop event with the same object, then the source completes.
+    CLASS-METHODS drag_attributes
+      IMPORTING
+        handle        TYPE i
+        control_id    TYPE string
+        key           TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
+    CLASS-METHODS drop_attributes
+      IMPORTING
+        handle        TYPE i
+        control_id    TYPE string
+        row           TYPE i
+      RETURNING
+        VALUE(result) TYPE string.
+
+    CLASS-METHODS start_drag
+      IMPORTING
+        source_id     TYPE string
+        key           TYPE string
+        flavor        TYPE string
+      RETURNING
+        VALUE(result) TYPE REF TO cl_dragdropobject.
+
+    CLASS-METHODS end_drag
+      IMPORTING
+        source_id TYPE string
+        key       TYPE string
+        object    TYPE REF TO cl_dragdropobject.
+
+    METHODS drag
+      IMPORTING
+        key    TYPE string
+        object TYPE REF TO cl_dragdropobject.
+
+    METHODS drop_complete
+      IMPORTING
+        key    TYPE string
+        object TYPE REF TO cl_dragdropobject.
+
   PRIVATE SECTION.
 * The control registry row is internal: it is only read by this class, the
 * render path, and nothing else. Keep the type private so no invented
@@ -356,6 +409,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
       IMPORTING
         document      TYPE string
         sapevent      TYPE ty_sapevent
+        control_id    TYPE string
       RETURNING
         VALUE(result) TYPE string.
     CLASS-METHODS safe_url
@@ -800,7 +854,8 @@ CLASS cl_gui_control IMPLEMENTATION.
                 iv_control_id = ls_snapshot-control_id ) = abap_false.
         CONTINUE.
       ENDIF.
-      IF has_splitter_ancestor( iv_control_id = ls_snapshot-control_id ) = abap_true.
+      IF has_splitter_ancestor( iv_control_id = ls_snapshot-control_id ) = abap_true
+          OR ( iv_without_dialogs = abap_true AND ls_snapshot-kind = 'DIALOGBOX_CONTAINER' ).
         CONTINUE.
       ENDIF.
       IF ls_snapshot-kind = 'CUSTOM_CONTAINER'.
@@ -811,17 +866,7 @@ CLASS cl_gui_control IMPLEMENTATION.
           CONTINUE.
         ENDIF.
       ENDIF.
-      DATA(lv_render_top) = COND i(
-        WHEN ls_snapshot-kind = 'DIALOGBOX_CONTAINER' AND ls_snapshot-top > 60
-          THEN ls_snapshot-top - 60
-        WHEN ls_snapshot-kind = 'DIALOGBOX_CONTAINER'
-          THEN 0
-        ELSE ls_snapshot-top ).
-      DATA(lv_render_left) = COND i(
-        WHEN ls_snapshot-kind = 'DIALOGBOX_CONTAINER' AND ls_snapshot-width > 0
-          THEN 660
-        ELSE ls_snapshot-left ).
-      DATA(lv_style) = |position:absolute;box-sizing:border-box;left:{ lv_render_left }px;top:{ lv_render_top }px;|.
+      DATA(lv_style) = |position:absolute;box-sizing:border-box;left:{ ls_snapshot-left }px;top:{ ls_snapshot-top }px;|.
       IF ls_snapshot-kind = 'TEXTEDIT'.
         lv_style = lv_style && `box-sizing:border-box;`.
       ENDIF.
@@ -867,13 +912,38 @@ CLASS cl_gui_control IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD render_dialogs_html.
+    LOOP AT mt_snapshots INTO DATA(ls_snapshot)
+        WHERE kind = 'DIALOGBOX_CONTAINER'.
+      IF find_control( ls_snapshot-control_id ) IS NOT BOUND.
+        CONTINUE.
+      ENDIF.
+      DATA(lv_style) = |position:absolute;box-sizing:border-box;left:{ ls_snapshot-left }px;top:{ ls_snapshot-top }px;|.
+      IF ls_snapshot-width > 0.
+        lv_style = lv_style && |width:{ ls_snapshot-width }px;|.
+      ENDIF.
+      IF ls_snapshot-height > 0.
+        lv_style = lv_style && |height:{ ls_snapshot-height }px;|.
+      ENDIF.
+      result = result && render_control_html(
+        is_snapshot    = ls_snapshot
+        iv_style       = lv_style
+        iv_hidden      = COND string( WHEN ls_snapshot-visible = abap_false THEN ' hidden' ELSE '' )
+        iv_disabled    = COND string( WHEN ls_snapshot-enabled = abap_false THEN ' disabled' ELSE '' )
+        iv_state_class = state_class( iv_focused = ls_snapshot-focused )
+        is_sapevent    = is_sapevent ).
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD render_control_html.
     CASE is_snapshot-kind.
       WHEN 'DIALOGBOX_CONTAINER'.
         DATA(lv_dialog_html) = render_nested_html(
           iv_parent_id = is_snapshot-control_id
           is_sapevent  = is_sapevent ).
-        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-payload="{ escape( is_snapshot-payload ) }" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title">SAP GUI modeless control dialog</header><div class="gg-dialog-body">{ lv_dialog_html }</div></section>|.
+* The title bar shows the caption, and its close button raises the CLOSE
+* event of the dialog box, as the window's close button does in SAP GUI.
+        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title"><span>{ escape( is_snapshot-payload ) }</span><button class="gg-dialog-close" type="submit" name="gg_control_event" value="{ escape( |{ is_snapshot-control_id }\|CLOSE| ) }" formnovalidate aria-label="Close" title="Close">&#x2715;</button></header><div class="gg-dialog-body">{ lv_dialog_html }</div></section>|.
       WHEN 'CUSTOM_CONTAINER' OR 'DOCKING_CONTAINER'.
         DATA(lv_container_html) = ``.
         IF is_snapshot-kind = 'DOCKING_CONTAINER'.
@@ -936,8 +1006,9 @@ CLASS cl_gui_control IMPLEMENTATION.
 * anchors become forms that submit to it. Submitting a form and, on a real
 * click, replacing the top page are the only two things this needs; scripts
 * stay blocked and the frame keeps its opaque origin.
-            lv_srcdoc = rewrite_sapevent( document = lv_srcdoc
-                                          sapevent = is_sapevent ).
+            lv_srcdoc = rewrite_sapevent( document   = lv_srcdoc
+                                          sapevent   = is_sapevent
+                                          control_id = is_snapshot-control_id ).
             lv_sandbox = `allow-forms allow-top-navigation-by-user-activation`.
           ENDIF.
           lv_iframe_source = |srcdoc="{ escape( lv_srcdoc ) }"|.
@@ -956,7 +1027,17 @@ CLASS cl_gui_control IMPLEMENTATION.
       WHEN 'BARCHART' OR 'GP_PRES'.
         result = |<figure class="gg-control gg-graphic" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" role="img" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }<figcaption>{ escape( is_snapshot-payload ) }</figcaption></figure>|.
       WHEN 'TIMER'.
-        result = |<div class="gg-control" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="TIMER" data-payload="{ escape( is_snapshot-payload ) }" aria-hidden="true" hidden></div>|.
+* A running timer counts its interval down in the browser and then posts its
+* FINISHED event with the form it sits in, as the SAP GUI timer control does.
+* Once the page submits, by the timer or by the user, it is being replaced, so
+* a second submit, which would come from a stale page, is dropped.
+        IF is_snapshot-payload IS INITIAL.
+          result = |<div class="gg-control" id="{ escape( is_snapshot-control_id ) }" data-control-kind="TIMER" data-running="false" aria-hidden="true" hidden></div>|.
+        ELSE.
+          SPLIT is_snapshot-payload AT '|' INTO DATA(lv_interval) DATA(lv_timer_event).
+          result = |<div class="gg-control" id="{ escape( is_snapshot-control_id ) }" data-control-kind="TIMER" data-running="true" data-interval="{ escape( lv_interval ) }" aria-hidden="true" hidden><button type="submit" name="gg_control_event" value="{ lv_timer_event }" formnovalidate tabindex="-1"></button></div>|
+            && |<script>(function()\{var t=document.getElementById("{ escape( is_snapshot-control_id ) }"),sent=false;document.addEventListener("submit",function(e)\{if(sent)\{e.preventDefault();\}sent=true;\},true);setTimeout(function()\{if(!sent)\{t.querySelector("button").click();\}\},1000*Number(t.getAttribute("data-interval")));\})();</script>|.
+        ENDIF.
       WHEN OTHERS.
         result = |<div class="gg-control" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }"{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</div>|.
     ENDCASE.
@@ -1290,7 +1371,8 @@ CLASS cl_gui_control IMPLEMENTATION.
         RETURN.
       ENDIF.
       IF ls_snapshot-kind = 'DIALOGBOX_CONTAINER'
-          OR ls_snapshot-kind = 'DOCKING_CONTAINER'.
+          OR ls_snapshot-kind = 'DOCKING_CONTAINER'
+          OR ls_snapshot-kind = 'TIMER'.
         result = abap_true.
         RETURN.
       ENDIF.
@@ -1510,6 +1592,59 @@ CLASS cl_gui_control IMPLEMENTATION.
     RETURN.
   ENDMETHOD.
 
+  METHOD drag_attributes.
+    DATA(lo_dragdrop) = cl_dragdrop=>find( handle ).
+    IF lo_dragdrop IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    DATA(lt_flavors) = lo_dragdrop->get_flavors( abap_true ).
+    IF lt_flavors IS NOT INITIAL.
+      DATA(lv_flavors) = concat_lines_of( table = lt_flavors
+                                          sep   = `,` ).
+      result = | draggable="true" data-gg-drag="{ escape( |{ control_id }\|{ key }| ) }" data-gg-flavors="{ escape( lv_flavors ) }"|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD drop_attributes.
+    DATA(lo_dragdrop) = cl_dragdrop=>find( handle ).
+    IF lo_dragdrop IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    DATA(lt_flavors) = lo_dragdrop->get_flavors( abap_false ).
+    IF lt_flavors IS NOT INITIAL.
+      DATA(lv_flavors) = concat_lines_of( table = lt_flavors
+                                          sep   = `,` ).
+      result = | data-gg-drop="{ escape( |{ control_id }\|DROP\|{ row }| ) }" data-gg-drop-flavors="{ escape( lv_flavors ) }"|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD start_drag.
+    DATA(lo_source) = find_control( source_id ).
+    IF lo_source IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    result = NEW #( ).
+    result->flavor = flavor.
+    lo_source->drag( key    = key
+                     object = result ).
+  ENDMETHOD.
+
+  METHOD end_drag.
+    DATA(lo_source) = find_control( source_id ).
+    IF lo_source IS BOUND.
+      lo_source->drop_complete( key    = key
+                                object = object ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD drag.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD drop_complete.
+    RETURN.
+  ENDMETHOD.
+
   METHOD set_position.
     IF height IS SUPPLIED.
       mv_height = height.
@@ -1598,8 +1733,9 @@ CLASS cl_gui_control IMPLEMENTATION.
 
   METHOD rewrite_sapevent.
 * Replaces every <a href="sapevent:ACTION">label</a> of the document with a
-* form that posts the caller's fields plus ACTION, and keeps the rest of the
-* document as it is. Only the sapevent href is taken out of the opening tag,
+* form that posts the caller's fields plus the SAPEVENT event of the viewer
+* with ACTION, and keeps the rest of the document as it is. SAP GUI takes the
+* scheme in any case. Only the sapevent href is taken out of the opening tag,
 * so no attribute has to be parsed and everything else the program wrote stays
 * on the button. A sapevent anchor must not sit inside a form of the document
 * itself, because nested forms are dropped by the browser.
@@ -1648,7 +1784,7 @@ CLASS cl_gui_control IMPLEMENTATION.
       ENDIF.
       lv_tag = substring( val = lv_rest
                           len = lv_tag_end + 1 ).
-      FIND FIRST OCCURRENCE OF lc_marker IN lv_tag MATCH OFFSET lv_offset.
+      FIND FIRST OCCURRENCE OF lc_marker IN lv_tag IGNORING CASE MATCH OFFSET lv_offset.
       IF sy-subrc <> 0.
 * An ordinary link of the document, left untouched.
         result = result && lv_tag.
@@ -1671,7 +1807,7 @@ CLASS cl_gui_control IMPLEMENTATION.
       lv_attributes = substring( val = lv_tag
                                  off = 2
                                  len = lv_tag_end - 2 ).
-      REPLACE FIRST OCCURRENCE OF |{ lc_marker }{ lv_action }"| IN lv_attributes WITH ``.
+      REPLACE FIRST OCCURRENCE OF |{ lc_marker }{ lv_action }"| IN lv_attributes WITH `` IGNORING CASE.
 
       lv_form = |<form class="gg-sapevent" method="post" action="{ escape( sapevent-url ) }" target="_top">|.
       LOOP AT sapevent-fields INTO ls_field.
@@ -1681,7 +1817,7 @@ CLASS cl_gui_control IMPLEMENTATION.
 * The action is taken out of an attribute of the document and put back into
 * one, so it is already escaped at exactly the level it is needed at.
       lv_form = lv_form && |<button type="submit" name="{ escape( sapevent-action_field ) }"| &&
-        | value="{ lv_action }"{ lv_attributes }>|.
+        | value="{ escape( control_id ) }\|SAPEVENT\|{ lv_action }"{ lv_attributes }>|.
       result = result && lv_form.
       lv_rest = substring( val = lv_rest
                            off = lv_tag_end + 1 ).

@@ -38,15 +38,17 @@ CLASS ltcl_salv_hierseq_support IMPLEMENTATION.
       CHANGING
         t_table_level1          = lt_headers
         t_table_level2          = lt_items ).
+    APPEND VALUE #( order_id = 100 flight = 'LH402' price = '80.50' ) TO lt_items.
     lo_hierseq->get_level( 1 )->set_items_expanded( abap_true ).
+    lo_hierseq->get_aggregations( 2 )->add_aggregation( 'PRICE' ).
     lo_hierseq->display( ).
 
+* The items follow their header line, and only the aggregated column is summed.
     DATA(lv_html) = cl_gui_control=>render_html( ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'SALV hierarchy level 1' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Lufthansa' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'LH400' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '120.00' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-total="true" data-fieldname="PRICE">120.00</td>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-group-key="100"><td data-fieldname="ORDER_ID" class="gg-type-number">100</td><td data-fieldname="CUSTOMER" colspan="2">Lufthansa</td></tr><tr data-level="2" data-parent-key="100">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>LH400<' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="PRICE">200.50</td>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-total="true" data-fieldname="ORDER_ID"' ) ).
   ENDMETHOD.
 
   METHOD hides_technical_levels.
@@ -81,14 +83,15 @@ CLASS ltcl_salv_hierseq_support IMPLEMENTATION.
     lo_hierseq->display( ).
 
     DATA(lv_html) = cl_gui_control=>render_html( ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Group' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Owner' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Visible item' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'price' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Group<' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Owner<' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Visible item<' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>2</td>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>G1<' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'group name' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'item id' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'quantity' ) ).
+* Without texts a column is headed by its name, and nothing is totalled
+* unless the program asks for it.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>GROUP_NAME</th>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>ITEM_ID</th>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<tfoot>' ) ).
   ENDMETHOD.
 ENDCLASS.

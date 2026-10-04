@@ -678,7 +678,7 @@ CLASS cl_salv_table IMPLEMENTATION.
       WHEN 'LAYOUT_SAVE'.
         result = VALUE #( ( '&SAVE' ) ).
       WHEN 'GROUP_LAYOUT'.
-        result = VALUE #( ( '&VIEW' ) ( '&LOAD' ) ( '&SAVE' ) ).
+        result = VALUE #( ( '&COL0' ) ( '&LOAD' ) ( '&SAVE' ) ).
     ENDCASE.
   ENDMETHOD.
 
@@ -691,7 +691,7 @@ CLASS cl_salv_table IMPLEMENTATION.
 
     lt_offered = VALUE #(
       ( '&SORT_ASC' ) ( '&SORT_DSC' ) ( '&FIND' ) ( '&FILTER' ) ( '&SUMC' ) ( '&SUBTOT' )
-      ( '&PRINT' ) ( '&XML' ) ( '&PC' ) ( '&VIEW' ) ( '&LOAD' ) ( '&SAVE' ) ).
+      ( '&PRINT' ) ( '&XML' ) ( '&PC' ) ( '&COL0' ) ( '&LOAD' ) ( '&SAVE' ) ).
     IF mo_functions IS BOUND.
       IF mo_functions->mv_all = abap_true.
         lt_allowed = lt_offered.

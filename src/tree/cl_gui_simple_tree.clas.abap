@@ -35,6 +35,16 @@ CLASS cl_gui_simple_tree DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
         node_not_found
         cntl_system_error.
 
+    EVENTS on_drag
+      EXPORTING
+        VALUE(node_key)         TYPE tv_nodekey
+        VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS on_drop_complete
+      EXPORTING
+        VALUE(node_key)         TYPE tv_nodekey
+        VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
     EVENTS on_drag_multiple
       EXPORTING
         VALUE(node_key_table)   TYPE treev_nks
@@ -44,6 +54,10 @@ CLASS cl_gui_simple_tree DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
       EXPORTING
         VALUE(node_key_table)   TYPE treev_nks
         VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+  PROTECTED SECTION.
+    METHODS drag REDEFINITION.
+    METHODS drop_complete REDEFINITION.
 ENDCLASS.
 
 CLASS cl_gui_simple_tree IMPLEMENTATION.
@@ -108,8 +122,27 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
       IF sy-subrc = 0.
         <ls_html_node>-expander = xsdbool( <component> IS NOT INITIAL ).
       ENDIF.
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'DRAGDROPID' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-dragdropid = <component>.
+      ENDIF.
     ENDLOOP.
     refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD drag.
+    RAISE EVENT on_drag
+      EXPORTING
+        node_key         = CONV tv_nodekey( key )
+        drag_drop_object = object.
+  ENDMETHOD.
+
+  METHOD drop_complete.
+    RAISE EVENT on_drop_complete
+      EXPORTING
+        node_key         = CONV tv_nodekey( key )
+        drag_drop_object = object.
   ENDMETHOD.
 
   METHOD node_set_text.

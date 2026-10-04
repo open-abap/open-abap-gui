@@ -284,6 +284,7 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
              expander   TYPE abap_bool,
              node_image TYPE string,
              open_image TYPE string,
+             dragdropid TYPE i,
            END OF ty_html_node_state.
     TYPES ty_html_node_states TYPE STANDARD TABLE OF ty_html_node_state WITH DEFAULT KEY.
 
@@ -751,7 +752,10 @@ CLASS cl_tree_control_base IMPLEMENTATION.
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
         ELSE ' aria-selected="false"' ).
       DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" style="padding-left:{ ( lv_depth - 1 ) * 18 }px"{ lv_selected }>| &&
+      DATA(lv_drag) = drag_attributes( handle     = ls_node-dragdropid
+                                       control_id = control_id
+                                       key        = ls_node-node_key ).
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" style="padding-left:{ ( lv_depth - 1 ) * 18 }px"{ lv_selected }{ lv_drag }>| &&
         |{ lv_toggle }<span class="gg-tree-label" tabindex="0" data-gg-click-event="{ lv_select }" data-gg-dblclick-event="{ lv_double_click }">{ escape_html( ls_node-text ) }</span>{ node_items_html( ls_node-node_key ) }</li>|.
     ENDLOOP.
     result = result && |</ul>|.

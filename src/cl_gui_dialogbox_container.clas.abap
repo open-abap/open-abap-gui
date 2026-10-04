@@ -35,6 +35,12 @@ CLASS cl_gui_dialogbox_container DEFINITION PUBLIC INHERITING FROM cl_gui_contai
         cntl_error
         cntl_system_error.
 
+  PROTECTED SECTION.
+* The close button of the window raises CLOSE, a system event: PAI does not
+* run for it.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
+
 ENDCLASS.
 
 CLASS cl_gui_dialogbox_container IMPLEMENTATION.
@@ -59,6 +65,16 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
   METHOD set_caption.
     cl_gui_control=>set_payload( control = me
                                  payload = CONV string( caption ) ).
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    IF event = 'CLOSE'.
+      RAISE EVENT close EXPORTING sender = me.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+    result = abap_false.
   ENDMETHOD.
 
 ENDCLASS.

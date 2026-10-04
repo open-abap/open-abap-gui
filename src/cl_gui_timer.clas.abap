@@ -1,76 +1,85 @@
 CLASS cl_gui_timer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
+* Seconds until FINISHED, as on SAP.
     DATA interval TYPE i.
 
-    METHODS constructor.
+    METHODS constructor
+      IMPORTING
+        lifetime   TYPE i OPTIONAL
+        parent     TYPE REF TO cl_gui_container OPTIONAL
+        shellstyle TYPE i OPTIONAL
+      EXCEPTIONS
+        error.
 
-    METHODS run.
+    METHODS run
+      EXCEPTIONS
+        error.
 
-    METHODS cancel.
-
-    METHODS reset.
-
-    "! Advances the session clock once. A timer never creates a background
-    "! browser task; callers explicitly drive the deterministic clock.
-    METHODS tick.
-
-    METHODS get_tick_count
-      RETURNING
-        VALUE(tick_count) TYPE i.
+    METHODS cancel
+      EXCEPTIONS
+        error.
 
     EVENTS finished.
+
+  PROTECTED SECTION.
+* The browser counts the interval down and posts FINISHED, a system event:
+* PAI runs only when a handler sets a new OK code.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
 
   PRIVATE SECTION.
     METHODS is_running
       RETURNING
         VALUE(running) TYPE abap_bool.
 
+    METHODS publish.
+
     DATA mv_running TYPE abap_bool.
-    DATA mv_tick_count TYPE i.
 ENDCLASS.
 
 CLASS cl_gui_timer IMPLEMENTATION.
 
   METHOD constructor.
-    interval = 1000.
-    mv_running = abap_false.
-    CLEAR mv_tick_count.
+    super->constructor( ).
+    cl_gui_control=>initialize( control = me
+                                parent  = parent
+                                kind    = 'TIMER' ).
+    publish( ).
   ENDMETHOD.
 
   METHOD run.
     IF interval <= 0.
-      interval = 1000.
+      RAISE error.
     ENDIF.
     mv_running = abap_true.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |running; interval={ interval }; ticks={ mv_tick_count }| ).
+    publish( ).
   ENDMETHOD.
 
   METHOD cancel.
     mv_running = abap_false.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |stopped; interval={ interval }; ticks={ mv_tick_count }| ).
+    publish( ).
   ENDMETHOD.
 
-  METHOD reset.
-    mv_running = abap_false.
-    CLEAR mv_tick_count.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |stopped; interval={ interval }; ticks={ mv_tick_count }| ).
+  METHOD publish.
+* The payload is what the browser needs to run the timer.
+    cl_gui_control=>set_payload(
+      control = me
+      payload = COND string( WHEN mv_running = abap_true
+                             THEN |{ interval }\|{ frontend_event_value( 'FINISHED' ) }|
+                             ELSE `` ) ).
   ENDMETHOD.
 
-  METHOD tick.
-    IF mv_running = abap_false.
-      RETURN.
+  METHOD dispatch_frontend_event.
+* A timer runs once; the program starts it again for the next interval.
+    IF event = 'FINISHED' AND mv_running = abap_true.
+      mv_running = abap_false.
+      publish( ).
+      RAISE EVENT finished.
     ENDIF.
-    mv_tick_count = mv_tick_count + 1.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |running; interval={ interval }; ticks={ mv_tick_count }| ).
-    RAISE EVENT finished.
   ENDMETHOD.
 
-  METHOD get_tick_count.
-    tick_count = mv_tick_count.
+  METHOD is_application_event.
+    result = abap_false.
   ENDMETHOD.
 
   METHOD is_running.

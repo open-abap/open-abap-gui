@@ -1,5 +1,5 @@
 CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
-  FRIENDS cl_gui_cfw cl_gui_alv_tree zcl_gg_host_runtime zcl_gg_host_surface.
+  FRIENDS cl_gui_cfw cl_gui_alv_tree zcl_gg_host_runtime.
   PUBLIC SECTION.
     TYPES ty_instances TYPE STANDARD TABLE OF REF TO cl_alv_tree_base WITH DEFAULT KEY.
 

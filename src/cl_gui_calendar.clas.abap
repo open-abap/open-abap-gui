@@ -83,6 +83,15 @@ CLASS cl_gui_calendar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         cntl_error.
 
+    METHODS set_registered_events REDEFINITION.
+
+  PROTECTED SECTION.
+* A click on a day posts DATE_SELECTED with the day. The control selects the
+* day, its week or its month, as the selection style says, and raises
+* date_selected when the program registered it.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
+
   PRIVATE SECTION.
     DATA mv_focus_date TYPE cnca_utc_date.
     DATA mv_date_begin TYPE cnca_utc_date.
@@ -175,6 +184,64 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     CLEAR mv_date_end.
     CLEAR mt_selection.
     refresh_html( ).
+  ENDMETHOD.
+
+  METHOD set_registered_events.
+    super->set_registered_events( events ).
+    refresh_html( ).
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    DATA lv_date TYPE d.
+    DATA lv_begin TYPE d.
+    DATA lv_end TYPE d.
+    DATA lv_offset TYPE i.
+    DATA lv_year TYPE i.
+    DATA lv_month TYPE i.
+
+    IF event <> 'DATE_SELECTED'
+        OR NOT line_exists( mt_frontend_events[ eventid = m_id_date_selected ] ).
+      RETURN.
+    ENDIF.
+    lv_date = VALUE #( params[ 1 ] OPTIONAL ).
+    IF lv_date IS INITIAL.
+      RETURN.
+    ENDIF.
+    CASE mv_selection_style.
+      WHEN cnca_sel_week.
+        lv_offset = ( lv_date - CONV d( '20240101' ) ) MOD 7.
+        lv_offset = ( lv_offset - mv_week_begin_day + 1 + 7 ) MOD 7.
+        lv_begin = lv_date - lv_offset.
+        lv_end = lv_begin + 6.
+      WHEN cnca_sel_month.
+        lv_year = lv_date(4).
+        lv_month = lv_date+4(2).
+        lv_begin = |{ lv_date(6) }01|.
+        lv_month = lv_month + 1.
+        IF lv_month > 12.
+          lv_month = 1.
+          lv_year = lv_year + 1.
+        ENDIF.
+        lv_end = |{ lv_year WIDTH = 4 ALIGN = RIGHT PAD = '0' }{ lv_month WIDTH = 2 ALIGN = RIGHT PAD = '0' }01|.
+        lv_end = lv_end - 1.
+      WHEN OTHERS.
+        lv_begin = lv_date.
+        lv_end = lv_date.
+    ENDCASE.
+    mv_date_begin = lv_begin.
+    mv_date_end = lv_end.
+    mt_selection = VALUE #( ( date_begin = mv_date_begin date_end = mv_date_end ) ).
+    refresh_html( ).
+    RAISE EVENT date_selected
+      EXPORTING
+        date_begin      = mv_date_begin
+        date_end        = mv_date_end
+        selection_table = mt_selection.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+    READ TABLE mt_frontend_events INTO DATA(ls_event) WITH KEY eventid = m_id_date_selected.
+    result = xsdbool( sy-subrc = 0 AND ls_event-appl_event = abap_true ).
   ENDMETHOD.
 
   METHOD refresh_html.
@@ -368,7 +435,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
       off = 6
       len = 2 ) ).
     lv_day_text = |{ lv_day }|.
-    lv_selected = xsdbool( iv_date = mv_focus_date ).
+* Only the selection is selected; the focus date only decides what is shown.
     IF mv_date_begin IS NOT INITIAL AND iv_date >= mv_date_begin
         AND ( mv_date_end IS INITIAL OR iv_date <= mv_date_end ).
       lv_selected = abap_true.
@@ -385,7 +452,14 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     IF iv_weekday >= 5.
       lv_day_class = lv_day_class && ' gg-calendar-weekend'.
     ENDIF.
-    result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ cl_gui_control=>escape_html( lv_day_title ) }"><span>{ lv_day_text }</span></td>|.
+    IF line_exists( mt_frontend_events[ eventid = m_id_date_selected ] ).
+      DATA(lv_event) = frontend_event_value( event  = 'DATE_SELECTED'
+                                             params = VALUE #( ( lv_date_text ) ) ).
+      DATA(lv_label) = |{ iv_date(4) }-{ iv_date+4(2) }-{ iv_date+6(2) }|.
+      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ cl_gui_control=>escape_html( lv_day_title ) }"><button type="submit" name="gg_control_event" value="{ lv_event }" formnovalidate aria-label="{ lv_label }">{ lv_day_text }</button></td>|.
+    ELSE.
+      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ cl_gui_control=>escape_html( lv_day_title ) }"><span>{ lv_day_text }</span></td>|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD weekday_label.

@@ -68,7 +68,8 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              caller              TYPE string,
 * The controls this program showed when it called another one, put back when
 * that call returns.
-             surface             TYPE zcl_gg_host_surface=>ty_saved,
+             controls            TYPE REF TO data,
+             trees               TYPE cl_alv_tree_base=>ty_instances,
 * The report opened on its selection screen, which it shows again when a run
 * ends without a list, as SAP GUI does.
              selection_start     TYPE abap_bool,
@@ -208,7 +209,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     " session in place would let old controls overlay the next page.
     cl_gui_control=>clear( ).
     cl_alv_tree_base=>clear_instances( ).
-    zcl_gg_host_surface=>clear( ).
+    cl_gui_control=>clear_external_html( ).
     lv_session_id = next_session_id( ).
     IF io_dynpro_program IS BOUND.
       TRY.
@@ -415,14 +416,16 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       ENDIF.
     ENDIF.
     IF is_request-action = zif_gg_host_html_v1=>action_popup.
+* The answer replays the PAI that called the popup, with that PAI's function
+* code; the popup kind is no function code of the program.
       lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-target ).
       lv_popup_action = |{ is_request-target }:{ is_request-value }|.
       IF is_request-target = 'INFORM'.
         lv_help_request = ls_session-pending_help.
-        IF lv_help_request IS INITIAL
-            AND ls_session-pending_popup_ucomm IS NOT INITIAL.
-          lv_ucomm = ls_session-pending_popup_ucomm.
-        ENDIF.
+      ENDIF.
+      IF lv_help_request IS INITIAL
+          AND ls_session-pending_popup_ucomm IS NOT INITIAL.
+        lv_ucomm = ls_session-pending_popup_ucomm.
       ENDIF.
     ELSEIF is_request-action = zif_gg_host_html_v1=>action_help.
       ls_session-pending_help = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target ).
@@ -562,7 +565,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           OR zcx_gg_control_flow=>kind_submit_return.
         lv_caller = is_session-session_id.
         ls_ended = is_session.
-        ls_ended-surface = zcl_gg_host_surface=>save( ).
+        ls_ended-controls = cl_gui_control=>save_state( ).
+        ls_ended-trees = cl_alv_tree_base=>save_instances( ).
         store( ls_ended ).
       WHEN zcx_gg_control_flow=>kind_submit.
 * SUBMIT without AND RETURN replaces the submitting program, so the report
@@ -648,8 +652,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     lv_page_id = |{ ls_caller-session_id }-{ ls_caller-next_page }|.
     ls_caller-next_page = ls_caller-next_page + 1.
-    zcl_gg_host_surface=>restore( ls_caller-surface ).
-    CLEAR ls_caller-surface.
+    cl_gui_control=>restore_state( ls_caller-controls ).
+    cl_alv_tree_base=>restore_instances( ls_caller-trees ).
+    CLEAR: ls_caller-controls, ls_caller-trees.
     store( ls_caller ).
     IF ls_caller-dynpro_program IS NOT BOUND.
       rs_response = return_to_report(
@@ -1203,7 +1208,21 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
 * A control event must name a control submit button of the current page.
     IF is_request-action = zif_gg_host_html_v1=>action_control_event.
       DATA(lv_event_attribute) = zcl_gg_host_html=>escape_attribute( is_request-control_event ).
+* A drop names a drop target and a drag source of the page.
+      SPLIT is_request-control_event AT '|' INTO TABLE DATA(lt_event_parts).
+      IF lines( lt_event_parts ) >= 5 AND lt_event_parts[ 2 ] = 'DROP'.
+        IF is_page-html NS |data-gg-drop="{ zcl_gg_host_html=>escape_attribute( |{ lt_event_parts[ 1 ] }\|DROP\|{ lt_event_parts[ 3 ] }| ) }"|
+            OR is_page-html NS |data-gg-drag="{ zcl_gg_host_html=>escape_attribute( |{ lt_event_parts[ 4 ] }\|{ lt_event_parts[ 5 ] }| ) }"|.
+          rv_error = 'Drop is not offered by the current host page'.
+        ENDIF.
+        RETURN.
+      ENDIF.
+* The button of a sapevent anchor sits in the document of an HTML viewer,
+* which the page carries escaped once more.
+      DATA(lv_nested_button) = zcl_gg_host_html=>escape_attribute(
+        |name="gg_control_event" value="{ lv_event_attribute }"| ).
       IF is_page-html NS |name="gg_control_event" value="{ lv_event_attribute }"|
+          AND is_page-html NS lv_nested_button
           AND is_page-html NS |data-gg-dblclick-event="{ lv_event_attribute }"|
           AND is_page-html NS |data-gg-click-event="{ lv_event_attribute }"|.
         rv_error = 'Control event is not offered by the current host page'.

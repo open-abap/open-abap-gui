@@ -85,10 +85,10 @@ CLASS zcl_example_lstatic IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     lv_text = zcl_example_lstatic_h1=>greet( io_owner   = me
                                              io_session = io_session
-                                             IV_NAME    = `World` ).
+                                             iv_name    = `World` ).
     zcl_example_lstatic_h1=>remember( io_owner   = me
                                       io_session = io_session
-                                      IV_TEXT    = lv_text ).
+                                      iv_text    = lv_text ).
     lo_writer->write_field( VALUE #( text = |{ gv_greeting }| placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

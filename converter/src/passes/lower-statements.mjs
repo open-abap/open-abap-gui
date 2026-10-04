@@ -1141,7 +1141,7 @@ function bridgeLocalStaticCalls(statement, context) {
     } else {
       const parameter = context.localClassStaticParameters?.[target(call[1], call[2])]?.[call[2].toUpperCase()];
       bridged = parameter && !/^\s*[A-Z][A-Z0-9_]*\s*=(?!=)/i.test(argumentsMasked)
-        ? `${bridge} ${parameter} = ${argumentsText}`
+        ? `${bridge} ${parameter.toLowerCase()} = ${argumentsText}`
         : `${bridge} ${argumentsText}`;
     }
     text = `${text.slice(0, opening + 1)} ${bridged} ${text.slice(closing)}`;

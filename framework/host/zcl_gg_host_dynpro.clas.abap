@@ -179,6 +179,13 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         cs_result     TYPE ty_result.
 
+* sy-repid in a module: the program the class was converted from.
+    CLASS-METHODS program_name
+      IMPORTING
+        io_program        TYPE REF TO zif_gg_dynpro_v1
+      RETURNING
+        VALUE(rv_program) TYPE zif_gg_session_types_v1=>ty_program.
+
     CLASS-METHODS render_controls_html
       IMPORTING
         iv_session_id  TYPE string
@@ -402,6 +409,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lo_list = NEW zcl_gg_host_list( ).
     lo_session = NEW zcl_gg_host_session(
       io_list      = lo_list
+      iv_program   = program_name( io_program )
       iv_processor = zif_gg_session_types_v1=>processor_dynpro ).
     lo_session->zif_gg_session_v1~get_compatibility( )->set_popup_request(
       iv_action = iv_popup_action
@@ -730,7 +738,13 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         it_messages       = rs_result-messages
         io_menu           = lo_context_menu
         iv_menu_field     = CONV string( lv_context_menu_field )
-        iv_controls_html  = lv_controls_html ) ).
+        iv_controls_html  = lv_controls_html
+        iv_dialogs_html   = cl_gui_control=>render_dialogs_html(
+          zcl_gg_host_renderer=>sapevent_transport(
+            iv_session_id = lv_session_id
+            iv_page_id    = lv_page_id ) )
+        it_downloads      = CAST zcl_gg_host_compatibility(
+          lo_session->zif_gg_session_v1~get_compatibility( ) )->get_downloads( ) ) ).
     render_terminal_page(
       EXPORTING
         iv_session_id = lv_session_id
@@ -1603,22 +1617,41 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD program_name.
+    DATA lo_transaction TYPE REF TO zif_gg_transaction_v1.
+    DATA lo_report_dynpro TYPE REF TO zcl_gg_host_report_dynpro.
+
+    TRY.
+        lo_report_dynpro ?= io_program.
+        rv_program = lo_report_dynpro->get_program( ).
+      CATCH cx_sy_move_cast_error.
+        TRY.
+            lo_transaction ?= io_program.
+            rv_program = lo_transaction->get_transaction( )-program.
+          CATCH cx_sy_move_cast_error.
+            CLEAR rv_program.
+        ENDTRY.
+    ENDTRY.
+  ENDMETHOD.
+
   METHOD render_controls_html.
     READ TABLE it_controls INTO DATA(ls_custom_control)
       WITH KEY kind = 'CUSTOM_CONTROL'.
     IF sy-subrc = 0.
       rv_html = cl_gui_control=>render_html(
-        iv_document       = abap_false
-        iv_container_name = CONV string( ls_custom_control-name )
-        is_sapevent       = zcl_gg_host_renderer=>sapevent_transport(
+        iv_document        = abap_false
+        iv_container_name  = CONV string( ls_custom_control-name )
+        is_sapevent        = zcl_gg_host_renderer=>sapevent_transport(
           iv_session_id = iv_session_id
-          iv_page_id    = iv_page_id ) ).
+          iv_page_id    = iv_page_id )
+        iv_without_dialogs = abap_true ).
     ELSE.
       rv_html = cl_gui_control=>render_html(
-        iv_document = abap_false
-        is_sapevent = zcl_gg_host_renderer=>sapevent_transport(
+        iv_document        = abap_false
+        is_sapevent        = zcl_gg_host_renderer=>sapevent_transport(
           iv_session_id = iv_session_id
-          iv_page_id    = iv_page_id ) ).
+          iv_page_id    = iv_page_id )
+        iv_without_dialogs = abap_true ).
     ENDIF.
   ENDMETHOD.
 

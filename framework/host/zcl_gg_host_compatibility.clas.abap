@@ -26,7 +26,41 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING iv_rollname      TYPE csequence
       RETURNING VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_fixed_values.
 
+* The file dialogs and transfers of cl_gui_frontend_services, as a browser
+* offers them: a dialog is a popup of the screen, an upload carries the bytes
+* the user picked in it, and a download is handed to the browser with the page.
+    TYPES: BEGIN OF ty_download,
+             filename TYPE string,
+             content  TYPE xstring,
+           END OF ty_download.
+    TYPES ty_downloads TYPE STANDARD TABLE OF ty_download WITH DEFAULT KEY.
+
+    "! The compatibility layer of the screen being processed; unbound outside
+    "! of dialog processing.
+    CLASS-METHODS current
+      RETURNING VALUE(ro_current) TYPE REF TO zcl_gg_host_compatibility.
+
+    "! A FILE_OPEN or FILE_SAVE dialog; the chosen file name, empty on cancel.
+    METHODS file_dialog
+      IMPORTING iv_kind            TYPE string
+                iv_title           TYPE string OPTIONAL
+                iv_default_name    TYPE string OPTIONAL
+      RETURNING VALUE(rv_filename) TYPE string.
+
+    METHODS uploaded_file
+      IMPORTING iv_filename       TYPE string
+      RETURNING VALUE(rv_content) TYPE xstring.
+
+    METHODS add_download
+      IMPORTING iv_filename TYPE string
+                iv_content  TYPE xstring.
+
+    METHODS get_downloads
+      RETURNING VALUE(rt_downloads) TYPE ty_downloads.
+
   PRIVATE SECTION.
+    CLASS-DATA go_current TYPE REF TO zcl_gg_host_compatibility.
+    DATA mt_downloads TYPE ty_downloads.
     CLASS-DATA mt_selection_lists TYPE ty_selection_lists.
     CLASS-DATA mt_parameters TYPE ty_parameters.
     DATA mv_context_report TYPE string.
@@ -159,9 +193,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_disposition.
     IF lv_action = 'VALUE'.
+* Cancel is no exception on SAP: the function module returns A.
       IF lv_disposition = 'CANCEL'.
-        rv_returncode = '1'.
-        sy-subrc = 1.
+        rv_returncode = 'A'.
+        sy-subrc = 0.
         RETURN.
       ENDIF.
       LOOP AT ct_fields ASSIGNING FIELD-SYMBOL(<ls_field>).
@@ -207,9 +242,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_choice.
     IF lv_action = 'TABLE'.
-      IF lv_choice IS INITIAL OR lv_choice CN '0123456789'.
+* Cancel raises BREAK_OFF, the function module's first exception.
+      IF lv_choice IS INITIAL OR lv_choice CN '0123456789' OR lv_choice = '0'.
         CLEAR rv_choice.
-        sy-subrc = 4.
+        sy-subrc = 1.
       ELSE.
         rv_choice = CONV i( lv_choice ).
         sy-subrc = 0.
@@ -222,10 +258,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       title        = is_request-title
       start_column = is_request-start_column
       start_row    = is_request-start_row ).
+* A line is chosen by clicking it; the popup itself only offers Cancel.
     LOOP AT ct_values ASSIGNING FIELD-SYMBOL(<lv_value>).
       APPEND CONV string( <lv_value> ) TO ms_popup-table_values.
-      APPEND VALUE #( value = |{ sy-tabix }|
-                      text  = |Select row { sy-tabix }| ) TO ms_popup-buttons.
     ENDLOOP.
     APPEND VALUE #( value = '0' text = 'Cancel' ) TO ms_popup-buttons.
     RAISE EXCEPTION NEW zcx_gg_control_flow(
@@ -291,6 +326,56 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     mv_popup_interactive = abap_true.
     mv_popup_action = iv_action.
     mt_popup_input = it_values.
+    go_current = me.
+  ENDMETHOD.
+
+  METHOD current.
+    ro_current = go_current.
+  ENDMETHOD.
+
+  METHOD file_dialog.
+    DATA lv_action TYPE string.
+    DATA lv_disposition TYPE string.
+
+    IF mv_popup_interactive = abap_false.
+      RETURN.
+    ENDIF.
+    SPLIT mv_popup_action AT ':' INTO lv_action lv_disposition.
+    IF lv_action = iv_kind.
+      IF lv_disposition = 'OK'.
+        READ TABLE mt_popup_input INTO DATA(ls_input) WITH KEY name = 'FILENAME'.
+        rv_filename = ls_input-value.
+      ENDIF.
+      RETURN.
+    ENDIF.
+    ms_popup = VALUE #(
+      kind    = iv_kind
+      title   = iv_title
+      fields  = VALUE #( ( name = 'FILENAME' text = 'File name' value = iv_default_name ) )
+      buttons = VALUE #( ( value = 'OK' text = COND string( WHEN iv_kind = 'FILE_SAVE' THEN 'Save' ELSE 'Open' ) )
+                         ( value = 'CANCEL' text = 'Cancel' ) ) ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow(
+      iv_kind      = zcx_gg_control_flow=>kind_popup
+      iv_operation = iv_kind ).
+  ENDMETHOD.
+
+  METHOD uploaded_file.
+    READ TABLE mt_popup_input INTO DATA(ls_name) WITH KEY name = 'FILENAME'.
+    IF sy-subrc <> 0 OR ls_name-value <> iv_filename.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_popup_input INTO DATA(ls_content) WITH KEY name = 'CONTENT'.
+    IF sy-subrc = 0 AND ls_content-value IS NOT INITIAL.
+      rv_content = cl_http_utility=>decode_x_base64( ls_content-value ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD add_download.
+    APPEND VALUE #( filename = iv_filename content = iv_content ) TO mt_downloads.
+  ENDMETHOD.
+
+  METHOD get_downloads.
+    rt_downloads = mt_downloads.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~get_popup.

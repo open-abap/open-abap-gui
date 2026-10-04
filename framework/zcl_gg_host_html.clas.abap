@@ -261,12 +261,15 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control input,.gg-controls-standalone>.gg-control select,.gg-controls-standalone>.gg-control textarea,.gg-controls-standalone>.gg-control button,.gg-controls-standalone>.gg-control a,.gg-controls-standalone>.gg-control iframe,.gg-controls-standalone>.gg-control [role=button],.gg-controls-standalone>.gg-control [tabindex]\{pointer-events:auto;\}|.
     rv_html = rv_html && |.gg-controls-standalone .gg-external\{position:relative;z-index:1;pointer-events:auto;\}|.
     rv_html = rv_html && |.gg-controls-standalone .gg-control-toolbar\{z-index:2;\}|.
-    rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless\{z-index:2;pointer-events:none;\}|.
-    rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless *\{pointer-events:auto;\}|.
-    rv_html = rv_html && |.gg-dialog-modeless\{z-index:20;display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #526b91;box-shadow:4px 5px 14px rgba(24,48,78,.28);pointer-events:none;\}|.
-    rv_html = rv_html && |.gg-dialog-title\{flex:0 0 25px;display:flex;align-items:center;padding:0 8px;background:linear-gradient(#8197bb,#657da9);color:#fff;font-size:12px;font-weight:600;box-sizing:border-box;\}|.
-    rv_html = rv_html && |.gg-dialog-body\{flex:1;min-height:0;overflow:hidden;padding:4px;background:#fff;box-sizing:border-box;pointer-events:none;\}|.
-    rv_html = rv_html && |.gg-dialog-body>.gg-control\{position:relative!important;left:0!important;top:0!important;width:100%!important;height:100%!important;pointer-events:none;\}|.
+* A modeless dialog box floats over the screen at the position the program
+* gives it, and everything in it can be used.
+    rv_html = rv_html && |.gg-dialog-modeless\{z-index:20;display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #526b91;box-shadow:4px 5px 14px rgba(24,48,78,.28);pointer-events:auto;\}|.
+    rv_html = rv_html && |.gg-dialog-title\{flex:0 0 25px;display:flex;align-items:center;gap:8px;padding:0 2px 0 8px;background:linear-gradient(#8197bb,#657da9);color:#fff;font-size:12px;font-weight:600;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dialog-title>span\{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\}|.
+    rv_html = rv_html && |.gg-dialog-close\{display:flex;align-items:center;justify-content:center;width:21px;height:21px;padding:0;border:1px solid transparent;border-radius:2px;background:transparent;color:#fff;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-dialog-close:hover,.gg-dialog-close:focus-visible\{background:#c94b4b;border-color:#fff8;\}|.
+    rv_html = rv_html && |.gg-dialog-body\{position:relative;flex:1;min-height:0;overflow:hidden;background:#fff;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dialog-body>.gg-control\{position:relative!important;left:0!important;top:0!important;width:100%!important;height:100%!important;\}|.
     rv_html = rv_html && |.gg-message-region,.gg-instruction-region\{display:flex;flex-direction:column;gap:4px;\}|.
 * Empty regions stay in the markup but take no space or flex gap.
     rv_html = rv_html && |.gg-message-region:empty,.gg-status-region:has(>.gg-selection-status:empty)\{display:none;\}|.
@@ -330,6 +333,10 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-weekend\{background:#f5f7f9;color:#748392;\}|.
     rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-selected\{background:#c5e3f7;color:#123b64;font-weight:700;\}|.
     rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-marked\{box-shadow:inset 0 -3px #e0a126;\}|.
+* A day the program listens to is a button that looks like the day cell.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-date>button\{all:unset;display:block;width:100%;height:100%;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-date:hover\{background:#e3f0fa;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-date>button:focus-visible\{outline:2px solid #2668a3;outline-offset:-2px;\}|.
     rv_html = rv_html && |.gg-calendar-day-info\{display:none;\}|.
     rv_html = rv_html && |[role=tree]\{margin:0;padding:4px 8px;list-style:none;\}|.
     rv_html = rv_html && |.gg-tree-node\{display:block;min-height:22px;padding:2px 6px;box-sizing:border-box;\}|.
@@ -355,6 +362,15 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-salv-form-grid td\{padding:2px 12px 2px 0;\}|.
     rv_html = rv_html && |.gg-salv-form-header\{font-size:15px;\}|.
     rv_html = rv_html && |.gg-alv-protocol\{margin:4px 0;padding:6px 10px 6px 28px;border:1px solid #c2453b;background:#fdecea;color:#8a1f17;\}|.
+* The layout dialogs of the grid (change, choose, save) open above its rows.
+    rv_html = rv_html && |.gg-alv-layout-dialog\{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;margin:4px 0;padding:8px 10px;border:1px solid #6b8298;background:#f4f8fb;box-shadow:0 2px 6px rgba(24,48,78,.18);font-size:12px;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog h3\{margin:0;font-size:13px;color:#173c5e;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog p\{margin:0;\}|.
+    rv_html = rv_html && |.gg-alv-layout-columns\{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;padding:0;list-style:none;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog label\{display:flex;align-items:center;gap:6px;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog footer\{display:flex;gap:6px;justify-content:flex-end;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog table\{min-width:0;\}|.
+    rv_html = rv_html && |.gg-alv-layout-error\{color:#8a1f17;font-weight:600;\}|.
     rv_html = rv_html && |.gg-control-toolbar,.gg-alv-toolbar\{display:flex;align-items:center;gap:4px;min-height:26px;padding:2px 4px;background:linear-gradient(var(--gg-panel),var(--gg-work-area));border:1px solid var(--gg-border-dark);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button\{min-height:22px;padding:2px 8px;border:1px solid var(--gg-border);border-radius:1px;background:linear-gradient(#fff,var(--gg-panel));color:#123b64;font:inherit;cursor:pointer;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button,.gg-textedit-tool-button\{display:inline-flex;align-items:center;justify-content:center;gap:3px;\}|.
@@ -412,6 +428,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection .gg-parameter>select\{width:auto;min-width:10rem;max-width:100%;\}|.
     rv_html = rv_html && |.gg-selection .gg-type-text,.gg-selection .gg-type-date,.gg-selection .gg-type-time\{text-align:left;\}|.
     rv_html = rv_html && |.gg-selection .gg-type-number,.gg-dynpro .gg-type-number,.gg-alv .gg-type-number\{text-align:right;\}|.
+    rv_html = rv_html && |.gg-salv-hierseq tbody tr[data-level="1"] td\{background:#e8f0f7;font-weight:700;\}.gg-salv-hierseq tr[data-level="2"]>:first-child\{padding-left:24px;\}|.
     rv_html = rv_html && |.gg-selection input[type=text],.gg-selection select\{height:var(--gg-row);padding:2px 6px;border:1px solid var(--gg-border-dark);border-radius:1px;background:var(--gg-input);color:#123b64;box-sizing:border-box;font:inherit;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
     rv_html = rv_html && |.gg-selection input[type=text]:focus,.gg-selection select:focus\{border-color:#5e8fbd;box-shadow:0 0 0 2px rgba(94,143,189,.25),inset 0 1px 2px rgba(54,87,116,.18);outline:0;\}|.
 * Only the field holding the cursor is yellow, the way SAP GUI highlights it.
@@ -691,7 +708,10 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_value = iv_value.
     CASE to_upper( iv_type ).
       WHEN 'D'.
-        IF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
+* An initial date is a blank field in SAP GUI.
+        IF iv_value = '00000000'.
+          rv_value = ``.
+        ELSEIF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
           lv_first = substring(
             val = iv_value
             off = 6

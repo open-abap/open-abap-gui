@@ -78,6 +78,8 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_menu           TYPE REF TO cl_ctmenu OPTIONAL
         iv_menu_field     TYPE string OPTIONAL
         iv_controls_html  TYPE string OPTIONAL
+        iv_dialogs_html   TYPE string OPTIONAL
+        it_downloads      TYPE zcl_gg_host_compatibility=>ty_downloads OPTIONAL
       RETURNING
         VALUE(rv_html)    TYPE string.
 
@@ -313,6 +315,12 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+    CLASS-METHODS render_downloads
+      IMPORTING
+        it_downloads   TYPE zcl_gg_host_compatibility=>ty_downloads
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
     CLASS-METHODS render_dynpro_popup
       IMPORTING
         is_popup       TYPE zif_gg_compatibility_v1=>ty_popup
@@ -418,13 +426,14 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD sapevent_transport.
+* A sapevent anchor posts the SAPEVENT event of its viewer, as a control
+* event of the page.
     rs_sapevent = VALUE #(
       url          = '/dispatch'
-      action_field = 'ucomm'
+      action_field = 'gg_control_event'
       fields       = VALUE #(
         ( name = 'session_id' value = iv_session_id )
-        ( name = 'page_id'    value = iv_page_id )
-        ( name = 'action'     value = zif_gg_host_html_v1=>action_command ) ) ).
+        ( name = 'page_id'    value = iv_page_id ) ) ).
   ENDMETHOD.
 
   METHOD render_list.
@@ -1220,6 +1229,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         AND NOT line_exists( it_controls[ kind = 'CUSTOM_CONTROL' ] ).
       lv_body = lv_body && iv_controls_html.
     ENDIF.
+    lv_body = lv_body && iv_dialogs_html && render_downloads( it_downloads ).
     LOOP AT it_controls TRANSPORTING NO FIELDS
         WHERE screen = is_screen-number
           AND ( resizing-vertical = abap_true OR resizing-horizontal = abap_true ).
@@ -1835,6 +1845,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     rv_html = rv_html && |</ul></section></div></div></div>|.
   ENDMETHOD.
 
+  METHOD render_downloads.
+* A file the program downloaded is saved by the browser when the page loads.
+* The bytes travel in an attribute and become a blob, so the page links to no
+* data URL.
+    LOOP AT it_downloads INTO DATA(ls_download).
+      rv_html = rv_html && |<a class="gg-download" hidden download="{ zcl_gg_host_html=>escape_attribute( ls_download-filename ) }" data-gg-download="{ cl_http_utility=>encode_x_base64( ls_download-content ) }">{ zcl_gg_host_html=>escape_text( ls_download-filename ) }</a>|
+        && |<script>(function()\{var a=document.currentScript.previousElementSibling,s=atob(a.getAttribute("data-gg-download")),b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)\{b[i]=s.charCodeAt(i);\}a.href=URL.createObjectURL(new Blob([b],\{type:"application/octet-stream"\}));a.click();\})();</script>|.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD render_dynpro_popup.
     DATA lv_kind TYPE string.
     DATA lv_prefix TYPE string.
@@ -1845,20 +1865,30 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       WHEN lv_kind = 'VALUES' THEN 'VALUE'
       WHEN lv_kind = 'TABLE' THEN 'TABLE'
       WHEN lv_kind = 'MONTH' THEN 'MONTH'
+      WHEN lv_kind = 'FILE_SAVE' OR lv_kind = 'FILE_OPEN' THEN lv_kind
       ELSE 'INFORM' ).
     rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-popup-title" data-popup-kind="{ zcl_gg_host_html=>escape_attribute( lv_kind ) }" data-popup-start-row="{ is_popup-start_row }" data-popup-start-column="{ is_popup-start_column }"><div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 id="gg-popup-title">{ zcl_gg_host_html=>escape_text( is_popup-title ) }</h2></header><div class="gg-popup-body">|.
     LOOP AT is_popup-text_lines INTO DATA(lv_line).
       rv_html = rv_html && |<p>{ zcl_gg_host_html=>escape_text( lv_line ) }</p>|.
     ENDLOOP.
     CASE lv_kind.
+      WHEN 'FILE_SAVE'.
+        LOOP AT is_popup-fields INTO DATA(ls_file_field).
+          rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( ls_file_field-text ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_file_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_file_field-value ) }"></label>|.
+        ENDLOOP.
+      WHEN 'FILE_OPEN'.
+* The browser reads the chosen file; its name and its bytes go with the form.
+        rv_html = rv_html && |<label class="gg-popup-field"><span>File</span><input type="file" data-gg-file-input></label>|
+          && |<input type="hidden" name="gg-popup-FILENAME"><input type="hidden" name="gg-popup-CONTENT">|
+          && |<script>(function()\{var i=document.querySelector("[data-gg-file-input]");i.addEventListener("change",function()\{var f=i.files[0];if(!f)\{return;\}var r=new FileReader();r.onload=function()\{var b=new Uint8Array(r.result),s="";for(var k=0;k<b.length;k++)\{s+=String.fromCharCode(b[k]);\}i.form.querySelector('[name="gg-popup-FILENAME"]').value=f.name;i.form.querySelector('[name="gg-popup-CONTENT"]').value=btoa(s);\};r.readAsArrayBuffer(f);\});\})();</script>|.
       WHEN 'VALUES'.
         LOOP AT is_popup-fields INTO DATA(ls_field).
           rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_field-text IS INITIAL THEN ls_field-name ELSE ls_field-text ) ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_field-value ) }"></label>|.
         ENDLOOP.
       WHEN 'TABLE'.
-        rv_html = rv_html && |<table class="gg-popup-table"><caption>Choose a row</caption><thead><tr><th scope="col">Row</th><th scope="col">Value</th></tr></thead><tbody>|.
+        rv_html = rv_html && |<table class="gg-popup-table"><tbody>|.
         LOOP AT is_popup-table_values INTO DATA(lv_table_value).
-          rv_html = rv_html && |<tr><th scope="row">{ sy-tabix }</th><td><button type="submit" name="gg_action" value="POPUP:TABLE:{ sy-tabix }" formnovalidate>{ zcl_gg_host_html=>escape_text( lv_table_value ) }</button></td></tr>|.
+          rv_html = rv_html && |<tr><td><button type="submit" name="gg_action" value="POPUP:TABLE:{ sy-tabix }" formnovalidate>{ zcl_gg_host_html=>escape_text( lv_table_value ) }</button></td></tr>|.
         ENDLOOP.
         rv_html = rv_html && '</tbody></table>'.
     ENDCASE.
@@ -1866,7 +1896,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     LOOP AT is_popup-buttons INTO DATA(ls_button).
       rv_html = rv_html && |<button type="submit" name="gg_action" value="POPUP:{ lv_prefix }:{ zcl_gg_host_html=>escape_attribute( ls_button-value ) }" formnovalidate>{ zcl_gg_host_html=>escape_text( ls_button-text ) }</button>|.
     ENDLOOP.
-    rv_html = rv_html && |</footer></div></div></div>|.
+    rv_html = rv_html && |</footer></div></div>|.
   ENDMETHOD.
 
   METHOD spaces.

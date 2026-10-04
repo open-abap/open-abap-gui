@@ -94,31 +94,56 @@ CLASS cl_salv_hierseq_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base
     DATA mo_events TYPE REF TO cl_salv_events_hierseq.
     DATA mo_display_settings TYPE REF TO cl_salv_display_settings.
 
-    METHODS render_level
+* The visible columns of a level: not technical, not hidden, and not the
+* expand column, whose value only decides whether the items are shown.
+    METHODS visible_columns
       IMPORTING
-        ir_table     TYPE REF TO data
-        iv_level     TYPE i
+        io_columns    TYPE REF TO cl_salv_columns_hierseq
       RETURNING
-        VALUE(value) TYPE string.
+        VALUE(result) TYPE salv_t_column_ref.
 
-    METHODS is_total_component
+    METHODS column_heading
       IMPORTING
-        iv_name         TYPE string
+        io_column     TYPE REF TO cl_salv_column
       RETURNING
-        VALUE(rv_total) TYPE abap_bool.
+        VALUE(result) TYPE string.
 
-    METHODS heading_for_column
+    METHODS render_row
       IMPORTING
-        iv_name           TYPE string
+        is_row        TYPE any
+        it_columns    TYPE salv_t_column_ref
+        iv_level      TYPE i
+        iv_width      TYPE i
       RETURNING
-        VALUE(rv_heading) TYPE string.
+        VALUE(result) TYPE string.
+
+    METHODS is_child
+      IMPORTING
+        is_header     TYPE any
+        is_item       TYPE any
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
+    METHODS is_expanded
+      IMPORTING
+        is_header     TYPE any
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
+    METHODS colspan
+      IMPORTING
+        iv_index      TYPE i
+        iv_count      TYPE i
+        iv_width      TYPE i
+      RETURNING
+        VALUE(result) TYPE string.
 
     METHODS render_total_row
       IMPORTING
-        ir_table        TYPE REF TO data
-        io_struct_descr TYPE REF TO cl_abap_structdescr
+        it_columns    TYPE salv_t_column_ref
+        iv_width      TYPE i
       RETURNING
-        VALUE(value)    TYPE string.
+        VALUE(result) TYPE string.
 
     METHODS format_total_value
       IMPORTING
@@ -236,186 +261,207 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD display.
-    DATA lv_level1_html TYPE string.
-    DATA lv_level2_html TYPE string.
-    DATA lv_master_name TYPE string.
-    DATA lv_slave_name TYPE string.
-    READ TABLE mt_binding INTO DATA(ls_binding) INDEX 1.
-    IF sy-subrc = 0.
-      lv_master_name = ls_binding-master.
-      lv_slave_name = ls_binding-slave.
+* A hierarchical-sequential list as SAP writes it: each header line followed
+* by its items, the column headings of both levels on top, and the totals of
+* the aggregated item columns at the end.
+    FIELD-SYMBOLS <headers> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS <items> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS <header> TYPE any.
+    FIELD-SYMBOLS <item> TYPE any.
+    DATA lt_heading_columns TYPE salv_t_column_ref.
+    DATA lv_html TYPE string.
+
+    ASSIGN mr_table_level1->* TO <headers>.
+    ASSIGN mr_table_level2->* TO <items>.
+    DATA(lt_columns1) = visible_columns( mo_level1->get_columns( ) ).
+    DATA(lt_columns2) = visible_columns( mo_level2->get_columns( ) ).
+    DATA(lv_width) = nmax( val1 = lines( lt_columns1 )
+                           val2 = lines( lt_columns2 ) ).
+    DATA(lv_title) = CONV string( mo_display_settings->get_list_header( ) ).
+
+    lv_html = `<section class="gg-alv gg-salv-hierseq" aria-label="Hierarchical-sequential list">`.
+    IF lv_title IS NOT INITIAL.
+      lv_html = lv_html && |<header><h2>{ cl_gui_control=>escape_html( lv_title ) }</h2></header>|.
     ENDIF.
-    lv_level1_html = render_level(
-      ir_table = mr_table_level1
-      iv_level = 1 ).
-    lv_level2_html = render_level(
-      ir_table = mr_table_level2
-      iv_level = 2 ).
-    cl_gui_control=>set_external_html(
-      |<section class="gg-salv-hierseq" aria-label="Hierarchical sequential SALV" data-binding-master="{ cl_gui_control=>escape_html( lv_master_name ) }" data-binding-slave="{ cl_gui_control=>escape_html( lv_slave_name ) }"><div class="gg-salv-hierseq-scroll">{ lv_level1_html }{ lv_level2_html }</div></section>| ).
+    lv_html = lv_html && |<div class="gg-alv-grid-area"><table{ COND string( WHEN lv_title IS NOT INITIAL THEN | aria-label="{ cl_gui_control=>escape_html( lv_title ) }"| ) }><thead>|.
+    DO 2 TIMES.
+      DATA(lv_level) = sy-index.
+      lt_heading_columns = COND #( WHEN lv_level = 1 THEN lt_columns1 ELSE lt_columns2 ).
+      lv_html = lv_html && |<tr data-level="{ lv_level }">|.
+      LOOP AT lt_heading_columns INTO DATA(ls_heading_column).
+        DATA(lv_heading_span) = colspan( iv_index = sy-tabix
+                                         iv_count = lines( lt_heading_columns )
+                                         iv_width = lv_width ).
+        lv_html = lv_html && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_heading_column-columnname ) ) }"{ lv_heading_span }>{ cl_gui_control=>escape_html( column_heading( ls_heading_column-r_column ) ) }</th>|.
+      ENDLOOP.
+      lv_html = lv_html && `</tr>`.
+    ENDDO.
+    lv_html = lv_html && `</thead><tbody>`.
+    LOOP AT <headers> ASSIGNING <header>.
+      lv_html = lv_html && render_row( is_row     = <header>
+                                       it_columns = lt_columns1
+                                       iv_level   = 1
+                                       iv_width   = lv_width ).
+      IF is_expanded( <header> ) = abap_false.
+        CONTINUE.
+      ENDIF.
+      LOOP AT <items> ASSIGNING <item>.
+        IF is_child( is_header = <header>
+                     is_item   = <item> ) = abap_true.
+          lv_html = lv_html && render_row( is_row     = <item>
+                                           it_columns = lt_columns2
+                                           iv_level   = 2
+                                           iv_width   = lv_width ).
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+    lv_html = lv_html && `</tbody>` && render_total_row( it_columns = lt_columns2
+                                                         iv_width   = lv_width ) && `</table></div></section>`.
+    cl_gui_control=>set_external_html( lv_html ).
   ENDMETHOD.
 
   METHOD refresh.
     display( ).
   ENDMETHOD.
 
-  METHOD render_level.
-    FIELD-SYMBOLS <table> TYPE ANY TABLE.
-    FIELD-SYMBOLS <row> TYPE any.
-    FIELD-SYMBOLS <component> TYPE any.
-    DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
-    DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
-    DATA lo_columns TYPE REF TO cl_salv_columns_hierseq.
-    DATA lv_key_name TYPE string.
-    DATA lv_key_value TYPE string.
-    IF ir_table IS NOT BOUND.
-      RETURN.
+  METHOD visible_columns.
+    LOOP AT io_columns->get( ) INTO DATA(ls_column).
+      IF ls_column-r_column->is_technical( ) = abap_true
+          OR ls_column-r_column->is_visible( ) = abap_false
+          OR ls_column-columnname = io_columns->get_expand_column( ).
+        CONTINUE.
+      ENDIF.
+      APPEND ls_column TO result.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD column_heading.
+    result = io_column->get_long_text( ).
+    IF result IS INITIAL.
+      result = io_column->get_medium_text( ).
     ENDIF.
-    ASSIGN ir_table->* TO <table>.
-    IF sy-subrc <> 0.
-      RETURN.
+    IF result IS INITIAL.
+      result = io_column->get_short_text( ).
     ENDIF.
-    lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( ir_table->* ).
-    lo_line_descr = lo_table_descr->get_table_line_type( ).
-    IF iv_level = 1.
-      lo_columns = mo_level1->get_columns( ).
-    ELSE.
-      lo_columns = mo_level2->get_columns( ).
+    IF result IS INITIAL.
+      result = io_column->get_columnname( ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD colspan.
+* The last cell of the narrower level spans the rest of the wider one.
+    IF iv_index = iv_count AND iv_count < iv_width.
+      result = | colspan="{ iv_width - iv_count + 1 }"|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_row.
+    FIELD-SYMBOLS <key> TYPE any.
+    FIELD-SYMBOLS <value> TYPE any.
+    DATA lv_key TYPE string.
+    DATA lv_type TYPE c LENGTH 1.
+
     READ TABLE mt_binding INTO DATA(ls_binding) INDEX 1.
     IF sy-subrc = 0.
-      lv_key_name = COND string( WHEN iv_level = 1 THEN ls_binding-master ELSE ls_binding-slave ).
+      ASSIGN COMPONENT COND string( WHEN iv_level = 1 THEN ls_binding-master ELSE ls_binding-slave )
+        OF STRUCTURE is_row TO <key>.
+      IF sy-subrc = 0.
+        lv_key = condense( CONV string( <key> ) ).
+      ENDIF.
     ENDIF.
-    value = |<section class="gg-salv-hierseq-level" aria-label="SALV hierarchy level { iv_level }" data-level="{ iv_level }"><h3>{ COND string( WHEN iv_level = 1 THEN 'Header level' ELSE 'Item level' ) }</h3><table><caption>{ COND string( WHEN iv_level = 1 THEN 'Header records' ELSE 'Item records grouped by binding' ) }</caption><thead><tr>|.
-    IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
-      DATA(lo_struct_descr) = CAST cl_abap_structdescr( lo_line_descr ).
-      LOOP AT lo_columns->get( ) INTO DATA(ls_column_ref).
-        IF ls_column_ref-r_column->is_technical( ) = abap_true.
-          CONTINUE.
-        ENDIF.
-        DATA(lv_heading) = ls_column_ref-r_column->get_long_text( ).
-        IF lv_heading IS INITIAL.
-          lv_heading = heading_for_column( CONV string( ls_column_ref-columnname ) ).
-        ENDIF.
-        value = value && |<th scope="col">{ cl_gui_control=>escape_html( lv_heading ) }</th>|.
-      ENDLOOP.
-      value = value && '</tr></thead><tbody>'.
-      LOOP AT <table> ASSIGNING <row>.
-        CLEAR lv_key_value.
-        IF lv_key_name IS NOT INITIAL.
-          ASSIGN COMPONENT lv_key_name OF STRUCTURE <row> TO <component>.
-          IF sy-subrc = 0.
-            lv_key_value = CONV string( <component> ).
-            CONDENSE lv_key_value.
-          ENDIF.
-        ENDIF.
-        value = value && |<tr data-level="{ iv_level }"{ COND string( WHEN iv_level = 1 THEN | data-group-key="{ cl_gui_control=>escape_html( lv_key_value ) }"| ELSE | data-parent-key="{ cl_gui_control=>escape_html( lv_key_value ) }"| ) }>|.
-        LOOP AT lo_columns->get( ) INTO ls_column_ref.
-          IF ls_column_ref-r_column->is_technical( ) = abap_true.
-            CONTINUE.
-          ENDIF.
-          ASSIGN COMPONENT ls_column_ref-columnname OF STRUCTURE <row> TO <component>.
-          IF sy-subrc = 0.
-            value = value && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_column_ref-columnname ) ) }">{ cl_gui_control=>escape_html( CONV string( <component> ) ) }</td>|.
-          ENDIF.
-        ENDLOOP.
-        value = value && '</tr>'.
-      ENDLOOP.
-      value = value && render_total_row(
-        ir_table        = ir_table
-        io_struct_descr = lo_struct_descr ).
-    ELSE.
-      value = value && '<th scope="col">VALUE</th></tr></thead><tbody>'.
-      LOOP AT <table> ASSIGNING <row>.
-        value = value && |<tr><td>{ cl_gui_control=>escape_html( CONV string( <row> ) ) }</td></tr>|.
-      ENDLOOP.
-    ENDIF.
-    value = value && '</tbody></table></section>'.
+    result = |<tr data-level="{ iv_level }"{ COND string( WHEN iv_level = 1 THEN | data-group-key="{ cl_gui_control=>escape_html( lv_key ) }"| ELSE | data-parent-key="{ cl_gui_control=>escape_html( lv_key ) }"| ) }>|.
+    LOOP AT it_columns INTO DATA(ls_column).
+      DATA(lv_index) = sy-tabix.
+      ASSIGN COMPONENT ls_column-columnname OF STRUCTURE is_row TO <value>.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      DESCRIBE FIELD <value> TYPE lv_type.
+      DATA(lv_cell_span) = colspan( iv_index = lv_index
+                                    iv_count = lines( it_columns )
+                                    iv_width = iv_width ).
+      result = result && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_column-columnname ) ) }"{ COND string( WHEN lv_type CA 'IPFbsa8' THEN ` class="gg-type-number"` ) }{ lv_cell_span }>{ cl_gui_control=>escape_html( condense( CONV string( <value> ) ) ) }</td>|.
+    ENDLOOP.
+    result = result && `</tr>`.
   ENDMETHOD.
 
-  METHOD is_total_component.
-    DATA lv_name TYPE string.
-    lv_name = iv_name.
-    TRANSLATE lv_name TO UPPER CASE.
-    rv_total = xsdbool( lv_name CS 'PRICE'
-                        OR lv_name CS 'AMOUNT'
-                        OR lv_name CS 'TOTAL'
-                        OR lv_name CS 'QUANTITY'
-                        OR lv_name CS 'QTY'
-                        OR lv_name CS 'SEATS' ).
+  METHOD is_child.
+    FIELD-SYMBOLS <master> TYPE any.
+    FIELD-SYMBOLS <slave> TYPE any.
+
+    result = abap_true.
+    LOOP AT mt_binding INTO DATA(ls_binding).
+      ASSIGN COMPONENT ls_binding-master OF STRUCTURE is_header TO <master>.
+      IF sy-subrc <> 0.
+        result = abap_false.
+        RETURN.
+      ENDIF.
+      ASSIGN COMPONENT ls_binding-slave OF STRUCTURE is_item TO <slave>.
+      IF sy-subrc <> 0 OR <master> <> <slave>.
+        result = abap_false.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
-  METHOD heading_for_column.
-    rv_heading = iv_name.
-    REPLACE ALL OCCURRENCES OF '_' IN rv_heading WITH ` `.
-    TRANSLATE rv_heading TO LOWER CASE.
+  METHOD is_expanded.
+* With an expand column each header line says whether its items are shown;
+* without one the level setting decides for all of them.
+    FIELD-SYMBOLS <expand> TYPE any.
+
+    DATA(lv_expand_column) = mo_level1->get_columns( )->get_expand_column( ).
+    IF lv_expand_column IS INITIAL.
+      result = mo_level1->is_items_expanded( ).
+      RETURN.
+    ENDIF.
+    ASSIGN COMPONENT lv_expand_column OF STRUCTURE is_header TO <expand>.
+    IF sy-subrc = 0.
+      result = xsdbool( <expand> IS NOT INITIAL ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD render_total_row.
-    FIELD-SYMBOLS <table> TYPE ANY TABLE.
-    FIELD-SYMBOLS <row> TYPE any.
-    FIELD-SYMBOLS <component> TYPE any.
-    DATA lv_has_total TYPE abap_bool.
+    FIELD-SYMBOLS <items> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS <item> TYPE any.
+    FIELD-SYMBOLS <value> TYPE any.
     DATA lv_total TYPE decfloat34.
-    DATA lv_total_text TYPE string.
-    DATA lv_total_sample TYPE string.
-    DATA lo_columns TYPE REF TO cl_salv_columns_hierseq.
+    DATA lv_sample TYPE string.
+    DATA lv_aggregated TYPE abap_bool.
 
-    IF io_struct_descr IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    ASSIGN ir_table->* TO <table>.
-    IF sy-subrc <> 0.
-      RETURN.
-    ENDIF.
-    LOOP AT io_struct_descr->get_components( ) INTO DATA(ls_component).
-      IF is_total_component( CONV string( ls_component-name ) ) = abap_true.
-        lv_has_total = abap_true.
-        EXIT.
+    DATA(lo_aggregations) = mo_level2->get_aggregations( ).
+    LOOP AT it_columns INTO DATA(ls_column).
+      IF lo_aggregations->is_aggregated( ls_column-columnname ) = abap_true.
+        lv_aggregated = abap_true.
       ENDIF.
     ENDLOOP.
-    IF lv_has_total = abap_false.
+    IF lv_aggregated = abap_false.
       RETURN.
     ENDIF.
-    IF ir_table = mr_table_level1.
-      lo_columns = mo_level1->get_columns( ).
-    ELSE.
-      lo_columns = mo_level2->get_columns( ).
-    ENDIF.
-    value = '<tfoot><tr class="gg-salv-hierseq-total"><th scope="row">Total</th>'.
-    LOOP AT io_struct_descr->get_components( ) INTO ls_component.
-      TRY.
-          IF lo_columns->get_column( CONV lvc_fname( ls_component-name ) )->is_technical( ) = abap_true.
-            CONTINUE.
-          ENDIF.
-        CATCH cx_root.
-          CONTINUE.
-      ENDTRY.
-      CLEAR: lv_total, lv_total_text, lv_total_sample.
-      IF is_total_component( CONV string( ls_component-name ) ) = abap_true.
-        LOOP AT <table> ASSIGNING <row>.
-          ASSIGN COMPONENT ls_component-name OF STRUCTURE <row> TO <component>.
-          IF sy-subrc = 0.
-            IF lv_total_sample IS INITIAL.
-              lv_total_sample = CONV string( <component> ).
-            ENDIF.
-            TRY.
-                lv_total = lv_total + CONV decfloat34( <component> ).
-              CATCH cx_root.
-                CONTINUE.
-            ENDTRY.
-          ENDIF.
-        ENDLOOP.
-        lv_total_text = format_total_value(
-          iv_value  = lv_total
-          iv_sample = lv_total_sample ).
-      ELSE.
-        lv_total_text = '-'.
+    ASSIGN mr_table_level2->* TO <items>.
+    result = `<tfoot><tr data-level="total">`.
+    LOOP AT it_columns INTO ls_column.
+      DATA(lv_colspan) = colspan( iv_index = sy-tabix
+                                  iv_count = lines( it_columns )
+                                  iv_width = iv_width ).
+      IF lo_aggregations->is_aggregated( ls_column-columnname ) = abap_false.
+        result = result && |<td{ lv_colspan }></td>|.
+        CONTINUE.
       ENDIF.
-      value = value && |<td data-total="true" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_component-name ) ) }">{ cl_gui_control=>escape_html( lv_total_text ) }</td>|.
+      CLEAR: lv_total, lv_sample.
+      LOOP AT <items> ASSIGNING <item>.
+        ASSIGN COMPONENT ls_column-columnname OF STRUCTURE <item> TO <value>.
+        IF sy-subrc = 0.
+          IF lv_sample IS INITIAL.
+            lv_sample = condense( CONV string( <value> ) ).
+          ENDIF.
+          lv_total = lv_total + <value>.
+        ENDIF.
+      ENDLOOP.
+      DATA(lv_total_text) = format_total_value( iv_value  = lv_total
+                                                iv_sample = lv_sample ).
+      result = result && |<td class="gg-grid-cell gg-state-total gg-type-number" data-total="true" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_column-columnname ) ) }"{ lv_colspan }>{ cl_gui_control=>escape_html( lv_total_text ) }</td>|.
     ENDLOOP.
-    value = value && '</tr></tfoot>'.
+    result = result && `</tr></tfoot>`.
   ENDMETHOD.
 
   METHOD format_total_value.
