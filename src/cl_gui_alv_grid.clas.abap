@@ -1539,61 +1539,34 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD alv_icon_html.
-    DATA lv_icon_name TYPE string.
-    DATA lv_label TYPE string.
-    DATA lv_color TYPE string.
-
-    CASE iv_code.
-      WHEN '@01@'.
-        lv_icon_name = 'success'.
-        lv_label = 'Active'.
-        lv_color = '#218342'.
-      WHEN '@02@'.
-        lv_icon_name = 'error'.
-        lv_label = 'Inactive'.
-        lv_color = '#b3261e'.
-      WHEN '@08@' OR '@5B@'.
-        lv_icon_name = 'success'.
-        lv_label = 'Green light'.
-        lv_color = '#218342'.
-      WHEN '@09@' OR '@5D@'.
-        lv_icon_name = 'warning'.
-        lv_label = 'Yellow light'.
-        lv_color = '#a56300'.
-      WHEN '@0A@' OR '@5C@'.
-        lv_icon_name = 'error'.
-        lv_label = 'Red light'.
-        lv_color = '#b3261e'.
-      WHEN OTHERS.
-        result = |<span class="gg-alv-icon" role="img" aria-label="ALV icon">{ cl_gui_control=>escape_html( iv_code ) }</span>|.
-        RETURN.
-    ENDCASE.
-    result = |<span class="gg-alv-icon" role="img" aria-label="{ lv_label }" style="color:{ lv_color };display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) }</span>|.
+    DATA(ls_icon) = zcl_gg_host_icons=>resolve( iv_code ).
+    IF ls_icon-symbol IS INITIAL OR iv_code NP '@*'.
+      result = |<span class="gg-alv-icon" role="img" aria-label="ALV icon">{ cl_gui_control=>escape_html( iv_code ) }</span>|.
+      RETURN.
+    ENDIF.
+    DATA(lv_label) = COND string( WHEN ls_icon-label IS INITIAL THEN iv_code ELSE ls_icon-label ).
+    result = |<span class="gg-alv-icon" role="img" aria-label="{ cl_gui_control=>escape_html( lv_label ) }" style="display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = iv_code ) }</span>|.
   ENDMETHOD.
 
   METHOD alv_light_html.
-    DATA lv_icon_name TYPE string.
+    DATA lv_code TYPE string.
     DATA lv_label TYPE string.
-    DATA lv_color TYPE string.
 
     CASE iv_value.
       WHEN '1'.
-        lv_icon_name = 'error'.
+        lv_code = '@0A@'.
         lv_label = 'Red traffic light'.
-        lv_color = '#b3261e'.
       WHEN '2'.
-        lv_icon_name = 'warning'.
+        lv_code = '@09@'.
         lv_label = 'Yellow traffic light'.
-        lv_color = '#a56300'.
       WHEN '3'.
-        lv_icon_name = 'success'.
+        lv_code = '@08@'.
         lv_label = 'Green traffic light'.
-        lv_color = '#218342'.
       WHEN OTHERS.
         result = cl_gui_control=>escape_html( iv_value ).
         RETURN.
     ENDCASE.
-    result = |<span class="gg-alv-light" role="img" aria-label="{ lv_label }" data-light="{ iv_value }" style="color:{ lv_color };display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) }</span>|.
+    result = |<span class="gg-alv-light" role="img" aria-label="{ lv_label }" data-light="{ iv_value }" style="display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = lv_code ) }</span>|.
   ENDMETHOD.
 
   METHOD alv_symbol_html.

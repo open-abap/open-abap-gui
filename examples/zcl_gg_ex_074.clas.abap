@@ -141,7 +141,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
       mv_p_req = it_values[ name = 'P_REQ' ]-value.
       mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
       gt_carriers = VALUE #( ( carrid = 'AA' ) ( carrid = 'LH' ) ( carrid = 'SQ' ) ).
-      io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = '' dynprofield = 'S_MUL-LOW' value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ct_return_tab = gt_return ).
+      io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = iv_screen dynprofield = 'S_MUL-LOW' value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ct_return_tab = gt_return ).
       CLEAR mv_s_mul[].
       LOOP AT gt_return INTO DATA(ls_return).
         APPEND VALUE #( sign = 'I' option = 'EQ' low = ls_return-fieldval ) TO mv_s_mul.

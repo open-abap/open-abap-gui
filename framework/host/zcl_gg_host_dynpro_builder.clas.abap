@@ -150,12 +150,18 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_builder_v1~add_listbox.
+* The domain's fixed values unless the program passes entries; a VRM list
+* set at runtime replaces either.
+    DATA(lt_fixed_values) = is_listbox-fixed_values.
+    IF lt_fixed_values IS INITIAL.
+      lt_fixed_values = zcl_gg_host_compatibility=>domain_fixed_values( is_listbox-data_type-rollname ).
+    ENDIF.
     APPEND VALUE #( screen       = mv_screen
                     kind         = 'LISTBOX'
                     name         = is_listbox-control-name
                     position     = is_listbox-control-position
                     data_type    = is_listbox-data_type
-                    fixed_values = is_listbox-fixed_values
+                    fixed_values = lt_fixed_values
                     ucomm        = is_listbox-ucomm
                     enabled      = abap_true
                     visible      = abap_true ) TO mt_controls.

@@ -58,7 +58,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-ucomm="INACTIVE" disabled' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-toolbar-separator' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-toolbar-scope="application-status"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '#wb-icon-help-circle' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '#wb-icon-square-dashed' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'not-a-real-icon' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<svg on' ) ).
 

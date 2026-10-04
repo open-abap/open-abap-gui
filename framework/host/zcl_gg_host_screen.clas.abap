@@ -385,6 +385,13 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_listbox.
+* As in SAP, the entries are the fixed values of the field's domain, read
+* now rather than copied into the program. Entries the program passes win,
+* and a VRM list set at runtime replaces either.
+    DATA(lt_fixed_values) = is_listbox-fixed_values.
+    IF lt_fixed_values IS INITIAL.
+      lt_fixed_values = zcl_gg_host_compatibility=>domain_fixed_values( is_listbox-data_type-rollname ).
+    ENDIF.
     add_value(
       iv_name  = is_listbox-name
       iv_value = is_listbox-default ).
@@ -392,7 +399,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_name         = is_listbox-name
       iv_text         = is_listbox-text
       iv_modif_id     = is_listbox-modif_id
-      it_fixed_values = is_listbox-fixed_values
+      it_fixed_values = lt_fixed_values
       iv_obligatory   = is_listbox-obligatory ).
     add_element(
       iv_kind           = 'LISTBOX'
@@ -403,7 +410,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_visible_length = is_listbox-data_type-visible_length
       iv_modif_id       = is_listbox-modif_id
       is_data_type      = is_listbox-data_type
-      it_fixed_values   = is_listbox-fixed_values ).
+      it_fixed_values   = lt_fixed_values ).
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_select_option.

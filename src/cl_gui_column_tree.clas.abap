@@ -261,10 +261,11 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
         WHEN ls_node-folder = abap_true OR lv_has_children = abap_true
           THEN COND string( WHEN lv_is_expanded = abap_true THEN 'folder-open' ELSE 'folder' )
         ELSE 'file-code' ).
-      DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name = lv_icon_name ).
       DATA(lv_node_image) = COND string(
         WHEN lv_is_expanded = abap_true AND ls_node-open_image IS NOT INITIAL THEN ls_node-open_image
         ELSE ls_node-node_image ).
+      DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name     = lv_node_image
+                                                    iv_fallback = lv_icon_name ).
       DATA(lv_visible) = xsdbool( ls_node-hidden = abap_false ).
       DATA(lv_parent_key) = ls_node-parent_key.
       DO 32 TIMES.

@@ -2,9 +2,39 @@ CLASS ltcl_dd_document_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK 
   PRIVATE SECTION.
     METHODS renders_document_content FOR TESTING.
     METHODS renders_styled_split_table FOR TESTING.
+    METHODS keeps_blanks_at_line_ends FOR TESTING.
 ENDCLASS.
 
 CLASS ltcl_dd_document_support IMPLEMENTATION.
+  METHOD keeps_blanks_at_line_ends.
+* Joining HTML_TABLE with && drops trailing blanks of each line, so a line
+* boundary on a blank would glue words together. 255 is odd, so the
+* boundaries in a run of "x " land on a blank at least every other line.
+    DATA lv_run TYPE string.
+    DATA lv_html TYPE string.
+    DATA lv_position TYPE i.
+
+    DO 400 TIMES.
+      lv_run = lv_run && `x `.
+    ENDDO.
+    lv_run = lv_run && `x`.
+    cl_gui_control=>clear( ).
+    DATA(lo_document) = NEW cl_dd_document( ).
+    lo_document->html_insert(
+      EXPORTING
+        contents = lv_run
+      CHANGING
+        position = lv_position ).
+    lo_document->merge_document( ).
+    LOOP AT lo_document->html_table INTO DATA(ls_line).
+      lv_html = lv_html && ls_line-line.
+    ENDLOOP.
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS lv_run ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS `xx` ) ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
   METHOD renders_document_content.
     DATA lo_form TYPE REF TO cl_dd_form_area.
     DATA lo_input TYPE REF TO cl_dd_input_element.

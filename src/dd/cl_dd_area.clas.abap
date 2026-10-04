@@ -313,26 +313,15 @@ CLASS cl_dd_area IMPLEMENTATION.
     DATA lv_icon_label TYPE string.
     DATA lv_icon_token TYPE string.
 
-    lv_icon_name = CONV string( sap_icon ).
-    TRANSLATE lv_icon_name TO LOWER CASE.
-    CONDENSE lv_icon_name NO-GAPS.
+    lv_icon_name = condense( CONV string( sap_icon ) ).
     lv_icon_label = alternative_text.
-    CASE lv_icon_name.
-      WHEN 'icon_display' OR 'icon_screen'.
-        lv_icon_name = 'icon_display'.
-        IF lv_icon_label IS INITIAL.
-          lv_icon_label = 'Display'.
-        ENDIF.
-      WHEN 'icon_okay' OR 'icon_green_light' OR '@5b@'.
-        lv_icon_name = 'circle-check'.
-        IF lv_icon_label IS INITIAL.
-          lv_icon_label = 'Success'.
-        ENDIF.
-      WHEN OTHERS.
-        IF lv_icon_label IS INITIAL.
-          lv_icon_label = lv_icon_name.
-        ENDIF.
-    ENDCASE.
+    IF lv_icon_label IS INITIAL.
+      DATA(ls_icon) = zcl_gg_host_icons=>resolve( lv_icon_name ).
+      lv_icon_label = ls_icon-label.
+    ENDIF.
+    IF lv_icon_label IS INITIAL.
+      lv_icon_label = lv_icon_name.
+    ENDIF.
     lv_icon_token = escape_html( CONV string( sap_icon ) ).
     result = |<span class="gg-dd-icon" role="img" aria-label="{ escape_html( lv_icon_label ) }" data-icon="{ lv_icon_token }">{ zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) }</span>|.
   ENDMETHOD.
@@ -348,6 +337,9 @@ CLASS cl_dd_area IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD fill_html_table.
+* The lines are fixed-length character fields, and callers join them with
+* && or CONCATENATE, which drop trailing blanks. So no line ends in a blank;
+* such blanks start the next line instead, where they are kept.
     DATA lv_offset TYPE i.
     DATA lv_length TYPE i.
     DATA lv_chunk TYPE i.
@@ -358,10 +350,15 @@ CLASS cl_dd_area IMPLEMENTATION.
       IF lv_chunk > 255.
         lv_chunk = 255.
       ENDIF.
+      WHILE lv_chunk > 1 AND substring( val = html_content
+                                        off = lv_offset + lv_chunk - 1
+                                        len = 1 ) = ` `.
+        lv_chunk = lv_chunk - 1.
+      ENDWHILE.
       APPEND VALUE #( line = substring( val = html_content
                                         off = lv_offset
                                         len = lv_chunk ) ) TO html_table.
-      lv_offset = lv_offset + 255.
+      lv_offset = lv_offset + lv_chunk.
     ENDWHILE.
   ENDMETHOD.
 

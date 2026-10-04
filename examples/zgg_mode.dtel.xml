@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_DTEL" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <DD04V>
+    <ROLLNAME>ZGG_MODE</ROLLNAME>
+    <DDLANGUAGE>E</DDLANGUAGE>
+    <DOMNAME>ZGG_MODE</DOMNAME>
+    <HEADLEN>04</HEADLEN>
+    <SCRLEN1>04</SCRLEN1>
+    <SCRLEN2>04</SCRLEN2>
+    <SCRLEN3>15</SCRLEN3>
+    <DDTEXT>Processing mode</DDTEXT>
+    <REPTEXT>Mode</REPTEXT>
+    <SCRTEXT_S>Mode</SCRTEXT_S>
+    <SCRTEXT_M>Mode</SCRTEXT_M>
+    <SCRTEXT_L>Processing mode</SCRTEXT_L>
+    <DTELMASTER>E</DTELMASTER>
+    <REFKIND>D</REFKIND>
+   </DD04V>
+  </asx:values>
+ </asx:abap>
+</abapGit>

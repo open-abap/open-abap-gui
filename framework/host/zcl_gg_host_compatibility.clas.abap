@@ -20,6 +20,12 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS get_selection_list_values
       RETURNING VALUE(rt_lists) TYPE ty_selection_lists.
 
+    "! The fixed values of a data element's domain, read at runtime as SAP
+    "! does for a listbox; empty when the type is unknown or has none.
+    CLASS-METHODS domain_fixed_values
+      IMPORTING iv_rollname      TYPE csequence
+      RETURNING VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_fixed_values.
+
   PRIVATE SECTION.
     CLASS-DATA mt_selection_lists TYPE ty_selection_lists.
     CLASS-DATA mt_parameters TYPE ty_parameters.
@@ -323,6 +329,31 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
   METHOD get_selection_list_values.
     rt_lists = mt_selection_lists.
+  ENDMETHOD.
+
+  METHOD domain_fixed_values.
+    DATA lo_type TYPE REF TO cl_abap_typedescr.
+    DATA lo_element TYPE REF TO cl_abap_elemdescr.
+
+    IF iv_rollname IS INITIAL.
+      RETURN.
+    ENDIF.
+    cl_abap_typedescr=>describe_by_name(
+      EXPORTING
+        p_name         = iv_rollname
+      RECEIVING
+        type           = lo_type
+      EXCEPTIONS
+        type_not_found = 1
+        OTHERS         = 2 ).
+    IF sy-subrc <> 0 OR lo_type->kind <> cl_abap_typedescr=>kind_elem.
+      RETURN.
+    ENDIF.
+    lo_element ?= lo_type.
+    LOOP AT lo_element->get_ddic_fixed_values( ) INTO DATA(ls_fixed).
+      APPEND VALUE #( key  = condense( CONV string( ls_fixed-low ) )
+                      text = CONV string( ls_fixed-ddtext ) ) TO rt_values.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_fieldcatalog_merge.

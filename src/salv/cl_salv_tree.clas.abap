@@ -246,11 +246,12 @@ CLASS cl_salv_tree IMPLEMENTATION.
           WHEN lo_node->is_folder( ) = abap_true OR lv_has_children = abap_true
             THEN COND string( WHEN lv_expanded = abap_true THEN 'folder-open' ELSE 'folder' )
           ELSE 'file-code' ).
-        DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name = lv_icon_name ).
         DATA(lv_icon_code) = COND string(
           WHEN lv_expanded = abap_true AND lo_node->mv_expanded_icon IS NOT INITIAL
             THEN lo_node->mv_expanded_icon
           ELSE lo_node->mv_collapsed_icon ).
+        DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name     = lv_icon_code
+                                                      iv_fallback = lv_icon_name ).
         DATA(lv_icon_code_attr) = COND string(
           WHEN lv_icon_code IS INITIAL THEN ``
           ELSE | data-sap-image="{ cl_gui_control=>escape_html( lv_icon_code ) }"| ).

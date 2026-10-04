@@ -1061,10 +1061,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         WHEN lv_is_expanded = abap_true AND ls_node-open_image IS NOT INITIAL
           THEN ls_node-open_image
         ELSE ls_node-node_image ).
-      DATA(lv_node_icon) = COND string(
-        WHEN lv_node_image IS NOT INITIAL
-          THEN zcl_gg_host_icons=>icon( iv_name = lv_node_image )
-        ELSE zcl_gg_host_icons=>icon( iv_name = lv_icon_name ) ).
+      DATA(lv_node_icon) = zcl_gg_host_icons=>icon( iv_name     = lv_node_image
+                                                    iv_fallback = lv_icon_name ).
       DATA(lv_selected) = COND string(
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
         ELSE ' aria-selected="false"' ).

@@ -633,6 +633,14 @@ function replaceOutsideStrings(text, replacements) {
   return transformOutsideStrings(text, (part) => applyReplacements(part, replacements));
 }
 
+// Selection events receive the number directly. FORMs and helper methods
+// read the host's current selection screen from their session instead.
+function selectionScreenNumber(context) {
+  if (context.event?.startsWith("at_selection_screen")) return "iv_screen";
+  if (context.event === "dynpro") return "''";
+  return "io_session->get_context( )-selection-screen";
+}
+
 // Values a report can read that do not exist, or mean something else, in the
 // generated class: system fields held by the session, the SCREEN work area of
 // LOOP AT SCREEN, and the list color constants. Statements carried over as
@@ -648,7 +656,7 @@ function dataValueRewrites(context) {
     // SSCRFIELDS-UCOMM holds the selection screen's function code during PAI.
     ["sscrfields-ucomm", context.ucomm ?? "sscrfields-ucomm"],
     ["sy-subrc", context.subrc ?? "sy-subrc"],
-    ["sy-dynnr", context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''"],
+    ["sy-dynnr", selectionScreenNumber(context)],
     ["screen-name", `${screen}-name`],
     ["screen-group1", `${screen}-modif_id`],
     ["screen-group([2-4])", `${screen}-group$1`],
@@ -732,8 +740,7 @@ function valueExpression(expression, context) {
   value = value.replace(/\bsscrfields-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
   value = value.replace(/\bsy-repid\b/gi,
     context.event === "dynpro" ? "''" : "io_session->get_context( )-program-program");
-  value = value.replace(/\bsy-dynnr\b/gi,
-    context.event?.startsWith("at_selection_screen") ? "iv_screen" : "''");
+  value = value.replace(/\bsy-dynnr\b/gi, selectionScreenNumber(context));
   value = value.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
   value = value.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
   value = value.replace(/\bsy-index\b/gi, "sy-index");
@@ -1456,7 +1463,7 @@ function lowerSingleStatement(statement, context) {
       ["sy-repid", context.event === "dynpro"
         ? "''"
         : "io_session->get_context( )-program-program"],
-      ["sy-dynnr", "''"],
+      ["sy-dynnr", selectionScreenNumber(context)],
     ])) ?? rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
   }
   if (statement.kind === "Leave") {
@@ -1897,7 +1904,7 @@ export function lowerStatements(statements, context) {
       : undefined;
     if (iconAppend && iconWrite && iconAppend[1].toUpperCase() === iconWrite[2].toUpperCase()
       && output.at(-1)?.text === `${iconWrite[2].toLowerCase()} = '@ICON:${iconWrite[1].toLowerCase().replace(/^icon_/, "")}'.`) {
-      output.at(-1).text = `${iconWrite[2].toLowerCase()} = '@ICON:${iconWrite[1].toLowerCase().replace(/^icon_/, "")}${iconAppend[3].slice(1, -1)}'.`;
+      output.at(-1).text = `${iconWrite[2].toLowerCase()} = '@ICON:${iconWrite[1].toLowerCase().replace(/^icon_/, "")} ${iconAppend[3].slice(1, -1).trimStart()}'.`;
       continue;
     }
     const lowerInput = statement.kind === "Write"

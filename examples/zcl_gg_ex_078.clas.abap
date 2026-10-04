@@ -257,7 +257,7 @@ CLASS zcl_gg_ex_078 IMPLEMENTATION.
 
   METHOD form_carrier_help.
     gt_carriers = VALUE #( ( carrid = 'AA' ) ( carrid = 'LH' ) ( carrid = 'SQ' ) ).
-    io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = '' dynprofield = iv_field value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ).
+    io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-selection-screen dynprofield = iv_field value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ).
   ENDMETHOD.
 
 ENDCLASS.

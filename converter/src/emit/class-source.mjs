@@ -552,7 +552,7 @@ function staticSelectionText(ir, token) {
     }
     const offset = Number(move[2]);
     const previous = values.get(name) ?? "";
-    if (previous.startsWith("@ICON:")) values.set(name, `${previous}${value}`);
+    if (previous.startsWith("@ICON:")) values.set(name, `${previous} ${value.trimStart()}`);
     else values.set(name, `${previous.slice(0, offset).padEnd(offset, " ")}${value}`);
   }
   return values.get(key) ?? token;
@@ -644,7 +644,6 @@ function selectionBuilder(ir) {
           const ucomm = /USER-COMMAND\s+(\w+)/i.exec(additions)?.[1];
           if (ucomm) fields.push(`ucomm = '${ucomm.toUpperCase()}'`);
           if (/OBLIGATORY/i.test(additions)) fields.push("obligatory = abap_true");
-          if (item.fixedValues?.length) fields.push(`fixed_values = VALUE #( ${item.fixedValues.map((fixed) => `( key = ${literal(fixed.key ?? fixed.value ?? "")} text = ${literal(fixed.text ?? fixed.label ?? fixed.key ?? "")} )`).join(" ")} )`);
           lines.push(`io_builder->add_listbox( VALUE #( ${fields.join(" ")} ) ).`);
         } else {
           const fields = [`name = '${item.name}'`, `text = ${selectionText(ir, item)}`, type];
