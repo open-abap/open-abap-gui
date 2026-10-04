@@ -144,13 +144,11 @@ CLASS zcl_gg_ex_071 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_car = it_values[ name = 'P_CAR' ]-value.
-    mv_p_con = it_values[ name = 'P_CON' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_car = it_values[ name = 'P_CAR' ]-value.
-    mv_p_con = it_values[ name = 'P_CON' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

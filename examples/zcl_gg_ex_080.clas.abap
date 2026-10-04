@@ -257,19 +257,11 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_fld = it_values[ name = 'P_FLD' ]-value.
-    mv_p_rad1 = it_values[ name = 'P_RAD1' ]-value.
-    mv_p_rad2 = it_values[ name = 'P_RAD2' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    mv_s_end = CORRESPONDING #( it_values[ name = 'S_END' ]-ranges ).
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_fld = it_values[ name = 'P_FLD' ]-value.
-    mv_p_rad1 = it_values[ name = 'P_RAD1' ]-value.
-    mv_p_rad2 = it_values[ name = 'P_RAD2' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    mv_s_end = CORRESPONDING #( it_values[ name = 'S_END' ]-ranges ).
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

@@ -344,7 +344,9 @@ CLASS zcl_gg_rich_dynpro_base IMPLEMENTATION.
                 iv_screen  = is_context-screen ).
     CASE mv_mode.
       WHEN '100'.
-        IF line_exists( ct_values[ name = 'P_INPUT' ] ) AND line_exists( ct_values[ name = 'P_OUTPUT' ] ).
+* PBO follows PAI; an output PAI already set stays.
+        IF line_exists( ct_values[ name = 'P_INPUT' ] ) AND line_exists( ct_values[ name = 'P_OUTPUT' ] )
+            AND ct_values[ name = 'P_OUTPUT' ]-value NP 'accepted:*'.
           ct_values[ name = 'P_OUTPUT' ]-value = |derived: { ct_values[ name = 'P_INPUT' ]-value }|.
         ENDIF.
       WHEN '101'.

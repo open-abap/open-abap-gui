@@ -220,11 +220,11 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
     lt_nodes = VALUE #( ( node_key = 'R' )
                         ( node_key = 'C' relatkey = 'R' )
                         ( node_key = 'G' relatkey = 'C' ) ).
-    lt_items = VALUE #( ( node_key = 'R' item_name = 'NODE'
+    lt_items = VALUE #( ( node_key = 'R' item_name = 'HIER'
                           class = cl_gui_column_tree=>item_class_text text = 'root' )
-                        ( node_key = 'C' item_name = 'NODE'
+                        ( node_key = 'C' item_name = 'HIER'
                           class = cl_gui_column_tree=>item_class_text text = 'child' )
-                        ( node_key = 'G' item_name = 'NODE'
+                        ( node_key = 'G' item_name = 'HIER'
                           class = cl_gui_column_tree=>item_class_text text = 'grand' ) ).
     lo_tree->add_nodes_and_items(
       node_table                = lt_nodes
@@ -241,9 +241,9 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
                                       msg = 'child indent' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'padding-left:36px' )
                                       msg = 'grandchild indent' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-tree-node-label">root</span>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-tree-node-label">child</span>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-tree-node-label">grand</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>root</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>child</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>grand</span>' ) ).
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( lv_html CS 'style="width:30ch"' )
       msg = 'hierarchy width uses SAP character units' ).

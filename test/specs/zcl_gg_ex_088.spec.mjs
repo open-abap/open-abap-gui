@@ -5,5 +5,6 @@ test("ZCL_GG_EX_088 — renders semantic icons, symbols, checkbox, and quickinfo
   await expect(page.locator(".gg-list-fragment")).toHaveCount(3);
   await expect(page.locator(".gg-list-fragment use")).toHaveCount(2);
   await expect(page.getByText("[selected]")).toBeVisible();
-  await expect(page.locator('[title="Icon & <safe>"]')).toHaveCount(3);
+  await expect(page.locator('[title="Icon & <safe>"]')).toHaveCount(1);
+  await expect(page.locator('[title="Active"]')).toHaveCount(1);
 });

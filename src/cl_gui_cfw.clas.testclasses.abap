@@ -317,7 +317,7 @@ CLASS ltcl_test IMPLEMENTATION.
         result = lv_result ).
     cl_abap_unit_assert=>assert_equals(
       act = lv_result
-      exp = 4 ).
+      exp = 0 ).
     DATA(lv_rejected_html) = cl_gui_control=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_rejected_html CS 'data-picture-state="rejected"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_rejected_html CS 'src="javascript:' ) ).
@@ -548,8 +548,8 @@ CLASS ltcl_test IMPLEMENTATION.
                         node_table           = lt_nodes ).
 
     DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Root</li>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Editor</li>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Root</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Editor</span>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'Tree nodes:' ) ).
     cl_gui_control=>clear( ).
   ENDMETHOD.

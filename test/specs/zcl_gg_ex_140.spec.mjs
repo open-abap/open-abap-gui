@@ -1,26 +1,16 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-async function pressToolbar(page, label) {
-  await page.locator(".wb-toolbar").getByRole("button", {name: label}).click();
-  await page.waitForLoadState("load");
-}
-
-test("ZCL_GG_EX_140 — renders a simple tree fallback", async ({page, host}) => {
+test("ZCL_GG_EX_140 — loads children when a node is expanded", async ({page, host}) => {
   await openExample(page, host, 140);
-  const tree = page.getByRole("tree", {name: "Simple tree"});
-  await expect(tree).toBeVisible();
-  await expect(tree.getByRole("treeitem", {name: "LH400 — Lufthansa"})).toBeVisible();
-  await expect(tree.locator('[data-item-class="checkbox"]')).toHaveAttribute("role", "checkbox");
-  await expect(tree.locator('[data-item-class="editable"]')).toHaveAttribute("role", "textbox");
-  await expect(page.getByText("Hidden audit node")).toBeHidden();
-  await pressToolbar(page, "Collapse tree");
-  await expect(tree.getByRole("treeitem", {name: "Seats: 180"})).toBeHidden();
-  await pressToolbar(page, "Load children");
-  await expect(tree.getByRole("treeitem", {name: "Lazy child: United"})).toBeVisible();
-  await pressToolbar(page, "Context menu");
-  await expect(page.getByText("Context menu: Open details, Rename, and Remove are server-declared actions.")).toBeVisible();
-  await pressToolbar(page, "Compare models");
-  await expect(page.locator(".gg-list-status")).toHaveText("TREE COMPARE");
-  await expect(page.getByText(/Compare: simple model expands \d+ node\(s\) vs list model \d+/)).toBeVisible();
+  const tree = page.getByRole("tree");
+  await expect(tree.getByRole("treeitem")).toHaveCount(3);
+  await submit(page, "Expand Lufthansa");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("2 flight(s) of LH loaded");
+  await expect(tree.getByRole("treeitem")).toHaveCount(5);
+  await tree.getByText("LH 0400 Frankfurt - New York").dblclick();
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Double click on node LH0400");
+  await tree.getByText("United Airlines").click();
+  await expect(tree.locator('[data-node-key="UA"]')).toHaveAttribute("aria-selected", "true");
+  await submit(page, "Selected node");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Selected node UA");
 });
-

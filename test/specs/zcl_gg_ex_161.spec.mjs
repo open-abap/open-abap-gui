@@ -16,5 +16,5 @@ test("ZCL_GG_EX_161 — renders each chained checkbox parameter on its own line"
   await tsave.check();
   await submit(page);
   await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list-line")).toHaveText(["P_CLEAN=X", "P_TSAVE=X"]);
+  await expect(page.locator(".gg-list-line")).toHaveText(["Old entries deleted", "Test run, nothing saved"]);
 });

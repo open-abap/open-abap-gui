@@ -153,13 +153,13 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
     "Two-screen flight editor",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_134"})).toContainText(
-    "Document viewer editor",
+    "Document viewer and editor",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_147"})).toContainText(
     "SALV selections and events",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_149"})).toContainText(
-    "Chart engine graphic fallback",
+    "Chart engine",
   );
   await expect(page.getByRole("link", {name: "ZGG_EX_150"})).toContainText(
     "Analytics cockpit",

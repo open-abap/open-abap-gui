@@ -1,4 +1,5 @@
 import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
+import { textLiteral } from "./abap-text.mjs";
 import { controlObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
 import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
@@ -750,8 +751,11 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
       ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]) => [name, String(value).toLowerCase()]),
       ...Object.entries(continuationRenames(ir)),
       ...valueReplacements,
+      // A hidden global is restored from the selected line, see
+      // hiddenRestore; any other hidden name reads the line directly.
       ...(event === "at_line_selection" || event === "at_user_command" || event === "at_pf"
-        ? (ir.hiddenNames ?? []).map((name) => [name, `is_line-fields[ name = '${name}' ]-value`])
+        ? (ir.hiddenNames ?? []).filter((name) => !hiddenGlobal(ir, name))
+          .map((name) => [name, `is_line-fields[ name = '${name}' ]-value`])
         : []),
     ],
     hiddenNames: ir.hiddenNames ?? [],
@@ -1040,6 +1044,26 @@ function truncateTerminalPaths(statements) {
   return output;
 }
 
+function hiddenGlobal(ir, name) {
+  const base = name.split("-")[0];
+  return (ir.statePlan?.globals ?? []).some((global) => global.toUpperCase() === base);
+}
+
+// Choosing a line puts the values HIDE stored for it back into their global
+// fields before the event runs, as on SAP.
+function hiddenRestore(ir, event) {
+  if (!["at_line_selection", "at_user_command", "at_pf"].includes(event)) return [];
+  return (ir.hiddenNames ?? []).filter((name) => hiddenGlobal(ir, name)).flatMap((name) => {
+    const [base, ...path] = name.split("-");
+    const target = [ir.statePlan?.renames?.[base] ?? base.toLowerCase(), ...path.map((part) => part.toLowerCase())].join("-");
+    return [
+      `IF line_exists( is_line-fields[ name = '${name}' ] ).`,
+      `${target} = is_line-fields[ name = '${name}' ]-value.`,
+      "ENDIF.",
+    ];
+  });
+}
+
 // A value request that assigns its own parameter offers that value. Values an
 // F4 function module offers reach the host through the compatibility layer.
 function valueRequestResult(ir, qualifier) {
@@ -1071,6 +1095,7 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   const fieldSymbols = globalFieldSymbolDeclarations(ir, statements);
   let body = [
     ...fieldSymbols,
+    ...(statements.length ? hiddenRestore(ir, event) : []),
     ...transport.hydrate,
     ...removePromotedDeclarations(ir, lowered.map((item) => item.text)),
     ...transport.flush,
@@ -1081,7 +1106,7 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   if (event === "start_of_selection" && context.activePFKeys?.length && !statements.some((statement) => statement.kind === "SetPFStatus")) {
     body.unshift(`io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_pf_keys = VALUE #( ${context.activePFKeys.map((key) => `( ${key} )`).join(" ")} ) ) ).`);
   }
-  if (event === "start_of_selection" && body.length) body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
+  if (event === "start_of_selection" && body.length) body.unshift(`io_session->get_list( )->set_title( ${textLiteral(ir.reportTitle ?? ir.targetClassName)} ).`);
   if (hasWriter) body = addWriterDeclaration(body);
   return { body, lowered };
 }
@@ -1150,7 +1175,7 @@ function reportMethods(ir) {
     } else {
       const body = [...bodiesFor(event)];
       if (event === "load_of_program" && ir.reportTitle) {
-        body.unshift(`io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.targetClassName)} ).`);
+        body.unshift(`io_session->get_list( )->set_title( ${textLiteral(ir.reportTitle ?? ir.targetClassName)} ).`);
       }
       if (event === "at_selection_screen") body.unshift(...activeTabCapture(ir));
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
@@ -1260,22 +1285,42 @@ function dynproStateComponents(ir) {
   return components;
 }
 
-function dynproStateHydrate(ir, valuesName = "ct_values") {
-  return dynproStateComponents(ir).flatMap(({ name, member }) => [
+function dynproStateHydrate(ir, valuesName = "ct_values", keep = () => true) {
+  return dynproStateComponents(ir).filter(({ name }) => keep(name)).flatMap(({ name, member }) => [
     `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
     `${member} = CONV #( ${valuesName}[ name = '${name}' ]-value ).`,
     "ENDIF.",
   ]);
 }
 
+// PAI takes over only the screen fields a user can change, as on SAP. Other
+// fields keep the program's values, which an event handler of a control may
+// have set before PAI. The active tab of a tabstrip comes from the screen too.
+function screenInputField(metadata) {
+  const changeable = new Set((metadata?.screens ?? [])
+    .flatMap((screen) => screen.elements ?? [])
+    .filter((element) => !["output", "text", "frame", "pushbutton", "subscreen"].includes(element.kind))
+    .map((element) => String(element.name ?? "").toUpperCase()));
+  return (name) => changeable.has(name) || name.endsWith("-ACTIVETAB");
+}
+
+// A string field goes into the screen value as it is.
+function stringDeclared(ir, name) {
+  return (ir.declarations ?? []).some((item) => (item.names ?? []).some((declared) => declared.toUpperCase() === name)
+    && /\bTYPE\s+string\b/i.test(item.raw ?? ""));
+}
+
 function dynproStateFlush(ir, valuesName = "ct_values") {
-  return dynproStateComponents(ir).flatMap(({ name, member }) => [
-    `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
-    `${valuesName}[ name = '${name}' ]-value = CONV string( ${member} ).`,
-    "ELSE.",
-    `INSERT VALUE #( name = '${name}' value = CONV string( ${member} ) ) INTO TABLE ${valuesName}.`,
-    "ENDIF.",
-  ]);
+  return dynproStateComponents(ir).flatMap(({ name, member }) => {
+    const value = stringDeclared(ir, name) ? member : `CONV string( ${member} )`;
+    return [
+      `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
+      `${valuesName}[ name = '${name}' ]-value = ${value}.`,
+      "ELSE.",
+      `INSERT VALUE #( name = '${name}' value = ${value} ) INTO TABLE ${valuesName}.`,
+      "ENDIF.",
+    ];
+  });
 }
 
 function unsupportedDynamicTableAction(ir, routine) {
@@ -1830,7 +1875,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     }
     if (guiStatus?.iconBar?.length || guiStatus?.icon_bar?.length) {
       const icons = guiStatus.iconBar ?? guiStatus.icon_bar;
-      fields.push(`icon_bar = VALUE #( ${icons.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${literal(String(item.label ?? ""))} icon = ${literal(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
+      fields.push(`icon_bar = VALUE #( ${icons.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${textLiteral(String(item.label ?? ""))} icon = ${literal(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
     }
     if (guiStatus?.menus?.length) {
       fields.push(`menus = VALUE #( ${guiStatus.menus.map((menu) => `( code = ${literal(String(menu.code ?? ""))} text = ${literal(String(menu.text ?? ""))} path = ${literal(String(menu.path ?? ""))} items = VALUE #( ${(
@@ -1916,7 +1961,10 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     method(interfaceMethod("build_flow_logic"), buildFlow),
     method(interfaceMethod("initialization"), [...stateFlush, ...tableFlush]),
     method(interfaceMethod("process_output_module"), [...dynproStatesSetter(ir), ...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...cursorLines, ...dispatch("OUTPUT"), ...stateFlush, ...tableFlush]),
-    method(interfaceMethod("process_input_module"), [...stateHydrate, ...tableHydrate, ...tableContext, ...dispatch("INPUT"), ...stateFlush, ...tableFlush]),
+    // A screen without PAI modules has nothing to read or write back.
+    method(interfaceMethod("process_input_module"), ir.modules.some((item) => item.direction === "INPUT")
+      ? [...dynproStateHydrate(ir, "ct_values", screenInputField(metadata)), ...tableHydrate, ...tableContext, ...dispatch("INPUT"), ...stateFlush, ...tableFlush]
+      : ["RETURN."]),
     method(interfaceMethod("process_on_value_request"), valueRequest),
     method(interfaceMethod("process_on_help_request"), helpRequest),
   ];
@@ -2088,7 +2136,12 @@ function helperDefinitionBody(statements, rename) {
     // abaplint splits chained declarations into one statement per element,
     // repeating the keyword and keeping the comma. Each element becomes a
     // standalone member, so the comma must become a terminator.
-    lines.push(...text.split("\n").map((line) => `  ${line.trim().replace(/,\s*$/, ".")}`));
+    // Continuation lines keep their indentation, so a definition over several
+    // lines keeps its layout.
+    lines.push(...text.split("\n").map((line, index, all) => {
+      const kept = index === 0 ? `  ${line.trim()}` : line.trimEnd();
+      return index === all.length - 1 ? kept.replace(/,\s*$/, ".") : kept;
+    }));
   }
   flushStructured();
   return lines;
@@ -2106,17 +2159,19 @@ function withImportingParameters(definition, parameters) {
   const next = /\b(?:EXPORTING|CHANGING|RETURNING|RAISING|EXCEPTIONS)\b/i.exec(masked.slice(from));
   // Insert after the last code ahead of that keyword, not into a " comment.
   const at = masked.slice(0, next ? from + next.index : masked.length).trimEnd().length;
-  return `${text.slice(0, at)} ${importing ? "" : "IMPORTING "}${parameters}${text.slice(at)}.`;
+  if (!importing) return `${text.slice(0, at)}\n      IMPORTING\n        ${parameters}${text.slice(at)}.`;
+  return `${text.slice(0, at)}\n        ${parameters}${text.slice(at)}.`;
 }
 
 function helperSource(ir, options, localClass) {
   const generatedName = localClass.generatedName;
   const rename = (text) => renameIdentifiers(text, allRenames(ir));
-  const ownerSessionParameters = `io_owner TYPE REF TO ${ir.targetClassName.toLowerCase()} io_session TYPE REF TO zif_gg_session_v1`;
+  // One parameter per line with aligned types, as the lint rules ask.
+  const ownerSessionParameters = `io_owner   TYPE REF TO ${ir.targetClassName.toLowerCase()}\n        io_session TYPE REF TO zif_gg_session_v1`;
   const originalConstructor = (localClass.methods ?? []).find((localMethod) => localMethod.name?.toUpperCase() === "CONSTRUCTOR");
   const constructorSignature = originalConstructor?.definition?.text
     ? withImportingParameters(rename(originalConstructor.definition.text), ownerSessionParameters)
-    : `METHODS constructor IMPORTING ${ownerSessionParameters}.`;
+    : `METHODS constructor\n      IMPORTING\n        ${ownerSessionParameters}.`;
   const eventHandlers = staticEventHandlerNames(localClass);
   const bridge = [
     `    ${constructorSignature}`,
@@ -2216,7 +2271,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
     .map((item) => `${item.code}: ${item.construct}`)
     .filter((value, index, values) => values.indexOf(value) === index);
   const startBody = [
-    `io_session->get_list( )->set_title( ${literal(ir.reportTitle ?? ir.programName ?? ir.targetClassName)} ).`,
+    `io_session->get_list( )->set_title( ${textLiteral(ir.reportTitle ?? ir.programName ?? ir.targetClassName)} ).`,
     "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
     `lo_writer->write_field( VALUE #( text = ${literal("Partial conversion preview")} placement = VALUE #( new_line = abap_true ) ) ).`,
     `lo_writer->write_field( VALUE #( text = ${literal(`Source report: ${ir.programName ?? "UNKNOWN"}`)} placement = VALUE #( new_line = abap_true ) ) ).`,
@@ -2226,7 +2281,7 @@ export function emitPartialSkeleton(ir, options, diagnostics) {
   const methods = REPORT_METHODS.map((name) => method(
     `zif_gg_report_v1~${name}`,
     name === "load_of_program" && ir.reportTitle
-      ? [`io_session->get_list( )->set_title( ${literal(ir.reportTitle)} ).`]
+      ? [`io_session->get_list( )->set_title( ${textLiteral(ir.reportTitle)} ).`]
       : name === "start_of_selection" ? startBody : ["RETURN."],
   ));
   const todos = diagnostics
@@ -2276,7 +2331,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
   ];
   const label = ir.reportTitle ?? ir.description ?? ir.programName ?? ir.targetClassName;
   const applicationBody = [
-    `io_session->get_list( )->set_title( ${literal(label)} ).`,
+    `io_session->get_list( )->set_title( ${textLiteral(label)} ).`,
     "DATA(lo_writer) = io_session->get_list( )->get_writer( ).",
     `lo_writer->write_field( VALUE #( text = ${literal(label)} placement = VALUE #( new_line = abap_true ) ) ).`,
     `lo_writer->write_field( VALUE #( text = ${literal("Application content is available; unsupported optional operations remain in converter diagnostics.")} placement = VALUE #( new_line = abap_true ) ) ).`,
@@ -2303,7 +2358,7 @@ export function emitPartialApplication(ir, options, diagnostics) {
       const body = name === "build_screen"
         ? selectionBuilder(ir)
         : name === "load_of_program" && ir.reportTitle
-          ? [`io_session->get_list( )->set_title( ${literal(ir.reportTitle)} ).`]
+          ? [`io_session->get_list( )->set_title( ${textLiteral(ir.reportTitle)} ).`]
         : name === "start_of_selection" ? screenBody : ["RETURN."];
       methods.push(method(`zif_gg_report_v1~${name}`, body.length ? body : ["RETURN."]));
     }

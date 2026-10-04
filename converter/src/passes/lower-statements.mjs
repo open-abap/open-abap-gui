@@ -1,4 +1,5 @@
 import { lowerCompatibilityFunction } from "../function-modules.mjs";
+import { textLiteral } from "../emit/abap-text.mjs";
 import { parsesAsStatement } from "../parser.mjs";
 import fs from "node:fs";
 import path from "node:path";
@@ -375,6 +376,8 @@ export function dynamicWriteOperand(statement) {
   const closing = dynamicWriteClose(raw, prefix.length);
   if (closing < 0) return undefined;
   const operand = raw.slice(prefix.length + 1, closing).trim();
+  // WRITE /(10) f gives an output length, not a field name.
+  if (/^\d+$/.test(operand)) return undefined;
   const suffix = raw.slice(closing + 1);
   return {
     operand,
@@ -763,7 +766,8 @@ function continuationId(statement, context) {
 function hiddenFieldEntries(raw, context) {
   const body = stripPeriod(raw).replace(/^HIDE\s*:??\s*/i, "");
   return body.split(",").map((part) => part.trim()).filter(Boolean).map((expression, index) => {
-    const identifier = /^[A-Z][A-Z0-9_]*$/i.test(expression) ? expression.toUpperCase() : `HIDE_${index + 1}`;
+    // A field or structure component is hidden under its own name.
+    const identifier = /^[A-Z][A-Z0-9_]*(?:-[A-Z][A-Z0-9_]*)*$/i.test(expression) ? expression.toUpperCase() : `HIDE_${index + 1}`;
     return `( name = '${identifier}' value = ${expressionText(expression, context)} )`;
   });
 }
@@ -773,6 +777,10 @@ function appendHiddenFields(text, fields) {
   const suffix = " ) ).";
   const position = text.lastIndexOf(suffix);
   if (position < 0) return text;
+  // A chained HIDE adds to the hide group the line already has.
+  if (/\bhide = VALUE #\(/.test(text.slice(0, position)) && text.slice(position - 2, position) === " )") {
+    return `${text.slice(0, position - 2)} ${fields.join(" ")}${text.slice(position - 2)}`;
+  }
   return `${text.slice(0, position)} hide = VALUE #( ${fields.join(" ")} )${text.slice(position)}`;
 }
 
@@ -809,13 +817,16 @@ function parseWrite(raw, context) {
     length = at[2] ? Number(at[2]) : undefined;
     rest = rest.slice(at[0].length);
   } else {
-    const column = /^(\d+)(?:\((\d+)\))?\s+/.exec(rest);
-    if (column) {
-      position = Number(column[1]);
+    const column = /^(\d+)?(?:\((\d+)\))?\s+/.exec(rest);
+    if (column && (column[1] || column[2])) {
+      position = column[1] ? Number(column[1]) : undefined;
       length = column[2] ? Number(column[2]) : undefined;
       rest = rest.slice(column[0].length);
     }
   }
+  const quickinfoMatch = /\s+QUICKINFO\s+('(?:''|[^'])*'|`(?:``|[^`])*`|[A-Z][A-Z0-9_-]*)/i.exec(rest);
+  const quickinfo = quickinfoMatch ? expressionText(quickinfoMatch[1], context) : undefined;
+  if (quickinfoMatch) rest = rest.replace(quickinfoMatch[0], "");
   const kind = /\s+AS\s+(CHECKBOX|ICON|SYMBOL)\b/i.exec(rest)?.[1]?.toUpperCase();
   if (kind) rest = rest.replace(new RegExp(`\\s+AS\\s+${kind}\\b`, "i"), "");
   const colorName = /\bCOLOR\s+(COL_[A-Z_]+)\b/i.exec(rest)?.[1]?.toUpperCase();
@@ -866,6 +877,7 @@ function parseWrite(raw, context) {
   if (intensified) fieldFormat.push("intensified = abap_true");
   if (inverse) fieldFormat.push("inverse = abap_true");
   if (hotspot) fieldFormat.push("hotspot = abap_true");
+  if (quickinfo) fieldFormat.push(`quickinfo = ${quickinfo}`);
   if (fieldFormat.length) fields.push(`format = VALUE #( ${fieldFormat.join(" ")} )`);
   if (placement.length) fields.push(`placement = VALUE #( ${placement.join(" ")} )`);
   if (format.length) fields.push(`write_format = VALUE #( ${format.join(" ")} )`);
@@ -876,6 +888,7 @@ function parseWrite(raw, context) {
     : `name = ${/^'[\s\S]*'$/.test(rest) ? rest : quote(valueExpression(rest, context).toUpperCase())}`;
   const typeFields = [value];
   if (placement.length) typeFields.push(`placement = VALUE #( ${placement.join(" ")} )`);
+  if (quickinfo) typeFields.push(`quickinfo = ${quickinfo}`);
   return `lo_writer->${type}( VALUE #( ${typeFields.join(" ")} ) ).`;
 }
 
@@ -887,7 +900,9 @@ function unsupportedWriteFormat(text) {
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
-  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
+  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic)
+    // Date masks need the field's type, which the writer does not get.
+    || /\b(?:DD\/MM\/YY(?:YY)?|MM\/DD\/YY(?:YY)?|DDMMYY|MMDDYY|YYMMDD)\b/i.test(classic);
 }
 
 function parseFormat(raw, context) {
@@ -1010,8 +1025,11 @@ function staticHandlerBindings(raw, context) {
   const owner = context.localClassOwner ?? "me";
   const session = context.sessionVariable ?? "io_session";
   return [...classes].flatMap((className) => {
-    const helper = context.localClassRenames?.[className] ?? className.toLowerCase();
-    return [`${helper}=>go_owner = ${owner}.`, `${helper}=>go_session = ${session}.`];
+    // Inside the helper class itself its static attributes need no class name.
+    const prefix = className === (context.localClassName ?? "").toUpperCase()
+      ? ""
+      : `${context.localClassRenames?.[className] ?? className.toLowerCase()}=>`;
+    return [`${prefix}go_owner = ${owner}.`, `${prefix}go_session = ${session}.`];
   });
 }
 
@@ -1175,6 +1193,12 @@ function lowerSingleStatement(statement, context) {
         ? `LOCAL:${explicitType}`
         : "";
       const objectType = resolvedExplicitType || resolvedTargetType;
+      // In a helper class the target becomes io_owner->target; the open-abap
+      // transpiler would create the owner's class for it, so the declared
+      // class is named.
+      if (context.localClassName && !explicitType && resolvedTargetType && !resolvedTargetType.startsWith("LOCAL:")) {
+        lowered = lowered.replace(/^(CREATE\s+OBJECT\s+[A-Z][A-Z0-9_]*)/i, `$1 TYPE ${resolvedTargetType.toLowerCase()}`);
+      }
       if (objectType.startsWith("LOCAL:") && context.localClassOwner) {
         const owner = context.localClassOwner;
         const session = context.sessionVariable ?? "io_session";
@@ -1294,7 +1318,7 @@ function lowerSingleStatement(statement, context) {
     const activePFKeys = statusMetadata.activePFKeys ?? statusMetadata.active_pf_keys ?? context.activePFKeys ?? [];
     if (activePFKeys.length) fields.push(`active_pf_keys = VALUE #( ${[...new Set(activePFKeys)].map((key) => `( ${Number(key)} )`).join(" ")} )`);
     const iconBar = statusMetadata.iconBar ?? statusMetadata.icon_bar ?? [];
-    if (iconBar.length) fields.push(`icon_bar = VALUE #( ${iconBar.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${quote(String(item.label ?? ""))} icon = ${quote(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
+    if (iconBar.length) fields.push(`icon_bar = VALUE #( ${iconBar.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${textLiteral(String(item.label ?? ""))} icon = ${quote(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
     if (statusMetadata.pfActions?.length || statusMetadata.pf_actions?.length) {
       const actions = statusMetadata.pfActions ?? statusMetadata.pf_actions;
       fields.push(`pf_actions = VALUE #( ${actions.map((item) => `( number = ${Number(item.number ?? item.functionKey)} ucomm = '${String(item.ucomm ?? item.functionCode ?? "").toUpperCase()}' )`).join(" ")} )`);
@@ -1341,7 +1365,7 @@ function lowerSingleStatement(statement, context) {
     const operandsText = /\bWITH\s+(.+)$/i.exec(stripPeriod(raw))?.[1] ?? "";
     const operands = splitMessageOperands(operandsText);
     const value = metadata?.text
-      ? (operands.length ? titlebarExpression(metadata.text, operands, context) : quote(metadata.text))
+      ? (operands.length ? titlebarExpression(metadata.text, operands, context) : textLiteral(metadata.text))
       : quote(title.toUpperCase());
     const target = context.event === "dynpro" ? "io_session->get_dialog( )" : "io_session->get_list( )";
     return `${target}->set_title( ${value} ).`;
@@ -1497,13 +1521,30 @@ function lowerSingleStatement(statement, context) {
     return `DATA(ls_line) = io_session->get_list( )->read_line( ${level ? `iv_level = ${level} ` : ""}iv_index = ${index} ).`;
   }
   if (statement.kind === "ModifyLine") {
-    const fields = [];
-    const text = raw.toUpperCase();
+    // MODIFY LINE n [INDEX level] or MODIFY CURRENT LINE, with LINE FORMAT
+    // additions. A bare INTENSIFIED, INVERSE, ... means ON.
+    const text = stripPeriod(raw);
+    const counter = context.temporaries ?? { count: 0 };
+    counter.count++;
+    const line = `ls_modify_line_${counter.count}`;
+    const number = /^MODIFY\s+LINE\s+(\S+)/i.exec(text)?.[1];
+    const level = /\bINDEX\s+(\S+)/i.exec(text)?.[1];
+    const index = number ? valueExpression(number, context) : "io_session->get_list( )->get_context( )-line";
+    const lines = [`DATA(${line}) = io_session->get_list( )->read_line( ${level ? `iv_level = ${valueExpression(level, context)} ` : ""}iv_index = ${index} ).`];
+    const format = /\bLINE\s+FORMAT\s+(.+)$/i.exec(text)?.[1] ?? "";
+    if (/\bRESET\b/i.test(format)) lines.push(`CLEAR ${line}-format.`);
     for (const [keyword, field] of [["INTENSIFIED", "intensified"], ["INVERSE", "inverse"], ["HOTSPOT", "hotspot"], ["INPUT", "input"]]) {
-      const match = new RegExp(`${keyword}\\s+(ON|OFF)`).exec(text);
-      if (match) fields.push(`ls_line-format-${field} = abap_${match[1] === "ON" ? "true" : "false"}`);
+      const match = new RegExp(String.raw`\b${keyword}\b(?:\s+(ON|OFF)\b)?`, "i").exec(format);
+      if (match) lines.push(`${line}-format-${field} = abap_${match[1]?.toUpperCase() === "OFF" ? "false" : "true"}.`);
     }
-    return `${fields.length ? `${fields.join(".\n")}.\n` : ""}io_session->get_list( )->modify_line( ls_line ).`;
+    const color = /\bCOLOR\s+(\S+)(?:\s+(ON|OFF)\b)?/i.exec(format);
+    if (color) {
+      const constant = LIST_COLOR_CONSTANTS[color[1].toUpperCase()];
+      lines.push(`${line}-format-color = ${color[2]?.toUpperCase() === "OFF" ? "zif_gg_list_processing_types_v1=>color_background"
+        : constant ? `zif_gg_list_processing_types_v1=>${constant}` : valueExpression(color[1], context)}.`);
+    }
+    lines.push(`io_session->get_list( )->modify_line( ${line} ).`);
+    return lines.join("\n");
   }
   if (statement.kind === "Perform") {
     // A dynamic PERFORM names a FORM that became a method; a FORM in another
@@ -1817,8 +1858,12 @@ export function lowerStatements(statements, context) {
     : undefined;
   for (let index = 0; index < statements.length; index++) {
     let statement = statements[index];
+    // HIDE stores its fields for the line written last. Before any WRITE of
+    // this block they go to the next one.
     if (statement.kind === "Hide") {
-      pendingHidden.push(...uniqueHiddenFields(hiddenFieldEntries(statement.text, context), pendingHidden));
+      const fields = uniqueHiddenFields(hiddenFieldEntries(statement.text, context), pendingHidden);
+      if (lastWriteIndex >= 0) output[lastWriteIndex].text = appendHiddenFields(output[lastWriteIndex].text, fields);
+      else pendingHidden.push(...fields);
       continue;
     }
     const screenBinding = statement.kind === "LoopAtScreen" ? screenLoopBinding(statement.text, usedScreenNames) : undefined;

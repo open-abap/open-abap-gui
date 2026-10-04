@@ -158,7 +158,8 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     mv_p_factor = it_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( it_values[ name = 'S_DATE' ]-ranges ).
     form_show_factor( io_session = io_session ).
-    NEW zcl_example_incsel_h1( io_owner = me io_session = io_session )->count( ).
+    NEW zcl_example_incsel_h1( io_owner   = me
+                               io_session = io_session )->count( ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

@@ -1,4 +1,4 @@
-CLASS cl_salv_events DEFINITION PUBLIC CREATE PROTECTED.
+CLASS cl_salv_events DEFINITION PUBLIC CREATE PROTECTED FRIENDS cl_salv_table.
   PUBLIC SECTION.
 
     INTERFACES if_salv_events_functions.

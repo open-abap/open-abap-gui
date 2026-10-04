@@ -118,8 +118,8 @@ CLASS zcl_example_sql IMPLEMENTATION.
       lo_writer->write_field( VALUE #( text = |{ gs_flight-connid }| placement = VALUE #( new_line = abap_true ) ) ).
     ENDSELECT.
     SELECT SINGLE price FROM sflight INTO gv_price WHERE carrid = mv_p_carr.
-      lo_writer->write_field( VALUE #( text = 'First price' placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gv_price }| ) ).
+    lo_writer->write_field( VALUE #( text = 'First price' placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = |{ gv_price }| ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

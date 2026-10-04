@@ -173,6 +173,10 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_kind      TYPE string DEFAULT 'TEXT'
         it_hidden    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields OPTIONAL.
 
+    METHODS set_quickinfo
+      IMPORTING
+        iv_quickinfo TYPE string.
+
     METHODS fit
       IMPORTING
         iv_text          TYPE string
@@ -502,13 +506,8 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
                                  len = lv_decimals ).
       ENDIF.
       rv_text = lv_integer && `.` && lv_fraction.
-    ELSEIF lv_decimals = 0 AND rv_text CO '0123456789.-+'.
-      FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
-      IF sy-subrc = 0.
-        rv_text = substring( val = rv_text
-                             off = 0
-                             len = lv_offset ).
-      ENDIF.
+* Without DECIMALS a number keeps the decimals of its type, as the text
+* already shows them.
     ENDIF.
 
     IF is_format-no_zero = abap_true AND rv_text CO '0.-+'.
@@ -553,6 +552,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     IF is_field-format-hotspot = abap_true.
       ls_format-hotspot = abap_true.
     ENDIF.
+    IF is_field-format-quickinfo IS NOT INITIAL.
+      ls_format-quickinfo = is_field-format-quickinfo.
+    ENDIF.
     lv_text = format_write(
                 iv_text   = is_field-text
                 is_format = is_field-write_format ).
@@ -581,21 +583,34 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     write_at(
       is_placement = is_checkbox-placement
       iv_text      = lv_text
-      iv_kind      = 'CHECKBOX' ).
+      iv_kind      = 'CHECKBOX'
+      it_hidden    = is_checkbox-hide ).
+    set_quickinfo( is_checkbox-quickinfo ).
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_icon.
     write_at(
       is_placement = is_icon-placement
       iv_text      = |@{ is_icon-name }@|
-      iv_kind      = 'ICON' ).
+      iv_kind      = 'ICON'
+      it_hidden    = is_icon-hide ).
+    set_quickinfo( is_icon-quickinfo ).
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_symbol.
     write_at(
       is_placement = is_symbol-placement
       iv_text      = |@{ is_symbol-name }@|
-      iv_kind      = 'SYMBOL' ).
+      iv_kind      = 'SYMBOL'
+      it_hidden    = is_symbol-hide ).
+    set_quickinfo( is_symbol-quickinfo ).
+  ENDMETHOD.
+
+  METHOD set_quickinfo.
+* WRITE ... QUICKINFO belongs to the fragment just written.
+    IF iv_quickinfo IS NOT INITIAL.
+      mt_current_fragments[ lines( mt_current_fragments ) ]-format-quickinfo = iv_quickinfo.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~new_line.

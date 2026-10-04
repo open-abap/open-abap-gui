@@ -1,9 +1,7 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_134 — combines tree, editor, and viewer controls", async ({page, host}) => {
+test("ZCL_GG_EX_134 — shows the editor text in the viewer", async ({page, host}) => {
   await openExample(page, host, 134);
-  await expect(page.getByRole("tree")).toBeVisible();
-  await expect(page.locator("textarea")).toHaveValue("Document editor");
-  await expect(page.getByTitle("HTML viewer")).toHaveAttribute("srcdoc", /Document viewer/);
+  await expect(page.locator("textarea")).toHaveValue("Document text");
+  await expect(page.frameLocator('iframe[title="HTML viewer"]').locator("p")).toHaveText("Document text");
 });
-

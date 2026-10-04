@@ -1,4 +1,4 @@
-CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
+CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_gui_cfw.
   PUBLIC SECTION.
     TYPES: BEGIN OF ty_field,
              name  TYPE string,
@@ -154,6 +154,44 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
         cntl_system_error.
 
   PROTECTED SECTION.
+* The events set with set_registered_events, and whether each one is an
+* application event (PAI runs) or a system event (PAI does not run).
+    DATA mt_frontend_events TYPE cntl_simple_events.
+
+* The frontend half of a control is HTML in the browser. On each round trip
+* cl_gui_cfw hands the control the fields its HTML posted (named
+* gg-ctl:<control_id>:<key>, the key without the prefix) and the event the
+* user triggered, as SAP GUI does through the Control Framework.
+    METHODS receive_frontend_values
+      IMPORTING
+        values TYPE ty_fields.
+
+    METHODS dispatch_frontend_event
+      IMPORTING
+        event  TYPE string
+        params TYPE string_table.
+
+    METHODS is_application_event
+      IMPORTING
+        event         TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
+* The value of the submit button that sends EVENT with PARAMS to this control.
+    METHODS frontend_event_value
+      IMPORTING
+        event         TYPE string
+        params        TYPE string_table OPTIONAL
+      RETURNING
+        VALUE(result) TYPE string.
+
+* The name of a field this control's HTML posts on every round trip.
+    METHODS frontend_field_name
+      IMPORTING
+        key           TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
     CLASS-METHODS format_total_value
       IMPORTING
         iv_value      TYPE decfloat34
@@ -283,7 +321,13 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
              picture_alt_text       TYPE string,
             END OF ty_snapshot.
     TYPES ty_snapshots TYPE STANDARD TABLE OF ty_snapshot WITH DEFAULT KEY.
+    TYPES: BEGIN OF ty_object,
+             control_id TYPE string,
+             control    TYPE REF TO cl_gui_control,
+           END OF ty_object.
+    TYPES ty_objects TYPE STANDARD TABLE OF ty_object WITH DEFAULT KEY.
     TYPES: BEGIN OF ty_state,
+             objects       TYPE ty_objects,
              next_id       TYPE i,
              focus         TYPE REF TO cl_gui_control,
              snapshots     TYPE ty_snapshots,
@@ -291,6 +335,12 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object.
            END OF ty_state.
 
     CLASS-DATA mv_next_id TYPE i.
+    CLASS-DATA mt_objects TYPE ty_objects.
+    CLASS-METHODS find_control
+      IMPORTING
+        control_id    TYPE string
+      RETURNING
+        VALUE(result) TYPE REF TO cl_gui_control.
     CLASS-DATA mo_focus TYPE REF TO cl_gui_control.
     CLASS-DATA mt_snapshots TYPE ty_snapshots.
     CLASS-DATA mv_external_html TYPE string.
@@ -442,6 +492,9 @@ CLASS cl_gui_control IMPLEMENTATION.
     ls_snapshot-visible = control->mv_visible.
     DELETE mt_snapshots WHERE control_id = control->control_id.
     APPEND ls_snapshot TO mt_snapshots.
+    DELETE mt_objects WHERE control_id = control->control_id.
+    APPEND VALUE #( control_id = control->control_id
+                    control    = control ) TO mt_objects.
   ENDMETHOD.
 
   METHOD sync.
@@ -490,33 +543,74 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD compare_option.
-    CASE to_upper( iv_option ).
-      WHEN 'EQ'.
-        result = xsdbool( iv_value = iv_low ).
-      WHEN 'NE'.
-        result = xsdbool( iv_value <> iv_low ).
-      WHEN 'BT'.
-        result = xsdbool( iv_value >= iv_low AND iv_value <= iv_high ).
-      WHEN 'NB'.
-        result = xsdbool( iv_value < iv_low OR iv_value > iv_high ).
-      WHEN 'GE'.
-        result = xsdbool( iv_value >= iv_low ).
-      WHEN 'GT'.
-        result = xsdbool( iv_value > iv_low ).
-      WHEN 'LE'.
-        result = xsdbool( iv_value <= iv_low ).
-      WHEN 'LT'.
-        result = xsdbool( iv_value < iv_low ).
-      WHEN 'CP'.
-        result = xsdbool( iv_value CP iv_low ).
-      WHEN 'NP'.
-        result = xsdbool( iv_value NP iv_low ).
-      WHEN OTHERS.
+    DATA lv_value TYPE decfloat34.
+    DATA lv_low TYPE decfloat34.
+    DATA lv_high TYPE decfloat34.
+
+* Numbers compare as numbers, as SAP compares a numeric column with the
+* select-option: 90 is less than 100.
+    DATA(lv_numeric) = xsdbool( matches( val   = condense( iv_value )
+                                         regex = '^-?[0-9]+([.][0-9]+)?$' )
+                            AND matches( val   = condense( iv_low )
+                                         regex = '^-?[0-9]+([.][0-9]+)?$' )
+                            AND ( iv_high IS INITIAL OR matches( val   = condense( iv_high )
+                                                                 regex = '^-?[0-9]+([.][0-9]+)?$' ) ) ).
+    IF lv_numeric = abap_true.
+      lv_value = condense( iv_value ).
+      lv_low = condense( iv_low ).
+      IF iv_high IS NOT INITIAL.
+        lv_high = condense( iv_high ).
+      ENDIF.
+      CASE to_upper( iv_option ).
+        WHEN 'EQ'.
+          result = xsdbool( lv_value = lv_low ).
+        WHEN 'NE'.
+          result = xsdbool( lv_value <> lv_low ).
+        WHEN 'BT'.
+          result = xsdbool( lv_value >= lv_low AND lv_value <= lv_high ).
+        WHEN 'NB'.
+          result = xsdbool( lv_value < lv_low OR lv_value > lv_high ).
+        WHEN 'GE'.
+          result = xsdbool( lv_value >= lv_low ).
+        WHEN 'GT'.
+          result = xsdbool( lv_value > lv_low ).
+        WHEN 'LE'.
+          result = xsdbool( lv_value <= lv_low ).
+        WHEN 'LT'.
+          result = xsdbool( lv_value < lv_low ).
+        WHEN OTHERS.
+          lv_numeric = abap_false.
+      ENDCASE.
+    ENDIF.
+    IF lv_numeric = abap_false.
+      CASE to_upper( iv_option ).
+        WHEN 'EQ'.
+          result = xsdbool( iv_value = iv_low ).
+        WHEN 'NE'.
+          result = xsdbool( iv_value <> iv_low ).
+        WHEN 'BT'.
+          result = xsdbool( iv_value >= iv_low AND iv_value <= iv_high ).
+        WHEN 'NB'.
+          result = xsdbool( iv_value < iv_low OR iv_value > iv_high ).
+        WHEN 'GE'.
+          result = xsdbool( iv_value >= iv_low ).
+        WHEN 'GT'.
+          result = xsdbool( iv_value > iv_low ).
+        WHEN 'LE'.
+          result = xsdbool( iv_value <= iv_low ).
+        WHEN 'LT'.
+          result = xsdbool( iv_value < iv_low ).
+        WHEN 'CP'.
+          result = xsdbool( iv_value CP iv_low ).
+        WHEN 'NP'.
+          result = xsdbool( iv_value NP iv_low ).
+        WHEN OTHERS.
 * The two filter sources read an unrecognised option differently: an ALV grid
 * falls back to equality, a SALV filter rejects the row. Each keeps its own
 * reading instead of one being quietly changed to the other.
-        result = xsdbool( iv_unknown_as_eq = abap_true AND iv_value = iv_low ).
-    ENDCASE.
+          result = xsdbool( iv_unknown_as_eq = abap_true AND iv_value = iv_low ).
+      ENDCASE.
+    ENDIF.
     IF iv_sign = 'E'.
       result = xsdbool( result = abap_false ).
     ENDIF.
@@ -634,13 +728,14 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD clear.
-    CLEAR: mv_next_id, mo_focus, mt_snapshots, mv_external_html.
+    CLEAR: mv_next_id, mo_focus, mt_snapshots, mv_external_html, mt_objects.
   ENDMETHOD.
 
   METHOD save_state.
     DATA lr_state TYPE REF TO ty_state.
 
     CREATE DATA lr_state.
+    lr_state->objects = mt_objects.
     lr_state->next_id = mv_next_id.
     lr_state->focus = mo_focus.
     lr_state->snapshots = mt_snapshots.
@@ -656,6 +751,7 @@ CLASS cl_gui_control IMPLEMENTATION.
       RETURN.
     ENDIF.
     ASSIGN state->* TO <ls_state>.
+    mt_objects = <ls_state>-objects.
     mv_next_id = <ls_state>-next_id.
     mo_focus = <ls_state>-focus.
     mt_snapshots = <ls_state>-snapshots.
@@ -1105,7 +1201,8 @@ CLASS cl_gui_control IMPLEMENTATION.
           AND ls_button-function IS NOT INITIAL.
         lv_toolbar_button_class = lv_toolbar_button_class && ` gg-alv-tool-button`.
       ENDIF.
-      result = result && |<button class="{ lv_toolbar_button_class }" type="submit" name="gg_action" value="COMMAND:{ escape( CONV string( ls_button-function ) ) }" title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ lv_button_icon }{ escape( CONV string( ls_button-text ) ) }</button>|.
+      DATA(lv_toolbar_event) = escape( is_snapshot-control_id && '|FUNCTION|' && ls_button-function ).
+      result = result && |<button class="{ lv_toolbar_button_class }" type="submit" name="gg_control_event" value="{ lv_toolbar_event }" formnovalidate title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ lv_button_icon }{ escape( CONV string( ls_button-text ) ) }</button>|.
     ENDLOOP.
     IF lv_is_alv_toolbar = abap_false AND lines( is_snapshot-buttons ) > 6.
       result = result && '</div></details>'.
@@ -1369,7 +1466,38 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_registered_events.
+    mt_frontend_events = events.
+  ENDMETHOD.
+
+  METHOD find_control.
+    READ TABLE mt_objects INTO DATA(ls_object) WITH KEY control_id = control_id.
+    IF sy-subrc = 0 AND ls_object-control->mv_alive = abap_true.
+      result = ls_object-control.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD receive_frontend_values.
     RETURN.
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD frontend_event_value.
+    result = control_id && '|' && event.
+    LOOP AT params INTO DATA(lv_param).
+      result = result && '|' && lv_param.
+    ENDLOOP.
+    result = escape_html( result ).
+  ENDMETHOD.
+
+  METHOD frontend_field_name.
+    result = escape_html( |gg-ctl:{ control_id }:{ key }| ).
   ENDMETHOD.
 
   METHOD free.

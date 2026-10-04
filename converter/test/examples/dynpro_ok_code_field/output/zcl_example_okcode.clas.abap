@@ -137,12 +137,6 @@ CLASS zcl_example_okcode IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_DETAIL_OK' ] ).
       gv_detail_ok = CONV #( ct_values[ name = 'GV_DETAIL_OK' ]-value ).
     ENDIF.
-    IF line_exists( ct_values[ name = 'GV_SAVE_OK' ] ).
-      gv_save_ok = CONV #( ct_values[ name = 'GV_SAVE_OK' ]-value ).
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_LAST' ] ).
-      gv_last = CONV #( ct_values[ name = 'GV_LAST' ]-value ).
-    ENDIF.
     CASE is_context-module.
       WHEN 'USER_COMMAND_0100'.
         gv_save_ok = ok_code.

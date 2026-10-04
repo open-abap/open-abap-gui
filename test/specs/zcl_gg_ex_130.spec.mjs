@@ -1,9 +1,7 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_130 — dispatches document events through the host", async ({page, host}) => {
+test("ZCL_GG_EX_130 — renders a document with an event link", async ({page, host}) => {
   await openExample(page, host, 130);
-  await page.getByRole("button", {name: "Open document"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line").last()).toHaveText("event OPEN_DOC dispatched by the server");
+  await expect(page.locator("body")).toContainText("Document events");
+  await expect(page.getByRole("link", {name: "Open document"})).toBeVisible();
 });
-

@@ -107,6 +107,10 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_error
         cntb_error_fcode.
 
+  PROTECTED SECTION.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
+
   PRIVATE SECTION.
     METHODS press_button
       IMPORTING
@@ -185,7 +189,28 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
     render_context_items( ).
   ENDMETHOD.
 
+  METHOD dispatch_frontend_event.
+* function_selected reaches the program only when it registered the event.
+    IF event = 'FUNCTION'
+        AND line_exists( mt_frontend_events[ eventid = m_id_function_selected ] ).
+      press_button( CONV #( VALUE string( params[ 1 ] OPTIONAL ) ) ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+    READ TABLE mt_frontend_events INTO DATA(ls_event) WITH KEY eventid = m_id_function_selected.
+    result = xsdbool( sy-subrc = 0 AND ls_event-appl_event = abap_true ).
+  ENDMETHOD.
+
   METHOD press_button.
+* A function of the static context menu of a button is selected like a button.
+    READ TABLE mt_context_items INTO DATA(ls_item) WITH KEY fcode = fcode.
+    IF sy-subrc = 0.
+      IF ls_item-disabled = abap_false.
+        RAISE EVENT function_selected EXPORTING fcode = fcode.
+      ENDIF.
+      RETURN.
+    ENDIF.
     READ TABLE m_table_button INTO DATA(ls_button)
       WITH KEY function = fcode.
     IF sy-subrc = 0 AND ls_button-disabled IS INITIAL.
@@ -228,7 +253,9 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
         lv_html = lv_html && |<li role="none" class="gg-toolbar-menu-label">{ cl_gui_control=>escape_html( ls_item-text ) }</li>|.
         CONTINUE.
       ENDIF.
-      lv_html = lv_html && |<li role="none"><button type="submit" role="menuitem" name="gg_action" value="COMMAND:{ cl_gui_control=>escape_html( ls_item-fcode ) }"{ COND string( WHEN ls_item-disabled = abap_true THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ cl_gui_control=>escape_html( ls_item-text ) }</button></li>|.
+      DATA(lv_event) = frontend_event_value( event  = 'FUNCTION'
+                                             params = VALUE #( ( ls_item-fcode ) ) ).
+      lv_html = lv_html && |<li role="none"><button type="submit" role="menuitem" name="gg_control_event" value="{ lv_event }" formnovalidate{ COND string( WHEN ls_item-disabled = abap_true THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ cl_gui_control=>escape_html( ls_item-text ) }</button></li>|.
     ENDLOOP.
     lv_html = lv_html && '</ul>'.
     cl_gui_control=>set_html(

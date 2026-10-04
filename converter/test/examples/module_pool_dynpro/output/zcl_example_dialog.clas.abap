@@ -97,9 +97,6 @@ CLASS zcl_example_dialog IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
       gv_name = CONV #( ct_values[ name = 'GV_NAME' ]-value ).
     ENDIF.
-    IF line_exists( ct_values[ name = 'GV_GREETING' ] ).
-      gv_greeting = CONV #( ct_values[ name = 'GV_GREETING' ]-value ).
-    ENDIF.
     CASE is_context-module.
       WHEN 'USER_COMMAND_0100'.
         CASE is_context-ucomm.

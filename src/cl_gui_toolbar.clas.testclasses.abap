@@ -57,7 +57,7 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
       text      = 'Updated'
       quickinfo = 'Updated button' ).
     DATA(lv_toolbar_html) = cl_gui_control=>render_html( iv_document = abap_false ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS 'value="COMMAND:TEST"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS '|FUNCTION|TEST"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS '>Updated</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS 'aria-pressed="true"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS 'disabled aria-disabled="true"' ) ).
@@ -65,7 +65,7 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
       fcode   = 'TEST'
       visible = ' ' ).
     lv_toolbar_html = cl_gui_control=>render_html( iv_document = abap_false ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_toolbar_html CS 'COMMAND:TEST' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_toolbar_html CS '|FUNCTION|TEST' ) ).
     cl_gui_control=>clear( ).
   ENDMETHOD.
 

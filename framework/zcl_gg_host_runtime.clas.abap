@@ -337,6 +337,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         AND is_request-action <> zif_gg_host_html_v1=>action_submit
          AND is_request-action <> zif_gg_host_html_v1=>action_command
          AND is_request-action <> zif_gg_host_html_v1=>action_tree_event
+         AND is_request-action <> zif_gg_host_html_v1=>action_control_event
          AND is_request-action <> zif_gg_host_html_v1=>action_pf
         AND is_request-action <> zif_gg_host_html_v1=>action_tab
         AND is_request-action <> zif_gg_host_html_v1=>action_screen
@@ -429,7 +430,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ELSEIF is_request-action <> zif_gg_host_html_v1=>action_value_help.
       ls_session-pending_popup_ucomm = lv_ucomm.
     ENDIF.
-    IF lv_ucomm IS INITIAL AND lv_list_back = abap_false.
+    IF lv_ucomm IS INITIAL AND lv_list_back = abap_false
+        AND is_request-action <> zif_gg_host_html_v1=>action_control_event.
       lv_ucomm = 'BACK'.
     ENDIF.
     IF is_request-action <> zif_gg_host_html_v1=>action_exit
@@ -679,6 +681,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD queue_control_event.
+    cl_gui_cfw=>receive_frontend(
+      event  = is_request-control_event
+      values = is_request-control_values ).
     IF is_request-action = zif_gg_host_html_v1=>action_tree_event.
       cl_gui_cfw=>queue_browser_event(
         event     = is_request-tree_event
@@ -1191,6 +1196,17 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     IF is_request-action = zif_gg_host_html_v1=>action_tree_event.
       IF is_request-tree_event IS INITIAL OR is_request-tree_node IS INITIAL.
         rv_error = 'Tree event is missing its event or node key'.
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+* A control event must name a control submit button of the current page.
+    IF is_request-action = zif_gg_host_html_v1=>action_control_event.
+      DATA(lv_event_attribute) = zcl_gg_host_html=>escape_attribute( is_request-control_event ).
+      IF is_page-html NS |name="gg_control_event" value="{ lv_event_attribute }"|
+          AND is_page-html NS |data-gg-dblclick-event="{ lv_event_attribute }"|
+          AND is_page-html NS |data-gg-click-event="{ lv_event_attribute }"|.
+        rv_error = 'Control event is not offered by the current host page'.
       ENDIF.
       RETURN.
     ENDIF.

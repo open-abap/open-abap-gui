@@ -180,6 +180,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
       parent  = parent
       kind    = 'COLUMN_TREE' ).
     ms_hierarchy_header = hierarchy_header.
+    mv_hierarchy_item = hierarchy_column_name.
     APPEND VALUE #( name         = CONV string( hierarchy_column_name )
                     width        = hierarchy_header-width
                     width_pix    = xsdbool( hierarchy_header-width_pix = abap_true )
@@ -281,10 +282,21 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
         lv_parent_key = ls_parent-parent_key.
       ENDDO.
       DATA(lv_hidden_attr) = COND string( WHEN lv_visible = abap_false THEN ' hidden' ELSE `` ).
+      DATA(lv_key_params) = VALUE string_table( ( ls_node-node_key ) ).
+      DATA(lv_toggle_event) = frontend_event_value( event  = 'TOGGLE'
+                                                    params = lv_key_params ).
+      DATA(lv_select_event) = frontend_event_value( event  = 'SELECT'
+                                                    params = lv_key_params ).
+      DATA(lv_double_click_event) = frontend_event_value( event  = 'NODE_DOUBLE_CLICK'
+                                                          params = lv_key_params ).
+      DATA(lv_disclosure) = COND string(
+        WHEN lv_has_children = abap_true
+          THEN |<button type="submit" class="gg-tree-disclosure" name="gg_control_event" value="{ lv_toggle_event }" formnovalidate aria-label="{ COND string( WHEN lv_is_expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { escape_html( ls_node-text ) }">{ lv_tree_marker }</button>|
+        ELSE |<span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center"></span>| ).
       DATA(lv_node_image_attr) = COND string(
         WHEN lv_node_image IS INITIAL THEN ``
         ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ).
-      lv_html = lv_html && |<tr class="gg-column-tree-node" role="treeitem" tabindex="0" aria-level="{ lv_tree_level }" data-tree-level="{ lv_tree_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_expanded_attr }{ lv_hidden_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ lv_node_image_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
+      lv_html = lv_html && |<tr class="gg-column-tree-node" role="treeitem" tabindex="0" aria-level="{ lv_tree_level }" data-tree-level="{ lv_tree_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_expanded_attr }{ lv_hidden_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px">{ lv_disclosure }<span class="gg-tree-node-icon" aria-hidden="true"{ lv_node_image_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label" tabindex="0" data-gg-click-event="{ lv_select_event }" data-gg-dblclick-event="{ lv_double_click_event }">{ escape_html( ls_node-text ) }</span></span></th>|.
       LOOP AT mt_columns INTO DATA(ls_extra_column) FROM 2 WHERE hidden = abap_false.
         DATA(ls_item) = VALUE ty_html_item( ).
         READ TABLE mt_html_items INTO ls_item

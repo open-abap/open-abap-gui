@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "./api.mjs";
+import { emitClassXml } from "./emit/class-xml.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
 import { conversionPlan, discoverDictionaryFiles, discoverGlobalObjects, discoverIncludeFolders, discoverPrograms, discoverTransactions } from "./config.mjs";
 
@@ -141,6 +142,11 @@ export async function convertConfiguredPrograms({
         ? path.resolve(outputFile)
         : path.join(targetFolder, `${String(targetClass).toLowerCase()}.clas.abap`);
       await writeAtomically(classFile, result.classSource);
+      // The class's text pool, when its code uses text symbols.
+      const testClasses = classFile.replace(/\.clas\.abap$/i, ".clas.testclasses.abap");
+      const withUnitTests = await fs.access(testClasses).then(() => true, () => false);
+      const classXml = result.reportIR ? emitClassXml(result.reportIR, result.classSource, { withUnitTests }) : undefined;
+      if (classXml) await writeAtomically(classFile.replace(/\.clas\.abap$/i, ".clas.xml"), classXml);
       for (const helper of result.helperSources ?? []) {
         await writeAtomically(
           path.join(path.dirname(classFile), `${helper.className.toLowerCase()}.clas.abap`),

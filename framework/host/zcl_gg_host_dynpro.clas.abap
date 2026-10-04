@@ -78,6 +78,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_ucomm          TYPE zif_gg_dynpro_types_v1=>ty_ucomm
         iv_submitted      TYPE abap_bool
         io_menu           TYPE REF TO cl_ctmenu OPTIONAL
+        iv_from_program   TYPE abap_bool DEFAULT abap_false
       RETURNING
         VALUE(rv_allowed) TYPE abap_bool.
 
@@ -328,6 +329,23 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_screens       TYPE zcl_gg_host_dynpro_builder=>ty_screens
       RETURNING
         VALUE(rv_screen) TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
+
+    CLASS-METHODS process_frontend
+      IMPORTING
+        iv_ok_code     TYPE zif_gg_dynpro_types_v1=>ty_name
+      CHANGING
+        cv_ucomm       TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        cv_submitted   TYPE abap_bool
+        ct_values      TYPE zif_gg_dynpro_types_v1=>ty_values
+      RETURNING
+        VALUE(rv_kind) TYPE string.
+
+    CLASS-METHODS dispatch_after_input
+      IMPORTING
+        io_program TYPE REF TO zif_gg_dynpro_v1
+        io_session TYPE REF TO zcl_gg_host_session
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
     CLASS-METHODS destination_pbo
       IMPORTING
@@ -758,6 +776,9 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lv_subscreen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
     DATA lt_active_screens TYPE zcl_gg_host_dynpro_builder=>ty_screens.
     DATA lt_active_subscreens TYPE ty_active_subscreens.
+    DATA lv_event_kind TYPE string.
+    DATA lv_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm.
+    DATA lv_submitted TYPE abap_bool.
 
     lt_steps = io_flow->get_steps( ).
     lv_has_steps = xsdbool(
@@ -849,16 +870,30 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         co_menu       = co_menu
         cv_menu_field = cv_menu_field ).
 
+* Control Framework: the controls get what their HTML posted, and a system
+* event goes to its handlers, before PAI, as on SAP. After a system event PAI
+* runs only when a handler set a new OK code.
+    lv_ucomm = iv_ucomm.
+    lv_submitted = iv_submitted.
+    lv_event_kind = process_frontend(
+      EXPORTING
+        iv_ok_code   = iv_ok_code
+      CHANGING
+        cv_ucomm     = lv_ucomm
+        cv_submitted = lv_submitted
+        ct_values    = ct_values ).
+
     lv_submit_allowed = validate_submission(
       io_session        = io_session
       it_controls       = it_controls
       it_active_screens = lt_active_screens
       iv_screen         = iv_screen
-      iv_ucomm          = iv_ucomm
-      iv_submitted      = iv_submitted
-      io_menu           = co_menu ).
+      iv_ucomm          = lv_ucomm
+      iv_submitted      = lv_submitted
+      io_menu           = co_menu
+      iv_from_program   = xsdbool( lv_event_kind = 'S' ) ).
 
-    IF iv_submitted = abap_true AND lv_submit_allowed = abap_true.
+    IF lv_submitted = abap_true AND lv_submit_allowed = abap_true.
       IF lv_has_steps = abap_true.
         CLEAR lv_table_control.
         LOOP AT lt_steps INTO ls_step
@@ -896,7 +931,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
                     io_flow    = io_flow
                     io_session = io_session
                     iv_screen  = lv_subscreen
-                    iv_ucomm   = iv_ucomm
+                    iv_ucomm   = lv_ucomm
                     iv_ok_code = iv_ok_code
                   CHANGING
                     cs_context = cs_context
@@ -904,10 +939,10 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
               ENDIF.
             WHEN 'MODULE'.
               IF ls_step-module-at_exit_command = abap_true
-                  AND iv_ucomm <> 'BACK'
-                  AND iv_ucomm <> 'ECAN'
+                  AND lv_ucomm <> 'BACK'
+                  AND lv_ucomm <> 'ECAN'
                   AND NOT line_exists( it_controls[ screen = iv_screen
-                                                    ucomm = iv_ucomm
+                                                    ucomm = lv_ucomm
                                                     exit_command = abap_true ] ).
                 CONTINUE.
               ENDIF.
@@ -917,7 +952,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
                   io_session       = io_session
                   iv_screen        = iv_screen
                   is_step          = ls_step
-                  iv_ucomm         = iv_ucomm
+                  iv_ucomm         = lv_ucomm
                   iv_ok_code       = iv_ok_code
                   iv_table_control = lv_table_control
                   iv_table_start   = lv_table_start
@@ -932,17 +967,17 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         LOOP AT io_flow->get_modules( ) INTO ls_module
             WHERE screen = iv_screen AND phase = 'PAI'.
           IF ls_module-module-at_exit_command = abap_true
-              AND iv_ucomm <> 'BACK'
-              AND iv_ucomm <> 'ECAN'
+              AND lv_ucomm <> 'BACK'
+              AND lv_ucomm <> 'ECAN'
               AND NOT line_exists( it_controls[ screen = iv_screen
-                                                ucomm = iv_ucomm
+                                                ucomm = lv_ucomm
                                                 exit_command = abap_true ] ).
             CONTINUE.
           ENDIF.
           io_session->set_event( 'PROCESS AFTER INPUT' ).
           cs_context-screen = iv_screen.
           cs_context-module = ls_module-module-name.
-          cs_context-ucomm = iv_ucomm.
+          cs_context-ucomm = lv_ucomm.
           io_program->process_input_module(
             EXPORTING
               is_context = cs_context
@@ -958,13 +993,24 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
+* An application event the program did not dispatch in PAI goes to its
+* handlers now, before the PBO that follows PAI.
+    IF lv_event_kind = 'A'.
+      dispatch_after_input(
+        EXPORTING
+          io_program = io_program
+          io_session = io_session
+        CHANGING
+          ct_values  = ct_values ).
+    ENDIF.
+
     refresh_after_input(
       EXPORTING
         io_program    = io_program
         io_flow       = io_flow
         io_session    = io_session
         iv_screen     = iv_screen
-        iv_submitted  = iv_submitted
+        iv_submitted  = lv_submitted
         iv_allowed    = lv_submit_allowed
         it_controls   = it_controls
       CHANGING
@@ -1223,6 +1269,37 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
+  METHOD process_frontend.
+    rv_kind = cl_gui_cfw=>process_frontend( ).
+    IF rv_kind <> 'S'.
+      RETURN.
+    ENDIF.
+    cv_ucomm = cl_gui_cfw=>consume_new_ok_code( ).
+    IF cv_ucomm IS INITIAL.
+      cv_submitted = abap_false.
+      RETURN.
+    ENDIF.
+    set_ok_code(
+      EXPORTING
+        iv_field  = iv_ok_code
+        iv_ucomm  = cv_ucomm
+      CHANGING
+        ct_values = ct_values ).
+  ENDMETHOD.
+
+  METHOD dispatch_after_input.
+    IF cl_gui_cfw=>dispatch_pending( ) = abap_false.
+      RETURN.
+    ENDIF.
+* The handlers changed the program's fields after PAI took them over; the
+* screen values take them back for the PBO that follows.
+    io_program->initialization(
+      EXPORTING
+        io_session = io_session
+      CHANGING
+        ct_values  = ct_values ).
+  ENDMETHOD.
+
   METHOD destination_pbo.
     DATA lo_resumable TYPE REF TO zif_gg_resumable_v1.
     DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
@@ -1318,24 +1395,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD refresh_after_input.
-    DATA ls_status TYPE zif_gg_session_types_v1=>ty_gui_status.
-    DATA lt_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-
+* PBO follows PAI, as on SAP: it shows what PAI changed, the fields, the
+* controls and the GUI status.
     IF iv_submitted <> abap_true OR iv_allowed <> abap_true.
       RETURN.
     ENDIF.
-    ls_status = io_session->get_status( ).
-    IF co_menu IS NOT BOUND
-        AND ls_status-status IS INITIAL
-        AND ls_status-active_ucomm IS INITIAL
-        AND ls_status-active_pf_keys IS INITIAL
-        AND ls_status-pf_actions IS INITIAL
-        AND ls_status-icon_bar IS INITIAL
-        AND ls_status-menus IS INITIAL.
-      RETURN.
-    ENDIF.
-
-    lt_values = ct_values.
     destination_pbo(
       EXPORTING
         io_program        = io_program
@@ -1347,7 +1411,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_execute_pbo    = abap_true
       CHANGING
         cs_context        = cs_context
-        ct_values         = lt_values
+        ct_values         = ct_values
         ct_states         = ct_states ).
     prepare_context_menu(
       EXPORTING
@@ -1396,6 +1460,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   METHOD validate_submission.
     DATA(ls_status) = io_session->get_status( ).
     rv_allowed = abap_true.
+* An OK code an event handler set with cl_gui_cfw=>set_new_ok_code is the
+* program's own; only codes the user chose are checked against the screen.
+    IF iv_from_program = abap_true.
+      RETURN.
+    ENDIF.
     IF iv_submitted = abap_true
         AND iv_ucomm <> 'GG_TREE_EVENT'
         AND io_menu IS BOUND

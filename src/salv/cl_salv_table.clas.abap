@@ -55,8 +55,8 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
 
     METHODS set_striped_pattern IMPORTING value TYPE any.
     METHODS set_list_header IMPORTING val TYPE any.
-    METHODS set_top_of_list IMPORTING val TYPE any.
-    METHODS set_top_of_list_print IMPORTING val TYPE any.
+    METHODS set_top_of_list IMPORTING value TYPE REF TO cl_salv_form_element.
+    METHODS set_top_of_list_print IMPORTING value TYPE REF TO cl_salv_form_element.
     METHODS get_columns RETURNING VALUE(val) TYPE REF TO cl_salv_columns_table.
     METHODS get_functions RETURNING VALUE(val) TYPE REF TO cl_salv_functions_list.
 
@@ -113,6 +113,16 @@ CLASS cl_salv_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base.
     DATA mo_functional_settings TYPE REF TO cl_salv_functional_settings.
     DATA mo_container TYPE REF TO cl_gui_container.
     DATA mo_grid TYPE REF TO cl_gui_alv_grid.
+    DATA mo_top_of_list TYPE REF TO cl_salv_form_element.
+    DATA mo_end_of_list TYPE REF TO cl_salv_form_element.
+* In a container the SALV table is a grid control; its events are the SALV
+* table's events.
+    METHODS on_grid_double_click FOR EVENT double_click OF cl_gui_alv_grid
+      IMPORTING e_row e_column.
+    METHODS on_grid_hotspot_click FOR EVENT hotspot_click OF cl_gui_alv_grid
+      IMPORTING e_row_id e_column_id.
+    METHODS on_grid_user_command FOR EVENT user_command OF cl_gui_alv_grid
+      IMPORTING e_ucomm.
     DATA mr_display_table TYPE REF TO data.
 
     METHODS build_metadata.
@@ -185,6 +195,7 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_end_of_list.
+    mo_end_of_list = value.
     publish( ).
   ENDMETHOD.
 
@@ -320,6 +331,7 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_top_of_list.
+    mo_top_of_list = value.
     publish( ).
   ENDMETHOD.
 
@@ -360,6 +372,13 @@ CLASS cl_salv_table IMPLEMENTATION.
     DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_no_parent ).
     fill_grid( lo_grid ).
     value = lo_grid->render_model( ).
+* The top and end of list frame the list, as in a fullscreen SALV list.
+    IF mo_top_of_list IS BOUND.
+      value = |<div class="gg-salv-top-of-list">{ mo_top_of_list->render_html( ) }</div>{ value }|.
+    ENDIF.
+    IF mo_end_of_list IS BOUND.
+      value = |{ value }<div class="gg-salv-end-of-list">{ mo_end_of_list->render_html( ) }</div>|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD publish.
@@ -369,8 +388,30 @@ CLASS cl_salv_table IMPLEMENTATION.
     ENDIF.
     IF mo_grid IS NOT BOUND.
       mo_grid = NEW cl_gui_alv_grid( i_parent = mo_container ).
+      SET HANDLER on_grid_double_click FOR mo_grid.
+      SET HANDLER on_grid_hotspot_click FOR mo_grid.
+      SET HANDLER on_grid_user_command FOR mo_grid.
+      DATA(lo_selections) = get_selections( ).
+      lo_selections->mo_grid = mo_grid.
     ENDIF.
     fill_grid( mo_grid ).
+  ENDMETHOD.
+
+  METHOD on_grid_double_click.
+    get_event( ).
+    mo_events->raise_double_click( row    = e_row-index
+                                   column = e_column-fieldname ).
+  ENDMETHOD.
+
+  METHOD on_grid_hotspot_click.
+    get_event( ).
+    mo_events->raise_link_click( row    = e_row_id-index
+                                 column = e_column_id-fieldname ).
+  ENDMETHOD.
+
+  METHOD on_grid_user_command.
+    get_event( ).
+    mo_events->raise_added_function( e_ucomm ).
   ENDMETHOD.
 
   METHOD fill_grid.
@@ -383,6 +424,7 @@ CLASS cl_salv_table IMPLEMENTATION.
     DATA lt_fieldcatalog TYPE lvc_t_fcat.
     DATA ls_layout TYPE lvc_s_layo.
     DATA lt_excluding TYPE ui_functions.
+    DATA lt_sort TYPE lvc_t_sort.
     DATA lv_index TYPE i.
 
     IF mo_columns IS NOT BOUND.
@@ -444,6 +486,16 @@ CLASS cl_salv_table IMPLEMENTATION.
       io_grid->mv_gridtitle = mo_display_settings->get_list_header( ).
     ENDIF.
     lt_excluding = toolbar_excluding( ).
+* The sorts become the grid's sort criteria, with their subtotals.
+    IF mo_sorts IS BOUND.
+      LOOP AT mo_sorts->get( ) INTO DATA(ls_sort).
+        APPEND VALUE #( spos      = sy-tabix
+                        fieldname = ls_sort-columnname
+                        up        = xsdbool( ls_sort-r_sort->get_sequence( ) <> if_salv_c_sort=>sort_down )
+                        down      = xsdbool( ls_sort-r_sort->get_sequence( ) = if_salv_c_sort=>sort_down )
+                        subtot    = ls_sort-r_sort->is_subtotalled( ) ) TO lt_sort.
+      ENDLOOP.
+    ENDIF.
     io_grid->mt_toolbar = application_toolbar( ).
     io_grid->set_table_for_first_display(
       EXPORTING
@@ -451,7 +503,8 @@ CLASS cl_salv_table IMPLEMENTATION.
         it_toolbar_excluding = lt_excluding
       CHANGING
         it_outtab            = <display>
-        it_fieldcatalog      = lt_fieldcatalog ).
+        it_fieldcatalog      = lt_fieldcatalog
+        it_sort              = lt_sort ).
   ENDMETHOD.
 
   METHOD field_catalog.
@@ -552,6 +605,9 @@ CLASS cl_salv_table IMPLEMENTATION.
         CATCH cx_sy_move_cast_error.
           CLEAR lo_column_list.
       ENDTRY.
+      IF mo_aggregations IS BOUND.
+        ls_fieldcat-do_sum = mo_aggregations->is_aggregated( ls_column-columnname ).
+      ENDIF.
       APPEND ls_fieldcat TO result.
     ENDLOOP.
   ENDMETHOD.
@@ -751,30 +807,71 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD compare_option.
-    CASE to_upper( iv_option ).
-      WHEN 'EQ'.
-        result = xsdbool( iv_value = iv_low ).
-      WHEN 'NE'.
-        result = xsdbool( iv_value <> iv_low ).
-      WHEN 'BT'.
-        result = xsdbool( iv_value >= iv_low AND iv_value <= iv_high ).
-      WHEN 'NB'.
-        result = xsdbool( iv_value < iv_low OR iv_value > iv_high ).
-      WHEN 'GE'.
-        result = xsdbool( iv_value >= iv_low ).
-      WHEN 'GT'.
-        result = xsdbool( iv_value > iv_low ).
-      WHEN 'LE'.
-        result = xsdbool( iv_value <= iv_low ).
-      WHEN 'LT'.
-        result = xsdbool( iv_value < iv_low ).
-      WHEN 'CP'.
-        result = xsdbool( iv_value CP iv_low ).
-      WHEN 'NP'.
-        result = xsdbool( iv_value NP iv_low ).
-      WHEN OTHERS.
-        result = xsdbool( iv_unknown_as_eq = abap_true AND iv_value = iv_low ).
-    ENDCASE.
+    DATA lv_value TYPE decfloat34.
+    DATA lv_low TYPE decfloat34.
+    DATA lv_high TYPE decfloat34.
+
+* Numbers compare as numbers, as SAP compares a numeric column with the
+* select-option: 90 is less than 100.
+    DATA(lv_numeric) = xsdbool( matches( val   = condense( iv_value )
+                                         regex = '^-?[0-9]+([.][0-9]+)?$' )
+                            AND matches( val   = condense( iv_low )
+                                         regex = '^-?[0-9]+([.][0-9]+)?$' )
+                            AND ( iv_high IS INITIAL OR matches( val   = condense( iv_high )
+                                                                 regex = '^-?[0-9]+([.][0-9]+)?$' ) ) ).
+    IF lv_numeric = abap_true.
+      lv_value = condense( iv_value ).
+      lv_low = condense( iv_low ).
+      IF iv_high IS NOT INITIAL.
+        lv_high = condense( iv_high ).
+      ENDIF.
+      CASE to_upper( iv_option ).
+        WHEN 'EQ'.
+          result = xsdbool( lv_value = lv_low ).
+        WHEN 'NE'.
+          result = xsdbool( lv_value <> lv_low ).
+        WHEN 'BT'.
+          result = xsdbool( lv_value >= lv_low AND lv_value <= lv_high ).
+        WHEN 'NB'.
+          result = xsdbool( lv_value < lv_low OR lv_value > lv_high ).
+        WHEN 'GE'.
+          result = xsdbool( lv_value >= lv_low ).
+        WHEN 'GT'.
+          result = xsdbool( lv_value > lv_low ).
+        WHEN 'LE'.
+          result = xsdbool( lv_value <= lv_low ).
+        WHEN 'LT'.
+          result = xsdbool( lv_value < lv_low ).
+        WHEN OTHERS.
+          lv_numeric = abap_false.
+      ENDCASE.
+    ENDIF.
+    IF lv_numeric = abap_false.
+      CASE to_upper( iv_option ).
+        WHEN 'EQ'.
+          result = xsdbool( iv_value = iv_low ).
+        WHEN 'NE'.
+          result = xsdbool( iv_value <> iv_low ).
+        WHEN 'BT'.
+          result = xsdbool( iv_value >= iv_low AND iv_value <= iv_high ).
+        WHEN 'NB'.
+          result = xsdbool( iv_value < iv_low OR iv_value > iv_high ).
+        WHEN 'GE'.
+          result = xsdbool( iv_value >= iv_low ).
+        WHEN 'GT'.
+          result = xsdbool( iv_value > iv_low ).
+        WHEN 'LE'.
+          result = xsdbool( iv_value <= iv_low ).
+        WHEN 'LT'.
+          result = xsdbool( iv_value < iv_low ).
+        WHEN 'CP'.
+          result = xsdbool( iv_value CP iv_low ).
+        WHEN 'NP'.
+          result = xsdbool( iv_value NP iv_low ).
+        WHEN OTHERS.
+          result = xsdbool( iv_unknown_as_eq = abap_true AND iv_value = iv_low ).
+      ENDCASE.
+    ENDIF.
     IF iv_sign = 'E'.
       result = xsdbool( result = abap_false ).
     ENDIF.

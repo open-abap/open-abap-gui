@@ -124,13 +124,11 @@ CLASS zcl_gg_ex_081 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_bad = it_values[ name = 'P_BAD' ]-value.
-    mv_p_good = it_values[ name = 'P_GOOD' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_bad = it_values[ name = 'P_BAD' ]-value.
-    mv_p_good = it_values[ name = 'P_GOOD' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

@@ -39,8 +39,10 @@ CLASS zcl_example_ddic_texts IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_parameter( VALUE #( name = 'P_CARR' text = io_builder->get_ddic_text( ig_field = mv_p_carr iv_name = 'P_CARR' ) data_type = VALUE #( rollname = 'ZEXAMPLE_AIRLINE' typ = 'C' length = 3 ) ) ).
-    io_builder->add_select_option( VALUE #( name = 'S_DATE' text = io_builder->get_ddic_text( ig_field = mv_s_date iv_name = 'S_DATE' ) data_type = VALUE #( rollname = 'ZEXAMPLE_FLDATE' typ = 'D' length = 8 ) ) ).
+    io_builder->add_parameter( VALUE #( name = 'P_CARR' text = io_builder->get_ddic_text( ig_field = mv_p_carr
+                                                                                          iv_name  = 'P_CARR' ) data_type = VALUE #( rollname = 'ZEXAMPLE_AIRLINE' typ = 'C' length = 3 ) ) ).
+    io_builder->add_select_option( VALUE #( name = 'S_DATE' text = io_builder->get_ddic_text( ig_field = mv_s_date
+                                                                                              iv_name  = 'S_DATE' ) data_type = VALUE #( rollname = 'ZEXAMPLE_FLDATE' typ = 'D' length = 8 ) ) ).
     io_builder->add_parameter( VALUE #( name = 'P_ROWS' text = 'Maximum rows' data_type = VALUE #( typ = 'I' ) default = '10' ) ).
   ENDMETHOD.
 

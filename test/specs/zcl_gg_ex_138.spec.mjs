@@ -1,11 +1,11 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_138 — exposes an opaque ALV selection", async ({page, host}) => {
+test("ZCL_GG_EX_138 — reads the rows the user selected", async ({page, host}) => {
   await openExample(page, host, 138);
-  await expect(page.locator('[data-control-kind="ALV_GRID"] tr[data-row-index="2"]')).toHaveAttribute("selected", "");
-  await expect(page.getByText("FLIGHT-2")).toBeVisible();
-  await page.getByRole("button", {name: "Confirm selection"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line").last()).toContainText("opaque row");
+  await expect(page.getByLabel("Select row 2")).toBeChecked();
+  await submit(page, "Show selection");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Selected: UA 0941");
+  await page.getByLabel("Select row 3").check();
+  await submit(page, "Show selection");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Selected: UA 0941 AF 0010");
 });
-

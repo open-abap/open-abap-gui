@@ -253,19 +253,11 @@ CLASS zcl_gg_ex_070 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_all = it_values[ name = 'P_ALL' ]-value.
-    mv_p_allv = it_values[ name = 'P_ALLV' ]-value.
-    mv_p_one = it_values[ name = 'P_ONE' ]-value.
-    mv_p_onev = it_values[ name = 'P_ONEV' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_all = it_values[ name = 'P_ALL' ]-value.
-    mv_p_allv = it_values[ name = 'P_ALLV' ]-value.
-    mv_p_one = it_values[ name = 'P_ONE' ]-value.
-    mv_p_onev = it_values[ name = 'P_ONEV' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

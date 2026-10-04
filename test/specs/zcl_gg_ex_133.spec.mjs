@@ -1,9 +1,7 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_133 — associates validation with a control id", async ({page, host}) => {
+test("ZCL_GG_EX_133 — rejects an empty editor value", async ({page, host}) => {
   await openExample(page, host, 133);
-  const message = page.getByRole("alert");
-  await expect(message).toHaveAttribute("data-control-id", /GUI-/);
-  await expect(message).toHaveText("Editor value is required");
+  await submit(page, "Check");
+  await expect(page.getByRole("alert")).toContainText("Editor value is required");
 });
-

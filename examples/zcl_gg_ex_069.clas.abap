@@ -185,17 +185,11 @@ CLASS zcl_gg_ex_069 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_enable = it_values[ name = 'P_ENABLE' ]-value.
-    mv_p_grp_a = it_values[ name = 'P_GRP_A' ]-value.
-    mv_p_grp_b = it_values[ name = 'P_GRP_B' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_enable = it_values[ name = 'P_ENABLE' ]-value.
-    mv_p_grp_a = it_values[ name = 'P_GRP_A' ]-value.
-    mv_p_grp_b = it_values[ name = 'P_GRP_B' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

@@ -1,15 +1,15 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_137 — shows server-owned ALV criteria", async ({page, host}) => {
+test("ZCL_GG_EX_137 — sorts and filters the grid", async ({page, host}) => {
   await openExample(page, host, 137);
-  const gridBox = await page.locator('[data-control-kind="ALV_GRID"]').boundingBox();
-  const surfaceBox = await page.locator(".gg-external").boundingBox();
-  expect(gridBox).not.toBeNull();
-  expect(surfaceBox).not.toBeNull();
-  expect(surfaceBox.y).toBeGreaterThanOrEqual(gridBox.y + gridBox.height);
-  await expect(page.locator('[data-criteria="server-owned"]')).toContainText("Lufthansa");
-  await page.locator(".gg-external").getByRole("button", {name: "Apply criteria"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line").last()).toContainText("criteria applied server-side");
+  const flights = page.locator('[data-control-kind="ALV_GRID"]').locator('tbody td[data-fieldname="CONNID"]');
+  await expect(flights).toHaveText(["0402", "0941", "0400", "0010"]);
+  await submit(page, "Sort direction");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Sorted by occupied seats, ascending");
+  await expect(flights).toHaveText(["0010", "0400", "0941", "0402"]);
+  await submit(page, "Only LH");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Airline LH, 2 flight(s) filtered out");
+  await expect(flights).toHaveText(["0400", "0402"]);
+  await submit(page, "All airlines");
+  await expect(flights).toHaveCount(4);
 });
-

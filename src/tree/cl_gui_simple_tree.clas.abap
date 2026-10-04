@@ -61,7 +61,7 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
     FIELD-SYMBOLS <component> TYPE any.
     DATA lv_node_index TYPE i.
 
-    clear_html_nodes( ).
+* add_nodes adds to the nodes the tree has; a new node starts collapsed.
     LOOP AT node_table ASSIGNING <node_row>.
       lv_node_index = sy-tabix.
       DATA(lv_node_key) = |NODE-{ lv_node_index }|.
@@ -94,10 +94,20 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
         lv_text = lv_node_key.
       ENDIF.
 
-      add_html_node(
-        node_key   = lv_node_key
-        parent_key = lv_parent_key
-        text       = lv_text ).
+      DELETE mt_html_nodes WHERE node_key = lv_node_key.
+      APPEND VALUE #( node_key   = lv_node_key
+                      parent_key = lv_parent_key
+                      text       = lv_text ) TO mt_html_nodes ASSIGNING FIELD-SYMBOL(<ls_html_node>).
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'ISFOLDER' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-folder = xsdbool( <component> IS NOT INITIAL ).
+      ENDIF.
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'EXPANDER' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-expander = xsdbool( <component> IS NOT INITIAL ).
+      ENDIF.
     ENDLOOP.
     refresh_tree_html( ).
   ENDMETHOD.

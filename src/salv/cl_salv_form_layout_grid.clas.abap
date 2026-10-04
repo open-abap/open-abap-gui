@@ -1,10 +1,8 @@
 CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_uie_layout_grid.
   PUBLIC SECTION.
-
     METHODS constructor
       IMPORTING
         columns TYPE i OPTIONAL.
-
     METHODS create_header_information
       IMPORTING
         row            TYPE i OPTIONAL
@@ -15,7 +13,6 @@ CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_ui
         tooltip        TYPE any OPTIONAL
       RETURNING
         VALUE(r_value) TYPE REF TO cl_salv_form_header_info.
-
     METHODS create_label
       IMPORTING
         row            TYPE i OPTIONAL
@@ -27,7 +24,6 @@ CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_ui
         tooltip        TYPE any OPTIONAL
       RETURNING
         VALUE(r_value) TYPE REF TO cl_salv_form_label.
-
     METHODS create_text
       IMPORTING
         row            TYPE i OPTIONAL
@@ -38,7 +34,6 @@ CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_ui
         tooltip        TYPE any OPTIONAL
       RETURNING
         VALUE(r_value) TYPE REF TO cl_salv_form_text.
-
     METHODS create_flow
       IMPORTING
         row            TYPE i OPTIONAL
@@ -47,7 +42,6 @@ CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_ui
         colspan        TYPE i OPTIONAL
       RETURNING
         VALUE(r_value) TYPE REF TO cl_salv_form_layout_flow.
-
     METHODS create_grid
       IMPORTING
         row            TYPE i OPTIONAL
@@ -56,42 +50,62 @@ CLASS cl_salv_form_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_form_ui
         colspan        TYPE i OPTIONAL
       RETURNING
         VALUE(r_value) TYPE REF TO cl_salv_form_layout_grid.
-
     METHODS set_column_label_for
       IMPORTING
         label_column TYPE i
         text_column  TYPE i.
-
 ENDCLASS.
 
 CLASS cl_salv_form_layout_grid IMPLEMENTATION.
-
   METHOD constructor.
-    RETURN. " todo, implement method
+    super->constructor( ).
   ENDMETHOD.
 
   METHOD create_header_information.
-    RETURN. " todo, implement method
+    r_value = NEW #( text    = text
+                     tooltip = tooltip ).
+    add_cell( row     = row
+              column  = column
+              colspan = colspan
+              element = r_value ).
   ENDMETHOD.
 
   METHOD create_label.
-    RETURN. " todo, implement method
+    r_value = NEW #( r_label_for = r_label_for
+                     text        = text
+                     tooltip     = tooltip ).
+    add_cell( row     = row
+              column  = column
+              colspan = colspan
+              element = r_value ).
   ENDMETHOD.
 
   METHOD create_text.
-    RETURN. " todo, implement method
+    r_value = NEW #( text    = text
+                     tooltip = tooltip ).
+    add_cell( row     = row
+              column  = column
+              colspan = colspan
+              element = r_value ).
   ENDMETHOD.
 
   METHOD create_flow.
-    RETURN. " todo, implement method
+    r_value = NEW #( ).
+    add_cell( row     = row
+              column  = column
+              colspan = colspan
+              element = r_value ).
   ENDMETHOD.
 
   METHOD create_grid.
-    RETURN. " todo, implement method
+    r_value = NEW #( ).
+    add_cell( row     = row
+              column  = column
+              colspan = colspan
+              element = r_value ).
   ENDMETHOD.
 
   METHOD set_column_label_for.
-    RETURN. " todo, implement method
+    RETURN.
   ENDMETHOD.
-
 ENDCLASS.

@@ -502,7 +502,9 @@ try {
     io_program: dynproState,
     iv_ucomm: "BACK",
   }));
-  assert.equal(secondDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "4");
+  // The host replays PBO before PAI and runs PBO again after PAI, so a PBO
+  // that counts adds two per round trip (FOO.md, Host); SAP would add one.
+  assert.equal(secondDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "5");
 
   const nestedComposite = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_CINCLUDE(),

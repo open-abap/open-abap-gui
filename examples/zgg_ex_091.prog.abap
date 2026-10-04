@@ -1,9 +1,12 @@
-REPORT zgg_ex_091 LINE-COUNT 4(1).
+REPORT zgg_ex_091 LINE-COUNT 4(1) NO STANDARD PAGE HEADING.
+
 END-OF-PAGE.
-WRITE 'footer'.
+WRITE / |footer page { sy-pagno }|.
+
 TOP-OF-PAGE.
-  WRITE / 'header'.
+  WRITE / |header page { sy-pagno }|.
+
 START-OF-SELECTION.
   DO 8 TIMES.
-    WRITE / sy-index.
+    WRITE / |body { sy-index }|.
   ENDDO.

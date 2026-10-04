@@ -298,7 +298,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-control>.gg-alv>.gg-alv-grid-area\{flex:1 1 auto;min-height:0;overflow:auto;background:#fff;border:1px solid #c1d2e0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-alv th,.gg-alv td\{height:28px;padding:3px 8px;border:1px solid #c1d2e0;white-space:nowrap;text-align:left;\}|.
     rv_html = rv_html && |.gg-alv th\{background:linear-gradient(#e9f3fa,#c7dae9);border-color:#8daac4;font-weight:700;\}|.
-    rv_html = rv_html && |.gg-alv .gg-grid-row:nth-child(even) td\{background:#f3f8fc;\}|.
+    rv_html = rv_html && |.gg-alv table[data-zebra="true"] .gg-grid-row:nth-child(even) td\{background:#f3f8fc;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-row.gg-state-selected td\{background:#c7dced;color:#102f4d;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-total\{background:#e3eff8;font-weight:700;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-hotspot\{color:#075e9a;text-decoration:underline;text-decoration-style:dotted;\}|.
@@ -335,6 +335,26 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-tree-node\{display:block;min-height:22px;padding:2px 6px;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-tree-node[hidden]\{display:none;\}|.
     rv_html = rv_html && |.gg-tree-node.gg-state-selected\{background:#c7dced;color:#102f4d;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-tree\{list-style:none;margin:0;padding:4px 0;background:#fff;color:#123b64;font-size:13px;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-node\{display:flex;align-items:center;gap:6px;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-toggle\{display:inline-flex;align-items:center;justify-content:center;flex:0 0 16px;width:16px;height:16px;padding:0;border:1px solid #8daac4;background:#f3f8fc;color:#1f4f73;font-size:12px;line-height:1;\}|.
+    rv_html = rv_html && |.gg-tree span.gg-tree-toggle\{border-color:transparent;background:transparent;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-label\{cursor:pointer;padding:1px 4px;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-label:focus\{outline:1px dotted #1f4f73;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-item\{padding:1px 8px;border-left:1px solid #c1d2e0;color:#4f6476;\}|.
+    rv_html = rv_html && |.gg-chart\{margin:0;padding:8px;background:#fff;color:#123b64;font-size:12px;\}|.
+    rv_html = rv_html && |.gg-chart figcaption\{font-weight:700;font-size:14px;margin-bottom:4px;\}|.
+    rv_html = rv_html && |.gg-chart svg\{max-width:100%;height:auto;\}|.
+    rv_html = rv_html && |.gg-chart svg text\{fill:#123b64;font-size:11px;\}|.
+    rv_html = rv_html && |.gg-chart-legend\{display:flex;gap:14px;list-style:none;margin:4px 0;padding:0;\}|.
+    rv_html = rv_html && |.gg-chart-swatch\{display:inline-block;width:10px;height:10px;margin-right:4px;\}|.
+    rv_html = rv_html && |.gg-chart-data\{border-collapse:collapse;margin-top:6px;\}|.
+    rv_html = rv_html && |.gg-chart-data caption\{text-align:left;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-chart-data th,.gg-chart-data td\{border:1px solid #c1d2e0;padding:1px 8px;text-align:left;\}|.
+    rv_html = rv_html && |.gg-salv-top-of-list,.gg-salv-end-of-list\{margin:6px 0;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-salv-form-grid td\{padding:2px 12px 2px 0;\}|.
+    rv_html = rv_html && |.gg-salv-form-header\{font-size:15px;\}|.
+    rv_html = rv_html && |.gg-alv-protocol\{margin:4px 0;padding:6px 10px 6px 28px;border:1px solid #c2453b;background:#fdecea;color:#8a1f17;\}|.
     rv_html = rv_html && |.gg-control-toolbar,.gg-alv-toolbar\{display:flex;align-items:center;gap:4px;min-height:26px;padding:2px 4px;background:linear-gradient(var(--gg-panel),var(--gg-work-area));border:1px solid var(--gg-border-dark);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button\{min-height:22px;padding:2px 8px;border:1px solid var(--gg-border);border-radius:1px;background:linear-gradient(#fff,var(--gg-panel));color:#123b64;font:inherit;cursor:pointer;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button,.gg-textedit-tool-button\{display:inline-flex;align-items:center;justify-content:center;gap:3px;\}|.

@@ -1,10 +1,10 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_142 — dispatches an opaque tree event", async ({page, host}) => {
+test("ZCL_GG_EX_142 — handles a system event and an application event", async ({page, host}) => {
   await openExample(page, host, 142);
-  await expect(page.getByText("NODE-LH400")).toBeVisible();
-  await page.locator(".gg-external").getByRole("button", {name: "Select node"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line").last()).toContainText("node NODE-LH400");
+  const tree = page.getByRole("tree");
+  await tree.getByText("LH 0400").click();
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Node LH0400 selected");
+  await tree.getByText("UA 0941").dblclick();
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Node UA0941 opened");
 });
-

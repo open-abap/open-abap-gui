@@ -192,9 +192,7 @@ CLASS zcl_gg_ex_078 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_car = it_values[ name = 'P_CAR' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    mv_s_rng = CORRESPONDING #( it_values[ name = 'S_RNG' ]-ranges ).
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

@@ -134,13 +134,11 @@ CLASS zcl_gg_ex_073 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

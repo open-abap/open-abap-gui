@@ -126,13 +126,11 @@ CLASS zcl_gg_ex_076 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_der = it_values[ name = 'P_DER' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_der = it_values[ name = 'P_DER' ]-value.
-    mv_p_req = it_values[ name = 'P_REQ' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

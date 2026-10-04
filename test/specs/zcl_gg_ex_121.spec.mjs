@@ -1,11 +1,8 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_121 — renders titled modal container content", async ({page, host}) => {
+test("ZCL_GG_EX_121 — opens a dialog box container", async ({page, host}) => {
   await openExample(page, host, 121);
-  const dialog = page.locator('[data-control-kind="DIALOGBOX_CONTAINER"]');
-  await expect(dialog).toHaveAttribute("data-payload", "Dialog content");
-  await expect(dialog).toHaveAttribute("aria-label", "Dialog content");
-  await expect(dialog).not.toContainText("Dialog content");
+  await expect(page.locator('[data-control-kind="DIALOGBOX_CONTAINER"]')).toHaveCount(1);
   await expect(page.locator("textarea")).toHaveValue("Modal dialog body");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Dialog box open");
 });
-

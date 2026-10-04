@@ -28,14 +28,12 @@ test("PLAN10 - rejects forged commands, rows, paths, and node-like identifiers",
   expect(line.status).toBe(400);
   expect(line.body.error).toMatch(/Invalid list row|Invalid list action token/);
 
+  // A control event names a submit element of the page; a forged node key
+  // is no event the ALV tree offered.
   await openExample(page, host, 143);
-  const node = await rejectedDispatch(page, {
-    action: "LINE",
-    row: 999,
-    token: "ALV-TREE-NODE-FORGED",
-  });
+  const node = await rejectedDispatch(page, {gg_ctl_event: "GUI-2|TOGGLE|ALV-TREE-NODE-FORGED"});
   expect(node.status).toBe(400);
-  expect(node.body.error).toMatch(/Invalid list row|Invalid list action token/);
+  expect(node.body.error).toMatch(/Control event is not offered/);
 
   await page.goto(`${host.baseUrl}/`);
   const unsafePath = page.getByRole("textbox", {name: "Command"});

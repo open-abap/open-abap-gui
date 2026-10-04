@@ -153,13 +153,11 @@ CLASS zcl_gg_ex_082 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_value_req.
-    mv_p_name = it_values[ name = 'P_NAME' ]-value.
-    mv_p_value = it_values[ name = 'P_VALUE' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_help_req.
-    mv_p_name = it_values[ name = 'P_NAME' ]-value.
-    mv_p_value = it_values[ name = 'P_VALUE' ]-value.
+    RETURN.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.

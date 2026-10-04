@@ -855,8 +855,11 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
+* The node keeps a copy of the line, as SAP adds it to the tree's output
+* table; the caller's variable usually changes with the next node.
     IF data_row IS SUPPLIED.
-      GET REFERENCE OF data_row INTO lr_data_row.
+      CREATE DATA lr_data_row LIKE data_row.
+      lr_data_row->* = data_row.
     ENDIF.
     ls_new_node = VALUE #( node_key     = node_key
                            parent_key   = parent_key

@@ -323,6 +323,29 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     METHODS tree_html
       RETURNING
         VALUE(result) TYPE string.
+
+* The items of a node besides its text; an item tree shows them after the node.
+    METHODS node_items_html
+      IMPORTING
+        node_key      TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
+
+  PRIVATE SECTION.
+    METHODS node_visible
+      IMPORTING
+        node_key      TYPE string
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+
+    METHODS event_id
+      IMPORTING
+        event         TYPE string
+      RETURNING
+        VALUE(result) TYPE i.
 ENDCLASS.
 
 CLASS cl_tree_control_base IMPLEMENTATION.
@@ -627,17 +650,109 @@ CLASS cl_tree_control_base IMPLEMENTATION.
       OR ls_node-expander = abap_true ).
   ENDMETHOD.
 
+  METHOD node_items_html.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD node_visible.
+    DATA lv_parent TYPE string.
+
+    result = abap_true.
+    READ TABLE mt_html_nodes INTO DATA(ls_node) WITH KEY node_key = node_key.
+    lv_parent = ls_node-parent_key.
+    DO 32 TIMES.
+      IF lv_parent IS INITIAL.
+        RETURN.
+      ENDIF.
+      READ TABLE mt_html_nodes INTO DATA(ls_parent) WITH KEY node_key = lv_parent.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      IF ls_parent-expanded = abap_false.
+        result = abap_false.
+        RETURN.
+      ENDIF.
+      lv_parent = ls_parent-parent_key.
+    ENDDO.
+  ENDMETHOD.
+
+  METHOD event_id.
+    CASE event.
+      WHEN 'TOGGLE'.
+        result = eventid_expand_no_children.
+      WHEN 'SELECT'.
+        result = eventid_selection_changed.
+      WHEN 'NODE_DOUBLE_CLICK'.
+        result = eventid_node_double_click.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+    READ TABLE mt_frontend_events INTO DATA(ls_event) WITH KEY eventid = event_id( event ).
+    result = xsdbool( sy-subrc = 0 AND ls_event-appl_event = abap_true ).
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    DATA lv_node_key TYPE tv_nodekey.
+
+* Expanding and selecting happen in the frontend on SAP; the program hears of
+* them only through the events it registered.
+    lv_node_key = VALUE string( params[ 1 ] OPTIONAL ).
+    READ TABLE mt_html_nodes INTO DATA(ls_node) WITH KEY node_key = CONV string( lv_node_key ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    DATA(lv_registered) = xsdbool( line_exists( mt_frontend_events[ eventid = event_id( event ) ] ) ).
+    CASE event.
+      WHEN 'TOGGLE'.
+        IF ls_node-expanded = abap_false
+            AND NOT line_exists( mt_html_nodes[ parent_key = ls_node-node_key ] )
+            AND lv_registered = abap_true.
+          RAISE EVENT expand_no_children EXPORTING node_key = lv_node_key.
+        ENDIF.
+        set_html_node_state( node_key = ls_node-node_key
+                             expanded = xsdbool( ls_node-expanded = abap_false ) ).
+      WHEN 'SELECT'.
+        set_selected_node( lv_node_key ).
+        IF lv_registered = abap_true.
+          RAISE EVENT selection_changed EXPORTING node_key = lv_node_key.
+        ENDIF.
+      WHEN 'NODE_DOUBLE_CLICK'.
+        set_selected_node( lv_node_key ).
+        IF lv_registered = abap_true.
+          RAISE EVENT node_double_click EXPORTING node_key = lv_node_key.
+        ENDIF.
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD tree_html.
-    result = |<ul role="tree" aria-label="Tree">|.
+    DATA lv_toggle TYPE string.
+
+    result = |<ul class="gg-tree" role="tree" aria-label="Tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
+      IF ls_node-hidden = abap_true OR node_visible( ls_node-node_key ) = abap_false.
+        CONTINUE.
+      ENDIF.
       DATA(lv_depth) = node_level( ls_node-node_key ).
+      DATA(lv_key_params) = VALUE string_table( ( ls_node-node_key ) ).
+      IF node_has_children( ls_node-node_key ) = abap_true.
+        DATA(lv_toggle_event) = frontend_event_value( event  = 'TOGGLE'
+                                                      params = lv_key_params ).
+        lv_toggle = |<button type="submit" class="gg-tree-toggle" name="gg_control_event" value="{ lv_toggle_event }" formnovalidate aria-label="{ COND string( WHEN ls_node-expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { escape_html( ls_node-text ) }">{ COND string( WHEN ls_node-expanded = abap_true THEN '-' ELSE '+' ) }</button>|.
+      ELSE.
+        lv_toggle = |<span class="gg-tree-toggle" aria-hidden="true"></span>|.
+      ENDIF.
+      DATA(lv_select) = frontend_event_value( event  = 'SELECT'
+                                              params = lv_key_params ).
+      DATA(lv_double_click) = frontend_event_value( event  = 'NODE_DOUBLE_CLICK'
+                                                    params = lv_key_params ).
       DATA(lv_state_class) = cl_gui_control=>state_class( iv_selected = ls_node-selected ).
       DATA(lv_selected) = COND string(
         WHEN ls_node-selected = abap_true THEN ' aria-current="true" aria-selected="true"'
         ELSE ' aria-selected="false"' ).
       DATA(lv_expanded) = COND string( WHEN ls_node-expanded = abap_true THEN 'true' ELSE 'false' ).
-      DATA(lv_hidden) = COND string( WHEN ls_node-hidden = abap_true THEN ' hidden' ELSE '' ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_selected }{ lv_hidden }>{ escape_html( ls_node-text ) }</li>|.
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" style="padding-left:{ ( lv_depth - 1 ) * 18 }px"{ lv_selected }>| &&
+        |{ lv_toggle }<span class="gg-tree-label" tabindex="0" data-gg-click-event="{ lv_select }" data-gg-dblclick-event="{ lv_double_click }">{ escape_html( ls_node-text ) }</span>{ node_items_html( ls_node-node_key ) }</li>|.
     ENDLOOP.
     result = result && |</ul>|.
   ENDMETHOD.

@@ -187,9 +187,6 @@ CLASS zcl_example_navigation IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
-    IF line_exists( ct_values[ name = 'GV_STEP' ] ).
-      gv_step = CONV #( ct_values[ name = 'GV_STEP' ]-value ).
-    ENDIF.
     CASE is_context-module.
       WHEN 'USER_COMMAND_0100'.
         CASE is_context-ucomm.

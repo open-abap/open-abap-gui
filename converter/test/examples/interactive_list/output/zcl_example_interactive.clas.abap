@@ -87,7 +87,7 @@ CLASS zcl_example_interactive IMPLEMENTATION.
     gt_rows = VALUE #( ( id = 1 name = `Alpha` ) ( id = 2 name = `Beta` ) ).
     LOOP AT gt_rows INTO gs_row.
       lo_writer->write_field( VALUE #( text = |{ gs_row-id }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_row-name }| format = VALUE #( hotspot = abap_true ) hide = VALUE #( ( name = 'HIDE_1' value = |{ gs_row-id }| ) ) ) ).
+      lo_writer->write_field( VALUE #( text = |{ gs_row-name }| format = VALUE #( hotspot = abap_true ) hide = VALUE #( ( name = 'GS_ROW-ID' value = |{ gs_row-id }| ) ) ) ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -126,8 +126,11 @@ CLASS zcl_example_interactive IMPLEMENTATION.
 
   METHOD zif_gg_list_processing_v1~at_line_selection.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
+    IF line_exists( is_line-fields[ name = 'GS_ROW-ID' ] ).
+      gs_row-id = is_line-fields[ name = 'GS_ROW-ID' ]-value.
+    ENDIF.
     lo_writer->write_field( VALUE #( text = 'Selected row' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ is_line-fields[ name = 'GS_ROW' ]-value-is_line-fields[ name = 'ID' ]-value }| ) ).
+    lo_writer->write_field( VALUE #( text = |{ gs_row-id }| ) ).
     lo_writer->write_field( VALUE #( text = 'at list level' ) ).
     lo_writer->write_field( VALUE #( text = |{ io_session->get_list( )->get_context( )-level }| ) ).
   ENDMETHOD.

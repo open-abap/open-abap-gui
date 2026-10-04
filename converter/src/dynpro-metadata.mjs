@@ -150,6 +150,9 @@ function elementKind(record) {
   if (type === "CHECK") return "checkbox";
   if (type === "RADIO" || type === "RADIOBUTTON" || type === "RADIOGROUP") return "radio";
   if (type === "LISTBOX" || type === "DROPDOWN" || type === "COMBO") return "dropdown";
+  // The screen painter stores a listbox as an input field with DROPDOWN L
+  // (or K, a listbox with key).
+  if (/^[LK]$/i.test(String(record.DROPDOWN ?? ""))) return "dropdown";
   if (type === "SUBSCREEN") return "subscreen";
   if (type === "OKCODE") return "okcode";
   if (flag(record.INPUT_FLD) && flag(record.OUTPUT_FLD)) return "input-output";

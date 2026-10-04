@@ -3,6 +3,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { Config } from "@abaplint/core";
 import { convertProgram } from "../src/api.mjs";
+import { emitClassXml } from "../src/emit/class-xml.mjs";
 import { repositoryRoot, repositoryTool } from "./repository.mjs";
 
 const repository = repositoryRoot;
@@ -31,7 +32,7 @@ async function prepare() {
     const className = `ZCL_CV_${String(index + 1).padStart(3, "0")}`;
     const input = {
       source,
-      filename: name,
+      filename: path.join(examples, name),
       className,
       transactionCode: `ZCV${String(index + 1).padStart(3, "0")}`,
       mode: "partial",
@@ -44,6 +45,14 @@ async function prepare() {
     const result = await convertProgram(input);
     if (!result.classSource) throw new Error(`converter produced no class for ${name}`);
     await fs.writeFile(path.join(inputFolder, `${className}.clas.abap`), result.classSource, "utf8");
+    // The class's text pool, when its code uses text symbols.
+    const classXml = emitClassXml(result.reportIR, result.classSource);
+    // The copy gets its own description; two classes may not share one.
+    if (classXml) await fs.writeFile(path.join(inputFolder, `${className}.clas.xml`), classXml.replace("<DESCRIPT>", `<DESCRIPT>${className} `), "utf8");
+    // Local classes of the program become helper classes next to it.
+    for (const helper of result.helperSources ?? []) {
+      await fs.writeFile(path.join(inputFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
+    }
   }
 
   const routine = await convertProgram({
@@ -245,7 +254,7 @@ async function prepare() {
     "/../src/**/*.*",
     "/../framework/**/*.*",
     "/../examples/**/*.*",
-    "/transpile-validation/input/*.clas.abap",
+    "/transpile-validation/input/*.clas.*",
     "/transpile-validation/helpers/*.clas.abap",
   ];
   // Helper classes are not held to the formatting rules; only the syntax check

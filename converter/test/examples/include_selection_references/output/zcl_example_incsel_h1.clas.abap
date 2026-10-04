@@ -8,10 +8,13 @@
 CLASS zcl_example_incsel_h1 DEFINITION PUBLIC CREATE PUBLIC.
 
   PUBLIC SECTION.
-    METHODS constructor IMPORTING io_owner TYPE REF TO zcl_example_incsel io_session TYPE REF TO zif_gg_session_v1.
+    METHODS constructor
+      IMPORTING
+        io_owner   TYPE REF TO zcl_example_incsel
+        io_session TYPE REF TO zif_gg_session_v1.
     DATA mo_owner TYPE REF TO zcl_example_incsel.
     DATA mo_session TYPE REF TO zif_gg_session_v1.
-  METHODS count.
+    METHODS count.
 
 ENDCLASS.
 

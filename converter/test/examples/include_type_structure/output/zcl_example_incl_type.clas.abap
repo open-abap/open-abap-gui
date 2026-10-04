@@ -13,8 +13,8 @@ CLASS zcl_example_incl_type DEFINITION PUBLIC FINAL CREATE PUBLIC.
     INTERFACES zif_gg_list_processing_v1.
 
   PRIVATE SECTION.
-    TYPES: BEGIN OF ty_alv, show_payload TYPE icon_d. INCLUDE TYPE zlog. TYPES: END OF ty_alv.
-    DATA: BEGIN OF gs_row. INCLUDE STRUCTURE zlog. DATA: flag TYPE c LENGTH 1, END OF gs_row.
+    TYPES: BEGIN OF ty_alv, show_payload TYPE icon_d. INCLUDE TYPE zlog. TYPES END OF ty_alv.
+    DATA BEGIN OF gs_row. INCLUDE STRUCTURE zlog. DATA: flag TYPE c LENGTH 1, END OF gs_row.
     DATA gt_alv TYPE STANDARD TABLE OF ty_alv WITH EMPTY KEY.
     METHODS form_fill
       IMPORTING
