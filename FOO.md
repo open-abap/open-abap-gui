@@ -202,7 +202,5 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 - `MODIFY LINE n LINE FORMAT INVERSE ON` does not parse (`INVERSE` without
   `ON` does).
-- The indentation rule does not treat `END-OF-PAGE` as an event block, see
-  zgg_ex_010 and zgg_ex_091.
 - `USER-COMMAND` together with any `LENGTH` addition is rejected
   (`PARAMETERS p TYPE c LENGTH 2 AS LISTBOX ... USER-COMMAND x`).
