@@ -194,6 +194,14 @@ async function prepare() {
   if (!tabTexts.classSource) throw new Error("converter produced no tab text class");
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_TABS.clas.abap"), tabTexts.classSource, "utf8");
 
+  const selectionEvents = await convertProgram({
+    source: await fs.readFile(path.join(repository, "converter", "test", "fixtures", "selection_screen_events.abap.txt"), "utf8"),
+    filename: "zselection_screen_events.prog.abap",
+    className: "ZCL_BV_SELECTION_EVENTS",
+  });
+  assert.equal(selectionEvents.supported, true, JSON.stringify(selectionEvents.diagnostics));
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_SELECTION_EVENTS.clas.abap"), selectionEvents.classSource, "utf8");
+
   const tabIcons = await convertProgram({
     source: await fs.readFile(path.join(examples, "zgg_ex_169.prog.abap"), "utf8"),
     filename: "zgg_ex_169.prog.abap",
@@ -539,6 +547,27 @@ try {
   assert.match(initialTabs, />Options<\/button>/);
   assert.doesNotMatch(initialTabs, />TAB[12]<\/button>/);
   assert.match(await tabHtml([["P_ROWS", "200"]]), />Many rows<\/button>/);
+
+  // Both events and FORMs see the current screen, and inactive tabs have no ON checks.
+  const selectionEvents = async (options) => plain(await zcl_gg_host.run({
+    io_report: new abap.Classes.ZCL_BV_SELECTION_EVENTS(),
+    iv_stop_before_start: abap.builtin.abap_true,
+    ...options,
+  }));
+  const initialSelection = await selectionEvents({});
+  assert.deepEqual(initialSelection.messages.map((message) => message.text), ["PBO:0101", "PBO:1000"]);
+  assert.match(initialSelection.html, />Main action 1<\/button>/);
+  assert.match(initialSelection.html, />Main action 2<\/button>/);
+  assert.equal(initialSelection.states.find((state) => state.name.trim() === "P_ONE").visible, abap.builtin.abap_false.get());
+  assert.equal(initialSelection.states.find((state) => state.name.trim() === "P_TWO").visible, abap.builtin.abap_true.get());
+  const functionKeySelection = await selectionEvents({iv_ucomm: "FC01"});
+  assert.deepEqual(functionKeySelection.messages.map((message) => message.text), [
+    "PBO:0101", "PBO:1000", "FIELD:0101:P_ONE", "PAI:0101", "FIELD:1000:P_MAIN", "PAI:1000", "BUTTON:FC01",
+  ]);
+  const tabClickSelection = await selectionEvents({iv_selection_tab: "TAB2", iv_ucomm: "TAB1"});
+  assert.deepEqual(tabClickSelection.messages.map((message) => message.text), [
+    "PBO:0102", "PBO:1000", "FIELD:0102:P_TWO", "PAI:0102", "FIELD:1000:P_MAIN", "PAI:1000",
+  ]);
 
   // Tab labels starting with an icon, written AS ICON, concatenated from an
   // ICON_* constant or given as a code with quickinfo, render as icons.

@@ -7,6 +7,7 @@ CLASS lcl_report DEFINITION FINAL CREATE PUBLIC.
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
     INTERFACES zif_gg_list_processing_v1.
+    DATA events TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
     METHODS constructor
       IMPORTING
@@ -136,6 +137,24 @@ CLASS lcl_report IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~build_screen.
     CASE mv_mode.
+      WHEN 'TABS'.
+        io_builder->begin_block( VALUE #( name = 'MAIN' ) ).
+        io_builder->add_parameter( VALUE #( name = 'P_MAIN' ) ).
+        io_builder->end_block( ).
+        io_builder->begin_tabbed_block( VALUE #( name = 'TABS' lines = 5 ) ).
+        io_builder->add_tab( VALUE #( name = 'TAB1' ucomm = 'TAB1' subscreen = '0100' ) ).
+        io_builder->add_tab( VALUE #( name = 'TAB2' ucomm = 'TAB2' subscreen = '0200' ) ).
+        io_builder->end_tabbed_block( ).
+        io_builder->begin_screen( VALUE #( number = '0100' as_subscreen = abap_true ) ).
+        io_builder->begin_block( VALUE #( name = 'ONE' ) ).
+        io_builder->add_parameter( VALUE #( name = 'P_ONE' ) ).
+        io_builder->end_block( ).
+        io_builder->end_screen( ).
+        io_builder->begin_screen( VALUE #( number = '0200' as_subscreen = abap_true ) ).
+        io_builder->begin_block( VALUE #( name = 'TWO' ) ).
+        io_builder->add_parameter( VALUE #( name = 'P_TWO' ) ).
+        io_builder->end_block( ).
+        io_builder->end_screen( ).
       WHEN 'DEFAULT'.
         io_builder->add_parameter( VALUE #(
           name      = 'P_CARR'
@@ -180,6 +199,14 @@ CLASS lcl_report IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
+    IF mv_mode = 'TABS'.
+      DATA(ls_context) = io_session->get_context( ).
+      APPEND |PBO:{ iv_screen }:{ ls_context-selection-screen }| TO events.
+      LOOP AT ct_states ASSIGNING FIELD-SYMBOL(<ls_state>).
+        APPEND |STATE:{ iv_screen }:{ <ls_state>-name }| TO events.
+        <ls_state>-visible = abap_false.
+      ENDLOOP.
+    ENDIF.
     IF mv_mode = 'OUTPUT'.
       ct_values[ name = 'P_CARR' ]-value = 'OUT'.
       ct_states[ name = 'P_CARR' ]-visible = abap_false.
@@ -188,6 +215,10 @@ CLASS lcl_report IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    IF mv_mode = 'TABS'.
+      DATA(ls_context) = io_session->get_context( ).
+      APPEND |PAI:{ iv_screen }:{ ls_context-selection-screen }:{ iv_ucomm }| TO events.
+    ENDIF.
     IF mv_mode = 'OUTPUT'.
       io_session->message( VALUE #(
         type = zif_gg_session_types_v1=>message_type_error
@@ -196,6 +227,10 @@ CLASS lcl_report IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
+    IF mv_mode = 'TABS'.
+      DATA(ls_context) = io_session->get_context( ).
+      APPEND |FIELD:{ iv_screen }:{ ls_context-selection-screen }:{ iv_name }| TO events.
+    ENDIF.
     RETURN.
   ENDMETHOD.
 
@@ -204,6 +239,9 @@ CLASS lcl_report IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
+    IF mv_mode = 'TABS'.
+      APPEND |BLOCK:{ iv_screen }:{ iv_block }| TO events.
+    ENDIF.
     RETURN.
   ENDMETHOD.
 
@@ -279,12 +317,83 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS selection_sibling_blocks FOR TESTING.
     METHODS selection_tab_panel FOR TESTING.
     METHODS selection_tab_label_value FOR TESTING.
+    METHODS selection_tab_events FOR TESTING.
+    METHODS selection_tab_initial_display FOR TESTING.
+    METHODS selection_tab_click_checks FOR TESTING.
+    METHODS selection_other_screen_events FOR TESTING.
     METHODS html_gui_fixture FOR TESTING.
     METHODS replaces_a_host_session FOR TESTING.
 
 ENDCLASS.
 
 CLASS ltcl_host IMPLEMENTATION.
+
+  METHOD selection_tab_events.
+    DATA(lo_report) = NEW lcl_report( 'TABS' ).
+    DATA(ls_result) = zcl_gg_host=>run(
+      io_report            = lo_report
+      iv_selection_tab     = 'TAB2'
+      iv_stop_before_start = abap_true ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_report->events
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `PBO:0200:0200` ) ( `STATE:0200:P_TWO` )
+        ( `PBO:1000:1000` ) ( `STATE:1000:P_MAIN` ) ) ).
+    cl_abap_unit_assert=>assert_false( act = ls_result-states[ name = 'P_TWO' ]-visible ).
+    cl_abap_unit_assert=>assert_true( act = ls_result-states[ name = 'P_ONE' ]-visible ).
+
+    CLEAR lo_report->events.
+    ls_result = zcl_gg_host=>run(
+      io_report        = lo_report
+      iv_selection_tab = 'TAB2' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_report->events
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `PBO:0200:0200` ) ( `STATE:0200:P_TWO` )
+        ( `PBO:1000:1000` ) ( `STATE:1000:P_MAIN` )
+        ( `FIELD:0200:0200:P_TWO` ) ( `BLOCK:0200:TWO` ) ( `PAI:0200:0200:ONLI` )
+        ( `FIELD:1000:1000:P_MAIN` ) ( `BLOCK:1000:MAIN` ) ( `PAI:1000:1000:ONLI` ) ) ).
+  ENDMETHOD.
+
+  METHOD selection_tab_initial_display.
+    DATA(lo_report) = NEW lcl_report( 'TABS' ).
+    zcl_gg_host=>run(
+      io_report            = lo_report
+      iv_present_selection = abap_true ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_report->events
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `PBO:0100:0100` ) ( `STATE:0100:P_ONE` )
+        ( `PBO:1000:1000` ) ( `STATE:1000:P_MAIN` ) ) ).
+  ENDMETHOD.
+
+  METHOD selection_tab_click_checks.
+    DATA(lo_report) = NEW lcl_report( 'TABS' ).
+    zcl_gg_host=>run(
+      io_report            = lo_report
+      iv_selection_tab     = 'TAB2'
+      iv_ucomm             = 'TAB1'
+      iv_stop_before_start = abap_true ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_report->events
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `PBO:0200:0200` ) ( `STATE:0200:P_TWO` )
+        ( `PBO:1000:1000` ) ( `STATE:1000:P_MAIN` )
+        ( `FIELD:0200:0200:P_TWO` ) ( `BLOCK:0200:TWO` ) ( `PAI:0200:0200:TAB1` )
+        ( `FIELD:1000:1000:P_MAIN` ) ( `BLOCK:1000:MAIN` ) ( `PAI:1000:1000:TAB1` ) ) ).
+  ENDMETHOD.
+
+  METHOD selection_other_screen_events.
+    DATA(lo_report) = NEW lcl_report( 'TABS' ).
+    zcl_gg_host=>run(
+      io_report           = lo_report
+      iv_selection_screen = '0100' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_report->events
+      exp = VALUE zcl_gg_host_list=>ty_text_lines(
+        ( `PBO:0100:0100` ) ( `STATE:0100:P_ONE` )
+        ( `FIELD:0100:0100:P_ONE` ) ( `BLOCK:0100:ONE` ) ( `PAI:0100:0100:ONLI` ) ) ).
+  ENDMETHOD.
 
   METHOD write_literal.
     DATA(ls_result) = zcl_gg_host=>run( NEW lcl_report( 'HELLO' ) ).
