@@ -18,7 +18,7 @@ CLASS cl_salv_functions DEFINITION PUBLIC FRIENDS cl_salv_table.
 
     METHODS set_all
       IMPORTING
-        flag TYPE abap_bool OPTIONAL.
+        flag TYPE abap_bool DEFAULT abap_true.
 
     METHODS get_functions
       RETURNING
