@@ -54,8 +54,12 @@ test("the status bar paints each message type in its own colour", async ({page, 
     element.classList.remove("wb-status-error", "wb-status-warning", "wb-status-success", "wb-status-info");
     element.classList.add(messageType);
     element.textContent = messageType;
-    return getComputedStyle(element).color;
-  }, type);
+    const style = getComputedStyle(element);
+    return {text: style.color, edge: style.borderLeftColor};
+  }, type).then((painted) => {
+    expect(painted.text).toBe("rgb(29, 45, 62)");
+    return painted.edge;
+  });
 
   const colors = {
     "wb-status-error": await paint("wb-status-error"),
@@ -63,10 +67,11 @@ test("the status bar paints each message type in its own colour", async ({page, 
     "wb-status-success": await paint("wb-status-success"),
     "wb-status-info": await paint("wb-status-info"),
   };
-  expect(colors["wb-status-error"]).toBe("rgb(163, 33, 33)");
-  expect(colors["wb-status-warning"]).toBe("rgb(138, 87, 0)");
-  expect(colors["wb-status-success"]).toBe("rgb(20, 102, 58)");
-  expect(colors["wb-status-info"]).toBe("rgb(156, 31, 106)");
+  // The type colour is the edge's and the icon's; the text stays dark.
+  expect(colors["wb-status-error"]).toBe("rgb(187, 0, 0)");
+  expect(colors["wb-status-warning"]).toBe("rgb(233, 115, 12)");
+  expect(colors["wb-status-success"]).toBe("rgb(16, 126, 62)");
+  expect(colors["wb-status-info"]).toBe("rgb(10, 110, 209)");
   expect(new Set(Object.values(colors)).size).toBe(4);
 });
 
@@ -166,7 +171,7 @@ test("invalid workbench commands render in the bottom message bar", async ({page
   });
   expect(message.animation).toBe("wb-status-pop");
   expect(message.duration).toBe("0.26s");
-  expect(message.radius).toBe("999px");
+  expect(message.radius).toBe("0px");
 });
 
 test("a status message never changes the height of the status bar", async ({page, host}) => {
@@ -211,9 +216,9 @@ test("a status message stays prominent without motion", async ({browser, host}) 
       const style = getComputedStyle(element);
       return {display: style.display, animation: style.animationName, radius: style.borderTopLeftRadius};
     });
-    expect(message.display).toBe("block"); // inline-block blockifies as a flex item
+    expect(message.display).toBe("block");
     expect(message.animation).toBe("none");
-    expect(message.radius).toBe("999px");
+    expect(message.radius).toBe("0px");
   } finally {
     await context.close();
   }

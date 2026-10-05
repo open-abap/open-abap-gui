@@ -177,32 +177,29 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 * The message gives way to the system, client and user, never the other way
 * round: it shrinks and ellipsizes, the context keeps its width.
       '.wb-status-feedback{flex:0 1 auto;min-width:0;min-height:1em;color:#315a7f;font-weight:600}' &&
-* A message earns the pill, the shadow and the entry animation; an empty
-* feedback slot keeps the status bar quiet.
-* Inline flow rather than flex, so an overlong message ellipsizes instead of
+* A message is a strip at the left of the bar: an edge and an icon in the
+* colour of its type (--wb-status-accent), a tint behind dark text, and a fade at its end into the
+* bar's blue. An empty feedback slot keeps the status bar quiet.
+* Block flow rather than flex, so an overlong message ellipsizes instead of
 * being cut mid-word. The full text stays in the DOM for the alert reader and
-* in the title for the pointer.
-      '.wb-status-feedback:not(:empty){display:inline-block;max-width:100%;padding:3px 12px;box-sizing:border-box;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid #a8c6e2;border-radius:999px;background:#f1f7fd;box-shadow:0 1px 4px rgba(34,67,102,.16);transform-origin:left center;animation:wb-status-pop .26s ease-out both}' &&
-      '.wb-status-feedback>.wb-icon{width:14px;height:14px;margin:-2px 6px 0 0}' &&
+* in the title for the pointer; the right padding keeps it clear of the fade.
+      '.wb-status-feedback:not(:empty){--wb-status-accent:#315a7f;--wb-status-tint:#f1f7fd;align-self:stretch;display:block;max-width:100%;margin-left:-10px;padding:0 36px 0 9px;box-sizing:border-box;font-size:12px;line-height:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1d2d3e;border-left:3px solid var(--wb-status-accent);background:linear-gradient(90deg,var(--wb-status-tint) 0,var(--wb-status-tint) calc(100% - 32px),rgba(220,232,243,0) 100%);animation:wb-status-pop .26s ease-out both}' &&
+      '.wb-status-feedback>.wb-icon{width:14px;height:14px;margin:-2px 6px 0 0;color:var(--wb-status-accent)}' &&
 * A message the bar cuts short can be focused, by keyboard or click, and then
 * opens above the bar in full; it leaves the bar's flow, so nothing reflows.
       '.wb-status-feedback--clipped{cursor:pointer}' &&
-      '.wb-status-feedback--clipped:focus{position:absolute;left:10px;right:10px;bottom:calc(100% + 4px);z-index:1300;max-width:none;border-radius:6px;white-space:normal;overflow:visible;animation:none}' &&
-      '.wb-status-error{color:#a32121}' &&
-      '.wb-status-error:not(:empty){border-color:#e0aaaa;background:#fdf1f1}' &&
-      '.wb-status-warning{color:#8a5700}' &&
-      '.wb-status-warning:not(:empty){border-color:#e3c589;background:#fdf7ea}' &&
-      '.wb-status-success{color:#14663a}' &&
-      '.wb-status-success:not(:empty){border-color:#9fcfb2;background:#eff9f3}' &&
-      '.wb-status-info{color:#9c1f6a}' &&
-      '.wb-status-info:not(:empty){border-color:#e5a8ca;background:#fdf0f7}' &&
-      '@keyframes wb-status-pop{0%{opacity:0;transform:scale(.94) translateY(5px)}70%{transform:scale(1.02) translateY(0)}100%{opacity:1;transform:none}}' &&
+      '.wb-status-feedback--clipped:focus{position:absolute;left:10px;right:10px;bottom:calc(100% + 4px);z-index:1300;max-width:none;margin:0;padding:6px 12px 6px 9px;line-height:1.35;white-space:normal;overflow:visible;background:var(--wb-status-tint);border:1px solid var(--wb-status-accent);border-left-width:3px;border-radius:2px;outline:0;box-shadow:0 4px 14px rgba(18,52,84,.28);animation:none}' &&
+      '.wb-status-error:not(:empty){--wb-status-accent:#bb0000;--wb-status-tint:#ffebeb}' &&
+      '.wb-status-warning:not(:empty){--wb-status-accent:#e9730c;--wb-status-tint:#fef7f1}' &&
+      '.wb-status-success:not(:empty){--wb-status-accent:#107e3e;--wb-status-tint:#f1fdf6}' &&
+      '.wb-status-info:not(:empty){--wb-status-accent:#0a6ed1;--wb-status-tint:#f5faff}' &&
+      '@keyframes wb-status-pop{0%{opacity:0;transform:translateX(-6px)}100%{opacity:1;transform:none}}' &&
       '@media(prefers-reduced-motion:reduce){.wb-status-feedback:not(:empty){animation:none}}' &&
       '.wb-status-context{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:18px;white-space:nowrap}' &&
       '.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
       '.wb-skip-link:focus{position:fixed;left:8px;top:8px;z-index:2000;width:auto;height:auto;padding:6px 10px;margin:0;overflow:visible;clip:auto;white-space:normal;background:var(--gg-action);color:#132d4b;border:1px solid var(--gg-border-dark);box-shadow:0 2px 6px rgba(34,67,102,.24)}' &&
       '@media(max-width:760px){.wb-runtime-content,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-command-input{width:130px}}' &&
-      '@media(max-width:760px){html,body{height:auto;min-height:100%;overflow:auto}.wb-shell{height:auto;min-height:100vh;overflow:visible}.wb-menubar{height:auto;min-height:32px;overflow-x:auto;white-space:nowrap}.wb-commandbar{height:auto;min-height:38px;flex-wrap:wrap;align-content:center;padding:4px 10px}.wb-command-input{flex:1 1 140px;width:auto;min-width:0}.wb-command-error{order:4;flex-basis:100%;max-width:100%;margin:0}.wb-appbar{padding:6px 10px}.wb-toolbar{overflow-x:auto;white-space:nowrap;padding:4px 10px}.wb-runtime-content{margin:6px 10px 0;padding:10px;overflow:auto}.wb-runtime-content--dynpro{margin:6px 10px 0;padding:0;overflow:auto}.wb-shell{padding-bottom:40px;box-sizing:border-box}.wb-statusbar{position:fixed;left:10px;right:10px;bottom:8px;z-index:5;gap:8px;margin:0;padding:0 8px}.wb-status-context{gap:8px}}'.
+      '@media(max-width:760px){html,body{height:auto;min-height:100%;overflow:auto}.wb-shell{height:auto;min-height:100vh;overflow:visible}.wb-menubar{height:auto;min-height:32px;overflow-x:auto;white-space:nowrap}.wb-commandbar{height:auto;min-height:38px;flex-wrap:wrap;align-content:center;padding:4px 10px}.wb-command-input{flex:1 1 140px;width:auto;min-width:0}.wb-command-error{order:4;flex-basis:100%;max-width:100%;margin:0}.wb-appbar{padding:6px 10px}.wb-toolbar{overflow-x:auto;white-space:nowrap;padding:4px 10px}.wb-runtime-content{margin:6px 10px 0;padding:10px;overflow:auto}.wb-runtime-content--dynpro{margin:6px 10px 0;padding:0;overflow:auto}.wb-shell{padding-bottom:40px;box-sizing:border-box}.wb-statusbar{position:fixed;left:10px;right:10px;bottom:8px;z-index:5;gap:8px;margin:0;padding:0 8px}.wb-status-feedback:not(:empty){margin-left:-8px}.wb-status-context{gap:8px}}'.
   ENDMETHOD.
 
   METHOD render_top.

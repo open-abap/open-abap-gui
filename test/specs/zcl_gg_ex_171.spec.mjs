@@ -25,6 +25,11 @@ test("ZCL_GG_EX_171 — the entry count is in the status bar, not above the grid
   await expect(statusMessage(page)).toHaveClass(/wb-status-success/);
   await expect(statusMessage(page)).toHaveAttribute("role", "status");
   await expect(statusMessage(page).locator('use[href="#wb-icon-circle-check"]')).toHaveCount(1);
+  // A strip: green edge and icon, dark text, a tint that fades into the bar.
+  await expect(statusMessage(page)).toHaveCSS("border-left-color", "rgb(16, 126, 62)");
+  await expect(statusMessage(page)).toHaveCSS("color", "rgb(29, 45, 62)");
+  await expect(statusMessage(page).locator(".wb-icon")).toHaveCSS("color", "rgb(16, 126, 62)");
+  await expect(statusMessage(page)).toHaveCSS("background-image", /linear-gradient\(90deg, rgb\(241, 253, 246\).*rgba\(220, 232, 243, 0\)/);
   await expect(page.locator("main")).not.toContainText("entries listed");
   await expect(page.locator(".gg-message, .gg-message-region")).toHaveCount(0);
   await expect(grid(page)).toContainText("Log entry 3");
