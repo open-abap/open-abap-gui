@@ -26,6 +26,19 @@ CLASS zcl_gg_ex_150 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_150_
     DATA gv_state TYPE c LENGTH 60.
     DATA mv_p_carr TYPE c LENGTH 3.
     DATA mv_p_date TYPE d.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -207,22 +220,23 @@ CLASS zcl_gg_ex_150 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
       gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'STATUS_0100'.
-        IF go_container IS INITIAL.
-          zcl_gg_ex_150_h1=>create_controls( io_owner   = me
-                                             io_session = io_session ).
-          gv_state = |{ lines( gt_flights ) } flight(s) of { mv_p_carr } from { mv_p_date DATE = ISO }|.
-        ENDIF.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        output_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
     ELSE.
@@ -232,19 +246,26 @@ CLASS zcl_gg_ex_150 IMPLEMENTATION.
       ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
     ELSE.
       INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'USER_COMMAND_0100'.
-        CLEAR gv_ok_code.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
     ELSE.
@@ -254,6 +275,9 @@ CLASS zcl_gg_ex_150 IMPLEMENTATION.
       ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
     ELSE.
       INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
@@ -269,6 +293,28 @@ CLASS zcl_gg_ex_150 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
       rv_text = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD output_modules.
+    CASE is_context-module.
+      WHEN 'STATUS_0100'.
+        IF go_container IS INITIAL.
+          zcl_gg_ex_150_h1=>create_controls( io_owner   = me
+                                             io_session = io_session ).
+          gv_state = |{ lines( gt_flights ) } flight(s) of { mv_p_carr } from { mv_p_date DATE = ISO }|.
+        ENDIF.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD input_modules.
+    CASE is_context-module.
+      WHEN 'USER_COMMAND_0100'.
+        CLEAR gv_ok_code.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD zif_gg_resumable_v1~resume.

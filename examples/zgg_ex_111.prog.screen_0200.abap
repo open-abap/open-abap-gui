@@ -1,0 +1,6 @@
+PROCESS BEFORE OUTPUT.
+  MODULE status_modal.
+
+PROCESS AFTER INPUT.
+  MODULE exit_modal AT EXIT-COMMAND.
+  MODULE user_command_0200.

@@ -47,6 +47,14 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS clear.
 
   PRIVATE SECTION.
+* One CALL SCREEN of the running program: the screen that called, and where
+* its PAI continues when the called sequence ends.
+    TYPES: BEGIN OF ty_screen_call,
+             screen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+             continuation TYPE string,
+           END OF ty_screen_call.
+    TYPES ty_screen_calls TYPE STANDARD TABLE OF ty_screen_call WITH DEFAULT KEY.
+
     TYPES: BEGIN OF ty_session,
              session_id          TYPE string,
              program             TYPE zif_gg_session_types_v1=>ty_program,
@@ -60,6 +68,7 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              pending_help        TYPE zif_gg_dynpro_types_v1=>ty_name,
              next_page           TYPE i,
              pending_navigation  TYPE zif_gg_host_html_v1=>ty_navigation,
+             screen_calls        TYPE ty_screen_calls,
              pending_submit      TYPE zif_gg_session_types_v1=>ty_submit,
              last_result         TYPE zcl_gg_host=>ty_result,
              last_dynpro         TYPE zcl_gg_host_dynpro=>ty_result,
@@ -75,6 +84,15 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              selection_start     TYPE abap_bool,
            END OF ty_session.
     TYPES ty_sessions TYPE STANDARD TABLE OF ty_session WITH DEFAULT KEY.
+
+* A return from a called sequence ends its CALL SCREEN; a new CALL SCREEN
+* starts one, called from the screen that was current.
+    CLASS-METHODS track_screen_calls
+      IMPORTING
+        is_dynpro       TYPE zcl_gg_host_dynpro=>ty_result
+        iv_caller       TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+      CHANGING
+        ct_screen_calls TYPE ty_screen_calls.
 
 * The terminal text of a report run that ended with nothing to display.
     CONSTANTS c_program_ended TYPE string VALUE 'Program ended'.
@@ -398,6 +416,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lv_resume_continuation TYPE string.
     DATA lv_list_back TYPE abap_bool.
     DATA lv_action_receipt TYPE string.
+    DATA lv_return_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
 
     ls_session = is_session.
     lv_list_back = xsdbool(
@@ -433,8 +452,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ELSEIF is_request-action <> zif_gg_host_html_v1=>action_value_help.
       ls_session-pending_popup_ucomm = lv_ucomm.
     ENDIF.
+* Only the Back action means BACK. A submit without a function code, Enter or
+* scrolling a table control, runs PAI with an empty OK code, as on SAP.
     IF lv_ucomm IS INITIAL AND lv_list_back = abap_false
-        AND is_request-action <> zif_gg_host_html_v1=>action_control_event.
+        AND is_request-action = zif_gg_host_html_v1=>action_back.
       lv_ucomm = 'BACK'.
     ENDIF.
     IF is_request-action <> zif_gg_host_html_v1=>action_exit
@@ -444,9 +465,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         AND is_request-action <> zif_gg_host_html_v1=>action_popup.
       lv_action_receipt = |Action { COND string( WHEN is_request-ucomm IS INITIAL THEN is_request-action ELSE is_request-ucomm ) } processed|.
     ENDIF.
-    IF lv_list_back = abap_false
-        AND ls_session-last_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
-      lv_resume_continuation = ls_session-last_dynpro-navigation-continuation.
+* The innermost CALL SCREEN is where LEAVE TO SCREEN 0 returns to.
+    IF lv_list_back = abap_false AND ls_session-screen_calls IS NOT INITIAL.
+      DATA(ls_screen_call) = ls_session-screen_calls[ lines( ls_session-screen_calls ) ].
+      lv_resume_continuation = ls_screen_call-continuation.
+      lv_return_screen = ls_screen_call-screen.
     ENDIF.
     queue_control_event( is_request ).
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
@@ -479,6 +502,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       is_modal_position      = ls_session-last_dynpro-modal_position
       io_resumable           = ls_session-resumable
       iv_resume_continuation = lv_resume_continuation
+      iv_return_screen       = lv_return_screen
       iv_screen              = COND #( WHEN lv_list_back = abap_true
                                       THEN ls_session-last_dynpro-list_return_screen
                                       ELSE ls_session-last_dynpro-screen )
@@ -489,11 +513,29 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       CLEAR ls_session-pending_popup_ucomm.
       CLEAR ls_session-pending_help.
     ENDIF.
+    track_screen_calls(
+      EXPORTING
+        is_dynpro       = ls_dynpro
+        iv_caller       = COND #( WHEN ls_dynpro-modal_returned = abap_true
+                                 THEN lv_return_screen
+                                 ELSE ls_session-last_dynpro-screen )
+      CHANGING
+        ct_screen_calls = ls_session-screen_calls ).
     ls_session-next_page = ls_session-next_page + 1.
     rs_response = enter_dynpro_result(
       is_dynpro  = ls_dynpro
       iv_page_id = lv_page_id
       is_session = ls_session ).
+  ENDMETHOD.
+
+  METHOD track_screen_calls.
+    IF is_dynpro-modal_returned = abap_true AND ct_screen_calls IS NOT INITIAL.
+      DELETE ct_screen_calls INDEX lines( ct_screen_calls ).
+    ENDIF.
+    IF is_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
+      APPEND VALUE #( screen       = iv_caller
+                      continuation = is_dynpro-navigation-continuation ) TO ct_screen_calls.
+    ENDIF.
   ENDMETHOD.
 
   METHOD enter_dynpro_result.

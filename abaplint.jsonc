@@ -1,6 +1,7 @@
 {
   "global": {
     "files": ["/src/**/*.*", "/framework/**/*.*", "/examples/**/*.*"],
+    "exclude": ["\\.prog\\.screen_\\d+\\.abap$"],
     "skipGeneratedGatewayClasses": true,
     "skipGeneratedPersistentClasses": true,
     "skipGeneratedFunctionGroups": true,

@@ -1,14 +1,25 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit, expectPageKind} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_101 — returns a field error and cursor", async ({page, host}) => {
+const out = (page, name) => page.locator(`#gg-dynpro-control-n-${name}`);
+
+test("ZCL_GG_EX_101 — SET CURSOR puts the cursor on the empty field", async ({page, host}) => {
   await openExample(page, host, 101);
-  await dispatch(page, {
-    action: "SUBMIT",
-    ucomm: "VALIDATE",
-    values: [{name: "P_GOOD", value: "valid sibling"}, {name: "P_BAD", value: ""}],
-  });
-  await expect(page.locator('[data-screen="0100"]')).toHaveAttribute("data-cursor-field", "P_BAD");
-  await expect(page.getByRole("alert")).toContainText("P_BAD is invalid");
-  await expect(page.locator('[name="P_BAD"]')).toHaveAttribute("autofocus", "");
+  await expect(page.locator('[data-screen="0100"]')).toHaveAttribute("data-cursor-field", "GV_CITY");
+  await expect(page.locator('[name="GV_CITY"]')).toBeFocused();
 });
 
+test("ZCL_GG_EX_101 — an error in a FIELD module keeps only that field open", async ({page, host}) => {
+  await openExample(page, host, 101);
+  await page.locator(".wb-toolbar").getByRole("button", {name: "Validate"}).click();
+  await page.waitForLoadState("load");
+  await expect(page.getByRole("alert")).toContainText("Enter a city");
+  await expect(page.locator('[name="GV_CITY"]')).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator('[name="GV_CITY"]')).toBeEditable();
+  await expect(page.locator('[name="GV_NAME"]')).not.toBeEditable();
+
+  await page.locator('[name="GV_CITY"]').fill("Paris");
+  await page.locator(".wb-toolbar").getByRole("button", {name: "Validate"}).click();
+  await page.waitForLoadState("load");
+  await expect(out(page, "GV_STATE")).toHaveText("Ada lives in Paris");
+  await expect(page.locator('[name="GV_NAME"]')).toBeEditable();
+});

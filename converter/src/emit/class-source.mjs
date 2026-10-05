@@ -1239,7 +1239,7 @@ function resumeMethod(ir) {
       lowered = removePromotedDeclarations(ir, lowerStatements(tail, context).map((item) => item.text));
       lowered = [...globalFieldSymbolDeclarations(ir, tail), ...lowered];
     }
-    if (lowered.length === 0) lowered.push("RETURN.");
+    if (!lowered.some((line) => String(line).trim() && !/^\s*\*/.test(line))) lowered.push("RETURN.");
     cases.push(`WHEN '${id}'.`, ...lowered);
   }
   const body = ["CASE is_resume-continuation-id.", ...(cases.length ? cases : ["WHEN OTHERS.", "RETURN."]), ...(cases.length ? ["WHEN OTHERS.", "RETURN."] : []), "ENDCASE."];
@@ -1480,7 +1480,9 @@ function dynproTabDefinitions(screen, flowLogic) {
             line: element.line,
             column: element.column,
             control: dynproControl(element),
-            text: element.name,
+            // A pushbutton tab has its own text; a template tab shows the
+            // value of the field it names.
+            text: element.kind === "pushbutton" && element.text ? element.text : element.name,
             ucomm: String(element.ucomm).toUpperCase(),
             subscreen: area?.subscreen,
           };
@@ -1544,7 +1546,9 @@ function dynproTableDefinitions(screen) {
     return {
       name,
       rowPrefix: String(children.find((element) => element.name?.includes("-"))?.name ?? "GS_ROW").split("-")[0].toUpperCase(),
-      tableVariable: `GT_${name.replace(/^TC_/, "")}`,
+      // The internal table is the one PBO loops over WITH CONTROL.
+      tableVariable: ((screen.flowLogic?.steps ?? []).find((step) => step.kind === "table-loop-begin"
+        && step.phase === "pbo" && step.tableControl === name)?.table ?? `GT_${name.replace(/^TC_/, "")}`).toLowerCase(),
       control: dynproControl(container),
       visibleRows: Math.max(1, Number(container.height ?? container.position?.height ?? 1) - 1),
       selectionMode: String(attributes.tcSelLns ?? attributes.tcSelCls ?? "NONE").toUpperCase(),
@@ -1559,33 +1563,159 @@ function dynproTableBindings(metadata) {
   return (metadata?.screens ?? []).flatMap((screen) => dynproTableDefinitions(screen));
 }
 
+// The CONTROLS ... TYPE TABLEVIEW structures of the program; the host reads
+// and changes their TOP_LINE and LINES like screen fields.
+function tableViews(ir) {
+  return (ir.statements ?? [])
+    .filter((statement) => statement.kind === "Controls")
+    .map((statement) => /^CONTROLS\s+([A-Z][A-Z0-9_]*)\s+TYPE\s+TABLEVIEW\b/i.exec(statement.text ?? "")?.[1])
+    .filter(Boolean)
+    .map((name) => name.toUpperCase());
+}
+
+function tableViewHydrate(views) {
+  return views.flatMap((view) => [
+    ...["TOP_LINE", "LINES"].flatMap((field) => [
+      `IF line_exists( it_values[ name = '${view}-${field}' ] ).`,
+      `  ${view.toLowerCase()}-${field.toLowerCase()} = CONV #( it_values[ name = '${view}-${field}' ]-value ).`,
+      "ENDIF.",
+    ]),
+    // The runtime shows a table control from its first line.
+    `IF ${view.toLowerCase()}-top_line = 0.`,
+    `  ${view.toLowerCase()}-top_line = 1.`,
+    "ENDIF.",
+  ]);
+}
+
+function tableViewFlush(views) {
+  return views.flatMap((view) => ["TOP_LINE", "LINES"].flatMap((field) => [
+    `IF line_exists( ct_values[ name = '${view}-${field}' ] ).`,
+    `  ct_values[ name = '${view}-${field}' ]-value = CONV string( ${view.toLowerCase()}-${field.toLowerCase()} ).`,
+    "ELSE.",
+    `  INSERT VALUE #( name = '${view}-${field}' value = CONV string( ${view.toLowerCase()}-${field.toLowerCase()} ) ) INTO TABLE ct_values.`,
+    "ENDIF.",
+  ]));
+}
+
+// A module that ends with CALL SCREEN, LEAVE or an error message unwinds with
+// zcx_gg_control_flow. What it changed before is still the program's data, so
+// the values are written back on that way out too.
+function keptOnUnwind(dispatchLines, flushLines) {
+  if (!dispatchLines.length || !flushLines.length) return [...dispatchLines, ...flushLines];
+  // CATCH and RAISE again rather than CLEANUP, which the transpiler ignores.
+  // The values are written once, after ENDTRY, on both ways out.
+  return [
+    "DATA lx_unwind TYPE REF TO zcx_gg_control_flow.",
+    "TRY.", ...dispatchLines, "CATCH zcx_gg_control_flow INTO lx_unwind.", "ENDTRY.",
+    ...flushLines,
+    "IF lx_unwind IS BOUND.", "RAISE EXCEPTION lx_unwind.", "ENDIF.",
+  ];
+}
+
+// The modules of all screens share one method; their DATA is declared at its
+// top, as an ABAP declaration does not depend on where it stands. A structure
+// declared with BEGIN OF keeps the body as it is.
+function hoistDeclarations(body) {
+  const lines = body.flatMap((line) => String(line).split("\n"));
+  if (lines.some((line) => /^\s*(?:DATA|TYPES|CONSTANTS)\b.*\b(?:BEGIN|END)\s+OF\b/i.test(line))) return body;
+  const declarations = [];
+  const rest = [];
+  for (const line of lines) {
+    if (/^\s*(?:DATA|FIELD-SYMBOLS|CONSTANTS)\s+[^\s(:]+\s.*\.\s*$/i.test(line)) {
+      if (!declarations.includes(line.trim())) declarations.push(line.trim());
+    } else {
+      rest.push(line);
+    }
+  }
+  return [...declarations, ...rest];
+}
+
 function dynproTableHydrate(bindings) {
   const lines = [];
   for (const [tableIndex, table] of bindings.entries()) {
-    const rowSymbol = `<ls_${table.name.toLowerCase()}_hydrate_row>`;
-    const rowIndex = `lv_${table.name.toLowerCase()}_hydrate_row_index_${tableIndex + 1}`;
+    // Named by the table's position: a name built from the table control's
+    // name can pass the 30 characters ABAP allows.
+    const rowSymbol = `<ls_table${tableIndex + 1}_hydrate_row>`;
+    const rowIndex = `lv_table${tableIndex + 1}_hydrate_row`;
     lines.push(`LOOP AT ${table.tableVariable} ASSIGNING FIELD-SYMBOL(${rowSymbol}).`);
     lines.push(`  DATA(${rowIndex}) = sy-tabix.`);
     for (const column of table.columns) {
-      lines.push(`  IF line_exists( ct_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ] ).`);
-      lines.push(`    ${rowSymbol}-${column.name.toLowerCase()} = CONV #( ct_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ]-value ).`);
+      lines.push(`  IF line_exists( it_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ] ).`);
+      lines.push(`    ${rowSymbol}-${column.name.toLowerCase()} = CONV #( it_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ]-value ).`);
       lines.push("  ENDIF.");
     }
     lines.push("ENDLOOP.");
-    lines.push(`IF is_context-table_control = '${table.name}' AND is_context-row > 0.`);
-    lines.push(`  READ TABLE ${table.tableVariable} INTO ${table.rowPrefix.toLowerCase()} INDEX is_context-row.`);
-    lines.push("ELSEIF is_context-row = 0.");
-    lines.push(`  CLEAR ${table.rowPrefix.toLowerCase()}.`);
-    lines.push("ENDIF.");
   }
   return lines;
+}
+
+// The table line a module works on: its row of the table control inside the
+// loop, none outside it.
+function dynproTableCurrentRow(bindings) {
+  return bindings.flatMap((table) => [
+    `IF is_context-table_control = '${table.name}' AND is_context-row > 0.`,
+    `  ${table.name.toLowerCase()}-current_line = is_context-row.`,
+    `  READ TABLE ${table.tableVariable} INTO ${table.rowPrefix.toLowerCase()} INDEX is_context-row.`,
+    "ELSEIF is_context-row = 0.",
+    `  CLEAR ${table.rowPrefix.toLowerCase()}.`,
+    "ENDIF.",
+  ]);
+}
+
+// Table controls and their TABLEVIEW structures exchange values with the
+// screen in two methods of their own, which every module call shares.
+function dynproExchangeDefinitions(ir, metadata) {
+  if (!metadata || !(dynproTableBindings(metadata).length || tableViews(ir).length)) return [];
+  return [
+    "METHODS table_values_in\n  IMPORTING\n    it_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
+    "METHODS table_values_out\n  CHANGING\n    ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
+  ];
+}
+
+// The PBO and PAI modules of all screens, one method each; the interface
+// methods around them exchange the values with the screen.
+function dynproModuleDefinitions(ir) {
+  const context = "  IMPORTING\n    is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context\n    io_session TYPE REF TO zif_gg_session_v1\n  CHANGING\n    ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values";
+  return [
+    ...(ir.modules.some((item) => item.direction === "OUTPUT")
+      ? [`METHODS output_modules\n${context}\n    ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.`] : []),
+    ...(ir.modules.some((item) => item.direction === "INPUT")
+      ? [`METHODS input_modules\n${context}.`] : []),
+  ];
+}
+
+function moduleCall(name, withStates) {
+  return [
+    `${name}(`,
+    "  EXPORTING",
+    "    is_context = is_context",
+    "    io_session = io_session",
+    "  CHANGING",
+    `    ct_values  = ct_values${withStates ? "" : " )."}`,
+    ...(withStates ? ["    ct_states  = ct_states )."] : []),
+  ].join("\n");
+}
+
+export function dynproPrivateDefinitions(ir, metadata) {
+  if (!metadata) return [];
+  return [...dynproModuleDefinitions(ir), ...dynproExchangeDefinitions(ir, metadata)];
+}
+
+function dynproExchangeMethods(ir, metadata) {
+  if (!dynproExchangeDefinitions(ir, metadata).length) return [];
+  const bindings = dynproTableBindings(metadata);
+  const views = tableViews(ir);
+  return [
+    method("table_values_in", [...dynproTableHydrate(bindings), ...tableViewHydrate(views)]),
+    method("table_values_out", [...dynproTableFlush(bindings), ...tableViewFlush(views)]),
+  ];
 }
 
 function dynproTableFlush(bindings) {
   const lines = [];
   for (const [tableIndex, table] of bindings.entries()) {
-    const rowSymbol = `<ls_${table.name.toLowerCase()}_flush_row>`;
-    const rowIndex = `lv_${table.name.toLowerCase()}_flush_row_index_${tableIndex + 1}`;
+    const rowSymbol = `<ls_table${tableIndex + 1}_flush_row>`;
+    const rowIndex = `lv_table${tableIndex + 1}_flush_row`;
     lines.push(`DELETE ct_values WHERE container = '${table.name}'.`);
     lines.push(`LOOP AT ${table.tableVariable} ASSIGNING FIELD-SYMBOL(${rowSymbol}).`);
     lines.push(`  DATA(${rowIndex}) = sy-tabix.`);
@@ -1763,9 +1893,12 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
         const exitCommand = String(element.pushType ?? element.attributes?.pushFtype ?? "").toUpperCase() === "E" ? " exit_command = abap_true" : "";
         buildScreens.push("io_builder->add_pushbutton( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " ucomm = '" + String(element.ucomm ?? "").toUpperCase() + "'" + exitCommand + " ) ).");
       } else if (element.kind === "checkbox") {
-        buildScreens.push("io_builder->add_checkbox( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " ) ).");
+        // A checkbox or radio button with a function code triggers PAI when clicked.
+        const ucomm = element.ucomm ? ` ucomm = '${String(element.ucomm).toUpperCase()}'` : "";
+        buildScreens.push("io_builder->add_checkbox( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + ucomm + " ) ).");
       } else if (element.kind === "radio") {
-        buildScreens.push("io_builder->add_radiobutton( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " group = '" + radioGroup(element) + "' ) ).");
+        const ucomm = element.ucomm ? ` ucomm = '${String(element.ucomm).toUpperCase()}'` : "";
+        buildScreens.push("io_builder->add_radiobutton( VALUE #( control = " + control + " text = " + literal(element.text ?? "") + " group = '" + radioGroup(element) + "'" + ucomm + " ) ).");
       }
     }
     buildScreens.push("io_builder->end_screen( ).");
@@ -1812,7 +1945,12 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
         if (begin === "begin_value_request" || begin === "begin_help_request") {
           buildFlow.push(`io_builder->${begin}( '${String(step.field ?? "").toUpperCase()}' ).`);
         } else if (begin) buildFlow.push(`io_builder->${begin}( ).`);
+      } else if (step.kind === "field") {
+        buildFlow.push(`io_builder->add_field( '${String(step.field ?? "").toUpperCase()}' ).`);
       } else if (step.kind === "module" || step.kind === "field-module") {
+        if (step.kind === "field-module" && step.field && (openPhase === "pai" || openPhase === "pbo")) {
+          buildFlow.push(`io_builder->add_field( '${String(step.field).toUpperCase()}' ).`);
+        }
         addModule(openPhase, step);
       } else if (step.kind === "chain-begin") {
         buildFlow.push("io_builder->begin_chain( ).");
@@ -1896,17 +2034,12 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     ]);
   const stateHydrate = dynproStateHydrate(ir);
   const stateFlush = dynproStateFlush(ir);
-  const tableHydrate = dynproTableHydrate(tableBindings);
-  const tableFlush = dynproTableFlush(tableBindings);
-  const tableContext = tableBindings.length ? [
-    "IF is_context-row > 0.",
-    ...tableBindings.map((table) => [
-      `  IF is_context-table_control = '${table.name}'.`,
-      `    ${table.name.toLowerCase()}-current_line = is_context-row.`,
-      "  ENDIF.",
-    ]).flat(),
-    "ENDIF.",
-  ] : [];
+  const exchange = dynproExchangeDefinitions(ir, metadata).length > 0;
+  const outputModules = dispatch("OUTPUT");
+  const inputModules = dispatch("INPUT");
+  const tableHydrate = exchange ? ["table_values_in( ct_values )."] : [];
+  const tableFlush = exchange ? ["table_values_out( CHANGING ct_values = ct_values )."] : [];
+  const tableContext = dynproTableCurrentRow(tableBindings);
   const requestDispatch = (phase) => {
     const requestModules = flowLogic
       .flatMap((screen) => screen.steps ?? [])
@@ -1921,7 +2054,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     if (!modules.length) return lines;
     lines.push(
       ...dynproStateHydrate(ir),
-      ...dynproTableHydrate(tableBindings),
+      ...tableHydrate,
       ...tableContext,
       "CASE is_context-module.",
     );
@@ -1942,7 +2075,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
       "RETURN.",
       "ENDCASE.",
       ...dynproStateFlush(ir),
-      ...dynproTableFlush(tableBindings),
+      ...tableFlush,
     );
     return lines;
   };
@@ -1961,13 +2094,21 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
     method(interfaceMethod("build_screens"), buildScreens),
     method(interfaceMethod("build_flow_logic"), buildFlow),
     method(interfaceMethod("initialization"), [...stateFlush, ...tableFlush]),
-    method(interfaceMethod("process_output_module"), [...dynproStatesSetter(ir), ...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...cursorLines, ...dispatch("OUTPUT"), ...stateFlush, ...tableFlush]),
+    method(interfaceMethod("process_output_module"), hoistDeclarations([...dynproStatesSetter(ir), ...stateHydrate, ...tableHydrate, ...tableContext, ...statusLines, ...cursorLines, ...keptOnUnwind(outputModules.length
+      ? [moduleCall("output_modules", true)]
+      : [], [...stateFlush, ...tableFlush])])),
     // A screen without PAI modules has nothing to read or write back.
-    method(interfaceMethod("process_input_module"), ir.modules.some((item) => item.direction === "INPUT")
-      ? [...dynproStateHydrate(ir, "ct_values", screenInputField(metadata)), ...tableHydrate, ...tableContext, ...dispatch("INPUT"), ...stateFlush, ...tableFlush]
+    method(interfaceMethod("process_input_module"), inputModules.length
+      ? hoistDeclarations([...dynproStateHydrate(ir, "ct_values", screenInputField(metadata)), ...tableHydrate, ...tableContext, ...keptOnUnwind(
+        [moduleCall("input_modules", false)], [...stateFlush, ...tableFlush])])
       : ["RETURN."]),
-    method(interfaceMethod("process_on_value_request"), valueRequest),
-    method(interfaceMethod("process_on_help_request"), helpRequest),
+    method(interfaceMethod("process_on_value_request"), hoistDeclarations(valueRequest)),
+    method(interfaceMethod("process_on_help_request"), hoistDeclarations(helpRequest)),
+    ...(presentationOnly ? [] : [
+      ...(outputModules.length ? [method("output_modules", hoistDeclarations(outputModules))] : []),
+      ...(inputModules.length ? [method("input_modules", hoistDeclarations(inputModules))] : []),
+      ...dynproExchangeMethods(ir, metadata),
+    ]),
   ];
   if (!presentationOnly) return methods;
   return [
@@ -2263,7 +2404,11 @@ export function emitClassSource(ir, options) {
   prepareLocalClassNames(ir, options);
   const className = ir.targetClassName.toLowerCase();
   const interfaces = interfaceOrder(ir);
-  const members = dataMembers(ir);
+  const members = [
+    ...dataMembers(ir),
+    ...dynproPrivateDefinitions(ir, ir.programKind === "module-pool" ? ir.dynproMetadata
+      : ir.screenMetadata?.screens?.length ? ir.screenMetadata : undefined),
+  ];
   const friends = (ir.localClasses ?? []).map((localClass) => localClass.generatedName.toLowerCase());
   const friendAddition = friends.length ? ` FRIENDS ${friends.join(" ")}` : "";
   const definition = [`CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC${friendAddition}.`, "", "  PUBLIC SECTION.", ...interfaces.map((name) => `    INTERFACES ${name}.`), ""];

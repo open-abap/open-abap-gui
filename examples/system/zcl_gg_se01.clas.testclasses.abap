@@ -52,7 +52,8 @@ CLASS ltcl_gg_se01 IMPLEMENTATION.
   METHOD switches_to_the_tab_screen.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_se01( )
-      iv_ucomm   = 'PIECE' ).
+      iv_ucomm   = 'PIECE'
+      it_values  = VALUE #( ( name = 'P_REQUEST' value = 'DEVK900001' ) ) ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-screen
                                         exp = '0120' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'K9nnnnn convention' ) ).
@@ -155,7 +156,8 @@ CLASS ltcl_gg_se01 IMPLEMENTATION.
   METHOD rejects_action_log.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_se01( )
-      iv_ucomm   = 'ACTION_LOG' ).
+      iv_ucomm   = 'ACTION_LOG'
+      it_values  = VALUE #( ( name = 'P_REQUEST' value = 'DEVK900001' ) ) ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-screen
                                         exp = '0100' ).
     cl_abap_unit_assert=>assert_equals(

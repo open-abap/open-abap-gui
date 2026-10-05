@@ -3,9 +3,11 @@ import {test, expect, openExample, submit, dispatch, expectPageKind} from "../fi
 test("ZCL_GG_EX_092 — pages through server-owned list data", async ({page, host}) => {
   await openExample(page, host, 92);
   await expect(page.locator(".gg-list-status")).toHaveText("PAGE 1");
-  await submit(page, "Next");
+  await page.getByRole("button", {name: "Next", exact: true}).click();
+  await page.waitForLoadState("load");
   await expect(page.locator(".gg-list-status")).toHaveText("PAGE 2");
   await expect(page.locator(".gg-list")).toContainText("Flight 4");
-  await submit(page, "Last");
+  await page.getByRole("button", {name: "Last", exact: true}).click();
+  await page.waitForLoadState("load");
   await expect(page.locator(".gg-list-status")).toHaveText("PAGE 4");
 });

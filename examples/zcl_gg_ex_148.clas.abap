@@ -24,6 +24,19 @@ CLASS zcl_gg_ex_148 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_148_
     METHODS form_render
       IMPORTING
         io_session TYPE REF TO zif_gg_session_v1.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -153,6 +166,7 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_CHART_TYPE' ] ).
       gv_chart_type = CONV #( ct_values[ name = 'GV_CHART_TYPE' ]-value ).
     ENDIF.
@@ -162,17 +176,16 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
       gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'STATUS_0100'.
-        IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_chart EXPORTING parent = go_container.
-          go_chart->set_data( data = zcl_gg_ex_148_h1=>data_xml( io_owner = me io_session = io_session ) ).
-        ENDIF.
-        form_render( io_session = io_session ).
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        output_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_CHART_TYPE' ] ).
       ct_values[ name = 'GV_CHART_TYPE' ]-value = gv_chart_type.
     ELSE.
@@ -187,25 +200,26 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
       ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
     ELSE.
       INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'USER_COMMAND_0100'.
-        CASE gv_ok_code.
-          WHEN 'BARS'.
-            gv_chart_type = 'Bars'.
-          WHEN 'COLUMNS'.
-            gv_chart_type = 'Columns'.
-        ENDCASE.
-        CLEAR gv_ok_code.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_CHART_TYPE' ] ).
       ct_values[ name = 'GV_CHART_TYPE' ]-value = gv_chart_type.
     ELSE.
@@ -220,6 +234,9 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
       ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
     ELSE.
       INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
@@ -237,6 +254,35 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD output_modules.
+    CASE is_context-module.
+      WHEN 'STATUS_0100'.
+        IF go_container IS INITIAL.
+          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_chart EXPORTING parent = go_container.
+          go_chart->set_data( data = zcl_gg_ex_148_h1=>data_xml( io_owner = me io_session = io_session ) ).
+        ENDIF.
+        form_render( io_session = io_session ).
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD input_modules.
+    CASE is_context-module.
+      WHEN 'USER_COMMAND_0100'.
+        CASE gv_ok_code.
+          WHEN 'BARS'.
+            gv_chart_type = 'Bars'.
+          WHEN 'COLUMNS'.
+            gv_chart_type = 'Columns'.
+        ENDCASE.
+        CLEAR gv_ok_code.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+  ENDMETHOD.
+
   METHOD zif_gg_resumable_v1~resume.
 * Continuation states are explicit so unsupported suspension semantics remain visible.
     CASE is_resume-continuation-id.
@@ -248,7 +294,7 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD form_render.
-    go_chart->set_customizing( data = |<?xml version="1.0" encoding="utf-8"?><SAPChartCustomizing version="1.1">| && |<GlobalSettings><Defaults><ChartType>{ gv_chart_type }</ChartType></Defaults></GlobalSettings>| && |<Elements><ChartElements><Title><Caption>Occupied seats per airline</Caption></Title>| && |</ChartElements></Elements></SAPChartCustomizing>| ).
+    go_chart->set_customizing( data = |<?xml version="1.0" encoding="utf-8"?><SAPChartCustomizing version="1.1"><GlobalSettings><Defaults><ChartType>{ gv_chart_type }</ChartType></Defaults></GlobalSettings><Elements><ChartElements><Title><Caption>Occupied seats per airline</Caption></Title></ChartElements></Elements></SAPChartCustomizing>| ).
     go_chart->render( ).
     gv_state = |Chart type { gv_chart_type }|.
   ENDMETHOD.

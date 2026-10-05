@@ -24,6 +24,12 @@ CLASS zcl_gg_ex_156 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA gt_connections TYPE STANDARD TABLE OF ty_connection WITH DEFAULT KEY.
     DATA gs_connection TYPE ty_connection.
     DATA gv_result TYPE c LENGTH 60.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -193,9 +199,59 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
+    IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_ANSWER' ] ).
+      ct_values[ name = 'GV_ANSWER' ]-value = CONV string( gv_answer ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_ANSWER' value = CONV string( gv_answer ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_RETURNCODE' ] ).
+      ct_values[ name = 'GV_RETURNCODE' ]-value = CONV string( gv_returncode ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_RETURNCODE' value = CONV string( gv_returncode ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
+      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_screen_provider_v1~process_on_value_request.
+    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    ct_values = it_values.
+    rt_values = io_session->get_compatibility( )->get_value_help_values( ).
+  ENDMETHOD.
+
+  METHOD zif_gg_screen_provider_v1~process_on_help_request.
+    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    ct_values = it_values.
+    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
+      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD input_modules.
     CASE is_context-module.
       WHEN 'USER_COMMAND_0100'.
         CASE gv_ok_code.
@@ -239,40 +295,6 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
       WHEN OTHERS.
         RETURN.
     ENDCASE.
-    IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_ANSWER' ] ).
-      ct_values[ name = 'GV_ANSWER' ]-value = CONV string( gv_answer ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_ANSWER' value = CONV string( gv_answer ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_RETURNCODE' ] ).
-      ct_values[ name = 'GV_RETURNCODE' ]-value = CONV string( gv_returncode ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_RETURNCODE' value = CONV string( gv_returncode ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_gg_screen_provider_v1~process_on_value_request.
-    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    ct_values = it_values.
-    rt_values = io_session->get_compatibility( )->get_value_help_values( ).
-  ENDMETHOD.
-
-  METHOD zif_gg_screen_provider_v1~process_on_help_request.
-    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_resumable_v1~resume.

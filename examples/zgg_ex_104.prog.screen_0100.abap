@@ -1,0 +1,10 @@
+PROCESS BEFORE OUTPUT.
+  MODULE status_0100.
+
+PROCESS AFTER INPUT.
+  MODULE exit_0100 AT EXIT-COMMAND.
+  CHAIN.
+    FIELD: gv_from, gv_to.
+    MODULE check_route ON CHAIN-REQUEST.
+  ENDCHAIN.
+  MODULE user_command_0100.

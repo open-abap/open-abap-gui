@@ -304,19 +304,38 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~f4_table_value_request.
+* Each line shows all its columns; choosing it returns the column RETFIELD
+* names, as F4IF_INT_TABLE_VALUE_REQUEST does.
+    FIELD-SYMBOLS <lv_component> TYPE any.
+    DATA lv_text TYPE string.
+
     CLEAR mt_value_help_values.
     LOOP AT ct_value_tab ASSIGNING FIELD-SYMBOL(<lv_value>).
+      DATA(lv_row) = sy-tabix.
       DATA(lv_value) = ``.
-      ASSIGN COMPONENT 'FIELDVAL' OF STRUCTURE <lv_value> TO FIELD-SYMBOL(<lv_fieldval>).
-      IF sy-subrc = 0.
-        lv_value = CONV string( <lv_fieldval> ).
+      CLEAR lv_text.
+      IF cl_abap_typedescr=>describe_by_data( <lv_value> )->kind = cl_abap_typedescr=>kind_struct.
+        ASSIGN COMPONENT COND string( WHEN is_request-retfield IS INITIAL THEN 'FIELDVAL' ELSE to_upper( is_request-retfield ) )
+          OF STRUCTURE <lv_value> TO <lv_component>.
+        IF sy-subrc = 0.
+          lv_value = condense( CONV string( <lv_component> ) ).
+        ENDIF.
+        DO.
+          ASSIGN COMPONENT sy-index OF STRUCTURE <lv_value> TO <lv_component>.
+          IF sy-subrc <> 0.
+            EXIT.
+          ENDIF.
+          lv_text = condense( |{ lv_text } { condense( CONV string( <lv_component> ) ) }| ).
+        ENDDO.
       ELSE.
         lv_value = CONV string( <lv_value> ).
       ENDIF.
       IF lv_value IS NOT INITIAL.
-        APPEND VALUE #(
+        INSERT VALUE #(
           name  = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-dynprofield )
-          value = lv_value ) TO mt_value_help_values.
+          row   = lv_row
+          value = lv_value
+          text  = COND #( WHEN lv_text <> lv_value THEN lv_text ) ) INTO TABLE mt_value_help_values.
       ENDIF.
     ENDLOOP.
     sy-subrc = 0.

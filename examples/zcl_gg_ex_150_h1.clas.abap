@@ -57,7 +57,7 @@ CLASS zcl_gg_ex_150_h1 IMPLEMENTATION.
     io_owner->go_grid->set_table_for_first_display( CHANGING it_outtab = io_owner->gt_flights it_fieldcatalog = io_owner->gt_fieldcat ).
     CREATE OBJECT io_owner->go_chart TYPE cl_gui_chart_engine EXPORTING parent = io_owner->go_splitter->get_container( row = 1 column = 2 ).
     io_owner->go_chart->set_data( data = chart_xml( io_owner = io_owner io_session = io_session ) ).
-    io_owner->go_chart->set_customizing( data = |<SAPChartCustomizing version="1.1"><GlobalSettings><Defaults>| && |<ChartType>Columns</ChartType></Defaults></GlobalSettings><Elements>| && |<ChartElements><Title><Caption>Load factor in %</Caption></Title>| && |</ChartElements></Elements></SAPChartCustomizing>| ).
+    io_owner->go_chart->set_customizing( data = |<SAPChartCustomizing version="1.1"><GlobalSettings><Defaults><ChartType>Columns</ChartType></Defaults></GlobalSettings><Elements><ChartElements><Title><Caption>Load factor in %</Caption></Title></ChartElements></Elements></SAPChartCustomizing>| ).
     io_owner->go_chart->render( ).
   ENDMETHOD.
 

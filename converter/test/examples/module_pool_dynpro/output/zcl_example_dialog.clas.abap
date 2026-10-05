@@ -15,6 +15,19 @@ CLASS zcl_example_dialog DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     DATA gv_name TYPE c LENGTH 20.
     DATA gv_greeting TYPE c LENGTH 40.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -62,6 +75,7 @@ CLASS zcl_example_dialog IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
       gv_name = CONV #( ct_values[ name = 'GV_NAME' ]-value ).
     ENDIF.
@@ -74,13 +88,16 @@ CLASS zcl_example_dialog IMPLEMENTATION.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_cursor( VALUE #( field = 'GV_NAME' ) ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'GREET' ) ( 'BACK' ) ) ) ).
-        io_session->get_dialog( )->set_title( 'Greeting' ).
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        output_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
       ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
     ELSE.
@@ -90,24 +107,26 @@ CLASS zcl_example_dialog IMPLEMENTATION.
       ct_values[ name = 'GV_GREETING' ]-value = CONV string( gv_greeting ).
     ELSE.
       INSERT VALUE #( name = 'GV_GREETING' value = CONV string( gv_greeting ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
       gv_name = CONV #( ct_values[ name = 'GV_NAME' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'USER_COMMAND_0100'.
-        CASE is_context-ucomm.
-          WHEN 'GREET'.
-            gv_greeting = |Hello { gv_name }|.
-          WHEN 'BACK'.
-            io_session->get_dialog( )->leave_to_screen( '0000' ).
-        ENDCASE.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
       ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
     ELSE.
@@ -117,6 +136,9 @@ CLASS zcl_example_dialog IMPLEMENTATION.
       ct_values[ name = 'GV_GREETING' ]-value = CONV string( gv_greeting ).
     ELSE.
       INSERT VALUE #( name = 'GV_GREETING' value = CONV string( gv_greeting ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
@@ -132,6 +154,30 @@ CLASS zcl_example_dialog IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
       rv_text = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD output_modules.
+    CASE is_context-module.
+      WHEN 'STATUS_0100'.
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'GREET' ) ( 'BACK' ) ) ) ).
+        io_session->get_dialog( )->set_title( 'Greeting' ).
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD input_modules.
+    CASE is_context-module.
+      WHEN 'USER_COMMAND_0100'.
+        CASE is_context-ucomm.
+          WHEN 'GREET'.
+            gv_greeting = |Hello { gv_name }|.
+          WHEN 'BACK'.
+            io_session->get_dialog( )->leave_to_screen( '0000' ).
+        ENDCASE.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.

@@ -59,6 +59,7 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
              icon      TYPE string,
              modifier  TYPE string,
              separator TYPE abap_bool,
+             key       TYPE i,
            END OF ty_command.
     TYPES ty_commands TYPE STANDARD TABLE OF ty_command WITH DEFAULT KEY.
 
@@ -68,13 +69,14 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS render_commandbar
       IMPORTING
-        iv_runtime     TYPE abap_bool
-        iv_error       TYPE string
-        iv_session_id  TYPE string
-        iv_page_id     TYPE string
-        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
+        iv_runtime      TYPE abap_bool
+        iv_error        TYPE string
+        iv_session_id   TYPE string
+        iv_page_id      TYPE string
+        is_status       TYPE zif_gg_session_types_v1=>ty_gui_status
+        iv_content_form TYPE string DEFAULT form_dispatch
       RETURNING
-        VALUE(rv_html) TYPE string.
+        VALUE(rv_html)  TYPE string.
 
     CLASS-METHODS render_iconbar
       IMPORTING
@@ -200,11 +202,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu" data-toolbar-scope="shell-menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><a class="wb-menu" role="menuitem" href="/converter/preview">Tools</a><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
-      iv_runtime    = iv_runtime
-      iv_error      = iv_error
-      iv_session_id = iv_session_id
-      iv_page_id    = iv_page_id
-      is_status     = is_status ).
+      iv_runtime      = iv_runtime
+      iv_error        = iv_error
+      iv_session_id   = iv_session_id
+      iv_page_id      = iv_page_id
+      is_status       = is_status
+      iv_content_form = lv_content_form ).
     rv_html = rv_html && |<header class="wb-appbar"><h1 id="wb-page-title" class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       |</h1></header>| &&
@@ -250,7 +253,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         lv_state = COND string( WHEN lv_enabled = abap_true THEN '' ELSE ' disabled' ).
         lv_command = COND string(
           WHEN iv_runtime = abap_true AND lv_enabled = abap_true
-          THEN | form="gg-dynpro-form" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_item-ucomm ) ) }"|
+          THEN | form="gg-dynpro-form" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_item-ucomm ) ) }"|
           ELSE '' ).
         lv_items = lv_items &&
           |<li role="none"><button class="wb-menu-action" type="submit"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( ls_item-text ) }"{ lv_state }>{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.
@@ -314,7 +317,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       lv_type = COND #( WHEN iv_runtime = abap_true AND ls_icon-ucomm IS NOT INITIAL THEN `submit` ELSE `button` ).
       CLEAR lv_command.
       IF iv_runtime = abap_true AND lv_enabled = abap_true AND ls_icon-ucomm IS NOT INITIAL.
-        lv_command = | form="{ iv_content_form }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"|.
+        lv_command = | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"|.
       ENDIF.
       lv_buttons = lv_buttons &&
         |<button class="wb-toolbar-button" type="{ lv_type }"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" title="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" data-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"{ lv_state }>| &&
@@ -330,45 +333,56 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
   METHOD standard_commands.
     rt_commands = VALUE #(
       ( ucomm = zif_gg_session_types_v1=>command_save
+        key   = 11
         label = `Save`
         icon  = `device-floppy` )
       ( ucomm     = zif_gg_session_types_v1=>command_back
+        key       = 3
         label     = `Back`
         icon      = `arrow-back-up`
         modifier  = ` wb-command-button--back`
         separator = abap_true )
       ( ucomm    = zif_gg_session_types_v1=>command_exit
+        key      = 15
         label    = `Exit`
         icon     = `logout`
         modifier = ` wb-command-button--exit` )
       ( ucomm    = zif_gg_session_types_v1=>command_cancel
+        key      = 12
         label    = `Cancel`
         icon     = `circle-x`
         modifier = ` wb-command-button--cancel` )
       ( ucomm     = zif_gg_session_types_v1=>command_print
+        key       = 86
         label     = `Print`
         icon      = `printer`
         separator = abap_true )
       ( ucomm = zif_gg_session_types_v1=>command_find
+        key   = 71
         label = `Find`
         icon  = `search` )
       ( ucomm = zif_gg_session_types_v1=>command_find_next
+        key   = 84
         label = `Find next`
         icon  = `search-plus` )
       ( ucomm     = zif_gg_session_types_v1=>command_first_page
+        key       = 21
         label     = `First page`
         icon      = `arrow-bar-to-up`
         modifier  = ` wb-command-button--page`
         separator = abap_true )
       ( ucomm    = zif_gg_session_types_v1=>command_previous_page
+        key      = 22
         label    = `Previous page`
         icon     = `file-arrow-up`
         modifier = ` wb-command-button--page` )
       ( ucomm    = zif_gg_session_types_v1=>command_next_page
+        key      = 23
         label    = `Next page`
         icon     = `file-arrow-down`
         modifier = ` wb-command-button--page` )
       ( ucomm    = zif_gg_session_types_v1=>command_last_page
+        key      = 24
         label    = `Last page`
         icon     = `arrow-bar-to-down`
         modifier = ` wb-command-button--page` ) ).
@@ -398,18 +412,31 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     DATA lv_enabled  TYPE abap_bool.
     DATA lv_dispatch TYPE abap_bool.
     DATA lv_program_back TYPE abap_bool.
+    DATA lv_ucomm    TYPE zif_gg_session_types_v1=>ty_ucomm.
 
     lv_dispatch = iv_runtime.
+* As on SAP, each button of the system toolbar is a function key; it sends
+* the function code the status assigns to that key.
+    lv_ucomm = COND #( WHEN is_status-pf_actions IS INITIAL
+                       THEN zif_gg_session_types_v1=>command_back
+                       ELSE VALUE #( is_status-pf_actions[ number = 3 ]-ucomm OPTIONAL ) ).
     lv_program_back = xsdbool(
       iv_runtime = abap_true
-      AND line_exists( is_status-active_ucomm[ table_line = zif_gg_session_types_v1=>command_back ] )
-      AND NOT line_exists( is_status-excluded_ucomm[ table_line = zif_gg_session_types_v1=>command_back ] ) ).
+      AND line_exists( is_status-active_ucomm[ table_line = lv_ucomm ] )
+      AND NOT line_exists( is_status-excluded_ucomm[ table_line = lv_ucomm ] ) ).
     lt_commands = standard_commands( ).
     LOOP AT lt_commands INTO DATA(ls_command).
       IF ls_command-separator = abap_true.
         lv_buttons = lv_buttons && '<span class="wb-command-separator" aria-hidden="true"></span>'.
       ENDIF.
-      lv_enabled = is_command_enabled( iv_ucomm   = ls_command-ucomm
+* A status without function keys, like the standard list status, uses the
+* standard codes; one with keys leaves the keys it does not assign inactive.
+      lv_ucomm = COND #( WHEN is_status-pf_actions IS INITIAL
+                         THEN ls_command-ucomm
+                         ELSE VALUE #( is_status-pf_actions[ number = ls_command-key ]-ucomm OPTIONAL ) ).
+      lv_enabled = is_command_enabled( iv_ucomm   = COND #( WHEN ls_command-ucomm = zif_gg_session_types_v1=>command_back
+                                                            THEN ls_command-ucomm
+                                                            ELSE lv_ucomm )
                                        iv_runtime = iv_runtime
                                        is_status  = is_status ).
       lv_state = COND #( WHEN lv_enabled = abap_true THEN `` ELSE ` disabled` ).
@@ -418,16 +445,16 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         lv_label = COND #( WHEN lv_program_back = abap_true THEN `Back` WHEN iv_runtime = abap_true THEN `Return to workbench` ELSE ls_command-label ).
         IF lv_enabled = abap_true.
           IF lv_program_back = abap_true.
-            lv_command = | form="{ form_dispatch }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_command-ucomm ) ) }"|.
+            lv_command = | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( lv_ucomm ) ) }"|.
             lv_dispatch = abap_true.
           ELSE.
             lv_command = | form="{ form_workbench }"|.
           ENDIF.
         ENDIF.
       ELSE.
-        lv_label = COND #( WHEN iv_runtime = abap_true THEN `Global command` ELSE ls_command-label ).
+        lv_label = ls_command-label.
         IF lv_enabled = abap_true.
-          lv_command = | form="{ form_dispatch }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_command-ucomm ) ) }"|.
+          lv_command = | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( lv_ucomm ) ) }"|.
           lv_dispatch = abap_true.
         ENDIF.
       ENDIF.

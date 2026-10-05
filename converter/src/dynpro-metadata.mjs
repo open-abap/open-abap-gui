@@ -249,6 +249,26 @@ function moduleEntry(name, extras = {}) {
   };
 }
 
+// Flow logic statements end with a period and may span lines, like
+// LOOP AT itab ... WITH CONTROL tc followed by CURSOR on the next line.
+// Each statement keeps the line it starts on.
+function flowStatements(source) {
+  const statements = [];
+  let current;
+  for (const [index, line] of source.split(/\r?\n/).entries()) {
+    if (/^\*/.test(line)) continue;
+    const text = line.replace(/".*$/, "").trim();
+    if (text === "") continue;
+    current = current ? { line: current.line, text: `${current.text} ${text}` } : { line: index + 1, text };
+    if (text.endsWith(".")) {
+      statements.push(current);
+      current = undefined;
+    }
+  }
+  if (current) statements.push(current);
+  return statements;
+}
+
 function parseFlowLogic(source, filename, number) {
   const flow = {
     screen: number,
@@ -262,26 +282,23 @@ function parseFlowLogic(source, filename, number) {
   };
   let phase;
   let chainDepth = 0;
-  const lines = flow.source.split(/\r?\n/);
-  for (const [index, line] of lines.entries()) {
-    const raw = line.trim();
-    if (raw === "") continue;
+  for (const { line: lineNumber, text: raw } of flowStatements(flow.source)) {
     const process = /^PROCESS\s+(?:BEFORE\s+OUTPUT|AFTER\s+INPUT|ON\s+VALUE-REQUEST|ON\s+HELP-REQUEST)\s*\.?$/i.exec(raw);
     if (process) {
       const processName = process[0].replace(/^PROCESS\s+/i, "").replace(/\.$/, "").replace(/\s+/g, " ").toUpperCase();
       phase = processName === "BEFORE OUTPUT" ? "pbo"
         : processName === "AFTER INPUT" ? "pai"
           : processName === "ON VALUE-REQUEST" ? "pov" : "poh";
-      flow.steps.push({ kind: "process", phase, line: index + 1, source: raw });
+      flow.steps.push({ kind: "process", phase, line: lineNumber, source: raw });
       continue;
     }
     if (/^CHAIN\s*\.?$/i.test(raw)) {
       chainDepth += 1;
-      flow.steps.push({ kind: "chain-begin", phase, depth: chainDepth, line: index + 1, source: raw });
+      flow.steps.push({ kind: "chain-begin", phase, depth: chainDepth, line: lineNumber, source: raw });
       continue;
     }
     if (/^ENDCHAIN\s*\.?$/i.test(raw)) {
-      flow.steps.push({ kind: "chain-end", phase, depth: chainDepth, line: index + 1, source: raw });
+      flow.steps.push({ kind: "chain-end", phase, depth: chainDepth, line: lineNumber, source: raw });
       chainDepth = Math.max(0, chainDepth - 1);
       continue;
     }
@@ -293,24 +310,34 @@ function parseFlowLogic(source, filename, number) {
         area: subscreen[1].toUpperCase(),
         screen: subscreen[2] ? paddedScreen(subscreen[2]) : undefined,
         screenField: subscreen[3]?.toUpperCase(),
-        line: index + 1,
+        line: lineNumber,
         source: raw,
       });
       continue;
     }
-    const tableLoop = /^LOOP\s+AT\s+.+?(?:\s+WITH\s+CONTROL\s+([A-Z0-9_-]+))?\s*\.?$/i.exec(raw);
+    const tableLoop = /^LOOP\s+AT\s+([A-Z0-9_/]+)/i.exec(raw);
     if (tableLoop && phase && (phase === "pbo" || phase === "pai")) {
       flow.steps.push({
         kind: "table-loop-begin",
         phase,
-        tableControl: tableLoop[1]?.toUpperCase(),
-        line: index + 1,
+        table: tableLoop[1].toUpperCase(),
+        tableControl: /\bWITH\s+CONTROL\s+([A-Z0-9_]+)/i.exec(raw)?.[1]?.toUpperCase(),
+        line: lineNumber,
         source: raw,
       });
       continue;
     }
     if (/^ENDLOOP\s*\.?$/i.test(raw) && phase && (phase === "pbo" || phase === "pai")) {
-      flow.steps.push({ kind: "table-loop-end", phase, line: index + 1, source: raw });
+      flow.steps.push({ kind: "table-loop-end", phase, line: lineNumber, source: raw });
+      continue;
+    }
+    // FIELD f. and FIELD: f1, f2. name the fields a following MODULE (or the
+    // modules of their CHAIN) checks; an error message keeps them open.
+    const fieldsOnly = /^FIELD\s*:?\s+([^.]+?)\s*\.?$/i.exec(raw);
+    if (fieldsOnly && phase && !/\bMODULE\b/i.test(raw)) {
+      for (const name of fieldsOnly[1].split(/[\s,]+/).filter(Boolean)) {
+        flow.steps.push({ kind: "field", phase, field: name.toUpperCase(), chainDepth, line: lineNumber, source: raw });
+      }
       continue;
     }
     const field = /^FIELD\s+([^\s.]+)\s+MODULE\s+([^\s.]+)(.*)$/i.exec(raw);
@@ -320,7 +347,7 @@ function parseFlowLogic(source, filename, number) {
         chainDepth,
         onInput: /\bON\s+INPUT\b/i.test(field[3]),
         onRequest: /\bON\s+(?:CHAIN-)?REQUEST\b/i.test(field[3]),
-        line: index + 1,
+        line: lineNumber,
         source: raw,
       });
       if (phase === "pov" || phase === "poh") {
@@ -339,14 +366,14 @@ function parseFlowLogic(source, filename, number) {
         onInput: /\bON\s+INPUT\b/i.test(module[2]),
         onRequest: /\bON\s+(?:CHAIN-)?REQUEST\b/i.test(module[2]),
         chainDepth,
-        line: index + 1,
+        line: lineNumber,
         source: raw,
       });
       flow[phase].push(entry);
       flow.steps.push({ kind: "module", phase, ...entry });
       continue;
     }
-    flow.steps.push({ kind: "source", phase, chainDepth, line: index + 1, source: raw });
+    flow.steps.push({ kind: "source", phase, chainDepth, line: lineNumber, source: raw });
   }
   if (flow.pov.modules.length === 0) delete flow.pov;
   if (flow.poh.modules.length === 0) delete flow.poh;
@@ -471,6 +498,10 @@ function parseGuiStatus(values) {
     menu: menus.filter((item) => item.code === status.activeCode),
     buttons: buttons.filter((item) => item.functionKeyCode === status.pfKeyCode),
     pfKeys: pfKeys.filter((item) => item.code === status.pfKeyCode),
+    exitUcomm: functions
+      .filter((item) => String(item.type ?? "").toUpperCase() === "E"
+        && assignments.some((assignment) => assignment.status === status.name && assignment.function === item.code))
+      .map((item) => item.code),
     activePFKeys: pfKeys.filter((item) => item.code === status.pfKeyCode).map((item) => item.functionKey).filter((item) => item !== undefined),
     pfActions: pfKeys.filter((item) => item.code === status.pfKeyCode && item.functionCode).map((item) => ({
       number: item.functionKey,

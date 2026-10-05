@@ -20,6 +20,19 @@ CLASS zcl_gg_ex_132 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA gv_refreshes TYPE i.
     DATA gv_enabled TYPE abap_bool VALUE abap_true.
     DATA gv_state TYPE c LENGTH 60.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -153,6 +166,7 @@ CLASS zcl_gg_ex_132 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
@@ -165,19 +179,16 @@ CLASS zcl_gg_ex_132 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
       gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'STATUS_0100'.
-        IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_editor EXPORTING parent = go_container.
-          go_editor->set_toolbar_mode( cl_gui_textedit=>true ).
-          go_editor->set_statusbar_mode( cl_gui_textedit=>true ).
-        ENDIF.
-        go_editor->set_textstream( |Control refreshed { gv_refreshes } times| ).
-        go_editor->set_enable( gv_enabled ).
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        output_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
     ELSE.
@@ -197,27 +208,26 @@ CLASS zcl_gg_ex_132 IMPLEMENTATION.
       ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
     ELSE.
       INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'USER_COMMAND_0100'.
-        CASE gv_ok_code.
-          WHEN 'REFRESH'.
-            gv_refreshes = gv_refreshes + 1.
-            gv_state = |Refresh { gv_refreshes }|.
-          WHEN 'TOGGLE'.
-            gv_enabled = xsdbool( gv_enabled = abap_false ).
-            gv_state = COND #( WHEN gv_enabled = abap_true THEN 'Editor enabled' ELSE 'Editor disabled' ).
-        ENDCASE.
-        CLEAR gv_ok_code.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
     ELSE.
@@ -237,6 +247,9 @@ CLASS zcl_gg_ex_132 IMPLEMENTATION.
       ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
     ELSE.
       INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
@@ -252,6 +265,39 @@ CLASS zcl_gg_ex_132 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
       rv_text = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD output_modules.
+    CASE is_context-module.
+      WHEN 'STATUS_0100'.
+        IF go_container IS INITIAL.
+          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_editor EXPORTING parent = go_container.
+          go_editor->set_toolbar_mode( cl_gui_textedit=>true ).
+          go_editor->set_statusbar_mode( cl_gui_textedit=>true ).
+        ENDIF.
+        go_editor->set_textstream( |Control refreshed { gv_refreshes } times| ).
+        go_editor->set_enable( gv_enabled ).
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD input_modules.
+    CASE is_context-module.
+      WHEN 'USER_COMMAND_0100'.
+        CASE gv_ok_code.
+          WHEN 'REFRESH'.
+            gv_refreshes = gv_refreshes + 1.
+            gv_state = |Refresh { gv_refreshes }|.
+          WHEN 'TOGGLE'.
+            gv_enabled = xsdbool( gv_enabled = abap_false ).
+            gv_state = COND #( WHEN gv_enabled = abap_true THEN 'Editor enabled' ELSE 'Editor disabled' ).
+        ENDCASE.
+        CLEAR gv_ok_code.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD zif_gg_resumable_v1~resume.

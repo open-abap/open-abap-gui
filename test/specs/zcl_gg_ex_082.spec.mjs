@@ -4,11 +4,11 @@ test("ZCL_GG_EX_082 - saves, overwrites, loads, and deletes a variant", async ({
   await openExample(page, host, 82);
   await page.locator('[name="P_NAME"]').fill("BROWSER82");
   await page.locator('[name="P_VALUE"]').fill("one");
-  await page.getByRole("button", {name: "Save"}).click();
+  await page.locator("#gg-main-content").getByRole("button", {name: "Save"}).click();
   await page.waitForLoadState("load");
   await expect(page.getByRole("alert")).toContainText("Variant saved");
   await page.locator('[name="P_VALUE"]').fill("two");
-  await page.getByRole("button", {name: "Save"}).click();
+  await page.locator("#gg-main-content").getByRole("button", {name: "Save"}).click();
   await page.waitForLoadState("load");
   await page.locator('[name="P_VALUE"]').fill("");
   await page.getByRole("button", {name: "Load"}).click();

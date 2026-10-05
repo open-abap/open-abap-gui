@@ -86,7 +86,6 @@ CLASS zcl_example_main IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_MAIN' ).
 * Global data for ZEXAMPLE_MAIN.
-* Routines for ZEXAMPLE_MAIN.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_MAIN' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     form_build_message( io_session = io_session ).
@@ -134,6 +133,7 @@ CLASS zcl_example_main IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD form_build_message.
+* Routines for ZEXAMPLE_MAIN.
     gv_message = |{ gc_prefix }: { io_session->get_context( )-program-program }|.
   ENDMETHOD.
 

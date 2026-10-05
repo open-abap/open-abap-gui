@@ -28,6 +28,12 @@ CLASS zcl_gg_ex_154 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA gv_ok_code TYPE sy-ucomm.
     DATA gv_state TYPE c LENGTH 60.
     DATA gv_first_line TYPE c LENGTH 60.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -262,50 +268,19 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'USER_COMMAND_0100'.
-        CASE gv_ok_code.
-          WHEN 'DOWNLOAD'.
-            cl_gui_frontend_services=>file_save_dialog( EXPORTING window_title = 'Download flights'
-                                                                  default_extension = 'txt'
-                                                                  default_file_name = 'flights.txt' CHANGING filename = gv_filename path = gv_path fullpath = gv_fullpath user_action = gv_action EXCEPTIONS OTHERS = 1 ).
-            IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok.
-              gv_state = 'Download cancelled'.
-            ELSE.
-              cl_gui_frontend_services=>gui_download( EXPORTING filename = gv_fullpath
-                                                                write_field_separator = abap_true IMPORTING filelength = gv_length CHANGING data_tab = gt_flights EXCEPTIONS OTHERS = 1 ).
-              IF sy-subrc = 0.
-                gv_state = |{ gv_filename }: { gv_length } bytes downloaded|.
-              ELSE.
-                gv_state = 'Download failed'.
-              ENDIF.
-            ENDIF.
-          WHEN 'UPLOAD'.
-            cl_gui_frontend_services=>file_open_dialog( EXPORTING window_title = 'Upload text file'
-                                                                  default_extension = 'txt' CHANGING file_table = gt_files rc = gv_rc user_action = gv_action EXCEPTIONS OTHERS = 1 ).
-            IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok OR gv_rc <> 1.
-              gv_state = 'Upload cancelled'.
-            ELSE.
-              READ TABLE gt_files INTO gs_file INDEX 1.
-              gv_filename = gs_file-filename.
-              CLEAR gt_lines.
-              cl_gui_frontend_services=>gui_upload( EXPORTING filename = gv_filename IMPORTING filelength = gv_length CHANGING data_tab = gt_lines EXCEPTIONS OTHERS = 1 ).
-              IF sy-subrc = 0.
-                gv_state = |{ gv_filename }: { lines( gt_lines ) } lines, { gv_length } bytes|.
-                READ TABLE gt_lines INTO DATA(gv_line) INDEX 1.
-                gv_first_line = gv_line.
-              ELSE.
-                gv_state = 'Upload failed'.
-              ENDIF.
-            ENDIF.
-        ENDCASE.
-        CLEAR gv_ok_code.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_RC' ] ).
       ct_values[ name = 'GV_RC' ]-value = CONV string( gv_rc ).
     ELSE.
@@ -351,6 +326,9 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
     ELSE.
       INSERT VALUE #( name = 'GV_FIRST_LINE' value = CONV string( gv_first_line ) ) INTO TABLE ct_values.
     ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_on_value_request.
@@ -365,6 +343,50 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
       rv_text = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD input_modules.
+    CASE is_context-module.
+      WHEN 'USER_COMMAND_0100'.
+        CASE gv_ok_code.
+          WHEN 'DOWNLOAD'.
+            cl_gui_frontend_services=>file_save_dialog( EXPORTING window_title = 'Download flights'
+                                                                  default_extension = 'txt'
+                                                                  default_file_name = 'flights.txt' CHANGING filename = gv_filename path = gv_path fullpath = gv_fullpath user_action = gv_action EXCEPTIONS OTHERS = 1 ).
+            IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok.
+              gv_state = 'Download cancelled'.
+            ELSE.
+              cl_gui_frontend_services=>gui_download( EXPORTING filename = gv_fullpath
+                                                                write_field_separator = abap_true IMPORTING filelength = gv_length CHANGING data_tab = gt_flights EXCEPTIONS OTHERS = 1 ).
+              IF sy-subrc = 0.
+                gv_state = |{ gv_filename }: { gv_length } bytes downloaded|.
+              ELSE.
+                gv_state = 'Download failed'.
+              ENDIF.
+            ENDIF.
+          WHEN 'UPLOAD'.
+            cl_gui_frontend_services=>file_open_dialog( EXPORTING window_title = 'Upload text file'
+                                                                  default_extension = 'txt' CHANGING file_table = gt_files rc = gv_rc user_action = gv_action EXCEPTIONS OTHERS = 1 ).
+            IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok OR gv_rc <> 1.
+              gv_state = 'Upload cancelled'.
+            ELSE.
+              READ TABLE gt_files INTO gs_file INDEX 1.
+              gv_filename = gs_file-filename.
+              CLEAR gt_lines.
+              cl_gui_frontend_services=>gui_upload( EXPORTING filename = gv_filename IMPORTING filelength = gv_length CHANGING data_tab = gt_lines EXCEPTIONS OTHERS = 1 ).
+              IF sy-subrc = 0.
+                gv_state = |{ gv_filename }: { lines( gt_lines ) } lines, { gv_length } bytes|.
+                READ TABLE gt_lines INTO DATA(gv_line) INDEX 1.
+                gv_first_line = gv_line.
+              ELSE.
+                gv_state = 'Upload failed'.
+              ENDIF.
+            ENDIF.
+        ENDCASE.
+        CLEAR gv_ok_code.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD zif_gg_resumable_v1~resume.

@@ -637,7 +637,7 @@ function replaceOutsideStrings(text, replacements) {
 // read the host's current selection screen from their session instead.
 function selectionScreenNumber(context) {
   if (context.event?.startsWith("at_selection_screen")) return "iv_screen";
-  if (context.event === "dynpro") return "''";
+  if (context.event === "dynpro") return "io_session->get_context( )-dynpro-screen";
   return "io_session->get_context( )-selection-screen";
 }
 
@@ -657,6 +657,8 @@ function dataValueRewrites(context) {
     ["sscrfields-ucomm", context.ucomm ?? "sscrfields-ucomm"],
     ["sy-subrc", context.subrc ?? "sy-subrc"],
     ["sy-dynnr", selectionScreenNumber(context)],
+    // The lines a table control shows, which a dynpro module gets from the host.
+    ...(context.event === "dynpro" ? [["sy-loopc", "is_context-loop_count"]] : []),
     ["screen-name", `${screen}-name`],
     ["screen-group1", `${screen}-modif_id`],
     ["screen-group([2-4])", `${screen}-group$1`],
@@ -738,8 +740,7 @@ function valueExpression(expression, context) {
   value = replaceListColorConstants(value);
   value = value.replace(/\bsy-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
   value = value.replace(/\bsscrfields-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
-  value = value.replace(/\bsy-repid\b/gi,
-    context.event === "dynpro" ? "''" : "io_session->get_context( )-program-program");
+  value = value.replace(/\bsy-repid\b/gi, "io_session->get_context( )-program-program");
   value = value.replace(/\bsy-dynnr\b/gi, selectionScreenNumber(context));
   value = value.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
   value = value.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
@@ -1324,6 +1325,8 @@ function lowerSingleStatement(statement, context) {
     if (excluded.length) fields.push(`excluded_ucomm = VALUE #( ${excluded.map((command) => `( '${command}' )`).join(" ")} )`);
     const activePFKeys = statusMetadata.activePFKeys ?? statusMetadata.active_pf_keys ?? context.activePFKeys ?? [];
     if (activePFKeys.length) fields.push(`active_pf_keys = VALUE #( ${[...new Set(activePFKeys)].map((key) => `( ${Number(key)} )`).join(" ")} )`);
+    const exitUcomm = statusMetadata.exitUcomm ?? [];
+    if (exitUcomm.length) fields.push(`exit_ucomm = VALUE #( ${exitUcomm.map((command) => `( '${String(command).toUpperCase()}' )`).join(" ")} )`);
     const iconBar = statusMetadata.iconBar ?? statusMetadata.icon_bar ?? [];
     if (iconBar.length) fields.push(`icon_bar = VALUE #( ${iconBar.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${textLiteral(String(item.label ?? ""))} icon = ${quote(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
     if (statusMetadata.pfActions?.length || statusMetadata.pf_actions?.length) {
@@ -1341,8 +1344,12 @@ function lowerSingleStatement(statement, context) {
     const variable = replaceOutsideStrings(excluding[2], context.replacements);
     return [
       "DATA lt_ggconv_excluded TYPE zif_gg_session_types_v1=>ty_ucomms.",
+      "CLEAR lt_ggconv_excluded.",
       `LOOP AT ${variable} INTO DATA(lv_ggconv_excluded).`,
-      "  APPEND CONV #( lv_ggconv_excluded ) TO lt_ggconv_excluded.",
+      // A move converts any character-like line, without a CONV that is
+      // redundant for the usual table of sy-ucomm.
+      "  APPEND INITIAL LINE TO lt_ggconv_excluded ASSIGNING FIELD-SYMBOL(<lv_ggconv_excluded>).",
+      "  <lv_ggconv_excluded> = lv_ggconv_excluded.",
       "ENDLOOP.",
       body,
     ].join("\n");
@@ -1460,9 +1467,7 @@ function lowerSingleStatement(statement, context) {
     // other function module is the target system's and is called as written.
     return lowerCompatibilityFunction(replaceOutsideStrings(raw, [
       ...context.replacements,
-      ["sy-repid", context.event === "dynpro"
-        ? "''"
-        : "io_session->get_context( )-program-program"],
+      ["sy-repid", "io_session->get_context( )-program-program"],
       ["sy-dynnr", selectionScreenNumber(context)],
     ])) ?? rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
   }
@@ -1640,7 +1645,7 @@ function lowerSingleStatement(statement, context) {
     if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-(?:PROG|DYNNR)\\s*=`, "i").test(raw)) return "* Selection tab state is maintained by the host screen.";
     // SCREEN flags are 1 or 0, quoted or not; the state flags they map to are
     // abap_bool. SCREEN-REQUIRED 2 (recommended) is kept as required.
-    const flags = "visible|intensified|input|output|password|no_display|obligatory";
+    const flags = "visible|intensified|input|output|password|no_display|obligatory|required";
     const one = String.raw`['"]?[12]['"]?`;
     const zero = String.raw`['"]?0['"]?`;
     converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+${one}\s+ELSE\s+${zero}\s*\)\.`, "i"), "<ls_state>-$1 = xsdbool( $2 ).");
@@ -1961,7 +1966,74 @@ export function lowerStatements(statements, context) {
     statement: statements.at(-1),
     supported: false,
   });
+  for (const item of output) item.text = mergeAdjacentTemplates(item.text);
   return output;
+}
+
+// |a| && |b| written over two lines comes out as one line; one template says
+// the same.
+export function mergeAdjacentTemplates(text) {
+  if (typeof text !== "string" || !text.includes("&&")) return text;
+  const stack = ["code"];
+  let out = "";
+  let closed = -1;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    const mode = stack.at(-1);
+    if (mode === "code" || mode === "embed") {
+      if ((char === '"' || (char === "*" && (index === 0 || text[index - 1] === "\n"))) && mode === "code") {
+        const end = text.indexOf("\n", index);
+        const stop = end < 0 ? text.length : end;
+        out += text.slice(index, stop);
+        index = stop - 1;
+        closed = -1;
+        continue;
+      }
+      if (char === "|") {
+        if (mode === "code" && stack.length === 1 && closed >= 0 && /^\|\s*&&\s*$/.test(out.slice(closed))) {
+          out = out.slice(0, closed);
+          stack.push("template");
+          closed = -1;
+          continue;
+        }
+        stack.push("template");
+      } else if (char === "'") stack.push("quote");
+      else if (char === "`") stack.push("backquote");
+      else if (char === "}" && mode === "embed") stack.pop();
+      else if (!/[\s&]/.test(char)) closed = -1;
+      out += char;
+      continue;
+    }
+    if (mode === "template") {
+      if (char === "\\") {
+        out += char + (text[index + 1] ?? "");
+        index++;
+        continue;
+      }
+      if (char === "{") stack.push("embed");
+      else if (char === "|") {
+        stack.pop();
+        if (stack.length === 1) {
+          out += char;
+          closed = out.length - 1;
+          continue;
+        }
+      }
+      out += char;
+      continue;
+    }
+    const quote = mode === "quote" ? "'" : "`";
+    if (char === quote) {
+      if (text[index + 1] === quote) {
+        out += char + char;
+        index++;
+        continue;
+      }
+      stack.pop();
+    }
+    out += char;
+  }
+  return out;
 }
 
 export function selectionType(additions) {

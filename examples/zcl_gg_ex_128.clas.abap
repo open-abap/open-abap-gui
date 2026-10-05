@@ -21,6 +21,19 @@ CLASS zcl_gg_ex_128 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_128_
     DATA gt_events TYPE cntl_simple_events.
     DATA gv_url TYPE c LENGTH 255.
     DATA gv_state TYPE c LENGTH 60.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -142,12 +155,79 @@ CLASS zcl_gg_ex_128 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
       gv_url = CONV #( ct_values[ name = 'GV_URL' ]-value ).
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
       gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
     ENDIF.
+    TRY.
+        output_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
+    IF line_exists( ct_values[ name = 'GV_URL' ] ).
+      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_STATE' ] ).
+      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_screen_provider_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
+    IF line_exists( ct_values[ name = 'GV_URL' ] ).
+      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_STATE' ] ).
+      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_screen_provider_v1~process_on_value_request.
+    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    ct_values = it_values.
+    rt_values = io_session->get_compatibility( )->get_value_help_values( ).
+  ENDMETHOD.
+
+  METHOD zif_gg_screen_provider_v1~process_on_help_request.
+    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    ct_values = it_values.
+    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
+      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
@@ -165,49 +245,15 @@ CLASS zcl_gg_ex_128 IMPLEMENTATION.
       WHEN OTHERS.
         RETURN.
     ENDCASE.
-    IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
-    ENDIF.
   ENDMETHOD.
 
-  METHOD zif_gg_screen_provider_v1~process_input_module.
+  METHOD input_modules.
     CASE is_context-module.
       WHEN 'USER_COMMAND_0100'.
         cl_gui_cfw=>dispatch( ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
-    IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_gg_screen_provider_v1~process_on_value_request.
-    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    ct_values = it_values.
-    rt_values = io_session->get_compatibility( )->get_value_help_values( ).
-  ENDMETHOD.
-
-  METHOD zif_gg_screen_provider_v1~process_on_help_request.
-    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_resumable_v1~resume.

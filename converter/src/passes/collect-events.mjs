@@ -1,5 +1,6 @@
 import { addEvent } from "../ir/report-ir.mjs";
 import { eventName } from "./classify-program.mjs";
+import { leadingComments } from "./collect-modules.mjs";
 
 const FORWARD_DECLARATION_KINDS = new Set(["ClassDeferred", "InterfaceDeferred", "ClassDefinitionLoad", "InterfaceLoad"]);
 
@@ -25,8 +26,11 @@ export function collectEvents(ir, statements) {
   let localClassDepth = 0;
   const declarationKinds = new Set(["Data", "Constant", "ConstantBegin", "ConstantEnd", "Static", "StaticBegin", "StaticEnd", "FieldSymbol", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType", "DataBegin", "DataEnd", "TypePools"]);
   ir.eventQualifiers ??= {};
+  const blockComments = leadingComments(statements);
+  const movedComments = new Set([...blockComments.values()].flat());
   for (const statement of statements) {
     if (statement.kind === "Include") continue;
+    if (movedComments.has(statement)) continue;
     // Forward declarations and the obsolete LOAD additions only steer the
     // compiler; local classes become global helper classes, which need neither.
     if (FORWARD_DECLARATION_KINDS.has(statement.kind)) continue;
@@ -50,7 +54,7 @@ export function collectEvents(ir, statements) {
     if (moduleDepth > 0) continue;
     if (["Report", "Program"].includes(statement.kind)) continue;
     if (isRoutineStart(statement)) {
-      routine = { name: /^FORM\s+([^\s.]+)/i.exec(statement.text)?.[1]?.toUpperCase(), statements: [], statement };
+      routine = { name: /^FORM\s+([^\s.]+)/i.exec(statement.text)?.[1]?.toUpperCase(), statements: [...(blockComments.get(statement) ?? [])], statement };
       ir.routines.push(routine);
       continue;
     }

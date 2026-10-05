@@ -202,6 +202,8 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            pf_actions     TYPE ty_pf_actions,
            icon_bar       TYPE ty_icon_bar,
            menus          TYPE ty_gui_menus,
+* The functions of type E: they run the AT EXIT-COMMAND module.
+           exit_ucomm     TYPE ty_ucomms,
          END OF ty_gui_status.
 
   TYPES: BEGIN OF ty_dialog_cursor,

@@ -26,7 +26,7 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   values, as on SAP (before, it ran only for screens with a GUI status, on a
   copy of the values, so a control changed in PBO showed one round trip late,
   e.g. zgg_ex_132, 148). A PBO that is not idempotent (a counter) counts twice;
-  converter/test/behavioral-generated.mjs expects 5 where SAP gives 4. Fix:
+  converter/test/behavioral-generated.mjs expects 6 where SAP gives 5. Fix:
   keep the screen states of the last response instead of replaying PBO.
 - **The list page shows the GUI status name** (`SHELL66`, `BACK`) as text
   above the list (`.gg-list-status`, zcl_gg_host_renderer); SAP never shows
@@ -35,10 +35,6 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   decision on those examples.
 - **GUI statuses for 044, 059–062.** The programs `SET PF-STATUS` without a
   `<CUA>` in their prog.xml; the hand-written classes invent the icon bars.
-- **Dialog examples 064, 099–116, 162, 163.** The hand-written classes are
-  dynpro programs, the programs define no screens. zcl_gg_rich_dynpro_base
-  (100) derived P_OUTPUT in PBO and relied on PBO not following PAI; its PBO
-  now keeps an output PAI set.
 - **019, 020, 032, 058** pass converter parity only because
   behavioral-generated.mjs injects metadata the repo lacks (fixed values,
   DDIC, dynpro screens).
@@ -93,6 +89,34 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   .prog.xml and screens now, and writes the class text pools.
 - converter/test/transpile-generated.mjs did not write the helper classes of
   examples with local classes, so their main classes failed the check; fixed.
+- Fixed with the dialog examples (064, 099–116, 162, 163):
+  - Flow logic is read statement by statement, not line by line, so
+    `LOOP AT itab ... WITH CONTROL tc` may go on with `CURSOR` on the next
+    line.
+  - A table control is bound to the table its PBO loops over. It was
+    `GT_` plus the control name.
+  - `FIELD f.` and `FIELD: a, b.` are field steps.
+  - `CONTROLS tc TYPE TABLEVIEW` exchanges `TOP_LINE` and `LINES`, and
+    `sy-loopc` is the number of visible lines.
+  - What a module changed before `CALL SCREEN`, `LEAVE` or an error message
+    is written back.
+  - PBO and PAI modules are dispatched in the private methods
+    `output_modules` and `input_modules`.
+  - Table controls exchange their values in `table_values_in` and
+    `table_values_out`.
+  - Module `DATA` is declared at the top of the method.
+  - A comment right before `MODULE` or `FORM` goes with that block, not with
+    the end of `START-OF-SELECTION`.
+  - `|a| && |b|` is written as one template.
+  - `SET PF-STATUS ... EXCLUDING itab` copies the table without a redundant
+    `CONV`.
+- Module `DATA` is local to the call; on SAP it is global data of the
+  program and keeps its value.
+- The help-request dispatch reads the help text from a value named
+  `GV_RESULT` (class-source.mjs), which no program defines. A POH module on
+  SAP shows its help itself (`HELP_OBJECT_SHOW` and similar).
+- abaplint no longer checks `.prog.screen_NNNN.abap` files, because flow logic
+  is not ABAP (abaplint.jsonc `exclude`).
 
 ## open-abap classes (src/)
 
@@ -229,6 +253,35 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 - `set_format` replaces the format, see Converter.
 - Icons `ICON_FILTER`, `ICON_SORT_*`, `ICON_INFORMATION`-like names without an
   alias fall back to the help icon (zcl_gg_host_icons).
+- Dynpro processing, fixed with the dialog examples:
+  - Required fields are checked before PAI ("Fill in all required entry
+    fields", cursor on the first empty one); a function of type E skips the
+    check and runs `AT EXIT-COMMAND`.
+  - BACK counts as an exit command only for a status set by hand without
+    function keys. Before, it ran `AT EXIT-COMMAND` everywhere.
+  - At the end of PAI the next screen follows: the static one, or the one set
+    with `SET SCREEN` (`SET SCREEN` did nothing). Next screen 0 after
+    `LEAVE SCREEN` returns to the caller.
+  - An E message in a `FIELD` or `CHAIN` module leaves only those fields
+    open.
+  - `CALL SCREEN` keeps a stack of screen sequences.
+  - The cursor of a screen is not carried to the next one.
+  - Table controls scroll with `TOP_LINE`; lines past `LINES` are not ready
+    for input.
+- System toolbar, fixed: each button is a function key (Save F11, Back F3,
+  Exit F15, Cancel F12, Print F86, Find F71 and F84, paging F21–F24) and sends the function code the
+  status gives that key. Before, it sent the list codes `%EX` and `RW`, so
+  Exit and Cancel were disabled on every dialog screen. A status with function
+  keys leaves the keys it does not assign inactive. The buttons post the
+  screen's form, so the field contents reach PAI, and toolbar buttons no
+  longer trip the browser's own required check (`formnovalidate`).
+- Open, dynpro:
+  - An I message shows in the message area; on SAP it is a dialog box.
+  - A function excluded from the status is shown disabled in the
+    application toolbar; SAP hides it.
+  - An input field's accessible name is its field name, not the text in
+    front of it.
+  - Required columns of a table control are not checked.
 - The workbench lists the classes in build/generated-examples when the host
   is transpiled with build/abap_transpile.start.json (`npm start`), so the
   transaction count in zcl_gg_index.spec.mjs only holds for `npm run unit`'s
@@ -241,6 +294,11 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   `MODIFY LINE` is not supported, so a program with `MODIFY LINE` in
   `AT USER-COMMAND` fails to transpile. zgg_ex_086 modifies its lines in
   `AT LINE-SELECTION` because of this.
+- `CLEANUP` blocks are ignored; the converter catches `zcx_gg_control_flow`
+  and raises it again instead.
+- `line_exists( io_session->get_status( )-exit_ucomm[ table_line = x ] )`, a
+  table expression on a method call's result, is translated wrongly: the
+  program ended. zcl_gg_host_dynpro copies the table to a variable first.
 - `CREATE OBJECT io_owner->go_tree EXPORTING ...` creates an instance of the
   class of `io_owner`, not of the attribute's declared type. The converter
   works around it in helper classes by naming the type

@@ -16,6 +16,13 @@ CLASS zcl_gg_ex_123 DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     DATA go_container TYPE REF TO cl_gui_custom_container.
     DATA go_editor TYPE REF TO cl_gui_textedit.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
 
 ENDCLASS.
 
@@ -125,17 +132,13 @@ CLASS zcl_gg_ex_123 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
-    CASE is_context-module.
-      WHEN 'STATUS_0100'.
-        IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_editor EXPORTING parent = go_container.
-          go_editor->set_textstream( |Read-only text{ cl_abap_char_utilities=>newline }This cannot be edited| ).
-          go_editor->set_readonly_mode( cl_gui_textedit=>true ).
-        ENDIF.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    output_modules(
+      EXPORTING
+        is_context = is_context
+        io_session = io_session
+      CHANGING
+        ct_values  = ct_values
+        ct_states  = ct_states ).
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
@@ -154,6 +157,20 @@ CLASS zcl_gg_ex_123 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
       rv_text = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD output_modules.
+    CASE is_context-module.
+      WHEN 'STATUS_0100'.
+        IF go_container IS INITIAL.
+          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_editor EXPORTING parent = go_container.
+          go_editor->set_textstream( |Read-only text{ cl_abap_char_utilities=>newline }This cannot be edited| ).
+          go_editor->set_readonly_mode( cl_gui_textedit=>true ).
+        ENDIF.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD zif_gg_resumable_v1~resume.

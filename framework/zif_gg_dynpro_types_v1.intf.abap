@@ -191,6 +191,8 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            row           TYPE i,
            loop_index    TYPE i,
            loop_lines    TYPE i,
+* sy-loopc: the lines the table control shows, kept after the loop.
+           loop_count    TYPE i,
            ucomm         TYPE ty_ucomm,
            cursor_field  TYPE ty_name,
            cursor_row    TYPE i,
@@ -198,11 +200,13 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 
 * Current program data. row is zero for ordinary controls and one-based for
 * table-control rows; container identifies the table control when applicable.
+* text is what a value help shows for the value, when it shows more.
   TYPES: BEGIN OF ty_value,
            container TYPE ty_name,
            name      TYPE ty_name,
            row       TYPE i,
            value     TYPE string,
+           text      TYPE string,
          END OF ty_value.
   TYPES ty_values TYPE SORTED TABLE OF ty_value
     WITH UNIQUE KEY container name row.

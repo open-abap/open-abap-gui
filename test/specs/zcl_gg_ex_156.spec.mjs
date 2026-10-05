@@ -35,7 +35,8 @@ test("ZCL_GG_EX_156 — POPUP_GET_VALUES returns the entered value or A", async 
   await expect(result(page)).toHaveText("Airline UA");
 
   await submit(page, "Get values");
-  await submit(page, "Cancel");
+  await page.getByRole("dialog", {name: "Choose airline"}).getByRole("button", {name: "Cancel"}).click();
+  await page.waitForLoadState("load");
   await expect(result(page)).toHaveText("Input cancelled");
 });
 
@@ -48,6 +49,7 @@ test("ZCL_GG_EX_156 — POPUP_WITH_TABLE_DISPLAY returns the chosen line", async
   await expect(result(page)).toHaveText("UA 0941 Frankfurt - San Francisco");
 
   await submit(page, "Choose from table");
-  await submit(page, "Cancel");
+  await page.getByRole("dialog", {name: "Choose connection"}).getByRole("button", {name: "Cancel"}).click();
+  await page.waitForLoadState("load");
   await expect(result(page)).toHaveText("Selection cancelled");
 });

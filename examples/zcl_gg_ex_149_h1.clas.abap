@@ -36,6 +36,6 @@ CLASS zcl_gg_ex_149_h1 IMPLEMENTATION.
       lv_capacity = |{ lv_capacity }<S>{ ls_month-seatsmax }</S>|.
       lv_occupied = |{ lv_occupied }<S>{ ls_month-seatsocc }</S>|.
     ENDLOOP.
-    rv_xml = |{ rv_xml }</Categories>| && |<Series label="Capacity">{ lv_capacity }</Series>| && |<Series label="Occupied">{ lv_occupied }</Series></SimpleChartData>|.
+    rv_xml = |{ rv_xml }</Categories><Series label="Capacity">{ lv_capacity }</Series><Series label="Occupied">{ lv_occupied }</Series></SimpleChartData>|.
   ENDMETHOD.
 ENDCLASS.

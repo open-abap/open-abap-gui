@@ -39,5 +39,10 @@ MODULE status_0100 OUTPUT.
 ENDMODULE.
 
 MODULE user_command_0100 INPUT.
+  CASE ok_code.
+    WHEN 'BACK' OR 'EXIT' OR 'CANCEL'.
+      CLEAR ok_code.
+      LEAVE TO SCREEN 0.
+  ENDCASE.
   CLEAR ok_code.
 ENDMODULE.

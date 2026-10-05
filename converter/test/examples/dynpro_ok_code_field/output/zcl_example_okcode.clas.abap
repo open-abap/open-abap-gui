@@ -17,6 +17,19 @@ CLASS zcl_example_okcode DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA gv_detail_ok TYPE sy-ucomm.
     DATA gv_save_ok TYPE sy-ucomm.
     DATA gv_last TYPE c LENGTH 20.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -82,6 +95,7 @@ CLASS zcl_example_okcode IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'OK_CODE' ] ).
       ok_code = CONV #( ct_values[ name = 'OK_CODE' ]-value ).
     ENDIF.
@@ -100,14 +114,16 @@ CLASS zcl_example_okcode IMPLEMENTATION.
     IF is_context-screen = '0200'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' ) ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANC' ) ) ) ).
-      WHEN 'STATUS_0200'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANC' ) ) ) ).
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        output_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'OK_CODE' ] ).
       ct_values[ name = 'OK_CODE' ]-value = CONV string( ok_code ).
     ELSE.
@@ -128,15 +144,79 @@ CLASS zcl_example_okcode IMPLEMENTATION.
     ELSE.
       INSERT VALUE #( name = 'GV_LAST' value = CONV string( gv_last ) ) INTO TABLE ct_values.
     ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_input_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'OK_CODE' ] ).
       ok_code = CONV #( ct_values[ name = 'OK_CODE' ]-value ).
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DETAIL_OK' ] ).
       gv_detail_ok = CONV #( ct_values[ name = 'GV_DETAIL_OK' ]-value ).
     ENDIF.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
+    IF line_exists( ct_values[ name = 'OK_CODE' ] ).
+      ct_values[ name = 'OK_CODE' ]-value = CONV string( ok_code ).
+    ELSE.
+      INSERT VALUE #( name = 'OK_CODE' value = CONV string( ok_code ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_DETAIL_OK' ] ).
+      ct_values[ name = 'GV_DETAIL_OK' ]-value = CONV string( gv_detail_ok ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_DETAIL_OK' value = CONV string( gv_detail_ok ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_SAVE_OK' ] ).
+      ct_values[ name = 'GV_SAVE_OK' ]-value = CONV string( gv_save_ok ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_SAVE_OK' value = CONV string( gv_save_ok ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF line_exists( ct_values[ name = 'GV_LAST' ] ).
+      ct_values[ name = 'GV_LAST' ]-value = CONV string( gv_last ).
+    ELSE.
+      INSERT VALUE #( name = 'GV_LAST' value = CONV string( gv_last ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~process_on_value_request.
+    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    ct_values = it_values.
+    rt_values = io_session->get_compatibility( )->get_value_help_values( ).
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~process_on_help_request.
+    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
+    ct_values = it_values.
+    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
+      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD output_modules.
+    CASE is_context-module.
+      WHEN 'STATUS_0100'.
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANC' ) ) ) ).
+      WHEN 'STATUS_0200'.
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANC' ) ) ) ).
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD input_modules.
     CASE is_context-module.
       WHEN 'USER_COMMAND_0100'.
         gv_save_ok = ok_code.
@@ -163,40 +243,6 @@ CLASS zcl_example_okcode IMPLEMENTATION.
       WHEN OTHERS.
         RETURN.
     ENDCASE.
-    IF line_exists( ct_values[ name = 'OK_CODE' ] ).
-      ct_values[ name = 'OK_CODE' ]-value = CONV string( ok_code ).
-    ELSE.
-      INSERT VALUE #( name = 'OK_CODE' value = CONV string( ok_code ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_DETAIL_OK' ] ).
-      ct_values[ name = 'GV_DETAIL_OK' ]-value = CONV string( gv_detail_ok ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_DETAIL_OK' value = CONV string( gv_detail_ok ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_SAVE_OK' ] ).
-      ct_values[ name = 'GV_SAVE_OK' ]-value = CONV string( gv_save_ok ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_SAVE_OK' value = CONV string( gv_save_ok ) ) INTO TABLE ct_values.
-    ENDIF.
-    IF line_exists( ct_values[ name = 'GV_LAST' ] ).
-      ct_values[ name = 'GV_LAST' ]-value = CONV string( gv_last ).
-    ELSE.
-      INSERT VALUE #( name = 'GV_LAST' value = CONV string( gv_last ) ) INTO TABLE ct_values.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD zif_gg_dynpro_v1~process_on_value_request.
-    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    ct_values = it_values.
-    rt_values = io_session->get_compatibility( )->get_value_help_values( ).
-  ENDMETHOD.
-
-  METHOD zif_gg_dynpro_v1~process_on_help_request.
-    DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
-    ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.

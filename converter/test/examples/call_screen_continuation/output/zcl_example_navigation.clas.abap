@@ -17,6 +17,19 @@ CLASS zcl_example_navigation DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     DATA gv_step TYPE i.
     DATA mv_p_target TYPE c LENGTH 1.
+    METHODS output_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
+    METHODS input_modules
+      IMPORTING
+        is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        io_session TYPE REF TO zif_gg_session_v1
+      CHANGING
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
 ENDCLASS.
 
@@ -167,39 +180,51 @@ CLASS zcl_example_navigation IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_STEP' ] ).
       gv_step = CONV #( ct_values[ name = 'GV_STEP' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'SCREEN' ) ).
     ENDIF.
-    CASE is_context-module.
-      WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'SCREEN' active_ucomm = VALUE #( ( 'BACK' ) ) ) ).
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    TRY.
+        output_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values
+            ct_states  = ct_states ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_STEP' ] ).
       ct_values[ name = 'GV_STEP' ]-value = CONV string( gv_step ).
     ELSE.
       INSERT VALUE #( name = 'GV_STEP' value = CONV string( gv_step ) ) INTO TABLE ct_values.
     ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
+    ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
-    CASE is_context-module.
-      WHEN 'USER_COMMAND_0100'.
-        CASE is_context-ucomm.
-          WHEN 'BACK'.
-            io_session->get_dialog( )->leave_to_screen( '0000' ).
-        ENDCASE.
-      WHEN OTHERS.
-        RETURN.
-    ENDCASE.
+    DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
+    TRY.
+        input_modules(
+          EXPORTING
+            is_context = is_context
+            io_session = io_session
+          CHANGING
+            ct_values  = ct_values ).
+      CATCH zcx_gg_control_flow INTO lx_unwind.
+    ENDTRY.
     IF line_exists( ct_values[ name = 'GV_STEP' ] ).
       ct_values[ name = 'GV_STEP' ]-value = CONV string( gv_step ).
     ELSE.
       INSERT VALUE #( name = 'GV_STEP' value = CONV string( gv_step ) ) INTO TABLE ct_values.
+    ENDIF.
+    IF lx_unwind IS BOUND.
+      RAISE EXCEPTION lx_unwind.
     ENDIF.
   ENDMETHOD.
 
@@ -215,6 +240,27 @@ CLASS zcl_example_navigation IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
       rv_text = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD output_modules.
+    CASE is_context-module.
+      WHEN 'STATUS_0100'.
+        io_session->get_dialog( )->set_status( VALUE #( status = 'SCREEN' active_ucomm = VALUE #( ( 'BACK' ) ) ) ).
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD input_modules.
+    CASE is_context-module.
+      WHEN 'USER_COMMAND_0100'.
+        CASE is_context-ucomm.
+          WHEN 'BACK'.
+            io_session->get_dialog( )->leave_to_screen( '0000' ).
+        ENDCASE.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.

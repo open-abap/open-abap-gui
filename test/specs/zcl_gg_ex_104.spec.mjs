@@ -1,13 +1,21 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit, expectPageKind} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_104 — validates a CHAIN of fields", async ({page, host}) => {
+const out = (page, name) => page.locator(`#gg-dynpro-control-n-${name}`);
+
+test("ZCL_GG_EX_104 — an error in a CHAIN keeps every field of the chain open", async ({page, host}) => {
   await openExample(page, host, 104);
-  await dispatch(page, {
-    action: "SUBMIT",
-    ucomm: "CHECK",
-    values: [{name: "P_LEFT", value: "left"}, {name: "P_RIGHT", value: "different"}],
-  });
-  await expect(page.getByRole("alert")).toContainText("CHAIN values must match");
-  await expect(page.locator('[name="P_RIGHT"]')).toHaveAttribute("aria-invalid", "true");
-});
+  await page.locator('[name="GV_TO"]').fill("Frankfurt");
+  await page.locator(".wb-toolbar").getByRole("button", {name: "Check"}).click();
+  await page.waitForLoadState("load");
+  await expect(page.getByRole("alert")).toContainText("From and to must differ");
+  await expect(page.locator('[name="GV_FROM"]')).toBeEditable();
+  await expect(page.locator('[name="GV_TO"]')).toBeEditable();
+  // As on SAP, the cursor goes to the first field of the chain.
+  await expect(page.locator('[name="GV_FROM"]')).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator('[data-screen="0100"]')).toHaveAttribute("data-cursor-field", "GV_FROM");
 
+  await page.locator('[name="GV_TO"]').fill("Paris");
+  await page.locator(".wb-toolbar").getByRole("button", {name: "Check"}).click();
+  await page.waitForLoadState("load");
+  await expect(out(page, "GV_STATE")).toHaveText("Frankfurt to Paris");
+});

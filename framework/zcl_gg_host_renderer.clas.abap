@@ -315,6 +315,32 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+* TOP_LINE or LINES of a table control, as the program's CONTROLS structure
+* has them; LINES defaults to the rows the table has.
+    CLASS-METHODS table_view_value
+      IMPORTING
+        it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
+        iv_table        TYPE clike
+        iv_field        TYPE string
+      RETURNING
+        VALUE(rv_value) TYPE i.
+
+* The scroll bar of a table control: each button shows other lines and runs
+* PAI without a function code, as scrolling does in SAP GUI.
+    CLASS-METHODS render_table_scroll
+      IMPORTING
+        is_control     TYPE zcl_gg_host_dynpro_builder=>ty_control_record
+        iv_top         TYPE i
+        iv_lines       TYPE i
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    CLASS-METHODS ucomm_attr
+      IMPORTING
+        iv_ucomm       TYPE clike
+      RETURNING
+        VALUE(rv_attr) TYPE string.
+
     CLASS-METHODS render_downloads
       IMPORTING
         it_downloads   TYPE zcl_gg_host_compatibility=>ty_downloads
@@ -1003,8 +1029,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_table_body = lv_table_body && |<th scope="col" style="width:{ ls_column-column_width }px">{ zcl_gg_host_html=>escape_text( ls_column-column_title ) }</th>|.
     ENDLOOP.
     lv_table_body = lv_table_body && |</tr></thead><tbody>|.
-    lv_row = 1.
-    WHILE lv_row <= is_control-visible_rows.
+    DATA(lv_top) = nmax( val1 = 1
+                         val2 = table_view_value( it_values = it_values
+                                                  iv_table  = is_control-name
+                                                  iv_field  = 'TOP_LINE' ) ).
+    DATA(lv_lines) = table_view_value( it_values = it_values
+                                       iv_table  = is_control-name
+                                       iv_field  = 'LINES' ).
+    lv_row = lv_top.
+    WHILE lv_row < lv_top + is_control-visible_rows.
       lv_table_body = lv_table_body && |<tr class="gg-grid-row" data-row="{ lv_row }">|.
       LOOP AT it_controls INTO ls_column
           WHERE screen = is_screen-number AND kind = 'TABLE_COLUMN'
@@ -1026,7 +1059,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         IF sy-subrc <> 0.
           ls_state-enabled = abap_true.
           ls_state-visible = abap_true.
-          ls_state-input = ls_column-input.
+          ls_state-input = xsdbool( ls_column-input = abap_true AND lv_row <= lv_lines ).
         ENDIF.
         lv_cell_name = |gg-cell-{ CONV string( is_control-name ) }-{ CONV string( ls_column-name ) }-{ lv_row }|.
         lv_state_class = zcl_gg_host_html=>state_class(
@@ -1084,7 +1117,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_table_body = lv_table_body && |</tr>|.
       lv_row = lv_row + 1.
     ENDWHILE.
-    lv_table_body = lv_table_body && |</tbody></table>|.
+    lv_table_body = lv_table_body && |</tbody></table>| && render_table_scroll( is_control = is_control
+                                                                                iv_top     = lv_top
+                                                                                iv_lines   = lv_lines ).
     rv_html = |<section class="gg-dynpro-control { lv_table_class }" style="{ iv_style }" data-table-control="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" data-selection-mode="{ zcl_gg_host_html=>escape_attribute( is_control-selection_mode ) }" data-hscroll="{ COND string( WHEN is_control-with_hscroll = abap_true THEN `true` ELSE `false` ) }" data-vscroll="{ COND string( WHEN is_control-with_vscroll = abap_true THEN `true` ELSE `false` ) }">{ lv_table_body }</section>|.
   ENDMETHOD.
 
@@ -1170,7 +1205,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF it_help_values IS NOT INITIAL.
       lv_body = lv_body && |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_help_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
       LOOP AT it_help_values INTO DATA(ls_help_value).
-        lv_body = lv_body && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_help_value-value ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( ls_help_value-value ) }</li>|.
+        lv_body = lv_body && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_help_value-value ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_help_value-text IS INITIAL THEN ls_help_value-value ELSE ls_help_value-text ) ) }</li>|.
       ENDLOOP.
       lv_body = lv_body && |</ul></section></div></div></div>|.
     ENDIF.
@@ -1478,11 +1513,11 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         ENDCASE.
         rv_html = |<button class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" type="submit" name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-ucomm ) ) }"{ COND string( WHEN is_control-ucomm = 'EXECUTE' THEN ` data-key="F8" aria-keyshortcuts="F8"` ELSE `` ) }{ iv_attrs }>{ lv_button_icon }<span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></button>|.
       WHEN 'CHECKBOX'.
-        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input type="hidden" name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value=""><input class="{ iv_state_class }" type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="X"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ iv_attrs }>{ zcl_gg_host_html=>escape_text( is_control-text ) }</label>|.
+        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input type="hidden" name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value=""><input class="{ iv_state_class }" type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="X"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>{ zcl_gg_host_html=>escape_text( is_control-text ) }</label>|.
       WHEN 'RADIOBUTTON'.
-        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input class="{ iv_state_class }" type="radio" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-group ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ iv_attrs }>{ zcl_gg_host_html=>escape_text( is_control-text ) }</label>|.
+        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input class="{ iv_state_class }" type="radio" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-group ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>{ zcl_gg_host_html=>escape_text( is_control-text ) }</label>|.
       WHEN 'LISTBOX'.
-        rv_html = |<select class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ iv_attrs }>|.
+        rv_html = |<select class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>|.
         rv_html = rv_html && listbox_options( it_fixed_values = CORRESPONDING #( is_control-fixed_values )
                                               iv_value        = CONV #( is_value-value ) ) && |</select>|.
       WHEN 'BOX'.
@@ -1843,6 +1878,47 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       rv_html = rv_html && |<li data-name="{ zcl_gg_host_html=>escape_attribute( iv_name ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
     ENDLOOP.
     rv_html = rv_html && |</ul></section></div></div></div>|.
+  ENDMETHOD.
+
+  METHOD table_view_value.
+    READ TABLE it_values INTO DATA(ls_value)
+      WITH KEY container = `` name = |{ iv_table }-{ iv_field }| row = 0.
+    IF sy-subrc = 0 AND ls_value-value CO ' 0123456789' AND ls_value-value IS NOT INITIAL.
+      rv_value = CONV i( ls_value-value ).
+    ENDIF.
+    IF iv_field = 'LINES' AND rv_value <= 0.
+      LOOP AT it_values INTO ls_value WHERE container = iv_table.
+        rv_value = nmax( val1 = rv_value
+                         val2 = ls_value-row ).
+      ENDLOOP.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_table_scroll.
+    DATA(lv_last) = nmax( val1 = 1
+                          val2 = iv_lines - is_control-visible_rows + 1 ).
+    IF is_control-with_vscroll = abap_false OR iv_lines <= is_control-visible_rows.
+      RETURN.
+    ENDIF.
+    DATA(lv_name) = zcl_gg_host_html=>escape_attribute( |{ is_control-name }-TOP_LINE| ).
+    DATA(lv_previous) = nmax( val1 = 1
+                              val2 = iv_top - is_control-visible_rows ).
+    DATA(lv_next) = nmin( val1 = lv_last
+                          val2 = iv_top + is_control-visible_rows ).
+    rv_html = |<div class="gg-table-scroll" role="group" aria-label="Scroll { zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }">|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="1" aria-label="First lines"{ COND string( WHEN iv_top <= 1 THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-up' ) }</button>|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_previous }" aria-label="Previous lines"{ COND string( WHEN iv_top <= 1 THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'chevron-up' ) }</button>|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_next }" aria-label="Next lines"{ COND string( WHEN iv_top >= lv_last THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'chevron-down' ) }</button>|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_last }" aria-label="Last lines"{ COND string( WHEN iv_top >= lv_last THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-down' ) }</button>|
+      && |</div>|.
+  ENDMETHOD.
+
+  METHOD ucomm_attr.
+* A checkbox, radio button or listbox with a function code triggers PAI with it
+* when it changes, as in SAP GUI.
+    IF iv_ucomm IS NOT INITIAL.
+      rv_attr = | data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( iv_ucomm ) ) }"|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD render_downloads.

@@ -571,6 +571,11 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |@media(max-width:760px)\{.gg-free-selection-modal\{padding:10px\}.gg-free-selection-body\{grid-template-columns:1fr\}.gg-free-selection-tree\{border-right:0;border-bottom:1px solid #b4c8db\}\}|.
     rv_html = rv_html && |@media(max-width:760px)\{.gg-free-selection-row\{grid-template-columns:1fr 1fr\}.gg-free-selection-row label\{grid-column:1\}\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control]\{overflow:auto;background:#e4eff8;border:1px solid #8daac4;box-sizing:border-box;scrollbar-color:#9eb5c8 #d6e5f0;\}|.
+* The scroll bar of a table control is a strip of buttons on its right.
+    rv_html = rv_html && |.gg-dynpro [data-table-control]:has(>.gg-table-scroll)\{display:flex;align-items:stretch;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control]>.gg-table-scroll\{position:sticky;right:0;top:0;flex:0 0 auto;display:flex;flex-direction:column;gap:2px;padding:2px;background:#d6e5f0;border-left:1px solid #8daac4;\}|.
+    rv_html = rv_html && |.gg-table-scroll button\{display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid #8daac4;border-radius:2px;background:#eef5fb;color:#123b64;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-table-scroll button:disabled\{opacity:.45;cursor:default;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] table\{border-collapse:collapse;table-layout:fixed;min-width:100%;width:max-content;background:#fff;color:#123b64;font-size:13px;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] caption\{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] th\{height:28px;padding:4px 8px;text-align:left;white-space:nowrap;background:linear-gradient(#e9f3fa,#c7dae9);border:1px solid #8daac4;color:#123b64;font-weight:700;box-sizing:border-box;\}|.

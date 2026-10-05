@@ -516,14 +516,15 @@ try {
     io_program: dynproState,
     iv_ucomm: "NEXT",
   }));
-  assert.equal(firstDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "3");
+  // PBO 2, PAI 3, and LEAVE SCREEN goes on to the PBO of the next screen, 4.
+  assert.equal(firstDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "4");
   const secondDynproState = plain(await zcl_gg_host_dynpro.run({
     io_program: dynproState,
     iv_ucomm: "BACK",
   }));
   // The host replays PBO before PAI and runs PBO again after PAI, so a PBO
   // that counts adds two per round trip (FOO.md, Host); SAP would add one.
-  assert.equal(secondDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "5");
+  assert.equal(secondDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "6");
 
   const nestedComposite = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_CINCLUDE(),
