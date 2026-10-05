@@ -145,8 +145,3 @@ Nothing open.
   class of `io_owner`, not of the attribute's declared type. The converter
   works around it in helper classes by naming the type
   (`CREATE OBJECT io_owner->go_tree TYPE cl_gui_list_tree ...`).
-
-## abaplint
-
-- The indentation rule does not take `END-OF-PAGE` as the start of an event
-  block; 091 and 092 write that block unindented.
