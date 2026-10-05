@@ -302,6 +302,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     ENDIF.
 
     LOOP AT it_entries INTO DATA(ls_icon).
+* As on SAP, a function the status excludes is not shown in the application
+* toolbar; the menus show it inactive.
+      IF iv_runtime = abap_true
+          AND line_exists( is_status-excluded_ucomm[ table_line = ls_icon-ucomm ] ).
+        CONTINUE.
+      ENDIF.
       IF ls_icon-separator = abap_true.
         lv_buttons = lv_buttons && '<span class="wb-toolbar-separator" aria-hidden="true"></span>'.
       ENDIF.
@@ -321,7 +327,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       ENDIF.
       lv_buttons = lv_buttons &&
         |<button class="wb-toolbar-button" type="{ lv_type }"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" title="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" data-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"{ lv_state }>| &&
-        zcl_gg_host_icons=>icon( iv_name = ls_icon-icon ) &&
+        COND string( WHEN ls_icon-icon IS NOT INITIAL THEN zcl_gg_host_icons=>icon( iv_name = ls_icon-icon ) ) &&
         |<span class="wb-toolbar-label">{ zcl_gg_host_html=>escape_text( lv_label ) }</span>| &&
         '</button>'.
     ENDLOOP.

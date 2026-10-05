@@ -1,13 +1,18 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_062 — changes the status after Next", async ({page, host}) => {
+test("ZCL_GG_EX_062 — Check switches the order to another status", async ({page, host}) => {
   await openExample(page, host, 62);
-  await expect(page.locator(".gg-list-status")).toHaveText("SHELL62");
-  await expect(page.locator(".wb-toolbar").getByRole("button", {name: "Next"})).toBeEnabled();
-  await expect(page.locator(".wb-toolbar").getByRole("button", {name: "Done"})).toBeDisabled();
-  await dispatch(page, {action: "COMMAND", ucomm: "NEXT"});
-  await expect(page.locator(".gg-list-status")).toHaveText("SHELL62-DONE");
-  await expect(page.locator(".gg-list-line")).toHaveText(["advanced"]);
-  await expect(page.locator(".wb-toolbar").getByRole("button", {name: "Next"})).toBeDisabled();
-  await expect(page.locator(".wb-toolbar").getByRole("button", {name: "Done"})).toBeEnabled();
+  const toolbar = page.locator(".wb-toolbar");
+  const save = page.locator('.wb-commandbar button[title="Save"]');
+  await expect(toolbar.getByRole("button")).toHaveText(["Check"]);
+  await expect(save).toBeDisabled();
+
+  await submit(page, "Check");
+  await expect(page.locator(".gg-list-line")).toHaveText(["Order 4711, checked"]);
+  await expect(toolbar.getByRole("button")).toHaveText(["Save"]);
+  // The new status puts Save on Ctrl+S, the system toolbar's Save.
+  await expect(save).toBeEnabled();
+  await save.click();
+  await page.waitForLoadState("load");
+  await expect(page.locator(".gg-list-line")).toHaveText(["Order 4711, saved"]);
 });

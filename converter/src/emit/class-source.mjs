@@ -192,7 +192,7 @@ function withControlFlowGuard(body) {
 }
 
 function method(name, body, comment) {
-  const entry = { name, body: body.length ? withControlFlowGuard([...body]) : ["RETURN."] };
+  const entry = { name, body: body.length ? withControlFlowGuard(hoistDeclarations([...body])) : ["RETURN."] };
   if (comment) entry.comment = comment;
   Object.defineProperty(entry, "toString", {
     enumerable: false,
@@ -1612,16 +1612,17 @@ function keptOnUnwind(dispatchLines, flushLines) {
   ];
 }
 
-// The modules of all screens share one method; their DATA is declared at its
-// top, as an ABAP declaration does not depend on where it stands. A structure
-// declared with BEGIN OF keeps the body as it is.
+// A method's declarations go to its top, as an ABAP declaration does not
+// depend on where it stands: the DATA of the modules that share a method, or
+// of a statement lowered into several. A structure declared with BEGIN OF
+// keeps the body as it is.
 function hoistDeclarations(body) {
   const lines = body.flatMap((line) => String(line).split("\n"));
   if (lines.some((line) => /^\s*(?:DATA|TYPES|CONSTANTS)\b.*\b(?:BEGIN|END)\s+OF\b/i.test(line))) return body;
   const declarations = [];
   const rest = [];
   for (const line of lines) {
-    if (/^\s*(?:DATA|FIELD-SYMBOLS|CONSTANTS)\s+[^\s(:]+\s.*\.\s*$/i.test(line)) {
+    if (/^\s*(?:TYPES|DATA|FIELD-SYMBOLS|CONSTANTS)\s+[^\s(:]+\s.*\.\s*$/i.test(line)) {
       if (!declarations.includes(line.trim())) declarations.push(line.trim());
     } else {
       rest.push(line);

@@ -5,13 +5,6 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 ## Needs a decision
 
-- **The list page shows the GUI status name** (`SHELL66`, `BACK`) as text
-  above the list (`.gg-list-status`, zcl_gg_host_renderer); SAP never shows
-  it. The hand-written 044, 062 and 151–159 use the status name as a
-  state display and their specs assert it, so removing it goes with the
-  decision on those examples.
-- **GUI statuses for 044, 059–062.** The programs `SET PF-STATUS` without a
-  `<CUA>` in their prog.xml; the hand-written classes invent the icon bars.
 - **019, 020, 032, 058** pass converter parity only because
   behavioral-generated.mjs injects metadata the repo lacks (fixed values,
   DDIC, dynpro screens).
@@ -81,7 +74,9 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
     `output_modules` and `input_modules`.
   - Table controls exchange their values in `table_values_in` and
     `table_values_out`.
-  - Module `DATA` is declared at the top of the method.
+  - `DATA`, `TYPES`, `FIELD-SYMBOLS` and `CONSTANTS` are declared at the
+    top of every generated method, also where a statement is lowered into
+    several (`SET PF-STATUS ... EXCLUDING itab`).
   - A comment right before `MODULE` or `FORM` goes with that block, not with
     the end of `START-OF-SELECTION`.
   - `|a| && |b|` is written as one template.
@@ -330,13 +325,21 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   - A run without a shown screen (a first display, unit tests calling
     zcl_gg_host_dynpro=>run directly) still runs PBO first, as the display
     before the input.
+- GUI statuses, done with 044 and 059–062 (real programs with a CUA; the
+  hand-written classes are gone):
+  - The list and selection pages no longer show the status name; SAP shows
+    the status's functions, never its name.
+  - A function the status excludes is not shown in the application toolbar,
+    as on SAP; the menus show it inactive. Before, it was a disabled button.
+  - A toolbar button may have only a text: the converter dropped buttons
+    without an icon, and the status check refused them.
+  - Separators of the application toolbar (`RSMPE_BUT` with `PFNO` S) are
+    read from the CUA.
 - Open, dynpro:
   - `SCREEN-REQUIRED = 2` (shown as required, checked by the program) is not
     supported; states know required or not.
   - A popup answer still replays the PAI that called the popup.
   - An I message shows in the message area; on SAP it is a dialog box.
-  - A function excluded from the status is shown disabled in the
-    application toolbar; SAP hides it.
   - An input field's accessible name is its field name, not the text in
     front of it.
   - Required columns of a table control are not checked.

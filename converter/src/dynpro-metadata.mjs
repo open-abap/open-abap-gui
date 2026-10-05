@@ -473,6 +473,8 @@ function parseGuiStatus(values) {
     code: recordValue(record, "CODE"),
     number: integer(record.NO),
     functionKey: integer(record.PFNO),
+    // A separator of the application toolbar has the function key S.
+    separator: recordValue(record, "PFNO")?.toUpperCase() === "S",
     attributes: publicRecord(record),
   }));
   const pfKeys = records("PFK", "RSMPE_PFK").map((record) => ({
@@ -507,16 +509,7 @@ function parseGuiStatus(values) {
       number: item.functionKey,
       ucomm: item.functionCode,
     })),
-    iconBar: buttons.filter((item) => item.functionKeyCode === status.pfKeyCode).map((button) => {
-      const pfKey = pfKeys.find((item) => item.code === status.pfKeyCode && item.functionKey === button.functionKey);
-      const func = functions.find((item) => item.code === pfKey?.functionCode);
-      if (!func?.code || !func.textName) return undefined;
-      return {
-        ucomm: func.code,
-        label: func.iconText ?? func.text ?? func.code,
-        icon: func.textName,
-      };
-    }).filter(Boolean),
+    iconBar: applicationToolbar(status, buttons, pfKeys, functions),
     menus: menuTexts.map((menuText) => ({
       code: menuText.code,
       text: menuText.text,
@@ -538,6 +531,34 @@ function parseGuiStatus(values) {
     guiStatuses,
     titlebars,
   };
+}
+
+// The application toolbar in the order of its buttons. A button shows its
+// function's icon and icon text, or only its text; a separator goes before
+// the button after it.
+function applicationToolbar(status, buttons, pfKeys, functions) {
+  const entries = [];
+  let separator = false;
+  const ordered = buttons
+    .filter((item) => item.functionKeyCode === status.pfKeyCode)
+    .sort((left, right) => (left.number ?? 0) - (right.number ?? 0));
+  for (const button of ordered) {
+    if (button.separator) {
+      separator = entries.length > 0;
+      continue;
+    }
+    const pfKey = pfKeys.find((item) => item.code === status.pfKeyCode && item.functionKey === button.functionKey);
+    const func = functions.find((item) => item.code === pfKey?.functionCode);
+    if (!func?.code) continue;
+    entries.push({
+      ucomm: func.code,
+      label: func.textName ? func.iconText ?? func.text ?? func.code : func.text ?? func.code,
+      icon: func.textName ?? "",
+      ...(separator ? { separator: true } : {}),
+    });
+    separator = false;
+  }
+  return entries;
 }
 
 function parseXmlMetadata(xml, { metadataFilename, language } = {}) {

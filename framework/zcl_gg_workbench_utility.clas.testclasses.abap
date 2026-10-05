@@ -48,13 +48,14 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
                             excluded_ucomm = VALUE #( ( 'EXCLUDED' ) )
                             icon_bar       = VALUE #(
                               ( ucomm = 'RUN'      label = `A & <Run>` icon = `not-a-real-icon` )
-                              ( ucomm = 'INACTIVE' label = `Inactive` icon = `refresh` )
-                              ( ucomm = 'EXCLUDED' label = `Excluded` icon = `refresh` separator = abap_true ) ) ) ).
+                              ( ucomm = 'INACTIVE' label = `Inactive` icon = `refresh` separator = abap_true )
+                              ( ucomm = 'EXCLUDED' label = `Excluded` icon = `refresh` ) ) ) ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'title="A &amp; &lt;Run&gt;"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="COMMAND:RUN"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="COMMAND:INACTIVE"' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="COMMAND:EXCLUDED"' ) ).
+* As on SAP, an excluded function is not shown in the application toolbar.
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-ucomm="EXCLUDED"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-ucomm="INACTIVE" disabled' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-toolbar-separator' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-toolbar-scope="application-status"' ) ).

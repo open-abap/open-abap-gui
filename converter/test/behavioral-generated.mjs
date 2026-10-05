@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 import { isDeepStrictEqual } from "node:util";
 import { convertProgram } from "../src/api.mjs";
+import { loadDynproMetadata } from "../src/dynpro-metadata.mjs";
 import { repositoryRoot, repositoryTool } from "./repository.mjs";
 
 const repository = repositoryRoot;
@@ -56,15 +57,8 @@ async function prepare() {
       : ["020", "032"].includes(id)
         ? { S_CARR: { dataType: { rollname: "S_CARR_ID", typ: "C", length: 3 } } }
         : undefined;
-    const guiStatusMetadata = id === "044"
-      ? { LIST: {
-        activeUcomm: ["PRI", "REFR", "DEL"],
-        iconBar: [
-          { ucomm: "REFR", label: "Refresh", icon: "refresh" },
-          { ucomm: "PRI", label: "Print", icon: "printer", separator: true },
-        ],
-      } }
-      : undefined;
+    // The GUI statuses are the program's own, from the CUA of its prog.xml.
+    const guiStatusMetadata = (await loadDynproMetadata({ filename: path.join(examples, name) }))?.guiStatuses;
     const result = await convertProgram({
       source,
       filename: name,

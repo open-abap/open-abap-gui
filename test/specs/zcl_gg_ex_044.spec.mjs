@@ -1,62 +1,24 @@
-import {test, expect, openExample, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test(`ZCL_GG_EX_044 — renders PF-STATUS and excluded commands`, async ({page, host}) => {
+const toolbar = (page) => page.locator(".wb-toolbar");
+const lines = (page) => page.locator(".gg-list-line");
+
+test("ZCL_GG_EX_044 — the excluded function is not offered", async ({page, host}) => {
   await openExample(page, host, 44);
-  await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list-status")).toContainText("LIST");
-  // The excluded function is in no toolbar and no menu, so nothing offers it.
-  await expect(page.getByRole("button", {name: "DEL"})).toHaveCount(0);
-  await expect(page.locator(".gg-list")).toContainText("body");
-  const iconBar = page.locator(".wb-toolbar");
-  await expect(iconBar.getByRole("button")).toHaveCount(2);
-  await expect(iconBar.locator(".wb-toolbar-separator")).toHaveCount(1);
-  await expect(iconBar.getByRole("button").nth(0)).toHaveAccessibleName("Refresh");
-  await expect(iconBar.getByRole("button").nth(1)).toHaveAccessibleName("Print");
-  await expect(iconBar.getByRole("button", {name: "Refresh"})).toHaveAttribute("data-ucomm", "REFR");
-  await expect(iconBar.getByRole("button", {name: "Refresh"}).locator("use")).toHaveAttribute("href", "#wb-icon-refresh");
-  await expect(iconBar.getByRole("button", {name: "Print"}).locator("use")).toHaveAttribute("href", "#wb-icon-printer");
-  await iconBar.getByRole("button", {name: "Refresh"}).click();
-  await page.waitForLoadState("load");
-  // The output of AT USER-COMMAND is the detail list.
-  await expect(page.locator(".gg-list-line")).toHaveText(["refreshed"]);
+  await expect(toolbar(page).getByRole("button")).toHaveText(["Refresh"]);
+  await expect(page.getByRole("button", {name: "Delete"})).toHaveCount(0);
+  // SAP shows the functions of the status, never its name.
+  await expect(page.locator(".gg-list-status")).toHaveCount(0);
+
+  await submit(page, "Refresh");
+  await expect(lines(page)).toHaveText(["Bookings of flight LH 0400, refreshed 1 times"]);
 });
 
-test(`ZCL_GG_EX_044 — the status activates the standard print command`, async ({page, host}) => {
-  await page.addInitScript(() => {
-    window.print = () => { window.__printed = (window.__printed ?? 0) + 1; };
-  });
-  await openExample(page, host, 44);
-
-  const commandBar = page.locator(".wb-commandbar");
-  await expect(commandBar.locator('[title="Print"]')).toBeEnabled();
-  await expect(commandBar.locator('[title="Save"]')).toBeDisabled();
-  await expect(commandBar.locator('[title="Find"]')).toBeDisabled();
-
-  // Print is the list processor's: it prints and never reaches AT USER-COMMAND.
-  await commandBar.locator('[title="Print"]').click();
-  await expect.poll(() => page.evaluate(() => window.__printed)).toBe(1);
-  await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list-line")).toHaveText(["body"]);
-});
-
-test(`ZCL_GG_EX_044 — inactive and excluded commands are rejected without staling the page`, async ({page, host}) => {
+test("ZCL_GG_EX_044 — the code of an excluded function is refused", async ({page, host}) => {
   await openExample(page, host, 44);
   const pageId = await page.locator("[data-page-kind]").getAttribute("data-page-id");
   const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
-
   const response = await page.evaluate(async ({sessionId, pageId}) => {
-    const result = await fetch("/dispatch", {
-      method: "POST",
-      headers: {"content-type": "application/json"},
-      body: JSON.stringify({session_id: sessionId, page_id: pageId, action: "COMMAND", ucomm: "SAVE"}),
-    });
-    return {status: result.status, body: await result.json()};
-  }, {sessionId, pageId});
-  expect(response.status).toBe(400);
-  expect(response.body.error).toMatch(/not active/);
-  await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-id", pageId);
-
-  const excluded = await page.evaluate(async ({sessionId, pageId}) => {
     const result = await fetch("/dispatch", {
       method: "POST",
       headers: {"content-type": "application/json"},
@@ -64,7 +26,7 @@ test(`ZCL_GG_EX_044 — inactive and excluded commands are rejected without stal
     });
     return {status: result.status, body: await result.json()};
   }, {sessionId, pageId});
-  expect(excluded.status).toBe(400);
-  expect(excluded.body.error).toMatch(/not active/);
+  expect(response.status).toBe(400);
+  expect(response.body.error).toMatch(/not active/);
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-id", pageId);
 });

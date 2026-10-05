@@ -1185,8 +1185,9 @@ test("lowers a USING parameter its FORM writes to CHANGING", async () => {
   assert.match(result.classSource, /METHODS form_aliased\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_x\s+TYPE i\./);
   assert.match(result.classSource, /form_get_dai\(\s+EXPORTING\s+io_session = io_session\s+CHANGING\s+pv_subrc\s+= lv_subrc\s+pt_t000\s+= gt_t000 \)\./);
   // A literal or a constant cannot take the write, so the call passes a temporary.
-  assert.match(result.classSource, /DATA lv_perform_1 TYPE i\.\s+lv_perform_1 = 3\.\s+form_count\(\s+EXPORTING\s+io_session = io_session\s+pv_flag\s+= 'Y'\s+pv_max\s+= gv_n\s+CHANGING\s+pv_total\s+= lv_perform_1/);
-  assert.match(result.classSource, /DATA lv_perform_2 TYPE i\.\s+lv_perform_2 = gc_max\./);
+  // The declaration stands at the top of the method.
+  assert.match(result.classSource, /DATA lv_perform_1 TYPE i\.[\s\S]*?lv_perform_1 = 3\.\s+form_count\(\s+EXPORTING\s+io_session = io_session\s+pv_flag\s+= 'Y'\s+pv_max\s+= gv_n\s+CHANGING\s+pv_total\s+= lv_perform_1/);
+  assert.match(result.classSource, /DATA lv_perform_2 TYPE i\.[\s\S]*?lv_perform_2 = gc_max\./);
   const warnings = result.diagnostics.filter((item) => item.code === "GGCONV-W111");
   assert.deepEqual(warnings.map((item) => item.construct), ["PERFORM count USING 3 'Y' gv_n gv_n.", "PERFORM count USING gc_max 'Z' gv_n gv_n."]);
   assert.ok(warnings.every((item) => item.severity === "warning"));
