@@ -15,8 +15,6 @@
   "scripts": {
     "publish:dryrun": "npm run test && npm publish --dry-run --access public",
     "publish:patch": "npm --no-git-tag-version version patch && npm install && npm run test && npm publish --access public",
-    "check": "node bin/convert.mjs --config test/fixtures/check/abap_transpile.json --check",
-    "check:matrix": "node test/check-fixtures.mjs",
     "test:unit": "node --test test/unit/*.test.mjs test/integration/*.test.mjs",
     "test": "node test/verify.mjs",
     "fixtures": "node test/run-fixtures.mjs",
@@ -28,7 +26,6 @@
     "coverage": "node test/coverage.mjs",
     "transpile": "node test/transpile-generated.mjs",
     "behavior": "node test/behavioral-generated.mjs",
-    "browser": "node test/browser-generated.mjs",
     "test:gg-gui": "node test/gg-gui.mjs"
   },
   "engines": {

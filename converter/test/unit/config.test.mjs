@@ -437,7 +437,7 @@ test("the CLI converts every selected program and exits 0 when all are supported
   const result = await runCli(["--config", config, "--check"]);
   assert.equal(result.code, 0);
   const parsed = JSON.parse(result.stdout);
-  assert.equal(parsed.summary.programCount, 1, "npm run check must stay a one-program smoke test");
+  assert.equal(parsed.summary.programCount, 1, "the check fixture must stay a one-program smoke test");
   assert.equal(parsed.summary.supportedCount, 1);
 });
 

@@ -937,7 +937,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~selection_table_to_values.
-    rt_values = table_to_values( it_table = it_selection ).
+    DATA lt_selection TYPE zif_gg_compatibility_v1=>ty_variant_parameters.
+    lt_selection = it_selection.
+    rt_values = table_to_values( it_table = lt_selection ).
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~variant_refresh.

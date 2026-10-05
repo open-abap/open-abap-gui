@@ -8,6 +8,7 @@ CLASS ltcl_gg_compatibility_popup DEFINITION FINAL FOR TESTING
     METHODS classic_alv_blocks_are_grouped FOR TESTING.
     METHODS selection_lists_are_refreshed FOR TESTING.
     METHODS refresh_skips_tab_labels FOR TESTING.
+    METHODS selection_table_any_key FOR TESTING.
 
 ENDCLASS.
 
@@ -166,6 +167,25 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
                                         exp = 1 ).
     cl_abap_unit_assert=>assert_equals( act = lt_selection[ 1 ]-selname
                                         exp = 'P_NAME' ).
+  ENDMETHOD.
+
+  METHOD selection_table_any_key.
+* SUBMIT ... WITH SELECTION-TABLE takes a table of rsparams with any key.
+    DATA lo_compatibility TYPE REF TO zif_gg_compatibility_v1.
+    DATA lt_default TYPE STANDARD TABLE OF rsparams WITH DEFAULT KEY.
+    DATA lt_empty TYPE STANDARD TABLE OF rsparams WITH EMPTY KEY.
+    lo_compatibility ?= NEW zcl_gg_host_compatibility( ).
+    lt_default = VALUE #(
+      ( selname = 'P_NAME' kind = 'P' low = 'Ada' )
+      ( selname = 'S_CARR' kind = 'S' sign = 'I' option = 'EQ' low = 'LH' ) ).
+    lt_empty = lt_default.
+    DATA(lt_values) = lo_compatibility->selection_table_to_values( lt_empty ).
+    cl_abap_unit_assert=>assert_equals( act = lt_values
+                                        exp = lo_compatibility->selection_table_to_values( lt_default ) ).
+    cl_abap_unit_assert=>assert_equals( act = lt_values[ name = 'P_NAME' ]-value
+                                        exp = `Ada` ).
+    cl_abap_unit_assert=>assert_equals( act = lt_values[ name = 'S_CARR' ]-ranges[ 1 ]-low
+                                        exp = `LH` ).
   ENDMETHOD.
 
 ENDCLASS.

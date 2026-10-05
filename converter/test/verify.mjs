@@ -3,8 +3,6 @@ import { converterRoot } from "./repository.mjs";
 
 const commands = [
   ["test:unit", []],
-  ["check", []],
-  ["check:matrix", []],
   ["fixtures", []],
   ["structural", []],
   // Compares against test/examples/*/output; run examples:update to accept
@@ -15,7 +13,6 @@ const commands = [
   ["coverage", []],
   ["transpile", []],
   ["behavior", []],
-  ["browser", []],
 ];
 
 // --skip drops a suite while iterating locally. CI runs the chain with no

@@ -263,9 +263,11 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
       it_states TYPE zif_gg_selection_screen_types=>ty_states OPTIONAL
       iv_screen TYPE zif_gg_selection_screen_types=>ty_screen_number DEFAULT '1000'.
 
+* Any standard table of rsparams, whatever its key: DEFAULT KEY, EMPTY KEY or
+* a declared one, as SUBMIT ... WITH SELECTION-TABLE takes it.
   METHODS selection_table_to_values
     IMPORTING
-      it_selection     TYPE ty_variant_parameters
+      it_selection     TYPE STANDARD TABLE
     RETURNING
       VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_values.
 
