@@ -281,6 +281,17 @@ npm run test:gg-gui
 npm test
 ```
 
+Full verification runs fixtures, structural snapshots, example snapshots,
+warnings, hardening, and coverage sequentially in one Node process. Unit tests
+keep the Node test runner's process isolation. Generated-class and behavioral
+validation share one lint/transpile build, then run their runtime probes in
+separate processes. The standalone `transpile` and `behavior` commands still
+build and check their respective fixtures. A failed generated validation keeps
+its artifacts under `transpile-validation/` for inspection.
+
+For local iteration, `npm test -- --skip transpile` or `--skip behavior` leaves
+the other generated suite enabled. CI runs all suites without skips.
+
 `test:gg-gui` clones `https://github.com/larshp/gg-gui` into the gitignored
 `gg-gui-validation/` workspace (or reads `GG_GUI_REPOSITORY`), writes
 `gg-gui-validation/abap_transpile.json` naming that checkout as the converter input folder,
