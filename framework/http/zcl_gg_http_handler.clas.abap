@@ -1138,7 +1138,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       name  = 'cache-control'
       value = 'no-store' ).
     server->response->set_content_type( 'text/html; charset=utf-8' ).
-    server->response->set_cdata( iv_html ).
+* A page carries the icons it shows, not the whole icon set.
+    server->response->set_cdata( zcl_gg_host_icons=>prune_sprite( iv_html ) ).
     server->response->set_status(
       code   = iv_status
       reason = COND string( WHEN iv_status = 200 THEN 'OK' ELSE 'Error' ) ).

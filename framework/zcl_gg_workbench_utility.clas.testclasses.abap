@@ -169,11 +169,13 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD renders_bottom_message_types.
-* E, A and X are errors; the remaining types own a colour of their own.
-    cl_abap_unit_assert=>assert_true( act = xsdbool(
-      zcl_gg_workbench_utility=>render_bottom( iv_message = 'boom'
-                                               iv_type    = zif_gg_session_types_v1=>message_type_error ) CS
-      'class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive">boom<' ) ).
+* E, A and X are errors; the remaining types own a colour of their own. The
+* icon of the type leads the text, the title holds the text in full.
+    DATA(lv_error) = zcl_gg_workbench_utility=>render_bottom( iv_message = 'boom'
+                                                              iv_type    = zif_gg_session_types_v1=>message_type_error ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error CS
+      'id="wb-status-message" class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive" title="boom">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error CS '<use href="#wb-icon-alert-octagon"></use></svg><span class="wb-status-text">boom</span></span>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool(
       zcl_gg_workbench_utility=>render_bottom( iv_message = 'boom'
                                                iv_type    = zif_gg_session_types_v1=>message_type_abort ) CS
@@ -182,21 +184,31 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
       zcl_gg_workbench_utility=>render_bottom( iv_message = 'boom'
                                                iv_type    = zif_gg_session_types_v1=>message_type_exit ) CS
       'wb-status-error' ) ).
+    DATA(lv_warning) = zcl_gg_workbench_utility=>render_bottom( iv_message = 'careful'
+                                                                iv_type    = zif_gg_session_types_v1=>message_type_warning ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_warning CS
+      'class="wb-status-feedback wb-status-warning" role="alert" aria-live="assertive" title="careful">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_warning CS '#wb-icon-alert-triangle' ) ).
+    DATA(lv_success) = zcl_gg_workbench_utility=>render_bottom( iv_message = 'saved'
+                                                                iv_type    = zif_gg_session_types_v1=>message_type_success ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_success CS
+      'class="wb-status-feedback wb-status-success" role="status" aria-live="polite" title="saved">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_success CS '#wb-icon-circle-check' ) ).
+    DATA(lv_info) = zcl_gg_workbench_utility=>render_bottom( iv_message = 'note'
+                                                             iv_type    = zif_gg_session_types_v1=>message_type_info ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_info CS
+      'class="wb-status-feedback wb-status-info" role="status" aria-live="polite" title="note">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_info CS '#wb-icon-info-circle' ) ).
+* The text is escaped in the bar and in the title alike.
     cl_abap_unit_assert=>assert_true( act = xsdbool(
-      zcl_gg_workbench_utility=>render_bottom( iv_message = 'careful'
-                                               iv_type    = zif_gg_session_types_v1=>message_type_warning ) CS
-      'class="wb-status-feedback wb-status-warning" role="alert" aria-live="assertive">careful<' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool(
-      zcl_gg_workbench_utility=>render_bottom( iv_message = 'saved'
+      zcl_gg_workbench_utility=>render_bottom( iv_message = '<b>&'
                                                iv_type    = zif_gg_session_types_v1=>message_type_success ) CS
-      'class="wb-status-feedback wb-status-success" role="status" aria-live="polite">saved<' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool(
-      zcl_gg_workbench_utility=>render_bottom( iv_message = 'note'
-                                               iv_type    = zif_gg_session_types_v1=>message_type_info ) CS
-      'class="wb-status-feedback wb-status-info" role="status" aria-live="polite">note<' ) ).
+      'title="&lt;b&gt;&amp;"><svg' ) ).
 * An empty bar stays a plain, uncoloured slot.
+    DATA(lv_empty) = zcl_gg_workbench_utility=>render_bottom( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool(
-      zcl_gg_workbench_utility=>render_bottom( ) CS '<span class="wb-status-feedback" aria-live="polite"></span>' ) ).
+      lv_empty CS '<span id="wb-status-message" class="wb-status-feedback" aria-live="polite"></span>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_empty CS 'wb-status-text' ) ).
   ENDMETHOD.
 
 ENDCLASS.

@@ -477,7 +477,8 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'hello world' ) ).
 * SAP shows the functions of the status, never its name.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html NS 'gg-list-status' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-message-region"' ) ).
+* Messages are the status bar's; the page has no message region of its own.
+    cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS 'gg-message-region' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-work-area"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-list-page-header"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Host list</span><span class="gg-list-page-number"' ) ).

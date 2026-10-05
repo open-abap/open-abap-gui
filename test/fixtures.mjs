@@ -113,6 +113,11 @@ export function expectPageKind(page, kind) {
   return expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", kind);
 }
 
+// The message in the shell's status bar; every page shows its messages there.
+export function statusMessage(page) {
+  return page.locator(".wb-statusbar #wb-status-message");
+}
+
 // The workbench a program started from it returns to when it ends.
 export async function expectWorkbench(page) {
   await expect(page.locator("#wb-app-panel")).toBeVisible();

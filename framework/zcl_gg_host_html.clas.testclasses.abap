@@ -4,6 +4,8 @@ CLASS ltcl_gg_host_html DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL H
     METHODS escapes_text FOR TESTING.
     METHODS builds_attributes FOR TESTING.
     METHODS builds_document FOR TESTING.
+    METHODS shows_messages_in_status_bar FOR TESTING.
+    METHODS status_message_is_the_last FOR TESTING.
     METHODS formats_external_values FOR TESTING.
 
 ENDCLASS.
@@ -120,6 +122,69 @@ CLASS ltcl_gg_host_html IMPLEMENTATION.
       iv_readonly = abap_true ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_states CS 'gg-state-focused' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_states CS 'gg-state-readonly' ) ).
+  ENDMETHOD.
+
+  METHOD shows_messages_in_status_bar.
+    DATA(lv_html) = zcl_gg_host_html=>document(
+      iv_session_id = `S1`
+      iv_page_id    = `P1`
+      iv_kind       = zif_gg_host_html_v1=>page_list
+      iv_title      = `SEE - Log`
+      iv_body       = `<section class="gg-page gg-page--list">grid</section>`
+      it_messages   = VALUE #( ( type = zif_gg_session_types_v1=>message_type_success text = `0 entries listed` ) ) ).
+
+* The message is in the status bar, after the work area, exactly once, and
+* the system, client and user stay beside it.
+    cl_abap_unit_assert=>assert_equals(
+      act = count( val = lv_html
+                   sub = `0 entries listed` )
+      exp = 2
+      msg = 'text and title of the status bar message, nothing in the page' ).
+    DATA(lv_main) = find( val = lv_html
+                          sub = `</main>` ).
+    DATA(lv_message) = find( val = lv_html
+                             sub = `<span class="wb-status-text">0 entries listed</span>` ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_main > 0 AND lv_message > lv_main ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<footer class="wb-statusbar"><span id="wb-status-message" class="wb-status-feedback wb-status-success" role="status"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<div class="wb-status-context"><span>System:' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'class="gg-message' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-message-region' ) ).
+
+* A page without messages leaves the slot empty: no message from an earlier
+* page survives into this one.
+    lv_html = zcl_gg_host_html=>document(
+      iv_session_id = `S1`
+      iv_page_id    = `P2`
+      iv_kind       = zif_gg_host_html_v1=>page_list
+      iv_title      = `SEE - Log`
+      iv_body       = `grid` ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<span id="wb-status-message" class="wb-status-feedback" aria-live="polite"></span>' ) ).
+  ENDMETHOD.
+
+  METHOD status_message_is_the_last.
+* Each MESSAGE replaces the one before it in the status bar; DISPLAY LIKE
+* decides the colour only.
+    DATA(ls_message) = zcl_gg_host_html=>status_message( VALUE #(
+      ( type = zif_gg_session_types_v1=>message_type_success text = `Saved successfully` )
+      ( type = zif_gg_session_types_v1=>message_type_success text = `Review the selection`
+        display_like = zif_gg_session_types_v1=>message_type_warning ) ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_message-text
+      exp = `Review the selection` ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_message-type
+      exp = zif_gg_session_types_v1=>message_type_warning ).
+
+    ls_message = zcl_gg_host_html=>status_message( VALUE #(
+      ( type = zif_gg_session_types_v1=>message_type_error text = `The flight is fully booked` field = `GV_SEATS` ) ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_message-type
+      exp = zif_gg_session_types_v1=>message_type_error ).
+
+    ls_message = zcl_gg_host_html=>status_message( VALUE #( ) ).
+    cl_abap_unit_assert=>assert_initial( ls_message ).
   ENDMETHOD.
 
   METHOD formats_external_values.

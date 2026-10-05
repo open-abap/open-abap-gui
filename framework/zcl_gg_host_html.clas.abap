@@ -81,18 +81,22 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_body        TYPE string
         iv_csp_nonce   TYPE string OPTIONAL
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status OPTIONAL
+        it_messages    TYPE zif_gg_host_html_v1=>ty_messages OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
+
+    "! The message the status bar shows: the last one sent, as each MESSAGE
+    "! replaces the one before it in the SAP GUI status bar. Its type is the
+    "! DISPLAY LIKE type when there is one.
+    CLASS-METHODS status_message
+      IMPORTING
+        it_messages       TYPE zif_gg_host_html_v1=>ty_messages
+      RETURNING
+        VALUE(rs_message) TYPE zif_gg_session_types_v1=>ty_message.
 
     CLASS-METHODS css_class
       IMPORTING
         is_format       TYPE zif_gg_list_processing_types_v1=>ty_format
-      RETURNING
-        VALUE(rv_class) TYPE string.
-
-    CLASS-METHODS message_class
-      IMPORTING
-        iv_type         TYPE zif_gg_session_types_v1=>ty_message_type
       RETURNING
         VALUE(rv_class) TYPE string.
 
@@ -216,6 +220,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
 
   METHOD document.
     DATA lv_content_class TYPE string.
+    DATA ls_message TYPE zif_gg_session_types_v1=>ty_message.
 
     lv_content_class = COND string( WHEN iv_kind = zif_gg_host_html_v1=>page_dynpro THEN ` wb-runtime-content--dynpro` ELSE `` ).
     rv_html = |<!doctype html><html lang="en"><head>|.
@@ -254,7 +259,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-work-area--docking\{position:relative;\}|.
     rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro\{margin-left:260px;\}|.
     rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro>form>.gg-controls-standalone\{position:relative;left:-260px;width:calc(100% + 260px);height:100%;min-height:0;\}|.
-    rv_html = rv_html && |.gg-message-region,.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-controls-standalone\{display:flow-root;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control\{pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control[title="HTML viewer"]\{pointer-events:auto;\}|.
@@ -270,9 +275,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-dialog-close:hover,.gg-dialog-close:focus-visible\{background:#c94b4b;border-color:#fff8;\}|.
     rv_html = rv_html && |.gg-dialog-body\{position:relative;flex:1;min-height:0;overflow:hidden;background:#fff;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-dialog-body>.gg-control\{position:relative!important;left:0!important;top:0!important;width:100%!important;height:100%!important;\}|.
-    rv_html = rv_html && |.gg-message-region,.gg-instruction-region\{display:flex;flex-direction:column;gap:4px;\}|.
-* Empty regions stay in the markup but take no space or flex gap.
-    rv_html = rv_html && |.gg-message-region:empty\{display:none;\}|.
+    rv_html = rv_html && |.gg-instruction-region\{display:flex;flex-direction:column;gap:4px;\}|.
     rv_html = rv_html && |.gg-action-row\{position:relative;z-index:30;display:flex;align-items:center;gap:8px;min-height:28px;padding:4px 0;border-top:1px solid var(--gg-border);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-state-focused:focus,.gg-state-focused:focus-visible\{outline:2px solid #2668a3;outline-offset:2px;\}|.
     rv_html = rv_html && |.gg-state-selected,[aria-selected=true],[aria-current=true]\{background:#c7dced;color:#102f4d;\}|.
@@ -603,7 +606,23 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
       iv_execute_form = COND string( WHEN iv_kind = zif_gg_host_html_v1=>page_selection THEN `gg-host-form` ELSE `` ) ).
     rv_html = rv_html && |<div class="wb-runtime-content{ lv_content_class }" data-session-id="{ escape_attribute( iv_session_id ) }" data-page-id="{ escape_attribute( iv_page_id ) }" data-page-kind="{ escape_attribute( iv_kind ) }">|.
     rv_html = rv_html && |<main id="gg-main-content" aria-labelledby="wb-page-title">{ iv_body }</main></div>|.
-    rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom( ).
+* Every message of the page goes to the status bar, never into the page, so a
+* message cannot move or shrink the screen below it.
+    ls_message = status_message( it_messages ).
+    rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom(
+      iv_message = ls_message-text
+      iv_type    = ls_message-type ).
+  ENDMETHOD.
+
+  METHOD status_message.
+    DATA(lv_index) = lines( it_messages ).
+    IF lv_index = 0.
+      RETURN.
+    ENDIF.
+    rs_message = it_messages[ lv_index ].
+    IF rs_message-display_like IS NOT INITIAL.
+      rs_message-type = rs_message-display_like.
+    ENDIF.
   ENDMETHOD.
 
   METHOD css_class.
@@ -651,21 +670,6 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
       iv_subtotal = lv_subtotal
       iv_hotspot  = lv_hotspot
       iv_readonly = lv_readonly ).
-  ENDMETHOD.
-
-  METHOD message_class.
-    CASE iv_type.
-      WHEN zif_gg_session_types_v1=>message_type_error
-          OR zif_gg_session_types_v1=>message_type_abort
-          OR zif_gg_session_types_v1=>message_type_exit.
-        rv_class = 'gg-error'.
-      WHEN zif_gg_session_types_v1=>message_type_warning.
-        rv_class = 'gg-warning'.
-      WHEN zif_gg_session_types_v1=>message_type_success.
-        rv_class = 'gg-success'.
-      WHEN OTHERS.
-        rv_class = 'gg-info'.
-    ENDCASE.
   ENDMETHOD.
 
   METHOD state_class.

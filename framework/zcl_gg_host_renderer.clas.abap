@@ -90,12 +90,13 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html)    TYPE string.
 
+* A report that ends with a message and no list: the message is in the status
+* bar, as on every page, and the page has nothing else to show.
     CLASS-METHODS render_message
       IMPORTING
         iv_session_id  TYPE string
         iv_page_id     TYPE string
         iv_title       TYPE string
-        iv_text        TYPE string
         is_context     TYPE zif_gg_host_html_v1=>ty_renderer_context OPTIONAL
         it_messages    TYPE zcl_gg_host_session=>ty_messages OPTIONAL
       RETURNING
@@ -124,12 +125,6 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     TYPES ty_block_path TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
-
-    CLASS-METHODS render_messages
-      IMPORTING
-        it_messages    TYPE zcl_gg_host_session=>ty_messages
-      RETURNING
-        VALUE(rv_html) TYPE string.
 
     CLASS-METHODS spaces
       IMPORTING
@@ -581,7 +576,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
       is_status     = is_status
-      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
+      it_messages   = it_messages
+      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
   ENDMETHOD.
 
   METHOD render_list_dialog.
@@ -651,7 +647,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       it_values = it_values ).
 
 * The status name is the program's; SAP shows its functions, not its name.
-    lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page"><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section>|.
+    lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page">|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
     lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
 
@@ -988,6 +984,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_kind       = zif_gg_host_html_v1=>page_selection
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
+      it_messages   = it_messages
 * The workbench shell already carries the page title in wb-app-title, the way
 * SAP GUI shows it once in the window title bar. A second heading inside the
 * screen would duplicate it and give the page two h1 elements.
@@ -1226,7 +1223,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ELSE.
       lv_modal_style = |min-height:{ lv_render_height }px;|.
     ENDIF.
-    lv_body = |<section class="gg-page gg-page--dynpro" aria-label="Dynpro page"><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section>|.
+    lv_body = |<section class="gg-page gg-page--dynpro" aria-label="Dynpro page">|.
     IF iv_help_text IS NOT INITIAL.
       lv_body = lv_body && |<section class="gg-instruction-region" aria-label="Instructions"><aside class="gg-message gg-info" role="status">{ zcl_gg_host_html=>escape_text( iv_help_text ) }</aside></section>|.
     ENDIF.
@@ -1322,6 +1319,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_title      = lv_title
       iv_csp_nonce  = is_context-csp_nonce
       is_status     = is_status
+      it_messages   = it_messages
       iv_body       = lv_body ).
   ENDMETHOD.
 
@@ -1698,7 +1696,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_kind       = zif_gg_host_html_v1=>page_message
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
-      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>{ render_messages( it_messages ) }<p>{ zcl_gg_host_html=>escape_text( iv_text ) }</p>| ).
+      it_messages   = it_messages
+      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>| ).
   ENDMETHOD.
 
   METHOD render_terminal.
@@ -1708,7 +1707,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_kind       = zif_gg_host_html_v1=>page_terminal
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
-      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>{ render_messages( it_messages ) }<p class="gg-terminal">{ zcl_gg_host_html=>escape_text( iv_text ) }</p>| ).
+      it_messages   = it_messages
+      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header><p class="gg-terminal">{ zcl_gg_host_html=>escape_text( iv_text ) }</p>| ).
   ENDMETHOD.
 
   METHOD render_navigation.
@@ -1719,27 +1719,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
       iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header><section class="gg-navigation-page" aria-label="Navigation transition"><p data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }">Continue to <strong>{ zcl_gg_host_html=>escape_text( is_navigation-target ) }</strong>.</p><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT"><button type="submit">Continue</button></form></section>| ).
-  ENDMETHOD.
-
-  METHOD render_messages.
-    LOOP AT it_messages INTO DATA(ls_message).
-      DATA(lv_message_id) = zcl_gg_host_html=>identifier(
-        iv_scope = 'message'
-        iv_name  = CONV string( ls_message-field )
-        iv_index = sy-tabix ).
-      DATA(lv_display_type) = COND zif_gg_session_types_v1=>ty_message_type(
-        WHEN ls_message-display_like IS INITIAL THEN ls_message-type
-        ELSE ls_message-display_like ).
-      DATA(lv_state_attr) = COND string(
-        WHEN lv_display_type = zif_gg_session_types_v1=>message_type_warning
-          THEN ` data-state="warning gg-state-warning"`
-        WHEN lv_display_type = zif_gg_session_types_v1=>message_type_error
-          OR lv_display_type = zif_gg_session_types_v1=>message_type_abort
-          OR lv_display_type = zif_gg_session_types_v1=>message_type_exit
-          THEN ` data-state="error gg-state-error"`
-        ELSE `` ).
-      rv_html = rv_html && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_message_id ) }" class="gg-message { zcl_gg_host_html=>message_class( lv_display_type ) }" role="alert" aria-live="polite"{ lv_state_attr } data-field="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_message-field ) ) }">{ zcl_gg_host_html=>escape_text( ls_message-text ) }</div>|.
-    ENDLOOP.
   ENDMETHOD.
 
   METHOD listbox_options.
@@ -1756,15 +1735,17 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD field_message_attrs.
-    READ TABLE it_messages INTO DATA(ls_message)
+* The field refers to the message in the status bar while that message is
+* the one shown there, which a later message replaces.
+    READ TABLE it_messages TRANSPORTING NO FIELDS
       WITH KEY field = iv_name.
-    IF sy-subrc = 0.
-      DATA(lv_message_id) = zcl_gg_host_html=>identifier(
-        iv_scope = 'message'
-        iv_name  = iv_name
-        iv_index = sy-tabix ).
-      rv_attrs = | aria-describedby="{ zcl_gg_host_html=>escape_attribute( lv_message_id ) }" aria-invalid="true" autofocus|.
+    IF sy-subrc <> 0.
+      RETURN.
     ENDIF.
+    IF it_messages[ lines( it_messages ) ]-field = iv_name.
+      rv_attrs = | aria-describedby="{ zcl_gg_workbench_utility=>status_message_id }"|.
+    ENDIF.
+    rv_attrs = rv_attrs && ` aria-invalid="true" autofocus`.
   ENDMETHOD.
 
   METHOD order_selection_elements.

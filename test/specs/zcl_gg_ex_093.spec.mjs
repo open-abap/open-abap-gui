@@ -1,4 +1,4 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, statusMessage} from "../fixtures.mjs";
 
 const found = (page) => page.locator(".gg-list-line[data-found]");
 
@@ -23,7 +23,7 @@ test("ZCL_GG_EX_093 — Find and Find next search the list", async ({page, host}
   await toolbar.getByRole("button", {name: "Find next"}).click();
   await page.waitForLoadState("load");
   await expect(found(page)).toHaveCount(0);
-  await expect(page.locator(".gg-message")).toContainText('No further hits for "frankfurt"');
+  await expect(statusMessage(page)).toContainText('No further hits for "frankfurt"');
 });
 
 test("ZCL_GG_EX_093 — Cancel closes the Find dialog box", async ({page, host}) => {

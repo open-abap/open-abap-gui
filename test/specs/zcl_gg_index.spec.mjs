@@ -99,7 +99,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("navigation", {name: "Applications"})).toHaveCount(0);
   const transactions = page.getByRole("navigation", {name: "Transactions"});
   await expect(transactions).toBeVisible();
-  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(176);
+  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(177);
   const reports = page.getByRole("navigation", {name: "Reports"});
   await expect(reports).toBeVisible();
   await expect(reports.locator(".wb-app-list > li")).toHaveCount(2);
@@ -111,7 +111,9 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
   await expect(page.locator(".wb-app-list").getByText("Favorites", {exact: true})).toHaveCount(0);
-  await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(1);
+  // The sprite carries the icons the page shows, such as the file icon of each application.
+  await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-file-code")).toHaveCount(1);
+  await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(0);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveAttribute("aria-label", "open-abap");
   await expect(page.locator('.wb-logo-mark')).toHaveAttribute("viewBox", "0 0 108 108");
@@ -203,7 +205,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_169"})).toContainText(
     "Selection tabs with icons",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(169);
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(170);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 

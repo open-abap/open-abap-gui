@@ -1,4 +1,4 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, statusMessage} from "../fixtures.mjs";
 import {readFile} from "node:fs/promises";
 
 const saveAs = async (page, format, filename) => {
@@ -19,7 +19,7 @@ test("ZCL_GG_EX_095 — Save to local file writes the list as a spreadsheet", as
   expect(download.suggestedFilename()).toBe("carriers.xls");
   const content = await readFile(await download.path(), "utf8");
   expect(content).toBe("ID\tAirline\tCurrency\r\nLH\tLufthansa\tEUR\r\nUA\tUnited Airlines\tUSD\r\nSQ\tSingapore Airlines\tSGD\r\n");
-  await expect(page.locator(".gg-message")).toContainText("The list was saved as carriers.xls");
+  await expect(statusMessage(page)).toContainText("The list was saved as carriers.xls");
 });
 
 test("ZCL_GG_EX_095 — unconverted keeps the columns of the list", async ({page, host}) => {
