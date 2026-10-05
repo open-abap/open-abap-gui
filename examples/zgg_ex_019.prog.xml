@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Listbox from domain values</ENTRY>
+     <LENGTH>26</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_MODE</KEY>
      <ENTRY>Mode</ENTRY>

@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import path from "node:path";
 
-export const CONVERTER_VERSION = "0.1.0";
+export const CONVERTER_VERSION = createRequire(import.meta.url)("../package.json").version;
 export const MANIFEST_SCHEMA_VERSION = 1;
 
 const REPORT_NAME = /^(?<prefix>[ZY])(?<rest>[A-Z0-9_]+)$/i;

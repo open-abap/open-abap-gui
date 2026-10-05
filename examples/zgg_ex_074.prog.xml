@@ -11,16 +11,21 @@
    </PROGDIR>
    <TPOOL>
     <item>
-     <ID>S</ID>
-     <KEY>S_MUL</KEY>
-     <ENTRY>Multiple carriers</ENTRY>
-     <LENGTH>17</LENGTH>
+     <ID>R</ID>
+     <ENTRY>Selection multiple-choice dialog</ENTRY>
+     <LENGTH>32</LENGTH>
     </item>
     <item>
      <ID>S</ID>
      <KEY>P_REQ</KEY>
      <ENTRY>Required value</ENTRY>
      <LENGTH>14</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>S_MUL</KEY>
+     <ENTRY>Multiple carriers</ENTRY>
+     <LENGTH>17</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

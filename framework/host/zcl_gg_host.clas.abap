@@ -8,6 +8,20 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * unsupported control-flow operations remain explicit in ty_result.
 
   PUBLIC SECTION.
+* One interactive event of the list processor: a line chosen (LINE), a
+* function (COMMAND) or a function key (PF) on the list shown at that time.
+* A run replays the steps that lead to the list shown, each on the level the
+* step before it left.
+    TYPES: BEGIN OF ty_list_step,
+             kind         TYPE string,
+             line         TYPE i,
+             cursor_field TYPE zif_gg_session_types_v1=>ty_name,
+             cursor_value TYPE string,
+             ucomm        TYPE zif_gg_list_processing_types_v1=>ty_ucomm,
+             pf_key       TYPE i,
+           END OF ty_list_step.
+    TYPES ty_list_steps TYPE STANDARD TABLE OF ty_list_step WITH DEFAULT KEY.
+
     TYPES: BEGIN OF ty_result,
              lines               TYPE zcl_gg_host_list=>ty_text_lines,
              render_lines        TYPE zcl_gg_host_list=>ty_render_lines,
@@ -39,6 +53,11 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              html                TYPE string,
              page                TYPE zif_gg_host_html_v1=>ty_page,
              pages               TYPE zif_gg_host_html_v1=>ty_pages,
+* What the list processor did with a function of its own (Find, Save).
+             list_outcome        TYPE zcl_gg_host_list_processor=>ty_outcome,
+* The events that led to the list shown, and its level (sy-lsind).
+             list_path           TYPE ty_list_steps,
+             list_level          TYPE i,
            END OF ty_result.
 
     CLASS-METHODS run
@@ -59,7 +78,6 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_help_name           TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
         iv_exit_ucomm          TYPE zif_gg_selection_screen_types=>ty_ucomm OPTIONAL
         iv_line_index          TYPE i OPTIONAL
-        iv_line_level          TYPE i DEFAULT 1
         iv_user_command        TYPE zif_gg_list_processing_types_v1=>ty_ucomm OPTIONAL
         iv_cursor_field        TYPE zif_gg_session_types_v1=>ty_name OPTIONAL
         iv_cursor_value        TYPE string OPTIONAL
@@ -73,6 +91,10 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_action_receipt      TYPE string OPTIONAL
         is_resume_navigation   TYPE zif_gg_host_html_v1=>ty_navigation OPTIONAL
         is_resume_submit       TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
+        iv_list_value          TYPE string OPTIONAL
+        iv_list_target         TYPE string OPTIONAL
+        is_list_find           TYPE zcl_gg_host_list_processor=>ty_find OPTIONAL
+        it_list_path           TYPE ty_list_steps OPTIONAL
       RETURNING
         VALUE(rs_result)       TYPE ty_result.
 
@@ -136,14 +158,30 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_list         TYPE REF TO zcl_gg_host_list
         io_list_session TYPE REF TO zif_gg_list_session_v1
         io_session      TYPE REF TO zcl_gg_host_session
+        it_steps        TYPE ty_list_steps
+      CHANGING
+        cv_ended        TYPE abap_bool.
+
+    CLASS-METHODS run_list_event
+      IMPORTING
+        io_handler      TYPE REF TO zif_gg_list_processing_v1
+        io_list         TYPE REF TO zcl_gg_host_list
+        io_list_session TYPE REF TO zif_gg_list_session_v1
+        io_session      TYPE REF TO zcl_gg_host_session
+        is_step         TYPE ty_list_step.
+
+    "! The path to the list shown after this request: the steps so far, and
+    "! the event of the request, unless the list processor runs it itself.
+    CLASS-METHODS list_path
+      IMPORTING
+        it_path         TYPE ty_list_steps
         iv_line_index   TYPE i
-        iv_line_level   TYPE i
         iv_user_command TYPE zif_gg_list_processing_types_v1=>ty_ucomm
         iv_cursor_field TYPE zif_gg_session_types_v1=>ty_name
         iv_cursor_value TYPE string
         iv_pf_key       TYPE i
-      CHANGING
-        cv_ended        TYPE abap_bool.
+      RETURNING
+        VALUE(rt_path)  TYPE ty_list_steps.
 
     CLASS-METHODS resume_screen_call
       IMPORTING
@@ -291,6 +329,10 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         cs_result              TYPE ty_result.
 
+    CLASS-METHODS apply_selection_lists
+      CHANGING
+        ct_states TYPE zif_gg_selection_screen_types=>ty_states.
+
     CLASS-METHODS apply_action_receipt
       IMPORTING
         iv_receipt  TYPE string
@@ -378,6 +420,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ENDLOOP.
     ENDLOOP.
 
+    io_session->set_selection_ucomm( iv_ucomm ).
     IF iv_ucomm <> 'ONLI'
         AND iv_ucomm <> 'ECAN'
         AND NOT line_exists( it_elements[ ucomm = iv_ucomm ] ).
@@ -515,6 +558,23 @@ CLASS zcl_gg_host IMPLEMENTATION.
         ct_values  = ct_values ).
   ENDMETHOD.
 
+  METHOD apply_selection_lists.
+    LOOP AT zcl_gg_host_compatibility=>get_selection_list_values( ) INTO DATA(ls_list).
+      READ TABLE ct_states ASSIGNING FIELD-SYMBOL(<ls_state>)
+        WITH KEY name = ls_list-id.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      CLEAR <ls_state>-fixed_values.
+      LOOP AT ls_list-values INTO DATA(ls_value).
+        APPEND VALUE #(
+          key  = CONV string( ls_value-key )
+          text = CONV string( ls_value-text ) )
+          TO <ls_state>-fixed_values.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD apply_action_receipt.
     " Action receipts are host chrome, not application effects. The report
     " must own any status or message returned after a dispatch.
@@ -542,7 +602,6 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lv_page_id TYPE string.
     DATA lv_display_screen TYPE zif_gg_selection_screen_types=>ty_screen_number.
     DATA lt_elements TYPE zcl_gg_host_screen=>ty_elements.
-    DATA lt_dynamic_lists TYPE zcl_gg_host_compatibility=>ty_selection_lists.
     DATA lv_stop_before_start TYPE abap_bool.
 
     lv_session_id = COND #( WHEN iv_session_id IS INITIAL
@@ -551,7 +610,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       THEN |{ lv_session_id }-1| ELSE iv_page_id ).
     lv_display_screen = iv_selection_screen.
     cl_gui_control=>clear( ).
-    zcl_gg_host_surface=>clear( ).
+    cl_gui_control=>clear_external_html( ).
 
     lo_list   = NEW zcl_gg_host_list( ).
     lo_screen = NEW zcl_gg_host_screen( ).
@@ -617,21 +676,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
             ct_radio_groups     = lt_radio_groups
             cs_result           = rs_result ).
 
-        lt_dynamic_lists = zcl_gg_host_compatibility=>get_selection_list_values( ).
-        LOOP AT lt_dynamic_lists INTO DATA(ls_dynamic_list).
-          READ TABLE lt_states ASSIGNING FIELD-SYMBOL(<ls_dynamic_state>)
-            WITH KEY name = ls_dynamic_list-id.
-          IF sy-subrc <> 0.
-            CONTINUE.
-          ENDIF.
-          CLEAR <ls_dynamic_state>-fixed_values.
-          LOOP AT ls_dynamic_list-values INTO DATA(ls_dynamic_value).
-            APPEND VALUE #(
-              key  = CONV string( ls_dynamic_value-key )
-              text = CONV string( ls_dynamic_value-text ) )
-              TO <ls_dynamic_state>-fixed_values.
-          ENDLOOP.
-        ENDLOOP.
+        apply_selection_lists( CHANGING ct_states = lt_states ).
 
         IF lv_stop_before_start = abap_false AND iv_ucomm <> 'ECAN'.
           validate_required(
@@ -670,6 +715,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
           io_session = lo_session ).
         lv_selection_screen_active = xsdbool(
           lx_flow->mv_kind = zcx_gg_control_flow=>kind_message ).
+* VRM_SET_VALUES lists outlive an error message in PAI, as SAP keeps them.
+        apply_selection_lists( CHANGING ct_states = lt_states ).
     ENDTRY.
 
     DATA(lv_paused) = xsdbool(
@@ -737,21 +784,23 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ENDTRY.
     ENDIF.
 
+    rs_result-list_path = list_path(
+      it_path         = it_list_path
+      iv_line_index   = iv_line_index
+      iv_user_command = iv_user_command
+      iv_cursor_field = iv_cursor_field
+      iv_cursor_value = iv_cursor_value
+      iv_pf_key       = iv_pf_key ).
     TRY.
         run_interactive_events(
           EXPORTING
-          io_handler      = lo_handler
-          io_list         = lo_list
-          io_list_session = lo_list_session
-          io_session      = lo_session
-          iv_line_index   = iv_line_index
-          iv_line_level   = iv_line_level
-          iv_user_command = iv_user_command
-          iv_cursor_field = iv_cursor_field
-          iv_cursor_value = iv_cursor_value
-          iv_pf_key       = iv_pf_key
+            io_handler      = lo_handler
+            io_list         = lo_list
+            io_list_session = lo_list_session
+            io_session      = lo_session
+            it_steps        = rs_result-list_path
           CHANGING
-            cv_ended      = lv_ended ).
+            cv_ended        = lv_ended ).
       CATCH zcx_gg_control_flow INTO lx_flow.
         DATA(ls_interactive_flow) = interpret_flow( lx_flow ).
         lv_ended = ls_interactive_flow-ended.
@@ -770,6 +819,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     ENDTRY.
 
     rs_result-lines    = lo_list->finish_output( ).
+    rs_result-list_level = lo_list->get_context( )-level.
     IF iv_ucomm <> 'ONLI'.
       lo_screen->select_tab( iv_ucomm ).
     ELSEIF iv_selection_tab IS NOT INITIAL.
@@ -789,12 +839,32 @@ CLASS zcl_gg_host IMPLEMENTATION.
       it_states = lt_states ).
     rs_result-dynamic_selection = lo_session->zif_gg_session_v1~get_compatibility( )->get_dynamic_selection( ).
     rs_result-memory_render_lines = lo_session->get_list_render_from_memory( ).
-    rs_result-dialog_suppressed = lo_session->is_dialog_suppressed( ).
+* In the background a program shows no screen at all, as on SAP.
+    rs_result-dialog_suppressed = xsdbool( lo_session->is_dialog_suppressed( ) = abap_true
+                                           OR iv_batch = abap_true ).
     rs_result-settings = lo_list->get_settings( ).
     IF lv_selection_screen_active = abap_true.
       rs_result-status = lo_session->get_status( ).
     ELSE.
       rs_result-status = lo_list->get_status( ).
+* A list whose program sets no status has SAP's standard list status.
+      IF rs_result-status IS INITIAL.
+        rs_result-status = zcl_gg_host_list_processor=>standard_status( ).
+      ENDIF.
+    ENDIF.
+    rs_result-list_outcome-find = is_list_find.
+    IF lv_selection_screen_active = abap_false
+        AND zcl_gg_host_list_processor=>is_function( CONV #( iv_user_command ) ) = abap_true.
+      rs_result-list_outcome = zcl_gg_host_list_processor=>process(
+        iv_ucomm  = CONV #( iv_user_command )
+        iv_value  = iv_list_value
+        iv_target = iv_list_target
+        is_find   = is_list_find
+        it_lines  = rs_result-render_lines ).
+      IF rs_result-list_outcome-message IS NOT INITIAL.
+        APPEND VALUE #( type = zif_gg_session_types_v1=>message_type_success
+                        text = rs_result-list_outcome-message ) TO rs_result-messages.
+      ENDIF.
     ENDIF.
     apply_action_receipt(
       EXPORTING
@@ -940,22 +1010,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
       IF lv_title IS INITIAL.
         lv_title = 'ABAP list'.
       ENDIF.
-      IF iv_can_back = abap_true AND cs_result-status-icon_bar IS INITIAL.
-        APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO lt_actions.
-      ENDIF.
-      LOOP AT cs_result-status-active_ucomm INTO DATA(lv_active_ucomm).
-        IF line_exists( cs_result-status-excluded_ucomm[ table_line = lv_active_ucomm ] )
-            OR line_exists( cs_result-status-icon_bar[ ucomm = lv_active_ucomm ] )
-            OR ( cs_result-status-icon_bar IS NOT INITIAL
-                 AND ( lv_active_ucomm = 'BACK'
-                       OR lv_active_ucomm = 'CANCEL'
-                       OR lv_active_ucomm = 'EXIT'
-                       OR lv_active_ucomm = 'PRINT' ) ).
-          CONTINUE.
-        ENDIF.
-        APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_command
-                        ucomm = lv_active_ucomm ) TO lt_actions.
-      ENDLOOP.
+* The functions of the status are offered by the toolbars, the menus and
+* the function keys; the list itself adds none.
       IF cl_gui_control=>has_content( ) = abap_true.
         lv_controls_html = cl_gui_control=>render_html(
           iv_document = abap_false
@@ -973,7 +1029,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
         it_actions       = lt_actions
         is_context       = ls_context
         it_messages      = cs_result-messages
-        iv_controls_html = lv_controls_html ).
+        iv_controls_html = lv_controls_html
+        is_list_outcome  = cs_result-list_outcome ).
     ENDIF.
     IF lv_page_kind <> zif_gg_host_html_v1=>page_navigation.
       cs_result-html = zcl_gg_host_renderer=>with_navigation(
@@ -1105,12 +1162,21 @@ CLASS zcl_gg_host IMPLEMENTATION.
   METHOD run_value_request.
     DATA lt_requested_ranges TYPE zif_gg_selection_screen_types=>ty_ranges.
 
+    DATA(lo_compatibility) = io_session->zif_gg_session_v1~get_compatibility( ).
+    lo_compatibility->clear_value_help_values( ).
     io_session->set_event( 'AT SELECTION-SCREEN ON VALUE-REQUEST' ).
     lt_requested_ranges = io_report->at_selection_screen_value_req(
       iv_screen  = iv_screen
       iv_name    = iv_name
       it_values  = ct_values
       io_session = io_session ).
+* F4IF_INT_TABLE_VALUE_REQUEST in the event offers its value table, as the
+* value help dialog would.
+    IF lt_requested_ranges IS INITIAL.
+      LOOP AT lo_compatibility->get_value_help_values( ) INTO DATA(ls_offered).
+        APPEND VALUE #( sign = 'I' option = 'EQ' low = ls_offered-value ) TO lt_requested_ranges.
+      ENDLOOP.
+    ENDIF.
     IF line_exists( ct_values[ name = iv_name ] ) AND lt_requested_ranges IS NOT INITIAL.
       ct_values[ name = iv_name ]-ranges = lt_requested_ranges.
     ELSEIF line_exists( ct_values[ name = iv_name ] ) AND lt_requested_ranges IS INITIAL.
@@ -1154,35 +1220,77 @@ CLASS zcl_gg_host IMPLEMENTATION.
 
   METHOD run_interactive_events.
     io_session->set_processor( zif_gg_session_types_v1=>processor_list ).
-    IF cv_ended = abap_false AND iv_line_index > 0 AND io_handler IS BOUND.
-      io_list->finish_output( ).
-      io_list->begin_line_selection( iv_level = iv_line_level ).
+    IF cv_ended = abap_true OR io_handler IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    LOOP AT it_steps INTO DATA(ls_step).
+      run_list_event(
+        io_handler      = io_handler
+        io_list         = io_list
+        io_list_session = io_list_session
+        io_session      = io_session
+        is_step         = ls_step ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD run_list_event.
+    DATA lx_flow TYPE REF TO zcx_gg_control_flow.
+
+    io_list->finish_output( ).
+    IF is_step-kind = 'LINE'.
       io_list->select_line(
-        iv_index = iv_line_index
-        iv_field = iv_cursor_field
-        iv_value = iv_cursor_value ).
-      io_session->set_event( 'AT LINE-SELECTION' ).
-      io_handler->at_line_selection(
-        is_line    = io_list_session->read_line( iv_index = iv_line_index )
-        io_session = io_session ).
+        iv_index = is_step-line
+        iv_field = is_step-cursor_field
+        iv_value = is_step-cursor_value ).
     ENDIF.
-
-    IF cv_ended = abap_false AND iv_user_command IS NOT INITIAL AND io_handler IS BOUND.
-      io_list->finish_output( ).
-      io_session->set_event( 'AT USER-COMMAND' ).
-      io_handler->at_user_command(
-        iv_ucomm   = iv_user_command
-        is_line    = io_list_session->read_line( iv_index = iv_line_index )
-        io_session = io_session ).
+* The line comes from the list the event is triggered on, before the event
+* starts the next level.
+    DATA(ls_line) = io_list_session->read_line( iv_index = is_step-line ).
+    io_list->begin_event( is_step-line ).
+* CATCH and RAISE again rather than CLEANUP, which the transpiler ignores.
+    TRY.
+        CASE is_step-kind.
+          WHEN 'LINE'.
+            io_session->set_event( 'AT LINE-SELECTION' ).
+            io_handler->at_line_selection(
+              is_line    = ls_line
+              io_session = io_session ).
+          WHEN 'COMMAND'.
+            io_session->set_event( 'AT USER-COMMAND' ).
+            io_handler->at_user_command(
+              iv_ucomm   = is_step-ucomm
+              is_line    = ls_line
+              io_session = io_session ).
+          WHEN 'PF'.
+            io_session->set_event( 'AT PF' ).
+            io_handler->at_pf(
+              iv_key     = is_step-pf_key
+              is_line    = ls_line
+              io_session = io_session ).
+        ENDCASE.
+      CATCH zcx_gg_control_flow INTO lx_flow.
+    ENDTRY.
+    io_list->end_event( ).
+    IF lx_flow IS BOUND.
+      RAISE EXCEPTION lx_flow.
     ENDIF.
+  ENDMETHOD.
 
-    IF cv_ended = abap_false AND iv_pf_key > 0 AND io_handler IS BOUND.
-      io_list->finish_output( ).
-      io_session->set_event( 'AT PF' ).
-      io_handler->at_pf(
-        iv_key     = iv_pf_key
-        is_line    = io_list_session->read_line( iv_index = iv_line_index )
-        io_session = io_session ).
+  METHOD list_path.
+    rt_path = it_path.
+    IF iv_line_index > 0.
+      APPEND VALUE #( kind         = 'LINE'
+                      line         = iv_line_index
+                      cursor_field = iv_cursor_field
+                      cursor_value = iv_cursor_value ) TO rt_path.
+* The list processor's own functions never reach AT USER-COMMAND.
+    ELSEIF iv_user_command IS NOT INITIAL
+        AND zcl_gg_host_list_processor=>is_function( CONV #( iv_user_command ) ) = abap_false.
+      APPEND VALUE #( kind  = 'COMMAND'
+                      ucomm = iv_user_command ) TO rt_path.
+    ELSEIF iv_pf_key > 0.
+      APPEND VALUE #( kind   = 'PF'
+                      pf_key = iv_pf_key ) TO rt_path.
     ENDIF.
   ENDMETHOD.
 

@@ -19,7 +19,7 @@ CLASS ltcl_gg_integration_int DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS scopes_hidden_values_to_line FOR TESTING.
     METHODS preserves_line_format FOR TESTING.
     METHODS runs_pf_interaction FOR TESTING.
-    METHODS restores_list_level FOR TESTING.
+    METHODS reports_list_index FOR TESTING.
 
 ENDCLASS.
 
@@ -63,7 +63,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
-    cl_abap_unit_assert=>assert_true( xsdbool( ls_result-lines[ 7 ] CS `Selected line:` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( ls_result-lines[ 2 ] CS `Selected line:` ) ).
   ENDMETHOD.
 
   METHOD reports_selected_line_text.
@@ -72,7 +72,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 7 ]
+      act = ls_result-lines[ 2 ]
       exp = `Selected line: AA/0018 20260115` ).
   ENDMETHOD.
 
@@ -82,7 +82,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 9 ]
+      act = ls_result-lines[ 4 ]
       exp = `Cursor: CARRID=AA line=2` ).
   ENDMETHOD.
 
@@ -92,7 +92,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 8 ]
+      act = ls_result-lines[ 3 ]
       exp = `Hidden: AA/0018 20260115` ).
   ENDMETHOD.
 
@@ -102,7 +102,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 11 ]
+      act = ls_result-lines[ 6 ]
       exp = `List level: 1` ).
   ENDMETHOD.
 
@@ -111,11 +111,13 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
+* The detail list replaces the basic list on the screen; its page header
+* comes first.
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 1 ]
-      exp = `AA/0017 20260101` ).
+      act = ls_result-list_level
+      exp = 1 ).
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 7 ]
+      act = ls_result-lines[ 2 ]
       exp = `Selected line: AA/0018 20260115` ).
   ENDMETHOD.
 
@@ -125,7 +127,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 10 ]
+      act = ls_result-lines[ 5 ]
       exp = `Detail flight: AA/0018 20260115` ).
   ENDMETHOD.
 
@@ -135,7 +137,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_user_command = 'REFRESH' ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 6 ]
+      act = ls_result-lines[ 2 ]
       exp = `Function code: REFRESH` ).
   ENDMETHOD.
 
@@ -144,7 +146,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       io_report       = NEW zcl_gg_integration_interactive( )
       iv_user_command = 'REFRESH' ).
 
-    cl_abap_unit_assert=>assert_true( xsdbool( ls_result-lines[ 6 ] CS `REFRESH` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( ls_result-lines[ 2 ] CS `REFRESH` ) ).
   ENDMETHOD.
 
   METHOD retrieves_line_hidden_values.
@@ -153,7 +155,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_line_index = 1 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 8 ]
+      act = ls_result-lines[ 3 ]
       exp = `Hidden: AA/0017 20260101` ).
   ENDMETHOD.
 
@@ -165,7 +167,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
-    cl_abap_unit_assert=>assert_true( xsdbool( ls_first-lines[ 8 ] <> ls_second-lines[ 8 ] ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( ls_first-lines[ 3 ] <> ls_second-lines[ 3 ] ) ).
   ENDMETHOD.
 
   METHOD preserves_line_format.
@@ -183,18 +185,18 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
       iv_pf_key = 5 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 6 ]
+      act = ls_result-lines[ 2 ]
       exp = `PF key: 5` ).
   ENDMETHOD.
 
-  METHOD restores_list_level.
+  METHOD reports_list_index.
     DATA(ls_result) = zcl_gg_host=>run(
       io_report     = NEW zcl_gg_integration_interactive( )
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 12 ]
-      exp = `Restored level: 0` ).
+      act = ls_result-lines[ 7 ]
+      exp = `List index: 0` ).
   ENDMETHOD.
 
 ENDCLASS.

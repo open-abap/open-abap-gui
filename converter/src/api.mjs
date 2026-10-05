@@ -3,6 +3,7 @@ import { normalizeOptions, defaultClassName, fullClassName, defaultTransactionCo
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
 import { resolveSources } from "./source-resolver.mjs";
 import { parseUnits, readConfig } from "./parser.mjs";
+import { applyStyleFixes } from "./emit/style-fixes.mjs";
 import { emptyReportIR } from "./ir/report-ir.mjs";
 import { classifyProgram } from "./passes/classify-program.mjs";
 import { collectDeclarations } from "./passes/collect-declarations.mjs";
@@ -214,11 +215,13 @@ function buildReportIR(parsed, resolved, options) {
     ...ir.statePlan.selections,
   ]);
   ir.controlFlowGraphs = buildControlFlowGraphs(ir);
+  // The fields HIDE names, structure components by their full path.
   ir.hiddenNames = [...new Set(allStatements.flatMap((statement) => {
     if (statement.kind !== "Hide") return [];
-    return (statement.text.match(/\b[A-Z][A-Z0-9_]*\b/gi) ?? [])
-      .filter((name) => !/^HIDE$/i.test(name))
-      .map((name) => name.toUpperCase());
+    return statement.text.trim().replace(/[.,]\s*$/, "").replace(/^HIDE\s*:?\s*/i, "").split(",")
+      .map((part) => part.trim())
+      .filter((part) => /^[A-Z][A-Z0-9_]*(?:-[A-Z][A-Z0-9_]*)*$/i.test(part))
+      .map((part) => part.toUpperCase());
   }))].sort();
   resolveTypes(ir, options);
   resolveSelectionTypes(ir, programScope);
@@ -650,10 +653,10 @@ export async function convertProgram(input = {}) {
   const classSource = useDiagnosticShell
     ? emitPartialSkeleton(ir, options, sorted)
     : usePartialApplication ? emitPartialApplication(ir, options, sorted)
-    : emitClassSource(ir, options);
+    : applyStyleFixes(emitClassSource(ir, options), ir.targetClassName);
   diagnostics.push(...conversionCompletenessDiagnostics(ir, classSource, options.filename));
   const helperSources = !useDiagnosticShell && !usePartialApplication
-    ? emitHelperSources(ir, options)
+    ? emitHelperSources(ir, options).map((helper) => ({ ...helper, source: applyStyleFixes(helper.source, helper.className) }))
     : [];
   const sourceMap = addGeneratedLocations(classSource, buildSourceMap(ir));
   const generatedUnits = [

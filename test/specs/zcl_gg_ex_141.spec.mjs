@@ -1,26 +1,12 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-async function pressToolbar(page, label) {
-  await page.locator(".wb-toolbar").getByRole("button", {name: label}).click();
-  await page.waitForLoadState("load");
-}
-
-test("ZCL_GG_EX_141 — renders list and column tree headers", async ({page, host}) => {
+test("ZCL_GG_EX_141 — shows a list tree and a column tree", async ({page, host}) => {
   await openExample(page, host, 141);
-  const table = page.getByRole("table", {name: "Column tree"});
-  await expect(table).toContainText("On time");
-  const items = page.getByRole("tree", {name: "Column tree item classes"});
-  await expect(items.locator('[data-item-class="checkbox"]')).toHaveAttribute("aria-checked", "true");
-  await expect(items.locator('[data-item-class="link"]')).toHaveAttribute("role", "link");
-  await expect(items.locator('[data-item-class="button"]')).toHaveAttribute("role", "button");
-  const listTree = page.locator('[data-control-kind="LIST_TREE"]');
-  await expect(listTree).toHaveCount(1);
-  await expect(listTree).toHaveAttribute("data-hierarchy-header", "Flight hierarchy");
-  await expect(listTree).toContainText("Flight hierarchy");
-  await expect(page.locator('[data-control-kind="COLUMN_TREE"]')).toHaveCount(1);
-  await expect(listTree).toBeHidden();
-  await expect(page.locator('[data-control-kind="COLUMN_TREE"]')).toBeHidden();
-  await pressToolbar(page, "Toggle status column");
-  await expect(table).not.toContainText("On time");
+  await expect(page.locator('[data-control-kind="LIST_TREE"]')).toContainText("LH 0400");
+  await expect(page.locator('[data-control-kind="LIST_TREE"] .gg-tree-item').first()).toHaveText("On time");
+  const columns = page.locator('[data-control-kind="COLUMN_TREE"]');
+  await expect(columns.locator("thead th")).toHaveText(["Flight", "Status"]);
+  await expect(columns.locator('tr[data-node-key="UA0941"]')).toContainText("Delayed");
+  await columns.getByRole("button", {name: "Collapse Flights"}).click();
+  await expect(columns.locator('tr[data-node-key="UA0941"]')).toBeHidden();
 });
-

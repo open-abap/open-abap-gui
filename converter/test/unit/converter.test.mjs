@@ -8,6 +8,12 @@ import { COMPATIBILITY_FUNCTION_MODULES } from "../../src/function-modules.mjs";
 import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
 import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../src/capability.mjs";
 import { repositoryRoot } from "../repository.mjs";
+import { textLiteral } from "../../src/emit/abap-text.mjs";
+import { emitClassXml } from "../../src/emit/class-xml.mjs";
+
+// Generated source breaks calls and definitions over several lines; a check
+// of the statement text reads it on one line.
+const flat = (source) => source.replace(/\s+/g, " ");
 
 // A bare source has no .prog.xml and so no title; GGCONV-W108 says so.
 const untitled = (diagnostics) => diagnostics.filter((item) => item.code !== "GGCONV-W108");
@@ -485,8 +491,8 @@ test("keeps the event signature of a static event handler and binds owner and se
   assert.match(helper, /CLASS-DATA go_owner TYPE REF TO zcl_evt\./);
   assert.match(helper, /CLASS-DATA go_session TYPE REF TO zif_gg_session_v1\./);
   // Other static methods keep the bridge parameters, and calls to them pass the stored pair.
-  assert.match(helper, /CLASS-METHODS add IMPORTING iv_value TYPE i io_owner TYPE REF TO zcl_evt io_session TYPE REF TO zif_gg_session_v1\./);
-  assert.match(helper, /^\s*add\( io_owner = go_owner io_session = go_session IV_VALUE = 1 \)\./m);
+  assert.match(flat(helper), /CLASS-METHODS add IMPORTING iv_value TYPE i io_owner TYPE REF TO zcl_evt io_session TYPE REF TO zif_gg_session_v1\./);
+  assert.match(flat(helper), / add\( io_owner = go_owner io_session = go_session iv_value = 1 \)\./);
   assert.match(helper, /go_session->message\(/);
   assert.match(result.classSource, /zcl_evt_h1=>go_owner = me\.\s+zcl_evt_h1=>go_session = io_session\.\s+SET HANDLER zcl_evt_h1=>handle_toolbar FOR go_grid\./);
 });
@@ -547,9 +553,9 @@ test("keeps INCLUDE TYPE and INCLUDE STRUCTURE inside their structure", async ()
     filename: "zincl.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.match(result.classSource, /TYPES: BEGIN OF ty_alv, show_payload TYPE icon_d\. INCLUDE TYPE zlog\. TYPES: END OF ty_alv\./);
-  assert.match(result.classSource, /TYPES: BEGIN OF ty_renamed\. INCLUDE TYPE zlog AS log RENAMING WITH SUFFIX _l\. TYPES: extra TYPE i, END OF ty_renamed\./);
-  assert.match(result.classSource, /DATA: BEGIN OF gs_row\. INCLUDE STRUCTURE zlog\. DATA: flag TYPE c LENGTH 1, END OF gs_row\./);
+  assert.match(result.classSource, /TYPES: BEGIN OF ty_alv, show_payload TYPE icon_d\. INCLUDE TYPE zlog\. TYPES END OF ty_alv\./);
+  assert.match(result.classSource, /TYPES BEGIN OF ty_renamed\. INCLUDE TYPE zlog AS log RENAMING WITH SUFFIX _l\. TYPES: extra TYPE i, END OF ty_renamed\./);
+  assert.match(result.classSource, /DATA BEGIN OF gs_row\. INCLUDE STRUCTURE zlog\. DATA: flag TYPE c LENGTH 1, END OF gs_row\./);
   assert.match(result.classSource, /TYPES BEGIN OF ty_local\.\s+TYPES id TYPE i\.\s+INCLUDE TYPE zlog\.\s+TYPES END OF ty_local\./);
   // ty_alv and the FORM-local copy; INCLUDE must not leak into event methods.
   assert.equal(result.classSource.match(/INCLUDE TYPE zlog\./g).length, 2);
@@ -766,7 +772,7 @@ test("still rewrites object creation for report-local classes", async () => {
     filename: "zlocalcreate.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.match(result.classSource, /CREATE OBJECT go_app EXPORTING io_owner = me io_session = io_session\./);
+  assert.match(flat(result.classSource), /CREATE OBJECT go_app EXPORTING io_owner = me io_session = io_session\./);
   assert.match(result.classSource, /go_app->run\( \)\./);
 });
 
@@ -979,6 +985,98 @@ test("passes an integer selection default as text without the sign blank", async
   assert.match(result.classSource, /name = 'S_COUNT'[^\n]*low = '1' high = '9' \)/);
 });
 
+test("lowers selection-screen PAI details the way SAP runs them", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zpai_details.",
+      "TABLES sscrfields.",
+      "DATA gt_values TYPE STANDARD TABLE OF ddshretval WITH DEFAULT KEY.",
+      "PARAMETERS p_show AS CHECKBOX USER-COMMAND toggle.",
+      "PARAMETERS p_det TYPE c LENGTH 10 MODIF ID det.",
+      "PARAMETERS p_list TYPE c LENGTH 5 AS LISTBOX VISIBLE LENGTH 10 OBLIGATORY.",
+      "SELECTION-SCREEN BEGIN OF BLOCK b1.",
+      "PARAMETERS p_blk TYPE c LENGTH 10.",
+      "SELECTION-SCREEN END OF BLOCK b1.",
+      "AT SELECTION-SCREEN OUTPUT.",
+      "  LOOP AT SCREEN.",
+      "    IF screen-group1 = 'DET'.",
+      "      screen-active = 0.",
+      "      screen-required = 1.",
+      "      screen-input = COND #( WHEN p_show = abap_true THEN 1 ELSE 0 ).",
+      "      MODIFY SCREEN.",
+      "    ENDIF.",
+      "  ENDLOOP.",
+      "AT SELECTION-SCREEN ON BLOCK b1.",
+      "  IF sy-ucomm = 'ONLI'.",
+      "    PERFORM check USING p_blk.",
+      "  ENDIF.",
+      "AT SELECTION-SCREEN ON p_det.",
+      "  MESSAGE 'Wrong detail' TYPE 'E'.",
+      "AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_det.",
+      "  p_det = 'picked'.",
+      "AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_blk.",
+      "  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST' EXPORTING retfield = 'X' dynprofield = 'P_BLK' TABLES value_tab = gt_values.",
+      "AT SELECTION-SCREEN.",
+      "  IF sscrfields-ucomm = 'TOGGLE'.",
+      "    CLEAR p_det.",
+      "  ENDIF.",
+      "FORM check USING iv_value TYPE csequence.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zpai_details.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  // SCREEN flags become abap_bool, quoted or not.
+  assert.match(result.classSource, /<ls_state>-visible = abap_false\./);
+  assert.match(result.classSource, /<ls_state>-obligatory = abap_true\./);
+  assert.match(result.classSource, /<ls_state>-input = xsdbool\( mv_p_show = abap_true \)\./);
+  // Only AT SELECTION-SCREEN has iv_ucomm; the other events ask the session.
+  assert.match(result.classSource, /IF io_session->get_context\( \)-selection-ucomm = 'ONLI'\./);
+  assert.match(result.classSource, /IF iv_ucomm = 'TOGGLE'\./);
+  // A FORM call with importing parameters only leaves out EXPORTING.
+  assert.match(result.classSource, /form_check\(\n\s+io_session = io_session\n\s+iv_value\s+= mv_p_blk \)\./);
+  // A message of ON <field> belongs to that field.
+  assert.match(result.classSource, /text = 'Wrong detail' field = iv_name \)/);
+  // A value request runs as written and offers the value it assigns.
+  assert.match(result.classSource, /mv_p_det = 'picked'\.\s+IF mv_p_det <> it_values\[ name = 'P_DET' \]-value\./);
+  // RETURN_TAB is optional.
+  assert.match(result.classSource, /f4_table_value_request\( [^\n]*CHANGING ct_value_tab = gt_values \)\./);
+  assert.match(result.classSource, /add_listbox\( VALUE #\( name = 'P_LIST'[^\n]*obligatory = abap_true/);
+});
+
+test("lowers classic list statements the way SAP runs them", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zlist_details.",
+      "DATA gv_node TYPE string.",
+      "DATA gv_amount TYPE p LENGTH 8 DECIMALS 2.",
+      "DATA gs_row TYPE zrow.",
+      "START-OF-SELECTION.",
+      "  gv_node = 'A'.",
+      "  WRITE / 'first' QUICKINFO 'Tip'.",
+      "  HIDE: gv_node, gs_row-id.",
+      "  WRITE: /(10) gv_amount, 14(8) gv_node.",
+      "  WRITE icon_green_light AS ICON QUICKINFO 'Icon'.",
+      "  HIDE gv_node.",
+      "AT LINE-SELECTION.",
+      "  WRITE / gv_node.",
+      "  MODIFY LINE 2 LINE FORMAT COLOR COL_NEGATIVE INVERSE.",
+    ].join("\n"),
+    filename: "zlist_details.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  // HIDE belongs to the line just written, a chained HIDE in one group.
+  assert.match(result.classSource, /text = 'first' format = VALUE #\( quickinfo = 'Tip' \) placement = VALUE #\( new_line = abap_true \) hide = VALUE #\( \( name = 'GV_NODE' value = \|\{ gv_node \}\| \) \( name = 'GS_ROW-ID' value = \|\{ gs_row-id \}\| \) \) \) \)\./);
+  assert.match(result.classSource, /write_icon\( VALUE #\( name = 'ICON_GREEN_LIGHT' quickinfo = 'Icon' hide = VALUE #\( \( name = 'GV_NODE'/);
+  assert.doesNotMatch(result.classSource, /TODO GGCONV/);
+  // WRITE /(10) f gives an output length.
+  assert.match(result.classSource, /text = \|\{ gv_amount \}\| placement = VALUE #\( length = 10 new_line = abap_true \)/);
+  // Choosing a line restores the hidden globals.
+  assert.match(result.classSource, /IF line_exists\( is_line-fields\[ name = 'GS_ROW-ID' \] \)\.\s+gs_row-id = is_line-fields\[ name = 'GS_ROW-ID' \]-value\./);
+  // MODIFY LINE n reads line n itself; a bare INVERSE means ON.
+  assert.match(result.classSource, /DATA\(ls_modify_line_1\) = io_session->get_list\( \)->read_line\( iv_index = 2 \)\.\s+ls_modify_line_1-format-inverse = abap_true\.\s+ls_modify_line_1-format-color = zif_gg_list_processing_types_v1=>color_negative\.\s+io_session->get_list\( \)->modify_line\( ls_modify_line_1 \)\./);
+});
+
 test("types untyped FORM parameters generically", async () => {
   const result = await convertProgram({
     source: [
@@ -1087,8 +1185,9 @@ test("lowers a USING parameter its FORM writes to CHANGING", async () => {
   assert.match(result.classSource, /METHODS form_aliased\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_x\s+TYPE i\./);
   assert.match(result.classSource, /form_get_dai\(\s+EXPORTING\s+io_session = io_session\s+CHANGING\s+pv_subrc\s+= lv_subrc\s+pt_t000\s+= gt_t000 \)\./);
   // A literal or a constant cannot take the write, so the call passes a temporary.
-  assert.match(result.classSource, /DATA lv_perform_1 TYPE i\.\s+lv_perform_1 = 3\.\s+form_count\(\s+EXPORTING\s+io_session = io_session\s+pv_flag\s+= 'Y'\s+pv_max\s+= gv_n\s+CHANGING\s+pv_total\s+= lv_perform_1/);
-  assert.match(result.classSource, /DATA lv_perform_2 TYPE i\.\s+lv_perform_2 = gc_max\./);
+  // The declaration stands at the top of the method.
+  assert.match(result.classSource, /DATA lv_perform_1 TYPE i\.[\s\S]*?lv_perform_1 = 3\.\s+form_count\(\s+EXPORTING\s+io_session = io_session\s+pv_flag\s+= 'Y'\s+pv_max\s+= gv_n\s+CHANGING\s+pv_total\s+= lv_perform_1/);
+  assert.match(result.classSource, /DATA lv_perform_2 TYPE i\.[\s\S]*?lv_perform_2 = gc_max\./);
   const warnings = result.diagnostics.filter((item) => item.code === "GGCONV-W111");
   assert.deepEqual(warnings.map((item) => item.construct), ["PERFORM count USING 3 'Y' gv_n gv_n.", "PERFORM count USING gc_max 'Z' gv_n gv_n."]);
   assert.ok(warnings.every((item) => item.severity === "warning"));
@@ -2247,7 +2346,7 @@ test("keeps scaffold-owned control constructors and methods type-aware", async (
   assert.match(result.classSource, /CREATE OBJECT go_host EXPORTING container_name = 'ROOT'\./);
   assert.match(result.classSource, /CREATE OBJECT go_grid EXPORTING i_parent = go_host\./);
   assert.match(result.classSource, /CALL METHOD go_grid->refresh_table_display\./);
-  assert.match(result.classSource, /CLEAR: go_grid\./);
+  assert.match(result.classSource, /CLEAR go_grid\./);
 });
 
 test("resolves event-handler control parameters and hoisted local event classes", async () => {
@@ -2274,7 +2373,7 @@ test("resolves event-handler control parameters and hoisted local event classes"
   });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /TODO GGCONV-E(?:510|511|512)/);
-  assert.match(result.classSource, /CREATE OBJECT go_events EXPORTING io_owner = me io_session = io_session\./);
+  assert.match(flat(result.classSource), /CREATE OBJECT go_events EXPORTING io_owner = me io_session = io_session\./);
   assert.match(result.classSource, /SET HANDLER go_events->on_toolbar FOR go_grid\./);
   assert.match(result.helperSources[0].source, /e_object->add_button/);
 });
@@ -2329,8 +2428,8 @@ test("bridges local static methods through their generated helper owner", async 
   });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /TODO GGCONV-E501: local static method/);
-  assert.match(result.classSource, /zcl_static_bridge_h1=>add\( io_owner = me io_session = io_session TEXT = 'ok' \)/i);
-  assert.match(result.helperSources[0].source, /CLASS-METHODS add IMPORTING text TYPE string io_owner TYPE REF TO zcl_static_bridge io_session TYPE REF TO zif_gg_session_v1/);
+  assert.match(flat(result.classSource), /zcl_static_bridge_h1=>add\( io_owner = me io_session = io_session TEXT = 'ok' \)/i);
+  assert.match(flat(result.helperSources[0].source), /CLASS-METHODS add IMPORTING text TYPE string io_owner TYPE REF TO zcl_static_bridge io_session TYPE REF TO zif_gg_session_v1/);
 });
 
 test("adds the owner and session ahead of RETURNING and RAISING", async () => {
@@ -2417,7 +2516,7 @@ test("passes the owner and session to every local static method call", async () 
   const statics = "io_owner = io_owner io_session = io_session";
   assert.ok(helper.includes(`DATA(lv_count) = count( ${statics} ).`), helper);
   assert.ok(helper.includes(`IF count( ${statics} ) > 1.`), helper);
-  assert.ok(helper.includes(`add( ${statics} IV_VALUE = count( ${statics} ) ).`), helper);
+  assert.ok(helper.includes(`add( ${statics} iv_value = count( ${statics} ) ).`), helper);
   assert.ok(helper.includes(`add( EXPORTING ${statics} iv_value = 2 ).`), helper);
   assert.ok(helper.includes(`DATA(lv_text) = |count( { count( ${statics} ) }|.`), helper);
   const instance = "io_owner = mo_owner io_session = mo_session";
@@ -2488,9 +2587,9 @@ test("lowers ABAP memory statements onto the execution session", async () => {
     filename: "zabap_memory.prog.abap",
   });
   assert.equal(result.supported, true);
-  assert.match(result.classSource, /io_session->export_memory\( iv_id = 'ZGG_MEMORY' iv_name = 'GV_COUNT' iv_value = gv_count \)\./);
-  assert.match(result.classSource, /io_session->import_memory\( EXPORTING iv_id = 'ZGG_MEMORY' iv_name = 'GV_TEXT' CHANGING cv_value = gv_text \)\./);
-  assert.match(result.classSource, /io_session->free_memory\( iv_id = 'ZGG_MEMORY' \)\./);
+  assert.match(flat(result.classSource), /io_session->export_memory\( iv_id = 'ZGG_MEMORY' iv_name = 'GV_COUNT' iv_value = gv_count \)\./);
+  assert.match(flat(result.classSource), /io_session->import_memory\( EXPORTING iv_id = 'ZGG_MEMORY' iv_name = 'GV_TEXT' CHANGING cv_value = gv_text \)\./);
+  assert.match(flat(result.classSource), /io_session->free_memory\( iv_id = 'ZGG_MEMORY' \)\./);
 });
 
 test("keeps type-pool declarations as written", async () => {
@@ -2969,7 +3068,7 @@ test("takes the text pool from I18N_TPOOL when TPOOL is empty or another languag
   });
   assert.equal(converted.supported, true, JSON.stringify(converted.diagnostics));
   assert.match(converted.classSource, /program = 'ZI18N' description = 'Rapporto'/);
-  assert.match(converted.classSource, /name = 'P_DATE' text = io_builder->get_ddic_text\( ig_field = mv_p_date iv_name = 'P_DATE' \)/);
+  assert.match(flat(converted.classSource), /name = 'P_DATE' text = io_builder->get_ddic_text\( ig_field = mv_p_date iv_name = 'P_DATE' \)/);
   assert.ok(!converted.diagnostics.some((item) => item.code === "GGCONV-W108"));
 });
 
@@ -2981,4 +3080,35 @@ test("describes a report without any title by its name, and says so", async () =
   const described = await convertProgram({ source: "REPORT znotitle.\nSTART-OF-SELECTION.\nWRITE / 'x'.\n", filename: "znotitle.prog.abap", description: "Given" });
   assert.match(described.classSource, /description = 'Given'/);
   assert.ok(!described.diagnostics.some((item) => item.code === "GGCONV-W108"));
+});
+
+test("writes a text with characters outside 7-bit ASCII as UTF-8 bytes", () => {
+  assert.equal(textLiteral("it's"), "'it''s'");
+  assert.equal(textLiteral("ש &"), "cl_abap_codepage=>convert_from( CONV xstring( 'D7A92026' ) )");
+  const long = textLiteral("é".repeat(60));
+  assert.match(long, /^cl_abap_codepage=>convert_from\( CONV xstring\( '(?:C3A9){50}' && '(?:C3A9){10}' \) \)$/);
+});
+
+test("gives a class that uses text symbols the program's text pool", () => {
+  const ir = {
+    targetClassName: "ZCL_TEXTS",
+    description: "Texts & more",
+    screenMetadata: {
+      textPoolEntries: [
+        { id: "R", entry: "Texts & more" },
+        { id: "I", key: "001", entry: "<first>", length: 7 },
+        { id: "I", key: "002", entry: "unused" },
+        { id: "I", key: "003", entry: "third" },
+      ],
+    },
+  };
+  const source = "WRITE TEXT-001.\n* TEXT-002 in a comment\nWRITE 'Third'(003).\n";
+  const xml = emitClassXml(ir, source, { withUnitTests: true });
+  assert.match(xml, /<CLSNAME>ZCL_TEXTS<\/CLSNAME>/);
+  assert.match(xml, /<DESCRIPT>Texts &amp; more<\/DESCRIPT>/);
+  assert.match(xml, /<WITH_UNIT_TESTS>X<\/WITH_UNIT_TESTS>/);
+  assert.match(xml, /<KEY>001<\/KEY>\s*<ENTRY>&lt;first&gt;<\/ENTRY>\s*<LENGTH>7<\/LENGTH>/);
+  assert.match(xml, /<KEY>003<\/KEY>/);
+  assert.doesNotMatch(xml, /unused/);
+  assert.equal(emitClassXml(ir, "WRITE 'no symbols'.\n"), undefined);
 });

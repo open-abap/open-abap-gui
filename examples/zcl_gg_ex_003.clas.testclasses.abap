@@ -17,7 +17,7 @@ CLASS ltcl_ex_03 IMPLEMENTATION.
         ( `` )
         ( `` )
         ( `--------------------` )
-        ( `    second` ) ) ).
+        ( `second` ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

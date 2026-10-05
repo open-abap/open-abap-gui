@@ -26,10 +26,7 @@ CLASS zcl_gg_host_status IMPLEMENTATION.
         rv_error = |Application icon { ls_icon-ucomm } requires a label|.
         RETURN.
       ENDIF.
-      IF ls_icon-icon IS INITIAL.
-        rv_error = |Application icon { ls_icon-ucomm } requires an icon name|.
-        RETURN.
-      ENDIF.
+* A button of the application toolbar may show only its text.
       IF line_exists( lt_ucomms[ table_line = ls_icon-ucomm ] ).
         rv_error = |Duplicate application icon command { ls_icon-ucomm }|.
         RETURN.

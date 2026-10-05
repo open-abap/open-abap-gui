@@ -24,7 +24,8 @@ test("the command form accepts /n and normalizes the dynpro tcode", async ({page
 
 test("F3 activates the green Back button", async ({page, host}) => {
   await page.goto(`${host.baseUrl}/transaction?tcode=ZGG_EX_001`);
-  await expect(page.getByRole("button", {name: "Return to workbench"})).toBeEnabled();
+  // The list has the standard list status, so Back is the list's own.
+  await expect(page.locator(".wb-commandbar").getByRole("button", {name: "Back", exact: true})).toBeEnabled();
   await page.keyboard.press("F3");
   await expect(page.locator(".wb-workspace")).toBeVisible();
   await expect(page.locator("[data-page-kind]")).toHaveCount(0);

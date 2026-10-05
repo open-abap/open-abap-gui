@@ -53,7 +53,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
         i_consistency_check  TYPE abap_bool OPTIONAL
         i_structure_name     TYPE any OPTIONAL
         is_variant           TYPE disvariant OPTIONAL
-        i_save               TYPE abap_bool OPTIONAL
+        i_save               TYPE c OPTIONAL
         i_default            TYPE abap_bool DEFAULT abap_true
         is_layout            TYPE any OPTIONAL
         is_print             TYPE any OPTIONAL
@@ -232,7 +232,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
     METHODS set_variant
       IMPORTING
         is_variant TYPE disvariant
-        i_save     TYPE abap_bool OPTIONAL.
+        i_save     TYPE c OPTIONAL.
 
     METHODS set_ready_for_input
       IMPORTING
@@ -500,6 +500,9 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
     CONSTANTS mc_mb_view TYPE ui_func VALUE '&MB_VIEW'.
 
   PROTECTED SECTION.
+    METHODS receive_frontend_values REDEFINITION.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
     DATA mt_outtab TYPE REF TO data.
     DATA mt_toolbar TYPE ttb_button.
     DATA m_batch_mode TYPE sy-batch.
@@ -547,6 +550,15 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
     DATA mt_delta_cells TYPE lvc_t_modi.
     DATA mt_drop_down TYPE lvc_t_drop.
     DATA mt_registered_events TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA mv_appl_events TYPE abap_bool.
+* Cells the user changed in the browser that are not in the output table yet.
+    DATA mt_frontend_cells TYPE lvc_t_modi.
+* Errors a data_changed handler logged; the grid shows them like SAP's
+* protocol.
+    DATA mt_protocol TYPE lvc_t_msg1.
+* Application functions a friend (cl_salv_table) supplies; the toolbar event
+* adds to them.
+    DATA mt_toolbar_base TYPE ttb_button.
     DATA ms_layout TYPE lvc_s_layo.
     DATA ms_print TYPE lvc_s_prnt.
     DATA ms_variant TYPE disvariant.
@@ -667,6 +679,59 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
         VALUE(result) TYPE string.
 
     METHODS apply_criteria.
+    METHODS build_rows.
+    METHODS build_toolbar
+      IMPORTING
+        iv_interactive TYPE abap_bool.
+    METHODS execute_standard_function
+      IMPORTING
+        iv_fcode TYPE sy-ucomm.
+    METHODS submit_attributes
+      IMPORTING
+        iv_event      TYPE string
+        iv_param1     TYPE string OPTIONAL
+        iv_param2     TYPE string OPTIONAL
+      RETURNING
+        VALUE(result) TYPE string.
+    METHODS function_attributes
+      IMPORTING
+        iv_function   TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+    METHODS cell_name
+      IMPORTING
+        iv_row_index  TYPE i
+        iv_fieldname  TYPE lvc_fname
+      RETURNING
+        VALUE(result) TYPE string.
+    METHODS render_protocol
+      RETURNING
+        VALUE(result) TYPE string.
+
+* The layout functions: Change layout (&COL0), Choose layout (&LOAD) and Save
+* layout (&SAVE) open a dialog of the grid; its buttons post LAYOUT events.
+    DATA mv_layout_dialog TYPE string.
+    DATA mv_layout_error TYPE string.
+    DATA mt_layout_input TYPE ty_fields.
+
+    METHODS render_layout_dialog
+      RETURNING
+        VALUE(result) TYPE string.
+
+    METHODS layout_action
+      IMPORTING
+        iv_action TYPE string
+        iv_name   TYPE string OPTIONAL.
+
+    METHODS apply_layout
+      IMPORTING
+        is_layout TYPE cl_alv_variant=>ty_layout.
+
+    METHODS layout_input
+      IMPORTING
+        iv_name         TYPE string
+      RETURNING
+        VALUE(rv_value) TYPE string.
 
     METHODS row_matches
       IMPORTING
@@ -707,7 +772,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   METHOD set_variant.
     ms_variant = is_variant.
     IF i_save IS SUPPLIED.
-      mv_variant_save = COND #( WHEN i_save = abap_true THEN 'A' ELSE ' ' ).
+      mv_variant_save = i_save.
     ENDIF.
     refresh_table_display( ).
   ENDMETHOD.
@@ -913,8 +978,53 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_changed_data.
+    DATA lo_protocol TYPE REF TO cl_alv_changed_data_protocol.
+    FIELD-SYMBOLS <outtab> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS <row> TYPE any.
+    FIELD-SYMBOLS <component> TYPE any.
+
+* The cells the user changed reach the program through data_changed. When a
+* handler logs an error the output table keeps its values and the grid shows
+* the log; otherwise the changed cells are written to the output table.
     e_valid = abap_true.
-    c_refresh = abap_false.
+    IF mt_frontend_cells IS INITIAL.
+      RETURN.
+    ENDIF.
+    CREATE OBJECT lo_protocol
+      EXPORTING
+        i_calling_alv = me.
+    lo_protocol->mt_mod_cells = mt_frontend_cells.
+    lo_protocol->mt_good_cells = mt_frontend_cells.
+    RAISE EVENT data_changed
+      EXPORTING
+        er_data_changed = lo_protocol.
+    mt_protocol = lo_protocol->mt_protocol.
+    IF mt_protocol IS NOT INITIAL.
+      e_valid = abap_false.
+      refresh_table_display( ).
+      RETURN.
+    ENDIF.
+    IF mt_outtab IS BOUND.
+      ASSIGN mt_outtab->* TO <outtab>.
+      LOOP AT lo_protocol->mt_mod_cells INTO DATA(ls_cell).
+        READ TABLE <outtab> ASSIGNING <row> INDEX ls_cell-row_id.
+        IF sy-subrc <> 0.
+          CONTINUE.
+        ENDIF.
+        ASSIGN COMPONENT ls_cell-fieldname OF STRUCTURE <row> TO <component>.
+        IF sy-subrc = 0.
+          <component> = ls_cell-value.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+    CLEAR mt_frontend_cells.
+    RAISE EVENT data_changed_finished
+      EXPORTING
+        e_modified    = abap_true
+        et_good_cells = lo_protocol->mt_good_cells.
+    IF c_refresh = abap_true.
+      refresh_table_display( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_gridtitle.
@@ -924,6 +1034,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD constructor.
     mv_toolbar_visible = abap_true.
+    mv_appl_events = xsdbool( i_appl_events = abap_true ).
 * Without a parent the grid is not a control on any screen; cl_salv_table
 * uses such a grid to render fullscreen output.
     IF i_parent IS NOT BOUND.
@@ -942,7 +1053,328 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_toolbar_interactive.
+    build_toolbar( abap_true ).
     refresh_table_display( ).
+  ENDMETHOD.
+
+  METHOD build_toolbar.
+    DATA lo_toolbar TYPE REF TO cl_alv_event_toolbar_set.
+
+* SAP raises toolbar when the toolbar is built; the handlers add the
+* application functions to e_object->mt_toolbar.
+    CREATE OBJECT lo_toolbar.
+    lo_toolbar->mt_toolbar = mt_toolbar_base.
+    RAISE EVENT toolbar
+      EXPORTING
+        e_object      = lo_toolbar
+        e_interactive = iv_interactive.
+    mt_toolbar = lo_toolbar->mt_toolbar.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+* The layout dialog is the grid's own; the program sees none of it.
+    result = xsdbool( mv_appl_events = abap_true AND event <> 'LAYOUT' ).
+  ENDMETHOD.
+
+  METHOD receive_frontend_values.
+    DATA lt_rows TYPE lvc_t_row.
+    DATA lt_parts TYPE string_table.
+    DATA lv_row TYPE i.
+    DATA lv_fieldname TYPE lvc_fname.
+
+* The grid posts its row marks and its input cells with every round trip, as
+* SAP GUI sends the selection and the changed cells of the frontend grid.
+    IF NOT line_exists( values[ name = 'present' ] ).
+      RETURN.
+    ENDIF.
+    CLEAR: mt_frontend_cells, mt_layout_input.
+    LOOP AT values INTO DATA(ls_value).
+      IF ls_value-name CP 'layout_*'.
+        APPEND ls_value TO mt_layout_input.
+        CONTINUE.
+      ENDIF.
+      SPLIT ls_value-name AT ':' INTO TABLE lt_parts.
+      IF lines( lt_parts ) < 2.
+        CONTINUE.
+      ENDIF.
+      lv_row = CONV i( lt_parts[ 2 ] ).
+      IF lt_parts[ 1 ] = 'row' AND ls_value-value IS NOT INITIAL.
+        APPEND VALUE #( index = lv_row ) TO lt_rows.
+      ELSEIF lt_parts[ 1 ] = 'cell' AND lines( lt_parts ) >= 3.
+        lv_fieldname = lt_parts[ 3 ].
+        DELETE mt_frontend_cells WHERE row_id = lv_row AND fieldname = lv_fieldname.
+        READ TABLE mt_source_rows INTO DATA(ls_source) WITH KEY index = lv_row.
+        READ TABLE ls_source-cells INTO DATA(ls_cell) WITH KEY fieldname = lv_fieldname.
+        IF sy-subrc = 0 AND ls_cell-text <> ls_value-value.
+          APPEND VALUE #( row_id    = lv_row
+                          tabix     = lv_row
+                          fieldname = lv_fieldname
+                          value     = ls_value-value ) TO mt_frontend_cells.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+    IF lt_rows <> mt_selected_rows.
+      mt_selected_rows = lt_rows.
+      IF line_exists( mt_registered_events[ table_line = mc_evt_delayed_change_select ] ).
+        RAISE EVENT delayed_changed_sel_callback.
+      ENDIF.
+    ENDIF.
+* With an edit event registered the grid checks its changed cells by itself.
+    IF mt_frontend_cells IS NOT INITIAL
+        AND ( line_exists( mt_registered_events[ table_line = mc_evt_enter ] )
+          OR line_exists( mt_registered_events[ table_line = mc_evt_modified ] ) ).
+      check_changed_data( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    DATA lv_ucomm TYPE sy-ucomm.
+
+    DATA lv_row TYPE i.
+
+* A cell event names the row and the column; a function names its code.
+    IF event <> 'FUNCTION' AND event <> 'LAYOUT'.
+      lv_row = VALUE string( params[ 1 ] OPTIONAL ).
+    ENDIF.
+    DATA(ls_row) = VALUE lvc_s_row( index = lv_row ).
+    DATA(ls_column) = VALUE lvc_s_col( fieldname = VALUE string( params[ 2 ] OPTIONAL ) ).
+    DATA(ls_row_no) = VALUE lvc_s_roid( row_id = lv_row ).
+    CASE event.
+      WHEN 'FUNCTION'.
+        lv_ucomm = VALUE string( params[ 1 ] OPTIONAL ).
+        check_changed_data( ).
+        IF line_exists( mt_toolbar[ function = lv_ucomm ] ).
+          RAISE EVENT user_command EXPORTING e_ucomm = lv_ucomm.
+        ELSE.
+          RAISE EVENT before_user_command EXPORTING e_ucomm = lv_ucomm.
+          execute_standard_function( lv_ucomm ).
+          RAISE EVENT after_user_command EXPORTING e_ucomm = lv_ucomm.
+        ENDIF.
+      WHEN 'HOTSPOT'.
+        ms_current_row = ls_row.
+        ms_current_col = ls_column.
+        RAISE EVENT hotspot_click
+          EXPORTING
+            e_row_id    = ls_row
+            e_column_id = ls_column
+            es_row_no   = ls_row_no.
+      WHEN 'DOUBLE_CLICK'.
+        ms_current_row = ls_row.
+        ms_current_col = ls_column.
+        RAISE EVENT double_click
+          EXPORTING
+            e_row     = ls_row
+            e_column  = ls_column
+            es_row_no = ls_row_no.
+      WHEN 'BUTTON_CLICK'.
+        RAISE EVENT button_click
+          EXPORTING
+            es_col_id = ls_column
+            es_row_no = ls_row_no.
+      WHEN 'LAYOUT'.
+        layout_action( iv_action = VALUE #( params[ 1 ] OPTIONAL )
+                       iv_name   = VALUE #( params[ 2 ] OPTIONAL ) ).
+      WHEN 'DROP'.
+        DATA(lv_source) = VALUE string( params[ 2 ] OPTIONAL ).
+        DATA(lv_source_key) = VALUE string( params[ 3 ] OPTIONAL ).
+        DATA(lo_dragdrop) = cl_gui_control=>start_drag( source_id = lv_source
+                                                        key       = lv_source_key
+                                                        flavor    = VALUE #( params[ 4 ] OPTIONAL ) ).
+* A drag the source aborted is not dropped.
+        IF lo_dragdrop IS BOUND AND lo_dragdrop->state <> -1.
+          RAISE EVENT ondrop
+            EXPORTING
+              e_row         = ls_row
+              e_column      = ls_column
+              es_row_no     = ls_row_no
+              e_dragdropobj = lo_dragdrop.
+          cl_gui_control=>end_drag( source_id = lv_source
+                                    key       = lv_source_key
+                                    object    = lo_dragdrop ).
+        ENDIF.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD execute_standard_function.
+    FIELD-SYMBOLS <outtab> TYPE STANDARD TABLE.
+
+    IF mt_outtab IS BOUND.
+      ASSIGN mt_outtab->* TO <outtab>.
+    ENDIF.
+    CASE iv_fcode.
+      WHEN mc_fc_select_all.
+        mt_selected_rows = VALUE #( FOR ls_row IN mt_html_rows ( index = ls_row-index ) ).
+      WHEN mc_fc_deselect_all.
+        CLEAR mt_selected_rows.
+      WHEN mc_fc_loc_append_row.
+        IF <outtab> IS ASSIGNED.
+          APPEND INITIAL LINE TO <outtab>.
+        ENDIF.
+      WHEN mc_fc_loc_delete_row.
+        IF <outtab> IS ASSIGNED.
+          SORT mt_selected_rows BY index DESCENDING.
+          LOOP AT mt_selected_rows INTO DATA(ls_selected).
+            DELETE <outtab> INDEX ls_selected-index.
+          ENDLOOP.
+          CLEAR mt_selected_rows.
+        ENDIF.
+      WHEN mc_fc_current_variant OR mc_fc_load_variant OR mc_fc_save_variant.
+        mv_layout_dialog = iv_fcode.
+        CLEAR mv_layout_error.
+    ENDCASE.
+    refresh_table_display( ).
+  ENDMETHOD.
+
+  METHOD submit_attributes.
+    DATA lt_params TYPE string_table.
+
+    IF iv_param1 IS SUPPLIED.
+      APPEND iv_param1 TO lt_params.
+    ENDIF.
+    IF iv_param2 IS SUPPLIED.
+      APPEND iv_param2 TO lt_params.
+    ENDIF.
+    result = |name="gg_control_event" value="{ frontend_event_value( event  = iv_event
+                                                                     params = lt_params ) }" formnovalidate|.
+  ENDMETHOD.
+
+  METHOD function_attributes.
+* A grid without a parent renders a SALV list; its functions are list
+* commands. A grid control sends its functions to itself.
+    IF control_id IS INITIAL.
+      result = |name="gg_ucomm" value="{ iv_function }"|.
+    ELSE.
+      result = submit_attributes( iv_event  = 'FUNCTION'
+                                  iv_param1 = iv_function ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD cell_name.
+    IF control_id IS INITIAL.
+      result = |gg-alv-cell-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( iv_fieldname ) ) }|.
+    ELSE.
+      result = frontend_field_name( |cell:{ iv_row_index }:{ iv_fieldname }| ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_layout_dialog.
+    DATA lv_body TYPE string.
+    DATA lv_title TYPE string.
+    DATA lv_action TYPE string.
+    DATA lv_footer TYPE string.
+
+    CASE mv_layout_dialog.
+      WHEN mc_fc_current_variant.
+        lv_title = 'Change Layout'.
+        lv_action = 'APPLY'.
+        LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat) WHERE tech IS INITIAL.
+          DATA(lv_heading) = COND string( WHEN ls_fieldcat-coltext IS NOT INITIAL THEN ls_fieldcat-coltext
+                                          WHEN ls_fieldcat-scrtext_l IS NOT INITIAL THEN ls_fieldcat-scrtext_l
+                                          ELSE ls_fieldcat-fieldname ).
+          lv_body = lv_body && |<li><label><input type="checkbox" name="{ frontend_field_name( |layout_col:{ ls_fieldcat-fieldname }| ) }" value="X"{ COND string( WHEN ls_fieldcat-no_out IS INITIAL THEN ` checked` ) }>{ cl_gui_control=>escape_html( lv_heading ) }</label></li>|.
+        ENDLOOP.
+        lv_body = |<p>Displayed columns</p><ul class="gg-alv-layout-columns">{ lv_body }</ul>|.
+      WHEN mc_fc_load_variant.
+        lv_title = 'Choose Layout'.
+        LOOP AT cl_alv_variant=>get_layouts( ms_variant ) INTO DATA(ls_layout).
+          DATA(lv_load) = submit_attributes( iv_event  = 'LAYOUT'
+                                             iv_param1 = 'LOAD'
+                                             iv_param2 = CONV string( ls_layout-variant ) ).
+          lv_body = lv_body && |<tr><td><button type="submit" { lv_load }>{ cl_gui_control=>escape_html( CONV string( ls_layout-variant ) ) }</button></td><td>{ cl_gui_control=>escape_html( CONV string( ls_layout-text ) ) }</td><td>{ COND string( WHEN ls_layout-default = abap_true THEN `Default` ) }</td></tr>|.
+        ENDLOOP.
+        lv_body = COND #( WHEN lv_body IS INITIAL THEN `<p>No layouts saved</p>`
+                          ELSE |<table><thead><tr><th scope="col">Layout</th><th scope="col">Description</th><th scope="col">Default</th></tr></thead><tbody>{ lv_body }</tbody></table>| ).
+      WHEN mc_fc_save_variant.
+        lv_title = 'Save Layout'.
+        lv_action = 'SAVE'.
+        lv_body = |<label>Layout <input type="text" name="{ frontend_field_name( 'layout_name' ) }" maxlength="12" value="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"></label>|
+               && |<label>Description <input type="text" name="{ frontend_field_name( 'layout_text' ) }" maxlength="40" value="{ cl_gui_control=>escape_html( CONV string( ms_variant-text ) ) }"></label>|
+               && |<label><input type="checkbox" name="{ frontend_field_name( 'layout_default' ) }" value="X"> Default setting</label>|.
+      WHEN OTHERS.
+        RETURN.
+    ENDCASE.
+    IF mv_layout_error IS NOT INITIAL.
+      lv_body = |<p class="gg-alv-layout-error" role="alert">{ cl_gui_control=>escape_html( mv_layout_error ) }</p>{ lv_body }|.
+    ENDIF.
+    IF lv_action IS NOT INITIAL.
+      DATA(lv_confirm) = submit_attributes( iv_event  = 'LAYOUT'
+                                            iv_param1 = lv_action ).
+      lv_footer = |<button type="submit" { lv_confirm }>{ COND string( WHEN lv_action = 'SAVE' THEN `Save` ELSE `Apply` ) }</button>|.
+    ENDIF.
+    DATA(lv_cancel) = submit_attributes( iv_event  = 'LAYOUT'
+                                         iv_param1 = 'CANCEL' ).
+    result = |<section class="gg-alv-layout-dialog" role="dialog" aria-label="{ lv_title }"><h3>{ lv_title }</h3>{ lv_body }|
+          && |<footer>{ lv_footer }<button type="submit" { lv_cancel }>Cancel</button></footer></section>|.
+  ENDMETHOD.
+
+  METHOD layout_input.
+    READ TABLE mt_layout_input INTO DATA(ls_input) WITH KEY name = iv_name.
+    IF sy-subrc = 0.
+      rv_value = ls_input-value.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD layout_action.
+    DATA ls_layout TYPE cl_alv_variant=>ty_layout.
+
+    CASE iv_action.
+      WHEN 'APPLY'.
+        LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat) WHERE tech IS INITIAL.
+          IF layout_input( |layout_col:{ ls_fieldcat-fieldname }| ) IS NOT INITIAL.
+            APPEND CONV string( ls_fieldcat-fieldname ) TO ls_layout-fields.
+          ENDIF.
+        ENDLOOP.
+        ls_layout-sort = mt_sort.
+        apply_layout( ls_layout ).
+      WHEN 'SAVE'.
+        ls_layout = cl_alv_variant=>layout_of( it_fieldcat = mt_fieldcatalog
+                                               it_sort     = mt_sort ).
+        ls_layout-variant = to_upper( condense( layout_input( 'layout_name' ) ) ).
+        IF ls_layout-variant IS INITIAL.
+          mv_layout_error = 'Enter a name for the layout'.
+          refresh_table_display( ).
+          RETURN.
+        ENDIF.
+        ls_layout-report = ms_variant-report.
+        ls_layout-handle = ms_variant-handle.
+        ls_layout-text = layout_input( 'layout_text' ).
+        ls_layout-default = xsdbool( layout_input( 'layout_default' ) IS NOT INITIAL ).
+        cl_alv_variant=>save_layout( ls_layout ).
+        ms_variant-variant = ls_layout-variant.
+        ms_variant-text = ls_layout-text.
+      WHEN 'LOAD'.
+        ls_layout = cl_alv_variant=>read_layout( VALUE #( BASE ms_variant variant = iv_name ) ).
+        IF ls_layout-variant IS NOT INITIAL.
+          apply_layout( ls_layout ).
+        ENDIF.
+    ENDCASE.
+    CLEAR: mv_layout_dialog, mv_layout_error.
+    refresh_table_display( ).
+  ENDMETHOD.
+
+  METHOD apply_layout.
+    cl_alv_variant=>apply_layout(
+      EXPORTING
+        is_layout   = is_layout
+      CHANGING
+        ct_fieldcat = mt_fieldcatalog
+        ct_sort     = mt_sort ).
+    IF is_layout-variant IS NOT INITIAL.
+      ms_variant-variant = is_layout-variant.
+      ms_variant-text = is_layout-text.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD render_protocol.
+    IF mt_protocol IS INITIAL.
+      RETURN.
+    ENDIF.
+    result = |<ul class="gg-alv-protocol" role="alert" aria-label="Error log">|.
+    LOOP AT mt_protocol INTO DATA(ls_message).
+      DATA(lv_text) = condense( |{ ls_message-msgv1 } { ls_message-msgv2 } { ls_message-msgv3 } { ls_message-msgv4 }| ).
+      result = result && |<li data-row-id="{ ls_message-row_id }" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_message-fieldname ) ) }">{ cl_gui_control=>escape_html( lv_text ) }</li>|.
+    ENDLOOP.
+    result = result && '</ul>'.
   ENDMETHOD.
 
   METHOD set_ready_for_input.
@@ -966,6 +1398,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD refresh_table_display.
+    build_rows( ).
     cl_gui_control=>set_html(
       control = me
       html    = render_model( ) ).
@@ -1310,15 +1743,6 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_table_for_first_display.
-    FIELD-SYMBOLS <row> TYPE any.
-    FIELD-SYMBOLS <component> TYPE any.
-    DATA ls_row TYPE ty_html_row.
-    DATA ls_cell TYPE ty_html_cell.
-    DATA ls_fieldcat TYPE lvc_s_fcat.
-    DATA lv_has_component TYPE abap_bool.
-
-    CLEAR mt_html_rows.
-    CLEAR mt_source_rows.
     CLEAR mt_fieldcatalog.
     IF is_layout IS SUPPLIED.
       ms_layout = is_layout.
@@ -1337,7 +1761,54 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       mt_toolbar_excluding = it_toolbar_excluding.
     ENDIF.
     GET REFERENCE OF it_outtab INTO mt_outtab.
-    LOOP AT it_outtab ASSIGNING <row>.
+* A grid with a variant key starts with the layout the program names, or with
+* the default layout of the key.
+    ms_variant = is_variant.
+    mv_variant_save = i_save.
+    IF ms_variant-report IS NOT INITIAL.
+      DATA(ls_initial) = COND cl_alv_variant=>ty_layout(
+        WHEN ms_variant-variant IS NOT INITIAL THEN cl_alv_variant=>read_layout( ms_variant )
+        WHEN i_default = abap_true THEN cl_alv_variant=>read_default_layout( ms_variant ) ).
+      IF ls_initial-variant IS NOT INITIAL.
+        apply_layout( ls_initial ).
+      ENDIF.
+    ENDIF.
+    mt_toolbar_base = mt_toolbar.
+    build_toolbar( abap_false ).
+    build_rows( ).
+    cl_gui_control=>set_html(
+      control = me
+      html    = render_model( ) ).
+  ENDMETHOD.
+
+  METHOD build_rows.
+    FIELD-SYMBOLS <outtab> TYPE STANDARD TABLE.
+    FIELD-SYMBOLS <row> TYPE any.
+    FIELD-SYMBOLS <component> TYPE any.
+    DATA ls_row TYPE ty_html_row.
+    DATA ls_cell TYPE ty_html_cell.
+    DATA ls_fieldcat TYPE lvc_s_fcat.
+    DATA lv_has_component TYPE abap_bool.
+
+* The grid shows the program's output table; set_table_for_first_display and
+* refresh_table_display read it again, as on SAP.
+    CLEAR: mt_html_rows, mt_source_rows.
+    IF mt_outtab IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ASSIGN mt_outtab->* TO <outtab>.
+* A catalog entry without an internal type takes the type of the output
+* table's field, as SAP does.
+    READ TABLE <outtab> ASSIGNING <row> INDEX 1.
+    IF sy-subrc = 0.
+      LOOP AT mt_fieldcatalog ASSIGNING FIELD-SYMBOL(<ls_typed>) WHERE inttype IS INITIAL.
+        ASSIGN COMPONENT <ls_typed>-fieldname OF STRUCTURE <row> TO <component>.
+        IF sy-subrc = 0.
+          DESCRIBE FIELD <component> TYPE <ls_typed>-inttype.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+    LOOP AT <outtab> ASSIGNING <row>.
       ls_row = VALUE #( index = sy-tabix ).
       IF mt_fieldcatalog IS INITIAL.
         APPEND VALUE #( fieldname = `VALUE`
@@ -1366,6 +1837,14 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           ENDIF.
         ENDIF.
       ENDIF.
+* A changed cell shows the user's value until the program takes it over.
+      LOOP AT mt_frontend_cells INTO DATA(ls_frontend_cell) WHERE row_id = ls_row-index.
+        READ TABLE ls_row-cells ASSIGNING FIELD-SYMBOL(<ls_pending>)
+          WITH KEY fieldname = ls_frontend_cell-fieldname.
+        IF sy-subrc = 0.
+          <ls_pending>-text = ls_frontend_cell-value.
+        ENDIF.
+      ENDLOOP.
       apply_row_display(
         EXPORTING is_source_row = <row>
         CHANGING  cs_row        = ls_row ).
@@ -1373,9 +1852,6 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     ENDLOOP.
     mt_source_rows = mt_html_rows.
     apply_criteria( ).
-    cl_gui_control=>set_html(
-      control = me
-      html    = render_model( ) ).
   ENDMETHOD.
 
   METHOD render_cell.
@@ -1403,22 +1879,45 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     DATA(lv_cell_content) = render_cell_content(
       iv_row_index = is_row-index
       is_cell      = is_cell ).
-    result = |<td class="gg-grid-cell { lv_cell_state_class } { is_cell-type_class }{ lv_disabled_class }" data-subtotal="{ COND string( WHEN is_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ cl_gui_control=>escape_html( is_cell-emphasize ) }" data-lvc-color="{ cl_gui_control=>escape_html( lv_cell_color_code ) }" data-lvc-style="{ lv_lvc_style }" style="{ lv_cell_color_style }"{ COND string( WHEN is_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }">{ lv_cell_content }</td>|.
+    IF control_id IS NOT INITIAL.
+      DATA(lv_double_click) = | data-gg-dblclick-event="{ frontend_event_value(
+        event  = 'DOUBLE_CLICK'
+        params = VALUE #( ( |{ is_row-index }| ) ( CONV string( is_cell-fieldname ) ) ) ) }"|.
+    ENDIF.
+    result = |<td{ lv_double_click } class="gg-grid-cell { lv_cell_state_class } { is_cell-type_class }{ lv_disabled_class }" data-subtotal="{ COND string( WHEN is_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ cl_gui_control=>escape_html( is_cell-emphasize ) }" data-lvc-color="{ cl_gui_control=>escape_html( lv_cell_color_code ) }" data-lvc-style="{ lv_lvc_style }" style="{ lv_cell_color_style }"{ COND string( WHEN is_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }">{ lv_cell_content }</td>|.
   ENDMETHOD.
 
   METHOD render_cell_content.
+    DATA(lv_name) = cell_name( iv_row_index = iv_row_index
+                               iv_fieldname = is_cell-fieldname ).
+    DATA(lv_row_text) = |{ iv_row_index }|.
+    DATA(lv_fieldname) = CONV string( is_cell-fieldname ).
     IF is_cell-dropdown > 0.
-      result = |<select name="gg-alv-cell-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+      result = |<select name="{ lv_name }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
       LOOP AT mt_drop_down INTO DATA(ls_drop) WHERE handle = is_cell-dropdown.
         result = result && |<option value="{ cl_gui_control=>escape_html( CONV string( ls_drop-value ) ) }"{ COND string( WHEN ls_drop-value = is_cell-text THEN ` selected` ELSE `` ) }>{ cl_gui_control=>escape_html( CONV string( ls_drop-value ) ) }</option>|.
       ENDLOOP.
       result = result && `</select>`.
     ELSEIF is_cell-checkbox = abap_true.
-      result = |<input type="checkbox" name="gg-alv-cell-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-text = 'X' OR is_cell-text = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+      IF control_id IS NOT INITIAL.
+        result = |<input type="hidden" name="{ lv_name }" value="">|.
+      ENDIF.
+      result = |{ result }<input type="checkbox" value="X" name="{ lv_name }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-text = 'X' OR is_cell-text = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
     ELSEIF is_cell-editable = abap_true.
-      result = |<input type="text" name="gg-alv-cell-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }" value="{ cl_gui_control=>escape_html( is_cell-text ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+      result = |<input type="text" name="{ lv_name }" value="{ cl_gui_control=>escape_html( is_cell-text ) }" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
     ELSEIF is_cell-style_button = abap_true.
-      result = |<button type="button" class="gg-alv-style-button" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }" style="background:#fff2a8;border:1px solid #bca848;padding:2px 10px;color:#25384a;border-radius:2px">{ cl_gui_control=>escape_html( is_cell-text ) }</button>|.
+      DATA(lv_button_type) = COND string( WHEN control_id IS INITIAL THEN 'type="button"' ).
+      IF control_id IS NOT INITIAL.
+        lv_button_type = |type="submit" { submit_attributes( iv_event  = 'BUTTON_CLICK'
+                                                             iv_param1 = lv_row_text
+                                                             iv_param2 = lv_fieldname ) }|.
+      ENDIF.
+      result = |<button { lv_button_type } class="gg-alv-style-button" aria-label="{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }" style="background:#fff2a8;border:1px solid #bca848;padding:2px 10px;color:#25384a;border-radius:2px">{ cl_gui_control=>escape_html( is_cell-text ) }</button>|.
+    ELSEIF is_cell-hotspot = abap_true AND control_id IS NOT INITIAL.
+      DATA(lv_hotspot) = submit_attributes( iv_event  = 'HOTSPOT'
+                                            iv_param1 = lv_row_text
+                                            iv_param2 = lv_fieldname ).
+      result = |<button type="submit" class="gg-alv-hotspot" { lv_hotspot }>{ cl_gui_control=>escape_html( is_cell-text ) }</button>|.
     ELSEIF is_cell-hotspot = abap_true.
       result = |<button type="submit" name="gg_action" value="COMMAND:ALV-HOTSPOT-{ iv_row_index }-{ cl_gui_control=>escape_html( CONV string( is_cell-fieldname ) ) }">{ cl_gui_control=>escape_html( is_cell-text ) }</button>|.
     ELSEIF is_cell-exception_light = abap_true.
@@ -1515,9 +2014,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       ( function = '&PRINT' quickinfo = 'Print' icon = 'printer' )
       ( function = '&XML' quickinfo = 'XML export' icon = 'file-arrow-down' )
       ( function = '&PC' quickinfo = 'Export to file' icon = 'file-arrow-down' )
-      ( function = '&SAVE' quickinfo = 'Save variant' icon = 'device-floppy' )
-      ( function = '&LOAD' quickinfo = 'Load variant' icon = 'folder-open' )
-      ( function = '&VIEW' quickinfo = 'Change layout' icon = 'screen' )
+      ( function = '&COL0' quickinfo = 'Change layout' icon = 'screen' )
+      ( function = '&LOAD' quickinfo = 'Choose layout' icon = 'folder-open' )
+      ( function = '&SAVE' quickinfo = 'Save layout' icon = 'device-floppy' )
       ( function = '&ALL' quickinfo = 'Select all' icon = 'circle-check' )
       ( function = '&LOCAL&APPEND' quickinfo = 'Insert row' icon = 'plus' )
       ( function = '&LOCAL&DELETE_ROW' quickinfo = 'Delete row' icon = 'trash' )
@@ -1525,10 +2024,13 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       ( function = '&HELP' quickinfo = 'Help' icon = 'help-circle' ) ).
     IF NOT line_exists( mt_toolbar_excluding[ table_line = mc_fc_excl_all ] ).
       LOOP AT lt_standard INTO DATA(ls_standard).
-        IF line_exists( mt_toolbar_excluding[ table_line = ls_standard-function ] ).
+        IF line_exists( mt_toolbar_excluding[ table_line = ls_standard-function ] )
+            OR ( ls_standard-function = mc_fc_load_variant AND ms_variant-report IS INITIAL )
+            OR ( ls_standard-function = mc_fc_save_variant
+                 AND ( ms_variant-report IS INITIAL OR mv_variant_save IS INITIAL ) ).
           CONTINUE.
         ENDIF.
-        lv_buttons = lv_buttons && |<button class="gg-alv-tool-button" type="submit" name="gg_ucomm" value="{ ls_standard-function }" title="{ ls_standard-quickinfo }" aria-label="{ ls_standard-quickinfo }">{ zcl_gg_host_icons=>icon( iv_name = CONV string( ls_standard-icon ) ) }</button>|.
+        lv_buttons = lv_buttons && |<button class="gg-alv-tool-button" type="submit" { function_attributes( CONV #( ls_standard-function ) ) } title="{ ls_standard-quickinfo }" aria-label="{ ls_standard-quickinfo }">{ zcl_gg_host_icons=>icon( iv_name = CONV string( ls_standard-icon ) ) }</button>|.
       ENDLOOP.
     ENDIF.
 * Application functions follow the standard ones, as SAP GUI adds them to the
@@ -1541,7 +2043,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       DATA(lv_label) = COND string( WHEN ls_button-text IS INITIAL
                                     THEN CONV string( ls_button-quickinfo )
                                     ELSE CONV string( ls_button-text ) ).
-      lv_buttons = lv_buttons && |<button type="submit" name="gg_ucomm" value="{ cl_gui_control=>escape_html( CONV string( ls_button-function ) ) }" title="{ cl_gui_control=>escape_html( CONV string( ls_button-quickinfo ) ) }" aria-label="{ cl_gui_control=>escape_html( lv_label ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ` disabled aria-disabled="true"` ELSE `` ) }>{ cl_gui_control=>escape_html( lv_label ) }</button>|.
+      lv_buttons = lv_buttons && |<button type="submit" { function_attributes( CONV #( ls_button-function ) ) } title="{ cl_gui_control=>escape_html( CONV string( ls_button-quickinfo ) ) }" aria-label="{ cl_gui_control=>escape_html( lv_label ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ` disabled aria-disabled="true"` ELSE `` ) }>{ cl_gui_control=>escape_html( lv_label ) }</button>|.
     ENDLOOP.
     IF lv_buttons IS NOT INITIAL.
       result = |<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control">{ lv_buttons }</div>|.
@@ -1556,6 +2058,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     DATA ls_subtotal_sort TYPE lvc_s_sort.
     DATA lv_toolbar TYPE string.
     DATA lv_row_marks TYPE abap_bool.
+    DATA lv_title TYPE lvc_title.
 
     lv_has_total = xsdbool( line_exists( mt_fieldcatalog[ do_sum = 'X' ] ) ).
     READ TABLE mt_sort INTO ls_subtotal_sort WITH KEY subtot = 'X'.
@@ -1564,7 +2067,17 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     ENDIF.
     lv_toolbar = render_toolbar( ).
     lv_row_marks = xsdbool( ms_layout-no_rowmark = abap_false ).
-    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }</h2></header>{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }<div class="gg-alv-grid-area"><table data-sortable="true" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"{ COND string( WHEN mv_gridtitle IS NOT INITIAL THEN | aria-label="{ cl_gui_control=>escape_html( CONV string( mv_gridtitle ) ) }"| ) }><thead><tr>{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col">Select</th>` ) }|.
+* The grid itself is a drop target with a grid or control handle; a drop on it
+* names no row.
+    DATA(lv_grid_drop) = cl_gui_control=>drop_attributes(
+      handle     = COND #( WHEN ms_layout-s_dragdrop-grid_ddid IS NOT INITIAL
+                           THEN ms_layout-s_dragdrop-grid_ddid
+                           ELSE ms_layout-s_dragdrop-cntr_ddid )
+      control_id = control_id
+      row        = 0 ).
+* A title set with set_gridtitle wins over the layout title, as on SAP.
+    lv_title = COND #( WHEN mv_gridtitle IS INITIAL THEN ms_layout-grid_title ELSE mv_gridtitle ).
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( lv_title ) ) }</h2></header>{ COND string( WHEN control_id IS NOT INITIAL THEN |<input type="hidden" name="{ frontend_field_name( 'present' ) }" value="X">| ) }{ render_protocol( ) }{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }{ render_layout_dialog( ) }<div class="gg-alv-grid-area"{ lv_grid_drop }><table data-sortable="true" data-zebra="{ COND string( WHEN ms_layout-zebra = abap_true THEN `true` ELSE `false` ) }" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"{ COND string( WHEN lv_title IS NOT INITIAL THEN | aria-label="{ cl_gui_control=>escape_html( CONV string( lv_title ) ) }"| ) }><thead><tr>{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col">Select</th>` ) }|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         DATA(lv_heading) = ls_fieldcat-coltext.
@@ -1600,9 +2113,12 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       DATA(lv_row_color_attr) = COND string(
         WHEN ls_row-color_style IS INITIAL THEN ``
         ELSE | style="{ ls_row-color_style }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }"| ).
-      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }{ lv_row_color_attr }>|.
+      DATA(lv_row_drop) = cl_gui_control=>drop_attributes( handle     = ms_layout-s_dragdrop-row_ddid
+                                                           control_id = control_id
+                                                           row        = ls_row-index ).
+      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" data-lvc-color="{ cl_gui_control=>escape_html( ls_row-color_code ) }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }{ lv_row_color_attr }{ lv_row_drop }>|.
       IF lv_row_marks = abap_true.
-        result = result && |<td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }" style="{ ls_row-color_style }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="gg-alv-row-{ ls_row-index }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
+        result = result && |<td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }" style="{ ls_row-color_style }"><input class="{ cl_gui_control=>state_class( iv_selected = lv_selected ) }" type="checkbox" name="{ COND string( WHEN control_id IS INITIAL THEN |gg-alv-row-{ ls_row-index }| ELSE frontend_field_name( |row:{ ls_row-index }| ) ) }" aria-label="Select row { ls_row-index }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN ` checked` ELSE `` ) }></td>|.
       ENDIF.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
         result = result && render_cell(

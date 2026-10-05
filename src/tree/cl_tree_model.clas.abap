@@ -227,11 +227,14 @@ CLASS cl_tree_model IMPLEMENTATION.
 
   METHOD update_view.
     DATA lt_control_nodes TYPE ty_control_nodes.
-    DATA lt_collapsed_nodes TYPE treev_nks.
+    DATA lt_expanded_nodes TYPE treev_nks.
 
     IF mr_tree_control IS NOT BOUND.
       RETURN.
     ENDIF.
+* The control shows the model as it is now: its nodes, collapsed unless the
+* model has them expanded.
+    mr_tree_control->delete_all_nodes( ).
     LOOP AT mt_model_nodes INTO DATA(ls_node).
       APPEND VALUE #( node_key = ls_node-node_key
                       relatkey = ls_node-parent_key
@@ -241,10 +244,10 @@ CLASS cl_tree_model IMPLEMENTATION.
     mr_tree_control->add_nodes(
       table_structure_name = 'TREE_MODEL_NODE'
       node_table           = lt_control_nodes ).
-    LOOP AT mt_model_nodes INTO ls_node WHERE expanded = abap_false.
-      APPEND CONV tv_nodekey( ls_node-node_key ) TO lt_collapsed_nodes.
+    LOOP AT mt_model_nodes INTO ls_node WHERE expanded = abap_true.
+      APPEND CONV tv_nodekey( ls_node-node_key ) TO lt_expanded_nodes.
     ENDLOOP.
-    mr_tree_control->collapse_nodes( node_key_table = lt_collapsed_nodes ).
+    mr_tree_control->expand_nodes( lt_expanded_nodes ).
   ENDMETHOD.
 
   METHOD get_state_summary.

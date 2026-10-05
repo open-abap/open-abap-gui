@@ -20,11 +20,19 @@ CLASS ltcl_gui_frontend_services IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = cl_gui_frontend_services=>directory_exist( lv_directory ) ).
     cl_abap_unit_assert=>assert_false( act = cl_gui_frontend_services=>file_exist( lv_file ) ).
 
+* Outside a screen there is no frontend to transfer a file to, and the data
+* stays the program's.
+    APPEND `line` TO lt_data.
     cl_gui_frontend_services=>gui_download(
       EXPORTING
-        filename = '/browser-only'
+        filename             = '/browser-only'
       CHANGING
-        data_tab = lt_data ).
-    cl_abap_unit_assert=>assert_initial( act = lt_data ).
+        data_tab             = lt_data
+      EXCEPTIONS
+        not_supported_by_gui = 1
+        OTHERS               = 2 ).
+    cl_abap_unit_assert=>assert_subrc( exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_data )
+                                        exp = 1 ).
   ENDMETHOD.
 ENDCLASS.

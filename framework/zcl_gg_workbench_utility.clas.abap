@@ -59,6 +59,7 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
              icon      TYPE string,
              modifier  TYPE string,
              separator TYPE abap_bool,
+             key       TYPE i,
            END OF ty_command.
     TYPES ty_commands TYPE STANDARD TABLE OF ty_command WITH DEFAULT KEY.
 
@@ -68,13 +69,14 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS render_commandbar
       IMPORTING
-        iv_runtime     TYPE abap_bool
-        iv_error       TYPE string
-        iv_session_id  TYPE string
-        iv_page_id     TYPE string
-        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
+        iv_runtime      TYPE abap_bool
+        iv_error        TYPE string
+        iv_session_id   TYPE string
+        iv_page_id      TYPE string
+        is_status       TYPE zif_gg_session_types_v1=>ty_gui_status
+        iv_content_form TYPE string DEFAULT form_dispatch
       RETURNING
-        VALUE(rv_html) TYPE string.
+        VALUE(rv_html)  TYPE string.
 
     CLASS-METHODS render_iconbar
       IMPORTING
@@ -200,11 +202,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu" data-toolbar-scope="shell-menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><a class="wb-menu" role="menuitem" href="/converter/preview">Tools</a><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
     rv_html = rv_html && render_commandbar(
-      iv_runtime    = iv_runtime
-      iv_error      = iv_error
-      iv_session_id = iv_session_id
-      iv_page_id    = iv_page_id
-      is_status     = is_status ).
+      iv_runtime      = iv_runtime
+      iv_error        = iv_error
+      iv_session_id   = iv_session_id
+      iv_page_id      = iv_page_id
+      is_status       = is_status
+      iv_content_form = lv_content_form ).
     rv_html = rv_html && |<header class="wb-appbar"><h1 id="wb-page-title" class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       |</h1></header>| &&
@@ -250,7 +253,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         lv_state = COND string( WHEN lv_enabled = abap_true THEN '' ELSE ' disabled' ).
         lv_command = COND string(
           WHEN iv_runtime = abap_true AND lv_enabled = abap_true
-          THEN | form="gg-dynpro-form" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_item-ucomm ) ) }"|
+          THEN | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_item-ucomm ) ) }"|
           ELSE '' ).
         lv_items = lv_items &&
           |<li role="none"><button class="wb-menu-action" type="submit"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( ls_item-text ) }"{ lv_state }>{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.
@@ -299,6 +302,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     ENDIF.
 
     LOOP AT it_entries INTO DATA(ls_icon).
+* As on SAP, a function the status excludes is not shown in the application
+* toolbar; the menus show it inactive.
+      IF iv_runtime = abap_true
+          AND line_exists( is_status-excluded_ucomm[ table_line = ls_icon-ucomm ] ).
+        CONTINUE.
+      ENDIF.
       IF ls_icon-separator = abap_true.
         lv_buttons = lv_buttons && '<span class="wb-toolbar-separator" aria-hidden="true"></span>'.
       ENDIF.
@@ -314,11 +323,11 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       lv_type = COND #( WHEN iv_runtime = abap_true AND ls_icon-ucomm IS NOT INITIAL THEN `submit` ELSE `button` ).
       CLEAR lv_command.
       IF iv_runtime = abap_true AND lv_enabled = abap_true AND ls_icon-ucomm IS NOT INITIAL.
-        lv_command = | form="{ iv_content_form }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"|.
+        lv_command = | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"|.
       ENDIF.
       lv_buttons = lv_buttons &&
         |<button class="wb-toolbar-button" type="{ lv_type }"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" title="{ zcl_gg_host_html=>escape_attribute( lv_label ) }" data-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_icon-ucomm ) ) }"{ lv_state }>| &&
-        zcl_gg_host_icons=>icon( iv_name = ls_icon-icon ) &&
+        COND string( WHEN ls_icon-icon IS NOT INITIAL THEN zcl_gg_host_icons=>icon( iv_name = ls_icon-icon ) ) &&
         |<span class="wb-toolbar-label">{ zcl_gg_host_html=>escape_text( lv_label ) }</span>| &&
         '</button>'.
     ENDLOOP.
@@ -330,45 +339,56 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
   METHOD standard_commands.
     rt_commands = VALUE #(
       ( ucomm = zif_gg_session_types_v1=>command_save
+        key   = 11
         label = `Save`
         icon  = `device-floppy` )
       ( ucomm     = zif_gg_session_types_v1=>command_back
+        key       = 3
         label     = `Back`
         icon      = `arrow-back-up`
         modifier  = ` wb-command-button--back`
         separator = abap_true )
       ( ucomm    = zif_gg_session_types_v1=>command_exit
+        key      = 15
         label    = `Exit`
         icon     = `logout`
         modifier = ` wb-command-button--exit` )
       ( ucomm    = zif_gg_session_types_v1=>command_cancel
+        key      = 12
         label    = `Cancel`
         icon     = `circle-x`
         modifier = ` wb-command-button--cancel` )
       ( ucomm     = zif_gg_session_types_v1=>command_print
+        key       = 86
         label     = `Print`
         icon      = `printer`
         separator = abap_true )
       ( ucomm = zif_gg_session_types_v1=>command_find
+        key   = 71
         label = `Find`
         icon  = `search` )
       ( ucomm = zif_gg_session_types_v1=>command_find_next
+        key   = 84
         label = `Find next`
         icon  = `search-plus` )
       ( ucomm     = zif_gg_session_types_v1=>command_first_page
+        key       = 21
         label     = `First page`
         icon      = `arrow-bar-to-up`
         modifier  = ` wb-command-button--page`
         separator = abap_true )
       ( ucomm    = zif_gg_session_types_v1=>command_previous_page
+        key      = 22
         label    = `Previous page`
         icon     = `file-arrow-up`
         modifier = ` wb-command-button--page` )
       ( ucomm    = zif_gg_session_types_v1=>command_next_page
+        key      = 23
         label    = `Next page`
         icon     = `file-arrow-down`
         modifier = ` wb-command-button--page` )
       ( ucomm    = zif_gg_session_types_v1=>command_last_page
+        key      = 24
         label    = `Last page`
         icon     = `arrow-bar-to-down`
         modifier = ` wb-command-button--page` ) ).
@@ -398,18 +418,31 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     DATA lv_enabled  TYPE abap_bool.
     DATA lv_dispatch TYPE abap_bool.
     DATA lv_program_back TYPE abap_bool.
+    DATA lv_ucomm    TYPE zif_gg_session_types_v1=>ty_ucomm.
 
     lv_dispatch = iv_runtime.
+* As on SAP, each button of the system toolbar is a function key; it sends
+* the function code the status assigns to that key.
+    lv_ucomm = COND #( WHEN is_status-pf_actions IS INITIAL
+                       THEN zif_gg_session_types_v1=>command_back
+                       ELSE VALUE #( is_status-pf_actions[ number = 3 ]-ucomm OPTIONAL ) ).
     lv_program_back = xsdbool(
       iv_runtime = abap_true
-      AND line_exists( is_status-active_ucomm[ table_line = zif_gg_session_types_v1=>command_back ] )
-      AND NOT line_exists( is_status-excluded_ucomm[ table_line = zif_gg_session_types_v1=>command_back ] ) ).
+      AND line_exists( is_status-active_ucomm[ table_line = lv_ucomm ] )
+      AND NOT line_exists( is_status-excluded_ucomm[ table_line = lv_ucomm ] ) ).
     lt_commands = standard_commands( ).
     LOOP AT lt_commands INTO DATA(ls_command).
       IF ls_command-separator = abap_true.
         lv_buttons = lv_buttons && '<span class="wb-command-separator" aria-hidden="true"></span>'.
       ENDIF.
-      lv_enabled = is_command_enabled( iv_ucomm   = ls_command-ucomm
+* A status without function keys, like the standard list status, uses the
+* standard codes; one with keys leaves the keys it does not assign inactive.
+      lv_ucomm = COND #( WHEN is_status-pf_actions IS INITIAL
+                         THEN ls_command-ucomm
+                         ELSE VALUE #( is_status-pf_actions[ number = ls_command-key ]-ucomm OPTIONAL ) ).
+      lv_enabled = is_command_enabled( iv_ucomm   = COND #( WHEN ls_command-ucomm = zif_gg_session_types_v1=>command_back
+                                                            THEN ls_command-ucomm
+                                                            ELSE lv_ucomm )
                                        iv_runtime = iv_runtime
                                        is_status  = is_status ).
       lv_state = COND #( WHEN lv_enabled = abap_true THEN `` ELSE ` disabled` ).
@@ -418,16 +451,16 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         lv_label = COND #( WHEN lv_program_back = abap_true THEN `Back` WHEN iv_runtime = abap_true THEN `Return to workbench` ELSE ls_command-label ).
         IF lv_enabled = abap_true.
           IF lv_program_back = abap_true.
-            lv_command = | form="{ form_dispatch }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_command-ucomm ) ) }"|.
+            lv_command = | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( lv_ucomm ) ) }"|.
             lv_dispatch = abap_true.
           ELSE.
             lv_command = | form="{ form_workbench }"|.
           ENDIF.
         ENDIF.
       ELSE.
-        lv_label = COND #( WHEN iv_runtime = abap_true THEN `Global command` ELSE ls_command-label ).
+        lv_label = ls_command-label.
         IF lv_enabled = abap_true.
-          lv_command = | form="{ form_dispatch }" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_command-ucomm ) ) }"|.
+          lv_command = | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( lv_ucomm ) ) }"|.
           lv_dispatch = abap_true.
         ENDIF.
       ENDIF.
@@ -504,6 +537,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var trees=document.querySelectorAll(".gg-alv-tree table[role=\"tree\"]");var rows=function(t){return Array.prototype.slice.call(t.querySelectorAll("tbody tr[role=\"treeitem\"]"));};var emit=function(n,r,x){var d={nodeKey:r&&r.getAttribute("data-node-key")||""};for(var k in x){d[k]=x[k];}document.dispatchEvent(new CustomEvent(n,{detail:d,bubbles:true}));};var update=function(t){var open=[];rows(t).forEach(function(r){var l=parseInt(r.getAttribute("aria-level")||"1",10),v=l===1||open[l-1]===true;r.hidden=!v;open[l]=v&&r.getAttribute("aria-expanded")==="true";open.length=l+1;});};var select=function(t,r,a){if(r.getAttribute("data-tree-selection")!=="multiple"||!a){t.querySelectorAll("tr[aria-selected=\"true\"]").forEach(function(x){x.setAttribute("aria-selected","false");x.removeAttribute("aria-current");});}r.setAttribute("aria-selected","true");r.setAttribute("aria-current","true");emit("gg-alv-tree-select",r,{selectedKeys:rows(t).filter(function(x){return x.getAttribute("aria-selected")==="true";}).map(function(x){return x.getAttribute("data-node-key");})});};trees.forEach(function(t){update(t);t.addEventListener("click",function(e){if(e.button!==0){return;}var x=e.target,r=x.closest?x.closest("tr[role=\"treeitem\"]"):null,a=x.closest?x.closest("[data-tree-action]"):null;if(!r){return;}if(a&&a.getAttribute("data-tree-action")==="toggle"){var ex=r.getAttribute("aria-expanded")!=="true";r.setAttribute("aria-expanded",ex?"true":"false");var b=a;b.setAttribute("aria-label",(ex?"Collapse ":"Expand ")+(r.querySelector(".gg-tree-node-label")||{}).textContent||"");update(t);emit("gg-alv-tree-toggle",r,{expanded:ex});e.preventDefault();return;}if(a&&a.getAttribute("data-tree-action")==="link"){emit("gg-alv-tree-link-click",r,{fieldname:a.getAttribute("data-item-name")||""});e.preventDefault();return;}if(a&&a.getAttribute("data-tree-action")==="button"){emit("gg-alv-tree-item-button",r,{fieldname:a.getAttribute("data-item-name")||""});e.preventDefault();return;}select(t,r,e.ctrlKey||e.metaKey);});t.addEventListener("dblclick",function(e){var x=e.target,r=x.closest?x.closest("tr[role=\"treeitem\"]"):null,a=x.closest?x.closest("[data-tree-action]"):null;if(r){emit(a&&a.getAttribute("data-tree-action")==="link"?"gg-alv-tree-item-double-click":"gg-alv-tree-node-double-click",r,{fieldname:a&&a.getAttribute("data-item-name")||""});}});t.addEventListener("change",function(e){var x=e.target,r=x.closest?x.closest("tr[role=\"treeitem\"]"):null;if(r&&x.matches("input[type=\"checkbox\"]")){emit("gg-alv-tree-checkbox-change",r,{fieldname:x.getAttribute("aria-label")||"",checked:x.checked});}});t.addEventListener("keydown",function(e){var r=e.target.closest?e.target.closest("tr[role=\"treeitem\"]"):null,v=rows(t).filter(function(x){return !x.hidden;}),i=v.indexOf(r),z;if(!r){return;}if(e.key==="ArrowRight"){if(r.getAttribute("data-has-children")==="true"&&r.getAttribute("aria-expanded")==="false"){r.querySelector("[data-tree-action=\"toggle\"]").click();}else{z=v[i+1];if(z){z.focus();}}e.preventDefault();}else if(e.key==="ArrowLeft"){if(r.getAttribute("aria-expanded")==="true"){r.querySelector("[data-tree-action=\"toggle\"]").click();}else{z=v[i-1];if(z){z.focus();}}e.preventDefault();}else if(e.key==="ArrowDown"||e.key==="ArrowUp"){z=v[i+(e.key==="ArrowDown"?1:-1)];if(z){z.focus();}e.preventDefault();}else if(e.key==="Home"||e.key==="End"){z=v[e.key==="Home"?0:v.length-1];if(z){z.focus();}e.preventDefault();}else if(e.key==="Enter"){emit("gg-alv-tree-node-double-click",r,{});e.preventDefault();}else if(e.key===" "){select(t,r,e.ctrlKey||e.metaKey);e.preventDefault();}});});}());</script></body></html>'.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var emit=function(name,row,extra){var detail={nodeKey:row&&row.getAttribute("data-node-key")||""};for(var key in extra){detail[key]=extra[key];}document.dispatchEvent(new CustomEvent(name,{detail:detail,bubbles:true}));};document.querySelectorAll(".gg-alv-tree table[role=\"tree\"]").forEach(function(tree){tree.querySelectorAll("tbody tr[role=\"treeitem\"]").forEach(function(row){row.draggable=true;});tree.addEventListener("contextmenu",function(event){var row=event.target.closest?event.target.closest("tr[role=\"treeitem\"]"):null;if(row){emit("gg-alv-tree-context-menu",row,{fieldname:event.target.getAttribute("data-fieldname")||""});}});tree.addEventListener("dragstart",function(event){var row=event.target.closest?event.target.closest("tr[role=\"treeitem\"]"):null;if(!row){return;}if(event.dataTransfer){event.dataTransfer.effectAllowed="move";event.dataTransfer.setData("text/plain",row.getAttribute("data-node-key")||"");}emit("gg-alv-tree-drag-start",row,{});});tree.addEventListener("dragover",function(event){if(event.target.closest&&event.target.closest("tr[role=\"treeitem\"]")){event.preventDefault();}});tree.addEventListener("drop",function(event){var row=event.target.closest?event.target.closest("tr[role=\"treeitem\"]"):null;if(!row){return;}event.preventDefault();emit("gg-alv-tree-drop",row,{sourceNodeKey:event.dataTransfer?event.dataTransfer.getData("text/plain")||"":""});});});}());</script></body></html>'.
     REPLACE ALL OCCURRENCES OF 'tree.addEventListener("contextmenu",function(event){var row=' IN rv_html WITH 'tree.addEventListener("contextmenu",function(event){event.preventDefault();event.stopPropagation();var row='.
+* A drag source (data-gg-drag) dropped on a drop target (data-gg-drop) with a
+* flavor in common posts the DROP event of the target.
+    REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var common=function(t,types){var f=(t.getAttribute("data-gg-drop-flavors")||"").split(",");for(var i=0;i<f.length;i++){if(types.indexOf("application/x-gg-flavor-"+f[i].toLowerCase())>=0){return f[i];}}return "";};document.addEventListener("dragstart",function(e){var s=e.target.closest&&e.target.closest("[data-gg-drag]");if(!s){return;}e.dataTransfer.setData("application/x-gg-drag",s.getAttribute("data-gg-drag"));(s.getAttribute("data-gg-flavors")||"").split(",").forEach(function(f){e.dataTransfer.setData("application/x-gg-flavor-"+f.toLowerCase(),f);});e.dataTransfer.effectAllowed="copyMove";});document.addEventListener("dragover",function(e){var t=e.target.closest&&e.target.closest("[data-gg-drop]");if(t&&common(t,Array.prototype.slice.call(e.dataTransfer.types))){e.preventDefault();}});document.addEventListener("drop",function(e){var t=e.target.closest&&e.target.closest("[data-gg-drop]");if(!t){return;}var flavor=common(t,Array.prototype.slice.call(e.dataTransfer.types)),source=e.dataTransfer.getData("application/x-gg-drag"),form=t.closest("form");if(!flavor||!source||!form){return;}e.preventDefault();var b=document["cr"+"eateElement"]("button");b.type="submit";b.name="gg_control_event";b.value=t.getAttribute("data-gg-drop")+"|"+source+"|"+flavor;b.hidden=true;b.formNoValidate=true;form.appendChild(b);b.click();});}());</script></body></html>'.
+* A control element with data-gg-click-event or data-gg-dblclick-event posts
+* that control event, as SAP GUI raises the events of a tree node or grid cell.
+    REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var timer=null;var post=function(element,value){var form=element.closest("form");if(!form||!value){return;}var button=document["cr"+"eateElement"]("button");button.type="submit";button.name="gg_control_event";button.value=value;button.hidden=true;button.formNoValidate=true;form.appendChild(button);button.click();};var find=function(event,name){return event.target.closest?event.target.closest("["+name+"]"):null;};document.addEventListener("click",function(event){var element=find(event,"data-gg-click-event");if(!element){return;}event.preventDefault();clearTimeout(timer);var value=element.getAttribute("data-gg-click-event");if(element.hasAttribute("data-gg-dblclick-event")){timer=setTimeout(function(){post(element,value);},300);}else{post(element,value);}});document.addEventListener("dblclick",function(event){var element=find(event,"data-gg-dblclick-event");if(!element){return;}clearTimeout(timer);post(element,element.getAttribute("data-gg-dblclick-event"));});document.addEventListener("keydown",function(event){if(event.key!=="Enter"){return;}var element=find(event,"data-gg-click-event");if(!element){return;}event.preventDefault();post(element,element.getAttribute("data-gg-dblclick-event")||element.getAttribute("data-gg-click-event"));});}());</script></body></html>'.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){if(!document.querySelector(".gg-alv-tree table[role=\"tree\"]")){return;}var post=function(name,detail){if(window.__ggDisableTreeTransport){return;}var form=document.querySelector(".gg-page--dynpro form,.gg-page--selection form,.gg-page--list form");if(!form){return;}var add=function(field,value){var input=document["cr"+"eateElement"]("input");input.type="hidden";input.name=field;input.value=value===undefined||value===null?"":String(value);form.appendChild(input);};add("gg_tree_event",name);add("gg_tree_node",detail.nodeKey||"");add("gg_tree_field",detail.fieldname||"");add("gg_tree_value",name==="TREE_SELECT"?(detail.selectedKeys||[]).join(","):detail.expanded===undefined?detail.value||detail.sourceNodeKey||"":detail.expanded?"true":"false");add("gg_tree_checked",detail.checked?"X":"");var button=document["cr"+"eateElement"]("button");button.type="submit";button.name="gg_action";button.value="TREE_EVENT";button.formNoValidate=true;button.hidden=true;form.appendChild(button);button.click();};var names={"gg-alv-tree-toggle":"TREE_TOGGLE","gg-alv-tree-select":"TREE_SELECT","gg-alv-tree-link-click":"TREE_LINK","gg-alv-tree-item-double-click":"TREE_ITEM_DOUBLE","gg-alv-tree-node-double-click":"TREE_NODE_DOUBLE","gg-alv-tree-checkbox-change":"TREE_CHECKBOX","gg-alv-tree-context-menu":"TREE_CONTEXT","gg-alv-tree-drag-start":"TREE_DRAG_START","gg-alv-tree-drop":"TREE_DROP","gg-alv-tree-item-button":"TREE_ITEM_BUTTON"};Object.keys(names).forEach(function(name){document.addEventListener(name,function(event){post(names[name],event.detail||{});});});}());</script></body></html>'.
   ENDMETHOD.
 

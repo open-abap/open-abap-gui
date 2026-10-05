@@ -14,6 +14,11 @@ CLASS zcl_gg_host_report_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
     INTERFACES zif_gg_resumable_v1.
     INTERFACES zif_gg_context_menu_v1.
 
+* The program of the report the screens belong to, sy-repid in its modules.
+    METHODS get_program
+      RETURNING
+        VALUE(rv_program) TYPE zif_gg_session_types_v1=>ty_program.
+
   PRIVATE SECTION.
     DATA mo_provider TYPE REF TO zif_gg_screen_provider_v1.
     DATA mo_resumable TYPE REF TO zif_gg_resumable_v1.
@@ -26,6 +31,17 @@ CLASS zcl_gg_host_report_dynpro IMPLEMENTATION.
     mo_provider = io_provider.
     mo_resumable = io_resumable.
     mo_context = io_context.
+  ENDMETHOD.
+
+  METHOD get_program.
+    DATA lo_transaction TYPE REF TO zif_gg_transaction_v1.
+
+    TRY.
+        lo_transaction ?= mo_provider.
+        rv_program = lo_transaction->get_transaction( )-program.
+      CATCH cx_sy_move_cast_error.
+        CLEAR rv_program.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.

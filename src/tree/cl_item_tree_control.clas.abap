@@ -223,14 +223,28 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
     DATA mt_item_states TYPE ty_item_states.
     DATA mv_selected_item_node TYPE string.
     DATA mv_selected_item_name TYPE string.
+* The item that holds the text of a node: the hierarchy column of a column
+* tree; empty for a list tree, where it is the first item of the node.
+    DATA mv_hierarchy_item TYPE string.
 
     METHODS refresh_item_html.
+    METHODS node_items_html REDEFINITION.
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.
 
   METHOD refresh_item_html.
     refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD node_items_html.
+    LOOP AT mt_html_items INTO DATA(ls_item) WHERE node_key = node_key.
+      IF ls_item-item_name = mv_hierarchy_item
+          OR ( mv_hierarchy_item IS INITIAL AND sy-tabix = line_index( mt_html_items[ node_key = node_key ] ) ).
+        CONTINUE.
+      ENDIF.
+      result = result && |<span class="gg-tree-item" data-item-name="{ escape_html( ls_item-item_name ) }">{ escape_html( ls_item-text ) }</span>|.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD delete_all_nodes.
@@ -334,12 +348,14 @@ CLASS cl_item_tree_control IMPLEMENTATION.
       ENDIF.
       APPEND ls_html_item TO mt_html_items.
 
-      IF lv_item_name = 'NODE'.
-        READ TABLE mt_html_nodes ASSIGNING FIELD-SYMBOL(<html_node>)
-          WITH KEY node_key = lv_item_node_key.
-        IF sy-subrc = 0.
-          <html_node>-text = ls_html_item-text.
-        ENDIF.
+      READ TABLE mt_html_nodes ASSIGNING FIELD-SYMBOL(<html_node>)
+        WITH KEY node_key = lv_item_node_key.
+      IF sy-subrc <> 0.
+        CONTINUE.
+      ENDIF.
+      IF lv_item_name = mv_hierarchy_item
+          OR ( mv_hierarchy_item IS INITIAL AND <html_node>-text IS INITIAL ).
+        <html_node>-text = ls_html_item-text.
       ENDIF.
     ENDLOOP.
     refresh_item_html( ).

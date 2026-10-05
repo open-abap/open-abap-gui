@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Select-option for a dictionary field</ENTRY>
+     <LENGTH>36</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>S_CARR</KEY>
      <ENTRY>Carrier</ENTRY>

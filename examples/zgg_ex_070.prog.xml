@@ -11,6 +11,23 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Radio-driven blocks and validation</ENTRY>
+     <LENGTH>34</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>001</KEY>
+     <ENTRY>All flights</ENTRY>
+     <LENGTH>11</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>002</KEY>
+     <ENTRY>One flight</ENTRY>
+     <LENGTH>10</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_ALL</KEY>
      <ENTRY>All flights</ENTRY>
@@ -18,15 +35,15 @@
     </item>
     <item>
      <ID>S</ID>
-     <KEY>P_ONE</KEY>
-     <ENTRY>One flight</ENTRY>
-     <LENGTH>10</LENGTH>
-    </item>
-    <item>
-     <ID>S</ID>
      <KEY>P_ALLV</KEY>
      <ENTRY>All value</ENTRY>
      <LENGTH>9</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_ONE</KEY>
+     <ENTRY>One flight</ENTRY>
+     <LENGTH>10</LENGTH>
     </item>
     <item>
      <ID>S</ID>

@@ -1,15 +1,10 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_117 — preserves custom container and child identity", async ({page, host}) => {
+test("ZCL_GG_EX_117 — hosts a text editor in a custom container", async ({page, host}) => {
   await openExample(page, host, 117);
-  const container = page.locator('[data-control-kind="CUSTOM_CONTAINER"]');
-  await expect(container).toHaveCount(1);
-  await expect(container).toHaveAttribute("data-payload", /name=ROOT117;/);
-  await expect(container).not.toContainText("name=ROOT117;");
-  await expect(page.locator("textarea")).toHaveValue("Child control in custom container (generation 1)");
-  await expect(page.locator(".gg-structured-table")).toContainText("ROOT117");
-  await page.locator(".gg-structured-table").getByRole("button", {name: "Resize child"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-structured-table")).toContainText("520 x 120");
+  await expect(page.locator('[data-control-kind="CUSTOM_CONTAINER"]')).toHaveCount(1);
+  await expect(page.locator("textarea")).toHaveValue("Text editor in custom container CC_MAIN, generation 1");
+  await submit(page, "Replace child");
+  await expect(page.locator("textarea:visible")).toHaveValue(/generation 2/);
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Child created, generation 2");
 });
-

@@ -19,6 +19,7 @@ MODULE status_0100 OUTPUT.
   DATA lo_salv TYPE REF TO cl_salv_table.
   DATA lo_column TYPE REF TO cl_salv_column_table.
 
+  SET PF-STATUS 'STATUS163'.
   SET TITLEBAR 'TITLE163'.
   TRY.
       cl_salv_table=>factory(
@@ -36,5 +37,10 @@ MODULE status_0100 OUTPUT.
 ENDMODULE.
 
 MODULE user_command_0100 INPUT.
+  CASE ok_code.
+    WHEN 'BACK' OR 'EXIT' OR 'CANCEL'.
+      CLEAR ok_code.
+      LEAVE TO SCREEN 0.
+  ENDCASE.
   CLEAR ok_code.
 ENDMODULE.

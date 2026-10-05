@@ -35,6 +35,16 @@ CLASS cl_gui_simple_tree DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
         node_not_found
         cntl_system_error.
 
+    EVENTS on_drag
+      EXPORTING
+        VALUE(node_key)         TYPE tv_nodekey
+        VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+    EVENTS on_drop_complete
+      EXPORTING
+        VALUE(node_key)         TYPE tv_nodekey
+        VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
     EVENTS on_drag_multiple
       EXPORTING
         VALUE(node_key_table)   TYPE treev_nks
@@ -44,6 +54,10 @@ CLASS cl_gui_simple_tree DEFINITION PUBLIC INHERITING FROM cl_tree_control_base.
       EXPORTING
         VALUE(node_key_table)   TYPE treev_nks
         VALUE(drag_drop_object) TYPE REF TO cl_dragdropobject.
+
+  PROTECTED SECTION.
+    METHODS drag REDEFINITION.
+    METHODS drop_complete REDEFINITION.
 ENDCLASS.
 
 CLASS cl_gui_simple_tree IMPLEMENTATION.
@@ -61,7 +75,7 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
     FIELD-SYMBOLS <component> TYPE any.
     DATA lv_node_index TYPE i.
 
-    clear_html_nodes( ).
+* add_nodes adds to the nodes the tree has; a new node starts collapsed.
     LOOP AT node_table ASSIGNING <node_row>.
       lv_node_index = sy-tabix.
       DATA(lv_node_key) = |NODE-{ lv_node_index }|.
@@ -94,12 +108,41 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
         lv_text = lv_node_key.
       ENDIF.
 
-      add_html_node(
-        node_key   = lv_node_key
-        parent_key = lv_parent_key
-        text       = lv_text ).
+      DELETE mt_html_nodes WHERE node_key = lv_node_key.
+      APPEND VALUE #( node_key   = lv_node_key
+                      parent_key = lv_parent_key
+                      text       = lv_text ) TO mt_html_nodes ASSIGNING FIELD-SYMBOL(<ls_html_node>).
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'ISFOLDER' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-folder = xsdbool( <component> IS NOT INITIAL ).
+      ENDIF.
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'EXPANDER' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-expander = xsdbool( <component> IS NOT INITIAL ).
+      ENDIF.
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'DRAGDROPID' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-dragdropid = <component>.
+      ENDIF.
     ENDLOOP.
     refresh_tree_html( ).
+  ENDMETHOD.
+
+  METHOD drag.
+    RAISE EVENT on_drag
+      EXPORTING
+        node_key         = CONV tv_nodekey( key )
+        drag_drop_object = object.
+  ENDMETHOD.
+
+  METHOD drop_complete.
+    RAISE EVENT on_drop_complete
+      EXPORTING
+        node_key         = CONV tv_nodekey( key )
+        drag_drop_object = object.
   ENDMETHOD.
 
   METHOD node_set_text.

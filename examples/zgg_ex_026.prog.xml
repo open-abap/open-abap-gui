@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Selection-screen tabbed block and tabs</ENTRY>
+     <LENGTH>38</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_ACTIVE</KEY>
      <ENTRY>Active</ENTRY>

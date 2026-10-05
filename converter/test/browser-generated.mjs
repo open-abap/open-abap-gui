@@ -75,12 +75,9 @@ async function writeInputs() {
     className: "ZCL_CV_BROWSER_058",
     transactionCode: "ZCVB058",
     mode: "partial",
-    dynproMetadata: {
-      initialScreen: "0100",
-      screens: [{number: "0100", title: "ZCL_CV_BROWSER_058"}, {number: "0200", title: "ZCL_CV_BROWSER_058"}],
-      flowLogic: [{screen: "0100", pbo: [{name: "STATUS_0100"}], pai: [{name: "USER_COMMAND_0100"}]}],
-      statuses: {"0100": {status: "SCREEN FLOW", activeUcomm: ["NEXT"]}},
-    },
+    // The module pool's screens, flow logic and GUI status from its prog.xml.
+    dynproMetadataFilename: sourcePath.replace(/\.prog\.abap$/, ".prog.xml"),
+    dynproScreenDirectory: path.dirname(sourcePath),
   });
   assert.ok(result.classSource, "converter produced no generated browser dynpro class");
   await fs.writeFile(path.join(inputFolder, "zcl_cv_browser_058.clas.abap"), result.classSource, "utf8");
@@ -188,7 +185,8 @@ try {
   assert.equal(response?.status(), 200);
   await page.locator("[data-page-kind]").waitFor();
   assert.equal(await page.locator("[data-page-kind]").getAttribute("data-page-kind"), "DYNPRO");
-  assert.equal(await page.locator(".wb-app-title").textContent(), "ZCL_CV_BROWSER_058");
+  // The title is the program's own, from its SET TITLEBAR.
+  assert.equal(await page.locator(".wb-app-title").textContent(), "Order 4711");
   assert.equal(await page.locator('[data-screen="0100"]').count(), 1);
 
   await dispatch(page, {action: "SUBMIT", ucomm: "NEXT"});

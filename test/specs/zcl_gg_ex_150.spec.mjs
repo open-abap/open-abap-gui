@@ -1,60 +1,22 @@
 import {test, expect, openExample, submit, expectPageKind} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_150 — applies selection filters to the analytics cockpit", async ({page, host}) => {
+test("ZCL_GG_EX_150 — shows the selected airline's flights in a grid and a chart", async ({page, host}) => {
   await openExample(page, host, 150);
   await expectPageKind(page, "SELECTION");
-  await expect(page.locator('[name="P_CARR"]')).toHaveValue("Lufthansa");
-  await page.locator('[name="P_CARR"]').fill("United");
+  await expect(page.locator('[name="P_CARR"]')).toHaveValue("LH");
   await submit(page);
-
-  await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-cockpit")).toContainText("Carrier: United");
-  await expect(page.locator('[data-control-kind="ALV_GRID"]')).toHaveCount(1);
-  await expect(page.locator('[data-control-kind="SIMPLE_TREE"]')).toHaveCount(1);
-  await expect(page.locator('[data-control-kind="CHART_ENGINE"]')).toHaveCount(1);
-  await expect(page.locator('[data-control-kind="SPLITTER_CONTAINER"]')).toHaveCount(2);
-  await expect(page.locator('[data-toolbar-scope="control"]')).toHaveCount(2);
-  await expect(page.locator(".gg-control-toolbar")).toHaveCount(1);
-  await expect(page.locator(".gg-cockpit-actions")).toBeVisible();
-  await expect(page.locator("textarea")).toHaveValue(/Detail dynpro pane/);
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("2 flight(s) of LH from 2026-08-01");
+  await expect(page.locator('[data-control-kind="SPLITTER_CONTAINER"]')).toHaveCount(1);
+  await expect(page.locator('[data-control-kind="ALV_GRID"]').locator("tbody tr")).toHaveCount(2);
+  await expect(page.locator('[data-control-kind="CHART_ENGINE"] .gg-chart-data')).toContainText("85");
+  await page.locator('[data-control-kind="ALV_GRID"]').locator('tbody td[data-fieldname="SEATSOCC"]').first().dblclick();
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("LH 0400: 180 of 280 seats");
 });
 
-test("ZCL_GG_EX_150 — saves filters through an authorized application action", async ({page, host}) => {
+test("ZCL_GG_EX_150 — selects another airline", async ({page, host}) => {
   await openExample(page, host, 150);
+  await page.locator('[name="P_CARR"]').fill("UA");
   await submit(page);
-  await page.locator(".gg-cockpit").getByRole("button", {name: "Save filters"}).click();
-  await page.waitForLoadState("load");
-
-  await expect(page.locator(".gg-list-line").last()).toContainText("filters saved");
-  await expect(page.locator(".gg-list-status")).toContainText("FILTERS SAVED");
-});
-
-test("ZCL_GG_EX_150 — opens the detail dynpro from the cockpit", async ({page, host}) => {
-  await openExample(page, host, 150);
-  await submit(page);
-  await page.locator(".gg-cockpit").getByRole("button", {name: "Open detail dynpro"}).click();
-  await page.waitForLoadState("load");
-
-  await expect(page.locator(".gg-list-line").last()).toContainText("Detail dynpro opened");
-});
-
-test("ZCL_GG_EX_150 — application toolbar and bottom actions stay authorized", async ({page, host}) => {
-  await openExample(page, host, 150);
-  await submit(page);
-  await page.locator('[data-toolbar-scope="control"]').getByRole("button", {name: "Refresh cockpit"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line").last()).toContainText("Cockpit refreshed");
-  await page.locator(".gg-cockpit-actions").getByRole("button", {name: "Select tree"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line").last()).toContainText("Tree selection applied");
-});
-
-test("ZCL_GG_EX_150 — escapes hostile filter text at the HTML boundary", async ({page, host}) => {
-  await openExample(page, host, 150);
-  const hostile = '"><script>alert(1)</script>';
-  await page.locator('[name="P_CARR"]').fill(hostile);
-  await submit(page);
-
-  await expect(page.locator(".gg-cockpit")).toContainText(hostile);
-  await expect(page.locator(".gg-cockpit script")).toHaveCount(0);
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("2 flight(s) of UA from 2026-08-01");
+  await expect(page.locator('[data-control-kind="ALV_GRID"]').locator("tbody")).toContainText("0945");
 });

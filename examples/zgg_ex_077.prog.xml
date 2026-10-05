@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Selection function keys</ENTRY>
+     <LENGTH>23</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_ACT</KEY>
      <ENTRY>Action</ENTRY>

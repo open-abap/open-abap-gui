@@ -77,12 +77,13 @@ CLASS cl_gui_picture IMPLEMENTATION.
 
   METHOD load_picture_from_url.
     mv_url = url.
+* RESULT is 1 when the picture was loaded and 0 when not, as on SAP.
     IF is_safe_asset( ) = abap_true.
       mv_state = 'loaded'.
-      result = 0.
+      result = 1.
     ELSE.
       mv_state = 'rejected'.
-      result = 4.
+      result = 0.
     ENDIF.
     refresh_state( ).
   ENDMETHOD.

@@ -89,8 +89,13 @@ const browser = await chromium.launch({headless: true});
 const page = await browser.newPage({viewport});
 const browserErrors = [];
 
+// The HTML viewer shows program HTML in a frame sandboxed without scripts, so a
+// script in that HTML is blocked by design (zgg_ex_128 has one); the browser
+// reports it as a console error.
+const sandboxedScript = /^Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set\.$/;
+
 page.on("console", (message) => {
-  if (message.type() === "error") {
+  if (message.type() === "error" && !sandboxedScript.test(message.text())) {
     browserErrors.push(`console: ${message.text()}`);
   }
 });

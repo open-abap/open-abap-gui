@@ -26,6 +26,61 @@ CLASS cl_alv_variant DEFINITION PUBLIC.
       EXPORTING
         et_fcat     TYPE lvc_t_fcat.
 
+* The saved layouts of the grids, kept for the lifetime of the server as SAP
+* keeps them in its database. A layout belongs to a report and a handle, and
+* holds the visible columns in their order and the sort criteria.
+    TYPES: BEGIN OF ty_layout,
+             report  TYPE disvariant-report,
+             handle  TYPE disvariant-handle,
+             variant TYPE disvariant-variant,
+             text    TYPE disvariant-text,
+             default TYPE abap_bool,
+             fields  TYPE string_table,
+             sort    TYPE lvc_t_sort,
+           END OF ty_layout.
+    TYPES ty_layouts TYPE STANDARD TABLE OF ty_layout WITH DEFAULT KEY.
+
+    CLASS-METHODS save_layout
+      IMPORTING
+        is_layout TYPE ty_layout.
+
+    CLASS-METHODS get_layouts
+      IMPORTING
+        is_variant    TYPE disvariant
+      RETURNING
+        VALUE(result) TYPE ty_layouts.
+
+    CLASS-METHODS read_layout
+      IMPORTING
+        is_variant    TYPE disvariant
+      RETURNING
+        VALUE(result) TYPE ty_layout.
+
+    CLASS-METHODS read_default_layout
+      IMPORTING
+        is_variant    TYPE disvariant
+      RETURNING
+        VALUE(result) TYPE ty_layout.
+
+* The layout of a field catalog: its visible columns in catalog order.
+    CLASS-METHODS layout_of
+      IMPORTING
+        it_fieldcat   TYPE lvc_t_fcat
+        it_sort       TYPE lvc_t_sort
+      RETURNING
+        VALUE(result) TYPE ty_layout.
+
+* Shows the layout's columns in its order and hides the others.
+    CLASS-METHODS apply_layout
+      IMPORTING
+        is_layout   TYPE ty_layout
+      CHANGING
+        ct_fieldcat TYPE lvc_t_fcat
+        ct_sort     TYPE lvc_t_sort.
+
+  PRIVATE SECTION.
+    CLASS-DATA gt_layouts TYPE ty_layouts.
+
 ENDCLASS.
 
 CLASS cl_alv_variant IMPLEMENTATION.
@@ -47,6 +102,71 @@ CLASS cl_alv_variant IMPLEMENTATION.
 
   METHOD delete_variants.
     boolean = abap_true.
+  ENDMETHOD.
+
+  METHOD save_layout.
+    IF is_layout-default = abap_true.
+      LOOP AT gt_layouts ASSIGNING FIELD-SYMBOL(<ls_other>)
+          WHERE report = is_layout-report AND handle = is_layout-handle.
+        CLEAR <ls_other>-default.
+      ENDLOOP.
+    ENDIF.
+    DELETE gt_layouts WHERE report = is_layout-report
+                        AND handle = is_layout-handle
+                        AND variant = is_layout-variant.
+    APPEND is_layout TO gt_layouts.
+    SORT gt_layouts BY report handle variant.
+  ENDMETHOD.
+
+  METHOD get_layouts.
+    LOOP AT gt_layouts INTO DATA(ls_layout)
+        WHERE report = is_variant-report AND handle = is_variant-handle.
+      APPEND ls_layout TO result.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD read_layout.
+    READ TABLE gt_layouts INTO result
+      WITH KEY report  = is_variant-report
+               handle  = is_variant-handle
+               variant = is_variant-variant.
+  ENDMETHOD.
+
+  METHOD read_default_layout.
+    READ TABLE gt_layouts INTO result
+      WITH KEY report  = is_variant-report
+               handle  = is_variant-handle
+               default = abap_true.
+  ENDMETHOD.
+
+  METHOD layout_of.
+    DATA(lt_fieldcat) = it_fieldcat.
+    SORT lt_fieldcat STABLE BY col_pos.
+    LOOP AT lt_fieldcat INTO DATA(ls_fieldcat)
+        WHERE tech IS INITIAL AND no_out IS INITIAL.
+      APPEND CONV string( ls_fieldcat-fieldname ) TO result-fields.
+    ENDLOOP.
+    result-sort = it_sort.
+  ENDMETHOD.
+
+  METHOD apply_layout.
+    DATA lv_hidden_pos TYPE i.
+
+    lv_hidden_pos = lines( is_layout-fields ).
+    LOOP AT ct_fieldcat ASSIGNING FIELD-SYMBOL(<ls_fieldcat>) WHERE tech IS INITIAL.
+      READ TABLE is_layout-fields TRANSPORTING NO FIELDS
+        WITH KEY table_line = CONV string( <ls_fieldcat>-fieldname ).
+      IF sy-subrc = 0.
+        <ls_fieldcat>-no_out = space.
+        <ls_fieldcat>-col_pos = sy-tabix.
+      ELSE.
+        lv_hidden_pos = lv_hidden_pos + 1.
+        <ls_fieldcat>-no_out = abap_true.
+        <ls_fieldcat>-col_pos = lv_hidden_pos.
+      ENDIF.
+    ENDLOOP.
+    SORT ct_fieldcat BY col_pos.
+    ct_sort = is_layout-sort.
   ENDMETHOD.
 
 ENDCLASS.

@@ -47,6 +47,14 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS clear.
 
   PRIVATE SECTION.
+* One CALL SCREEN of the running program: the screen that called, and where
+* its PAI continues when the called sequence ends.
+    TYPES: BEGIN OF ty_screen_call,
+             screen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+             continuation TYPE string,
+           END OF ty_screen_call.
+    TYPES ty_screen_calls TYPE STANDARD TABLE OF ty_screen_call WITH DEFAULT KEY.
+
     TYPES: BEGIN OF ty_session,
              session_id          TYPE string,
              program             TYPE zif_gg_session_types_v1=>ty_program,
@@ -60,6 +68,7 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              pending_help        TYPE zif_gg_dynpro_types_v1=>ty_name,
              next_page           TYPE i,
              pending_navigation  TYPE zif_gg_host_html_v1=>ty_navigation,
+             screen_calls        TYPE ty_screen_calls,
              pending_submit      TYPE zif_gg_session_types_v1=>ty_submit,
              last_result         TYPE zcl_gg_host=>ty_result,
              last_dynpro         TYPE zcl_gg_host_dynpro=>ty_result,
@@ -68,12 +77,22 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              caller              TYPE string,
 * The controls this program showed when it called another one, put back when
 * that call returns.
-             surface             TYPE zcl_gg_host_surface=>ty_saved,
+             controls            TYPE REF TO data,
+             trees               TYPE cl_alv_tree_base=>ty_instances,
 * The report opened on its selection screen, which it shows again when a run
 * ends without a list, as SAP GUI does.
              selection_start     TYPE abap_bool,
            END OF ty_session.
     TYPES ty_sessions TYPE STANDARD TABLE OF ty_session WITH DEFAULT KEY.
+
+* A return from a called sequence ends its CALL SCREEN; a new CALL SCREEN
+* starts one, called from the screen that was current.
+    CLASS-METHODS track_screen_calls
+      IMPORTING
+        is_dynpro       TYPE zcl_gg_host_dynpro=>ty_result
+        iv_caller       TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+      CHANGING
+        ct_screen_calls TYPE ty_screen_calls.
 
 * The terminal text of a report run that ended with nothing to display.
     CONSTANTS c_program_ended TYPE string VALUE 'Program ended'.
@@ -121,6 +140,16 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_session         TYPE ty_session
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
+* An interactive list event replays the program from its start; a new
+* instance gives it the program's data as it was when the list was written.
+* Only a transaction's class is created anew, as the runtime creates those
+* without parameters anyway.
+    CLASS-METHODS fresh_report
+      IMPORTING
+        io_report        TYPE REF TO zif_gg_report_v1
+      RETURNING
+        VALUE(ro_report) TYPE REF TO zif_gg_report_v1.
 
     CLASS-METHODS report_for_submit
       IMPORTING
@@ -208,7 +237,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     " session in place would let old controls overlay the next page.
     cl_gui_control=>clear( ).
     cl_alv_tree_base=>clear_instances( ).
-    zcl_gg_host_surface=>clear( ).
+    cl_gui_control=>clear_external_html( ).
     lv_session_id = next_session_id( ).
     IF io_dynpro_program IS BOUND.
       TRY.
@@ -337,6 +366,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         AND is_request-action <> zif_gg_host_html_v1=>action_submit
          AND is_request-action <> zif_gg_host_html_v1=>action_command
          AND is_request-action <> zif_gg_host_html_v1=>action_tree_event
+         AND is_request-action <> zif_gg_host_html_v1=>action_control_event
          AND is_request-action <> zif_gg_host_html_v1=>action_pf
         AND is_request-action <> zif_gg_host_html_v1=>action_tab
         AND is_request-action <> zif_gg_host_html_v1=>action_screen
@@ -396,6 +426,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lv_resume_continuation TYPE string.
     DATA lv_list_back TYPE abap_bool.
     DATA lv_action_receipt TYPE string.
+    DATA lv_return_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
 
     ls_session = is_session.
     lv_list_back = xsdbool(
@@ -414,14 +445,16 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       ENDIF.
     ENDIF.
     IF is_request-action = zif_gg_host_html_v1=>action_popup.
+* The answer replays the PAI that called the popup, with that PAI's function
+* code; the popup kind is no function code of the program.
       lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-target ).
       lv_popup_action = |{ is_request-target }:{ is_request-value }|.
       IF is_request-target = 'INFORM'.
         lv_help_request = ls_session-pending_help.
-        IF lv_help_request IS INITIAL
-            AND ls_session-pending_popup_ucomm IS NOT INITIAL.
-          lv_ucomm = ls_session-pending_popup_ucomm.
-        ENDIF.
+      ENDIF.
+      IF lv_help_request IS INITIAL
+          AND ls_session-pending_popup_ucomm IS NOT INITIAL.
+        lv_ucomm = ls_session-pending_popup_ucomm.
       ENDIF.
     ELSEIF is_request-action = zif_gg_host_html_v1=>action_help.
       ls_session-pending_help = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target ).
@@ -429,7 +462,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ELSEIF is_request-action <> zif_gg_host_html_v1=>action_value_help.
       ls_session-pending_popup_ucomm = lv_ucomm.
     ENDIF.
-    IF lv_ucomm IS INITIAL AND lv_list_back = abap_false.
+* Only the Back action means BACK. A submit without a function code, Enter or
+* scrolling a table control, runs PAI with an empty OK code, as on SAP.
+    IF lv_ucomm IS INITIAL AND lv_list_back = abap_false
+        AND is_request-action = zif_gg_host_html_v1=>action_back.
       lv_ucomm = 'BACK'.
     ENDIF.
     IF is_request-action <> zif_gg_host_html_v1=>action_exit
@@ -439,9 +475,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         AND is_request-action <> zif_gg_host_html_v1=>action_popup.
       lv_action_receipt = |Action { COND string( WHEN is_request-ucomm IS INITIAL THEN is_request-action ELSE is_request-ucomm ) } processed|.
     ENDIF.
-    IF lv_list_back = abap_false
-        AND ls_session-last_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
-      lv_resume_continuation = ls_session-last_dynpro-navigation-continuation.
+* The innermost CALL SCREEN is where LEAVE TO SCREEN 0 returns to.
+    IF lv_list_back = abap_false AND ls_session-screen_calls IS NOT INITIAL.
+      DATA(ls_screen_call) = ls_session-screen_calls[ lines( ls_session-screen_calls ) ].
+      lv_resume_continuation = ls_screen_call-continuation.
+      lv_return_screen = ls_screen_call-screen.
     ENDIF.
     queue_control_event( is_request ).
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
@@ -474,21 +512,45 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       is_modal_position      = ls_session-last_dynpro-modal_position
       io_resumable           = ls_session-resumable
       iv_resume_continuation = lv_resume_continuation
+      iv_return_screen       = lv_return_screen
       iv_screen              = COND #( WHEN lv_list_back = abap_true
                                       THEN ls_session-last_dynpro-list_return_screen
                                       ELSE ls_session-last_dynpro-screen )
       iv_session_id          = ls_session-session_id
       iv_page_id             = lv_page_id
-      iv_action_receipt      = lv_action_receipt ).
+      iv_action_receipt      = lv_action_receipt
+* PAI works on the screen as it was shown; back from list processing, the
+* screen's PBO runs first.
+      is_shown               = COND #( WHEN lv_list_back = abap_false
+                                       AND ls_session-last_dynpro-page_kind = zif_gg_host_html_v1=>page_dynpro
+                                       THEN zcl_gg_host_dynpro=>shown( ls_session-last_dynpro ) ) ).
     IF ls_dynpro-popup-kind IS INITIAL.
       CLEAR ls_session-pending_popup_ucomm.
       CLEAR ls_session-pending_help.
     ENDIF.
+    track_screen_calls(
+      EXPORTING
+        is_dynpro       = ls_dynpro
+        iv_caller       = COND #( WHEN ls_dynpro-modal_returned = abap_true
+                                 THEN lv_return_screen
+                                 ELSE ls_session-last_dynpro-screen )
+      CHANGING
+        ct_screen_calls = ls_session-screen_calls ).
     ls_session-next_page = ls_session-next_page + 1.
     rs_response = enter_dynpro_result(
       is_dynpro  = ls_dynpro
       iv_page_id = lv_page_id
       is_session = ls_session ).
+  ENDMETHOD.
+
+  METHOD track_screen_calls.
+    IF is_dynpro-modal_returned = abap_true AND ct_screen_calls IS NOT INITIAL.
+      DELETE ct_screen_calls INDEX lines( ct_screen_calls ).
+    ENDIF.
+    IF is_dynpro-navigation-kind = zcx_gg_control_flow=>kind_call_screen.
+      APPEND VALUE #( screen       = iv_caller
+                      continuation = is_dynpro-navigation-continuation ) TO ct_screen_calls.
+    ENDIF.
   ENDMETHOD.
 
   METHOD enter_dynpro_result.
@@ -560,7 +622,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           OR zcx_gg_control_flow=>kind_submit_return.
         lv_caller = is_session-session_id.
         ls_ended = is_session.
-        ls_ended-surface = zcl_gg_host_surface=>save( ).
+        ls_ended-controls = cl_gui_control=>save_state( ).
+        ls_ended-trees = cl_alv_tree_base=>save_instances( ).
         store( ls_ended ).
       WHEN zcx_gg_control_flow=>kind_submit.
 * SUBMIT without AND RETURN replaces the submitting program, so the report
@@ -646,8 +709,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     lv_page_id = |{ ls_caller-session_id }-{ ls_caller-next_page }|.
     ls_caller-next_page = ls_caller-next_page + 1.
-    zcl_gg_host_surface=>restore( ls_caller-surface ).
-    CLEAR ls_caller-surface.
+    cl_gui_control=>restore_state( ls_caller-controls ).
+    cl_alv_tree_base=>restore_instances( ls_caller-trees ).
+    CLEAR: ls_caller-controls, ls_caller-trees.
     store( ls_caller ).
     IF ls_caller-dynpro_program IS NOT BOUND.
       rs_response = return_to_report(
@@ -679,6 +743,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD queue_control_event.
+    cl_gui_cfw=>receive_frontend(
+      event  = is_request-control_event
+      values = is_request-control_values ).
     IF is_request-action = zif_gg_host_html_v1=>action_tree_event.
       cl_gui_cfw=>queue_browser_event(
         event     = is_request-tree_event
@@ -762,8 +829,25 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
 
+* On a list, Back and Cancel go back one level and Exit leaves the
+* program; the list processor runs them, not AT USER-COMMAND.
+    DATA(lv_action) = is_request-action.
+    IF lv_action = zif_gg_host_html_v1=>action_command
+        AND ls_session-last_result-page_kind = zif_gg_host_html_v1=>page_list.
+      CASE is_request-ucomm.
+        WHEN zif_gg_session_types_v1=>command_back OR zif_gg_session_types_v1=>command_cancel.
+          lv_action = zif_gg_host_html_v1=>action_back.
+        WHEN zif_gg_session_types_v1=>command_exit.
+          ls_session-last_result-page_kind = zif_gg_host_html_v1=>page_terminal.
+          ls_session-last_result-navigation-kind = zcx_gg_control_flow=>kind_leave_program.
+          store( ls_session ).
+          rs_response = respond( ls_session ).
+          RETURN.
+      ENDCASE.
+    ENDIF.
+
 * Back from the first screen of a report leaves the program.
-    IF is_request-action = zif_gg_host_html_v1=>action_back
+    IF lv_action = zif_gg_host_html_v1=>action_back
         AND lines( ls_session-results ) <= 1.
       ls_session-last_result-page_kind = zif_gg_host_html_v1=>page_terminal.
       ls_session-last_result-navigation-kind = zcx_gg_control_flow=>kind_leave_program.
@@ -771,7 +855,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       rs_response = respond( ls_session ).
       RETURN.
     ENDIF.
-    IF is_request-action = zif_gg_host_html_v1=>action_back.
+    IF lv_action = zif_gg_host_html_v1=>action_back.
       DELETE ls_session-results INDEX lines( ls_session-results ).
       READ TABLE ls_session-results INTO ls_session-last_result INDEX lines( ls_session-results ).
       CLEAR ls_session-pending_navigation.
@@ -786,6 +870,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    IF is_request-action = zif_gg_host_html_v1=>action_line
+        OR is_request-action = zif_gg_host_html_v1=>action_command
+        OR is_request-action = zif_gg_host_html_v1=>action_pf.
+      ls_session-report = fresh_report( ls_session-report ).
+    ENDIF.
     CASE is_request-action.
       WHEN zif_gg_host_html_v1=>action_line.
         lv_index = is_request-row.
@@ -796,7 +885,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_batch               = ls_session-batch
           it_input               = lt_input
           iv_line_index          = lv_index
-          iv_line_level          = 1
+          it_list_path           = ls_session-last_result-list_path
           iv_cursor_field        = CONV zif_gg_session_types_v1=>ty_name( is_request-cursor_field )
           iv_cursor_value        = is_request-cursor_value
           iv_session_id          = ls_session-session_id
@@ -812,6 +901,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_batch               = ls_session-batch
           it_input               = lt_input
           iv_user_command        = CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm )
+          iv_list_value          = is_request-value
+          iv_list_target         = is_request-target
+          is_list_find           = ls_session-last_result-list_outcome-find
+          it_list_path           = ls_session-last_result-list_path
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
@@ -824,6 +917,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_batch               = ls_session-batch
           it_input               = lt_input
           iv_pf_key              = is_request-pf_key
+          it_list_path           = ls_session-last_result-list_path
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
@@ -976,6 +1070,24 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDWHILE.
   ENDMETHOD.
 
+  METHOD fresh_report.
+    DATA lo_transaction TYPE REF TO zif_gg_transaction_v1.
+
+    ro_report = io_report.
+    TRY.
+        lo_transaction ?= io_report.
+      CATCH cx_sy_move_cast_error.
+        RETURN.
+    ENDTRY.
+    DATA(lv_class_name) = cl_abap_classdescr=>get_class_name( io_report ).
+    REPLACE FIRST OCCURRENCE OF '\CLASS=' IN lv_class_name WITH ''.
+    TRY.
+        CREATE OBJECT ro_report TYPE (lv_class_name).
+      CATCH cx_sy_create_object_error.
+        ro_report = io_report.
+    ENDTRY.
+  ENDMETHOD.
+
   METHOD report_for_submit.
     DATA lv_class_name TYPE string.
 
@@ -1060,6 +1172,16 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+* A list replaces the lists of its level and above: an event that wrote
+* nothing keeps the level, and sy-lsind set lower replaces a lower one. Back
+* then shows the level below.
+    IF is_result-page_kind = zif_gg_host_html_v1=>page_list.
+      WHILE lines( cs_session-results ) > 0
+          AND cs_session-results[ lines( cs_session-results ) ]-page_kind = zif_gg_host_html_v1=>page_list
+          AND cs_session-results[ lines( cs_session-results ) ]-list_level >= is_result-list_level.
+        DELETE cs_session-results INDEX lines( cs_session-results ).
+      ENDWHILE.
+    ENDIF.
     APPEND is_result TO cs_session-results.
     APPEND is_result-page TO cs_session-pages.
   ENDMETHOD.
@@ -1191,6 +1313,31 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     IF is_request-action = zif_gg_host_html_v1=>action_tree_event.
       IF is_request-tree_event IS INITIAL OR is_request-tree_node IS INITIAL.
         rv_error = 'Tree event is missing its event or node key'.
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+* A control event must name a control submit button of the current page.
+    IF is_request-action = zif_gg_host_html_v1=>action_control_event.
+      DATA(lv_event_attribute) = zcl_gg_host_html=>escape_attribute( is_request-control_event ).
+* A drop names a drop target and a drag source of the page.
+      SPLIT is_request-control_event AT '|' INTO TABLE DATA(lt_event_parts).
+      IF lines( lt_event_parts ) >= 5 AND lt_event_parts[ 2 ] = 'DROP'.
+        IF is_page-html NS |data-gg-drop="{ zcl_gg_host_html=>escape_attribute( |{ lt_event_parts[ 1 ] }\|DROP\|{ lt_event_parts[ 3 ] }| ) }"|
+            OR is_page-html NS |data-gg-drag="{ zcl_gg_host_html=>escape_attribute( |{ lt_event_parts[ 4 ] }\|{ lt_event_parts[ 5 ] }| ) }"|.
+          rv_error = 'Drop is not offered by the current host page'.
+        ENDIF.
+        RETURN.
+      ENDIF.
+* The button of a sapevent anchor sits in the document of an HTML viewer,
+* which the page carries escaped once more.
+      DATA(lv_nested_button) = zcl_gg_host_html=>escape_attribute(
+        |name="gg_control_event" value="{ lv_event_attribute }"| ).
+      IF is_page-html NS |name="gg_control_event" value="{ lv_event_attribute }"|
+          AND is_page-html NS lv_nested_button
+          AND is_page-html NS |data-gg-dblclick-event="{ lv_event_attribute }"|
+          AND is_page-html NS |data-gg-click-event="{ lv_event_attribute }"|.
+        rv_error = 'Control event is not offered by the current host page'.
       ENDIF.
       RETURN.
     ENDIF.

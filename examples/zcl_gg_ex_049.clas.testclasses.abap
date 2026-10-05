@@ -16,7 +16,6 @@ CLASS ltcl_ex_49 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
       exp = VALUE zcl_gg_host_list=>ty_text_lines(
-        ( `body` )
         ( `pf5` ) ) ).
     cl_abap_unit_assert=>assert_true(
       act = line_exists( ls_result-status-active_pf_keys[ table_line = 5 ] ) ).
@@ -45,7 +44,6 @@ CLASS ltcl_ex_49 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_allowed-compatibility-lines
       exp = VALUE zcl_gg_host_list=>ty_text_lines(
-        ( `body` )
         ( `pf5` ) ) ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.

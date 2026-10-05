@@ -30,6 +30,8 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
              dynamic_action  TYPE string,
              dynamic_values  TYPE zif_gg_selection_screen_types=>ty_values,
              dynpro_values   TYPE zif_gg_dynpro_types_v1=>ty_values,
+             gg_ctl_event    TYPE string,
+             control_values  TYPE zif_gg_host_html_v1=>ty_control_values,
            END OF ty_payload.
 
     TYPES: BEGIN OF ty_error_response,
@@ -535,6 +537,15 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
                                             iv_name   = 'gg_free_action' ).
     ls_payload-dynamic_values = dynamic_values_from_fields( lt_fields ).
     ls_payload-dynpro_values = dynpro_from_fields( lt_fields ).
+    ls_payload-gg_ctl_event = form_value( it_fields = lt_fields
+                                          iv_name   = 'gg_control_event' ).
+    LOOP AT lt_fields INTO DATA(ls_control_field) WHERE name CP 'gg-ctl:*'.
+      APPEND VALUE #( name  = ls_control_field-name
+                      value = replace( val  = ls_control_field-value
+                                       sub  = '+'
+                                       with = ` `
+                                       occ  = 0 ) ) TO ls_payload-control_values.
+    ENDLOOP.
     rs_request = request_from_payload( ls_payload ).
   ENDMETHOD.
 
@@ -570,6 +581,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     rs_request-dynamic_action = is_payload-dynamic_action.
     rs_request-dynamic_values = is_payload-dynamic_values.
     rs_request-dynpro_values = is_payload-dynpro_values.
+    rs_request-control_values = is_payload-control_values.
 
     IF is_payload-gg_ucomm IS NOT INITIAL.
       rs_request-ucomm = is_payload-gg_ucomm.
@@ -579,7 +591,12 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       lv_action_value = is_payload-gg_action.
     ENDIF.
 
-    IF lv_action_value CP 'LINE:*'.
+* A control event (a toolbar function of a grid, a hotspot) is named by the
+* control's own submit button; the screen gets no function code from it.
+    IF is_payload-gg_ctl_event IS NOT INITIAL.
+      rs_request-action = zif_gg_host_html_v1=>action_control_event.
+      rs_request-control_event = is_payload-gg_ctl_event.
+    ELSEIF lv_action_value CP 'LINE:*'.
       rs_request-action = zif_gg_host_html_v1=>action_line.
       lv_remainder = substring( val = lv_action_value
                                 off = 5 ).
@@ -935,6 +952,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           OR ls_field-name = 'cursor_field'
           OR ls_field-name = 'cursor_value'
           OR ls_field-name CP 'gg-popup-*'
+          OR ls_field-name CP 'gg-ctl:*'
           OR ls_field-name CP 'gg_*'.
         CONTINUE.
       ENDIF.

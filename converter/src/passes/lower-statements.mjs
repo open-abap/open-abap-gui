@@ -1,4 +1,5 @@
 import { lowerCompatibilityFunction } from "../function-modules.mjs";
+import { textLiteral } from "../emit/abap-text.mjs";
 import { parsesAsStatement } from "../parser.mjs";
 import fs from "node:fs";
 import path from "node:path";
@@ -245,7 +246,9 @@ function replaceListColorConstants(value) {
 
 function replaceListContextFields(value) {
   return value
-    .replace(/\bsy-(?:linno|lilli)\b/gi, "io_session->get_list( )->get_context( )-line")
+    .replace(/\bsy-linno\b/gi, "io_session->get_list( )->get_context( )-line")
+    .replace(/\bsy-lilli\b/gi, "io_session->get_list( )->get_context( )-selected_line")
+    .replace(/\bsy-listi\b/gi, "io_session->get_list( )->get_context( )-list_index")
     .replace(/\bsy-pagno\b/gi, "io_session->get_list( )->get_context( )-page");
 }
 
@@ -375,6 +378,8 @@ export function dynamicWriteOperand(statement) {
   const closing = dynamicWriteClose(raw, prefix.length);
   if (closing < 0) return undefined;
   const operand = raw.slice(prefix.length + 1, closing).trim();
+  // WRITE /(10) f gives an output length, not a field name.
+  if (/^\d+$/.test(operand)) return undefined;
   const suffix = raw.slice(closing + 1);
   return {
     operand,
@@ -634,7 +639,7 @@ function replaceOutsideStrings(text, replacements) {
 // read the host's current selection screen from their session instead.
 function selectionScreenNumber(context) {
   if (context.event?.startsWith("at_selection_screen")) return "iv_screen";
-  if (context.event === "dynpro") return "''";
+  if (context.event === "dynpro") return "io_session->get_context( )-dynpro-screen";
   return "io_session->get_context( )-selection-screen";
 }
 
@@ -650,8 +655,12 @@ function dataValueRewrites(context) {
     ...(context.replacements ?? []),
     ...Object.entries(LIST_COLOR_CONSTANTS).map(([name, constant]) => [name, `zif_gg_list_processing_types_v1=>${constant}`]),
     ["sy-ucomm", context.ucomm ?? "sy-ucomm"],
+    // SSCRFIELDS-UCOMM holds the selection screen's function code during PAI.
+    ["sscrfields-ucomm", context.ucomm ?? "sscrfields-ucomm"],
     ["sy-subrc", context.subrc ?? "sy-subrc"],
     ["sy-dynnr", selectionScreenNumber(context)],
+    // The lines a table control shows, which a dynpro module gets from the host.
+    ...(context.event === "dynpro" ? [["sy-loopc", "is_context-loop_count"]] : []),
     ["screen-name", `${screen}-name`],
     ["screen-group1", `${screen}-modif_id`],
     ["screen-group([2-4])", `${screen}-group$1`],
@@ -666,7 +675,10 @@ function dataValueRewrites(context) {
 // The session holds these, so they become method call chains, which only an
 // operand position that accepts an expression can take.
 const SESSION_VALUE_REWRITES = [
-  ["sy-(?:linno|lilli)", "io_session->get_list( )->get_context( )-line"],
+  ["sy-linno", "io_session->get_list( )->get_context( )-line"],
+  // The line and the list an interactive event was triggered on.
+  ["sy-lilli", "io_session->get_list( )->get_context( )-selected_line"],
+  ["sy-listi", "io_session->get_list( )->get_context( )-list_index"],
   ["sy-pagno", "io_session->get_list( )->get_context( )-page"],
   ["sy-repid", "io_session->get_context( )-program-program"],
   ["sy-batch", "io_session->get_context( )-program-batch"],
@@ -733,8 +745,7 @@ function valueExpression(expression, context) {
   value = replaceListColorConstants(value);
   value = value.replace(/\bsy-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
   value = value.replace(/\bsscrfields-ucomm\b/gi, context.ucomm ?? "iv_ucomm");
-  value = value.replace(/\bsy-repid\b/gi,
-    context.event === "dynpro" ? "''" : "io_session->get_context( )-program-program");
+  value = value.replace(/\bsy-repid\b/gi, "io_session->get_context( )-program-program");
   value = value.replace(/\bsy-dynnr\b/gi, selectionScreenNumber(context));
   value = value.replace(/\bsy-batch\b/gi, "io_session->get_context( )-program-batch");
   value = value.replace(/\bsy-subrc\b/gi, context.subrc ?? "sy-subrc");
@@ -768,7 +779,8 @@ function continuationId(statement, context) {
 function hiddenFieldEntries(raw, context) {
   const body = stripPeriod(raw).replace(/^HIDE\s*:??\s*/i, "");
   return body.split(",").map((part) => part.trim()).filter(Boolean).map((expression, index) => {
-    const identifier = /^[A-Z][A-Z0-9_]*$/i.test(expression) ? expression.toUpperCase() : `HIDE_${index + 1}`;
+    // A field or structure component is hidden under its own name.
+    const identifier = /^[A-Z][A-Z0-9_]*(?:-[A-Z][A-Z0-9_]*)*$/i.test(expression) ? expression.toUpperCase() : `HIDE_${index + 1}`;
     return `( name = '${identifier}' value = ${expressionText(expression, context)} )`;
   });
 }
@@ -778,6 +790,10 @@ function appendHiddenFields(text, fields) {
   const suffix = " ) ).";
   const position = text.lastIndexOf(suffix);
   if (position < 0) return text;
+  // A chained HIDE adds to the hide group the line already has.
+  if (/\bhide = VALUE #\(/.test(text.slice(0, position)) && text.slice(position - 2, position) === " )") {
+    return `${text.slice(0, position - 2)} ${fields.join(" ")}${text.slice(position - 2)}`;
+  }
   return `${text.slice(0, position)} hide = VALUE #( ${fields.join(" ")} )${text.slice(position)}`;
 }
 
@@ -814,13 +830,16 @@ function parseWrite(raw, context) {
     length = at[2] ? Number(at[2]) : undefined;
     rest = rest.slice(at[0].length);
   } else {
-    const column = /^(\d+)(?:\((\d+)\))?\s+/.exec(rest);
-    if (column) {
-      position = Number(column[1]);
+    const column = /^(\d+)?(?:\((\d+)\))?\s+/.exec(rest);
+    if (column && (column[1] || column[2])) {
+      position = column[1] ? Number(column[1]) : undefined;
       length = column[2] ? Number(column[2]) : undefined;
       rest = rest.slice(column[0].length);
     }
   }
+  const quickinfoMatch = /\s+QUICKINFO\s+('(?:''|[^'])*'|`(?:``|[^`])*`|[A-Z][A-Z0-9_-]*)/i.exec(rest);
+  const quickinfo = quickinfoMatch ? expressionText(quickinfoMatch[1], context) : undefined;
+  if (quickinfoMatch) rest = rest.replace(quickinfoMatch[0], "");
   const kind = /\s+AS\s+(CHECKBOX|ICON|SYMBOL)\b/i.exec(rest)?.[1]?.toUpperCase();
   if (kind) rest = rest.replace(new RegExp(`\\s+AS\\s+${kind}\\b`, "i"), "");
   const colorName = /\bCOLOR\s+(COL_[A-Z_]+)\b/i.exec(rest)?.[1]?.toUpperCase();
@@ -871,6 +890,7 @@ function parseWrite(raw, context) {
   if (intensified) fieldFormat.push("intensified = abap_true");
   if (inverse) fieldFormat.push("inverse = abap_true");
   if (hotspot) fieldFormat.push("hotspot = abap_true");
+  if (quickinfo) fieldFormat.push(`quickinfo = ${quickinfo}`);
   if (fieldFormat.length) fields.push(`format = VALUE #( ${fieldFormat.join(" ")} )`);
   if (placement.length) fields.push(`placement = VALUE #( ${placement.join(" ")} )`);
   if (format.length) fields.push(`write_format = VALUE #( ${format.join(" ")} )`);
@@ -881,6 +901,7 @@ function parseWrite(raw, context) {
     : `name = ${/^'[\s\S]*'$/.test(rest) ? rest : quote(valueExpression(rest, context).toUpperCase())}`;
   const typeFields = [value];
   if (placement.length) typeFields.push(`placement = VALUE #( ${placement.join(" ")} )`);
+  if (quickinfo) typeFields.push(`quickinfo = ${quickinfo}`);
   return `lo_writer->${type}( VALUE #( ${typeFields.join(" ")} ) ).`;
 }
 
@@ -892,7 +913,9 @@ function unsupportedWriteFormat(text) {
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
-  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
+  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic)
+    // Date masks need the field's type, which the writer does not get.
+    || /\b(?:DD\/MM\/YY(?:YY)?|MM\/DD\/YY(?:YY)?|DDMMYY|MMDDYY|YYMMDD)\b/i.test(classic);
 }
 
 function parseFormat(raw, context) {
@@ -1015,8 +1038,11 @@ function staticHandlerBindings(raw, context) {
   const owner = context.localClassOwner ?? "me";
   const session = context.sessionVariable ?? "io_session";
   return [...classes].flatMap((className) => {
-    const helper = context.localClassRenames?.[className] ?? className.toLowerCase();
-    return [`${helper}=>go_owner = ${owner}.`, `${helper}=>go_session = ${session}.`];
+    // Inside the helper class itself its static attributes need no class name.
+    const prefix = className === (context.localClassName ?? "").toUpperCase()
+      ? ""
+      : `${context.localClassRenames?.[className] ?? className.toLowerCase()}=>`;
+    return [`${prefix}go_owner = ${owner}.`, `${prefix}go_session = ${session}.`];
   });
 }
 
@@ -1121,7 +1147,7 @@ function bridgeLocalStaticCalls(statement, context) {
     } else {
       const parameter = context.localClassStaticParameters?.[target(call[1], call[2])]?.[call[2].toUpperCase()];
       bridged = parameter && !/^\s*[A-Z][A-Z0-9_]*\s*=(?!=)/i.test(argumentsMasked)
-        ? `${bridge} ${parameter} = ${argumentsText}`
+        ? `${bridge} ${parameter.toLowerCase()} = ${argumentsText}`
         : `${bridge} ${argumentsText}`;
     }
     text = `${text.slice(0, opening + 1)} ${bridged} ${text.slice(closing)}`;
@@ -1180,6 +1206,12 @@ function lowerSingleStatement(statement, context) {
         ? `LOCAL:${explicitType}`
         : "";
       const objectType = resolvedExplicitType || resolvedTargetType;
+      // In a helper class the target becomes io_owner->target; the open-abap
+      // transpiler would create the owner's class for it, so the declared
+      // class is named.
+      if (context.localClassName && !explicitType && resolvedTargetType && !resolvedTargetType.startsWith("LOCAL:")) {
+        lowered = lowered.replace(/^(CREATE\s+OBJECT\s+[A-Z][A-Z0-9_]*)/i, `$1 TYPE ${resolvedTargetType.toLowerCase()}`);
+      }
       if (objectType.startsWith("LOCAL:") && context.localClassOwner) {
         const owner = context.localClassOwner;
         const session = context.sessionVariable ?? "io_session";
@@ -1222,13 +1254,14 @@ function lowerSingleStatement(statement, context) {
   if (statement.kind === "Format") return parseFormat(raw, context);
   if (statement.kind === "Skip") return `lo_writer->skip( ${stripPeriod(raw).replace(/^SKIP\s*/i, "") || "1"} ).`;
   if (statement.kind === "Uline") {
-    // ULINE [AT] [/][pos][(len)]; the writer always starts a new line.
+    // ULINE [AT] [/][pos][(len)]; the writer starts a new line and leaves
+    // the list cursor at the start of the next one, as on SAP.
     const match = /^ULINE\s*(?:AT\b\s*)?\/?\s*(\d+)?(?:\(\s*(\d+)\s*\))?/i.exec(stripPeriod(raw));
     const placement = [
       match?.[1] ? `position = ${match[1]}` : "",
       match?.[2] ? `length = ${match[2]}` : "",
     ].filter(Boolean).join(" ");
-    return `lo_writer->uline( VALUE #( ${placement} ) ).\nlo_writer->new_line( ).\nlo_writer->set_position( 5 ).`;
+    return placement ? `lo_writer->uline( VALUE #( ${placement} ) ).` : "lo_writer->uline( VALUE #( ) ).";
   }
   if (statement.kind === "NewLine" || normalized === "NEW-LINE.") return "lo_writer->new_line( ).";
   if (statement.kind === "Reserve") {
@@ -1260,7 +1293,12 @@ function lowerSingleStatement(statement, context) {
         : raw;
       return rewriteStatementValues(named.replace(/,\s*$/, "."), context);
     }
-    return parseMessage(raw, context);
+    // A message in AT SELECTION-SCREEN ON <field> belongs to that field, which
+    // gets the cursor, as on SAP.
+    const message = parseMessage(raw, context);
+    return context.messageField && message.startsWith("io_session->message( VALUE #(")
+      ? message.replace(/ \) \)\.$/, ` field = ${context.messageField} ) ).`)
+      : message;
   }
   if (statement.kind === "FieldSymbol") {
     const name = /<([A-Z][A-Z0-9_]*)>/i.exec(raw)?.[1]?.toUpperCase();
@@ -1293,8 +1331,10 @@ function lowerSingleStatement(statement, context) {
     if (excluded.length) fields.push(`excluded_ucomm = VALUE #( ${excluded.map((command) => `( '${command}' )`).join(" ")} )`);
     const activePFKeys = statusMetadata.activePFKeys ?? statusMetadata.active_pf_keys ?? context.activePFKeys ?? [];
     if (activePFKeys.length) fields.push(`active_pf_keys = VALUE #( ${[...new Set(activePFKeys)].map((key) => `( ${Number(key)} )`).join(" ")} )`);
+    const exitUcomm = statusMetadata.exitUcomm ?? [];
+    if (exitUcomm.length) fields.push(`exit_ucomm = VALUE #( ${exitUcomm.map((command) => `( '${String(command).toUpperCase()}' )`).join(" ")} )`);
     const iconBar = statusMetadata.iconBar ?? statusMetadata.icon_bar ?? [];
-    if (iconBar.length) fields.push(`icon_bar = VALUE #( ${iconBar.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${quote(String(item.label ?? ""))} icon = ${quote(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
+    if (iconBar.length) fields.push(`icon_bar = VALUE #( ${iconBar.map((item) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' label = ${textLiteral(String(item.label ?? ""))} icon = ${quote(String(item.icon ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} )`);
     if (statusMetadata.pfActions?.length || statusMetadata.pf_actions?.length) {
       const actions = statusMetadata.pfActions ?? statusMetadata.pf_actions;
       fields.push(`pf_actions = VALUE #( ${actions.map((item) => `( number = ${Number(item.number ?? item.functionKey)} ucomm = '${String(item.ucomm ?? item.functionCode ?? "").toUpperCase()}' )`).join(" ")} )`);
@@ -1310,8 +1350,12 @@ function lowerSingleStatement(statement, context) {
     const variable = replaceOutsideStrings(excluding[2], context.replacements);
     return [
       "DATA lt_ggconv_excluded TYPE zif_gg_session_types_v1=>ty_ucomms.",
+      "CLEAR lt_ggconv_excluded.",
       `LOOP AT ${variable} INTO DATA(lv_ggconv_excluded).`,
-      "  APPEND CONV #( lv_ggconv_excluded ) TO lt_ggconv_excluded.",
+      // A move converts any character-like line, without a CONV that is
+      // redundant for the usual table of sy-ucomm.
+      "  APPEND INITIAL LINE TO lt_ggconv_excluded ASSIGNING FIELD-SYMBOL(<lv_ggconv_excluded>).",
+      "  <lv_ggconv_excluded> = lv_ggconv_excluded.",
       "ENDLOOP.",
       body,
     ].join("\n");
@@ -1341,7 +1385,7 @@ function lowerSingleStatement(statement, context) {
     const operandsText = /\bWITH\s+(.+)$/i.exec(stripPeriod(raw))?.[1] ?? "";
     const operands = splitMessageOperands(operandsText);
     const value = metadata?.text
-      ? (operands.length ? titlebarExpression(metadata.text, operands, context) : quote(metadata.text))
+      ? (operands.length ? titlebarExpression(metadata.text, operands, context) : textLiteral(metadata.text))
       : quote(title.toUpperCase());
     const target = context.event === "dynpro" ? "io_session->get_dialog( )" : "io_session->get_list( )";
     return `${target}->set_title( ${value} ).`;
@@ -1429,9 +1473,7 @@ function lowerSingleStatement(statement, context) {
     // other function module is the target system's and is called as written.
     return lowerCompatibilityFunction(replaceOutsideStrings(raw, [
       ...context.replacements,
-      ["sy-repid", context.event === "dynpro"
-        ? "''"
-        : "io_session->get_context( )-program-program"],
+      ["sy-repid", "io_session->get_context( )-program-program"],
       ["sy-dynnr", selectionScreenNumber(context)],
     ])) ?? rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
   }
@@ -1497,13 +1539,30 @@ function lowerSingleStatement(statement, context) {
     return `DATA(ls_line) = io_session->get_list( )->read_line( ${level ? `iv_level = ${level} ` : ""}iv_index = ${index} ).`;
   }
   if (statement.kind === "ModifyLine") {
-    const fields = [];
-    const text = raw.toUpperCase();
+    // MODIFY LINE n [INDEX level] or MODIFY CURRENT LINE, with LINE FORMAT
+    // additions. A bare INTENSIFIED, INVERSE, ... means ON.
+    const text = stripPeriod(raw);
+    const counter = context.temporaries ?? { count: 0 };
+    counter.count++;
+    const line = `ls_modify_line_${counter.count}`;
+    const number = /^MODIFY\s+LINE\s+(\S+)/i.exec(text)?.[1];
+    const level = /\bINDEX\s+(\S+)/i.exec(text)?.[1];
+    const index = number ? valueExpression(number, context) : "io_session->get_list( )->get_context( )-line";
+    const lines = [`DATA(${line}) = io_session->get_list( )->read_line( ${level ? `iv_level = ${valueExpression(level, context)} ` : ""}iv_index = ${index} ).`];
+    const format = /\bLINE\s+FORMAT\s+(.+)$/i.exec(text)?.[1] ?? "";
+    if (/\bRESET\b/i.test(format)) lines.push(`CLEAR ${line}-format.`);
     for (const [keyword, field] of [["INTENSIFIED", "intensified"], ["INVERSE", "inverse"], ["HOTSPOT", "hotspot"], ["INPUT", "input"]]) {
-      const match = new RegExp(`${keyword}\\s+(ON|OFF)`).exec(text);
-      if (match) fields.push(`ls_line-format-${field} = abap_${match[1] === "ON" ? "true" : "false"}`);
+      const match = new RegExp(String.raw`\b${keyword}\b(?:\s+(ON|OFF)\b)?`, "i").exec(format);
+      if (match) lines.push(`${line}-format-${field} = abap_${match[1]?.toUpperCase() === "OFF" ? "false" : "true"}.`);
     }
-    return `${fields.length ? `${fields.join(".\n")}.\n` : ""}io_session->get_list( )->modify_line( ls_line ).`;
+    const color = /\bCOLOR\s+(\S+)(?:\s+(ON|OFF)\b)?/i.exec(format);
+    if (color) {
+      const constant = LIST_COLOR_CONSTANTS[color[1].toUpperCase()];
+      lines.push(`${line}-format-color = ${color[2]?.toUpperCase() === "OFF" ? "zif_gg_list_processing_types_v1=>color_background"
+        : constant ? `zif_gg_list_processing_types_v1=>${constant}` : valueExpression(color[1], context)}.`);
+    }
+    lines.push(`io_session->get_list( )->modify_line( ${line} ).`);
+    return lines.join("\n");
   }
   if (statement.kind === "Perform") {
     // A dynamic PERFORM names a FORM that became a method; a FORM in another
@@ -1547,6 +1606,12 @@ function lowerSingleStatement(statement, context) {
     }
     const fields = Object.entries(fieldsByDirection).filter(([, values]) => values.length);
     const lines = [...temporaries, `${receiver}${routine.methodName}(`];
+    // A call with importing parameters only leaves out EXPORTING.
+    if (fields.length === 1 && fields[0][0] === "EXPORTING") {
+      const values = fields[0][1];
+      lines.push(...values.map((value, valueIndex) => `  ${value}${valueIndex === values.length - 1 ? " )." : ""}`));
+      return lines.join("\n");
+    }
     for (let directionIndex = 0; directionIndex < fields.length; directionIndex++) {
       const [direction, values] = fields[directionIndex];
       lines.push(`  ${direction}`);
@@ -1584,21 +1649,15 @@ function lowerSingleStatement(statement, context) {
       return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n${assignment}\nENDIF.` : assignment;
     }
     if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-(?:PROG|DYNNR)\\s*=`, "i").test(raw)) return "* Selection tab state is maintained by the host screen.";
-    converted = converted.replace(/<ls_state>-password\s*=\s*'1'/i, "<ls_state>-password = abap_true");
-    converted = converted.replace(/<ls_state>-password\s*=\s*'0'/i, "<ls_state>-password = abap_false");
-    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?1['"]?/i, "<ls_state>-no_display = abap_true");
-    converted = converted.replace(/<ls_state>-no_display\s*=\s*['"]?0['"]?/i, "<ls_state>-no_display = abap_false");
-    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?1['"]?/gi, "<ls_state>-$1 = abap_true");
-    converted = converted.replace(/<ls_state>-(input|output)\s*=\s*['"]?0['"]?/gi, "<ls_state>-$1 = abap_false");
-    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?1['"]?/i, "<ls_state>-intensified = abap_true");
-    converted = converted.replace(/<ls_state>-intensified\s*=\s*['"]?0['"]?/i, "<ls_state>-intensified = abap_false");
-    // SCREEN flags are '1' or '0'; the state flags they map to are abap_bool.
-    converted = converted.replace(/<ls_state>-(visible|intensified|input|output|password|no_display)\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'1'\s+ELSE\s+'0'\s*\)\./i, "<ls_state>-$1 = xsdbool( $2 ).");
-    converted = converted.replace(/<ls_state>-(visible|intensified|input|output|password|no_display)\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+'0'\s+ELSE\s+'1'\s*\)\./i, "<ls_state>-$1 = xsdbool( NOT ( $2 ) ).");
-    converted = converted.replace(/<ls_state>-visible\s*=\s*'1'/i, "<ls_state>-visible = abap_true");
-    converted = converted.replace(/<ls_state>-visible\s*=\s*'0'/i, "<ls_state>-visible = abap_false");
-    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'2'/i, "<ls_state>-obligatory = abap_true");
-    converted = converted.replace(/<ls_state>-obligatory\s*=\s*'0'/i, "<ls_state>-obligatory = abap_false");
+    // SCREEN flags are 1 or 0, quoted or not; the state flags they map to are
+    // abap_bool. SCREEN-REQUIRED 2 (recommended) is kept as required.
+    const flags = "visible|intensified|input|output|password|no_display|obligatory|required";
+    const one = String.raw`['"]?[12]['"]?`;
+    const zero = String.raw`['"]?0['"]?`;
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+${one}\s+ELSE\s+${zero}\s*\)\.`, "i"), "<ls_state>-$1 = xsdbool( $2 ).");
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+${zero}\s+ELSE\s+${one}\s*\)\.`, "i"), "<ls_state>-$1 = xsdbool( NOT ( $2 ) ).");
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*${one}(?=\s*\.)`, "gi"), "<ls_state>-$1 = abap_true");
+    converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*${zero}(?=\s*\.)`, "gi"), "<ls_state>-$1 = abap_false");
     const target = /^\s*([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1]?.toUpperCase();
     if (target && context.dynamicCommentNames?.includes(target)
         && context.event !== "local_class") {
@@ -1817,8 +1876,12 @@ export function lowerStatements(statements, context) {
     : undefined;
   for (let index = 0; index < statements.length; index++) {
     let statement = statements[index];
+    // HIDE stores its fields for the line written last. Before any WRITE of
+    // this block they go to the next one.
     if (statement.kind === "Hide") {
-      pendingHidden.push(...uniqueHiddenFields(hiddenFieldEntries(statement.text, context), pendingHidden));
+      const fields = uniqueHiddenFields(hiddenFieldEntries(statement.text, context), pendingHidden);
+      if (lastWriteIndex >= 0) output[lastWriteIndex].text = appendHiddenFields(output[lastWriteIndex].text, fields);
+      else pendingHidden.push(...fields);
       continue;
     }
     const screenBinding = statement.kind === "LoopAtScreen" ? screenLoopBinding(statement.text, usedScreenNames) : undefined;
@@ -1909,7 +1972,74 @@ export function lowerStatements(statements, context) {
     statement: statements.at(-1),
     supported: false,
   });
+  for (const item of output) item.text = mergeAdjacentTemplates(item.text);
   return output;
+}
+
+// |a| && |b| written over two lines comes out as one line; one template says
+// the same.
+export function mergeAdjacentTemplates(text) {
+  if (typeof text !== "string" || !text.includes("&&")) return text;
+  const stack = ["code"];
+  let out = "";
+  let closed = -1;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    const mode = stack.at(-1);
+    if (mode === "code" || mode === "embed") {
+      if ((char === '"' || (char === "*" && (index === 0 || text[index - 1] === "\n"))) && mode === "code") {
+        const end = text.indexOf("\n", index);
+        const stop = end < 0 ? text.length : end;
+        out += text.slice(index, stop);
+        index = stop - 1;
+        closed = -1;
+        continue;
+      }
+      if (char === "|") {
+        if (mode === "code" && stack.length === 1 && closed >= 0 && /^\|\s*&&\s*$/.test(out.slice(closed))) {
+          out = out.slice(0, closed);
+          stack.push("template");
+          closed = -1;
+          continue;
+        }
+        stack.push("template");
+      } else if (char === "'") stack.push("quote");
+      else if (char === "`") stack.push("backquote");
+      else if (char === "}" && mode === "embed") stack.pop();
+      else if (!/[\s&]/.test(char)) closed = -1;
+      out += char;
+      continue;
+    }
+    if (mode === "template") {
+      if (char === "\\") {
+        out += char + (text[index + 1] ?? "");
+        index++;
+        continue;
+      }
+      if (char === "{") stack.push("embed");
+      else if (char === "|") {
+        stack.pop();
+        if (stack.length === 1) {
+          out += char;
+          closed = out.length - 1;
+          continue;
+        }
+      }
+      out += char;
+      continue;
+    }
+    const quote = mode === "quote" ? "'" : "`";
+    if (char === quote) {
+      if (text[index + 1] === quote) {
+        out += char + char;
+        index++;
+        continue;
+      }
+      stack.pop();
+    }
+    out += char;
+  }
+  return out;
 }
 
 export function selectionType(additions) {

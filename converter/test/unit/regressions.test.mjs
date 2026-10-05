@@ -209,7 +209,7 @@ test("regression fixture lets a FORM performed from a PBO module loop at screen"
   const source = result.classSource;
   assert.match(source, /DATA mr_dynpro_states TYPE REF TO zif_gg_dynpro_types_v1=>ty_states\./);
   assert.doesNotMatch(source, /mr_selection_states/);
-  assert.match(source, /METHOD zif_gg_dynpro_v1~process_output_module\.\n\s+mr_dynpro_states = REF #\( ct_states \)\.\n\s+mv_dynpro_row = is_context-row\./);
+  assert.match(source, /METHOD zif_gg_dynpro_v1~process_output_module\.\n(?:\s+DATA [^\n]+\n)*\s+mr_dynpro_states = REF #\( ct_states \)\.\n\s+mv_dynpro_row = is_context-row\./);
   const form = /METHOD form_hide_secret\.[\s\S]*?ENDMETHOD\./.exec(source)?.[0] ?? "";
   assert.match(form, /LOOP AT mr_dynpro_states->\* ASSIGNING FIELD-SYMBOL\(<ls_state>\) WHERE row = mv_dynpro_row\./);
   assert.doesNotMatch(form, /ct_states/);

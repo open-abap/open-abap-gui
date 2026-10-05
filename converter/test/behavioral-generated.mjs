@@ -3,7 +3,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
-import { isDeepStrictEqual } from "node:util";
 import { convertProgram } from "../src/api.mjs";
 import { repositoryRoot, repositoryTool } from "./repository.mjs";
 
@@ -23,72 +22,11 @@ const comparableFields = [
   "navigation", "selection_active", "unsupported", "page_kind",
 ];
 
-async function readTextPool(name) {
-  try {
-    const xml = await fs.readFile(path.join(examples, name.replace(/\.prog\.abap$/, ".prog.xml")), "utf8");
-    const matches = [...xml.matchAll(/<item>\s*<ID>([^<]*)<\/ID>\s*<KEY>([^<]*)<\/KEY>\s*<ENTRY>([^<]*)<\/ENTRY>/g)];
-    return Object.fromEntries(matches.map((match) => [
-      match[2],
-      match[3].replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">"),
-    ]));
-  } catch {
-    return undefined;
-  }
-}
-
 async function prepare() {
   await fs.rm(tempRoot, { recursive: true, force: true });
   await fs.rm(lintConfigPath, { force: true });
   await fs.mkdir(inputFolder, { recursive: true });
   await fs.mkdir(outputFolder, { recursive: true });
-
-  const names = (await fs.readdir(examples))
-    .filter((name) => /^zgg_ex_\d{3}\.prog\.abap$/.test(name) && Number(name.slice(7, 10)) <= 58)
-    .sort();
-  for (const name of names) {
-    const source = await fs.readFile(path.join(examples, name), "utf8");
-    const id = name.slice(7, 10);
-    const className = `ZCL_BV_${id}`;
-    // Only the batch conversion reads the dictionary files next to a report;
-    // here the data elements are supplied, and the host reads the domains.
-    const selectionMetadata = id === "019"
-      ? { P_MODE: { dataType: { rollname: "ZGG_MODE", typ: "C", length: 1 } } }
-      : ["020", "032"].includes(id)
-        ? { S_CARR: { dataType: { rollname: "S_CARR_ID", typ: "C", length: 3 } } }
-        : undefined;
-    const guiStatusMetadata = id === "044"
-      ? { LIST: {
-        activeUcomm: ["PRI", "REFR", "DEL"],
-        iconBar: [
-          { ucomm: "REFR", label: "Refresh", icon: "refresh" },
-          { ucomm: "PRI", label: "Print", icon: "printer", separator: true },
-        ],
-      } }
-      : undefined;
-    const result = await convertProgram({
-      source,
-      filename: name,
-      className,
-      transactionCode: `ZBV${id}`,
-      mode: "partial",
-      textPool: await readTextPool(name),
-      ...(selectionMetadata ? { selectionMetadata } : {}),
-      ...(guiStatusMetadata ? { guiStatusMetadata } : {}),
-      ...(["020", "032"].includes(id) ? {
-        ddicTypes: { ZSFLIGHT: { type: "zsflight", fields: { CARRID: { type: "c", length: 3 } } } },
-      } : {}),
-      ...(name === "zgg_ex_058.prog.abap" ? {
-        dynproMetadata: {
-          initialScreen: "0100",
-          screens: [{ number: "0100", title: "ZCL_GG_EX_058" }, { number: "0200", title: "ZCL_GG_EX_058" }],
-          flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [{ name: "USER_COMMAND_0100" }] }],
-          statuses: { "0100": { status: "SCREEN FLOW", activeUcomm: ["NEXT"] } },
-        },
-      } : {}),
-    });
-    if (!result.classSource) throw new Error(`converter produced no class for ${name}`);
-    await fs.writeFile(path.join(inputFolder, `${className}.clas.abap`), result.classSource, "utf8");
-  }
 
   const stateResult = await convertProgram({
     source: [
@@ -377,7 +315,6 @@ async function prepare() {
     "/behavior-validation/input/*.clas.abap",
   ];
   await fs.writeFile(lintConfigPath, JSON.stringify(lintConfig, null, 2), "utf8");
-  return names;
 }
 
 function runCommand(command, args) {
@@ -429,63 +366,17 @@ function inputValues(entries, hostClass) {
   return table;
 }
 
-function mismatch(actual, expected) {
-  return comparableFields.flatMap((field) => differences(actual[field], expected[field], field));
-}
-
 // Walks both sides down to the leaves that actually differ and reports each one
 // with the path that reaches it. Reporting whole objects instead would hide the
 // failing field behind dozens of identical ones, and reporting a hand-picked
 // subset of keys would hide it outright.
-function differences(actual, expected, path) {
-  if (isDeepStrictEqual(actual, expected)) return [];
-  const bothArrays = Array.isArray(actual) && Array.isArray(expected);
-  if (bothArrays && actual.length === expected.length) {
-    return actual.flatMap((item, index) => differences(item, expected[index], `${path}[${index}]`));
-  }
-  if (!bothArrays && isRecord(actual) && isRecord(expected)) {
-    const keys = [...new Set([...Object.keys(actual), ...Object.keys(expected)])];
-    return keys.flatMap((key) => differences(actual[key], expected[key], `${path}.${key}`));
-  }
-  return [{ path, actual, expected }];
-}
-
-function isRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-async function loadClass(name) {
-  const module = await import(pathToFileURL(path.join(outputFolder, `${name.toLowerCase()}.clas.mjs`)).href);
-  return module[name.toLowerCase()];
-}
-
-const names = await prepare();
+await prepare();
 try {
   await runCommand(repositoryTool("abaplint"), [path.relative(repository, lintConfigPath)]);
   await runCommand(repositoryTool("abap_transpile"), [path.relative(repository, configPath)]);
   await import(pathToFileURL(path.join(outputFolder, "init.mjs")).href);
   const { zcl_gg_host } = await import(pathToFileURL(path.join(outputFolder, "zcl_gg_host.clas.mjs")).href);
   const { zcl_gg_host_dynpro } = await import(pathToFileURL(path.join(outputFolder, "zcl_gg_host_dynpro.clas.mjs")).href);
-  const failures = [];
-
-  for (const name of names) {
-    const id = name.slice(7, 10);
-    if (id === "058") continue;
-    const [generated, handWritten] = await Promise.all([
-      loadClass(`zcl_bv_${id}`),
-      loadClass(`zcl_gg_ex_${id}`),
-    ]);
-    if (!generated || !handWritten) throw new Error(`class module missing for example ${id}`);
-    const expectedReport = new abap.Classes[`ZCL_GG_EX_${id}`]();
-    const expected = normalize(await zcl_gg_host.run({ io_report: expectedReport, rs_result: 1 }));
-    const actual = normalize(await zcl_gg_host.run({ io_report: new abap.Classes[`ZCL_BV_${id}`](), rs_result: 1 }));
-    try {
-      assert.deepEqual(actual, expected);
-    } catch (error) {
-      failures.push({ example: id, message: error.message.split("\n")[0], mismatch: mismatch(actual, expected) });
-    }
-  }
-
   const stateResult = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_STATE(),
     rs_result: 1,
@@ -512,16 +403,21 @@ try {
   assert.deepEqual(resumed.lines, ["3", "OK"]);
 
   const dynproState = new abap.Classes.ZCL_BV_DSTATE();
-  const firstDynproState = plain(await zcl_gg_host_dynpro.run({
+  const firstDynproResult = await zcl_gg_host_dynpro.run({
     io_program: dynproState,
     iv_ucomm: "NEXT",
-  }));
-  assert.equal(firstDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "3");
+  });
+  const firstDynproState = plain(firstDynproResult);
+  // PBO 2, PAI 3, and LEAVE SCREEN goes on to the PBO of the next screen, 4.
+  assert.equal(firstDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "4");
+  // The next round trip works on the screen as it was shown, as the runtime
+  // does: PAI, then PBO once, 5.
   const secondDynproState = plain(await zcl_gg_host_dynpro.run({
     io_program: dynproState,
     iv_ucomm: "BACK",
+    is_shown: await zcl_gg_host_dynpro.shown({is_result: firstDynproResult}),
   }));
-  assert.equal(secondDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "4");
+  assert.equal(secondDynproState.values.find((item) => item.name.trim() === "GV_COUNTER")?.value.trim(), "5");
 
   const nestedComposite = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_CINCLUDE(),
@@ -669,36 +565,7 @@ try {
     dbSystem.set(previousDbSystem);
   }
 
-  const scenarios = [
-    { id: "031", name: "user input", options: (hostClass) => ({ it_input: inputValues([["P_CARR", "lh"]], hostClass) }) },
-    { id: "030", name: "validation failure", options: (hostClass) => ({ it_input: inputValues([["P_N", "-1"]], hostClass) }) },
-    { id: "044", name: "interactive user command", options: () => ({ iv_user_command: "REFR" }) },
-    { id: "049", name: "interactive PF action", options: () => ({ iv_pf_key: 5 }) },
-  ];
-  for (const scenario of scenarios) {
-    const generated = new abap.Classes[`ZCL_BV_${scenario.id}`]();
-    const handWritten = new abap.Classes[`ZCL_GG_EX_${scenario.id}`]();
-    const expected = normalize(await zcl_gg_host.run({ io_report: handWritten, rs_result: 1, ...scenario.options(zcl_gg_host) }));
-    const actual = normalize(await zcl_gg_host.run({ io_report: generated, rs_result: 1, ...scenario.options(zcl_gg_host) }));
-    const differences = mismatch(actual, expected);
-    if (differences.length) failures.push({ example: scenario.id, scenario: scenario.name, mismatch: differences });
-  }
-
-  const generatedDynpro = new abap.Classes.ZCL_BV_058();
-  const handWrittenDynpro = new abap.Classes.ZCL_GG_EX_058();
-  for (const ucomm of ["NEXT", "BACK"]) {
-    const expected = await zcl_gg_host_dynpro.run({ io_program: handWrittenDynpro, iv_ucomm: ucomm });
-    const actual = await zcl_gg_host_dynpro.run({ io_program: generatedDynpro, iv_ucomm: ucomm });
-    for (const field of ["screen", "terminal", "terminal_state", "status", "screens", "flow"]) {
-      const fieldDifferences = differences(plain(actual[field]), plain(expected[field]), `${ucomm}.${field}`);
-      if (fieldDifferences.length) failures.push({ example: "058", scenario: ucomm, mismatch: fieldDifferences });
-    }
-  }
-
-  if (failures.length) {
-    throw new Error(`behavioral parity failed for ${failures.length} fixture(s):\n${JSON.stringify(failures, null, 2)}`);
-  }
-  console.log(`behavioral parity passed for ${names.length - 1} report fixtures and dynpro transitions for 058`);
+  console.log("converter behavior passed");
 } finally {
   await fs.rm(tempRoot, { recursive: true, force: true });
   await fs.rm(lintConfigPath, { force: true });

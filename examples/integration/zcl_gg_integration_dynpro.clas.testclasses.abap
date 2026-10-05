@@ -20,6 +20,7 @@ CLASS ltcl_gg_integration_dyn DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
     METHODS renders_editable_input FOR TESTING.
     METHODS retains_entered_input FOR TESTING.
     METHODS reaches_terminal_state FOR TESTING.
+    METHODS stops_at_empty_required FOR TESTING.
     METHODS dynpro_runtime FOR TESTING.
 
 ENDCLASS.
@@ -29,7 +30,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD calls_next_screen.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm   = 'NEXT' ).
+      iv_ucomm   = 'NEXT'
+      it_values  = VALUE #( ( name = 'P_INPUT' value = 'LH' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-screen
@@ -39,7 +41,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD asserts_screen_sequence.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm   = 'NEXT' ).
+      iv_ucomm   = 'NEXT'
+      it_values  = VALUE #( ( name = 'P_INPUT' value = 'LH' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-terminal
@@ -52,7 +55,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD runs_pbo_on_entry.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm   = 'NEXT' ).
+      iv_ucomm   = 'NEXT'
+      it_values  = VALUE #( ( name = 'P_INPUT' value = 'LH' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'PBO_0200' ]-value
@@ -62,7 +66,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD runs_pai_on_leave.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm   = 'NEXT' ).
+      iv_ucomm   = 'NEXT'
+      it_values  = VALUE #( ( name = 'P_INPUT' value = 'LH' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'PAI_0100' ]-value
@@ -96,7 +101,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD combines_list_navigation.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm   = 'LIST' ).
+      iv_ucomm   = 'LIST'
+      it_values  = VALUE #( ( name = 'P_INPUT' value = 'LH' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
@@ -245,7 +251,8 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
       iv_row          = 2
       iv_cursor_field = 'COL'
       iv_cursor_row   = 2
-      it_values       = VALUE #( ( container = 'TC' name = 'COL' row = 2 value = 'cell' ) ) ).
+      it_values       = VALUE #( ( name = 'P_INPUT' value = 'LH' )
+                                 ( container = 'TC' name = 'COL' row = 2 value = 'cell' ) ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'PAI_FIELD' ]-value
@@ -362,9 +369,27 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   METHOD reaches_terminal_state.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
-      iv_ucomm   = 'EXIT' ).
+      iv_ucomm   = 'EXIT'
+      it_values  = VALUE #( ( name = 'P_INPUT' value = 'LH' ) ) ).
 
     cl_abap_unit_assert=>assert_true( ls_result-terminal_state ).
+  ENDMETHOD.
+
+  METHOD stops_at_empty_required.
+* As on SAP, PAI does not run while a required field is empty.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run(
+      io_program = NEW zcl_gg_integration_dynpro( )
+      iv_ucomm   = 'NEXT' ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-screen
+      exp = '0100' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-messages[ 1 ]-text
+      exp = `Fill in all required entry fields` ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-messages[ 1 ]-field
+      exp = 'P_INPUT' ).
   ENDMETHOD.
 
   METHOD dynpro_runtime.
@@ -377,10 +402,11 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_start-html CS 'data-page-kind="DYNPRO"' ) ).
 
     DATA(ls_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
-      session_id = ls_start-session_id
-      page_id    = ls_start-page_id
-      action     = zif_gg_host_html_v1=>action_submit
-      ucomm      = 'NEXT' ) ).
+      session_id    = ls_start-session_id
+      page_id       = ls_start-page_id
+      action        = zif_gg_host_html_v1=>action_submit
+      ucomm         = 'NEXT'
+      dynpro_values = VALUE #( ( name = 'P_INPUT' value = 'LH' ) ) ) ).
     cl_abap_unit_assert=>assert_true( ls_next-valid ).
     cl_abap_unit_assert=>assert_equals( act = ls_next-current_page-screen
                                         exp = '0200' ).

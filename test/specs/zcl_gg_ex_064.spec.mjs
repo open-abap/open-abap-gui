@@ -1,14 +1,23 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_064 — exposes title, cursor, status, and action feedback", async ({page, host}) => {
+const dynpro = (page) => page.locator('[data-screen="0100"]');
+const remove = (page) => page.locator('.wb-toolbar [data-ucomm="UNDO"]');
+
+test("ZCL_GG_EX_064 — title, excluded function and cursor follow the notes", async ({page, host}) => {
   await openExample(page, host, 64);
-  await expectPageKind(page, "DYNPRO");
-  await expect(page.getByRole("heading", {name: "Feedback 64 - next action"})).toBeVisible();
-  // The SHELL64 status is never named on the page; it shows up as the command it activates.
-  await expect(page.locator('.wb-toolbar [data-ucomm="NEXT64"]')).toBeEnabled();
-  await expect(page.locator('.gg-dynpro[data-cursor-field="P_ACTION"]')).toHaveCount(1);
-  await page.locator('[name="P_ACTION"]').fill("go");
-  await page.locator(".wb-toolbar").getByRole("button", {name: "Next action"}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator('[name="P_ACTION"]')).toHaveValue("accepted");
+  await expect(page.getByRole("heading", {name: "Notes: 0"})).toBeVisible();
+  // As on SAP, the excluded function is not shown in the application toolbar.
+  await expect(remove(page)).toHaveCount(0);
+  await expect(dynpro(page)).toHaveAttribute("data-cursor-field", "GV_TITLE");
+
+  await submit(page, "Add note");
+  await expect(page.getByRole("heading", {name: "Notes: 1"})).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("Note 1 added, cursor was in GV_TITLE");
+  await expect(remove(page)).toBeVisible();
+  await expect(dynpro(page)).toHaveAttribute("data-cursor-field", "GV_NOTE");
+
+  await submit(page, "Remove note");
+  await expect(page.getByRole("heading", {name: "Notes: 0"})).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("Note removed, cursor was in GV_NOTE");
+  await expect(remove(page)).toHaveCount(0);
 });

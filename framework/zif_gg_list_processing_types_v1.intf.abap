@@ -78,18 +78,21 @@ INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
            value     TYPE abap_bool,
            placement TYPE ty_placement,
            hide      TYPE ty_hidden_fields,
+           quickinfo TYPE string,
          END OF ty_write_checkbox.
 
   TYPES: BEGIN OF ty_write_icon,
            name      TYPE ty_name,
            placement TYPE ty_placement,
            hide      TYPE ty_hidden_fields,
+           quickinfo TYPE string,
          END OF ty_write_icon.
 
   TYPES: BEGIN OF ty_write_symbol,
            name      TYPE ty_name,
            placement TYPE ty_placement,
            hide      TYPE ty_hidden_fields,
+           quickinfo TYPE string,
          END OF ty_write_symbol.
 
   TYPES: BEGIN OF ty_uline,

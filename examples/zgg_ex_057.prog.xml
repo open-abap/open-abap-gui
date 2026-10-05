@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>LEAVE TO TRANSACTION and LEAVE PROGRAM</ENTRY>
+     <LENGTH>38</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_GO</KEY>
      <ENTRY>Go</ENTRY>

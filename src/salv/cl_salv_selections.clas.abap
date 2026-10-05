@@ -1,4 +1,4 @@
-CLASS cl_salv_selections DEFINITION PUBLIC.
+CLASS cl_salv_selections DEFINITION PUBLIC FRIENDS cl_salv_table.
   PUBLIC SECTION.
 
     INTERFACES if_salv_c_selection_mode.
@@ -55,6 +55,9 @@ CLASS cl_salv_selections DEFINITION PUBLIC.
     DATA mt_selected_columns TYPE salv_t_column.
     DATA mt_selected_cells TYPE salv_t_cell.
     DATA ms_current_cell TYPE salv_s_cell.
+* The grid control of a SALV table in a container; its selection is the
+* user's.
+    DATA mo_grid TYPE REF TO cl_gui_alv_grid.
 
 ENDCLASS.
 
@@ -69,6 +72,12 @@ CLASS cl_salv_selections IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selected_rows.
+    DATA lt_rows TYPE lvc_t_row.
+
+    IF mo_grid IS BOUND.
+      mo_grid->get_selected_rows( IMPORTING et_index_rows = lt_rows ).
+      mt_selected_rows = VALUE #( FOR ls_row IN lt_rows ( ls_row-index ) ).
+    ENDIF.
     value = mt_selected_rows.
   ENDMETHOD.
 

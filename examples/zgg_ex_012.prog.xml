@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>INITIALIZATION</ENTRY>
+     <LENGTH>14</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_DATE</KEY>
      <ENTRY>Date</ENTRY>

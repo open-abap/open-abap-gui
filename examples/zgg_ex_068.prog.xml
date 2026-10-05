@@ -11,22 +11,27 @@
    </PROGDIR>
    <TPOOL>
     <item>
-     <ID>S</ID>
-     <KEY>P_SHOW</KEY>
-     <ENTRY>Show details</ENTRY>
-     <LENGTH>12</LENGTH>
+     <ID>R</ID>
+     <ENTRY>Dynamic visible input and required state</ENTRY>
+     <LENGTH>40</LENGTH>
     </item>
     <item>
      <ID>S</ID>
      <KEY>P_DETAIL</KEY>
-     <ENTRY>Details</ENTRY>
-     <LENGTH>7</LENGTH>
+     <ENTRY>Detail</ENTRY>
+     <LENGTH>6</LENGTH>
     </item>
     <item>
      <ID>S</ID>
      <KEY>P_REQ</KEY>
      <ENTRY>Required value</ENTRY>
      <LENGTH>14</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_SHOW</KEY>
+     <ENTRY>Show detail</ENTRY>
+     <LENGTH>11</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

@@ -16,5 +16,5 @@ test("ZCL_GG_EX_063 — rejects PF6 and accepts declared PF5", async ({page, hos
   expect(rejected.body.error).toMatch(/not active/);
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-id", pageId);
   await dispatch(page, {action: "PF", pf_key: 5});
-  await expect(page.locator(".gg-list-line")).toHaveText(["body", "pf5"]);
+  await expect(page.locator(".gg-list-line")).toHaveText(["pf5"]);
 });

@@ -254,22 +254,25 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-work-area--docking\{position:relative;\}|.
     rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro\{margin-left:260px;\}|.
     rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro>form>.gg-controls-standalone\{position:relative;left:-260px;width:calc(100% + 260px);height:100%;min-height:0;\}|.
-    rv_html = rv_html && |.gg-status-region,.gg-message-region,.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-message-region,.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-controls-standalone\{display:flow-root;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control\{pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control[title="HTML viewer"]\{pointer-events:auto;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control input,.gg-controls-standalone>.gg-control select,.gg-controls-standalone>.gg-control textarea,.gg-controls-standalone>.gg-control button,.gg-controls-standalone>.gg-control a,.gg-controls-standalone>.gg-control iframe,.gg-controls-standalone>.gg-control [role=button],.gg-controls-standalone>.gg-control [tabindex]\{pointer-events:auto;\}|.
     rv_html = rv_html && |.gg-controls-standalone .gg-external\{position:relative;z-index:1;pointer-events:auto;\}|.
     rv_html = rv_html && |.gg-controls-standalone .gg-control-toolbar\{z-index:2;\}|.
-    rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless\{z-index:2;pointer-events:none;\}|.
-    rv_html = rv_html && |.gg-controls-standalone .gg-dialog-modeless *\{pointer-events:auto;\}|.
-    rv_html = rv_html && |.gg-dialog-modeless\{z-index:20;display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #526b91;box-shadow:4px 5px 14px rgba(24,48,78,.28);pointer-events:none;\}|.
-    rv_html = rv_html && |.gg-dialog-title\{flex:0 0 25px;display:flex;align-items:center;padding:0 8px;background:linear-gradient(#8197bb,#657da9);color:#fff;font-size:12px;font-weight:600;box-sizing:border-box;\}|.
-    rv_html = rv_html && |.gg-dialog-body\{flex:1;min-height:0;overflow:hidden;padding:4px;background:#fff;box-sizing:border-box;pointer-events:none;\}|.
-    rv_html = rv_html && |.gg-dialog-body>.gg-control\{position:relative!important;left:0!important;top:0!important;width:100%!important;height:100%!important;pointer-events:none;\}|.
+* A modeless dialog box floats over the screen at the position the program
+* gives it, and everything in it can be used.
+    rv_html = rv_html && |.gg-dialog-modeless\{z-index:20;display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #526b91;box-shadow:4px 5px 14px rgba(24,48,78,.28);pointer-events:auto;\}|.
+    rv_html = rv_html && |.gg-dialog-title\{flex:0 0 25px;display:flex;align-items:center;gap:8px;padding:0 2px 0 8px;background:linear-gradient(#8197bb,#657da9);color:#fff;font-size:12px;font-weight:600;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dialog-title>span\{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\}|.
+    rv_html = rv_html && |.gg-dialog-close\{display:flex;align-items:center;justify-content:center;width:21px;height:21px;padding:0;border:1px solid transparent;border-radius:2px;background:transparent;color:#fff;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-dialog-close:hover,.gg-dialog-close:focus-visible\{background:#c94b4b;border-color:#fff8;\}|.
+    rv_html = rv_html && |.gg-dialog-body\{position:relative;flex:1;min-height:0;overflow:hidden;background:#fff;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-dialog-body>.gg-control\{position:relative!important;left:0!important;top:0!important;width:100%!important;height:100%!important;\}|.
     rv_html = rv_html && |.gg-message-region,.gg-instruction-region\{display:flex;flex-direction:column;gap:4px;\}|.
 * Empty regions stay in the markup but take no space or flex gap.
-    rv_html = rv_html && |.gg-message-region:empty,.gg-status-region:has(>.gg-selection-status:empty)\{display:none;\}|.
+    rv_html = rv_html && |.gg-message-region:empty\{display:none;\}|.
     rv_html = rv_html && |.gg-action-row\{position:relative;z-index:30;display:flex;align-items:center;gap:8px;min-height:28px;padding:4px 0;border-top:1px solid var(--gg-border);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-state-focused:focus,.gg-state-focused:focus-visible\{outline:2px solid #2668a3;outline-offset:2px;\}|.
     rv_html = rv_html && |.gg-state-selected,[aria-selected=true],[aria-current=true]\{background:#c7dced;color:#102f4d;\}|.
@@ -298,7 +301,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-control>.gg-alv>.gg-alv-grid-area\{flex:1 1 auto;min-height:0;overflow:auto;background:#fff;border:1px solid #c1d2e0;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-alv th,.gg-alv td\{height:28px;padding:3px 8px;border:1px solid #c1d2e0;white-space:nowrap;text-align:left;\}|.
     rv_html = rv_html && |.gg-alv th\{background:linear-gradient(#e9f3fa,#c7dae9);border-color:#8daac4;font-weight:700;\}|.
-    rv_html = rv_html && |.gg-alv .gg-grid-row:nth-child(even) td\{background:#f3f8fc;\}|.
+    rv_html = rv_html && |.gg-alv table[data-zebra="true"] .gg-grid-row:nth-child(even) td\{background:#f3f8fc;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-row.gg-state-selected td\{background:#c7dced;color:#102f4d;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-total\{background:#e3eff8;font-weight:700;\}|.
     rv_html = rv_html && |.gg-alv .gg-grid-cell.gg-state-hotspot\{color:#075e9a;text-decoration:underline;text-decoration-style:dotted;\}|.
@@ -330,11 +333,44 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-weekend\{background:#f5f7f9;color:#748392;\}|.
     rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-selected\{background:#c5e3f7;color:#123b64;font-weight:700;\}|.
     rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-marked\{box-shadow:inset 0 -3px #e0a126;\}|.
+* A day the program listens to is a button that looks like the day cell.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-date>button\{all:unset;display:block;width:100%;height:100%;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-date:hover\{background:#e3f0fa;\}|.
+    rv_html = rv_html && |.gg-calendar-week-grid .gg-calendar-date>button:focus-visible\{outline:2px solid #2668a3;outline-offset:-2px;\}|.
     rv_html = rv_html && |.gg-calendar-day-info\{display:none;\}|.
     rv_html = rv_html && |[role=tree]\{margin:0;padding:4px 8px;list-style:none;\}|.
     rv_html = rv_html && |.gg-tree-node\{display:block;min-height:22px;padding:2px 6px;box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-tree-node[hidden]\{display:none;\}|.
     rv_html = rv_html && |.gg-tree-node.gg-state-selected\{background:#c7dced;color:#102f4d;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-tree\{list-style:none;margin:0;padding:4px 0;background:#fff;color:#123b64;font-size:13px;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-node\{display:flex;align-items:center;gap:6px;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-toggle\{display:inline-flex;align-items:center;justify-content:center;flex:0 0 16px;width:16px;height:16px;padding:0;border:1px solid #8daac4;background:#f3f8fc;color:#1f4f73;font-size:12px;line-height:1;\}|.
+    rv_html = rv_html && |.gg-tree span.gg-tree-toggle\{border-color:transparent;background:transparent;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-label\{cursor:pointer;padding:1px 4px;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-label:focus\{outline:1px dotted #1f4f73;\}|.
+    rv_html = rv_html && |.gg-tree .gg-tree-item\{padding:1px 8px;border-left:1px solid #c1d2e0;color:#4f6476;\}|.
+    rv_html = rv_html && |.gg-chart\{margin:0;padding:8px;background:#fff;color:#123b64;font-size:12px;\}|.
+    rv_html = rv_html && |.gg-chart figcaption\{font-weight:700;font-size:14px;margin-bottom:4px;\}|.
+    rv_html = rv_html && |.gg-chart svg\{max-width:100%;height:auto;\}|.
+    rv_html = rv_html && |.gg-chart svg text\{fill:#123b64;font-size:11px;\}|.
+    rv_html = rv_html && |.gg-chart-legend\{display:flex;gap:14px;list-style:none;margin:4px 0;padding:0;\}|.
+    rv_html = rv_html && |.gg-chart-swatch\{display:inline-block;width:10px;height:10px;margin-right:4px;\}|.
+    rv_html = rv_html && |.gg-chart-data\{border-collapse:collapse;margin-top:6px;\}|.
+    rv_html = rv_html && |.gg-chart-data caption\{text-align:left;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-chart-data th,.gg-chart-data td\{border:1px solid #c1d2e0;padding:1px 8px;text-align:left;\}|.
+    rv_html = rv_html && |.gg-salv-top-of-list,.gg-salv-end-of-list\{margin:6px 0;color:#123b64;\}|.
+    rv_html = rv_html && |.gg-salv-form-grid td\{padding:2px 12px 2px 0;\}|.
+    rv_html = rv_html && |.gg-salv-form-header\{font-size:15px;\}|.
+    rv_html = rv_html && |.gg-alv-protocol\{margin:4px 0;padding:6px 10px 6px 28px;border:1px solid #c2453b;background:#fdecea;color:#8a1f17;\}|.
+* The layout dialogs of the grid (change, choose, save) open above its rows.
+    rv_html = rv_html && |.gg-alv-layout-dialog\{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;margin:4px 0;padding:8px 10px;border:1px solid #6b8298;background:#f4f8fb;box-shadow:0 2px 6px rgba(24,48,78,.18);font-size:12px;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog h3\{margin:0;font-size:13px;color:#173c5e;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog p\{margin:0;\}|.
+    rv_html = rv_html && |.gg-alv-layout-columns\{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;padding:0;list-style:none;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog label\{display:flex;align-items:center;gap:6px;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog footer\{display:flex;gap:6px;justify-content:flex-end;\}|.
+    rv_html = rv_html && |.gg-alv-layout-dialog table\{min-width:0;\}|.
+    rv_html = rv_html && |.gg-alv-layout-error\{color:#8a1f17;font-weight:600;\}|.
     rv_html = rv_html && |.gg-control-toolbar,.gg-alv-toolbar\{display:flex;align-items:center;gap:4px;min-height:26px;padding:2px 4px;background:linear-gradient(var(--gg-panel),var(--gg-work-area));border:1px solid var(--gg-border-dark);box-sizing:border-box;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button\{min-height:22px;padding:2px 8px;border:1px solid var(--gg-border);border-radius:1px;background:linear-gradient(#fff,var(--gg-panel));color:#123b64;font:inherit;cursor:pointer;\}|.
     rv_html = rv_html && |.gg-control-toolbar button,.gg-alv-toolbar button,.gg-textedit-tool-button\{display:inline-flex;align-items:center;justify-content:center;gap:3px;\}|.
@@ -392,6 +428,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-selection .gg-parameter>select\{width:auto;min-width:10rem;max-width:100%;\}|.
     rv_html = rv_html && |.gg-selection .gg-type-text,.gg-selection .gg-type-date,.gg-selection .gg-type-time\{text-align:left;\}|.
     rv_html = rv_html && |.gg-selection .gg-type-number,.gg-dynpro .gg-type-number,.gg-alv .gg-type-number\{text-align:right;\}|.
+    rv_html = rv_html && |.gg-salv-hierseq tbody tr[data-level="1"] td\{background:#e8f0f7;font-weight:700;\}.gg-salv-hierseq tr[data-level="2"]>:first-child\{padding-left:24px;\}|.
     rv_html = rv_html && |.gg-selection input[type=text],.gg-selection select\{height:var(--gg-row);padding:2px 6px;border:1px solid var(--gg-border-dark);border-radius:1px;background:var(--gg-input);color:#123b64;box-sizing:border-box;font:inherit;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
     rv_html = rv_html && |.gg-selection input[type=text]:focus,.gg-selection select:focus\{border-color:#5e8fbd;box-shadow:0 0 0 2px rgba(94,143,189,.25),inset 0 1px 2px rgba(54,87,116,.18);outline:0;\}|.
 * Only the field holding the cursor is yellow, the way SAP GUI highlights it.
@@ -534,6 +571,11 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |@media(max-width:760px)\{.gg-free-selection-modal\{padding:10px\}.gg-free-selection-body\{grid-template-columns:1fr\}.gg-free-selection-tree\{border-right:0;border-bottom:1px solid #b4c8db\}\}|.
     rv_html = rv_html && |@media(max-width:760px)\{.gg-free-selection-row\{grid-template-columns:1fr 1fr\}.gg-free-selection-row label\{grid-column:1\}\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control]\{overflow:auto;background:#e4eff8;border:1px solid #8daac4;box-sizing:border-box;scrollbar-color:#9eb5c8 #d6e5f0;\}|.
+* The scroll bar of a table control is a strip of buttons on its right.
+    rv_html = rv_html && |.gg-dynpro [data-table-control]:has(>.gg-table-scroll)\{display:flex;align-items:stretch;\}|.
+    rv_html = rv_html && |.gg-dynpro [data-table-control]>.gg-table-scroll\{position:sticky;right:0;top:0;flex:0 0 auto;display:flex;flex-direction:column;gap:2px;padding:2px;background:#d6e5f0;border-left:1px solid #8daac4;\}|.
+    rv_html = rv_html && |.gg-table-scroll button\{display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid #8daac4;border-radius:2px;background:#eef5fb;color:#123b64;cursor:pointer;\}|.
+    rv_html = rv_html && |.gg-table-scroll button:disabled\{opacity:.45;cursor:default;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] table\{border-collapse:collapse;table-layout:fixed;min-width:100%;width:max-content;background:#fff;color:#123b64;font-size:13px;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] caption\{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;\}|.
     rv_html = rv_html && |.gg-dynpro [data-table-control] th\{height:28px;padding:4px 8px;text-align:left;white-space:nowrap;background:linear-gradient(#e9f3fa,#c7dae9);border:1px solid #8daac4;color:#123b64;font-weight:700;box-sizing:border-box;\}|.
@@ -671,7 +713,10 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_value = iv_value.
     CASE to_upper( iv_type ).
       WHEN 'D'.
-        IF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
+* An initial date is a blank field in SAP GUI.
+        IF iv_value = '00000000'.
+          rv_value = ``.
+        ELSEIF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
           lv_first = substring(
             val = iv_value
             off = 6

@@ -20,3 +20,19 @@ test(`ZCL_GG_EX_032 — executes select-option validation`, async ({page, host})
   await expectPageKind(page, "SELECTION");
   await expect(page.getByRole("alert")).toHaveText("at most five entries");
 });
+
+test(`ZCL_GG_EX_032 — five entries or fewer reach START-OF-SELECTION`, async ({page, host}) => {
+  await openExample(page, host, 32);
+  await dispatch(page, {
+    action: "SUBMIT",
+    values: [{
+      name: "S_CARR",
+      ranges: [
+        {sign: "I", option: "EQ", low: "AA"},
+        {sign: "I", option: "EQ", low: "LH"},
+      ],
+    }],
+  });
+  await expectPageKind(page, "LIST");
+  await expect(page.locator(".gg-list-line")).toHaveText(["2 airline entries chosen"]);
+});

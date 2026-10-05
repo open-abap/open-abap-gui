@@ -23,6 +23,7 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
   CONSTANTS action_tab          TYPE string VALUE 'TAB'.
   CONSTANTS action_back         TYPE string VALUE 'BACK'.
   CONSTANTS action_tree_event   TYPE string VALUE 'TREE_EVENT'.
+  CONSTANTS action_control_event TYPE string VALUE 'CONTROL_EVENT'.
 
   TYPES: BEGIN OF ty_action,
            kind   TYPE string,
@@ -81,6 +82,15 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
          END OF ty_page.
   TYPES ty_pages TYPE STANDARD TABLE OF ty_page WITH DEFAULT KEY.
 
+* Fields a control's HTML posts on every round trip (the selection, edited
+* cells), named gg-ctl:<control id>:<key>. SAP GUI keeps this state in the
+* frontend control and sends it to the server with the next round trip.
+  TYPES: BEGIN OF ty_control_value,
+           name  TYPE string,
+           value TYPE string,
+         END OF ty_control_value.
+  TYPES ty_control_values TYPE STANDARD TABLE OF ty_control_value WITH DEFAULT KEY.
+
   TYPES: BEGIN OF ty_request,
            session_id     TYPE string,
            page_id        TYPE string,
@@ -103,6 +113,8 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
            dynamic_action TYPE string,
            dynamic_values TYPE zif_gg_selection_screen_types=>ty_values,
            dynpro_values  TYPE zif_gg_dynpro_types_v1=>ty_values,
+           control_event  TYPE string,
+           control_values TYPE ty_control_values,
          END OF ty_request.
 
 * ended: the program a user started has finished, and no calling program is

@@ -475,13 +475,18 @@ CLASS ltcl_host IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '<!doctype html>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-page-kind="LIST"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'hello world' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-status-region"' ) ).
+* SAP shows the functions of the status, never its name.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html NS 'gg-list-status' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-message-region"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-work-area"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-list-page-header"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Host list</span><span class="gg-list-page-number"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'aria-label="Page 1">1</span>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'class="gg-action-row"' ) ).
+* The list adds no buttons of its own; a program without a status gets the
+* standard list status, with the list processor's functions.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html NS 'class="gg-action-row"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-status-active_ucomm[ table_line = '%SC' ] ) ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:%PC"' ) ).
   ENDMETHOD.
 
   METHOD html_selection.

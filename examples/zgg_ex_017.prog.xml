@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>PARAMETERS AS CHECKBOX</ENTRY>
+     <LENGTH>22</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_TEST</KEY>
      <ENTRY>Test run</ENTRY>

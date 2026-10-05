@@ -47,8 +47,7 @@ CLASS zcl_gg_integration_interactive IMPLEMENTATION.
     DATA(lv_connid) = is_line-fields[ name = 'CONNID' ]-value.
     DATA(lv_fldate) = is_line-fields[ name = 'FLDATE' ]-value.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-
-    io_session->get_list( )->enter_list_processing( ).
+* The event writes the detail list: sy-lsind is 1, sy-listi the basic list.
     DATA(ls_context) = io_session->get_list( )->get_context( ).
     lo_writer->write_field( VALUE #(
       text      = |Selected line: { is_line-text }|
@@ -65,10 +64,8 @@ CLASS zcl_gg_integration_interactive IMPLEMENTATION.
     lo_writer->write_field( VALUE #(
       text      = |List level: { ls_context-level }|
       placement = VALUE #( new_line = abap_true ) ) ).
-    io_session->get_list( )->leave_list_processing( ).
-    ls_context = io_session->get_list( )->get_context( ).
     lo_writer->write_field( VALUE #(
-      text      = |Restored level: { ls_context-level }|
+      text      = |List index: { ls_context-list_index }|
       placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

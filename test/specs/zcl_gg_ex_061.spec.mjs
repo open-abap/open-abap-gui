@@ -1,23 +1,15 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_061 — distinguishes enabled, inactive, and excluded commands", async ({page, host}) => {
+test("ZCL_GG_EX_061 — Release is offered once the order is approved", async ({page, host}) => {
   await openExample(page, host, 61);
   const toolbar = page.locator(".wb-toolbar");
-  await expect(toolbar.getByRole("button", {name: "Enabled"})).toBeEnabled();
-  await expect(toolbar.getByRole("button", {name: "Inactive"})).toBeDisabled();
-  await expect(toolbar.getByRole("button", {name: "Excluded"})).toBeDisabled();
+  await expect(toolbar.getByRole("button")).toHaveText(["Approve"]);
 
-  const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
-  const pageId = await page.locator("[data-page-kind]").getAttribute("data-page-id");
-  const response = await page.evaluate(async ({sessionId, pageId}) => {
-    const result = await fetch("/dispatch", {
-      method: "POST",
-      headers: {"content-type": "application/json"},
-      body: JSON.stringify({session_id: sessionId, page_id: pageId, action: "COMMAND", ucomm: "EXCLUDED"}),
-    });
-    return {status: result.status, body: await result.json()};
-  }, {sessionId, pageId});
-  expect(response.status).toBe(400);
-  expect(response.body.error).toMatch(/not active/);
-  await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-id", pageId);
+  await submit(page, "Approve");
+  await expect(toolbar.getByRole("button")).toHaveText(["Release"]);
+  await expect(page.locator(".gg-list-line").last()).toHaveText("Approved: X, released:");
+
+  await submit(page, "Release");
+  await expect(toolbar.getByRole("button")).toHaveCount(0);
+  await expect(page.locator(".gg-list-line").last()).toHaveText("Approved: X, released: X");
 });

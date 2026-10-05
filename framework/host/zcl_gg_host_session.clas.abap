@@ -40,9 +40,28 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_event TYPE zif_gg_session_types_v1=>ty_event.
 
+    "! The function code of the selection screen's PAI, sy-ucomm and
+    "! sscrfields-ucomm in every AT SELECTION-SCREEN event.
+    METHODS set_selection_ucomm
+      IMPORTING
+        iv_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
+
     METHODS get_messages
       RETURNING
         VALUE(rt_messages) TYPE ty_messages.
+
+    "! The fields of the FIELD statement or CHAIN the PAI module being run
+    "! belongs to; empty for a module of its own.
+    METHODS set_field_context
+      IMPORTING
+        it_fields TYPE string_table.
+
+    "! After an error or warning in PAI: whether one was sent, and the fields
+    "! that stay ready for input. An empty table means none of them.
+    METHODS get_error_fields
+      EXPORTING
+        ev_raised TYPE abap_bool
+        et_fields TYPE string_table.
 
     METHODS is_dialog_suppressed
       RETURNING
@@ -110,6 +129,7 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mo_compatibility TYPE REF TO zif_gg_compatibility_v1.
     DATA mv_program   TYPE zif_gg_session_types_v1=>ty_program.
     DATA mv_event     TYPE zif_gg_session_types_v1=>ty_event.
+    DATA mv_selection_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
     DATA mv_batch     TYPE abap_bool.
     DATA mv_processor TYPE zif_gg_session_types_v1=>ty_processor.
     DATA mv_screen    TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
@@ -128,6 +148,9 @@ CLASS zcl_gg_host_session DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_memory TYPE STANDARD TABLE OF ty_memory_entry WITH DEFAULT KEY.
     DATA mt_request_values TYPE zif_gg_selection_screen_types=>ty_values.
     DATA mt_messages  TYPE ty_messages.
+    DATA mt_field_context TYPE string_table.
+    DATA mt_error_fields TYPE string_table.
+    DATA mv_error_raised TYPE abap_bool.
 
     METHODS unsupported
       IMPORTING
@@ -156,6 +179,10 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD set_event.
     mv_event = iv_event.
+  ENDMETHOD.
+
+  METHOD set_selection_ucomm.
+    mv_selection_ucomm = iv_ucomm.
   ENDMETHOD.
 
   METHOD get_messages.
@@ -253,6 +280,15 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
       iv_operation = iv_operation ).
   ENDMETHOD.
 
+  METHOD set_field_context.
+    mt_field_context = it_fields.
+  ENDMETHOD.
+
+  METHOD get_error_fields.
+    ev_raised = mv_error_raised.
+    et_fields = mt_error_fields.
+  ENDMETHOD.
+
   METHOD zif_gg_session_v1~get_context.
     rs_context-processor       = mv_processor.
     rs_context-program-program = mv_program.
@@ -262,6 +298,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     rs_context-selection-active = xsdbool(
       mv_processor = zif_gg_session_types_v1=>processor_selection ).
     rs_context-selection-screen = mv_screen.
+    rs_context-selection-ucomm = mv_selection_ucomm.
     IF rs_context-selection-screen IS INITIAL.
       rs_context-selection-screen = '1000'.
     ENDIF.
@@ -304,6 +341,22 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     ENDIF.
     IF line_exists( mt_messages[ type = ls_message-type text = ls_message-text field = ls_message-field ] ).
       RETURN.
+    ENDIF.
+    IF ls_message-type <> zif_gg_session_types_v1=>message_type_info
+        AND ls_message-type <> zif_gg_session_types_v1=>message_type_success
+        AND mv_processor = zif_gg_session_types_v1=>processor_dynpro
+        AND mv_event = 'PROCESS AFTER INPUT'.
+* On SAP the fields of the FIELD statement or CHAIN stay ready for input and
+* the cursor goes to the first one; after a module of its own none do.
+      mv_error_raised = abap_true.
+      mt_error_fields = mt_field_context.
+* A message that names its field checks that field, like FIELD does.
+      IF mt_error_fields IS INITIAL AND ls_message-field IS NOT INITIAL.
+        APPEND CONV string( ls_message-field ) TO mt_error_fields.
+      ENDIF.
+      IF ls_message-field IS INITIAL.
+        ls_message-field = VALUE #( mt_field_context[ 1 ] OPTIONAL ).
+      ENDIF.
     ENDIF.
     APPEND ls_message TO mt_messages.
     IF ls_message-type = zif_gg_session_types_v1=>message_type_info

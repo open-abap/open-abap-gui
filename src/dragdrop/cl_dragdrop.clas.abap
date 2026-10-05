@@ -35,7 +35,22 @@ CLASS cl_dragdrop DEFINITION PUBLIC.
       EXCEPTIONS
         obj_invalid.
 
+* A control names its drag and drop behaviour by handle, as the DRAGDROPID of
+* a tree node or the S_DRAGDROP of a grid layout do.
+    CLASS-METHODS find
+      IMPORTING
+        handle        TYPE i
+      RETURNING
+        VALUE(result) TYPE REF TO cl_dragdrop.
+
+    METHODS get_flavors
+      IMPORTING
+        drag_source   TYPE abap_bool
+      RETURNING
+        VALUE(result) TYPE string_table.
+
   PRIVATE SECTION.
+    CLASS-DATA mt_registry TYPE STANDARD TABLE OF REF TO cl_dragdrop WITH DEFAULT KEY.
     TYPES: BEGIN OF ty_flavor,
              flavor         TYPE cndd_flavor,
              is_drag_source TYPE abap_bool,
@@ -54,6 +69,25 @@ CLASS cl_dragdrop IMPLEMENTATION.
   METHOD constructor.
     mv_next_handle = mv_next_handle + 1.
     mv_handle = mv_next_handle.
+    APPEND me TO mt_registry.
+  ENDMETHOD.
+
+  METHOD find.
+    LOOP AT mt_registry INTO DATA(lo_dragdrop).
+      IF lo_dragdrop->mv_handle = handle.
+        result = lo_dragdrop.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD get_flavors.
+    LOOP AT mt_flavors INTO DATA(ls_flavor).
+      IF ( drag_source = abap_true AND ls_flavor-is_drag_source = abap_true )
+          OR ( drag_source = abap_false AND ls_flavor-is_drop_target = abap_true ).
+        APPEND condense( CONV string( ls_flavor-flavor ) ) TO result.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD add.

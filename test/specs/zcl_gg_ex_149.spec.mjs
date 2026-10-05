@@ -1,12 +1,12 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_149 — preserves chart engine payload intent", async ({page, host}) => {
+test("ZCL_GG_EX_149 — draws two series as lines or columns", async ({page, host}) => {
   await openExample(page, host, 149);
-  const engine = page.locator('[data-control-kind="CHART_ENGINE"]');
-  await expect(engine).toContainText("Chart data");
-  await expect(engine).toHaveAttribute("data-payload", "series=flights;values=42,31");
-  await expect(engine).not.toContainText("series=flights");
-  await expect(page.locator('[data-chart-payload="series=flights"]')).toContainText("server-side");
-  await expect(page.locator(".gg-chart-fallback table")).toContainText("August");
+  const chart = page.locator('[data-control-kind="CHART_ENGINE"] .gg-chart');
+  await expect(chart).toHaveAttribute("data-chart-type", "Lines");
+  await expect(chart.locator("polyline")).toHaveCount(2);
+  await expect(chart.locator(".gg-chart-legend li")).toHaveText(["Capacity", "Occupied"]);
+  await submit(page, "Columns");
+  await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("4 months, chart type Columns");
+  await expect(chart.locator("rect")).toHaveCount(8);
 });
-

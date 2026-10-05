@@ -1,7 +1,7 @@
 REPORT zgg_ex_010 LINE-COUNT 10(2).
 
 END-OF-PAGE.
-WRITE 'footer'.
+  WRITE 'footer'.
 
 START-OF-SELECTION.
   DO 30 TIMES.

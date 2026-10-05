@@ -1,11 +1,19 @@
-import {test, expect, openExample, dispatch, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-test("ZCL_GG_EX_112 — distinguishes scheduled and immediate screen transfer", async ({page, host}) => {
+const out = (page, name) => page.locator(`#gg-dynpro-control-n-${name}`);
+
+test("ZCL_GG_EX_112 — SET SCREEN lets PAI go on before the next screen", async ({page, host}) => {
   await openExample(page, host, 112);
-  await page.locator('[data-screen="0100"]').getByRole("button", {name: "Set next", exact: true}).click();
-  await page.waitForLoadState("load");
-  await expect(page.locator('[data-screen="0100"]')).toHaveCount(1);
-  await dispatch(page, {action: "SUBMIT", ucomm: "JUMP"});
+  await submit(page, "SET SCREEN 200");
   await expect(page.locator('[data-screen="0200"]')).toHaveCount(1);
+  await expect(out(page, "GV_AFTER")).toHaveText("went on after SET SCREEN");
 });
 
+test("ZCL_GG_EX_112 — LEAVE TO SCREEN ends PAI at once", async ({page, host}) => {
+  await openExample(page, host, 112);
+  await submit(page, "LEAVE TO SCREEN 200");
+  await expect(page.locator('[data-screen="0200"]')).toHaveCount(1);
+  await expect(out(page, "GV_AFTER")).toHaveText("ended at LEAVE TO SCREEN");
+  await submit(page, "Back");
+  await expect(page.locator('[data-screen="0100"]')).toHaveCount(1);
+});
