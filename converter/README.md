@@ -269,8 +269,6 @@ Development commands:
 
 ```text
 cd converter
-npm run check
-npm run check:matrix
 npm run test:unit
 npm run fixtures
 npm run structural
@@ -279,7 +277,6 @@ npm run hardening
 npm run coverage
 npm run transpile
 npm run behavior
-npm run browser
 npm run test:gg-gui
 npm test
 ```
