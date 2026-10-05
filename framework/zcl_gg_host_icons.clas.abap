@@ -184,6 +184,17 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       ( name = 'transport'           code = '4A' symbol = 'truck'             tone = ''         label = 'Transport' )
       ( name = 'background_job'      code = 'M4' symbol = 'clock-play'        tone = ''         label = 'Background job' )
       ( name = 'database_table'      code = 'PO' symbol = 'table'             tone = ''         label = 'Database table' )
+* logistics and business objects, named and described as in the SAP ICON table
+      ( name = 'object_folder'       code = 'FP' symbol = 'folder-open'       tone = ''         label = 'Open object folder' )
+      ( name = 'other_object'        code = '2Q' symbol = 'box'               tone = ''         label = 'Other object' )
+      ( name = 'order'               code = '9Z' symbol = 'clipboard-list'    tone = ''         label = 'Order' )
+      ( name = 'action_fault'        code = '9O' symbol = 'file-alert'        tone = 'error'    label = 'Request contains errors' )
+      ( name = 'ben_offer_open'      code = '9F' symbol = 'tag'               tone = ''         label = 'Open offer' )
+      ( name = 'transport_point'     code = 'A5' symbol = 'arrows-exchange'   tone = ''         label = 'Stock transfer point' )
+      ( name = 'store_location'      code = 'AC' symbol = 'building-warehouse' tone = ''         label = 'Storage location' )
+      ( name = 'supplier'            code = 'AD' symbol = 'building-factory-2' tone = ''         label = 'Vendor' )
+      ( name = 'material_revision'   code = 'AT' symbol = 'versions'          tone = ''         label = 'Article revision' )
+      ( name = 'retail_product'      code = 'TT' symbol = 'shopping-bag'      tone = ''         label = 'Retail product' )
       ( name = 'dummy'               code = '00' symbol = 'blank'             tone = ''         label = '' )
       ( name = 'space'               code = '5F' symbol = 'blank'             tone = ''         label = '' )
 * ICON_* names without a code in the open-abap icon type pool
@@ -313,6 +324,14 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       '<symbol id="wb-icon-status-light-off" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-opacity=".45" /><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5" /></symbol>' &&
       '<symbol id="wb-icon-status-led" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3" fill="currentColor" stroke="none" /></symbol>' &&
       '<symbol id="wb-icon-blank" viewBox="0 0 24 24"></symbol>' &&
+      '<symbol id="wb-icon-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></symbol>' &&
+      '<symbol id="wb-icon-clipboard-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" /><path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2" /><path d="M9 12l.01 0" /><path d="M13 12l2 0" /><path d="M9 16l.01 0" /><path d="M13 16l2 0" /></symbol>' &&
+      '<symbol id="wb-icon-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M3 6v5.172a2 2 0 0 0 .586 1.414l7.71 7.71a2.41 2.41 0 0 0 3.408 0l5.592 -5.592a2.41 2.41 0 0 0 0 -3.408l-7.71 -7.71a2 2 0 0 0 -1.414 -.586h-5.172a3 3 0 0 0 -3 3" /></symbol>' &&
+      '<symbol id="wb-icon-arrows-exchange" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10h14l-4 -4" /><path d="M17 14h-14l4 4" /></symbol>' &&
+      '<symbol id="wb-icon-building-warehouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21v-13l9 -4l9 4v13" /><path d="M13 13h4v8h-10v-6h6" /><path d="M13 21v-9a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3" /></symbol>' &&
+      '<symbol id="wb-icon-building-factory-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18" /><path d="M5 21v-12l5 4v-4l5 4h4" /><path d="M19 21v-8l-1.436 -9.574a.5 .5 0 0 0 -.495 -.426h-1.145a.5 .5 0 0 0 -.494 .418l-1.43 8.582" /><path d="M9 17h1" /><path d="M14 17h1" /></symbol>' &&
+      '<symbol id="wb-icon-versions" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 7a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -10" /><path d="M7 7l0 10" /><path d="M4 8l0 8" /></symbol>' &&
+      '<symbol id="wb-icon-shopping-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304" /><path d="M9 11v-5a3 3 0 0 1 6 0v5" /></symbol>' &&
       '</svg>'.
   ENDMETHOD.
 

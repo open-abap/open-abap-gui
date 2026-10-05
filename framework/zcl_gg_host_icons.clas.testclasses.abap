@@ -13,6 +13,24 @@ CLASS ltcl_gg_host_icons DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL 
     METHODS text_html_leading_icon FOR TESTING.
     METHODS text_html_icon_only FOR TESTING.
     METHODS plain_text FOR TESTING.
+    METHODS resolves_object_codes FOR TESTING.
+    METHODS resolves_object_names FOR TESTING.
+    METHODS object_codes_keep_label_text FOR TESTING.
+    METHODS object_symbols_exist FOR TESTING.
+
+    TYPES: BEGIN OF ty_expected,
+             code   TYPE string,
+             name   TYPE string,
+             symbol TYPE string,
+             tone   TYPE string,
+             label  TYPE string,
+           END OF ty_expected.
+    TYPES ty_expected_table TYPE STANDARD TABLE OF ty_expected WITH DEFAULT KEY.
+
+* The codes, ICON_* names and English quick info texts of the SAP ICON table.
+    CLASS-METHODS object_icons
+      RETURNING
+        VALUE(rt_icons) TYPE ty_expected_table.
 
 ENDCLASS.
 
@@ -153,6 +171,78 @@ CLASS ltcl_gg_host_icons IMPLEMENTATION.
                                         act = zcl_gg_host_icons=>plain_text( '@0A@' ) ).
     cl_abap_unit_assert=>assert_equals( exp = 'General'
                                         act = zcl_gg_host_icons=>plain_text( 'General' ) ).
+  ENDMETHOD.
+
+  METHOD object_icons.
+    rt_icons = VALUE #(
+      ( code = `@FP@` name = `ICON_OBJECT_FOLDER`     symbol = `folder-open`        label = `Open object folder` )
+      ( code = `@TT@` name = `ICON_RETAIL_PRODUCT`    symbol = `shopping-bag`       label = `Retail product` )
+      ( code = `@AD@` name = `ICON_SUPPLIER`          symbol = `building-factory-2` label = `Vendor` )
+      ( code = `@9F@` name = `ICON_BEN_OFFER_OPEN`    symbol = `tag`                label = `Open offer` )
+      ( code = `@2Q@` name = `ICON_OTHER_OBJECT`      symbol = `box`                label = `Other object` )
+      ( code = `@AC@` name = `ICON_STORE_LOCATION`    symbol = `building-warehouse` label = `Storage location` )
+      ( code = `@A5@` name = `ICON_TRANSPORT_POINT`   symbol = `arrows-exchange`    label = `Stock transfer point` )
+      ( code = `@9Z@` name = `ICON_ORDER`             symbol = `clipboard-list`     label = `Order` )
+      ( code = `@9O@` name = `ICON_ACTION_FAULT`      symbol = `file-alert`         label = `Request contains errors` tone = `error` )
+      ( code = `@AT@` name = `ICON_MATERIAL_REVISION` symbol = `versions`           label = `Article revision` ) ).
+  ENDMETHOD.
+
+  METHOD resolves_object_codes.
+    LOOP AT object_icons( ) INTO DATA(ls_expected).
+      DATA(ls_icon) = zcl_gg_host_icons=>resolve( ls_expected-code ).
+      cl_abap_unit_assert=>assert_equals( exp = ls_expected-symbol
+                                          act = ls_icon-symbol
+                                          msg = ls_expected-code ).
+      cl_abap_unit_assert=>assert_equals( exp = ls_expected-tone
+                                          act = ls_icon-tone
+                                          msg = ls_expected-code ).
+      cl_abap_unit_assert=>assert_equals( exp = ls_expected-label
+                                          act = ls_icon-label
+                                          msg = ls_expected-code ).
+* A tab label never falls back to the placeholder for these codes.
+      cl_abap_unit_assert=>assert_false( act = xsdbool( zcl_gg_host_icons=>icon( ls_expected-code ) CS 'wb-icon-square-dashed' )
+                                         msg = ls_expected-code ).
+    ENDLOOP.
+* An unknown code still renders the placeholder.
+    cl_abap_unit_assert=>assert_initial( zcl_gg_host_icons=>resolve( '@Q9@' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( zcl_gg_host_icons=>icon( '@Q9@' ) CS 'href="#wb-icon-square-dashed"' ) ).
+  ENDMETHOD.
+
+  METHOD resolves_object_names.
+    LOOP AT object_icons( ) INTO DATA(ls_expected).
+      cl_abap_unit_assert=>assert_equals( exp = ls_expected-symbol
+                                          act = zcl_gg_host_icons=>resolve( ls_expected-name )-symbol
+                                          msg = ls_expected-name ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD object_codes_keep_label_text.
+    LOOP AT object_icons( ) INTO DATA(ls_expected).
+* With and without a blank between icon and text, as tab labels write them.
+      DATA(lv_html) = zcl_gg_host_icons=>text_html( |{ ls_expected-code } Release & delivery| ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |<use href="#wb-icon-{ ls_expected-symbol }"></use></svg> Release &amp; delivery| )
+                                        msg = ls_expected-code ).
+      cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS ls_expected-code )
+                                         msg = ls_expected-code ).
+      lv_html = zcl_gg_host_icons=>text_html( |{ ls_expected-code }Releases| ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |<use href="#wb-icon-{ ls_expected-symbol }"></use></svg> Releases| )
+                                        msg = ls_expected-code ).
+      cl_abap_unit_assert=>assert_equals( exp = `Releases`
+                                          act = zcl_gg_host_icons=>plain_text( |{ ls_expected-code }Releases| )
+                                          msg = ls_expected-code ).
+* An icon-only label is named by the icon's quick info.
+      lv_html = zcl_gg_host_icons=>text_html( ls_expected-code ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |role="img" aria-label="{ ls_expected-label }"| )
+                                        msg = ls_expected-code ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD object_symbols_exist.
+    DATA(lv_sprite) = zcl_gg_host_icons=>sprite( ).
+    LOOP AT object_icons( ) INTO DATA(ls_expected).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( lv_sprite CS |<symbol id="wb-icon-{ ls_expected-symbol }" viewBox="0 0 24 24"| )
+                                        msg = ls_expected-code ).
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.
