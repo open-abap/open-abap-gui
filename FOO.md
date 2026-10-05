@@ -5,9 +5,9 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 ## Needs a decision
 
-- **019, 020, 032, 058** pass converter parity only because
-  behavioral-generated.mjs injects metadata the repo lacks (fixed values,
-  DDIC, dynpro screens).
+Nothing open. The examples still hand-written are 001–057 except 019, 020,
+032 and 044, plus 063, 067, 160 and 164; whether to regenerate them too is
+the next question.
 
 ## Converter
 
@@ -93,6 +93,16 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 - The help-request dispatch reads the help text from a value named
   `GV_RESULT` (class-source.mjs), which no program defines. A POH module on
   SAP shows its help itself (`HELP_OBJECT_SHOW` and similar).
+- 019, 020, 032 and 058 are converter output now, and
+  converter/test/behavioral-generated.mjs injects nothing: it converts each
+  program with its prog.xml (screens, flow logic, GUI statuses, text pool)
+  and the repository's dictionary objects, as the batch does. Before, it
+  supplied fixed values, a data element `S_CARR_ID` the repository does not
+  have, and invented screens for 058. 058 is a real module pool now, with its
+  screens and a transaction that starts screen 100.
+- A select-option written back twice in one method (before and after
+  `AT SELECTION-SCREEN ON END OF`) declared its inline `DATA(lt_ggconv_...)`
+  twice; it is a declaration now, at the top of the method once.
 - abaplint no longer checks `.prog.screen_NNNN.abap` files, because flow logic
   is not ABAP (abaplint.jsonc `exclude`).
 

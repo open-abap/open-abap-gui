@@ -5,7 +5,6 @@ import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 import { isDeepStrictEqual } from "node:util";
 import { convertProgram } from "../src/api.mjs";
-import { loadDynproMetadata } from "../src/dynpro-metadata.mjs";
 import { repositoryRoot, repositoryTool } from "./repository.mjs";
 
 const repository = repositoryRoot;
@@ -23,6 +22,16 @@ const comparableFields = [
   "dialog_suppressed", "settings", "status", "title", "submit", "transaction_call",
   "navigation", "selection_active", "unsupported", "page_kind",
 ];
+
+async function dictionaryFilesIn(folder) {
+  const found = [];
+  for (const entry of await fs.readdir(folder, { withFileTypes: true })) {
+    const filename = path.join(folder, entry.name);
+    if (entry.isDirectory()) found.push(...await dictionaryFilesIn(filename));
+    else if (/\.(?:dtel|doma|tabl|ttyp)\.xml$/.test(entry.name)) found.push(filename);
+  }
+  return found.sort();
+}
 
 async function readTextPool(name) {
   try {
@@ -46,19 +55,14 @@ async function prepare() {
   const names = (await fs.readdir(examples))
     .filter((name) => /^zgg_ex_\d{3}\.prog\.abap$/.test(name) && Number(name.slice(7, 10)) <= 58)
     .sort();
+  // A program is converted with what lies next to it, as the batch does: its
+  // prog.xml (screens, flow logic, GUI statuses, text pool) and the
+  // dictionary objects of the repository.
+  const dictionaryFiles = await dictionaryFilesIn(examples);
   for (const name of names) {
     const source = await fs.readFile(path.join(examples, name), "utf8");
     const id = name.slice(7, 10);
     const className = `ZCL_BV_${id}`;
-    // Only the batch conversion reads the dictionary files next to a report;
-    // here the data elements are supplied, and the host reads the domains.
-    const selectionMetadata = id === "019"
-      ? { P_MODE: { dataType: { rollname: "ZGG_MODE", typ: "C", length: 1 } } }
-      : ["020", "032"].includes(id)
-        ? { S_CARR: { dataType: { rollname: "S_CARR_ID", typ: "C", length: 3 } } }
-        : undefined;
-    // The GUI statuses are the program's own, from the CUA of its prog.xml.
-    const guiStatusMetadata = (await loadDynproMetadata({ filename: path.join(examples, name) }))?.guiStatuses;
     const result = await convertProgram({
       source,
       filename: name,
@@ -66,19 +70,9 @@ async function prepare() {
       transactionCode: `ZBV${id}`,
       mode: "partial",
       textPool: await readTextPool(name),
-      ...(selectionMetadata ? { selectionMetadata } : {}),
-      ...(guiStatusMetadata ? { guiStatusMetadata } : {}),
-      ...(["020", "032"].includes(id) ? {
-        ddicTypes: { ZSFLIGHT: { type: "zsflight", fields: { CARRID: { type: "c", length: 3 } } } },
-      } : {}),
-      ...(name === "zgg_ex_058.prog.abap" ? {
-        dynproMetadata: {
-          initialScreen: "0100",
-          screens: [{ number: "0100", title: "ZCL_GG_EX_058" }, { number: "0200", title: "ZCL_GG_EX_058" }],
-          flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [{ name: "USER_COMMAND_0100" }] }],
-          statuses: { "0100": { status: "SCREEN FLOW", activeUcomm: ["NEXT"] } },
-        },
-      } : {}),
+      dynproMetadataFilename: path.join(examples, name.replace(/\.prog\.abap$/, ".prog.xml")),
+      dynproScreenDirectory: examples,
+      dictionaryFiles,
     });
     if (!result.classSource) throw new Error(`converter produced no class for ${name}`);
     await fs.writeFile(path.join(inputFolder, `${className}.clas.abap`), result.classSource, "utf8");

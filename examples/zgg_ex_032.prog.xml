@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Check a select-option at the end</ENTRY>
+     <LENGTH>32</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>S_CARR</KEY>
      <ENTRY>Carrier</ENTRY>

@@ -49,6 +49,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
@@ -66,7 +67,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
       ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -74,6 +75,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
@@ -91,7 +93,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
       ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -99,6 +101,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
@@ -116,7 +119,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
       ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -124,6 +127,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
@@ -141,7 +145,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
       ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -149,6 +153,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
@@ -166,7 +171,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
       ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -174,6 +179,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
@@ -191,7 +197,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
       ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -199,6 +205,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
@@ -216,7 +223,7 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     IF ct_values[ name = 'P_DATE' ]-value <> mv_p_date.
       ct_values[ name = 'P_DATE' ]-value = |{ mv_p_date }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).

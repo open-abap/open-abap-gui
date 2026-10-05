@@ -858,8 +858,11 @@ function selectionStateTransport(ir, event) {
       // As for parameters below, an untouched empty LOW of type i must not
       // come back as "0", so the screen rows are only replaced on a change.
       const screen = `lt_ggconv_${name.toLowerCase()}`;
+      // Declared, not inline: a method can write the values back twice, and
+      // the declaration goes to its top once.
       flush.push([
-        `DATA(${screen}) = ${item.member}.`,
+        `DATA ${screen} LIKE ${item.member}.`,
+        `${screen} = ${item.member}.`,
         `${screen} = CORRESPONDING #( ${field} ).`,
         `IF ${screen} <> ${item.member}.`,
         `${field} = CORRESPONDING #( ${item.member} ).`,

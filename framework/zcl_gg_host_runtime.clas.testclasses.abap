@@ -405,7 +405,7 @@ CLASS ltcl_runtime IMPLEMENTATION.
     cl_abap_unit_assert=>assert_differs( act = ls_called-session_id
                                          exp = ls_start-session_id ).
     cl_abap_unit_assert=>assert_equals( act = ls_called-current_page-title
-                                        exp = 'ZCL_GG_EX_058' ).
+                                        exp = 'Order 4711' ).
 
 * The called transaction leaves to screen 0, which ends it: the cockpit
 * resumes after its CALL TRANSACTION and shows its screen again.
@@ -433,7 +433,7 @@ CLASS ltcl_runtime IMPLEMENTATION.
   METHOD report_resumes_after_call.
     DATA(ls_called) = zcl_gg_host_runtime=>start( io_report = NEW lcl_calling_report( abap_false ) ).
     cl_abap_unit_assert=>assert_equals( act = ls_called-current_page-title
-                                        exp = 'ZCL_GG_EX_058' ).
+                                        exp = 'Order 4711' ).
 
     DATA(ls_returned) = back( ls_called ).
 

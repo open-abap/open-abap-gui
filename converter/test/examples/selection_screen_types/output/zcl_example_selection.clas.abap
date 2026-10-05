@@ -56,6 +56,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.
+    DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
     mv_p_date = ct_values[ name = 'P_DATE' ]-value.
@@ -85,7 +86,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
     IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
       ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
     ENDIF.
-    DATA(lt_ggconv_s_carr) = mv_s_carr.
+    lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
@@ -93,6 +94,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
+    DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
     mv_p_date = ct_values[ name = 'P_DATE' ]-value.
@@ -122,7 +124,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
     IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
       ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
     ENDIF.
-    DATA(lt_ggconv_s_carr) = mv_s_carr.
+    lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
@@ -130,6 +132,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
     mv_p_date = ct_values[ name = 'P_DATE' ]-value.
@@ -159,7 +162,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
     IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
       ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
     ENDIF.
-    DATA(lt_ggconv_s_carr) = mv_s_carr.
+    lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
@@ -167,6 +170,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
+    DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
     mv_p_date = ct_values[ name = 'P_DATE' ]-value.
@@ -196,7 +200,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
     IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
       ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
     ENDIF.
-    DATA(lt_ggconv_s_carr) = mv_s_carr.
+    lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
@@ -204,6 +208,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
+    DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
     mv_p_date = ct_values[ name = 'P_DATE' ]-value.
@@ -233,7 +238,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
     IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
       ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
     ENDIF.
-    DATA(lt_ggconv_s_carr) = mv_s_carr.
+    lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
@@ -241,6 +246,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
+    DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
     mv_p_date = ct_values[ name = 'P_DATE' ]-value.
@@ -270,7 +276,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
     IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
       ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
     ENDIF.
-    DATA(lt_ggconv_s_carr) = mv_s_carr.
+    lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
@@ -278,6 +284,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
+    DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_p_amount = ct_values[ name = 'P_AMOUNT' ]-value.
     mv_p_count = ct_values[ name = 'P_COUNT' ]-value.
     mv_p_date = ct_values[ name = 'P_DATE' ]-value.
@@ -307,7 +314,7 @@ CLASS zcl_example_selection IMPLEMENTATION.
     IF ct_values[ name = 'P_OPT2' ]-value <> mv_p_opt2.
       ct_values[ name = 'P_OPT2' ]-value = |{ mv_p_opt2 }|.
     ENDIF.
-    DATA(lt_ggconv_s_carr) = mv_s_carr.
+    lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).

@@ -47,12 +47,13 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -60,12 +61,13 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -73,6 +75,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF mv_p_factor > 10.
@@ -81,7 +84,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -89,12 +92,13 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -102,12 +106,13 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -115,12 +120,13 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).
@@ -128,12 +134,13 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
+    DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
-    DATA(lt_ggconv_s_date) = mv_s_date.
+    lt_ggconv_s_date = mv_s_date.
     lt_ggconv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
     IF lt_ggconv_s_date <> mv_s_date.
       ct_values[ name = 'S_DATE' ]-ranges = CORRESPONDING #( mv_s_date ).

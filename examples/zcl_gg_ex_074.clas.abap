@@ -46,12 +46,13 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.
+    DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
-    DATA(lt_ggconv_s_mul) = mv_s_mul.
+    lt_ggconv_s_mul = mv_s_mul.
     lt_ggconv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF lt_ggconv_s_mul <> mv_s_mul.
       ct_values[ name = 'S_MUL' ]-ranges = CORRESPONDING #( mv_s_mul ).
@@ -59,12 +60,13 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_output.
+    DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
-    DATA(lt_ggconv_s_mul) = mv_s_mul.
+    lt_ggconv_s_mul = mv_s_mul.
     lt_ggconv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF lt_ggconv_s_mul <> mv_s_mul.
       ct_values[ name = 'S_MUL' ]-ranges = CORRESPONDING #( mv_s_mul ).
@@ -72,12 +74,13 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
-    DATA(lt_ggconv_s_mul) = mv_s_mul.
+    lt_ggconv_s_mul = mv_s_mul.
     lt_ggconv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF lt_ggconv_s_mul <> mv_s_mul.
       ct_values[ name = 'S_MUL' ]-ranges = CORRESPONDING #( mv_s_mul ).
@@ -85,12 +88,13 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
+    DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
-    DATA(lt_ggconv_s_mul) = mv_s_mul.
+    lt_ggconv_s_mul = mv_s_mul.
     lt_ggconv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF lt_ggconv_s_mul <> mv_s_mul.
       ct_values[ name = 'S_MUL' ]-ranges = CORRESPONDING #( mv_s_mul ).
@@ -98,12 +102,13 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
+    DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
-    DATA(lt_ggconv_s_mul) = mv_s_mul.
+    lt_ggconv_s_mul = mv_s_mul.
     lt_ggconv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF lt_ggconv_s_mul <> mv_s_mul.
       ct_values[ name = 'S_MUL' ]-ranges = CORRESPONDING #( mv_s_mul ).
@@ -111,12 +116,13 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
+    DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
-    DATA(lt_ggconv_s_mul) = mv_s_mul.
+    lt_ggconv_s_mul = mv_s_mul.
     lt_ggconv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF lt_ggconv_s_mul <> mv_s_mul.
       ct_values[ name = 'S_MUL' ]-ranges = CORRESPONDING #( mv_s_mul ).
@@ -124,12 +130,13 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
+    DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
-    DATA(lt_ggconv_s_mul) = mv_s_mul.
+    lt_ggconv_s_mul = mv_s_mul.
     lt_ggconv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
     IF lt_ggconv_s_mul <> mv_s_mul.
       ct_values[ name = 'S_MUL' ]-ranges = CORRESPONDING #( mv_s_mul ).
