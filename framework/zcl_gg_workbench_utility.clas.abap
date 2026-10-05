@@ -33,17 +33,22 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * A message in the status bar carries its ABAP type: E, A and X are errors, W a
 * warning, S a success and I an information. Each type owns a colour, and the
-* two urgent types are announced assertively.
+* two urgent types are announced assertively. is_message is the message as the
+* program sent it; double-clicking the bar shows its technical information,
+* as SAP GUI does.
     CLASS-METHODS render_bottom
       IMPORTING
         iv_message     TYPE string OPTIONAL
         iv_type        TYPE zif_gg_session_types_v1=>ty_message_type DEFAULT zif_gg_session_types_v1=>message_type_error
+        is_message     TYPE zif_gg_session_types_v1=>ty_message OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
 * The id of the status bar message, which a field the message is about
 * refers to with aria-describedby.
     CONSTANTS status_message_id TYPE string VALUE 'wb-status-message'.
+* The id of the dialog with the technical information of the status bar message.
+    CONSTANTS message_details_id TYPE string VALUE 'wb-message-details'.
 
   PRIVATE SECTION.
     CONSTANTS form_workbench TYPE string VALUE 'wb-command-workbench'.
@@ -55,6 +60,12 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_type         TYPE zif_gg_session_types_v1=>ty_message_type
       RETURNING
         VALUE(rv_attrs) TYPE string.
+
+    CLASS-METHODS render_message_details
+      IMPORTING
+        is_message     TYPE zif_gg_session_types_v1=>ty_message
+      RETURNING
+        VALUE(rv_html) TYPE string.
 
 * separator marks the group boundary rendered in front of a command.
     TYPES: BEGIN OF ty_command,
@@ -195,6 +206,19 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-status-info:not(:empty){--wb-status-accent:#0a6ed1;--wb-status-tint:#f5faff}' &&
       '@keyframes wb-status-pop{0%{opacity:0;transform:translateX(-6px)}100%{opacity:1;transform:none}}' &&
       '@media(prefers-reduced-motion:reduce){.wb-status-feedback:not(:empty){animation:none}}' &&
+* The technical information of the message opens above everything, the
+* clipped message included.
+      '.wb-message-details{position:fixed;inset:0;z-index:1400;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(19,45,72,.48)}' &&
+      '.wb-message-details[hidden]{display:none}' &&
+      '.wb-message-details-panel{width:min(460px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#f8fbfe;border:1px solid #7594b2;border-radius:5px;box-shadow:0 18px 48px rgba(18,52,84,.34);color:#1d2d3e;font-size:13px}' &&
+      '.wb-message-details-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;background:linear-gradient(#f8fbfe,#e2edf7);border-bottom:1px solid #b4c8db}' &&
+      '.wb-message-details-header h2{margin:0;color:#174a80;font-size:16px;font-weight:650;line-height:1.25}' &&
+      '.wb-message-details-close{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid transparent;border-radius:3px;background:transparent;color:#315a7f;cursor:pointer}' &&
+      '.wb-message-details-close:hover,.wb-message-details-close:focus{border-color:#86a9cc;background:#d9e8f7;color:#123b64;outline:0}' &&
+      '.wb-message-details-close .wb-icon{width:17px;height:17px}' &&
+      '.wb-message-details dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0;padding:12px 14px 14px}' &&
+      '.wb-message-details dt{color:#315a7f}' &&
+      '.wb-message-details dd{margin:0;min-height:1.2em;font-family:Consolas,"Courier New",monospace;overflow-wrap:anywhere}' &&
       '.wb-status-context{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:18px;white-space:nowrap}' &&
       '.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
       '.wb-skip-link:focus{position:fixed;left:8px;top:8px;z-index:2000;width:auto;height:auto;padding:6px 10px;margin:0;overflow:visible;clip:auto;white-space:normal;background:var(--gg-action);color:#132d4b;border:1px solid var(--gg-border-dark);box-shadow:0 2px 6px rgba(34,67,102,.24)}' &&
@@ -518,9 +542,43 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
 
+  METHOD render_message_details.
+    DATA lv_rows TYPE string.
+
+    lv_rows = |<dt>Message type</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-type ) ) }</dd>|.
+    IF is_message-display_like IS NOT INITIAL.
+      lv_rows = lv_rows && |<dt>Displayed like</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-display_like ) ) }</dd>|.
+    ENDIF.
+* A free text message has no message class, so it has nothing to show beyond
+* its type.
+    IF is_message-id IS NOT INITIAL.
+      lv_rows = lv_rows &&
+        |<dt>Message class</dt><dd>{ zcl_gg_host_html=>escape_text( condense( CONV string( is_message-id ) ) ) }</dd>| &&
+        |<dt>Message number</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-number ) ) }</dd>| &&
+        |<dt>Variable 1</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-v1 ) ) }</dd>| &&
+        |<dt>Variable 2</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-v2 ) ) }</dd>| &&
+        |<dt>Variable 3</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-v3 ) ) }</dd>| &&
+        |<dt>Variable 4</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-v4 ) ) }</dd>|.
+    ENDIF.
+    IF is_message-field IS NOT INITIAL.
+      lv_rows = lv_rows && |<dt>Field</dt><dd>{ zcl_gg_host_html=>escape_text( condense( CONV string( is_message-field ) ) ) }</dd>|.
+    ENDIF.
+    rv_html = |<div id="{ message_details_id }" class="wb-message-details" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>| &&
+      |<div class="wb-message-details-panel"><header class="wb-message-details-header"><h2 id="wb-message-details-title">Technical information</h2>| &&
+      |<button class="wb-message-details-close" type="button" data-message-details-close aria-label="Close technical information">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header>| &&
+      |<dl>{ lv_rows }</dl></div></div>|.
+  ENDMETHOD.
+
   METHOD render_bottom.
     DATA lv_feedback TYPE string.
     DATA lv_icon TYPE string.
+    DATA lv_details TYPE string.
+    DATA lv_details_attrs TYPE string.
+
+    IF iv_message IS NOT INITIAL AND is_message IS NOT INITIAL.
+      lv_details = render_message_details( is_message ).
+      lv_details_attrs = | aria-haspopup="dialog" aria-controls="{ message_details_id }"|.
+    ENDIF.
 
     IF iv_message IS INITIAL.
       lv_feedback = |<span id="{ status_message_id }" class="wb-status-feedback" aria-live="polite"></span>|.
@@ -532,7 +590,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         WHEN zif_gg_session_types_v1=>message_type_info THEN `info-circle`
         WHEN zif_gg_session_types_v1=>message_type_warning THEN `alert-triangle`
         ELSE `alert-octagon` ).
-      lv_feedback = |<span id="{ status_message_id }"{ status_attrs( iv_type ) } title="{ zcl_gg_host_html=>escape_attribute( iv_message ) }">| &&
+      lv_feedback = |<span id="{ status_message_id }"{ status_attrs( iv_type ) } title="{ zcl_gg_host_html=>escape_attribute( iv_message ) }"{ lv_details_attrs }>| &&
         zcl_gg_host_icons=>icon( lv_icon ) &&
         |<span class="wb-status-text">{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span></span>|.
     ENDIF.
@@ -542,13 +600,21 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&
       '</span><span>User:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-uname ) ) &&
-      '</span></div></footer></div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");var statusTypes={E:"wb-status-error",A:"wb-status-error",X:"wb-status-error",W:"wb-status-warning",S:"wb-status-success",I:"wb-status-info"};function announce(text,type){feedback.textContent=text;feedback.classList.remove("wb-status-error","wb-status-warning","wb-status-success","wb-status-info");if(statusTypes[type]){feedback.classList.add(statusTypes[type]);}var urgent=type==="E"||type==="A"||type==="X"||type==="W";feedback.setAttribute("role",urgent?"alert":"status");feedback.setAttribute("aria-live",urgent?"assertive":"polite");feedback.style.animation="none";void feedback.offsetWidth;feedback.style.animation="";}var normalizeAbapFields=function(form){form.querySelectorAll("[data-abap-type]").forEach(function(field){var type=field.getAttribute("data-abap-type");var value=field.value.trim();var match;if(type==="D"){match=value.match(/^(\\d{2})[.\\/-](\\d{2})[.\\/-](\\d{4})$/);if(match){field.value=match[3]+match[2]+match[1];}}else if(type==="T"){match=value.match(/^(\\d{2})[:.](\\d{2})[:.](\\d{2})$/);if(match){field.value=match[1]+match[2]+match[3];}}});};document.querySelectorAll("form").forEach(function(form){form.addEventListener("submit",function(){normalizeAbapFields(form);});});document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});document.addEventListener("keydown",function(event){if(event.key!=="F4"&&event.code!=="F4"){return;}var field=document.activeElement;if(!field){return;}var group=field.closest(".gg-dynpro-field,.gg-field,.gg-range");if(!group){return;}var help=group.querySelector(".gg-help-button:not(:disabled)");if(!help){return;}event.preventDefault();help.click();});}());</script></body></html>'.
+      '</span></div></footer>' && lv_details && '</div><script>(function(){var feedback=document.querySelector(".wb-status-feedback");var statusTypes={E:"wb-status-error",A:"wb-status-error",X:"wb-status-error",W:"wb-status-warning",S:"wb-status-success",I:"wb-status-info"};function announce(text,type){feedback.textContent=text;feedback.classList.remove("wb-status-error","wb-status-warning","wb-status-success","wb-status-info");if(statusTypes[type]){feedback.classList.add(statusTypes[type]);}var urgent=type==="E"||type==="A"||type==="X"||type==="W";feedback.setAttribute("role",urgent?"alert":"status");feedback.setAttribute("aria-live",urgent?"assertive":"polite");feedback.style.animation="none";void feedback.offsetWidth;feedback.style.animation="";}var normalizeAbapFields=function(form){form.querySelectorAll("[data-abap-type]").forEach(function(field){var type=field.getAttribute("data-abap-type");var value=field.value.trim();var match;if(type==="D"){match=value.match(/^(\\d{2})[.\\/-](\\d{2})[.\\/-](\\d{4})$/);if(match){field.value=match[3]+match[2]+match[1];}}else if(type==="T"){match=value.match(/^(\\d{2})[:.](\\d{2})[:.](\\d{2})$/);if(match){field.value=match[1]+match[2]+match[3];}}});};document.querySelectorAll("form").forEach(function(form){form.addEventListener("submit",function(){normalizeAbapFields(form);});});document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");if(!back){return;}event.preventDefault();back.click();});document.addEventListener("keydown",function(event){if(event.key!=="F4"&&event.code!=="F4"){return;}var field=document.activeElement;if(!field){return;}var group=field.closest(".gg-dynpro-field,.gg-field,.gg-range");if(!group){return;}var help=group.querySelector(".gg-help-button:not(:disabled)");if(!help){return;}event.preventDefault();help.click();});}());</script></body></html>'.
     REPLACE ALL OCCURRENCES OF 'document.querySelectorAll(".wb-command-button,.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");});});' IN rv_html WITH ''.
     REPLACE ALL OCCURRENCES OF 'announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command")+" pressed");' IN rv_html WITH ''.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var modal=document.querySelector(".gg-value-help-modal");if(!modal){return;}var fieldFor=function(name){if(!name){return null;}var fields=document.querySelectorAll("[data-abap-name],[name]");for(var i=0;i<fields.length;i++){if(fields[i].getAttribute("data-abap-name")===name||fields[i].getAttribute("name")===name){return fields[i];}}return null;};var dismiss=function(field){modal.hidden=true;modal.setAttribute("aria-hidden","true");if(field){field.focus();}};var close=modal.querySelector("[data-value-help-close]");if(close){close.focus();close.addEventListener("click",function(event){event.preventDefault();dismiss(fieldFor(modal.getAttribute("data-help-field")));});}modal.addEventListener("click",function(event){if(event.target===modal){dismiss(fieldFor(modal.getAttribute("data-help-field")));}});modal.addEventListener("dblclick",function(event){var target=event.target;if(!target||!target.closest){return;}var row=target.closest(".gg-value-help li");if(!row){return;}var field=fieldFor(row.getAttribute("data-name")||modal.getAttribute("data-help-field"));if(!field){return;}field.value=row.getAttribute("data-value")||row.textContent.trim();field.dispatchEvent(new Event("input",{bubbles:true}));field.dispatchEvent(new Event("change",{bubbles:true}));dismiss(field);});document.addEventListener("keydown",function(event){if(event.key==="Escape"){event.preventDefault();dismiss(fieldFor(modal.getAttribute("data-help-field")));}});}());</script></body></html>'.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var modalFor=function(name){var modals=document.querySelectorAll("[data-range-editor-modal]");for(var i=0;i<modals.length;i++){if(modals[i].getAttribute("data-range-editor-modal")===name){return modals[i];}}return null;};var listFor=function(name){var lists=document.querySelectorAll("[data-range-list]");for(var i=0;i<lists.length;i++){if(lists[i].getAttribute("data-range-list")===name){return lists[i];}}return null;};var rowField=function(row,suffix){var fields=row.querySelectorAll("[name]");for(var i=0;i<fields.length;i++){var name=fields[i].getAttribute("name")||"";if(name.slice(-suffix.length-1)==="-"+suffix){return fields[i];}}return null;};var editorRows=function(modal){return Array.prototype.slice.call(modal.querySelectorAll(".gg-range-editor-row"));};var renameEditorRow=function(row,name,index){row.setAttribute("data-editor-index",String(index));var fields=row.querySelectorAll("[name]");for(var i=0;i<fields.length;i++){var suffix=(fields[i].getAttribute("name")||"").split("-").pop();fields[i].name="gg_editor_"+name+"-"+index+"-"+suffix;}};var addEditorRow=function(modal,name){var rows=editorRows(modal);var copy=rows[0].cloneNode(true);renameEditorRow(copy,name,rows.length+1);var low=rowField(copy,"LOW");var high=rowField(copy,"HIGH");if(low){low.value="";}if(high){high.value="";}var sign=rowField(copy,"SIGN");var option=rowField(copy,"OPTION");if(sign){sign.value="I";}if(option){option.value="EQ";}modal.querySelector(".gg-range-editor-list").appendChild(copy);};var syncEditor=function(modal,name){var main=listFor(name);if(!main){return;}var mainRows=Array.prototype.slice.call(main.querySelectorAll(".gg-range-row"));var rows=editorRows(modal);while(rows.length<mainRows.length){addEditorRow(modal,name);rows=editorRows(modal);}while(rows.length>mainRows.length&&rows.length>1){rows.pop().remove();rows=editorRows(modal);}for(var i=0;i<mainRows.length;i++){var source=mainRows[i];var target=rows[i];var low=rowField(source,"LOW");var high=rowField(source,"HIGH");var targetLow=rowField(target,"LOW");var targetHigh=rowField(target,"HIGH");var sign=rowField(source,"SIGN");var option=rowField(source,"OPTION");if(targetLow){targetLow.value=low?low.value:"";}if(targetHigh){targetHigh.value=high?high.value:"";}if(rowField(target,"SIGN")){rowField(target,"SIGN").value=sign?sign.value:"I";}if(rowField(target,"OPTION")){rowField(target,"OPTION").value=option?option.value:"EQ";}}};var renameMainRow=function(row,name,index,total){var base=name+(total===1&&index===1?"":"-"+index);var fields=row.querySelectorAll("[name]");for(var i=0;i<fields.length;i++){var suffix=(fields[i].getAttribute("name")||"").split("-").pop();fields[i].name=base+"-"+suffix;if(fields[i].id){fields[i].id=fields[i].name;}}};var closeEditor=function(modal,focus){modal.hidden=true;modal.setAttribute("aria-hidden","true");if(focus){focus.focus();}};var applyEditor=function(modal,name){var main=listFor(name);if(!main){return;}var rows=editorRows(modal);var selected=[];for(var i=0;i<rows.length;i++){var low=rowField(rows[i],"LOW");var high=rowField(rows[i],"HIGH");if((low&&low.value!=="")||(high&&high.value!=="")){selected.push(rows[i]);}}if(!selected.length){selected=[rows[0]];}var template=main.querySelector(".gg-range-row");if(!template){return;}template=template.cloneNode(true);main.innerHTML="";for(var j=0;j<selected.length;j++){var row=template.cloneNode(true);renameMainRow(row,name,j+1,selected.length);var sourceLow=rowField(selected[j],"LOW");var sourceHigh=rowField(selected[j],"HIGH");var targetLow=rowField(row,"LOW");var targetHigh=rowField(row,"HIGH");var sourceSign=rowField(selected[j],"SIGN");var sourceOption=rowField(selected[j],"OPTION");var targetSign=rowField(row,"SIGN");var targetOption=rowField(row,"OPTION");if(targetLow){targetLow.value=sourceLow?sourceLow.value:"";}if(targetHigh){targetHigh.value=sourceHigh?sourceHigh.value:"";}if(targetSign){targetSign.value=sourceSign?sourceSign.value:"I";}if(targetOption){targetOption.value=sourceOption?sourceOption.value:"EQ";}main.appendChild(row);}var focus=rowField(main.querySelector(".gg-range-row"),"LOW");closeEditor(modal,focus);};var openEditor=function(button){var name=button.getAttribute("data-range-editor-open");var modal=modalFor(name);if(!modal){return;}syncEditor(modal,name);modal.hidden=false;modal.removeAttribute("aria-hidden");var first=modal.querySelector("input,select");if(first){first.focus();}};document.querySelectorAll("[data-range-editor-open]").forEach(function(button){button.addEventListener("click",function(){openEditor(button);});});document.querySelectorAll("[data-range-editor-modal]").forEach(function(modal){var name=modal.getAttribute("data-range-editor-modal");var closeButtons=modal.querySelectorAll("[data-range-editor-close],[data-range-editor-cancel]");for(var i=0;i<closeButtons.length;i++){closeButtons[i].addEventListener("click",function(){closeEditor(modal);});}var add=modal.querySelector("[data-range-editor-add]");if(add){add.addEventListener("click",function(){addEditorRow(modal,name);});}var apply=modal.querySelector("[data-range-editor-apply]");if(apply){apply.addEventListener("click",function(){applyEditor(modal,name);});}modal.addEventListener("click",function(event){if(event.target===modal){closeEditor(modal);}});modal.addEventListener("click",function(event){var remove=event.target.closest?event.target.closest("[data-range-editor-remove]"):null;if(!remove){return;}var rows=editorRows(modal);if(rows.length>1){remove.closest(".gg-range-editor-row").remove();}else{var row=rows[0];var low=rowField(row,"LOW");var high=rowField(row,"HIGH");if(low){low.value="";}if(high){high.value="";}}});});document.addEventListener("keydown",function(event){if(event.key!=="Escape"){return;}var modals=document.querySelectorAll("[data-range-editor-modal]");for(var i=0;i<modals.length;i++){if(!modals[i].hidden){closeEditor(modals[i]);event.preventDefault();return;}}});}());</script></body></html>'.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var visible=function(element){return element&&!element.disabled&&element.offsetParent!==null;};var formFor=function(field){return field&&field.closest("form")||document.querySelector(".gg-page--dynpro form,.gg-page--selection form,.gg-page--list form");};var fieldName=function(field){return field&&field.getAttribute("data-abap-name")||field&&field.getAttribute("name");};var post=function(field,name,value){var form=formFor(field);if(!form){return false;}var button=document["cr"+"eateElement"]("button");button.type="submit";button.name=name;button.value=value;button.formNoValidate=true;button.hidden=true;form.appendChild(button);button.click();return true;};var click=function(selector){var button=document.querySelector(selector);if(!visible(button)){return false;}button.click();return true;};var execute=function(){return click("button[data-key=\"F8\"]:not(:disabled),button[name=\"gg_ucomm\"][value=\"ONLI\"]:not(:disabled)");};var move=function(field,direction){var root=field&&field.closest("[role=\"tree\"],.gg-alv,[data-table-control]");if(!root){return false;}var items=Array.prototype.slice.call(root.querySelectorAll("[role=\"treeitem\"],[role=\"row\"],[tabindex=\"0\"],button,input,select")).filter(visible);var current=field.closest("[role=\"treeitem\"],[role=\"row\"]")||field;var index=items.indexOf(current);if(index<0){index=items.indexOf(field);}if(index<0){return false;}var target=items[index+direction];if(!target){return false;}if(!target.hasAttribute("tabindex")){target.setAttribute("tabindex","0");}target.focus();return true;};document.addEventListener("keydown",function(event){var field=document.activeElement;if(event.key==="F1"||event.code==="F1"){var name=fieldName(field);if(name&&field.matches("input:not([type=hidden]),select,textarea")&&post(field,"gg_action","HELP:"+name)){event.preventDefault();return;}}if(event.key==="F8"||event.code==="F8"){if(execute()){event.preventDefault();return;}}if(event.altKey&&event.key==="F4"){if(click(".wb-command-button--exit:not(:disabled)")||click("button[name=\"gg_action\"][value=\"EXIT\"]:not(:disabled)")){event.preventDefault();return;}}if(event.key==="Escape"){var modal=document.querySelector(".gg-value-help-modal:not([hidden])");if(modal){var close=modal.querySelector("[data-value-help-close]");if(close){close.click();event.preventDefault();return;}}if(click(".wb-command-button--cancel:not(:disabled)")||click("button[name=\"gg_action\"][value=\"EXIT\"]:not(:disabled)")){event.preventDefault();return;}}if(event.key==="Enter"&&field&&field.matches("input[type=text],input[type=password],input[type=date],input[type=time]")){var form=formFor(field);if(form){if(form.requestSubmit){form.requestSubmit();}else{var submit=form.querySelector("button[type=\"submit\"]:not(:disabled)");if(submit){submit.click();}}event.preventDefault();return;}}if(event.key==="ArrowDown"||event.key==="ArrowUp"){if(move(field,event.key==="ArrowDown"?1:-1)){event.preventDefault();}}},true);document.addEventListener("keydown",function(event){var modal=document.querySelector(".gg-value-help-modal:not([hidden])");if(!modal||event.key!=="Tab"){return;}var focusables=Array.prototype.slice.call(modal.querySelectorAll("button,input,select,textarea,[tabindex=\"0\"]")).filter(visible);if(!focusables.length){return;}var index=focusables.indexOf(document.activeElement);var next=focusables[(index+(event.shiftKey?-1:1)+focusables.length)%focusables.length];next.focus();event.preventDefault();},true);}());</script></body></html>'.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var message=document.getElementById("wb-status-message");if(!message){return;}var fit=function(){if(document.activeElement===message){return;}message.classList.remove("wb-status-feedback--clipped");var clipped=message.textContent!==""&&message.scrollWidth>message.clientWidth;message.classList.toggle("wb-status-feedback--clipped",clipped);if(clipped){message.tabIndex=0;}else{message.removeAttribute("tabindex");}};fit();window.addEventListener("resize",fit);message.addEventListener("blur",fit);}());</script></body></html>'.
+* Double-clicking the status bar message opens its technical information. While
+* the dialog is open it keeps the keyboard: Escape closes it, before the shell
+* would read Escape as Cancel, and no shell shortcut reaches the page behind it.
+    REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var message=document.getElementById("wb-status-message");var details=document.getElementById("wb-message-details");if(!message||!details){return;}var close=details.querySelector("[data-message-details-close]");var returnFocus=null;' &&
+      'var hide=function(){if(details.hidden){return;}details.hidden=true;if(returnFocus&&returnFocus.focus){returnFocus.focus();}returnFocus=null;};' &&
+      'var show=function(){var selection=window.getSelection&&window.getSelection();if(selection){selection.removeAllRanges();}returnFocus=document.activeElement;details.hidden=false;close.focus();};' &&
+      'message.addEventListener("dblclick",function(event){event.preventDefault();show();});close.addEventListener("click",hide);details.addEventListener("click",function(event){if(event.target===details){hide();}});' &&
+      'window.addEventListener("keydown",function(event){if(details.hidden){return;}event.stopPropagation();if(event.key==="Escape"){event.preventDefault();hide();}else if(event.key==="Tab"){event.preventDefault();close.focus();}},true);}());</script></body></html>'.
     REPLACE ALL OCCURRENCES OF 'var feedback=document.querySelector(".wb-status-feedback");' IN rv_html WITH 'var hostForm=document.querySelector(".gg-page--selection form");if(hostForm){hostForm.id="gg-host-form";}var feedback=document.querySelector(".wb-status-feedback");'.
     REPLACE ALL OCCURRENCES OF 'document.createElement("button")' IN rv_html WITH 'document["cr"+"eateElement"]("button")'.
     REPLACE ALL OCCURRENCES OF '\\d' IN rv_html WITH '\d'.

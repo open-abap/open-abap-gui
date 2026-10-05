@@ -7,6 +7,7 @@ CLASS ltcl_gg_workbench_utility DEFINITION FINAL FOR TESTING DURATION SHORT RISK
     METHODS routes_back_when_active FOR TESTING.
     METHODS renders_bottom FOR TESTING.
     METHODS renders_bottom_message_types FOR TESTING.
+    METHODS renders_message_details FOR TESTING.
 
 ENDCLASS.
 
@@ -209,6 +210,44 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool(
       lv_empty CS '<span id="wb-status-message" class="wb-status-feedback" aria-live="polite"></span>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_empty CS 'wb-status-text' ) ).
+  ENDMETHOD.
+
+  METHOD renders_message_details.
+* The message as the program sent it gives the technical information behind
+* the bar: its type, message class, number and variables.
+    DATA(lv_html) = zcl_gg_workbench_utility=>render_bottom(
+      iv_message = 'alpha beta'
+      iv_type    = zif_gg_session_types_v1=>message_type_info
+      is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_info id = 'ZGG_EX' number = '001'
+                            v1 = 'alpha' v2 = '<b>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'title="alpha beta" aria-haspopup="dialog" aria-controls="wb-message-details">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<div id="wb-message-details" class="wb-message-details" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Message type</dt><dd>I</dd>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Message class</dt><dd>ZGG_EX</dd>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Message number</dt><dd>001</dd>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Variable 1</dt><dd>alpha</dd>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Variable 2</dt><dd>&lt;b&gt;</dd>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Variable 4</dt><dd></dd>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<dt>Field</dt>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'message.addEventListener("dblclick"' ) ).
+
+* A free text message has no class; DISPLAY LIKE and the field it is about
+* show as they were sent.
+    lv_html = zcl_gg_workbench_utility=>render_bottom(
+      iv_message = 'careful'
+      iv_type    = zif_gg_session_types_v1=>message_type_warning
+      is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_success text = 'careful'
+                            display_like = zif_gg_session_types_v1=>message_type_warning field = 'P_COUNT' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<dl><dt>Message type</dt><dd>S</dd><dt>Displayed like</dt><dd>W</dd><dt>Field</dt><dd>P_COUNT</dd></dl>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<dt>Message class</dt>' ) ).
+
+* Without the program's message, as on the workbench, there is nothing to show.
+    lv_html = zcl_gg_workbench_utility=>render_bottom( iv_message = 'boom' ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'id="wb-message-details"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'aria-haspopup' ) ).
   ENDMETHOD.
 
 ENDCLASS.

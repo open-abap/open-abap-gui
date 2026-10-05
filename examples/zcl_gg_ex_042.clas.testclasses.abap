@@ -25,7 +25,7 @@ CLASS ltcl_ex_42 IMPLEMENTATION.
       exp = 'looks like an error' ).
 * DISPLAY LIKE E paints the status bar message as an error.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS
-      'class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive" title="looks like an error">' ) ).
+      'class="wb-status-feedback wb-status-error" role="alert" aria-live="assertive" title="looks like an error" aria-haspopup="dialog" aria-controls="wb-message-details">' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS 'class="gg-message' ) ).
   ENDMETHOD.
 
