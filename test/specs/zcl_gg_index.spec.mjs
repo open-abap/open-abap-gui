@@ -99,7 +99,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("navigation", {name: "Applications"})).toHaveCount(0);
   const transactions = page.getByRole("navigation", {name: "Transactions"});
   await expect(transactions).toBeVisible();
-  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(170);
+  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(175);
   const reports = page.getByRole("navigation", {name: "Reports"});
   await expect(reports).toBeVisible();
   await expect(reports.locator(".wb-app-list > li")).toHaveCount(2);
@@ -188,7 +188,22 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_164"})).toContainText(
     "Radio USER-COMMAND with MODIF ID select-options",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(163);
+  await expect(page.getByRole("link", {name: "ZGG_EX_165"})).toContainText(
+    "Read a text file with READ DATASET",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_166"})).toContainText(
+    "Tabbed selection screen",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_167"})).toContainText(
+    "Listbox values from VRM_SET_VALUES",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_168"})).toContainText(
+    "Select-options defaulting to today",
+  );
+  await expect(page.getByRole("link", {name: "ZGG_EX_169"})).toContainText(
+    "Selection tabs with icons",
+  );
+  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(168);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 
