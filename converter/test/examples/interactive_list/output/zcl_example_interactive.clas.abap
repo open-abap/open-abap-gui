@@ -110,9 +110,7 @@ CLASS zcl_example_interactive IMPLEMENTATION.
   METHOD zif_gg_list_processing_v1~top_of_page.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     lo_writer->write_field( VALUE #( text = 'Rows' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->uline( VALUE #(  ) ).
-    lo_writer->new_line( ).
-    lo_writer->set_position( 5 ).
+    lo_writer->uline( VALUE #( ) ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~end_of_page.

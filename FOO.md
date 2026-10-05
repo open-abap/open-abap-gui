@@ -5,13 +5,6 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 ## Needs a decision
 
-- **Standard list functions are not native (092–095).** On SAP, page
-  scrolling (`P--`, `P-`, `P+`, `P++`), Find (`%SC`, `%SC+`), Print (`PRI`)
-  and Download (`%PC`) are run by the list processor and never reach
-  `AT USER-COMMAND`. The host has no implementation: the toolbar buttons send
-  the codes to the program. The hand-written zcl_gg_ex_092..095 (via
-  zcl_gg_rich_list_base) fake them in program code. Implement them in the
-  host, then 092–095 become plain lists.
 - **Event output does not open a detail list (066, 085).** Output written in
   `AT USER-COMMAND` or `AT LINE-SELECTION` is appended to the basic list; on
   SAP it forms a new list level (`sy-lsind` 1) that replaces the basic list on
@@ -30,7 +23,7 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   keep the screen states of the last response instead of replaying PBO.
 - **The list page shows the GUI status name** (`SHELL66`, `BACK`) as text
   above the list (`.gg-list-status`, zcl_gg_host_renderer); SAP never shows
-  it. The hand-written 044, 062, 092 and 151–159 use the status name as a
+  it. The hand-written 044, 062 and 151–159 use the status name as a
   state display and their specs assert it, so removing it goes with the
   decision on those examples.
 - **GUI statuses for 044, 059–062.** The programs `SET PF-STATUS` without a
@@ -112,6 +105,12 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
     `CONV`.
 - Module `DATA` is local to the call; on SAP it is global data of the
   program and keeps its value.
+- `ULINE` was lowered with an invented `set_position( 5 )` after it, so the
+  next `WRITE /` produced a blank line; after `ULINE` the list cursor stands
+  at the start of the next line, as on SAP. The hand-written zcl_gg_ex_003
+  had the same column 5 and is fixed too.
+- abaplint's indentation rule does not take `END-OF-PAGE` as the start of an
+  event block; 091 and 092 write that block unindented.
 - The help-request dispatch reads the help text from a value named
   `GV_RESULT` (class-source.mjs), which no program defines. A POH module on
   SAP shows its help itself (`HELP_OBJECT_SHOW` and similar).
@@ -275,6 +274,33 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
   keys leaves the keys it does not assign inactive. The buttons post the
   screen's form, so the field contents reach PAI, and toolbar buttons no
   longer trip the browser's own required check (`formnovalidate`).
+- List processor functions, done with 092–095 (zcl_gg_host_list_processor):
+  - A list whose program sets no status has the standard list status: Back,
+    Exit `%EX`, Cancel `RW`, Print `PRI`, Find `%SC`, Find next `%SC+`, the
+    four paging functions and Save to local file `%PC`. They sit on SAP's
+    function keys, and the List and Edit menus offer them. Before, such a
+    list had no status, and only the workbench's own Back worked.
+  - These functions never reach `AT USER-COMMAND`; Back, Cancel and Exit on a
+    list are handled by the runtime as navigation.
+  - Paging scrolls the list window (`.gg-work-area`) and Print opens the
+    browser's print dialog; neither makes a round trip.
+  - Find asks for the term in a dialog box, marks the hit line and scrolls to
+    it; Find next goes on from the last hit.
+  - Save to local file asks for the format (unconverted, spreadsheet with
+    tabs, HTML) and a file name, then downloads the file.
+  - The list page no longer adds a "List actions" row with a raw button per
+    active or excluded function code (invented).
+  - The status menus posted `gg-dynpro-form` on every page, so they did
+    nothing on a list; they post the page's form now.
+- Open, list processor:
+  - Find has no options (case, from the cursor) and does not wrap around;
+    SAP GUI shows the hits in a list when there are several.
+  - Function keys reach only dynpro pages, so F21–F24, Ctrl+F and Ctrl+P do
+    nothing on a list; PgUp and PgDn scroll it natively.
+  - Save to local file has no rich text or clipboard option, and Print has no
+    print parameters; the browser's dialogs take their place.
+  - 044's program handles `PRI` in `AT USER-COMMAND`, which never runs on
+    SAP. 044 is still hand-written (see GUI statuses above).
 - Open, dynpro:
   - An I message shows in the message area; on SAP it is a dialog box.
   - A function excluded from the status is shown disabled in the

@@ -253,7 +253,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         lv_state = COND string( WHEN lv_enabled = abap_true THEN '' ELSE ' disabled' ).
         lv_command = COND string(
           WHEN iv_runtime = abap_true AND lv_enabled = abap_true
-          THEN | form="gg-dynpro-form" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_item-ucomm ) ) }"|
+          THEN | form="{ iv_content_form }" formnovalidate name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_item-ucomm ) ) }"|
           ELSE '' ).
         lv_items = lv_items &&
           |<li role="none"><button class="wb-menu-action" type="submit"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( ls_item-text ) }"{ lv_state }>{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.

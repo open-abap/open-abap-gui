@@ -83,8 +83,6 @@ CLASS zcl_example_format IMPLEMENTATION.
     lo_writer->write_field( VALUE #( text = 'Heading' placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->reset_format( ).
     lo_writer->uline( VALUE #( position = 1 length = 40 ) ).
-    lo_writer->new_line( ).
-    lo_writer->set_position( 5 ).
     lo_writer->skip( 2 ).
     lo_writer->write_field( VALUE #( text = 'Positive' format = VALUE #( color = zif_gg_list_processing_types_v1=>color_positive ) placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'Negative' format = VALUE #( color = zif_gg_list_processing_types_v1=>color_negative ) placement = VALUE #( position = 30 ) ) ).

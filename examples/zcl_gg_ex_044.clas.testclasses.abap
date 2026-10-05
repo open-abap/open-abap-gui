@@ -67,8 +67,8 @@ CLASS ltcl_ex_44 IMPLEMENTATION.
   METHOD html_status_action.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_044( ) ).
 
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'value="COMMAND:DEL" disabled' ) ).
+* The excluded function is in no toolbar and no menu, so nothing offers it.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html NS 'value="COMMAND:DEL"' ) ).
   ENDMETHOD.
 
   METHOD runtime_authorizes_commands.

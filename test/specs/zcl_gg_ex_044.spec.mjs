@@ -4,7 +4,8 @@ test(`ZCL_GG_EX_044 — renders PF-STATUS and excluded commands`, async ({page, 
   await openExample(page, host, 44);
   await expectPageKind(page, "LIST");
   await expect(page.locator(".gg-list-status")).toContainText("LIST");
-  await expect(page.getByRole("button", {name: "DEL"})).toBeDisabled();
+  // The excluded function is in no toolbar and no menu, so nothing offers it.
+  await expect(page.getByRole("button", {name: "DEL"})).toHaveCount(0);
   await expect(page.locator(".gg-list")).toContainText("body");
   const iconBar = page.locator(".wb-toolbar");
   await expect(iconBar.getByRole("button")).toHaveCount(2);
@@ -20,6 +21,9 @@ test(`ZCL_GG_EX_044 — renders PF-STATUS and excluded commands`, async ({page, 
 });
 
 test(`ZCL_GG_EX_044 — the status activates the standard print command`, async ({page, host}) => {
+  await page.addInitScript(() => {
+    window.print = () => { window.__printed = (window.__printed ?? 0) + 1; };
+  });
   await openExample(page, host, 44);
 
   const commandBar = page.locator(".wb-commandbar");
@@ -27,10 +31,11 @@ test(`ZCL_GG_EX_044 — the status activates the standard print command`, async 
   await expect(commandBar.locator('[title="Save"]')).toBeDisabled();
   await expect(commandBar.locator('[title="Find"]')).toBeDisabled();
 
+  // Print is the list processor's: it prints and never reaches AT USER-COMMAND.
   await commandBar.locator('[title="Print"]').click();
-  await page.waitForLoadState("load");
+  await expect.poll(() => page.evaluate(() => window.__printed)).toBe(1);
   await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list-line")).toHaveText(["body", "printed"]);
+  await expect(page.locator(".gg-list-line")).toHaveText(["body"]);
 });
 
 test(`ZCL_GG_EX_044 — inactive and excluded commands are rejected without staling the page`, async ({page, host}) => {

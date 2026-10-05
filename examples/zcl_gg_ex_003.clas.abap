@@ -21,10 +21,9 @@ CLASS zcl_gg_ex_003 IMPLEMENTATION.
 
     lo_writer->write_field( VALUE #( text = 'first' ) ).
     lo_writer->skip( 2 ).
+* After ULINE the list cursor stands at the start of the next line, as on SAP.
     lo_writer->uline( VALUE #( position = 1 length = 20 ) ).
-    lo_writer->new_line( ).
-    lo_writer->set_position( 5 ).
-    lo_writer->write_field( VALUE #( text = 'second' ) ).
+    lo_writer->write_field( VALUE #( text = 'second' placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~load_of_program.

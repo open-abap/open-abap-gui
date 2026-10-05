@@ -1249,13 +1249,14 @@ function lowerSingleStatement(statement, context) {
   if (statement.kind === "Format") return parseFormat(raw, context);
   if (statement.kind === "Skip") return `lo_writer->skip( ${stripPeriod(raw).replace(/^SKIP\s*/i, "") || "1"} ).`;
   if (statement.kind === "Uline") {
-    // ULINE [AT] [/][pos][(len)]; the writer always starts a new line.
+    // ULINE [AT] [/][pos][(len)]; the writer starts a new line and leaves
+    // the list cursor at the start of the next one, as on SAP.
     const match = /^ULINE\s*(?:AT\b\s*)?\/?\s*(\d+)?(?:\(\s*(\d+)\s*\))?/i.exec(stripPeriod(raw));
     const placement = [
       match?.[1] ? `position = ${match[1]}` : "",
       match?.[2] ? `length = ${match[2]}` : "",
     ].filter(Boolean).join(" ");
-    return `lo_writer->uline( VALUE #( ${placement} ) ).\nlo_writer->new_line( ).\nlo_writer->set_position( 5 ).`;
+    return placement ? `lo_writer->uline( VALUE #( ${placement} ) ).` : "lo_writer->uline( VALUE #( ) ).";
   }
   if (statement.kind === "NewLine" || normalized === "NEW-LINE.") return "lo_writer->new_line( ).";
   if (statement.kind === "Reserve") {

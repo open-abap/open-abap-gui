@@ -39,6 +39,8 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              html                TYPE string,
              page                TYPE zif_gg_host_html_v1=>ty_page,
              pages               TYPE zif_gg_host_html_v1=>ty_pages,
+* What the list processor did with a function of its own (Find, Save).
+             list_outcome        TYPE zcl_gg_host_list_processor=>ty_outcome,
            END OF ty_result.
 
     CLASS-METHODS run
@@ -73,6 +75,9 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_action_receipt      TYPE string OPTIONAL
         is_resume_navigation   TYPE zif_gg_host_html_v1=>ty_navigation OPTIONAL
         is_resume_submit       TYPE zif_gg_session_types_v1=>ty_submit OPTIONAL
+        iv_list_value          TYPE string OPTIONAL
+        iv_list_target         TYPE string OPTIONAL
+        is_list_find           TYPE zcl_gg_host_list_processor=>ty_find OPTIONAL
       RETURNING
         VALUE(rs_result)       TYPE ty_result.
 
@@ -804,6 +809,24 @@ CLASS zcl_gg_host IMPLEMENTATION.
       rs_result-status = lo_session->get_status( ).
     ELSE.
       rs_result-status = lo_list->get_status( ).
+* A list whose program sets no status has SAP's standard list status.
+      IF rs_result-status IS INITIAL.
+        rs_result-status = zcl_gg_host_list_processor=>standard_status( ).
+      ENDIF.
+    ENDIF.
+    rs_result-list_outcome-find = is_list_find.
+    IF lv_selection_screen_active = abap_false
+        AND zcl_gg_host_list_processor=>is_function( CONV #( iv_user_command ) ) = abap_true.
+      rs_result-list_outcome = zcl_gg_host_list_processor=>process(
+        iv_ucomm  = CONV #( iv_user_command )
+        iv_value  = iv_list_value
+        iv_target = iv_list_target
+        is_find   = is_list_find
+        it_lines  = rs_result-render_lines ).
+      IF rs_result-list_outcome-message IS NOT INITIAL.
+        APPEND VALUE #( type = zif_gg_session_types_v1=>message_type_success
+                        text = rs_result-list_outcome-message ) TO rs_result-messages.
+      ENDIF.
     ENDIF.
     apply_action_receipt(
       EXPORTING
@@ -949,22 +972,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
       IF lv_title IS INITIAL.
         lv_title = 'ABAP list'.
       ENDIF.
-      IF iv_can_back = abap_true AND cs_result-status-icon_bar IS INITIAL.
-        APPEND VALUE #( kind = zif_gg_host_html_v1=>action_back ) TO lt_actions.
-      ENDIF.
-      LOOP AT cs_result-status-active_ucomm INTO DATA(lv_active_ucomm).
-        IF line_exists( cs_result-status-excluded_ucomm[ table_line = lv_active_ucomm ] )
-            OR line_exists( cs_result-status-icon_bar[ ucomm = lv_active_ucomm ] )
-            OR ( cs_result-status-icon_bar IS NOT INITIAL
-                 AND ( lv_active_ucomm = 'BACK'
-                       OR lv_active_ucomm = 'CANCEL'
-                       OR lv_active_ucomm = 'EXIT'
-                       OR lv_active_ucomm = 'PRINT' ) ).
-          CONTINUE.
-        ENDIF.
-        APPEND VALUE #( kind  = zif_gg_host_html_v1=>action_command
-                        ucomm = lv_active_ucomm ) TO lt_actions.
-      ENDLOOP.
+* The functions of the status are offered by the toolbars, the menus and
+* the function keys; the list itself adds none.
       IF cl_gui_control=>has_content( ) = abap_true.
         lv_controls_html = cl_gui_control=>render_html(
           iv_document = abap_false
@@ -982,7 +991,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
         it_actions       = lt_actions
         is_context       = ls_context
         it_messages      = cs_result-messages
-        iv_controls_html = lv_controls_html ).
+        iv_controls_html = lv_controls_html
+        is_list_outcome  = cs_result-list_outcome ).
     ENDIF.
     IF lv_page_kind <> zif_gg_host_html_v1=>page_navigation.
       cs_result-html = zcl_gg_host_renderer=>with_navigation(
@@ -1185,7 +1195,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
         io_session = io_session ).
     ENDIF.
 
-    IF cv_ended = abap_false AND iv_user_command IS NOT INITIAL AND io_handler IS BOUND.
+* The list processor's own functions never reach AT USER-COMMAND.
+    IF cv_ended = abap_false AND iv_user_command IS NOT INITIAL AND io_handler IS BOUND
+        AND zcl_gg_host_list_processor=>is_function( CONV #( iv_user_command ) ) = abap_false.
       io_list->finish_output( ).
       io_session->set_event( 'AT USER-COMMAND' ).
       io_handler->at_user_command(

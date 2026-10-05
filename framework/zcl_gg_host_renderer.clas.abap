@@ -35,8 +35,15 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_actions       TYPE zif_gg_host_html_v1=>ty_actions OPTIONAL
         it_messages      TYPE zcl_gg_host_session=>ty_messages OPTIONAL
         iv_controls_html TYPE string OPTIONAL
+        is_list_outcome  TYPE zcl_gg_host_list_processor=>ty_outcome OPTIONAL
       RETURNING
         VALUE(rv_html)   TYPE string.
+
+    CLASS-METHODS render_list_dialog
+      IMPORTING
+        is_outcome     TYPE zcl_gg_host_list_processor=>ty_outcome
+      RETURNING
+        VALUE(rv_html) TYPE string.
 
     CLASS-METHODS render_selection
       IMPORTING
@@ -474,7 +481,6 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA lv_action_value TYPE string.
     DATA lv_disabled TYPE string.
     DATA lv_action_label TYPE string.
-    DATA lv_excluded TYPE string.
     DATA lv_line_state_class TYPE string.
 
     lv_body = |<section class="gg-work-area" aria-label="List work area"><section class="gg-list" aria-label="List output">|.
@@ -533,10 +539,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         THEN zcl_gg_host_html=>css_class( ls_line-format ) ELSE `` ) } { zcl_gg_host_html=>state_class(
         iv_selected = ls_line-selected
         iv_changed  = ls_line-changed ) }|.
+* The line Find stopped at is marked and scrolled to.
+      DATA(lv_found) = COND string( WHEN is_list_outcome-found > 0 AND ls_line-index = is_list_outcome-found
+                                    THEN ` data-found="true"` ).
       IF ls_line-fields IS INITIAL.
-        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" data-line-index="{ ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</div>|.
+        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" data-line-index="{ ls_line-index }"{ lv_found } aria-current="{ COND string( WHEN ls_line-selected = abap_true OR lv_found IS NOT INITIAL THEN `true` ELSE `false` ) }">{ lv_line }</div>|.
       ELSE.
-        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" data-line-index="{ ls_line-index }" data-action-token="{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }"><button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_line-selected ) }" type="submit" name="gg_action" value="| && |LINE:{ ls_line-index }| && `|` && |{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }| && |" aria-label="Select line { ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</button></div>|.
+        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" data-line-index="{ ls_line-index }"{ lv_found } data-action-token="{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }"><button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_line-selected ) }" type="submit" name="gg_action" value="| && |LINE:{ ls_line-index }| && `|` && |{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }| && |" aria-label="Select line { ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</button></div>|.
       ENDIF.
     ENDLOOP.
     LOOP AT it_actions INTO DATA(ls_action).
@@ -552,16 +561,19 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       ENDIF.
       lv_nav = lv_nav && |<button type="submit" name="gg_action" value="{ zcl_gg_host_html=>escape_attribute( lv_action_value ) }"{ lv_disabled }>{ zcl_gg_host_html=>escape_text( lv_action_label ) }</button>|.
     ENDLOOP.
-    LOOP AT is_status-excluded_ucomm INTO lv_excluded.
-      lv_nav = lv_nav && |<button type="submit" name="gg_action" value="COMMAND:{ zcl_gg_host_html=>escape_attribute( lv_excluded ) }" disabled>{ zcl_gg_host_html=>escape_text( lv_excluded ) }</button>|.
-    ENDLOOP.
     IF lv_page > 0.
       lv_body = lv_body && |</div></section>|.
     ENDIF.
     IF iv_controls_html IS NOT INITIAL.
       lv_body = lv_body && iv_controls_html.
     ENDIF.
-    lv_body = lv_body && |</section></section>|.
+    lv_body = lv_body && |</section></section>| && render_list_dialog( is_list_outcome ).
+* Paging and Print are the browser's: it holds the list window.
+    lv_body = lv_body && |<script>(function()\{var w=document.querySelector(".gg-page--list .gg-work-area")\|\|document.scrollingElement;var run=function(c)\{switch(c)\{case"P--":w.scrollTop=0;break;case"P-":w.scrollTop-=w.clientHeight;break;case"P+":w.scrollTop+=w.clientHeight;break;case"P++":w.scrollTop=w.scrollHeight;break;case"PRI":window.print();break;default:return false;\}return true;\};|
+      && |document.addEventListener("click",function(e)\{var b=e.target&&e.target.closest?e.target.closest('button[value^="COMMAND:"]'):null;if(!b\|\|b.disabled)\{return;\}if(run(b.value.slice(8)))\{e.preventDefault();\}\},true);|
+      && |var f=document.querySelector(".gg-list-line[data-found]");if(f)\{f.scrollIntoView(\{block:"center"\});\}|
+      && |var d=document.querySelector("[data-list-dialog]");if(d)\{var i=d.querySelector("input[type=text]");if(i)\{i.focus();i.select();\}d.querySelectorAll("[data-list-dialog-close]").forEach(function(c)\{c.addEventListener("click",function()\{d.remove();\});\});\}|
+      && |\}());</script>| && render_downloads( is_list_outcome-downloads ).
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id
@@ -569,7 +581,29 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
       is_status     = is_status
-      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><header class="gg-status-region" aria-label="List status"><p class="gg-list-status" role="status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN is_status-icon_bar IS INITIAL OR lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
+      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><header class="gg-status-region" aria-label="List status"><p class="gg-list-status" role="status">{ zcl_gg_host_html=>escape_text( CONV string( is_status-status ) ) }</p></header><section class="gg-message-region" aria-label="Messages">{ render_messages( it_messages ) }</section><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
+  ENDMETHOD.
+
+  METHOD render_list_dialog.
+* The dialog boxes of Find and Save to local file, as the list processor
+* shows them; their answer comes back with the same function code.
+    CASE is_outcome-dialog.
+      WHEN zcl_gg_host_list_processor=>dialog_find.
+        rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-list-dialog-title" data-list-dialog="FIND"><div class="gg-value-help-panel gg-popup-panel">|
+          && |<header class="gg-value-help-header"><h2 id="gg-list-dialog-title">Find</h2></header><div class="gg-popup-body">|
+          && |<label class="gg-popup-field"><span>Find</span><input type="text" name="value" value="{ zcl_gg_host_html=>escape_attribute( is_outcome-find-term ) }"></label></div>|
+          && |<footer class="gg-popup-actions"><button type="submit" name="gg_action" value="COMMAND:{ zcl_gg_host_list_processor=>find }" formnovalidate>Find</button>|
+          && |<button type="button" data-list-dialog-close>Cancel</button></footer></div></div>|.
+      WHEN zcl_gg_host_list_processor=>dialog_save.
+        rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-list-dialog-title" data-list-dialog="SAVE"><div class="gg-value-help-panel gg-popup-panel">|
+          && |<header class="gg-value-help-header"><h2 id="gg-list-dialog-title">Save list in file</h2></header><div class="gg-popup-body"><fieldset><legend>Format</legend>|
+          && |<label><input type="radio" name="value" value="{ zcl_gg_host_list_processor=>format_unconverted }" checked> Unconverted</label>|
+          && |<label><input type="radio" name="value" value="{ zcl_gg_host_list_processor=>format_spreadsheet }"> Spreadsheet</label>|
+          && |<label><input type="radio" name="value" value="{ zcl_gg_host_list_processor=>format_html }"> HTML format</label></fieldset>|
+          && |<label class="gg-popup-field"><span>File name</span><input type="text" name="target" value="list.txt"></label></div>|
+          && |<footer class="gg-popup-actions"><button type="submit" name="gg_action" value="COMMAND:{ zcl_gg_host_list_processor=>save_file }" formnovalidate>Save</button>|
+          && |<button type="button" data-list-dialog-close>Cancel</button></footer></div></div>|.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD render_selection.

@@ -814,8 +814,25 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
 
+* On a list, Back and Cancel go back one level and Exit leaves the
+* program; the list processor runs them, not AT USER-COMMAND.
+    DATA(lv_action) = is_request-action.
+    IF lv_action = zif_gg_host_html_v1=>action_command
+        AND ls_session-last_result-page_kind = zif_gg_host_html_v1=>page_list.
+      CASE is_request-ucomm.
+        WHEN zif_gg_session_types_v1=>command_back OR zif_gg_session_types_v1=>command_cancel.
+          lv_action = zif_gg_host_html_v1=>action_back.
+        WHEN zif_gg_session_types_v1=>command_exit.
+          ls_session-last_result-page_kind = zif_gg_host_html_v1=>page_terminal.
+          ls_session-last_result-navigation-kind = zcx_gg_control_flow=>kind_leave_program.
+          store( ls_session ).
+          rs_response = respond( ls_session ).
+          RETURN.
+      ENDCASE.
+    ENDIF.
+
 * Back from the first screen of a report leaves the program.
-    IF is_request-action = zif_gg_host_html_v1=>action_back
+    IF lv_action = zif_gg_host_html_v1=>action_back
         AND lines( ls_session-results ) <= 1.
       ls_session-last_result-page_kind = zif_gg_host_html_v1=>page_terminal.
       ls_session-last_result-navigation-kind = zcx_gg_control_flow=>kind_leave_program.
@@ -823,7 +840,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       rs_response = respond( ls_session ).
       RETURN.
     ENDIF.
-    IF is_request-action = zif_gg_host_html_v1=>action_back.
+    IF lv_action = zif_gg_host_html_v1=>action_back.
       DELETE ls_session-results INDEX lines( ls_session-results ).
       READ TABLE ls_session-results INTO ls_session-last_result INDEX lines( ls_session-results ).
       CLEAR ls_session-pending_navigation.
@@ -864,6 +881,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_batch               = ls_session-batch
           it_input               = lt_input
           iv_user_command        = CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm )
+          iv_list_value          = is_request-value
+          iv_list_target         = is_request-target
+          is_list_find           = ls_session-last_result-list_outcome-find
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
