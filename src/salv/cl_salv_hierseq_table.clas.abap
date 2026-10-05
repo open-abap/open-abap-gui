@@ -158,8 +158,10 @@ ENDCLASS.
 CLASS cl_salv_hierseq_table IMPLEMENTATION.
 
   METHOD factory.
-    GET REFERENCE OF t_table_level1 INTO DATA(lr_level1).
-    GET REFERENCE OF t_table_level2 INTO DATA(lr_level2).
+    DATA lr_level1 TYPE REF TO data.
+    DATA lr_level2 TYPE REF TO data.
+    GET REFERENCE OF t_table_level1 INTO lr_level1.
+    GET REFERENCE OF t_table_level2 INTO lr_level2.
     r_hierseq = NEW cl_salv_hierseq_table( ).
     r_hierseq->mr_table_level1 = lr_level1.
     r_hierseq->mr_table_level2 = lr_level2.
