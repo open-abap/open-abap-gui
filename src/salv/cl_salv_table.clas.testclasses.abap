@@ -20,10 +20,23 @@ CLASS ltcl_salv_table_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
       RAISING
         cx_salv_not_found
         cx_salv_wrong_call.
+    METHODS set_all_defaults_to_true FOR TESTING.
+    METHODS set_all_false_hides_toolbar FOR TESTING.
+    METHODS set_all_keeps_later_settings FOR TESTING
+      RAISING
+        cx_salv_not_found
+        cx_salv_wrong_call.
+    METHODS added_function_on_empty_grid FOR TESTING.
     METHODS shows_rows_added_after_factory FOR TESTING.
     METHODS displays_in_its_container FOR TESTING.
     METHODS teardown.
+    METHODS on_added_function FOR EVENT added_function OF cl_salv_events_table
+      IMPORTING
+        e_salv_function.
+    DATA mv_function TYPE salv_de_function.
 ENDCLASS.
+
+CLASS cl_salv_table DEFINITION LOCAL FRIENDS ltcl_salv_table_support.
 
 CLASS ltcl_salv_table_support IMPLEMENTATION.
   METHOD renders_structured_rows.
@@ -255,6 +268,125 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&LOCAL&APPEND"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="ZRESET"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Reset</button>' ) ).
+  ENDMETHOD.
+
+  METHOD on_added_function.
+    mv_function = e_salv_function.
+  ENDMETHOD.
+
+  METHOD set_all_defaults_to_true.
+    DATA lt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->get_functions( )->add_function(
+      name     = 'REFRESH'
+      text     = 'Refresh'
+      tooltip  = 'Refresh'
+      position = 1 ).
+* SET_ALL without a flag enables everything, as its DEFAULT is true.
+    lo_salv->get_functions( )->set_all( ).
+
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="ALV toolbar"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="REFRESH"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Refresh</button>' ) ).
+  ENDMETHOD.
+
+  METHOD set_all_false_hides_toolbar.
+    DATA lt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    APPEND 1 TO lt_rows.
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->get_functions( )->add_function(
+      name     = 'REFRESH'
+      text     = 'Refresh'
+      tooltip  = 'Refresh'
+      position = 1 ).
+    lo_salv->get_functions( )->set_all( abap_false ).
+
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-alv-toolbar' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="REFRESH"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
+  ENDMETHOD.
+
+  METHOD set_all_keeps_later_settings.
+    DATA lt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    APPEND 1 TO lt_rows.
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->get_functions( )->add_function(
+      name     = 'REFRESH'
+      text     = 'Refresh'
+      tooltip  = 'Refresh'
+      position = 1 ).
+    lo_salv->get_functions( )->add_function(
+      name     = 'ZHIDDEN'
+      text     = 'Hidden'
+      tooltip  = 'Hidden'
+      position = 2 ).
+    lo_salv->get_functions( )->set_all( ).
+    lo_salv->get_functions( )->set_sort_desc( abap_false ).
+    lo_salv->get_functions( )->set_function( name    = 'ZHIDDEN'
+                                             boolean = abap_false ).
+
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&SORT_DSC"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="REFRESH"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="ZHIDDEN"' ) ).
+  ENDMETHOD.
+
+  METHOD added_function_on_empty_grid.
+    DATA lt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'CC_MAIN' ).
+    cl_salv_table=>factory(
+      EXPORTING
+        r_container  = lo_container
+      IMPORTING
+        r_salv_table = lo_salv
+      CHANGING
+        t_table      = lt_rows ).
+    lo_salv->get_functions( )->add_function(
+      name     = 'REFRESH'
+      text     = 'Refresh'
+      tooltip  = 'Refresh'
+      position = 1 ).
+    lo_salv->get_functions( )->set_all( ).
+    SET HANDLER on_added_function FOR lo_salv->get_event( ).
+    lo_salv->display( ).
+
+* The toolbar shows above the grid even without rows.
+    DATA(lv_html) = cl_gui_control=>render_html(
+      iv_document       = abap_false
+      iv_container_name = 'CC_MAIN' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="ALV toolbar"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|FUNCTION|&amp;SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|FUNCTION|REFRESH"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Refresh</button>' ) ).
+
+    CLEAR mv_function.
+    lo_salv->mo_grid->set_user_command( 'REFRESH' ).
+    cl_abap_unit_assert=>assert_equals( act = mv_function
+                                        exp = 'REFRESH' ).
   ENDMETHOD.
 
   METHOD shows_rows_added_after_factory.
