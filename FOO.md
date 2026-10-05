@@ -5,14 +5,6 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 ## Needs a decision
 
-- **PBO runs twice per round trip.** The host replays the PBO of the shown
-  screen at the start of a request (it rebuilds the screen's states that way),
-  then runs PAI, then PBO. PBO after PAI now always runs with the real screen
-  values, as on SAP (before, it ran only for screens with a GUI status, on a
-  copy of the values, so a control changed in PBO showed one round trip late,
-  e.g. zgg_ex_132, 148). A PBO that is not idempotent (a counter) counts twice;
-  converter/test/behavioral-generated.mjs expects 6 where SAP gives 5. Fix:
-  keep the screen states of the last response instead of replaying PBO.
 - **The list page shows the GUI status name** (`SHELL66`, `BACK`) as text
   above the list (`.gg-list-status`, zcl_gg_host_renderer); SAP never shows
   it. The hand-written 044, 062 and 151–159 use the status name as a
@@ -323,7 +315,25 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
     print parameters; the browser's dialogs take their place.
   - 044's program handles `PRI` in `AT USER-COMMAND`, which never runs on
     SAP. 044 is still hand-written (see GUI statuses above).
+- PBO runs once per round trip, done:
+  - The runtime hands the host the screen as it was shown: its field states,
+    GUI status and title (zcl_gg_host_dynpro=>ty_shown). PAI works on it, and
+    the screen's PBO is no longer replayed before PAI. A PBO that counts adds
+    one per round trip, as on SAP (behavioral-generated.mjs: 5).
+  - The replay ran PBO with the user's input before PAI. That hid SAP's
+    required check: in 103, unchecking the box made the address optional
+    before the check ran. Now the check stops the uncheck while the address
+    is empty, as on SAP; the spec shows it.
+  - Every PBO starts from the screens' static field attributes, as on SAP;
+    before, the replay gave each request a fresh start by chance.
+  - The subscreens of the shown screen come from the fields that name them.
+  - A run without a shown screen (a first display, unit tests calling
+    zcl_gg_host_dynpro=>run directly) still runs PBO first, as the display
+    before the input.
 - Open, dynpro:
+  - `SCREEN-REQUIRED = 2` (shown as required, checked by the program) is not
+    supported; states know required or not.
+  - A popup answer still replays the PAI that called the popup.
   - An I message shows in the message area; on SAP it is a dialog box.
   - A function excluded from the status is shown disabled in the
     application toolbar; SAP hides it.

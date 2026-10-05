@@ -518,7 +518,12 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
                                       ELSE ls_session-last_dynpro-screen )
       iv_session_id          = ls_session-session_id
       iv_page_id             = lv_page_id
-      iv_action_receipt      = lv_action_receipt ).
+      iv_action_receipt      = lv_action_receipt
+* PAI works on the screen as it was shown; back from list processing, the
+* screen's PBO runs first.
+      is_shown               = COND #( WHEN lv_list_back = abap_false
+                                       AND ls_session-last_dynpro-page_kind = zif_gg_host_html_v1=>page_dynpro
+                                       THEN zcl_gg_host_dynpro=>shown( ls_session-last_dynpro ) ) ).
     IF ls_dynpro-popup-kind IS INITIAL.
       CLEAR ls_session-pending_popup_ucomm.
       CLEAR ls_session-pending_help.

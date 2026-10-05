@@ -34,6 +34,22 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              page               TYPE zif_gg_host_html_v1=>ty_page,
            END OF ty_result.
 
+* The screen as the user saw it: its field states, GUI status and title.
+* PAI runs against it; PBO runs once, after PAI, as on SAP. Without it the
+* host runs the screen's PBO first, as the display before the input.
+    TYPES: BEGIN OF ty_shown,
+             screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+             states TYPE zif_gg_dynpro_types_v1=>ty_states,
+             status TYPE zif_gg_session_types_v1=>ty_gui_status,
+             title  TYPE string,
+           END OF ty_shown.
+
+    CLASS-METHODS shown
+      IMPORTING
+        is_result       TYPE ty_result
+      RETURNING
+        VALUE(rs_shown) TYPE ty_shown.
+
     CLASS-METHODS run
       IMPORTING
         io_program             TYPE REF TO zif_gg_dynpro_v1
@@ -62,10 +78,57 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_session_id          TYPE string OPTIONAL
         iv_page_id             TYPE string OPTIONAL
         iv_action_receipt      TYPE string OPTIONAL
+        is_shown               TYPE ty_shown OPTIONAL
       RETURNING
         VALUE(rs_result)       TYPE ty_result.
 
   PRIVATE SECTION.
+* The field attributes the screens are defined with. Each PBO starts from
+* them, as on SAP, and LOOP AT SCREEN changes them from there.
+    CLASS-DATA mt_static_states TYPE zif_gg_dynpro_types_v1=>ty_states.
+    CLASS-DATA mt_static_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
+
+    TYPES: BEGIN OF ty_active_subscreen,
+             area   TYPE zif_gg_dynpro_types_v1=>ty_name,
+             screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
+           END OF ty_active_subscreen.
+    TYPES ty_active_subscreens TYPE STANDARD TABLE OF ty_active_subscreen
+      WITH DEFAULT KEY.
+
+    "! The subscreens the shown screen called in its PBO, from the screen
+    "! fields that name them.
+    CLASS-METHODS shown_subscreens
+      IMPORTING
+        it_steps             TYPE zcl_gg_host_dynpro_flow=>ty_steps
+        iv_screen            TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        it_values            TYPE zif_gg_dynpro_types_v1=>ty_values
+      CHANGING
+        ct_active_subscreens TYPE ty_active_subscreens
+        ct_active_screens    TYPE zcl_gg_host_dynpro_builder=>ty_screens.
+
+    "! Takes over the shown screen; false when there is none to take over
+    "! and its PBO runs first.
+    CLASS-METHODS apply_shown
+      IMPORTING
+        is_shown          TYPE ty_shown
+        iv_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        io_session        TYPE REF TO zcl_gg_host_session
+      CHANGING
+        ct_states         TYPE zif_gg_dynpro_types_v1=>ty_states
+      RETURNING
+        VALUE(rv_applied) TYPE abap_bool.
+
+    "! The PBO of a program whose flow logic has modules but no steps.
+    CLASS-METHODS run_output_modules
+      IMPORTING
+        io_program TYPE REF TO zif_gg_dynpro_v1
+        io_flow    TYPE REF TO zcl_gg_host_dynpro_flow
+        io_session TYPE REF TO zcl_gg_host_session
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+      CHANGING
+        cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
     CLASS-DATA mv_run_id TYPE i.
 
     CLASS-METHODS next_run_id
@@ -249,6 +312,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name
         it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
         iv_next_screen   TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        iv_replay_pbo    TYPE abap_bool DEFAULT abap_true
       CHANGING
         cs_context       TYPE zif_gg_dynpro_types_v1=>ty_module_context
         ct_values        TYPE zif_gg_dynpro_types_v1=>ty_values
@@ -488,6 +552,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         password     = ls_control-password
         value_help   = ls_control-value_help ) INTO TABLE lt_states.
     ENDLOOP.
+    mt_static_states = lt_states.
+    mt_static_controls = lt_controls.
     io_program->initialization(
       EXPORTING
         io_session = lo_session
@@ -508,6 +574,14 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lv_screen = COND #(
       WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
       ELSE iv_screen ).
+* The screen the user saw is the one PAI works on; its PBO is not run again.
+    DATA(lv_replay_pbo) = xsdbool( apply_shown(
+                                     EXPORTING
+                                       is_shown   = is_shown
+                                       iv_screen  = lv_screen
+                                       io_session = lo_session
+                                     CHANGING
+                                       ct_states  = lt_states ) = abap_false ).
     lv_ok_code = ok_code_field(
       it_screens = lt_screens
       iv_screen  = lv_screen ).
@@ -596,6 +670,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             iv_help_request  = iv_help_request
             it_controls      = lt_controls
             iv_next_screen   = VALUE #( lt_screens[ number = lv_screen ]-next_screen OPTIONAL )
+            iv_replay_pbo    = lv_replay_pbo
           CHANGING
             cs_context       = ls_context
             ct_values        = lt_values
@@ -828,12 +903,6 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD process_modules.
-    TYPES: BEGIN OF ty_active_subscreen,
-             area   TYPE zif_gg_dynpro_types_v1=>ty_name,
-             screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
-           END OF ty_active_subscreen.
-    TYPES ty_active_subscreens TYPE STANDARD TABLE OF ty_active_subscreen
-      WITH DEFAULT KEY.
     DATA lv_submit_allowed TYPE abap_bool.
     DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
     DATA ls_step TYPE zcl_gg_host_dynpro_flow=>ty_step.
@@ -861,7 +930,16 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       WHEN iv_next_screen IS INITIAL THEN iv_screen
       ELSE iv_next_screen ) ).
 
-    IF lv_has_steps = abap_true.
+    IF iv_replay_pbo = abap_false.
+      shown_subscreens(
+        EXPORTING
+          it_steps             = lt_steps
+          iv_screen            = iv_screen
+          it_values            = ct_values
+        CHANGING
+          ct_active_subscreens = lt_active_subscreens
+          ct_active_screens    = lt_active_screens ).
+    ELSEIF lv_has_steps = abap_true.
       LOOP AT lt_steps INTO ls_step
           WHERE screen = iv_screen AND phase = 'PBO'.
         CASE ls_step-kind.
@@ -921,20 +999,16 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         ENDCASE.
       ENDLOOP.
     ELSE.
-      LOOP AT io_flow->get_modules( ) INTO ls_module
-          WHERE screen = iv_screen AND phase = 'PBO'.
-        io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
-        cs_context-screen = iv_screen.
-        cs_context-module = ls_module-module-name.
-        CLEAR cs_context-ucomm.
-        io_program->process_output_module(
-          EXPORTING
-            is_context = cs_context
-            io_session = io_session
-          CHANGING
-            ct_values  = ct_values
-            ct_states  = ct_states ).
-      ENDLOOP.
+      run_output_modules(
+        EXPORTING
+          io_program = io_program
+          io_flow    = io_flow
+          io_session = io_session
+          iv_screen  = iv_screen
+        CHANGING
+          cs_context = cs_context
+          ct_values  = ct_values
+          ct_states  = ct_states ).
     ENDIF.
 
     prepare_context_menu(
@@ -1169,6 +1243,61 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         type  = zif_gg_session_types_v1=>message_type_error
         text  = `Fill in all required entry fields`
         field = ls_state-name ) ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD shown.
+    rs_shown = VALUE #(
+      screen = is_result-screen
+      states = is_result-states
+      status = is_result-status
+      title  = is_result-title ).
+  ENDMETHOD.
+
+  METHOD apply_shown.
+    IF is_shown-screen IS INITIAL OR is_shown-screen <> iv_screen.
+      RETURN.
+    ENDIF.
+    rv_applied = abap_true.
+    ct_states = is_shown-states.
+    IF is_shown-status IS NOT INITIAL.
+      io_session->zif_gg_dialog_session_v1~set_status( is_shown-status ).
+    ENDIF.
+    io_session->zif_gg_dialog_session_v1~set_title( is_shown-title ).
+  ENDMETHOD.
+
+  METHOD run_output_modules.
+    LOOP AT io_flow->get_modules( ) INTO DATA(ls_module)
+        WHERE screen = iv_screen AND phase = 'PBO'.
+      io_session->set_event( 'PROCESS BEFORE OUTPUT' ).
+      cs_context-screen = iv_screen.
+      cs_context-module = ls_module-module-name.
+      CLEAR cs_context-ucomm.
+      io_program->process_output_module(
+        EXPORTING
+          is_context = cs_context
+          io_session = io_session
+        CHANGING
+          ct_values  = ct_values
+          ct_states  = ct_states ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD shown_subscreens.
+    LOOP AT it_steps INTO DATA(ls_step)
+        WHERE screen = iv_screen AND phase = 'PBO' AND kind = 'SUBSCREEN'.
+      DATA(lv_subscreen) = resolve_subscreen(
+        is_call   = ls_step-subscreen
+        it_values = it_values ).
+      IF lv_subscreen IS INITIAL OR lv_subscreen = '0000'.
+        CONTINUE.
+      ENDIF.
+      DELETE ct_active_subscreens WHERE area = ls_step-subscreen-area.
+      APPEND VALUE #( area   = ls_step-subscreen-area
+                      screen = lv_subscreen ) TO ct_active_subscreens.
+      IF NOT line_exists( ct_active_screens[ number = lv_subscreen ] ).
+        APPEND VALUE #( number = lv_subscreen ) TO ct_active_screens.
+      ENDIF.
     ENDLOOP.
   ENDMETHOD.
 
@@ -1526,6 +1655,13 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    ct_states = mt_static_states.
+    seed_table_states(
+      EXPORTING
+        it_controls = mt_static_controls
+        it_values   = ct_values
+      CHANGING
+        ct_states   = ct_states ).
     lt_steps = io_flow->get_steps( ).
     IF line_exists( lt_steps[ screen = iv_screen phase = 'PBO' ] ).
       LOOP AT lt_steps INTO DATA(ls_step)
