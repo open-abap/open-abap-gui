@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>AT SELECTION-SCREEN ON BLOCK</ENTRY>
+     <LENGTH>28</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_A</KEY>
      <ENTRY>A</ENTRY>

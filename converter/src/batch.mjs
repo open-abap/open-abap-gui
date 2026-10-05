@@ -103,7 +103,13 @@ export async function convertConfiguredPrograms({
   // folder and the --output file are not existing classes.
   const globalObjects = await discoverGlobalObjects(config, [targetFolder]);
   const replaced = outputFile ? path.resolve(outputFile) : undefined;
-  const existing = [...globalObjects].filter(([, filename]) => filename !== replaced);
+  // The class's helper classes (zcl_..._h1, _h2) are written over as well;
+  // counted as taken, they would get new names (_h1_1).
+  const replacedHelper = replaced
+    ? new RegExp(`^${replaced.replace(/\.clas\.abap$/i, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_h\\d+\\.clas\\.abap$`, "i")
+    : undefined;
+  const existing = [...globalObjects].filter(([, filename]) => filename !== replaced
+    && !(replacedHelper && replacedHelper.test(filename)));
   const existingClassNames = [...new Set([...(overrides.existingClassNames ?? []), ...existing.map(([name]) => name)])];
   // Named in GGCONV-W106 when a default class name is taken.
   const existingClassFiles = {

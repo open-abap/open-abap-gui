@@ -18,7 +18,8 @@
     "web:transpile": "node test/web-converter-examples.mjs && abap_transpile build/abap_transpile.web.json",
     "web:build": "npm run web:transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots && npm run web:diff",
     "test:converter": "npm --prefix converter run test",
-    "test": "npm run lint && npm run lint:framework && npm run unit && npm run test:crash && npm run test:html-browser && npm run test:converter",
+    "test:examples": "node test/examples-drift.mjs",
+    "test": "npm run lint && npm run lint:framework && npm run unit && npm run test:crash && npm run test:html-browser && npm run test:examples && npm run test:converter",
     "regression": "node .github/regression/run.js"
   },
   "license": "",

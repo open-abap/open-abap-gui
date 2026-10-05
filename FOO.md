@@ -5,9 +5,27 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 ## Needs a decision
 
-Nothing open. The examples still hand-written are 001–057 except 019, 020,
-032 and 044, plus 063, 067, 160 and 164; whether to regenerate them too is
-the next question.
+Nothing open.
+
+## Examples
+
+- Every example class is the converter's output of its program. npm test
+  checks it: test/examples-drift.mjs converts each program as the CLI does
+  and fails when a class, a helper class or a text pool differs;
+  `node test/examples-drift.mjs --update [NNN ...]` regenerates them. The
+  programs 165–169 have no committed class; npm start converts them into
+  build/.
+- The last hand-written classes (001–057, 063, 067, 160, 164) were
+  regenerated; their programs got the titles the classes had (text pool R),
+  31 of them a prog.xml for it. The list title is the program's title now,
+  as on SAP, not the class name.
+- The parity test that ran each hand-written class against the conversion of
+  its program is gone with them; behavioral-generated.mjs keeps the
+  converter's behaviour tests on small programs of its own.
+- The hand-written classes did things their programs do not say: 038 called
+  `suppress_dialog` where the program only returns, 048 wrote "detail
+  header, level 1" for "detail header". A report in the background now shows
+  no screen in the host (`dialog_suppressed`), as on SAP.
 
 ## Converter
 
@@ -30,9 +48,10 @@ the next question.
   takes the parameter name (`listobject`) as the target instead of the actual.
   No `abaplist` DDIC object exists to write `LIST_TO_ASCI` properly.
 - `READ LINE n INDEX i` takes `i` as the line index (lower-statements.mjs).
-- Regenerating a class with local event-handler classes writes new helper
-  classes `zcl_..._h1_1` when the old `zcl_..._h1` file still exists (the CLI
-  sees the name as taken); delete the old helpers before regenerating.
+- Regenerating a class with local classes wrote new helper classes
+  `zcl_..._h1_1` when the old `zcl_..._h1` file still existed (the CLI saw the
+  name as taken). The helpers of the class written over count as replaced
+  now (batch.mjs).
 - Lowering writes each statement on one line; the abaplint quick fixes of
   `line_break_multiple_parameters`, `align_parameters`,
   `unnecessary_chaining` and `indentation` are applied to the generated

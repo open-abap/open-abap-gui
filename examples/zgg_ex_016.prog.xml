@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>PARAMETERS attribute additions</ENTRY>
+     <LENGTH>30</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_NAME</KEY>
      <ENTRY>Name</ENTRY>

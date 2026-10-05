@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>PARAMETERS with DEFAULT</ENTRY>
+     <LENGTH>23</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_CARR</KEY>
      <ENTRY>Carrier</ENTRY>

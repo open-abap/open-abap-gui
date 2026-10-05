@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>AT SELECTION-SCREEN ON EXIT-COMMAND</ENTRY>
+     <LENGTH>35</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_A</KEY>
      <ENTRY>A</ENTRY>

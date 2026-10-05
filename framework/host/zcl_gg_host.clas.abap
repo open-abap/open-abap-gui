@@ -839,7 +839,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
       it_states = lt_states ).
     rs_result-dynamic_selection = lo_session->zif_gg_session_v1~get_compatibility( )->get_dynamic_selection( ).
     rs_result-memory_render_lines = lo_session->get_list_render_from_memory( ).
-    rs_result-dialog_suppressed = lo_session->is_dialog_suppressed( ).
+* In the background a program shows no screen at all, as on SAP.
+    rs_result-dialog_suppressed = xsdbool( lo_session->is_dialog_suppressed( ) = abap_true
+                                           OR iv_batch = abap_true ).
     rs_result-settings = lo_list->get_settings( ).
     IF lv_selection_screen_active = abap_true.
       rs_result-status = lo_session->get_status( ).

@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Typed date time integer decimal and character parameters</ENTRY>
+     <LENGTH>56</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_DATE</KEY>
      <ENTRY>Date</ENTRY>

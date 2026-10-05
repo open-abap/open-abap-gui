@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>AT SELECTION-SCREEN ON VALUE-REQUEST</ENTRY>
+     <LENGTH>36</LENGTH>
+    </item>
+    <item>
      <ID>S</ID>
      <KEY>P_CARR</KEY>
      <ENTRY>Carrier</ENTRY>

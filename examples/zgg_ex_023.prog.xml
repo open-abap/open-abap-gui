@@ -11,6 +11,11 @@
    </PROGDIR>
    <TPOOL>
     <item>
+     <ID>R</ID>
+     <ENTRY>Selection-screen line and position</ENTRY>
+     <LENGTH>34</LENGTH>
+    </item>
+    <item>
      <ID>I</ID>
      <KEY>C01</KEY>
      <ENTRY>Range</ENTRY>
