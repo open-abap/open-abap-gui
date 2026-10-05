@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { convertConfiguredPrograms } from "../src/batch.mjs";
-import { converterRoot } from "./repository.mjs";
+import { converterRoot, isMain } from "./repository.mjs";
 
 // Each folder under test/examples is one conversion case: input/ holds the
 // ABAP sources, output/ the classes the converter must write for them. The
@@ -13,7 +13,7 @@ import { converterRoot } from "./repository.mjs";
 // converter instead of comparing against it.
 
 const examplesRoot = path.join(converterRoot, "test", "examples");
-const update = process.argv.includes("--update");
+const update = isMain(import.meta.url) && process.argv.includes("--update");
 
 async function listFiles(directory) {
   try {
