@@ -111,7 +111,9 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByText("Workbench", {exact: true})).toBeVisible();
   await expect(page.locator(".wb-app-context")).toHaveCount(0);
   await expect(page.locator(".wb-app-list").getByText("Favorites", {exact: true})).toHaveCount(0);
-  await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(1);
+  // The sprite carries the icons the page shows, such as the file icon of each application.
+  await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-file-code")).toHaveCount(1);
+  await expect(page.locator("svg.wb-icon-sprite symbol#wb-icon-folder-open")).toHaveCount(0);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveCount(1);
   await expect(page.locator('.wb-logo-only .wb-welcome-art')).toHaveAttribute("aria-label", "open-abap");
   await expect(page.locator('.wb-logo-mark')).toHaveAttribute("viewBox", "0 0 108 108");
