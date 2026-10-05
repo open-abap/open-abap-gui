@@ -3,7 +3,6 @@
 * Source file: input/zexample_lstatic.prog.abap
 * Source SHA-256: d4e1ce32345f04ac1772c2cdfe2d02956eabcdee1a9e291bd1eddbacb1717ec3
 * Target class: ZCL_EXAMPLE_LSTATIC_H1
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_lstatic_h1 DEFINITION PUBLIC CREATE PUBLIC.
 

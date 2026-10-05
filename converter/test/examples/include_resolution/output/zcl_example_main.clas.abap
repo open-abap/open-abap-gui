@@ -3,7 +3,6 @@
 * Source file: input/zexample_main.prog.abap
 * Source SHA-256: b53402a3b3d5cf57600320ed014dfde4e38ea07f461ff77ae46bbcbbdf4f0e73
 * Target class: ZCL_EXAMPLE_MAIN
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_main DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

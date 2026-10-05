@@ -3,7 +3,6 @@
 * Source file: input/zexample_sql.prog.abap
 * Source SHA-256: ade096f767316a43aae98ed646923bdc2312c942f4c39022691e5e5a4ddcfb72
 * Target class: ZCL_EXAMPLE_SQL
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_sql DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

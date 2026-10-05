@@ -3,7 +3,6 @@
 * Source file: input/zexample_format.prog.abap
 * Source SHA-256: e4fdc96c6876b90d28a3a18db8fa30e495ba8fe210711f7a1700093418660a5a
 * Target class: ZCL_EXAMPLE_FORMAT
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_format DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

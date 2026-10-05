@@ -3,7 +3,6 @@
 * Source file: input/zexample_memory.prog.abap
 * Source SHA-256: a0f79546313ce8225c40d6645fd0f21face0949fdd052500dc882cfb1fc99853
 * Target class: ZCL_EXAMPLE_MEMORY
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_memory DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

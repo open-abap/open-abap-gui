@@ -3,7 +3,6 @@
 * Source file: input/zexample_events.prog.abap
 * Source SHA-256: 194d04542a4ca15cfe4fbd77f45416df05da4a2d4a0c202fc48f4e4e28baf0bf
 * Target class: ZCL_EXAMPLE_EVENTS_H1
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_events_h1 DEFINITION PUBLIC CREATE PUBLIC.
 

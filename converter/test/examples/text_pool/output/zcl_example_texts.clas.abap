@@ -3,7 +3,6 @@
 * Source file: input/zexample_texts.prog.abap
 * Source SHA-256: 841c571e90d784b451edc9c3a1d55508414b4b6b931ab25e5f5f8f4ab05861fd
 * Target class: ZCL_EXAMPLE_TEXTS
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_texts DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

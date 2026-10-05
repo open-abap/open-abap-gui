@@ -3,7 +3,6 @@
 * Source file: input/zexample_counter.prog.abap
 * Source SHA-256: dac1759d3e1a2953ce34fa3a6be549d65a99d7a6aab6b3f09e961dd7c8e65614
 * Target class: ZCL_EXAMPLE_COUNTER
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_counter DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

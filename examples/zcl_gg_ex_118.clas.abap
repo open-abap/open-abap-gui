@@ -3,7 +3,6 @@
 * Source file: examples/zgg_ex_118.prog.abap
 * Source SHA-256: f0482338c3c3239341badd6bc96a78e7676065eeb518d1ba8cfbc70c755e049c
 * Target class: ZCL_GG_EX_118
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_gg_ex_118 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

@@ -3,7 +3,6 @@
 * Source file: input/zexample_incsel.prog.abap
 * Source SHA-256: c5afd08f82a20668adb6f83214723fb65002dfa04543b956224585ab2e1c3002
 * Target class: ZCL_EXAMPLE_INCSEL
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_incsel DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_example_incsel_h1.
 

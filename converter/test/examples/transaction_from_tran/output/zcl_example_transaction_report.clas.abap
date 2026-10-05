@@ -3,7 +3,6 @@
 * Source file: input/zexample_transaction_report.prog.abap
 * Source SHA-256: 8a9d39c173fac26b5a3307874db716a277db049ab052e8e7e47541a35cf50bef
 * Target class: ZCL_EXAMPLE_TRANSACTION_REPORT
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_transaction_report DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

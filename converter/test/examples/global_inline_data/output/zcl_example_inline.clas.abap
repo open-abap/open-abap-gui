@@ -3,7 +3,6 @@
 * Source file: input/zexample_inline.prog.abap
 * Source SHA-256: 3af236ca9514f897d37dc91ffea1fa67eafac347bccbd2f57075aa1482baebed
 * Target class: ZCL_EXAMPLE_INLINE
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_inline DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

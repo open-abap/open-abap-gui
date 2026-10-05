@@ -3,7 +3,6 @@
 * Source file: input/zexample_interactive.prog.abap
 * Source SHA-256: 3aa87a10f3b612830c1c82afc64bb12b29ce11275f1059e69c285143b6f1cad8
 * Target class: ZCL_EXAMPLE_INTERACTIVE
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_interactive DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

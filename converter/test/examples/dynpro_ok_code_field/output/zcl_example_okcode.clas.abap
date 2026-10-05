@@ -3,7 +3,6 @@
 * Source file: input/zexample_okcode.prog.abap
 * Source SHA-256: 95992588ea185e8eef5a14b9fb820c331334f2ccf3ae3354454dc39288074525
 * Target class: ZCL_EXAMPLE_OKCODE
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_okcode DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

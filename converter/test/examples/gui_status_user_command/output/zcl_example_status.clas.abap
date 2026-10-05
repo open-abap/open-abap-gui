@@ -3,7 +3,6 @@
 * Source file: input/zexample_status.prog.abap
 * Source SHA-256: 221a9f4bbf8832730b5c5239962c7d3aa89a7cf8fa858a1279e97aa4acad30d6
 * Target class: ZCL_EXAMPLE_STATUS
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_status DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

@@ -3,7 +3,6 @@
 * Source file: input/zexample_navigation.prog.abap
 * Source SHA-256: c4ad52602b7f944bb95bc1a9671307388e69cc9def5dcd4a69d40c84ff563d86
 * Target class: ZCL_EXAMPLE_NAVIGATION
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_navigation DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

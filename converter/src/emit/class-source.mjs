@@ -1,4 +1,4 @@
-import { CONVERTER_VERSION, MANIFEST_SCHEMA_VERSION } from "../options.mjs";
+import { CONVERTER_VERSION } from "../options.mjs";
 import { textLiteral } from "./abap-text.mjs";
 import { controlObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
 import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
@@ -255,7 +255,6 @@ function header({ className, ir, options }) {
     `* Source file: ${ir.source.filename}`,
     `* Source SHA-256: ${ir.source.sourceHash}`,
     `* Target class: ${className}`,
-    `* Manifest schema: ${MANIFEST_SCHEMA_VERSION}`,
     "* This file is generated migration output; it is safe to edit after review.",
     "",
   ].join("\n");

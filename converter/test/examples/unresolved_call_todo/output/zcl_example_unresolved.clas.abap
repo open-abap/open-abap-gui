@@ -3,7 +3,6 @@
 * Source file: input/zexample_unresolved.prog.abap
 * Source SHA-256: e2a0e7425f826addd36fa149eeec52470251e88c553a1be077955622f253b466
 * Target class: ZCL_EXAMPLE_UNRESOLVED
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_unresolved DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

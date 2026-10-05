@@ -3,7 +3,6 @@
 * Source file: input/zexample_calc.prog.abap
 * Source SHA-256: baa1718460e10fc417f391d59c09931c424cb11f53c1d7dbbc5e4c0c8134257c
 * Target class: ZCL_EXAMPLE_CALC
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_calc DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

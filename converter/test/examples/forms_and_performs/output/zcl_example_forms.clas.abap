@@ -3,7 +3,6 @@
 * Source file: input/zexample_forms.prog.abap
 * Source SHA-256: e36a1cb25cdb81da49c2d215df614d18c1d962a9ebd5eba844f4e05a8f4df709
 * Target class: ZCL_EXAMPLE_FORMS
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_forms DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

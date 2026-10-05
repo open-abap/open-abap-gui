@@ -3,7 +3,6 @@
 * Source file: input/zexample_ddic.prog.abap
 * Source SHA-256: d736ee875fc6268552b715df73edd84d68eebe46136947c56637235941206b71
 * Target class: ZCL_EXAMPLE_DDIC
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_ddic DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

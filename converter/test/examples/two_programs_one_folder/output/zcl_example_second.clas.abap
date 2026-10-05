@@ -3,7 +3,6 @@
 * Source file: input/zexample_second.prog.abap
 * Source SHA-256: 3ffff364d0fdcbb717a059f7373e7852e464c12a5f0c15a427801eca07ff7027
 * Target class: ZCL_EXAMPLE_SECOND
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_second DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

@@ -3,7 +3,6 @@
 * Source file: input/zexample_dialog.prog.abap
 * Source SHA-256: 236f93dbc173f90b088f64eaacde9a39ba063960a465509cf10eb3d8dfdcede8
 * Target class: ZCL_EXAMPLE_DIALOG
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_dialog DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

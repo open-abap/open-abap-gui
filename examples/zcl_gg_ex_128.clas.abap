@@ -3,7 +3,6 @@
 * Source file: examples/zgg_ex_128.prog.abap
 * Source SHA-256: 9da6b2bd0c03f9667e50bdcd22b21675609adc9c9a7bdd152f313e038e2d25e6
 * Target class: ZCL_GG_EX_128
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_gg_ex_128 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_128_h1.
 

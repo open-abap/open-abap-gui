@@ -3,7 +3,6 @@
 * Source file: input/zexample_types.prog.abap
 * Source SHA-256: 8b97bf341c2230f26d1875f5ddc69c22f22518d1e1569e77469f7e8ac8b5294e
 * Target class: ZCL_EXAMPLE_TYPES
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_types DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

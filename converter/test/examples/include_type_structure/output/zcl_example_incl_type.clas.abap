@@ -3,7 +3,6 @@
 * Source file: input/zexample_incl_type.prog.abap
 * Source SHA-256: 2625db581d64099f3245bb132ce5549f595ebfd061ab662c9db1d7c33b604f80
 * Target class: ZCL_EXAMPLE_INCL_TYPE
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_incl_type DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

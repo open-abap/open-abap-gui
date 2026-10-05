@@ -3,7 +3,6 @@
 * Source file: input/zexample_selection.prog.abap
 * Source SHA-256: 7a86e24c372f80027fe7370d5cd920f8dfd503de091d2d152eb7eed8898c1eeb
 * Target class: ZCL_EXAMPLE_SELECTION
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_selection DEFINITION PUBLIC FINAL CREATE PUBLIC.
 

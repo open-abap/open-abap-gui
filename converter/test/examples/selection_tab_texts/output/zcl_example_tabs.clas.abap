@@ -3,7 +3,6 @@
 * Source file: input/zexample_tabs.prog.abap
 * Source SHA-256: 03576dea8dea1b81c864369de17a73d423964ea8de0c06b864d98198a5ff77b6
 * Target class: ZCL_EXAMPLE_TABS
-* Manifest schema: 1
 * This file is generated migration output; it is safe to edit after review.
 CLASS zcl_example_tabs DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
