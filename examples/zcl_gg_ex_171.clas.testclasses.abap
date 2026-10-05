@@ -19,7 +19,7 @@ CLASS ltcl_ex_171 IMPLEMENTATION.
         ( type = zif_gg_session_types_v1=>message_type_success text = `3 entries listed` ) ) ).
 * The count is the status bar's, not a banner above the grid.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS
-      '<span id="wb-status-message" class="wb-status-feedback wb-status-success" role="status" aria-live="polite" title="3 entries listed">' ) ).
+      '<span id="wb-status-message" class="wb-status-feedback wb-status-success" role="status" aria-live="polite" title="3 entries listed" aria-haspopup="dialog" aria-controls="wb-message-details">' ) ).
     cl_abap_unit_assert=>assert_equals(
       act = count( val = ls_result-html
                    sub = `>3 entries listed<` )

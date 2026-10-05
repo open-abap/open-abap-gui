@@ -611,7 +611,8 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     ls_message = status_message( it_messages ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_bottom(
       iv_message = ls_message-text
-      iv_type    = ls_message-type ).
+      iv_type    = ls_message-type
+      is_message = VALUE #( it_messages[ lines( it_messages ) ] OPTIONAL ) ).
   ENDMETHOD.
 
   METHOD status_message.
