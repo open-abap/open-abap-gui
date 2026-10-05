@@ -1000,7 +1000,6 @@ CLASS zcl_gg_host IMPLEMENTATION.
         iv_session_id = iv_session_id
         iv_page_id    = iv_page_id
         iv_title      = lv_title
-        iv_text       = cs_result-messages[ 1 ]-text
         is_context    = ls_context
         it_messages   = cs_result-messages ).
     ELSE.

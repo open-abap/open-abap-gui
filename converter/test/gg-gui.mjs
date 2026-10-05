@@ -427,13 +427,14 @@ async function auditVisualStructure(page, result, recordedFallback) {
     const checks = [];
     const check = (id, pass, evidence) => checks.push({id, pass: Boolean(pass), evidence});
     const requiredByKind = {
-      SELECTION: [".gg-page.gg-page--selection", ".gg-message-region", ".gg-work-area", ".gg-selection"],
-      LIST: [".gg-page.gg-page--list", ".gg-message-region", ".gg-work-area", ".gg-list"],
-      DYNPRO: [".gg-page.gg-page--dynpro", ".gg-message-region", ".gg-work-area", ".gg-dynpro"],
+      SELECTION: [".gg-page.gg-page--selection", ".gg-work-area", ".gg-selection"],
+      LIST: [".gg-page.gg-page--list", ".gg-work-area", ".gg-list"],
+      DYNPRO: [".gg-page.gg-page--dynpro", ".gg-work-area", ".gg-dynpro"],
     };
-    const hierarchy = requiredByKind[kind] ?? [".gg-page", ".gg-message-region"];
+    const hierarchy = requiredByKind[kind] ?? [".gg-page"];
     const hasSelector = (selector) => Boolean(pageRoot?.matches(selector) || pageRoot?.querySelector(selector));
-    check("hierarchy", hierarchy.every(hasSelector), `${kind} page exposes its status/message/work-area hierarchy`);
+    // Messages belong to the shell's status bar, outside the page.
+    check("hierarchy", hierarchy.every(hasSelector) && Boolean(document.querySelector(".wb-statusbar #wb-status-message")), `${kind} page exposes its work-area hierarchy and the status bar message slot`);
     check("page-geometry", Boolean(pageRoot && rect(pageRoot).width > 0 && rect(pageRoot).height > 0), `Page region is ${rect(pageRoot).width} x ${rect(pageRoot).height}`);
     const workArea = pageRoot?.querySelector(".gg-work-area");
     check("work-area-geometry", Boolean(workArea && rect(workArea).width > 0 && rect(workArea).height > 0), `Work area is ${rect(workArea).width} x ${rect(workArea).height}`);

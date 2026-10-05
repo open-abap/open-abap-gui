@@ -1,4 +1,4 @@
-import {test, expect, openExample, submit, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, submit, expectPageKind, statusMessage} from "../fixtures.mjs";
 
 test("ZCL_GG_EX_150 — shows the selected airline's flights in a grid and a chart", async ({page, host}) => {
   await openExample(page, host, 150);
@@ -19,4 +19,14 @@ test("ZCL_GG_EX_150 — selects another airline", async ({page, host}) => {
   await submit(page);
   await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("2 flight(s) of UA from 2026-08-01");
   await expect(page.locator('[data-control-kind="ALV_GRID"]').locator("tbody")).toContainText("0945");
+});
+
+test("ZCL_GG_EX_150 — an empty selection reports in the status bar", async ({page, host}) => {
+  await openExample(page, host, 150);
+  await page.locator('[name="P_CARR"]').fill("XX");
+  await submit(page);
+  await expectPageKind(page, "MESSAGE");
+  await expect(statusMessage(page)).toHaveText("No flights for this selection");
+  await expect(statusMessage(page)).toHaveClass(/wb-status-error/);
+  await expect(page.locator("main")).not.toContainText("No flights for this selection");
 });
