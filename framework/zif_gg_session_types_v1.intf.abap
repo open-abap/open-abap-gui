@@ -56,13 +56,17 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            loop_lines   TYPE i,
          END OF ty_dynpro_context.
 
+* level is sy-lsind, list_index sy-listi (the list an interactive event was
+* triggered on) and selected_line sy-lilli (its line).
   TYPES: BEGIN OF ty_list_context,
-           active TYPE abap_bool,
-           level  TYPE i,
-           page   TYPE i,
-           line   TYPE i,
-           column TYPE i,
-           ucomm  TYPE zif_gg_list_processing_types_v1=>ty_ucomm,
+           active        TYPE abap_bool,
+           level         TYPE i,
+           page          TYPE i,
+           line          TYPE i,
+           column        TYPE i,
+           ucomm         TYPE zif_gg_list_processing_types_v1=>ty_ucomm,
+           list_index    TYPE i,
+           selected_line TYPE i,
          END OF ty_list_context.
 
   TYPES: BEGIN OF ty_context,

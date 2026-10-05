@@ -21,10 +21,13 @@ CLASS ltcl_ex_98 IMPLEMENTATION.
   METHOD filters_flights.
     DATA(ls_result) = zcl_gg_host=>run( io_report       = NEW zcl_gg_ex_098( )
                                         iv_user_command = 'FILTER' ).
-* The basic list keeps all four flights; the detail list holds the filtered.
+* The basic list keeps all four flights; the detail list shown holds the
+* filtered ones.
+    cl_abap_unit_assert=>assert_equals( act = ls_result-list_level
+                                        exp = 1 ).
     cl_abap_unit_assert=>assert_equals( act = lines( ls_result-lines )
-                                        exp = 6 ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-lines[ 5 ] CP 'LH*' AND ls_result-lines[ 6 ] CP 'LH*' ) ).
+                                        exp = 2 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-lines[ 1 ] CP 'LH*' AND ls_result-lines[ 2 ] CP 'LH*' ) ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-title
                                         exp = 'Flights: FILTERED' ).
   ENDMETHOD.

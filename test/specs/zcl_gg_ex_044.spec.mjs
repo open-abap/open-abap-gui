@@ -17,7 +17,8 @@ test(`ZCL_GG_EX_044 — renders PF-STATUS and excluded commands`, async ({page, 
   await expect(iconBar.getByRole("button", {name: "Print"}).locator("use")).toHaveAttribute("href", "#wb-icon-printer");
   await iconBar.getByRole("button", {name: "Refresh"}).click();
   await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line")).toHaveText(["body", "refreshed"]);
+  // The output of AT USER-COMMAND is the detail list.
+  await expect(page.locator(".gg-list-line")).toHaveText(["refreshed"]);
 });
 
 test(`ZCL_GG_EX_044 — the status activates the standard print command`, async ({page, host}) => {

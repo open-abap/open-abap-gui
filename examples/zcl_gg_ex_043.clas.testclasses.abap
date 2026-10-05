@@ -16,12 +16,13 @@ CLASS ltcl_ex_43 IMPLEMENTATION.
       io_report     = NEW zcl_gg_ex_043( )
       iv_line_index = 2 ).
 
+* The output of AT LINE-SELECTION is the detail list, level 1.
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-list_level
+      exp = 1 ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
       exp = VALUE zcl_gg_host_list=>ty_text_lines(
-        ( `1` )
-        ( `2` )
-        ( `3` )
         ( `2` ) ) ).
   ENDMETHOD.
 

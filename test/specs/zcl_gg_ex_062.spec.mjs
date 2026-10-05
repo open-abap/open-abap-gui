@@ -7,7 +7,7 @@ test("ZCL_GG_EX_062 — changes the status after Next", async ({page, host}) => 
   await expect(page.locator(".wb-toolbar").getByRole("button", {name: "Done"})).toBeDisabled();
   await dispatch(page, {action: "COMMAND", ucomm: "NEXT"});
   await expect(page.locator(".gg-list-status")).toHaveText("SHELL62-DONE");
-  await expect(page.locator(".gg-list-line")).toHaveText(["initial", "advanced"]);
+  await expect(page.locator(".gg-list-line")).toHaveText(["advanced"]);
   await expect(page.locator(".wb-toolbar").getByRole("button", {name: "Next"})).toBeDisabled();
   await expect(page.locator(".wb-toolbar").getByRole("button", {name: "Done"})).toBeEnabled();
 });

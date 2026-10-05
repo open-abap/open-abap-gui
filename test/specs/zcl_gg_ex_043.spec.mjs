@@ -5,6 +5,6 @@ test(`ZCL_GG_EX_043 — round-trips HIDE values on line selection`, async ({page
   await expectPageKind(page, "LIST");
   await expect(page.locator(".gg-list-line")).toHaveCount(3);
   await submit(page, "Select line 2");
-  await expect(page.locator(".gg-list-line")).toHaveCount(4);
-  await expect(page.locator(".gg-list-line").last()).toHaveText("2");
+  // AT LINE-SELECTION writes the detail list, which replaces the basic list.
+  await expect(page.locator(".gg-list-line")).toHaveText(["2"]);
 });

@@ -6,5 +6,5 @@ test(`ZCL_GG_EX_049 — renders a PF event report`, async ({page, host}) => {
   await expect(page.locator(".gg-list-line")).toHaveText("body");
   await dispatch(page, {action: "PF", pf_key: 5});
   await expectPageKind(page, "LIST");
-  await expect(page.locator(".gg-list-line")).toHaveText(["body", "pf5"]);
+  await expect(page.locator(".gg-list-line")).toHaveText(["pf5"]);
 });

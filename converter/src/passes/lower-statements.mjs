@@ -246,7 +246,9 @@ function replaceListColorConstants(value) {
 
 function replaceListContextFields(value) {
   return value
-    .replace(/\bsy-(?:linno|lilli)\b/gi, "io_session->get_list( )->get_context( )-line")
+    .replace(/\bsy-linno\b/gi, "io_session->get_list( )->get_context( )-line")
+    .replace(/\bsy-lilli\b/gi, "io_session->get_list( )->get_context( )-selected_line")
+    .replace(/\bsy-listi\b/gi, "io_session->get_list( )->get_context( )-list_index")
     .replace(/\bsy-pagno\b/gi, "io_session->get_list( )->get_context( )-page");
 }
 
@@ -673,7 +675,10 @@ function dataValueRewrites(context) {
 // The session holds these, so they become method call chains, which only an
 // operand position that accepts an expression can take.
 const SESSION_VALUE_REWRITES = [
-  ["sy-(?:linno|lilli)", "io_session->get_list( )->get_context( )-line"],
+  ["sy-linno", "io_session->get_list( )->get_context( )-line"],
+  // The line and the list an interactive event was triggered on.
+  ["sy-lilli", "io_session->get_list( )->get_context( )-selected_line"],
+  ["sy-listi", "io_session->get_list( )->get_context( )-list_index"],
   ["sy-pagno", "io_session->get_list( )->get_context( )-page"],
   ["sy-repid", "io_session->get_context( )-program-program"],
   ["sy-batch", "io_session->get_context( )-program-batch"],

@@ -21,9 +21,12 @@ CLASS ltcl_ex_84 IMPLEMENTATION.
   METHOD restores_hidden_values.
     DATA(ls_result) = zcl_gg_host=>run( io_report     = NEW zcl_gg_ex_084( )
                                         iv_line_index = 2 ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-lines[ table_line = 'selected bravo' ] ) ) ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-render_lines[ 2 ]-fields[ name = 'GV_SECRET' ]-value
-                                        exp = 'bravo' ).
+* The HIDE values of the chosen line are back for AT LINE-SELECTION, whose
+* output is the detail list.
+    cl_abap_unit_assert=>assert_equals( act = ls_result-lines
+                                        exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `selected bravo` ) ) ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-list_level
+                                        exp = 1 ).
   ENDMETHOD.
 
 ENDCLASS.

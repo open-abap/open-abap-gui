@@ -11,6 +11,12 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 *
 * Interactive list processing is driven explicitly by the host and retains
 * hidden fields, cursor context, list levels, and line formats.
+*
+* List levels: the basic list is level 0. An interactive event starts the
+* next level (begin_event); what it writes goes there, and end_event keeps
+* it as the list shown, or drops it when the event wrote nothing. A program
+* that sets sy-lsind lower replaces that level. Each level has its own
+* lines, pages and hidden fields; the levels below stay readable.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_list_session_v1.
@@ -116,11 +122,58 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_field TYPE zif_gg_session_types_v1=>ty_name OPTIONAL
         iv_value TYPE string OPTIONAL.
 
-    METHODS begin_line_selection
+    "! An interactive event on line iv_line of the list shown starts the next
+    "! list level.
+    METHODS begin_event
       IMPORTING
-        iv_level TYPE i.
+        iv_line TYPE i OPTIONAL.
+
+    METHODS end_event.
 
   PRIVATE SECTION.
+    TYPES: BEGIN OF ty_buffer,
+             level             TYPE i,
+             page              TYPE i,
+             line              TYPE i,
+             column            TYPE i,
+             current           TYPE string,
+             lines             TYPE ty_text_lines,
+             line_formats      TYPE ty_line_formats,
+             hidden_lines      TYPE ty_hidden_lines,
+             current_hidden    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields,
+             render_lines      TYPE ty_render_lines,
+             current_fragments TYPE ty_fragments,
+             visible_page      TYPE i,
+             selected_line     TYPE i,
+             cursor_field      TYPE zif_gg_session_types_v1=>ty_name,
+             cursor_value      TYPE string,
+             no_gap            TYPE abap_bool,
+           END OF ty_buffer.
+    TYPES ty_buffers TYPE STANDARD TABLE OF ty_buffer WITH DEFAULT KEY.
+
+* The levels below the one being written, and the event that is running:
+* the list it was triggered on (sy-listi), its line (sy-lilli) and the level
+* it writes.
+    DATA mt_buffers TYPE ty_buffers.
+    DATA mv_event_active TYPE abap_bool.
+    DATA mv_list_index TYPE i.
+    DATA mv_event_line TYPE i.
+    DATA mv_event_level TYPE i.
+
+    METHODS save_buffer
+      RETURNING
+        VALUE(rs_buffer) TYPE ty_buffer.
+
+    METHODS load_buffer
+      IMPORTING
+        is_buffer TYPE ty_buffer.
+
+    METHODS buffer_of
+      IMPORTING
+        iv_level         TYPE i
+      RETURNING
+        VALUE(rs_buffer) TYPE ty_buffer.
+
     DATA mo_session   TYPE REF TO zif_gg_session_v1.
     DATA mo_handler   TYPE REF TO zif_gg_list_processing_v1.
     DATA ms_settings  TYPE zif_gg_list_processing_types_v1=>ty_settings.
@@ -236,6 +289,8 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     rs_context-line   = mv_line.
     rs_context-column = mv_column.
     rs_context-level  = mv_list_level.
+    rs_context-list_index = COND #( WHEN mv_event_active = abap_true THEN mv_list_index ELSE mv_list_level ).
+    rs_context-selected_line = mv_event_line.
   ENDMETHOD.
 
   METHOD get_format.
@@ -289,17 +344,83 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD begin_line_selection.
-    ensure_page( ).
-    IF mo_handler IS BOUND.
-      mv_in_event = abap_true.
-      mo_handler->top_of_page_during_line_sel(
-        iv_level   = iv_level
-        iv_page    = mv_page
-        io_session = mo_session ).
-      mv_in_event = abap_false.
-      end_line( ).
+  METHOD begin_event.
+    end_line( ).
+    mv_list_index = mv_list_level.
+    mv_event_line = iv_line.
+    DELETE mt_buffers WHERE level >= mv_list_level.
+    APPEND save_buffer( ) TO mt_buffers.
+    mv_event_level = mv_list_level + 1.
+    mv_event_active = abap_true.
+    load_buffer( VALUE #( level = mv_event_level column = 1 ) ).
+  ENDMETHOD.
+
+  METHOD end_event.
+    DATA lv_level TYPE i.
+
+    end_line( ).
+    mv_event_active = abap_false.
+* No output: no new list, the list the event ran on stays.
+    IF mt_lines IS INITIAL.
+      load_buffer( buffer_of( mv_list_index ) ).
+      DELETE mt_buffers WHERE level >= mv_list_index.
+      RETURN.
     ENDIF.
+* sy-lsind set lower in the event: the new list replaces that level.
+    lv_level = COND #( WHEN mv_list_level < mv_event_level AND mv_list_level >= 0
+                       THEN mv_list_level ELSE mv_event_level ).
+    DELETE mt_buffers WHERE level >= lv_level.
+    mv_list_level = lv_level.
+    LOOP AT mt_render_lines ASSIGNING FIELD-SYMBOL(<ls_line>).
+      <ls_line>-level = lv_level.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD save_buffer.
+    rs_buffer = VALUE #(
+      level             = mv_list_level
+      page              = mv_page
+      line              = mv_line
+      column            = mv_column
+      current           = mv_current
+      lines             = mt_lines
+      line_formats      = mt_line_formats
+      hidden_lines      = mt_hidden_lines
+      current_hidden    = mt_current_hidden
+      render_lines      = mt_render_lines
+      current_fragments = mt_current_fragments
+      visible_page      = mv_visible_page
+      selected_line     = mv_selected_line
+      cursor_field      = mv_cursor_field
+      cursor_value      = mv_cursor_value
+      no_gap            = mv_no_gap ).
+  ENDMETHOD.
+
+  METHOD load_buffer.
+    mv_list_level = is_buffer-level.
+    mv_page = is_buffer-page.
+    mv_line = is_buffer-line.
+    mv_column = is_buffer-column.
+    mv_current = is_buffer-current.
+    mt_lines = is_buffer-lines.
+    mt_line_formats = is_buffer-line_formats.
+    mt_hidden_lines = is_buffer-hidden_lines.
+    mt_current_hidden = is_buffer-current_hidden.
+    mt_render_lines = is_buffer-render_lines.
+    mt_current_fragments = is_buffer-current_fragments.
+    mv_visible_page = is_buffer-visible_page.
+    mv_selected_line = is_buffer-selected_line.
+    mv_cursor_field = is_buffer-cursor_field.
+    mv_cursor_value = is_buffer-cursor_value.
+    mv_no_gap = is_buffer-no_gap.
+  ENDMETHOD.
+
+  METHOD buffer_of.
+    IF iv_level = mv_list_level.
+      rs_buffer = save_buffer( ).
+      RETURN.
+    ENDIF.
+    READ TABLE mt_buffers INTO rs_buffer WITH KEY level = iv_level.
   ENDMETHOD.
 
   METHOD ensure_page.
@@ -318,9 +439,17 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       RETURN.
     ENDIF.
     mv_in_event = abap_true.
-    mo_handler->top_of_page(
-      iv_page    = mv_page
-      io_session = mo_session ).
+* A detail list's page header comes from TOP-OF-PAGE DURING LINE-SELECTION.
+    IF mv_list_level > 0.
+      mo_handler->top_of_page_during_line_sel(
+        iv_level   = mv_list_level
+        iv_page    = mv_page
+        io_session = mo_session ).
+    ELSE.
+      mo_handler->top_of_page(
+        iv_page    = mv_page
+        io_session = mo_session ).
+    ENDIF.
     mv_in_event = abap_false.
     end_line( ).
   ENDMETHOD.
@@ -381,7 +510,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_page_full.
-    IF mv_in_event = abap_true OR ms_settings-line_count <= 0.
+* LINE-COUNT of the program holds for the basic list; detail lists have
+* pages of unlimited length.
+    IF mv_in_event = abap_true OR ms_settings-line_count <= 0 OR mv_list_level > 0.
       RETURN.
     ENDIF.
     IF mv_line < body_lines( ).
@@ -726,13 +857,15 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~get_cursor.
-    rs_cursor-page   = mv_page.
-    rs_cursor-line   = mv_line.
-    rs_cursor-column = mv_column.
-    IF mv_selected_line > 0.
-      rs_cursor-line  = mv_selected_line.
-      rs_cursor-field = mv_cursor_field.
-      rs_cursor-value = mv_cursor_value.
+* In an interactive event, GET CURSOR reads the list it was triggered on.
+    DATA(ls_buffer) = buffer_of( COND #( WHEN mv_event_active = abap_true THEN mv_list_index ELSE mv_list_level ) ).
+    rs_cursor-page   = ls_buffer-page.
+    rs_cursor-line   = ls_buffer-line.
+    rs_cursor-column = ls_buffer-column.
+    IF ls_buffer-selected_line > 0.
+      rs_cursor-line  = ls_buffer-selected_line.
+      rs_cursor-field = ls_buffer-cursor_field.
+      rs_cursor-value = ls_buffer-cursor_value.
     ENDIF.
   ENDMETHOD.
 
@@ -748,22 +881,37 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~read_line.
-    IF iv_index < 1 OR iv_index > lines( mt_lines ).
+* Without INDEX, READ LINE reads the list the event was triggered on.
+    DATA(lv_level) = COND i( WHEN iv_level IS SUPPLIED THEN iv_level
+                             WHEN mv_event_active = abap_true THEN mv_list_index
+                             ELSE mv_list_level ).
+    DATA(ls_buffer) = buffer_of( lv_level ).
+    IF iv_index < 1 OR iv_index > lines( ls_buffer-lines ).
       RETURN.
     ENDIF.
-    rs_line-level = iv_level.
+    rs_line-level = lv_level.
     rs_line-index = iv_index.
-    rs_line-page  = mv_page.
-    rs_line-text  = mt_lines[ iv_index ].
-    IF iv_index <= lines( mt_hidden_lines ).
-      rs_line-fields = mt_hidden_lines[ iv_index ].
+    rs_line-page  = VALUE #( ls_buffer-render_lines[ iv_index ]-page OPTIONAL ).
+    rs_line-text  = ls_buffer-lines[ iv_index ].
+    IF iv_index <= lines( ls_buffer-hidden_lines ).
+      rs_line-fields = ls_buffer-hidden_lines[ iv_index ].
     ENDIF.
-    IF iv_index <= lines( mt_line_formats ).
-      rs_line-format = mt_line_formats[ iv_index ].
+    IF iv_index <= lines( ls_buffer-line_formats ).
+      rs_line-format = ls_buffer-line_formats[ iv_index ].
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~modify_line.
+* A line of a lower level is changed in that level's buffer.
+    IF is_line-level <> mv_list_level AND line_exists( mt_buffers[ level = is_line-level ] ).
+      DATA(ls_current) = save_buffer( ).
+      DATA(lv_index) = line_index( mt_buffers[ level = is_line-level ] ).
+      load_buffer( mt_buffers[ lv_index ] ).
+      zif_gg_list_session_v1~modify_line( is_line ).
+      mt_buffers[ lv_index ] = save_buffer( ).
+      load_buffer( ls_current ).
+      RETURN.
+    ENDIF.
     IF is_line-index < 1 OR is_line-index > lines( mt_lines ).
       RETURN.
     ENDIF.

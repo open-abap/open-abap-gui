@@ -10,5 +10,6 @@ test("ZCL_GG_EX_059 — renders only the example-owned icon bar", async ({page, 
   await expect(toolbar.locator(".wb-toolbar-separator")).toHaveCount(1);
   await toolbar.getByRole("button", {name: "Refresh"}).click();
   await page.waitForLoadState("load");
-  await expect(page.locator(".gg-list-line")).toHaveText(["body", "refreshed"]);
+  // The output of AT USER-COMMAND is the detail list.
+  await expect(page.locator(".gg-list-line")).toHaveText(["refreshed"]);
 });

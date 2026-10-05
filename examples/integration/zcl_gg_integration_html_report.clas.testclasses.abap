@@ -95,10 +95,10 @@ CLASS ltcl_gg_html_report IMPLEMENTATION.
       iv_line_index = 2 ).
 
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 3 ]
+      act = ls_result-lines[ 1 ]
       exp = 'Selected flight: AA/0018 20260115' ).
     cl_abap_unit_assert=>assert_equals(
-      act = ls_result-lines[ 4 ]
+      act = ls_result-lines[ 2 ]
       exp = 'Cursor: CARRID=AA line=2' ).
   ENDMETHOD.
 

@@ -17,7 +17,6 @@ CLASS ltcl_ex_44 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
       exp = VALUE zcl_gg_host_list=>ty_text_lines(
-        ( `body` )
         ( `refreshed` ) ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-status-status
@@ -101,7 +100,6 @@ CLASS ltcl_ex_44 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_allowed-compatibility-lines
       exp = VALUE zcl_gg_host_list=>ty_text_lines(
-        ( `body` )
         ( `refreshed` ) ) ).
     zcl_gg_host_runtime=>clear( ).
   ENDMETHOD.

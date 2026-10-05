@@ -21,10 +21,22 @@
       <ACTCODE>000001</ACTCODE>
       <PFKCODE>000001</PFKCODE>
       <BUTCODE>0001</BUTCODE>
-      <INT_NOTE>Refreshable list</INT_NOTE>
+      <INT_NOTE>Seats</INT_NOTE>
      </RSMPE_STAT>
     </STA>
     <FUN>
+     <RSMPE_FUNT>
+      <CODE>%EX</CODE>
+      <TEXTNO>001</TEXTNO>
+      <TEXT_TYPE>S</TEXT_TYPE>
+      <FUN_TEXT>Exit</FUN_TEXT>
+     </RSMPE_FUNT>
+     <RSMPE_FUNT>
+      <CODE>BACK</CODE>
+      <TEXTNO>001</TEXTNO>
+      <TEXT_TYPE>S</TEXT_TYPE>
+      <FUN_TEXT>Back</FUN_TEXT>
+     </RSMPE_FUNT>
      <RSMPE_FUNT>
       <CODE>REFRESH</CODE>
       <TEXTNO>001</TEXTNO>
@@ -33,7 +45,12 @@
       <ICON_ID>@42@</ICON_ID>
       <FUN_TEXT>Refresh</FUN_TEXT>
       <ICON_TEXT>Refresh</ICON_TEXT>
-      <INFO_TEXT>Refresh from the server state</INFO_TEXT>
+     </RSMPE_FUNT>
+     <RSMPE_FUNT>
+      <CODE>RW</CODE>
+      <TEXTNO>001</TEXTNO>
+      <TEXT_TYPE>S</TEXT_TYPE>
+      <FUN_TEXT>Cancel</FUN_TEXT>
      </RSMPE_FUNT>
     </FUN>
     <BUT>
@@ -47,12 +64,42 @@
     <PFK>
      <RSMPE_PFK>
       <CODE>000001</CODE>
+      <PFNO>03</PFNO>
+      <FUNCODE>BACK</FUNCODE>
+      <FUNNO>001</FUNNO>
+     </RSMPE_PFK>
+     <RSMPE_PFK>
+      <CODE>000001</CODE>
+      <PFNO>15</PFNO>
+      <FUNCODE>%EX</FUNCODE>
+      <FUNNO>001</FUNNO>
+     </RSMPE_PFK>
+     <RSMPE_PFK>
+      <CODE>000001</CODE>
+      <PFNO>12</PFNO>
+      <FUNCODE>RW</FUNCODE>
+      <FUNNO>001</FUNNO>
+     </RSMPE_PFK>
+     <RSMPE_PFK>
+      <CODE>000001</CODE>
       <PFNO>13</PFNO>
       <FUNCODE>REFRESH</FUNCODE>
       <FUNNO>001</FUNNO>
      </RSMPE_PFK>
     </PFK>
     <SET>
+     <RSMPE_STAF>
+      <STATUS>LIST</STATUS>
+      <FUNCTION>BACK</FUNCTION>
+     </RSMPE_STAF>
+     <RSMPE_STAF>
+      <STATUS>LIST</STATUS>
+      <FUNCTION>%EX</FUNCTION>
+     </RSMPE_STAF>
+     <RSMPE_STAF>
+      <STATUS>LIST</STATUS>
+      <FUNCTION>RW</FUNCTION>
+     </RSMPE_STAF>
      <RSMPE_STAF>
       <STATUS>LIST</STATUS>
       <FUNCTION>REFRESH</FUNCTION>
@@ -62,8 +109,8 @@
    <TPOOL>
     <item>
      <ID>R</ID>
-     <ENTRY>Command-driven refresh</ENTRY>
-     <LENGTH>22</LENGTH>
+     <ENTRY>Refresh a detail list</ENTRY>
+     <LENGTH>21</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

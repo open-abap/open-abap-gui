@@ -141,6 +141,16 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 
+* An interactive list event replays the program from its start; a new
+* instance gives it the program's data as it was when the list was written.
+* Only a transaction's class is created anew, as the runtime creates those
+* without parameters anyway.
+    CLASS-METHODS fresh_report
+      IMPORTING
+        io_report        TYPE REF TO zif_gg_report_v1
+      RETURNING
+        VALUE(ro_report) TYPE REF TO zif_gg_report_v1.
+
     CLASS-METHODS report_for_submit
       IMPORTING
         iv_program       TYPE zif_gg_session_types_v1=>ty_program
@@ -855,6 +865,11 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    IF is_request-action = zif_gg_host_html_v1=>action_line
+        OR is_request-action = zif_gg_host_html_v1=>action_command
+        OR is_request-action = zif_gg_host_html_v1=>action_pf.
+      ls_session-report = fresh_report( ls_session-report ).
+    ENDIF.
     CASE is_request-action.
       WHEN zif_gg_host_html_v1=>action_line.
         lv_index = is_request-row.
@@ -865,7 +880,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_batch               = ls_session-batch
           it_input               = lt_input
           iv_line_index          = lv_index
-          iv_line_level          = 1
+          it_list_path           = ls_session-last_result-list_path
           iv_cursor_field        = CONV zif_gg_session_types_v1=>ty_name( is_request-cursor_field )
           iv_cursor_value        = is_request-cursor_value
           iv_session_id          = ls_session-session_id
@@ -884,6 +899,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_list_value          = is_request-value
           iv_list_target         = is_request-target
           is_list_find           = ls_session-last_result-list_outcome-find
+          it_list_path           = ls_session-last_result-list_path
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
@@ -896,6 +912,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_batch               = ls_session-batch
           it_input               = lt_input
           iv_pf_key              = is_request-pf_key
+          it_list_path           = ls_session-last_result-list_path
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
@@ -1048,6 +1065,24 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDWHILE.
   ENDMETHOD.
 
+  METHOD fresh_report.
+    DATA lo_transaction TYPE REF TO zif_gg_transaction_v1.
+
+    ro_report = io_report.
+    TRY.
+        lo_transaction ?= io_report.
+      CATCH cx_sy_move_cast_error.
+        RETURN.
+    ENDTRY.
+    DATA(lv_class_name) = cl_abap_classdescr=>get_class_name( io_report ).
+    REPLACE FIRST OCCURRENCE OF '\CLASS=' IN lv_class_name WITH ''.
+    TRY.
+        CREATE OBJECT ro_report TYPE (lv_class_name).
+      CATCH cx_sy_create_object_error.
+        ro_report = io_report.
+    ENDTRY.
+  ENDMETHOD.
+
   METHOD report_for_submit.
     DATA lv_class_name TYPE string.
 
@@ -1132,6 +1167,16 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+* A list replaces the lists of its level and above: an event that wrote
+* nothing keeps the level, and sy-lsind set lower replaces a lower one. Back
+* then shows the level below.
+    IF is_result-page_kind = zif_gg_host_html_v1=>page_list.
+      WHILE lines( cs_session-results ) > 0
+          AND cs_session-results[ lines( cs_session-results ) ]-page_kind = zif_gg_host_html_v1=>page_list
+          AND cs_session-results[ lines( cs_session-results ) ]-list_level >= is_result-list_level.
+        DELETE cs_session-results INDEX lines( cs_session-results ).
+      ENDWHILE.
+    ENDIF.
     APPEND is_result TO cs_session-results.
     APPEND is_result-page TO cs_session-pages.
   ENDMETHOD.

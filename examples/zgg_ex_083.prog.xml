@@ -12,8 +12,8 @@
    <TPOOL>
     <item>
      <ID>R</ID>
-     <ENTRY>Multi-level drill-down</ENTRY>
-     <LENGTH>22</LENGTH>
+     <ENTRY>Drill down through list levels</ENTRY>
+     <LENGTH>30</LENGTH>
     </item>
    </TPOOL>
   </asx:values>

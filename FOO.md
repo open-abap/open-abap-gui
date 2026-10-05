@@ -5,14 +5,6 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
 
 ## Needs a decision
 
-- **Event output does not open a detail list (066, 085).** Output written in
-  `AT USER-COMMAND` or `AT LINE-SELECTION` is appended to the basic list; on
-  SAP it forms a new list level (`sy-lsind` 1) that replaces the basic list on
-  the screen until Back. Same root as the missing list-level stack below.
-- **No list-level stack (083).** Every request re-runs the report and applies
-  one line selection to the basic list (`iv_line_level = 1`), so a line of a
-  detail list cannot be chosen: level-2 drill-down does not work. The runtime
-  would have to keep the path of chosen lines and replay it.
 - **PBO runs twice per round trip.** The host replays the PBO of the shown
   screen at the start of a request (it rebuilds the screen's states that way),
   then runs PAI, then PBO. PBO after PAI now always runs with the real screen
@@ -292,6 +284,36 @@ classes with the converter (see examples/zgg_ex_NNN.prog.abap).
     active or excluded function code (invented).
   - The status menus posted `gg-dynpro-form` on every page, so they did
     nothing on a list; they post the page's form now.
+- List levels, done with 066, 083 and 085:
+  - An interactive event (`AT LINE-SELECTION`, `AT USER-COMMAND`, `AT PFnn`)
+    writes the next list level, which replaces the list on the screen. Before,
+    its output was appended to the basic list and a line of a detail list
+    could not be chosen.
+  - An event that writes nothing keeps the list. Setting `sy-lsind` lower
+    makes the new list replace that level. Back shows the level below.
+  - Each level has its own lines, pages and HIDE values.
+    `TOP-OF-PAGE DURING LINE-SELECTION` heads a detail list's pages, and
+    detail lists have no `LINE-COUNT` page breaks.
+  - `READ LINE` and `GET CURSOR` read the list the event was triggered on,
+    and `MODIFY LINE` changes a line of any level. `sy-listi` and `sy-lilli`
+    are new; `sy-lilli` was the current write line (`sy-linno`) before.
+  - The runtime keeps the path of events to the list shown and replays it on
+    every request, starting from a new instance of the report class (only a
+    transaction class; others are reused). Before, a re-run kept the globals
+    of the run before it.
+  - The hand-written 043, 044, 047, 048, 049, 059, 062, 063, 084 and 098
+    tests and the integration fixtures expected the appended output; they now
+    expect the detail list. zcl_gg_integration_interactive called `LEAVE TO
+    LIST-PROCESSING` inside `AT LINE-SELECTION`, which is dialog-only; it is
+    gone.
+- Open, list levels:
+  - The replay runs START-OF-SELECTION and every event again for each
+    request. A program with side effects outside its own data (a database
+    update, a file) repeats them; on SAP the program keeps running.
+  - The 20-level limit and `sy-lsind` greater than the next level are not
+    checked.
+  - `WRITE` of a `c` field drops its trailing blanks (`|{ field }|`), so the
+    columns after it move left (083: `0400 Frankfurt New York`).
 - Open, list processor:
   - Find has no options (case, from the cursor) and does not wrap around;
     SAP GUI shows the hits in a list when there are several.
