@@ -569,7 +569,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-range-editor-actions\{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #b4c8db;\}|.
     rv_html = rv_html && |.gg-range-editor-spacer\{flex:1 1 auto;\}|.
     rv_html = rv_html && |@keyframes gg-value-help-in\{from\{opacity:0\}to\{opacity:1\}\}|.
-    rv_html = rv_html && |@media(prefers-reduced-motion:reduce)\{.gg-value-help-modal\{animation:none\}\}|.
+    rv_html = rv_html && |@media(prefers-reduced-motion:reduce)\{.gg-value-help-modal,.gg-popup-modal,.gg-range-editor-modal\{animation:none\}\}|.
     rv_html = rv_html && |@media(max-width:480px)\{.gg-value-help-modal\{padding:12px\}.gg-value-help-panel\{max-height:calc(100vh - 24px)\}\}|.
     rv_html = rv_html && |@media(max-width:760px)\{.gg-free-selection-modal\{padding:10px\}.gg-free-selection-body\{grid-template-columns:1fr\}.gg-free-selection-tree\{border-right:0;border-bottom:1px solid #b4c8db\}\}|.
     rv_html = rv_html && |@media(max-width:760px)\{.gg-free-selection-row\{grid-template-columns:1fr 1fr\}.gg-free-selection-row label\{grid-column:1\}\}|.
