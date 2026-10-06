@@ -15,8 +15,12 @@ test("ZCL_GG_EX_067 — renders typed parameter definitions and values", async (
   await page.locator('[name="P_CHAR"]').fill("typed value ");
   await submit(page);
   await expectPageKind(page, "LIST");
+  // DATE = USER uses the Node host's locale; the host inherits our environment.
+  const expectedDate = new Intl.DateTimeFormat("default", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  }).format(new Date(2026, 7, 30));
   await expect(page.locator(".gg-list-line")).toHaveText([
-    "30/08/2026",
+    expectedDate,
     "12:34:56",
     "42",
     "123.45",
