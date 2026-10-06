@@ -112,6 +112,9 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
       RETURNING
         VALUE(result) TYPE abap_bool.
 
+  PROTECTED SECTION.
+    METHODS receive_frontend_values REDEFINITION.
+
   PRIVATE SECTION.
     DATA mv_text TYPE string.
     DATA mv_saved_text TYPE string.
@@ -135,6 +138,22 @@ CLASS cl_gui_textedit DEFINITION INHERITING FROM cl_gui_control PUBLIC.
 ENDCLASS.
 
 CLASS cl_gui_textedit IMPLEMENTATION.
+  METHOD receive_frontend_values.
+    READ TABLE values INTO DATA(ls_text) WITH KEY name = 'TEXT'.
+    IF sy-subrc <> 0 OR mv_readonly = 1.
+      RETURN.
+    ENDIF.
+    IF mv_text <> ls_text-value.
+      mv_saved_text = mv_text.
+      mv_text = ls_text-value.
+      mv_modified = 1.
+      cl_gui_control=>set_payload( control = me
+                                   payload = mv_text ).
+      cl_gui_control=>set_text_state( control  = me
+                                      modified = mv_modified ).
+    ENDIF.
+  ENDMETHOD.
+
   METHOD set_wordwrap_behavior.
     IF wordwrap_mode >= 0.
       mv_wordwrap_mode = wordwrap_mode.

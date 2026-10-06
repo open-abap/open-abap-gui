@@ -180,7 +180,15 @@ CLASS zcl_gg_ex_100 IMPLEMENTATION.
       gv_output = CONV #( ct_values[ name = 'GV_OUTPUT' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'APPLY' ) ) icon_bar = VALUE #( ( ucomm = 'APPLY' label = 'Apply' icon = 'ICON_OKAY' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 )
+        ( 13 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' )
+        ( number = 13 ucomm = 'APPLY' ) ) icon_bar = VALUE #( ( ucomm = 'APPLY' label = 'Apply' icon = 'ICON_OKAY' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -268,16 +276,28 @@ CLASS zcl_gg_ex_100 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
 * PBO fills the screen fields from the program, PAI brings them back.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ( 'APPLY' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'APPLY' label = 'Apply' icon = 'ICON_OKAY' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'APPLY' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' )
+          ( 'APPLY' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 13 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'APPLY' label = 'Apply' icon = 'ICON_OKAY' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 13 ucomm = 'APPLY' ) ) ) ).
         gv_upper = to_upper( gv_input ).
       WHEN OTHERS.
         RETURN.

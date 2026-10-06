@@ -98,7 +98,10 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Dynpro POV and POH' ).
-    gt_carriers = VALUE #( ( carrid = 'AA' carrname = 'American Airlines' ) ( carrid = 'LH' carrname = 'Lufthansa' ) ( carrid = 'UA' carrname = 'United Airlines' ) ).
+    gt_carriers = VALUE #(
+      ( carrid = 'AA' carrname = 'American Airlines' )
+      ( carrid = 'LH' carrname = 'Lufthansa' )
+      ( carrid = 'UA' carrname = 'United Airlines' ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -166,7 +169,13 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
       gv_carrid = CONV #( ct_values[ name = 'GV_CARRID' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -237,7 +246,11 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'F4_CARRID'.
 * F4 on the field: the program's own value help.
-        io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ).
+        io_session->get_compatibility( )->f4_table_value_request(
+          EXPORTING
+            is_request   = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' )
+          CHANGING
+            ct_value_tab = gt_carriers ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -266,7 +279,13 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'F1_CARRID'.
 * F1 on the field: the program's own help text.
-        io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
+        TRY.
+            io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_dac79e0a08).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_dac79e0a08->mv_kind
+                                                     iv_operation    = lx_popup_c_dac79e0a08->mv_operation
+                                                     iv_continuation = 'C_DAC79E0A08' ).
+        ENDTRY.
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -280,15 +299,24 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
     ELSE.
       INSERT VALUE #( name = 'GV_CARRID' value = CONV string( gv_carrid ) ) INTO TABLE ct_values.
     ENDIF.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' ) ) ) ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -301,10 +329,20 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
         io_session->get_dialog( )->leave_to_screen( '0000' ).
       WHEN 'F4_CARRID'.
 * F4 on the field: the program's own value help.
-        io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ).
+        io_session->get_compatibility( )->f4_table_value_request(
+          EXPORTING
+            is_request   = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' )
+          CHANGING
+            ct_value_tab = gt_carriers ).
       WHEN 'F1_CARRID'.
 * F1 on the field: the program's own help text.
-        io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
+        TRY.
+            io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_dac79e0a08).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_dac79e0a08->mv_kind
+                                                     iv_operation    = lx_popup_c_dac79e0a08->mv_operation
+                                                     iv_continuation = 'C_DAC79E0A08' ).
+        ENDTRY.
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -343,6 +381,14 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
     CASE is_resume-continuation-id.
       WHEN 'AFTER_0100'.
         RETURN.
+      WHEN 'C_DAC79E0A08'.
+        TRY.
+            io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_dac79e0a08).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_dac79e0a08->mv_kind
+                                                     iv_operation    = lx_popup_c_dac79e0a08->mv_operation
+                                                     iv_continuation = 'C_DAC79E0A08' ).
+        ENDTRY.
       WHEN OTHERS.
         RETURN.
     ENDCASE.

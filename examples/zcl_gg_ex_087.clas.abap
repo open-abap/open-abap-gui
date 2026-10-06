@@ -78,11 +78,11 @@ CLASS zcl_gg_ex_087 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Fragment-level colors and emphasis' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    lo_writer->set_format( VALUE #( color = zif_gg_list_processing_types_v1=>color_heading intensified = abap_true ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_heading intensified = abap_true ) ).
     lo_writer->write_field( VALUE #( text = 'heading' format = VALUE #( quickinfo = 'Heading & <safe>' ) placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->set_format( VALUE #( color = zif_gg_list_processing_types_v1=>color_positive intensified = abap_false hotspot = abap_true ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_positive intensified = abap_false hotspot = abap_true ) ).
     lo_writer->write_field( VALUE #( text = 'positive' format = VALUE #( quickinfo = 'Positive' ) ) ).
-    lo_writer->set_format( VALUE #( color = zif_gg_list_processing_types_v1=>color_negative inverse = abap_true hotspot = abap_false ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_negative inverse = abap_true hotspot = abap_false ) ).
     lo_writer->write_field( VALUE #( text = 'negative' format = VALUE #( quickinfo = 'Negative' ) ) ).
     lo_writer->reset_format( ).
   ENDMETHOD.

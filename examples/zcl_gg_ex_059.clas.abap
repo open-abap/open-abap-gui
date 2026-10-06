@@ -86,7 +86,28 @@ CLASS zcl_gg_ex_059 IMPLEMENTATION.
 * The application toolbar of the status: Refresh, a separator, then the
 * functions that change the booking, each with its icon and text.
     io_session->get_list( )->set_title( 'Application toolbar with icons' ).
-    io_session->get_list( )->set_status( VALUE #( status = 'SEATS' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'REFR' ) ( 'ADD' ) ( 'REMOVE' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ( 14 ) ( 16 ) ) icon_bar = VALUE #( ( ucomm = 'REFR' label = 'Refresh' icon = 'ICON_REFRESH' ) ( ucomm = 'ADD' label = 'Add seat' icon = 'ICON_CREATE' separator = abap_true ) ( ucomm = 'REMOVE' label = 'Remove seat' icon = 'ICON_DELETE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 13 ucomm = 'REFR' ) ( number = 14 ucomm = 'ADD' ) ( number = 16 ucomm = 'REMOVE' ) ) ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'SEATS' active_ucomm = VALUE #(
+      ( 'BACK' )
+      ( '%EX' )
+      ( 'RW' )
+      ( 'REFR' )
+      ( 'ADD' )
+      ( 'REMOVE' ) ) active_pf_keys = VALUE #(
+      ( 3 )
+      ( 15 )
+      ( 12 )
+      ( 13 )
+      ( 14 )
+      ( 16 ) ) icon_bar = VALUE #(
+      ( ucomm = 'REFR' label = 'Refresh' icon = 'ICON_REFRESH' )
+      ( ucomm = 'ADD' label = 'Add seat' icon = 'ICON_CREATE' separator = abap_true )
+      ( ucomm = 'REMOVE' label = 'Remove seat' icon = 'ICON_DELETE' ) ) pf_actions = VALUE #(
+      ( number = 3 ucomm = 'BACK' )
+      ( number = 15 ucomm = '%EX' )
+      ( number = 12 ucomm = 'RW' )
+      ( number = 13 ucomm = 'REFR' )
+      ( number = 14 ucomm = 'ADD' )
+      ( number = 16 ucomm = 'REMOVE' ) ) ) ).
     form_show( io_session = io_session ).
   ENDMETHOD.
 

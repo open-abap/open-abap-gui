@@ -169,7 +169,17 @@ CLASS zcl_gg_ex_113 IMPLEMENTATION.
       gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 11 ) ( 13 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 11 ucomm = 'SAVE' ) ( number = 13 ucomm = 'SAVE' ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 )
+        ( 11 )
+        ( 13 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' )
+        ( number = 11 ucomm = 'SAVE' )
+        ( number = 13 ucomm = 'SAVE' ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -247,15 +257,28 @@ CLASS zcl_gg_ex_113 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ( 'SAVE' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 11 ) ( 13 ) ) exit_ucomm = VALUE #( ( 'CANCEL' ) ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 11 ucomm = 'SAVE' ) ( number = 13 ucomm = 'SAVE' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' )
+          ( 'SAVE' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 11 )
+          ( 13 ) ) exit_ucomm = VALUE #(
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 11 ucomm = 'SAVE' )
+          ( number = 13 ucomm = 'SAVE' ) ) ) ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.

@@ -205,8 +205,8 @@ CLASS zcl_gg_ex_069 IMPLEMENTATION.
     mv_p_grp_a = it_values[ name = 'P_GRP_A' ]-value.
     mv_p_grp_b = it_values[ name = 'P_GRP_B' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_grp_a }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_grp_b }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_grp_a ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_grp_b ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

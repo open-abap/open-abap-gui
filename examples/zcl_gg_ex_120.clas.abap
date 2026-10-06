@@ -261,21 +261,20 @@ CLASS zcl_gg_ex_120 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_dock IS INITIAL.
-          CREATE OBJECT go_dock EXPORTING repid     = io_session->get_context( )-program-program
-                                          dynnr     = io_session->get_context( )-dynpro-screen
-                                          side      = gv_side
-                                          extension = gv_extension
-                                          caption   = 'Docked tools'.
-          CREATE OBJECT go_editor EXPORTING parent = go_dock.
+          CREATE OBJECT go_dock
+            EXPORTING repid     = io_session->get_context( )-program-program
+                      dynnr     = io_session->get_context( )-dynpro-screen
+                      side      = gv_side
+                      extension = gv_extension
+                      caption   = 'Docked tools'.
+          CREATE OBJECT go_editor
+            EXPORTING parent = go_dock.
           go_editor->set_textstream( 'Docked content' ).
           gv_state = |Docked left, { gv_extension } pixels|.
         ENDIF.

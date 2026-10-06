@@ -103,7 +103,10 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'HTML viewer with SAPEVENT' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 180 ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' seatsocc = 210 ) ( carrid = 'AF' connid = '0010' cityfrom = 'Paris' cityto = 'New York' seatsocc = 160 ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 180 )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' seatsocc = 210 )
+      ( carrid = 'AF' connid = '0010' cityfrom = 'Paris' cityto = 'New York' seatsocc = 160 ) ).
     APPEND 'LIST' TO gt_pages.
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
@@ -227,17 +230,16 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_HTML'.
-          CREATE OBJECT go_viewer EXPORTING parent = go_container.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_HTML'.
+          CREATE OBJECT go_viewer
+            EXPORTING parent = go_container.
           gt_events = VALUE #( ( eventid = cl_gui_html_viewer=>m_id_sapevent appl_event = abap_true ) ).
           go_viewer->set_registered_events( gt_events ).
           zcl_gg_ex_151_h1=>go_owner = me.

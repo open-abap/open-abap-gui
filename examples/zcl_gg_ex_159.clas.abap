@@ -246,19 +246,18 @@ CLASS zcl_gg_ex_159 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_CALENDAR'.
-          CREATE OBJECT go_calendar EXPORTING parent          = go_container
-                                              selection_style = cnca_sel_week
-                                              focus_date      = '20260830'.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_CALENDAR'.
+          CREATE OBJECT go_calendar
+            EXPORTING parent          = go_container
+                      selection_style = cnca_sel_week
+                      focus_date      = '20260830'.
           gt_events = VALUE #( ( eventid = cl_gui_calendar=>m_id_date_selected appl_event = abap_true ) ).
           go_calendar->set_registered_events( gt_events ).
           zcl_gg_ex_159_h1=>go_owner = me.

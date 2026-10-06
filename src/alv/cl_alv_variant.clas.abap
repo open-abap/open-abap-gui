@@ -30,15 +30,18 @@ CLASS cl_alv_variant DEFINITION PUBLIC.
 * keeps them in its database. A layout belongs to a report and a handle, and
 * holds the visible columns in their order and the sort criteria.
     TYPES: BEGIN OF ty_layout,
-             report  TYPE disvariant-report,
-             handle  TYPE disvariant-handle,
-             variant TYPE disvariant-variant,
-             text    TYPE disvariant-text,
-             default TYPE abap_bool,
-             fields  TYPE string_table,
-             sort    TYPE lvc_t_sort,
+             username TYPE sy-uname,
+             report   TYPE disvariant-report,
+             handle   TYPE disvariant-handle,
+             variant  TYPE disvariant-variant,
+             text     TYPE disvariant-text,
+             default  TYPE abap_bool,
+             fields   TYPE string_table,
+             sort     TYPE lvc_t_sort,
            END OF ty_layout.
     TYPES ty_layouts TYPE STANDARD TABLE OF ty_layout WITH DEFAULT KEY.
+
+    CLASS-METHODS delete_layout IMPORTING is_variant TYPE disvariant.
 
     CLASS-METHODS save_layout
       IMPORTING
@@ -104,39 +107,49 @@ CLASS cl_alv_variant IMPLEMENTATION.
     boolean = abap_true.
   ENDMETHOD.
 
+  METHOD delete_layout.
+    DELETE gt_layouts WHERE report = is_variant-report AND handle = is_variant-handle
+      AND variant = is_variant-variant AND ( username = sy-uname OR username IS INITIAL ).
+  ENDMETHOD.
+
   METHOD save_layout.
     IF is_layout-default = abap_true.
       LOOP AT gt_layouts ASSIGNING FIELD-SYMBOL(<ls_other>)
-          WHERE report = is_layout-report AND handle = is_layout-handle.
+          WHERE report = is_layout-report AND handle = is_layout-handle AND username = is_layout-username.
         CLEAR <ls_other>-default.
       ENDLOOP.
     ENDIF.
     DELETE gt_layouts WHERE report = is_layout-report
                         AND handle = is_layout-handle
-                        AND variant = is_layout-variant.
+                        AND variant = is_layout-variant AND username = is_layout-username.
     APPEND is_layout TO gt_layouts.
     SORT gt_layouts BY report handle variant.
   ENDMETHOD.
 
   METHOD get_layouts.
     LOOP AT gt_layouts INTO DATA(ls_layout)
-        WHERE report = is_variant-report AND handle = is_variant-handle.
+        WHERE report = is_variant-report AND handle = is_variant-handle
+          AND ( username = sy-uname OR username IS INITIAL ).
       APPEND ls_layout TO result.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD read_layout.
-    READ TABLE gt_layouts INTO result
-      WITH KEY report  = is_variant-report
-               handle  = is_variant-handle
-               variant = is_variant-variant.
+    LOOP AT get_layouts( is_variant ) INTO DATA(ls_layout) WHERE variant = is_variant-variant.
+      result = ls_layout.
+      IF result-username = sy-uname.
+        EXIT.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD read_default_layout.
-    READ TABLE gt_layouts INTO result
-      WITH KEY report  = is_variant-report
-               handle  = is_variant-handle
-               default = abap_true.
+    LOOP AT get_layouts( is_variant ) INTO DATA(ls_layout) WHERE default = abap_true.
+      result = ls_layout.
+      IF result-username = sy-uname.
+        EXIT.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD layout_of.

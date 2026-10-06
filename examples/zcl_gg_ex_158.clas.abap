@@ -88,11 +88,23 @@ CLASS zcl_gg_ex_158 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Hierarchical-sequential SALV' ).
-    gt_carriers = VALUE #( ( expand = 'X' carrid = 'LH' carrname = 'Lufthansa' ) ( expand = 'X' carrid = 'UA' carrname = 'United Airlines' ) ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 180 ) ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 240 ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' seatsocc = 210 ) ).
+    gt_carriers = VALUE #(
+      ( expand = 'X' carrid = 'LH' carrname = 'Lufthansa' )
+      ( expand = 'X' carrid = 'UA' carrname = 'United Airlines' ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 180 )
+      ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 240 )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' seatsocc = 210 ) ).
     gt_binding = VALUE #( ( master = 'CARRID' slave = 'CARRID' ) ).
     TRY.
-        cl_salv_hierseq_table=>factory( EXPORTING t_binding_level1_level2 = gt_binding IMPORTING r_hierseq = go_hierseq CHANGING t_table_level1 = gt_carriers t_table_level2 = gt_flights ).
+        cl_salv_hierseq_table=>factory(
+          EXPORTING
+            t_binding_level1_level2 = gt_binding
+          IMPORTING
+            r_hierseq               = go_hierseq
+          CHANGING
+            t_table_level1          = gt_carriers
+            t_table_level2          = gt_flights ).
       CATCH cx_salv_data_error INTO gx_data.
         io_session->message(
           is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_error )

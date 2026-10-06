@@ -264,24 +264,29 @@ CLASS zcl_gg_ex_119 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_splitter EXPORTING parent        = go_container
-                                              orientation   = cl_gui_easy_splitter_container=>orientation_horizontal
-                                              sash_position = gv_sash.
-          CREATE OBJECT go_editor EXPORTING parent = go_splitter->top_left_container.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_splitter
+            EXPORTING parent        = go_container
+                      orientation   = cl_gui_easy_splitter_container=>orientation_horizontal
+                      sash_position = gv_sash.
+          CREATE OBJECT go_editor
+            EXPORTING parent = go_splitter->top_left_container.
           go_editor->set_textstream( 'Easy splitter content' ).
-          CREATE OBJECT go_viewer EXPORTING parent = go_splitter->bottom_right_container.
+          CREATE OBJECT go_viewer
+            EXPORTING parent = go_splitter->bottom_right_container.
           gt_html = VALUE #( ( '<h3>Easy splitter viewer</h3><p>The second pane is HTML content.</p>' ) ).
-          go_viewer->load_data( IMPORTING assigned_url = gv_url CHANGING data_table = gt_html ).
+          go_viewer->load_data(
+            IMPORTING
+              assigned_url = gv_url
+            CHANGING
+              data_table   = gt_html ).
           go_viewer->show_url( url = gv_url ).
           gv_state = |Sash at { gv_sash } %|.
         ENDIF.

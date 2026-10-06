@@ -230,11 +230,11 @@ CLASS zcl_gg_ex_026 IMPLEMENTATION.
     mv_p_count = it_values[ name = 'P_COUNT' ]-value.
     mv_p_name = it_values[ name = 'P_NAME' ]-value.
     lo_writer->write_field( VALUE #( text = 'Name:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_name }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_name ) ) ).
     lo_writer->write_field( VALUE #( text = 'City:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_city }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_city ) ) ).
     lo_writer->write_field( VALUE #( text = 'Count:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_count }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_count ) ) ).
     IF mv_p_active = abap_true.
       lo_writer->write_field( VALUE #( text = 'Active' placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.

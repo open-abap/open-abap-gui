@@ -158,10 +158,10 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( it_values[ name = 'S_CAR' ]-ranges ).
     LOOP AT mv_s_car INTO DATA(ls_s_car_range).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_car_range-sign }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_car_range-option }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_car_range-low }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_car_range-high }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_car_range-sign ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_car_range-option ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_car_range-low ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_car_range-high ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

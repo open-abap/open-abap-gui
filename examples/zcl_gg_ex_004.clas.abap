@@ -81,7 +81,7 @@ CLASS zcl_gg_ex_004 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'WRITE numeric and mask additions' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    lo_writer->write_field( VALUE #( text = |{ gv_amount }| write_format = VALUE #( decimals = 2 no_zero = abap_true justification = zif_gg_list_processing_types_v1=>justify_right ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_amount ) write_format = VALUE #( decimals = 2 decimals_set = abap_true no_zero = abap_true justification = zif_gg_list_processing_types_v1=>justify_right ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

@@ -229,6 +229,10 @@ CLASS cl_item_tree_control DEFINITION PUBLIC INHERITING FROM cl_tree_control_bas
 
     METHODS refresh_item_html.
     METHODS node_items_html REDEFINITION.
+    METHODS drag REDEFINITION.
+    METHODS drop_complete REDEFINITION.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
 ENDCLASS.
 
 CLASS cl_item_tree_control IMPLEMENTATION.
@@ -237,14 +241,84 @@ CLASS cl_item_tree_control IMPLEMENTATION.
     refresh_tree_html( ).
   ENDMETHOD.
 
+  METHOD drag.
+    RAISE EVENT on_drag EXPORTING node_key         = CONV tv_nodekey( key )
+                                  item_name        = CONV tv_itmname( mv_selected_item_name )
+                                  drag_drop_object = object.
+  ENDMETHOD.
+
+  METHOD drop_complete.
+    RAISE EVENT on_drop_complete EXPORTING node_key         = CONV tv_nodekey( key )
+                                           item_name        = CONV tv_itmname( mv_selected_item_name )
+                                           drag_drop_object = object.
+  ENDMETHOD.
+
   METHOD node_items_html.
     LOOP AT mt_html_items INTO DATA(ls_item) WHERE node_key = node_key.
-      IF ls_item-item_name = mv_hierarchy_item
-          OR ( mv_hierarchy_item IS INITIAL AND sy-tabix = line_index( mt_html_items[ node_key = node_key ] ) ).
+      IF ls_item-item_class = item_class_text AND ( ls_item-item_name = mv_hierarchy_item
+          OR ( mv_hierarchy_item IS INITIAL AND sy-tabix = line_index( mt_html_items[ node_key = node_key ] ) ) ).
         CONTINUE.
       ENDIF.
-      result = result && |<span class="gg-tree-item" data-item-name="{ escape_html( ls_item-item_name ) }">{ escape_html( ls_item-text ) }</span>|.
+      DATA(lv_event) = SWITCH string( ls_item-item_class
+        WHEN item_class_checkbox THEN 'CHECKBOX'
+        WHEN item_class_button THEN 'BUTTON'
+        WHEN item_class_link THEN 'LINK' ELSE '' ).
+      IF lv_event IS INITIAL.
+        result = result && |<span class="gg-tree-item" data-item-name="{ escape_html( ls_item-item_name ) }">{ escape_html( ls_item-text ) }</span>|.
+      ELSE.
+        DATA(lv_value) = frontend_event_value( event  = lv_event
+                                               params = VALUE #( ( node_key ) ( ls_item-item_name ) ) ).
+        result = result && |<button class="gg-tree-item" type="submit" name="gg_control_event" value="{ lv_value }" formnovalidate{ COND string( WHEN lv_event = 'CHECKBOX' THEN | role="checkbox" aria-checked="{ COND string( WHEN ls_item-chosen = abap_true THEN 'true' ELSE 'false' ) }"| ELSE COND string( WHEN lv_event = 'LINK' THEN ` role="link"` ) ) }>{ escape_html( ls_item-text ) }</button>|.
+      ENDIF.
     ENDLOOP.
+  ENDMETHOD.
+
+  METHOD is_application_event.
+    DATA(lv_id) = SWITCH i( event WHEN 'CHECKBOX' THEN eventid_checkbox_change
+      WHEN 'BUTTON' THEN eventid_button_click WHEN 'LINK' THEN eventid_link_click ELSE 0 ).
+    IF lv_id = 0.
+      result = super->is_application_event( event ).
+    ELSE.
+      READ TABLE mt_frontend_events INTO DATA(ls_event) WITH KEY eventid = lv_id.
+      result = xsdbool( sy-subrc = 0 AND ls_event-appl_event = abap_true ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    DATA(lv_node) = CONV tv_nodekey( VALUE string( params[ 1 ] OPTIONAL ) ).
+    DATA(lv_item) = CONV tv_itmname( VALUE string( params[ 2 ] OPTIONAL ) ).
+    DATA(lv_id) = SWITCH i( event WHEN 'CHECKBOX' THEN eventid_checkbox_change
+      WHEN 'BUTTON' THEN eventid_button_click WHEN 'LINK' THEN eventid_link_click ELSE 0 ).
+    IF lv_id = 0.
+      super->dispatch_frontend_event( event  = event
+                                      params = params ).
+      RETURN.
+    ENDIF.
+    READ TABLE mt_html_items ASSIGNING FIELD-SYMBOL(<item>) WITH KEY node_key = lv_node item_name = lv_item.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    select_item( node_key  = lv_node
+                 item_name = lv_item ).
+    IF event = 'CHECKBOX'.
+      <item>-chosen = xsdbool( <item>-chosen = abap_false ).
+      refresh_item_html( ).
+    ENDIF.
+    IF NOT line_exists( mt_frontend_events[ eventid = lv_id ] ).
+      RETURN.
+    ENDIF.
+    CASE event.
+      WHEN 'CHECKBOX'.
+        RAISE EVENT checkbox_change EXPORTING node_key  = lv_node
+                                              item_name = lv_item
+                                              checked   = <item>-chosen.
+      WHEN 'BUTTON'.
+        RAISE EVENT button_click EXPORTING node_key  = lv_node
+                                           item_name = lv_item.
+      WHEN 'LINK'.
+        RAISE EVENT link_click EXPORTING node_key  = lv_node
+                                         item_name = lv_item.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD delete_all_nodes.

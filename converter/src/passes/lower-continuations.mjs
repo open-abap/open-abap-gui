@@ -3,7 +3,13 @@ import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "./blocks
 
 const CONTROL_WORDS = new Set(["CALL", "SCREEN", "SELECTION", "SUBMIT", "AND", "RETURN", "TRANSACTION", "USING", "WITH", "VALUE", "TYPE", "IF", "ELSE", "ELSEIF", "ENDIF", "DO", "ENDDO", "CASE", "WHEN", "ENDCASE"]);
 
+export function isPopupStatement(statement) {
+  return (statement.kind === "CallFunction" && /CALL\s+FUNCTION\s+'POPUP_(?:TO_CONFIRM|TO_INFORM|GET_VALUES|WITH_TABLE_DISPLAY|TO_SELECT_MONTH)'/i.test(statement.text))
+    || (["Call", "CallMethod"].includes(statement.kind) && /\bcl_gui_frontend_services\s*=>\s*(?:file_open_dialog|file_save_dialog|clipboard_import)\b/i.test(statement.text));
+}
+
 export function isSuspendingStatement(statement) {
+  if (isPopupStatement(statement)) return true;
   if (["CallScreen", "CallSelectionScreen", "CallTransaction"].includes(statement.kind)) return true;
   return statement.kind === "Submit" && /\bAND\s+RETURN\b/i.test(statement.text);
 }

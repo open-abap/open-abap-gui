@@ -9,16 +9,18 @@ CLASS cl_salv_form_uie DEFINITION PUBLIC INHERITING FROM cl_salv_form_element.
       RETURNING
         VALUE(value) TYPE REF TO cl_salv_form_layout_data.
 
+  PRIVATE SECTION.
+    DATA mo_layout_data TYPE REF TO cl_salv_form_layout_data.
 ENDCLASS.
 
 CLASS cl_salv_form_uie IMPLEMENTATION.
 
   METHOD set_layout_data.
-    RETURN. " todo, implement method
+    mo_layout_data = value.
   ENDMETHOD.
 
   METHOD get_layout_data.
-    RETURN. " todo, implement method
+    value = mo_layout_data.
   ENDMETHOD.
 
 ENDCLASS.

@@ -16,6 +16,7 @@ CLASS zcl_gg_ex_114 DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     DATA gv_ok_code TYPE sy-ucomm.
     DATA gv_state TYPE c LENGTH 40.
+    DATA mv_ggconv_lv_ok_code TYPE sy-ucomm.
     METHODS output_modules
       IMPORTING
         is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
@@ -163,7 +164,13 @@ CLASS zcl_gg_ex_114 IMPLEMENTATION.
       gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -228,32 +235,40 @@ CLASS zcl_gg_ex_114 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' ) ) ) ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
   ENDMETHOD.
 
   METHOD input_modules.
-    DATA lv_ok_code TYPE sy-ucomm.
     CASE is_context-module.
       WHEN 'EXIT_0100'.
         CLEAR gv_ok_code.
         io_session->get_dialog( )->leave_to_screen( '0000' ).
       WHEN 'USER_COMMAND_0100'.
 * S and I let PAI go on; W and E stop it and show the screen again.
-        lv_ok_code = gv_ok_code.
+        mv_ggconv_lv_ok_code = gv_ok_code.
         CLEAR gv_ok_code.
         CLEAR gv_state.
-        CASE lv_ok_code.
+        CASE mv_ggconv_lv_ok_code.
           WHEN 'SUCCESS'.
             io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_success text = 'Flight saved' ) ).
             gv_state = 'PAI went on after S'.

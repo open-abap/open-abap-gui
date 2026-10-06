@@ -81,10 +81,18 @@ CLASS zcl_gg_ex_058 IMPLEMENTATION.
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_pf_keys = VALUE #( ( 3 ) ( 13 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 13 ucomm = 'NEXT' ) ) icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Details' icon = 'ICON_DISPLAY' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 13 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 13 ucomm = 'NEXT' ) ) icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Details' icon = 'ICON_DISPLAY' ) ) ) ).
     ENDIF.
     IF is_context-screen = '0200'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_pf_keys = VALUE #( ( 3 ) ( 13 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 13 ucomm = 'NEXT' ) ) icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Details' icon = 'ICON_DISPLAY' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 13 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 13 ucomm = 'NEXT' ) ) icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Details' icon = 'ICON_DISPLAY' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -139,15 +147,18 @@ CLASS zcl_gg_ex_058 IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_ucomm = VALUE #( ( 'BACK' ) ( 'NEXT' ) ) active_pf_keys = VALUE #( ( 3 ) ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Details' icon = 'ICON_DISPLAY' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 13 ucomm = 'NEXT' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'NEXT' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Details' icon = 'ICON_DISPLAY' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 13 ucomm = 'NEXT' ) ) ) ).
         io_session->get_dialog( )->set_title( 'Order 4711' ).
       WHEN OTHERS.
         RETURN.

@@ -367,11 +367,19 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD rebuild_html.
-    DATA lo_no_parent TYPE REF TO cl_gui_container.
-
-    DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_no_parent ).
-    fill_grid( lo_grid ).
-    value = lo_grid->render_model( ).
+    IF mo_grid IS NOT BOUND.
+      mo_grid = NEW cl_gui_alv_grid( i_parent = mo_container ).
+      IF mo_container IS NOT BOUND.
+        mo_grid->enable_fullscreen_events( ).
+      ENDIF.
+      SET HANDLER on_grid_double_click FOR mo_grid.
+      SET HANDLER on_grid_hotspot_click FOR mo_grid.
+      SET HANDLER on_grid_user_command FOR mo_grid.
+      DATA(lo_selections) = get_selections( ).
+      lo_selections->mo_grid = mo_grid.
+    ENDIF.
+    fill_grid( mo_grid ).
+    value = mo_grid->render_model( ).
 * The top and end of list frame the list, as in a fullscreen SALV list.
     IF mo_top_of_list IS BOUND.
       value = |<div class="gg-salv-top-of-list">{ mo_top_of_list->render_html( ) }</div>{ value }|.
@@ -388,6 +396,9 @@ CLASS cl_salv_table IMPLEMENTATION.
     ENDIF.
     IF mo_grid IS NOT BOUND.
       mo_grid = NEW cl_gui_alv_grid( i_parent = mo_container ).
+      IF mo_container IS NOT BOUND.
+        mo_grid->enable_fullscreen_events( ).
+      ENDIF.
       SET HANDLER on_grid_double_click FOR mo_grid.
       SET HANDLER on_grid_hotspot_click FOR mo_grid.
       SET HANDLER on_grid_user_command FOR mo_grid.
@@ -399,13 +410,13 @@ CLASS cl_salv_table IMPLEMENTATION.
 
   METHOD on_grid_double_click.
     get_event( ).
-    mo_events->raise_double_click( row    = e_row-index
+    mo_events->raise_double_click( row    = VALUE #( mt_html_rows[ e_row-index ]-index OPTIONAL )
                                    column = e_column-fieldname ).
   ENDMETHOD.
 
   METHOD on_grid_hotspot_click.
     get_event( ).
-    mo_events->raise_link_click( row    = e_row_id-index
+    mo_events->raise_link_click( row    = VALUE #( mt_html_rows[ e_row_id-index ]-index OPTIONAL )
                                  column = e_column_id-fieldname ).
   ENDMETHOD.
 
@@ -426,6 +437,7 @@ CLASS cl_salv_table IMPLEMENTATION.
     DATA lt_excluding TYPE ui_functions.
     DATA lt_sort TYPE lvc_t_sort.
     DATA lv_index TYPE i.
+    DATA lt_selected_rows TYPE salv_t_row.
 
     IF mo_columns IS NOT BOUND.
       mo_columns = NEW cl_salv_columns_table( ).
@@ -468,17 +480,24 @@ CLASS cl_salv_table IMPLEMENTATION.
       ls_layout-ctab_fname = mo_columns->get_color_column( ).
     ENDIF.
     ls_layout-excp_fname = mo_columns->get_exception_column( ).
+
+    IF mo_selections IS BOUND.
+      lt_selected_rows = mo_selections->get_selected_rows( ).
+    ENDIF.
     CLEAR io_grid->mt_selected_rows.
     IF mo_selections IS NOT BOUND
         OR mo_selections->get_selection_mode( ) = if_salv_c_selection_mode=>none.
       ls_layout-no_rowmark = abap_true.
     ELSE.
-      LOOP AT mo_selections->get_selected_rows( ) INTO DATA(lv_selected).
+      LOOP AT lt_selected_rows INTO DATA(lv_selected).
         READ TABLE mt_html_rows TRANSPORTING NO FIELDS WITH KEY index = lv_selected.
         IF sy-subrc = 0.
           APPEND VALUE #( index = sy-tabix ) TO io_grid->mt_selected_rows.
         ENDIF.
       ENDLOOP.
+    ENDIF.
+    IF mo_selections IS BOUND.
+      mo_selections->mt_row_map = VALUE #( FOR ls_map IN mt_html_rows ( ls_map-index ) ).
     ENDIF.
     IF mv_header IS NOT INITIAL.
       io_grid->mv_gridtitle = mv_header.

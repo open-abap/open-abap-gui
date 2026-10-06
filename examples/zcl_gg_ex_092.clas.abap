@@ -88,7 +88,13 @@ CLASS zcl_gg_ex_092 IMPLEMENTATION.
 * list once and is not called again.
     io_session->get_list( )->set_title( 'Page through a long list' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    gt_cities = VALUE #( ( `Frankfurt` ) ( `New York` ) ( `Singapore` ) ( `Tokyo` ) ( `Rome` ) ( `San Francisco` ) ).
+    gt_cities = VALUE #(
+      ( `Frankfurt` )
+      ( `New York` )
+      ( `Singapore` )
+      ( `Tokyo` )
+      ( `Rome` )
+      ( `San Francisco` ) ).
     DO 80 TIMES.
       gs_flight-carrid = COND #( WHEN sy-index MOD 2 = 0 THEN 'LH' ELSE 'UA' ).
       gs_flight-connid = 400 + sy-index.
@@ -97,10 +103,10 @@ CLASS zcl_gg_ex_092 IMPLEMENTATION.
       APPEND gs_flight TO gt_flights.
     ENDDO.
     LOOP AT gt_flights INTO gs_flight.
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-carrid }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-connid }| placement = VALUE #( position = 10 ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-cityfrom }| placement = VALUE #( position = 18 ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-cityto }| placement = VALUE #( position = 40 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-carrid ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-connid ) placement = VALUE #( position = 10 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-cityfrom ) placement = VALUE #( position = 18 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-cityto ) placement = VALUE #( position = 40 ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

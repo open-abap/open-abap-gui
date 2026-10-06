@@ -82,7 +82,7 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
     lo_toolbar->add_button(
       fcode     = 'MENU'
       icon      = '@'
-      butn_type = 3
+      butn_type = 1
       text      = 'More'
       quickinfo = 'More actions' ).
     DATA(lo_menu) = NEW cl_ctmenu( ).
@@ -94,7 +94,7 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
                            disabled = abap_true ).
     lo_toolbar->set_static_ctxmenu( fcode   = 'MENU'
                                     ctxmenu = lo_menu
-                                    btntype = 3 ).
+                                    btntype = 1 ).
     DATA(lo_handler) = NEW lcl_toolbar_event_handler( ).
     SET HANDLER lo_handler->on_selected FOR lo_toolbar.
     SET HANDLER lo_handler->on_dropdown FOR lo_toolbar.
@@ -118,7 +118,7 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
       exp = 34 ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-toolbar-menu' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Menu run' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-toolbar-button-type="3"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<details class="gg-toolbar-dropdown"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Unavailable' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'disabled aria-disabled="true"' ) ).
     cl_gui_control=>clear( ).

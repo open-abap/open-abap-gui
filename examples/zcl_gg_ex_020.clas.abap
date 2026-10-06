@@ -130,10 +130,13 @@ CLASS zcl_gg_ex_020 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'Select-option for a dictionary field' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_s_carr = CORRESPONDING #( it_values[ name = 'S_CARR' ]-ranges ).
-    gt_flights = VALUE #( ( carrid = 'AA' connid = '0017' ) ( carrid = 'LH' connid = '0400' ) ( carrid = 'LH' connid = '0402' ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'AA' connid = '0017' )
+      ( carrid = 'LH' connid = '0400' )
+      ( carrid = 'LH' connid = '0402' ) ).
     LOOP AT gt_flights INTO zsflight WHERE carrid IN mv_s_carr.
-      lo_writer->write_field( VALUE #( text = |{ zsflight-carrid }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ zsflight-connid }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = zsflight-carrid ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = zsflight-connid ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

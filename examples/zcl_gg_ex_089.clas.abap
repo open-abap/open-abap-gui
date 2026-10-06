@@ -84,10 +84,10 @@ CLASS zcl_gg_ex_089 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Fixed-width numeric and date columns' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    lo_writer->write_field( VALUE #( text = |{ gv_amount }| placement = VALUE #( length = 10 new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_date }| placement = VALUE #( position = 14 length = 12 ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_zero }| placement = VALUE #( position = 28 length = 8 ) write_format = VALUE #( no_zero = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_count }| placement = VALUE #( position = 38 length = 12 ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_amount ) placement = VALUE #( length = 10 new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_date ) placement = VALUE #( position = 14 length = 12 ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_zero ) placement = VALUE #( position = 28 length = 8 ) write_format = VALUE #( no_zero = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_count ) placement = VALUE #( position = 38 length = 12 ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

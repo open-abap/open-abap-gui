@@ -212,5 +212,5 @@ test("keeps helper method bodies that write, using the helper's stored session",
   assert.match(exportBody, /text = 'Exported rows:'/);
   const statusBody = methodBody(helper, "status");
   assert.match(statusBody, /DATA\(lo_writer\) = io_session->get_list\( \)->get_writer\( \)\./);
-  assert.match(statusBody, /text = \|\{ iv_text \}\|/);
+  assert.match(statusBody, /text = lo_writer->format_value\( iv_value = iv_text \)/);
 });

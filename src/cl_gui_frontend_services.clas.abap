@@ -253,7 +253,7 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
         IMPORTING
           no_auth_check TYPE abap_bool OPTIONAL
         EXPORTING
-          data          TYPE any
+          data          TYPE STANDARD TABLE
         CHANGING
           rc            TYPE i.
 
@@ -439,8 +439,25 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD clipboard_import.
+    DATA lt_lines TYPE string_table.
     CLEAR data.
     CLEAR length.
+    DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
+    IF lo_host IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    DATA(lv_text) = lo_host->clipboard_input( ).
+    IF lv_text IS INITIAL.
+      RETURN.
+    ENDIF.
+    SPLIT replace( val = lv_text
+                   sub = cl_abap_char_utilities=>cr_lf
+      with             = cl_abap_char_utilities=>newline
+                   occ = 0 ) AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
+    LOOP AT lt_lines INTO DATA(lv_line).
+      APPEND lv_line TO data.
+    ENDLOOP.
+    length = lines( data ).
   ENDMETHOD.
 
   METHOD directory_list_files.
@@ -620,8 +637,30 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD clipboard_export.
-    CLEAR data.
-    rc = action_cancel.
+    FIELD-SYMBOLS <line> TYPE any.
+    FIELD-SYMBOLS <clipboard> TYPE STANDARD TABLE.
+    DATA lr_clipboard TYPE REF TO data.
+    DATA lv_text TYPE string.
+    rc = -1.
+    DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
+    IF lo_host IS NOT BOUND.
+      RETURN.
+    ENDIF.
+* SAP declares this input table as EXPORTING by reference. Keep its content;
+* treating it as an ordinary output parameter would erase what must be copied.
+    GET REFERENCE OF data INTO lr_clipboard.
+    ASSIGN lr_clipboard->* TO <clipboard>.
+    LOOP AT <clipboard> ASSIGNING <line>.
+      IF sy-tabix > 1.
+        lv_text = lv_text && cl_abap_char_utilities=>cr_lf.
+      ENDIF.
+      lv_text = lv_text && line_text( is_line      = <line>
+                                      iv_separator = abap_false ).
+    ENDLOOP.
+    lo_host->add_download( iv_filename = 'Copy to clipboard'
+                           iv_content  = cl_abap_codepage=>convert_to( lv_text )
+      iv_clipboard                     = abap_true ).
+    rc = 0.
   ENDMETHOD.
 
   METHOD get_system_directory.

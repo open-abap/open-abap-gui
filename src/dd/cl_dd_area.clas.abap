@@ -122,6 +122,8 @@ CLASS cl_dd_area DEFINITION PUBLIC FRIENDS cl_dd_form_area cl_dd_table_area cl_d
     DATA html_content TYPE string.
     DATA parent_area TYPE REF TO cl_dd_area.
     DATA mv_table_area TYPE REF TO cl_dd_table_area.
+    DATA mv_table_element TYPE REF TO cl_dd_table_element.
+    DATA mv_table_offset TYPE i.
     DATA mv_form_open TYPE abap_bool.
 
     METHODS get_html_content
@@ -175,13 +177,16 @@ CLASS cl_dd_area IMPLEMENTATION.
   METHOD add_table.
     DATA lv_start TYPE i.
     DATA lv_fragment TYPE string.
+    finish_open_table( ).
     CLEAR table.
     table = NEW cl_dd_table_element( ).
     tablearea = NEW cl_dd_table_area( ).
     tablearea->column_count = no_of_columns.
     tablearea->parent_area = me.
     mv_table_area = tablearea.
+    mv_table_element = table.
     lv_start = strlen( html_content ).
+    mv_table_offset = lv_start.
     html_content = html_content && |<table class="gg-dd-table" aria-label="{ escape_html( a11y_label ) }" border="{ border }"><tbody>|.
     lv_fragment = substring(
       val = html_content
@@ -222,7 +227,7 @@ CLASS cl_dd_area IMPLEMENTATION.
     link->url = url.
     link->text = text.
     link->tooltip = tooltip.
-    html_content = html_content && |<a class="gg-dd-link" href="{ escape_html( CONV string( url ) ) }" title="{ escape_html( tooltip ) }"{ COND string( WHEN name IS INITIAL THEN `` ELSE | id="{ escape_html( CONV string( name ) ) }"| ) }>{ escape_html( CONV string( text ) ) }</a>|.
+    html_content = html_content && |<a class="gg-dd-link" data-gg-click-event="{ link->frontend_event( ) }" href="{ escape_html( CONV string( url ) ) }" title="{ escape_html( tooltip ) }"{ COND string( WHEN name IS INITIAL THEN `` ELSE | id="{ escape_html( CONV string( name ) ) }"| ) }>{ escape_html( CONV string( text ) ) }</a>|.
   ENDMETHOD.
 
   METHOD underline.
@@ -333,6 +338,15 @@ CLASS cl_dd_area IMPLEMENTATION.
   METHOD finish_open_table.
     IF mv_table_area IS BOUND.
       mv_table_area->finish_table( ).
+    ENDIF.
+    IF mv_table_element IS BOUND AND mv_table_element->table_of_columns IS NOT INITIAL.
+      DATA(lv_columns) = mv_table_element->render_html( ).
+      DATA(lv_tail) = substring( val = html_content
+                                 off = mv_table_offset ).
+      REPLACE FIRST OCCURRENCE OF '<tbody>' IN lv_tail WITH '<tbody>' && lv_columns.
+      html_content = substring( val = html_content
+                                len = mv_table_offset ) && lv_tail.
+      CLEAR mv_table_element.
     ENDIF.
   ENDMETHOD.
 

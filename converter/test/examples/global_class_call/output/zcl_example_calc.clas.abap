@@ -105,11 +105,14 @@ CLASS zcl_example_calc IMPLEMENTATION.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_CALC' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_count = it_values[ name = 'P_COUNT' ]-value.
-    zcl_example_math=>sum_to( EXPORTING iv_count = mv_p_count RECEIVING rv_total = gv_total ).
+    zcl_example_math=>sum_to(
+      EXPORTING
+        iv_count         = mv_p_count
+      RECEIVING rv_total = gv_total ).
     lo_writer->write_field( VALUE #( text = 'Sum of 1 to' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_count }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_count ) ) ).
     lo_writer->write_field( VALUE #( text = 'is' ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_total }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_total ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

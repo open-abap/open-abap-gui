@@ -92,7 +92,11 @@ CLASS zcl_gg_ex_151_h1 IMPLEMENTATION.
     add( io_owner   = io_owner
          io_session = io_session
          iv_html    = '</body></html>' ).
-    io_owner->go_viewer->load_data( IMPORTING assigned_url = io_owner->gv_url CHANGING data_table = io_owner->gt_html ).
+    io_owner->go_viewer->load_data(
+      IMPORTING
+        assigned_url = io_owner->gv_url
+      CHANGING
+        data_table   = io_owner->gt_html ).
     io_owner->go_viewer->show_url( url = io_owner->gv_url ).
   ENDMETHOD.
 ENDCLASS.

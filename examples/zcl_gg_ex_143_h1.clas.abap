@@ -35,14 +35,22 @@ CLASS zcl_gg_ex_143_h1 IMPLEMENTATION.
       IF ls_flight-carrid <> lv_carrid.
         lv_carrid = ls_flight-carrid.
         lv_text = lv_carrid.
-        io_owner->go_tree->add_node( EXPORTING i_relat_node_key = space
-                                               i_relationship = cl_gui_column_tree=>relat_last_child
-                                               i_node_text = lv_text IMPORTING e_new_node_key = lv_carrier_key ).
+        io_owner->go_tree->add_node(
+          EXPORTING
+            i_relat_node_key = space
+            i_relationship   = cl_gui_column_tree=>relat_last_child
+            i_node_text      = lv_text
+          IMPORTING
+            e_new_node_key   = lv_carrier_key ).
       ENDIF.
-      io_owner->go_tree->add_node( EXPORTING i_relat_node_key = lv_carrier_key
-                                             i_relationship = cl_gui_column_tree=>relat_last_child
-                                             i_node_text = |{ ls_flight-carrid } { ls_flight-connid }|
-                                             is_outtab_line = ls_flight IMPORTING e_new_node_key = lv_flight_key ).
+      io_owner->go_tree->add_node(
+        EXPORTING
+          i_relat_node_key = lv_carrier_key
+          i_relationship   = cl_gui_column_tree=>relat_last_child
+          i_node_text      = |{ ls_flight-carrid } { ls_flight-connid }|
+          is_outtab_line   = ls_flight
+        IMPORTING
+          e_new_node_key   = lv_flight_key ).
     ENDLOOP.
     io_owner->gv_state = |{ lines( io_owner->gt_flights ) } flights below their airlines|.
   ENDMETHOD.

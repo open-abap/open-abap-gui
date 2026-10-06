@@ -57,14 +57,20 @@ CLASS zcl_gg_ex_071 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_output.
     mv_p_car = ct_values[ name = 'P_CAR' ]-value.
     mv_p_con = ct_values[ name = 'P_CON' ]-value.
-    gt_values = VALUE #( ( key = 'AA' text = 'Alpha Air' ) ( key = 'LH' text = 'Lufthansa' ) ).
+    gt_values = VALUE #(
+      ( key = 'AA' text = 'Alpha Air' )
+      ( key = 'LH' text = 'Lufthansa' ) ).
     io_session->get_compatibility( )->set_selection_list_values(
       iv_id     = CONV string( 'P_CAR' )
       it_values = gt_values ).
     IF mv_p_car = 'LH'.
-      gt_values = VALUE #( ( key = 'LH-1' text = 'LH-1' ) ( key = 'LH-2' text = 'LH-2' ) ).
+      gt_values = VALUE #(
+        ( key = 'LH-1' text = 'LH-1' )
+        ( key = 'LH-2' text = 'LH-2' ) ).
     ELSE.
-      gt_values = VALUE #( ( key = 'AA-1' text = 'AA-1' ) ( key = 'AA-2' text = 'AA-2' ) ).
+      gt_values = VALUE #(
+        ( key = 'AA-1' text = 'AA-1' )
+        ( key = 'AA-2' text = 'AA-2' ) ).
     ENDIF.
     io_session->get_compatibility( )->set_selection_list_values(
       iv_id     = CONV string( 'P_CON' )
@@ -160,8 +166,8 @@ CLASS zcl_gg_ex_071 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_car = it_values[ name = 'P_CAR' ]-value.
     mv_p_con = it_values[ name = 'P_CON' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_car }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_con }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_car ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_con ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

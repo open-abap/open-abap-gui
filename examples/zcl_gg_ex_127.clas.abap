@@ -247,15 +247,15 @@ CLASS zcl_gg_ex_127 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        gt_values = VALUE #( ( key = 'AA' text = 'Alpha Airlines' ) ( key = 'LH' text = 'Lufthansa' ) ( key = 'UA' text = 'United' ) ).
+        gt_values = VALUE #(
+          ( key = 'AA' text = 'Alpha Airlines' )
+          ( key = 'LH' text = 'Lufthansa' )
+          ( key = 'UA' text = 'United' ) ).
         io_session->get_compatibility( )->set_selection_list_values(
           iv_id     = CONV string( 'GV_CARRIER' )
           it_values = gt_values ).

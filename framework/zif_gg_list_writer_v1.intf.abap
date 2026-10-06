@@ -7,6 +7,13 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
     IMPORTING
       is_field TYPE zif_gg_list_processing_types_v1=>ty_write_field.
 
+  METHODS format_value
+    IMPORTING
+      iv_value       TYPE any
+      iv_date_mask   TYPE string DEFAULT 'USER'
+    RETURNING
+      VALUE(rv_text) TYPE string.
+
   METHODS write_checkbox
     IMPORTING
       is_checkbox TYPE zif_gg_list_processing_types_v1=>ty_write_checkbox.
@@ -54,5 +61,9 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
       is_format TYPE zif_gg_list_processing_types_v1=>ty_format.
 
   METHODS reset_format.
+
+  METHODS get_format
+    RETURNING
+      VALUE(rs_format) TYPE zif_gg_list_processing_types_v1=>ty_format.
 
 ENDINTERFACE.

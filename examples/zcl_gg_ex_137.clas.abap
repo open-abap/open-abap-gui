@@ -103,7 +103,11 @@ CLASS zcl_gg_ex_137 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ALV sort and filter' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' seatsocc = 180 ) ( carrid = 'UA' connid = '0941' seatsocc = 210 ) ( carrid = 'LH' connid = '0402' seatsocc = 240 ) ( carrid = 'AF' connid = '0010' seatsocc = 160 ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' seatsocc = 180 )
+      ( carrid = 'UA' connid = '0941' seatsocc = 210 )
+      ( carrid = 'LH' connid = '0402' seatsocc = 240 )
+      ( carrid = 'AF' connid = '0010' seatsocc = 160 ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -231,18 +235,20 @@ CLASS zcl_gg_ex_137 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_grid EXPORTING i_parent = go_container.
-          gt_fieldcat = VALUE #( ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 ) ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 ) ( fieldname = 'SEATSOCC' coltext = 'Occupied' outputlen = 8 ) ).
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_grid
+            EXPORTING i_parent = go_container.
+          gt_fieldcat = VALUE #(
+            ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
+            ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )
+            ( fieldname = 'SEATSOCC' coltext = 'Occupied' outputlen = 8 ) ).
           gt_sort = VALUE #( ( spos = 1 fieldname = 'SEATSOCC' down = abap_true ) ).
           go_grid->set_table_for_first_display( CHANGING it_outtab = gt_flights it_fieldcatalog = gt_fieldcat it_sort = gt_sort it_filter = gt_filter ).
           gv_state = 'Sorted by occupied seats, descending'.

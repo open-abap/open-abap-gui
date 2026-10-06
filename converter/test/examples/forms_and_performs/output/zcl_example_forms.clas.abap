@@ -164,7 +164,7 @@ CLASS zcl_example_forms IMPLEMENTATION.
   METHOD form_print_total.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     lo_writer->write_field( VALUE #( text = 'Total quantity:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ iv_total }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = iv_total ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

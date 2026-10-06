@@ -304,6 +304,6 @@ test("chained WRITE keeps a comma inside a template or a literal", async () => {
   const writes = result.classSource.split("\n").filter((line) => line.includes("write_field("));
   assert.equal(writes.length, 3, writes.join("\n"));
   assert.match(writes[0], /\|a \{ x \}, \{ y \}\|/);
-  assert.match(writes[1], /\|\{ `b,c` \}\|/);
+  assert.match(writes[1], /lo_writer->format_value\( iv_value = `b,c` \)/);
   assert.match(writes[2], /'d,''e'/);
 });

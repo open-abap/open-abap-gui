@@ -88,8 +88,28 @@ CLASS zcl_gg_ex_060 IMPLEMENTATION.
 * Two functions of the program's own, shown by their text and on F5 and F6;
 * each writes the flights in another order.
     io_session->get_list( )->set_title( 'Functions of the program''s own' ).
-    io_session->get_list( )->set_status( VALUE #( status = 'FLIGHTS' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'BY_CARRIER' ) ( 'BY_SEATS' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 5 ) ( 6 ) ) icon_bar = VALUE #( ( ucomm = 'BY_CARRIER' label = 'By airline' icon = '' ) ( ucomm = 'BY_SEATS' label = 'By free seats' icon = '' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 5 ucomm = 'BY_CARRIER' ) ( number = 6 ucomm = 'BY_SEATS' ) ) ) ).
-    gt_flights = VALUE #( ( carrid = 'UA' connid = '0941' seats = 12 ) ( carrid = 'LH' connid = '0400' seats = 40 ) ( carrid = 'AA' connid = '0017' seats = 3 ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'FLIGHTS' active_ucomm = VALUE #(
+      ( 'BACK' )
+      ( '%EX' )
+      ( 'RW' )
+      ( 'BY_CARRIER' )
+      ( 'BY_SEATS' ) ) active_pf_keys = VALUE #(
+      ( 3 )
+      ( 15 )
+      ( 12 )
+      ( 5 )
+      ( 6 ) ) icon_bar = VALUE #(
+      ( ucomm = 'BY_CARRIER' label = 'By airline' icon = '' )
+      ( ucomm = 'BY_SEATS' label = 'By free seats' icon = '' ) ) pf_actions = VALUE #(
+      ( number = 3 ucomm = 'BACK' )
+      ( number = 15 ucomm = '%EX' )
+      ( number = 12 ucomm = 'RW' )
+      ( number = 5 ucomm = 'BY_CARRIER' )
+      ( number = 6 ucomm = 'BY_SEATS' ) ) ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'UA' connid = '0941' seats = 12 )
+      ( carrid = 'LH' connid = '0400' seats = 40 )
+      ( carrid = 'AA' connid = '0017' seats = 3 ) ).
     form_show( io_session = io_session ).
   ENDMETHOD.
 
@@ -142,9 +162,9 @@ CLASS zcl_gg_ex_060 IMPLEMENTATION.
   METHOD form_show.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     LOOP AT gt_flights INTO gs_flight.
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-carrid }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-connid }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-seats }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-carrid ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-connid ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-seats ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

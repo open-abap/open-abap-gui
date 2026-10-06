@@ -139,10 +139,10 @@ CLASS zcl_example_texts IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_days = it_values[ name = 'P_DAYS' ]-value.
     mv_p_user = it_values[ name = 'P_USER' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ TEXT-001 }| placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_user }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ TEXT-002 }| placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_days }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-001 ) placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_user ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-002 ) placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_days ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

@@ -155,9 +155,6 @@ CLASS zcl_gg_ex_129 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
@@ -174,11 +171,23 @@ CLASS zcl_gg_ex_129 IMPLEMENTATION.
                                  text = 'Open document'
                                  name = 'SAFE_DOCUMENT' ).
           go_document->new_line( ).
-          go_document->add_table( EXPORTING no_of_columns = 2
-                                            with_heading = abap_true
-                                            border = '1' IMPORTING table = go_table ).
-          go_table->add_column( EXPORTING heading = 'Field' IMPORTING column = go_column_field ).
-          go_table->add_column( EXPORTING heading = 'Value' IMPORTING column = go_column_value ).
+          go_document->add_table(
+            EXPORTING
+              no_of_columns = 2
+              with_heading  = abap_true
+              border        = '1'
+            IMPORTING
+              table         = go_table ).
+          go_table->add_column(
+            EXPORTING
+              heading = 'Field'
+            IMPORTING
+              column  = go_column_field ).
+          go_table->add_column(
+            EXPORTING
+              heading = 'Value'
+            IMPORTING
+              column  = go_column_value ).
           go_column_field->add_text( text = 'Status' ).
           go_column_value->add_text( text = 'Draft' ).
           go_document->merge_document( ).

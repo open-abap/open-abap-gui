@@ -18,6 +18,7 @@ CLASS zcl_gg_ex_162 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA gt_events TYPE STANDARD TABLE OF ty_event WITH DEFAULT KEY.
     DATA go_grid TYPE REF TO cl_gui_alv_grid.
     DATA ok_code TYPE sy-ucomm.
+    DATA mv_ggconv_lt_fcat TYPE lvc_t_fcat.
     METHODS output_modules
       IMPORTING
         is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
@@ -98,7 +99,9 @@ CLASS zcl_gg_ex_162 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ALV grid on the default screen' ).
-    gt_events = VALUE #( ( event = 'CREATED' object = 'BUS2032' paused_by = 'DEVELOPER' ) ( event = 'CHANGED' object = 'BUS2105' paused_by = 'BASIS' ) ).
+    gt_events = VALUE #(
+      ( event = 'CREATED' object = 'BUS2032' paused_by = 'DEVELOPER' )
+      ( event = 'CHANGED' object = 'BUS2105' paused_by = 'BASIS' ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -150,7 +153,15 @@ CLASS zcl_gg_ex_162 IMPLEMENTATION.
       ok_code = CONV #( ct_values[ name = 'OK_CODE' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS162' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'REFRESH' ) ) icon_bar = VALUE #( ( ucomm = 'REFRESH' label = 'Refresh' icon = 'ICON_REFRESH' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS162' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 )
+        ( 13 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' )
+        ( number = 13 ucomm = 'REFRESH' ) ) icon_bar = VALUE #( ( ucomm = 'REFRESH' label = 'Refresh' icon = 'ICON_REFRESH' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -205,21 +216,36 @@ CLASS zcl_gg_ex_162 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
-    DATA lt_fcat TYPE lvc_t_fcat.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS162' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ( 'REFRESH' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'REFRESH' label = 'Refresh' icon = 'ICON_REFRESH' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'REFRESH' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS162' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' )
+          ( 'REFRESH' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 13 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'REFRESH' label = 'Refresh' icon = 'ICON_REFRESH' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 13 ucomm = 'REFRESH' ) ) ) ).
         io_session->get_dialog( )->set_title( 'Paused events' ).
         IF go_grid IS INITIAL.
-          lt_fcat = VALUE #( ( fieldname = 'EVENT' coltext = 'Event' inttype = 'C' ) ( fieldname = 'OBJECT' coltext = 'Object' inttype = 'C' ) ( fieldname = 'PAUSED_BY' coltext = 'Paused by' inttype = 'C' ) ).
-          CREATE OBJECT go_grid EXPORTING i_parent = cl_gui_container=>default_screen.
-          go_grid->set_table_for_first_display( CHANGING it_outtab = gt_events it_fieldcatalog = lt_fcat ).
+          mv_ggconv_lt_fcat = VALUE #(
+            ( fieldname = 'EVENT' coltext = 'Event' inttype = 'C' )
+            ( fieldname = 'OBJECT' coltext = 'Object' inttype = 'C' )
+            ( fieldname = 'PAUSED_BY' coltext = 'Paused by' inttype = 'C' ) ).
+          CREATE OBJECT go_grid
+            EXPORTING i_parent = cl_gui_container=>default_screen.
+          go_grid->set_table_for_first_display( CHANGING it_outtab = gt_events it_fieldcatalog = mv_ggconv_lt_fcat ).
         ELSE.
           go_grid->refresh_table_display( ).
         ENDIF.

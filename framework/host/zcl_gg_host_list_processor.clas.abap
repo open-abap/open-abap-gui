@@ -13,17 +13,20 @@ CLASS zcl_gg_host_list_processor DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS dialog_save TYPE string VALUE 'SAVE'.
     CONSTANTS format_unconverted TYPE string VALUE 'UNCONVERTED'.
     CONSTANTS format_spreadsheet TYPE string VALUE 'SPREADSHEET'.
+    CONSTANTS format_richtext TYPE string VALUE 'RICHTEXT'.
     CONSTANTS format_html        TYPE string VALUE 'HTML'.
 
 * term: what Find looks for; line: the list line of the last hit.
     TYPES: BEGIN OF ty_find,
-             term TYPE string,
-             line TYPE i,
+             term       TYPE string,
+             line       TYPE i,
+             match_case TYPE abap_bool,
            END OF ty_find.
     TYPES: BEGIN OF ty_outcome,
              dialog    TYPE string,
              find      TYPE ty_find,
              found     TYPE i,
+             hits      TYPE zcl_gg_host_list=>ty_render_lines,
              message   TYPE string,
              downloads TYPE zcl_gg_host_compatibility=>ty_downloads,
            END OF ty_outcome.
@@ -46,6 +49,7 @@ CLASS zcl_gg_host_list_processor DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_ucomm          TYPE zif_gg_session_types_v1=>ty_ucomm
         iv_value          TYPE string OPTIONAL
         iv_target         TYPE string OPTIONAL
+        iv_cursor         TYPE i OPTIONAL
         is_find           TYPE ty_find OPTIONAL
         it_lines          TYPE zcl_gg_host_list=>ty_render_lines
       RETURNING
@@ -63,6 +67,7 @@ CLASS zcl_gg_host_list_processor DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_term        TYPE string
         iv_after       TYPE i
+        iv_match_case  TYPE abap_bool OPTIONAL
         it_lines       TYPE zcl_gg_host_list=>ty_render_lines
       RETURNING
         VALUE(rv_line) TYPE i.
@@ -133,15 +138,31 @@ CLASS zcl_gg_host_list_processor IMPLEMENTATION.
     CASE iv_ucomm.
       WHEN find OR find_next.
         IF iv_ucomm = find AND iv_value IS NOT INITIAL.
-          rs_outcome-find = VALUE #( term = iv_value ).
+          rs_outcome-find = VALUE #( term = iv_value match_case = xsdbool( iv_target CS 'CASE' )
+            line = COND #( WHEN iv_target CS 'CURSOR' THEN iv_cursor - 1 ) ).
         ELSEIF iv_ucomm = find OR is_find-term IS INITIAL.
           rs_outcome-dialog = dialog_find.
           RETURN.
         ENDIF.
         rs_outcome-found = search(
-          iv_term  = rs_outcome-find-term
-          iv_after = rs_outcome-find-line
-          it_lines = it_lines ).
+          iv_term       = rs_outcome-find-term
+          iv_match_case = rs_outcome-find-match_case
+          iv_after      = rs_outcome-find-line
+          it_lines      = it_lines ).
+        IF rs_outcome-found = 0 AND rs_outcome-find-line > 0.
+          rs_outcome-found = search( iv_term  = rs_outcome-find-term
+                                     iv_after = 0
+            iv_match_case                     = rs_outcome-find-match_case
+                                     it_lines = it_lines ).
+        ENDIF.
+        LOOP AT it_lines INTO DATA(ls_hit).
+          DATA(lv_hit_text) = line_text( ls_hit ).
+          IF ( rs_outcome-find-match_case = abap_false AND lv_hit_text CS rs_outcome-find-term )
+              OR ( rs_outcome-find-match_case = abap_true AND contains( val = lv_hit_text
+                                                                        sub = rs_outcome-find-term ) ).
+            APPEND ls_hit TO rs_outcome-hits.
+          ENDIF.
+        ENDLOOP.
         IF rs_outcome-found = 0.
           rs_outcome-message = COND #(
             WHEN rs_outcome-find-line = 0 THEN |"{ rs_outcome-find-term }" was not found|
@@ -187,7 +208,10 @@ CLASS zcl_gg_host_list_processor IMPLEMENTATION.
   METHOD search.
 * As on SAP, the search ignores case and goes on from the last hit.
     LOOP AT it_lines INTO DATA(ls_line) WHERE index > iv_after.
-      IF line_text( ls_line ) CS iv_term.
+      DATA(lv_text) = line_text( ls_line ).
+      IF ( iv_match_case = abap_false AND lv_text CS iv_term )
+          OR ( iv_match_case = abap_true AND contains( val = lv_text
+                                                       sub = iv_term ) ).
         rv_line = ls_line-index.
         RETURN.
       ENDIF.
@@ -204,6 +228,28 @@ CLASS zcl_gg_host_list_processor IMPLEMENTATION.
           rv_text = rv_text && line_text( is_line      = ls_cells
                                           iv_separator = lv_tab ) && lv_newline.
         ENDLOOP.
+      WHEN format_richtext.
+        rv_text = `{\rtf1\ansi\uc1 `.
+        LOOP AT it_lines INTO DATA(ls_rtf).
+          DATA(lv_rtf) = line_text( ls_rtf ).
+          DO strlen( lv_rtf ) TIMES.
+            DATA(lv_offset) = sy-index - 1.
+            DATA(lv_character) = lv_rtf+lv_offset(1).
+            DATA(lv_code) = cl_abap_conv_out_ce=>uccpi( lv_character ).
+            IF lv_character = '\' OR lv_character = '{' OR lv_character = '}'.
+              rv_text = rv_text && '\' && lv_character.
+            ELSEIF lv_code > 127.
+              IF lv_code > 32767.
+                lv_code = lv_code - 65536.
+              ENDIF.
+              rv_text = rv_text && '\u' && |{ lv_code }?|.
+            ELSE.
+              rv_text = rv_text && lv_character.
+            ENDIF.
+          ENDDO.
+          rv_text = rv_text && `\par `.
+        ENDLOOP.
+        rv_text = rv_text && '}'.
       WHEN format_html.
         rv_text = `<html><body><pre>`.
         LOOP AT it_lines INTO DATA(ls_html).

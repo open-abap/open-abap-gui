@@ -87,14 +87,17 @@ CLASS zcl_gg_ex_095 IMPLEMENTATION.
 * HTML. The list processor does it; the program only writes the list.
     io_session->get_list( )->set_title( 'Save a list to a local file' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    gt_carriers = VALUE #( ( carrid = 'LH' carrname = 'Lufthansa' currency = 'EUR' ) ( carrid = 'UA' carrname = 'United Airlines' currency = 'USD' ) ( carrid = 'SQ' carrname = 'Singapore Airlines' currency = 'SGD' ) ).
+    gt_carriers = VALUE #(
+      ( carrid = 'LH' carrname = 'Lufthansa' currency = 'EUR' )
+      ( carrid = 'UA' carrname = 'United Airlines' currency = 'USD' )
+      ( carrid = 'SQ' carrname = 'Singapore Airlines' currency = 'SGD' ) ).
     lo_writer->write_field( VALUE #( text = 'ID' placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'Airline' placement = VALUE #( position = 6 ) ) ).
     lo_writer->write_field( VALUE #( text = 'Currency' placement = VALUE #( position = 28 ) ) ).
     LOOP AT gt_carriers INTO gs_carrier.
-      lo_writer->write_field( VALUE #( text = |{ gs_carrier-carrid }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_carrier-carrname }| placement = VALUE #( position = 6 ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_carrier-currency }| placement = VALUE #( position = 28 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_carrier-carrid ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_carrier-carrname ) placement = VALUE #( position = 6 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_carrier-currency ) placement = VALUE #( position = 28 ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

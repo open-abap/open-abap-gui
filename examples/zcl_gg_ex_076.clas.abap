@@ -142,7 +142,7 @@ CLASS zcl_gg_ex_076 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_der = it_values[ name = 'P_DER' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_der }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_der ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

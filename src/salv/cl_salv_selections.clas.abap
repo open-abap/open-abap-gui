@@ -58,6 +58,7 @@ CLASS cl_salv_selections DEFINITION PUBLIC FRIENDS cl_salv_table.
 * The grid control of a SALV table in a container; its selection is the
 * user's.
     DATA mo_grid TYPE REF TO cl_gui_alv_grid.
+    DATA mt_row_map TYPE salv_t_row.
 
 ENDCLASS.
 
@@ -74,15 +75,32 @@ CLASS cl_salv_selections IMPLEMENTATION.
   METHOD get_selected_rows.
     DATA lt_rows TYPE lvc_t_row.
 
-    IF mo_grid IS BOUND.
+    IF mo_grid IS BOUND AND mt_row_map IS NOT INITIAL.
       mo_grid->get_selected_rows( IMPORTING et_index_rows = lt_rows ).
-      mt_selected_rows = VALUE #( FOR ls_row IN lt_rows ( ls_row-index ) ).
+      CLEAR mt_selected_rows.
+      LOOP AT lt_rows INTO DATA(ls_row).
+        READ TABLE mt_row_map INTO DATA(lv_row) INDEX ls_row-index.
+        IF sy-subrc = 0.
+          APPEND lv_row TO mt_selected_rows.
+        ENDIF.
+      ENDLOOP.
     ENDIF.
     value = mt_selected_rows.
   ENDMETHOD.
 
   METHOD set_selected_rows.
+    DATA lt_rows TYPE lvc_t_row.
     mt_selected_rows = value.
+    IF mo_grid IS BOUND AND mt_row_map IS NOT INITIAL.
+
+      LOOP AT value INTO DATA(lv_selected).
+        READ TABLE mt_row_map TRANSPORTING NO FIELDS WITH KEY table_line = lv_selected.
+        IF sy-subrc = 0.
+          APPEND VALUE #( index = sy-tabix ) TO lt_rows.
+        ENDIF.
+      ENDLOOP.
+      mo_grid->set_selected_rows( it_index_rows = lt_rows ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_selected_columns.

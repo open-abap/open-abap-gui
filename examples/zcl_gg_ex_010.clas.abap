@@ -79,7 +79,7 @@ CLASS zcl_gg_ex_010 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'END-OF-PAGE' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     DO 30 TIMES.
-      lo_writer->write_field( VALUE #( text = |{ sy-index }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = sy-index ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDDO.
   ENDMETHOD.
 

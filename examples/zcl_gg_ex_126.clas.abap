@@ -200,17 +200,16 @@ CLASS zcl_gg_ex_126 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_calendar EXPORTING parent = go_container.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_calendar
+            EXPORTING parent = go_container.
           go_calendar->go_to_date( '20260830' ).
           go_calendar->set_selection( date_begin = '20260830'
                                       date_end   = '20260901' ).

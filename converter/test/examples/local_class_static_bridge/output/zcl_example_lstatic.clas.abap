@@ -88,7 +88,7 @@ CLASS zcl_example_lstatic IMPLEMENTATION.
     zcl_example_lstatic_h1=>remember( io_owner   = me
                                       io_session = io_session
                                       iv_text    = lv_text ).
-    lo_writer->write_field( VALUE #( text = |{ gv_greeting }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_greeting ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

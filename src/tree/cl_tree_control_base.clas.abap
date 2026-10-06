@@ -325,6 +325,8 @@ CLASS cl_tree_control_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(result) TYPE string.
 
+    DATA mv_html_header TYPE string.
+
 * The items of a node besides its text; an item tree shows them after the node.
     METHODS node_items_html
       IMPORTING
@@ -562,8 +564,11 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD node_set_n_image.
-    cl_gui_control=>set_payload( control = me
-                                 payload = |node { node_key } image={ n_image }| ).
+    READ TABLE mt_html_nodes ASSIGNING FIELD-SYMBOL(<node>) WITH KEY node_key = CONV string( node_key ).
+    IF sy-subrc = 0.
+      <node>-node_image = CONV string( n_image ).
+      refresh_tree_html( ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD unselect_all.
@@ -679,6 +684,8 @@ CLASS cl_tree_control_base IMPLEMENTATION.
 
   METHOD event_id.
     CASE event.
+      WHEN 'DROP'.
+        result = -1.
       WHEN 'TOGGLE'.
         result = eventid_expand_no_children.
       WHEN 'SELECT'.
@@ -689,6 +696,10 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD is_application_event.
+    IF event = 'DROP'.
+      result = abap_true.
+      RETURN.
+    ENDIF.
     READ TABLE mt_frontend_events INTO DATA(ls_event) WITH KEY eventid = event_id( event ).
     result = xsdbool( sy-subrc = 0 AND ls_event-appl_event = abap_true ).
   ENDMETHOD.
@@ -705,6 +716,24 @@ CLASS cl_tree_control_base IMPLEMENTATION.
     ENDIF.
     DATA(lv_registered) = xsdbool( line_exists( mt_frontend_events[ eventid = event_id( event ) ] ) ).
     CASE event.
+      WHEN 'DROP'.
+        DATA(lv_source) = VALUE string( params[ 2 ] OPTIONAL ).
+        DATA(lv_source_key) = VALUE string( params[ 3 ] OPTIONAL ).
+        DATA(lo_drop) = cl_gui_control=>start_drag( source_id = lv_source
+                                                    key       = lv_source_key
+          flavor                                              = VALUE #( params[ 4 ] OPTIONAL ) ).
+        IF lo_drop IS BOUND.
+          RAISE EVENT on_drop_get_flavor EXPORTING node_key         = lv_node_key
+                                                   drag_drop_object = lo_drop
+            flavors                                                 = VALUE cndd_flavors( ( lo_drop->flavor ) ).
+          IF lo_drop->state <> -1.
+            RAISE EVENT on_drop EXPORTING node_key         = lv_node_key
+                                          drag_drop_object = lo_drop.
+            cl_gui_control=>end_drag( source_id = lv_source
+                                      key       = lv_source_key
+                                      object    = lo_drop ).
+          ENDIF.
+        ENDIF.
       WHEN 'TOGGLE'.
         IF ls_node-expanded = abap_false
             AND NOT line_exists( mt_html_nodes[ parent_key = ls_node-node_key ] )
@@ -728,8 +757,12 @@ CLASS cl_tree_control_base IMPLEMENTATION.
 
   METHOD tree_html.
     DATA lv_toggle TYPE string.
+    IF mv_html_header IS NOT INITIAL.
+      result = |<div class="gg-tree-header">{ escape_html( mv_html_header ) }</div>|.
+    ENDIF.
 
-    result = |<ul class="gg-tree" role="tree" aria-label="Tree">|.
+
+    result = result && |<ul class="gg-tree" role="tree" aria-label="Tree">|.
     LOOP AT mt_html_nodes INTO DATA(ls_node).
       IF ls_node-hidden = abap_true OR node_visible( ls_node-node_key ) = abap_false.
         CONTINUE.
@@ -755,8 +788,17 @@ CLASS cl_tree_control_base IMPLEMENTATION.
       DATA(lv_drag) = drag_attributes( handle     = ls_node-dragdropid
                                        control_id = control_id
                                        key        = ls_node-node_key ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" style="padding-left:{ ( lv_depth - 1 ) * 18 }px"{ lv_selected }{ lv_drag }>| &&
-        |{ lv_toggle }<span class="gg-tree-label" tabindex="0" data-gg-click-event="{ lv_select }" data-gg-dblclick-event="{ lv_double_click }">{ escape_html( ls_node-text ) }</span>{ node_items_html( ls_node-node_key ) }</li>|.
+      DATA(lv_drop) = drop_attributes( handle     = ls_node-dragdropid
+                                       control_id = control_id
+                                       row        = ls_node-node_key ).
+      IF lv_drag IS NOT INITIAL.
+        REPLACE FIRST OCCURRENCE OF ' tabindex="0"' IN lv_drop WITH ''.
+      ENDIF.
+      DATA(lv_image) = COND string( WHEN ls_node-expanded = abap_true AND ls_node-open_image IS NOT INITIAL
+        THEN ls_node-open_image ELSE ls_node-node_image ).
+      DATA(lv_icon) = COND string( WHEN lv_image IS NOT INITIAL THEN zcl_gg_host_icons=>icon( lv_image ) ).
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" style="padding-left:{ ( lv_depth - 1 ) * 18 }px"{ lv_selected }{ lv_drag }{ lv_drop }>| &&
+        |{ lv_toggle }{ lv_icon }<span class="gg-tree-label" tabindex="0" data-gg-click-event="{ lv_select }" data-gg-dblclick-event="{ lv_double_click }">{ escape_html( ls_node-text ) }</span>{ node_items_html( ls_node-node_key ) }</li>|.
     ENDLOOP.
     result = result && |</ul>|.
   ENDMETHOD.

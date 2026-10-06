@@ -92,12 +92,20 @@ CLASS zcl_example_memory IMPLEMENTATION.
                                iv_value = gv_text ).
     CLEAR gv_counter.
     CLEAR gv_text.
-    io_session->import_memory( EXPORTING iv_id = 'ZEXAMPLE'
-                                         iv_name = 'GV_COUNTER' CHANGING cv_value = gv_counter ).
-    io_session->import_memory( EXPORTING iv_id = 'ZEXAMPLE'
-                                         iv_name = 'GV_TEXT' CHANGING cv_value = gv_text ).
-    lo_writer->write_field( VALUE #( text = |{ gv_counter }| placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_text }| ) ).
+    io_session->import_memory(
+      EXPORTING
+        iv_id    = 'ZEXAMPLE'
+        iv_name  = 'GV_COUNTER'
+      CHANGING
+        cv_value = gv_counter ).
+    io_session->import_memory(
+      EXPORTING
+        iv_id    = 'ZEXAMPLE'
+        iv_name  = 'GV_TEXT'
+      CHANGING
+        cv_value = gv_text ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_counter ) placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_text ) ) ).
     io_session->free_memory( iv_id = 'ZEXAMPLE' ).
   ENDMETHOD.
 

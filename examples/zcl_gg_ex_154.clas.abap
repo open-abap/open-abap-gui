@@ -100,7 +100,10 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'File download and upload' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ( carrid = 'AF' connid = '0010' cityfrom = 'Paris' cityto = 'New York' ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' )
+      ( carrid = 'AF' connid = '0010' cityfrom = 'Paris' cityto = 'New York' ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -339,9 +342,6 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD input_modules.
@@ -349,14 +349,35 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
       WHEN 'USER_COMMAND_0100'.
         CASE gv_ok_code.
           WHEN 'DOWNLOAD'.
-            cl_gui_frontend_services=>file_save_dialog( EXPORTING window_title = 'Download flights'
-                                                                  default_extension = 'txt'
-                                                                  default_file_name = 'flights.txt' CHANGING filename = gv_filename path = gv_path fullpath = gv_fullpath user_action = gv_action EXCEPTIONS OTHERS = 1 ).
+            TRY.
+                cl_gui_frontend_services=>file_save_dialog(
+                  EXPORTING
+                    window_title      = 'Download flights'
+                    default_extension = 'txt'
+                    default_file_name = 'flights.txt'
+                  CHANGING
+                    filename          = gv_filename
+                    path              = gv_path
+                    fullpath          = gv_fullpath
+                    user_action       = gv_action
+                  EXCEPTIONS OTHERS   = 1 ).
+              CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_4f586f7cdd).
+                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_4f586f7cdd->mv_kind
+                                                         iv_operation    = lx_popup_c_4f586f7cdd->mv_operation
+                                                         iv_continuation = 'C_4F586F7CDD' ).
+            ENDTRY.
             IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok.
               gv_state = 'Download cancelled'.
             ELSE.
-              cl_gui_frontend_services=>gui_download( EXPORTING filename = gv_fullpath
-                                                                write_field_separator = abap_true IMPORTING filelength = gv_length CHANGING data_tab = gt_flights EXCEPTIONS OTHERS = 1 ).
+              cl_gui_frontend_services=>gui_download(
+                EXPORTING
+                  filename              = gv_fullpath
+                  write_field_separator = abap_true
+                IMPORTING
+                  filelength            = gv_length
+                CHANGING
+                  data_tab              = gt_flights
+                EXCEPTIONS OTHERS       = 1 ).
               IF sy-subrc = 0.
                 gv_state = |{ gv_filename }: { gv_length } bytes downloaded|.
               ELSE.
@@ -364,15 +385,35 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
               ENDIF.
             ENDIF.
           WHEN 'UPLOAD'.
-            cl_gui_frontend_services=>file_open_dialog( EXPORTING window_title = 'Upload text file'
-                                                                  default_extension = 'txt' CHANGING file_table = gt_files rc = gv_rc user_action = gv_action EXCEPTIONS OTHERS = 1 ).
+            TRY.
+                cl_gui_frontend_services=>file_open_dialog(
+                  EXPORTING
+                    window_title      = 'Upload text file'
+                    default_extension = 'txt'
+                  CHANGING
+                    file_table        = gt_files
+                    rc                = gv_rc
+                    user_action       = gv_action
+                  EXCEPTIONS OTHERS   = 1 ).
+              CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_5a948424ee).
+                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_5a948424ee->mv_kind
+                                                         iv_operation    = lx_popup_c_5a948424ee->mv_operation
+                                                         iv_continuation = 'C_5A948424EE' ).
+            ENDTRY.
             IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok OR gv_rc <> 1.
               gv_state = 'Upload cancelled'.
             ELSE.
               READ TABLE gt_files INTO gs_file INDEX 1.
               gv_filename = gs_file-filename.
               CLEAR gt_lines.
-              cl_gui_frontend_services=>gui_upload( EXPORTING filename = gv_filename IMPORTING filelength = gv_length CHANGING data_tab = gt_lines EXCEPTIONS OTHERS = 1 ).
+              cl_gui_frontend_services=>gui_upload(
+                EXPORTING
+                  filename        = gv_filename
+                IMPORTING
+                  filelength      = gv_length
+                CHANGING
+                  data_tab        = gt_lines
+                EXCEPTIONS OTHERS = 1 ).
               IF sy-subrc = 0.
                 gv_state = |{ gv_filename }: { lines( gt_lines ) } lines, { gv_length } bytes|.
                 READ TABLE gt_lines INTO DATA(gv_line) INDEX 1.
@@ -393,6 +434,82 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
     CASE is_resume-continuation-id.
       WHEN 'AFTER_0100'.
         RETURN.
+      WHEN 'C_4F586F7CDD'.
+        TRY.
+            cl_gui_frontend_services=>file_save_dialog(
+              EXPORTING
+                window_title      = 'Download flights'
+                default_extension = 'txt'
+                default_file_name = 'flights.txt'
+              CHANGING
+                filename          = gv_filename
+                path              = gv_path
+                fullpath          = gv_fullpath
+                user_action       = gv_action
+              EXCEPTIONS OTHERS   = 1 ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_4f586f7cdd).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_4f586f7cdd->mv_kind
+                                                     iv_operation    = lx_popup_c_4f586f7cdd->mv_operation
+                                                     iv_continuation = 'C_4F586F7CDD' ).
+        ENDTRY.
+        IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok.
+          gv_state = 'Download cancelled'.
+        ELSE.
+          cl_gui_frontend_services=>gui_download(
+            EXPORTING
+              filename              = gv_fullpath
+              write_field_separator = abap_true
+            IMPORTING
+              filelength            = gv_length
+            CHANGING
+              data_tab              = gt_flights
+            EXCEPTIONS OTHERS       = 1 ).
+          IF sy-subrc = 0.
+            gv_state = |{ gv_filename }: { gv_length } bytes downloaded|.
+          ELSE.
+            gv_state = 'Download failed'.
+          ENDIF.
+        ENDIF.
+        CLEAR gv_ok_code.
+      WHEN 'C_5A948424EE'.
+        TRY.
+            cl_gui_frontend_services=>file_open_dialog(
+              EXPORTING
+                window_title      = 'Upload text file'
+                default_extension = 'txt'
+              CHANGING
+                file_table        = gt_files
+                rc                = gv_rc
+                user_action       = gv_action
+              EXCEPTIONS OTHERS   = 1 ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_5a948424ee).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_5a948424ee->mv_kind
+                                                     iv_operation    = lx_popup_c_5a948424ee->mv_operation
+                                                     iv_continuation = 'C_5A948424EE' ).
+        ENDTRY.
+        IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok OR gv_rc <> 1.
+          gv_state = 'Upload cancelled'.
+        ELSE.
+          READ TABLE gt_files INTO gs_file INDEX 1.
+          gv_filename = gs_file-filename.
+          CLEAR gt_lines.
+          cl_gui_frontend_services=>gui_upload(
+            EXPORTING
+              filename        = gv_filename
+            IMPORTING
+              filelength      = gv_length
+            CHANGING
+              data_tab        = gt_lines
+            EXCEPTIONS OTHERS = 1 ).
+          IF sy-subrc = 0.
+            gv_state = |{ gv_filename }: { lines( gt_lines ) } lines, { gv_length } bytes|.
+            READ TABLE gt_lines INTO DATA(gv_line) INDEX 1.
+            gv_first_line = gv_line.
+          ELSE.
+            gv_state = 'Upload failed'.
+          ENDIF.
+        ENDIF.
+        CLEAR gv_ok_code.
       WHEN OTHERS.
         RETURN.
     ENDCASE.

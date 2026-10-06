@@ -248,19 +248,20 @@ CLASS zcl_gg_ex_142 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_tree EXPORTING parent              = go_container
-                                          node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single.
-          gt_events = VALUE #( ( eventid = cl_gui_simple_tree=>eventid_selection_changed appl_event = abap_false ) ( eventid = cl_gui_simple_tree=>eventid_node_double_click appl_event = abap_true ) ).
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_tree
+            EXPORTING parent              = go_container
+                      node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single.
+          gt_events = VALUE #(
+            ( eventid = cl_gui_simple_tree=>eventid_selection_changed appl_event = abap_false )
+            ( eventid = cl_gui_simple_tree=>eventid_node_double_click appl_event = abap_true ) ).
           go_tree->set_registered_events( gt_events ).
           zcl_gg_ex_142_h1=>go_owner = me.
           zcl_gg_ex_142_h1=>go_session = io_session.
@@ -268,7 +269,10 @@ CLASS zcl_gg_ex_142 IMPLEMENTATION.
           zcl_gg_ex_142_h1=>go_owner = me.
           zcl_gg_ex_142_h1=>go_session = io_session.
           SET HANDLER zcl_gg_ex_142_h1=>on_node_double_click FOR go_tree.
-          gt_nodes = VALUE #( ( node_key = 'ROOT' isfolder = abap_true text = 'Flights' ) ( node_key = 'LH0400' relatkey = 'ROOT' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0400' ) ( node_key = 'UA0941' relatkey = 'ROOT' relatship = cl_gui_simple_tree=>relat_last_child text = 'UA 0941' ) ).
+          gt_nodes = VALUE #(
+            ( node_key = 'ROOT' isfolder = abap_true text = 'Flights' )
+            ( node_key = 'LH0400' relatkey = 'ROOT' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0400' )
+            ( node_key = 'UA0941' relatkey = 'ROOT' relatship = cl_gui_simple_tree=>relat_last_child text = 'UA 0941' ) ).
           go_tree->add_nodes( table_structure_name = 'MTREESNODE'
                               node_table           = gt_nodes ).
           go_tree->expand_node( 'ROOT' ).

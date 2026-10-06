@@ -351,7 +351,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       ls_current_page = ls_session-last_result-page.
     ENDIF.
     IF is_request-page_id <> lv_current_page_id.
-      rs_response = invalid_response( 'Stale host page' ).
+* A repeated submission gets the current page without running the program.
+      rs_response = response_for( ls_session ).
       RETURN.
     ENDIF.
     IF ( ls_session-dynpro_program IS BOUND
@@ -481,12 +482,20 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       lv_resume_continuation = ls_screen_call-continuation.
       lv_return_screen = ls_screen_call-screen.
     ENDIF.
+    DATA(lv_popup_resume) = xsdbool( is_request-action = zif_gg_host_html_v1=>action_popup
+      AND ls_session-last_dynpro-popup_continuation IS NOT INITIAL ).
+    IF lv_popup_resume = abap_true.
+      lv_resume_continuation = ls_session-last_dynpro-popup_continuation.
+      CLEAR lv_help_request.
+    ENDIF.
     queue_control_event( is_request ).
     lv_page_id = |{ ls_session-session_id }-{ ls_session-next_page }|.
     ls_dynpro = zcl_gg_host_dynpro=>run(
       io_program             = ls_session-dynpro_program
       iv_ucomm               = lv_ucomm
-      iv_submitted           = xsdbool( lv_list_back = abap_false
+      iv_resume_first        = lv_popup_resume
+      is_resume_context      = COND #( WHEN lv_popup_resume = abap_true THEN ls_session-last_dynpro-popup_context )
+      iv_submitted           = xsdbool( lv_popup_resume = abap_false AND lv_list_back = abap_false
                                   AND is_request-action <> zif_gg_host_html_v1=>action_help
                                   AND is_request-action <> zif_gg_host_html_v1=>action_value_help
                                   AND NOT ( is_request-action = zif_gg_host_html_v1=>action_popup
@@ -870,9 +879,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    IF is_request-action = zif_gg_host_html_v1=>action_line
+    IF ls_session-last_result-page_kind <> zif_gg_host_html_v1=>page_list
+        AND ( is_request-action = zif_gg_host_html_v1=>action_line
         OR is_request-action = zif_gg_host_html_v1=>action_command
-        OR is_request-action = zif_gg_host_html_v1=>action_pf.
+        OR is_request-action = zif_gg_host_html_v1=>action_pf ).
       ls_session-report = fresh_report( ls_session-report ).
     ENDIF.
     CASE is_request-action.
@@ -886,6 +896,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           it_input               = lt_input
           iv_line_index          = lv_index
           it_list_path           = ls_session-last_result-list_path
+          is_previous            = ls_session-last_result
+          iv_list_cursor         = is_request-row
           iv_cursor_field        = CONV zif_gg_session_types_v1=>ty_name( is_request-cursor_field )
           iv_cursor_value        = is_request-cursor_value
           iv_session_id          = ls_session-session_id
@@ -905,6 +917,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_list_target         = is_request-target
           is_list_find           = ls_session-last_result-list_outcome-find
           it_list_path           = ls_session-last_result-list_path
+          is_previous            = ls_session-last_result
+          iv_list_cursor         = is_request-row
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )
@@ -918,6 +932,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           it_input               = lt_input
           iv_pf_key              = is_request-pf_key
           it_list_path           = ls_session-last_result-list_path
+          is_previous            = ls_session-last_result
+          iv_list_cursor         = is_request-row
           iv_session_id          = ls_session-session_id
           iv_page_id             = lv_page_id
           iv_can_back            = xsdbool( lines( ls_session-results ) > 0 )

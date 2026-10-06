@@ -229,7 +229,7 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
     lo_tree->add_nodes_and_items(
       node_table                = lt_nodes
       item_table                = lt_items
-      item_table_structure_name = 'MTREEITEM' ).
+      item_table_structure_name = 'MTREEITM' ).
 
     DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
 * Root at level 1 gets no indent, its child 18px, the grandchild 36px.

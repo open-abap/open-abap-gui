@@ -4,7 +4,7 @@ test("ZCL_GG_EX_139 — raises the grid's toolbar, hotspot and double-click even
   await openExample(page, host, 139);
   await submit(page, "Details");
   await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Select a flight first");
-  await page.getByLabel("Select row 2").check();
+  await page.getByLabel("Select row 2").click();
   await submit(page, "Details");
   await expect(page.locator("#gg-dynpro-control-n-GV_STATE")).toHaveText("Details of UA 0941: 210 seats");
   await page.locator('[data-control-kind="ALV_GRID"]').locator("button.gg-alv-hotspot").first().click();

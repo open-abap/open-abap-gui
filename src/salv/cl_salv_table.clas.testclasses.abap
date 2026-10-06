@@ -2,6 +2,8 @@ CLASS ltcl_salv_table_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK L
   PRIVATE SECTION.
     METHODS renders_structured_rows FOR TESTING.
     METHODS keeps_selection_and_functions FOR TESTING.
+    METHODS filtered_selection_keeps_index FOR TESTING RAISING cx_salv_not_found cx_salv_data_error cx_salv_existing.
+    METHODS form_layout_features FOR TESTING.
     METHODS applies_filter_and_sort_state FOR TESTING
       RAISING
         cx_salv_data_error
@@ -39,6 +41,55 @@ ENDCLASS.
 CLASS cl_salv_table DEFINITION LOCAL FRIENDS ltcl_salv_table_support.
 
 CLASS ltcl_salv_table_support IMPLEMENTATION.
+  METHOD filtered_selection_keeps_index.
+    TYPES: BEGIN OF ty_row,
+             name TYPE string,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+    lt_rows = VALUE #( ( name = 'Hide' ) ( name = 'Keep' ) ( name = 'Keep' ) ).
+    cl_salv_table=>factory( IMPORTING r_salv_table = lo_salv CHANGING t_table = lt_rows ).
+    lo_salv->get_selections( )->set_selection_mode( if_salv_c_selection_mode=>multiple ).
+    lo_salv->get_selections( )->set_selected_rows( VALUE #( ( 3 ) ) ).
+    lo_salv->get_filters( )->add_filter( columnname = 'NAME'
+                                         sign       = 'I'
+                                         option     = 'EQ'
+                                         low        = 'Keep' ).
+    lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_equals( act = lo_salv->get_selections( )->get_selected_rows( )
+      exp                                   = VALUE salv_t_row( ( 3 ) ) ).
+
+    lo_salv->get_selections( )->set_selected_rows( VALUE #( ( 2 ) ) ).
+    lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_equals( act = lo_salv->get_selections( )->get_selected_rows( )
+      exp                                   = VALUE salv_t_row( ( 2 ) ) ).
+  ENDMETHOD.
+
+
+  METHOD form_layout_features.
+    DATA lt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+    cl_salv_table=>factory( IMPORTING r_salv_table = lo_salv CHANGING t_table = lt_rows ).
+    DATA(lo_form) = NEW cl_salv_form_layout_grid( ).
+    lo_form->create_label( row     = 1
+                           column  = 1
+                           rowspan = 2
+                           text    = 'Amount' ).
+    DATA(lo_text) = lo_form->create_text( row    = 1
+                                          column = 2
+                                          text   = '42' ).
+    lo_form->set_column_label_for( label_column = 1
+                                   text_column  = 2 ).
+    DATA(lo_layout) = NEW cl_salv_form_layout_data_grid( ).
+    lo_layout->set_h_align( 3 ).
+    lo_text->set_layout_data( lo_layout ).
+    lo_salv->set_top_of_list( lo_form ).
+    DATA(lv_html) = lo_salv->get_html( ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_html CS 'rowspan="2"' ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_html CS 'text-align:right' ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_html CS 'aria-labelledby=' ) ).
+  ENDMETHOD.
+
   METHOD renders_structured_rows.
     TYPES: BEGIN OF ty_row,
              carrier TYPE c LENGTH 3,
@@ -70,7 +121,7 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'CARRIER' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '12' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;ready&gt;' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-row-1' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS ':row:1' ) ).
     DATA(lv_xml) = lo_salv->to_xml( xml_type = 1 ).
     cl_abap_unit_assert=>assert_not_initial( lv_xml ).
   ENDMETHOD.
@@ -239,7 +290,7 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
 * Without enabled functions or a selection mode there is no toolbar and no
 * row selector.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-alv-toolbar' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-alv-row-1' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS ':row:1' ) ).
   ENDMETHOD.
 
   METHOD toolbar_follows_functions.
@@ -262,11 +313,11 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
 
     DATA(lv_html) = lo_salv->get_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="ALV toolbar"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&SORT_DSC"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|&amp;SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '|&amp;SORT_DSC"' ) ).
 * SALV output is read-only, so the grid's editing functions never appear.
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&LOCAL&APPEND"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="ZRESET"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '|&amp;LOCAL&amp;APPEND"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|ZRESET"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Reset</button>' ) ).
   ENDMETHOD.
 
@@ -293,8 +344,8 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
 
     DATA(lv_html) = lo_salv->get_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="ALV toolbar"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="REFRESH"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|&amp;SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|REFRESH"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Refresh</button>' ) ).
   ENDMETHOD.
 
@@ -317,8 +368,8 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
 
     DATA(lv_html) = lo_salv->get_html( ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-alv-toolbar' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="REFRESH"' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '|REFRESH"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '|&amp;SORT_ASC"' ) ).
   ENDMETHOD.
 
   METHOD set_all_keeps_later_settings.
@@ -347,10 +398,10 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
                                              boolean = abap_false ).
 
     DATA(lv_html) = lo_salv->get_html( ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="&SORT_ASC"' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="&SORT_DSC"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="REFRESH"' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="ZHIDDEN"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|&amp;SORT_ASC"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '|&amp;SORT_DSC"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '|REFRESH"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '|ZHIDDEN"' ) ).
   ENDMETHOD.
 
   METHOD added_function_on_empty_grid.

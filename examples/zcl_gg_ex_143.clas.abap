@@ -102,7 +102,10 @@ CLASS zcl_gg_ex_143 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ALV tree' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' seatsocc = 180 ) ( carrid = 'LH' connid = '0402' seatsocc = 240 ) ( carrid = 'UA' connid = '0941' seatsocc = 210 ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' seatsocc = 180 )
+      ( carrid = 'LH' connid = '0402' seatsocc = 240 )
+      ( carrid = 'UA' connid = '0941' seatsocc = 210 ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -227,24 +230,31 @@ CLASS zcl_gg_ex_143 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_tree EXPORTING parent              = go_container
-                                          node_selection_mode = cl_gui_column_tree=>node_sel_mode_single
-                                          item_selection      = abap_false
-                                          no_html_header      = abap_true.
-          gt_fieldcat = VALUE #( ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 ) ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 ) ( fieldname = 'SEATSOCC' coltext = 'Occupied' outputlen = 8 do_sum = abap_true ) ).
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_tree
+            EXPORTING parent              = go_container
+                      node_selection_mode = cl_gui_column_tree=>node_sel_mode_single
+                      item_selection      = abap_false
+                      no_html_header      = abap_true.
+          gt_fieldcat = VALUE #(
+            ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
+            ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )
+            ( fieldname = 'SEATSOCC' coltext = 'Occupied' outputlen = 8 do_sum = abap_true ) ).
           gs_header-heading = 'Airline / flight'.
           gs_header-width = 30.
-          go_tree->set_table_for_first_display( EXPORTING is_hierarchy_header = gs_header CHANGING it_outtab = gt_outtab it_fieldcatalog = gt_fieldcat ).
+          go_tree->set_table_for_first_display(
+            EXPORTING
+              is_hierarchy_header = gs_header
+            CHANGING
+              it_outtab           = gt_outtab
+              it_fieldcatalog     = gt_fieldcat ).
           zcl_gg_ex_143_h1=>add_nodes( io_owner   = me
                                        io_session = io_session ).
           go_tree->frontend_update( ).

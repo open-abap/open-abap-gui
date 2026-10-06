@@ -127,6 +127,16 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
       IF sy-subrc = 0.
         <ls_html_node>-dragdropid = <component>.
       ENDIF.
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'N_IMAGE' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-node_image = CONV string( <component> ).
+      ENDIF.
+      UNASSIGN <component>.
+      ASSIGN COMPONENT 'EXP_IMAGE' OF STRUCTURE <node_row> TO <component>.
+      IF sy-subrc = 0.
+        <ls_html_node>-open_image = CONV string( <component> ).
+      ENDIF.
     ENDLOOP.
     refresh_tree_html( ).
   ENDMETHOD.

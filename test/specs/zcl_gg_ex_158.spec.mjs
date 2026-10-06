@@ -18,4 +18,12 @@ test("ZCL_GG_EX_158 — lists each airline with its flights below it", async ({p
 
   // Only the aggregated column is totalled.
   await expect(table.locator("tfoot td[data-total]")).toHaveText(["630"]);
+  const toggle = rows.nth(0).getByRole("button", {name: "Toggle LH"});
+  await toggle.click();
+  await expect(rows.nth(1)).toBeHidden();
+  await expect(rows.nth(2)).toBeHidden();
+  await expect(rows.nth(4)).toBeVisible();
+  await toggle.press("Enter");
+  await expect(rows.nth(1)).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 });

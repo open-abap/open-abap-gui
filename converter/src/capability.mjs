@@ -4,6 +4,7 @@ import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
 import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop, isStaticAssign } from "./passes/lower-statements.mjs";
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
 import { LOOP_BLOCKS } from "./passes/blocks.mjs";
+import { isSuspendingStatement } from "./passes/lower-continuations.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
   dynamicType: "GGCONV-E515",
@@ -121,7 +122,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     const hasDynproFrontend = ir.programKind === "module-pool" && ir.dynproMetadata
       || ir.programKind === "report" && ir.screenMetadata;
     if (hasDynproFrontend && ["Module", "EndModule", "SetScreen", "LeaveScreen", "LeaveToScreen"].includes(statement.kind)) continue;
-    if (/\b(CALL SCREEN|CALL SELECTION-SCREEN|CALL TRANSACTION|SUBMIT\b.*\bAND RETURN)\b/.test(text)) {
+    if (isSuspendingStatement(statement)) {
       interfaces.add("zif_gg_resumable_v1");
       ir.features.push("continuation");
     }

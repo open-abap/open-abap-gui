@@ -224,9 +224,6 @@ CLASS zcl_gg_ex_121 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
@@ -263,13 +260,15 @@ CLASS zcl_gg_ex_121 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD form_open_dialog.
-    CREATE OBJECT go_dialog EXPORTING width   = 360
-                                      height  = 180
-                                      caption = 'Dialog content'.
+    CREATE OBJECT go_dialog
+      EXPORTING width   = 360
+                height  = 180
+                caption = 'Dialog content'.
     zcl_gg_ex_121_h1=>go_owner = me.
     zcl_gg_ex_121_h1=>go_session = io_session.
     SET HANDLER zcl_gg_ex_121_h1=>on_close FOR go_dialog.
-    CREATE OBJECT go_editor EXPORTING parent = go_dialog.
+    CREATE OBJECT go_editor
+      EXPORTING parent = go_dialog.
     go_editor->set_textstream( 'Modal dialog body' ).
     gv_state = 'Dialog box open'.
   ENDMETHOD.

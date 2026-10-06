@@ -57,6 +57,9 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              list_outcome        TYPE zcl_gg_host_list_processor=>ty_outcome,
 * The events that led to the list shown, and its level (sy-lsind).
              list_path           TYPE ty_list_steps,
+             live_list           TYPE REF TO zcl_gg_host_list,
+             live_screen         TYPE REF TO zcl_gg_host_screen,
+             list_cursor         TYPE i,
              list_level          TYPE i,
            END OF ty_result.
 
@@ -95,6 +98,8 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_list_target         TYPE string OPTIONAL
         is_list_find           TYPE zcl_gg_host_list_processor=>ty_find OPTIONAL
         it_list_path           TYPE ty_list_steps OPTIONAL
+        is_previous            TYPE ty_result OPTIONAL
+        iv_list_cursor         TYPE i OPTIONAL
       RETURNING
         VALUE(rs_result)       TYPE ty_result.
 
@@ -174,7 +179,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
     "! the event of the request, unless the list processor runs it itself.
     CLASS-METHODS list_path
       IMPORTING
-        it_path         TYPE ty_list_steps
+        it_path         TYPE ty_list_steps OPTIONAL
         iv_line_index   TYPE i
         iv_user_command TYPE zif_gg_list_processing_types_v1=>ty_ucomm
         iv_cursor_field TYPE zif_gg_session_types_v1=>ty_name
@@ -609,54 +614,74 @@ CLASS zcl_gg_host IMPLEMENTATION.
     lv_page_id = COND #( WHEN iv_page_id IS INITIAL
       THEN |{ lv_session_id }-1| ELSE iv_page_id ).
     lv_display_screen = iv_selection_screen.
-    cl_gui_control=>clear( ).
-    cl_gui_control=>clear_external_html( ).
+    IF is_previous-live_list IS BOUND AND is_previous-page_kind = zif_gg_host_html_v1=>page_list.
+      rs_result = is_previous.
+      CLEAR: rs_result-navigation, rs_result-messages, rs_result-list_outcome.
+      lo_list = is_previous-live_list.
+      lo_list->activate_level( is_previous-list_level ).
+      lo_screen = is_previous-live_screen.
+      lt_values = is_previous-values.
+      lt_states = is_previous-states.
+      lt_elements = is_previous-elements.
+      lo_session = NEW zcl_gg_host_session( io_list          = lo_list
+                                           iv_program        = iv_program
+                                           iv_batch          = iv_batch
+                                           it_request_values = it_input ).
+      lo_list_session = lo_session->zif_gg_session_v1~get_list( ).
+      lo_handler = io_report->get_list_processing( lo_session ).
+      lo_list->set_handler( io_session = lo_session
+                            io_handler = lo_handler ).
+      cl_gui_cfw=>process_frontend( ).
+      cl_gui_cfw=>dispatch_pending( ).
+    ELSE.
+      cl_gui_control=>clear( ).
+      cl_gui_control=>clear_external_html( ).
 
-    lo_list   = NEW zcl_gg_host_list( ).
-    lo_screen = NEW zcl_gg_host_screen( ).
-    zcl_gg_host_compatibility=>clear_selection_list_values( ).
-    lo_session = NEW zcl_gg_host_session(
-      io_list           = lo_list
-      iv_program        = iv_program
-      iv_batch          = iv_batch
-      it_request_values = it_input ).
-    lo_list_session = lo_session->zif_gg_session_v1~get_list( ).
+      lo_list   = NEW zcl_gg_host_list( ).
+      lo_screen = NEW zcl_gg_host_screen( ).
+      zcl_gg_host_compatibility=>clear_selection_list_values( ).
+      lo_session = NEW zcl_gg_host_session(
+        io_list           = lo_list
+        iv_program        = iv_program
+        iv_batch          = iv_batch
+        it_request_values = it_input ).
+      lo_list_session = lo_session->zif_gg_session_v1~get_list( ).
 
-    TRY.
-        lo_session->set_event( 'LOAD-OF-PROGRAM' ).
-        io_report->load_of_program( lo_session ).
+      TRY.
+          lo_session->set_event( 'LOAD-OF-PROGRAM' ).
+          io_report->load_of_program( lo_session ).
 
-        io_report->build_screen( lo_screen ).
-        lt_values = lo_screen->get_values( ).
-        lt_states = lo_screen->get_states( ).
-        lt_elements = lo_screen->get_elements( ).
-        IF iv_selection_tab IS NOT INITIAL.
-          lo_screen->select_tab( iv_selection_tab ).
-        ENDIF.
+          io_report->build_screen( lo_screen ).
+          lt_values = lo_screen->get_values( ).
+          lt_states = lo_screen->get_states( ).
+          lt_elements = lo_screen->get_elements( ).
+          IF iv_selection_tab IS NOT INITIAL.
+            lo_screen->select_tab( iv_selection_tab ).
+          ENDIF.
 
-        lo_handler = io_report->get_list_processing( lo_session ).
-        lo_list->set_handler(
-          io_session = lo_session
-          io_handler = lo_handler ).
-        IF lo_handler IS BOUND.
-          lo_list->apply_settings( lo_handler->get_settings( lo_session ) ).
-        ENDIF.
+          lo_handler = io_report->get_list_processing( lo_session ).
+          lo_list->set_handler(
+            io_session = lo_session
+            io_handler = lo_handler ).
+          IF lo_handler IS BOUND.
+            lo_list->apply_settings( lo_handler->get_settings( lo_session ) ).
+          ENDIF.
 
 * Starting a program interactively sends its selection screen and waits for
 * Execute, as SAP GUI does. On that first send only the PBO events run and
 * nothing is validated, so the screen carries no complaint about fields nobody
 * has filled in yet. START-OF-SELECTION follows the user's submit.
-        lv_stop_before_start = iv_stop_before_start.
-        IF lv_stop_before_start = abap_false
-            AND iv_present_selection = abap_true
-            AND iv_batch = abap_false
-            AND has_interactive_selection( it_elements = lt_elements
-                                           iv_screen   = lv_display_screen ) = abap_true.
-          lv_stop_before_start = abap_true.
-        ENDIF.
+          lv_stop_before_start = iv_stop_before_start.
+          IF lv_stop_before_start = abap_false
+              AND iv_present_selection = abap_true
+              AND iv_batch = abap_false
+              AND has_interactive_selection( it_elements = lt_elements
+                                           iv_screen     = lv_display_screen ) = abap_true.
+            lv_stop_before_start = abap_true.
+          ENDIF.
 
-        run_selection_events(
-          EXPORTING
+          run_selection_events(
+            EXPORTING
             io_report           = io_report
             io_screen           = lo_screen
             io_session          = lo_session
@@ -670,23 +695,23 @@ CLASS zcl_gg_host IMPLEMENTATION.
             it_dynamic_input    = it_dynamic_input
             iv_dynamic_action   = iv_dynamic_action
             iv_initial_display  = lv_stop_before_start
-          CHANGING
+            CHANGING
             ct_values           = lt_values
             ct_states           = lt_states
             ct_radio_groups     = lt_radio_groups
             cs_result           = rs_result ).
 
-        apply_selection_lists( CHANGING ct_states = lt_states ).
+          apply_selection_lists( CHANGING ct_states = lt_states ).
 
-        IF lv_stop_before_start = abap_false AND iv_ucomm <> 'ECAN'.
-          validate_required(
-            it_states  = lt_states
-            it_values  = lt_values
-            io_session = lo_session ).
-        ENDIF.
+          IF lv_stop_before_start = abap_false AND iv_ucomm <> 'ECAN'.
+            validate_required(
+              it_states  = lt_states
+              it_values  = lt_values
+              io_session = lo_session ).
+          ENDIF.
 
-        start_or_stop(
-          EXPORTING
+          start_or_stop(
+            EXPORTING
             io_report                  = io_report
             io_submit_report           = io_submit_report
             io_session                 = lo_session
@@ -695,95 +720,96 @@ CLASS zcl_gg_host IMPLEMENTATION.
             it_input                   = it_input
             iv_stop_before_start       = lv_stop_before_start
             iv_resume_subrc            = iv_resume_subrc
-          CHANGING
+            CHANGING
             ct_values                  = lt_values
             ct_states                  = lt_states
             cv_ended                   = lv_ended
             cv_selection_screen_active = lv_selection_screen_active ).
-      CATCH zcx_gg_control_flow INTO lx_flow.
-        DATA(ls_flow_result) = interpret_flow( lx_flow ).
-        lv_ended = ls_flow_result-ended.
-        lv_call_selection = ls_flow_result-call_selection.
-        lv_call_screen = ls_flow_result-call_screen.
-        lv_call_transaction = ls_flow_result-call_transaction.
-        lv_submit_return = ls_flow_result-submit_return.
-        rs_result-unsupported = ls_flow_result-unsupported.
-        rs_result-terminal = ls_flow_result-terminal.
-        rs_result-transaction_call = lo_session->get_transaction_call( ).
-        rs_result-navigation = navigation_for(
-          ix_flow    = lx_flow
-          io_session = lo_session ).
-        lv_selection_screen_active = xsdbool(
-          lx_flow->mv_kind = zcx_gg_control_flow=>kind_message ).
+        CATCH zcx_gg_control_flow INTO lx_flow.
+          DATA(ls_flow_result) = interpret_flow( lx_flow ).
+          lv_ended = ls_flow_result-ended.
+          lv_call_selection = ls_flow_result-call_selection.
+          lv_call_screen = ls_flow_result-call_screen.
+          lv_call_transaction = ls_flow_result-call_transaction.
+          lv_submit_return = ls_flow_result-submit_return.
+          rs_result-unsupported = ls_flow_result-unsupported.
+          rs_result-terminal = ls_flow_result-terminal.
+          rs_result-transaction_call = lo_session->get_transaction_call( ).
+          rs_result-navigation = navigation_for(
+            ix_flow    = lx_flow
+            io_session = lo_session ).
+          lv_selection_screen_active = xsdbool(
+            lx_flow->mv_kind = zcx_gg_control_flow=>kind_message ).
 * VRM_SET_VALUES lists outlive an error message in PAI, as SAP keeps them.
-        apply_selection_lists( CHANGING ct_states = lt_states ).
-    ENDTRY.
+          apply_selection_lists( CHANGING ct_states = lt_states ).
+      ENDTRY.
 
-    DATA(lv_paused) = xsdbool(
-      iv_pause_at_navigation = abap_true
-      AND rs_result-navigation-kind IS NOT INITIAL ).
-    lv_ended = xsdbool(
-      lv_ended = abap_true OR lv_paused = abap_true ).
-    lv_selection_screen_active = xsdbool(
-      lv_selection_screen_active = abap_true
-      OR ( lv_paused = abap_true
+      DATA(lv_paused) = xsdbool(
+        iv_pause_at_navigation = abap_true
+        AND rs_result-navigation-kind IS NOT INITIAL ).
+      lv_ended = xsdbool(
+        lv_ended = abap_true OR lv_paused = abap_true ).
+      lv_selection_screen_active = xsdbool(
+        lv_selection_screen_active = abap_true
+        OR ( lv_paused = abap_true
         AND rs_result-navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen ) ).
-    lv_display_screen = COND #(
-      WHEN lv_paused = abap_true
+      lv_display_screen = COND #(
+        WHEN lv_paused = abap_true
         AND rs_result-navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
-      THEN CONV #( rs_result-navigation-target )
-      ELSE lv_display_screen ).
-    IF lv_paused = abap_false.
-      lv_selection_screen_active = retry_selection(
-        EXPORTING
+        THEN CONV #( rs_result-navigation-target )
+        ELSE lv_display_screen ).
+      IF lv_paused = abap_false.
+        lv_selection_screen_active = retry_selection(
+          EXPORTING
           iv_active  = lv_selection_screen_active
           iv_screen  = iv_selection_screen
           io_report  = io_report
           io_session = lo_session
           it_input   = it_retry_input
           it_states  = lt_states
-        CHANGING
+          CHANGING
           ct_values  = lt_values
           cv_ended   = lv_ended ).
 
-      IF lv_call_selection = abap_true.
-        resume_selection_call(
-          EXPORTING
-          io_report   = io_report
-          io_session  = lo_session
-          it_input    = it_input
-          CHANGING
-            ct_values = lt_values
-            cv_ended  = lv_ended ).
-      ENDIF.
+        IF lv_call_selection = abap_true.
+          resume_selection_call(
+            EXPORTING
+            io_report  = io_report
+            io_session = lo_session
+            it_input   = it_input
+            CHANGING
+            ct_values  = lt_values
+            cv_ended   = lv_ended ).
+        ENDIF.
 
-      IF lv_call_screen = abap_true OR lv_call_transaction = abap_true.
-        lv_ended = resume_screen_call(
-          io_report  = io_report
-          io_session = lo_session ).
-      ENDIF.
-
-      IF lv_submit_return = abap_true AND io_submit_report IS BOUND.
-        lv_ended = resume_submit_return(
-          io_report        = io_report
-          io_submit_report = io_submit_report
-          io_session       = lo_session ).
-      ENDIF.
-    ENDIF.
-
-    IF lv_ended = abap_false.
-      TRY.
-          lo_session->set_event( 'END-OF-SELECTION' ).
-          io_report->end_of_selection(
-            it_values  = lt_values
+        IF lv_call_screen = abap_true OR lv_call_transaction = abap_true.
+          lv_ended = resume_screen_call(
+            io_report  = io_report
             io_session = lo_session ).
-        CATCH zcx_gg_control_flow INTO lx_flow.
-          IF lx_flow->mv_kind = zcx_gg_control_flow=>kind_unsupported.
-            rs_result-unsupported = lx_flow->mv_operation.
-          ENDIF.
-      ENDTRY.
-    ENDIF.
+        ENDIF.
 
+        IF lv_submit_return = abap_true AND io_submit_report IS BOUND.
+          lv_ended = resume_submit_return(
+            io_report        = io_report
+            io_submit_report = io_submit_report
+            io_session       = lo_session ).
+        ENDIF.
+      ENDIF.
+
+      IF lv_ended = abap_false.
+        TRY.
+            lo_session->set_event( 'END-OF-SELECTION' ).
+            io_report->end_of_selection(
+              it_values  = lt_values
+              io_session = lo_session ).
+          CATCH zcx_gg_control_flow INTO lx_flow.
+            IF lx_flow->mv_kind = zcx_gg_control_flow=>kind_unsupported.
+              rs_result-unsupported = lx_flow->mv_operation.
+            ENDIF.
+        ENDTRY.
+      ENDIF.
+
+    ENDIF.
     rs_result-list_path = list_path(
       it_path         = it_list_path
       iv_line_index   = iv_line_index
@@ -798,7 +824,10 @@ CLASS zcl_gg_host IMPLEMENTATION.
             io_list         = lo_list
             io_list_session = lo_list_session
             io_session      = lo_session
-            it_steps        = rs_result-list_path
+            it_steps        = COND #( WHEN is_previous-live_list IS BOUND
+              THEN list_path( iv_line_index = iv_line_index iv_user_command = iv_user_command
+                              iv_cursor_field = iv_cursor_field iv_cursor_value = iv_cursor_value iv_pf_key = iv_pf_key )
+              ELSE rs_result-list_path )
           CHANGING
             cv_ended        = lv_ended ).
       CATCH zcx_gg_control_flow INTO lx_flow.
@@ -819,6 +848,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
     ENDTRY.
 
     rs_result-lines    = lo_list->finish_output( ).
+    rs_result-list_cursor = COND #( WHEN iv_list_cursor > 0 THEN iv_list_cursor ELSE is_previous-list_cursor ).
+    rs_result-live_list = lo_list.
+    rs_result-live_screen = lo_screen.
     rs_result-list_level = lo_list->get_context( )-level.
     IF iv_ucomm <> 'ONLI'.
       lo_screen->select_tab( iv_ucomm ).
@@ -859,6 +891,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         iv_ucomm  = CONV #( iv_user_command )
         iv_value  = iv_list_value
         iv_target = iv_list_target
+        iv_cursor = rs_result-list_cursor
         is_find   = is_list_find
         it_lines  = rs_result-render_lines ).
       IF rs_result-list_outcome-message IS NOT INITIAL.
@@ -1019,6 +1052,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
             iv_page_id    = iv_page_id ) ).
       ENDIF.
       cs_result-html = zcl_gg_host_renderer=>render_list(
+        iv_cursor        = cs_result-list_cursor
         iv_session_id    = iv_session_id
         iv_page_id       = iv_page_id
         iv_title         = lv_title

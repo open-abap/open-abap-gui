@@ -217,7 +217,11 @@ CLASS zcl_gg_ex_171 IMPLEMENTATION.
       APPEND gs_entry TO gt_log.
     ENDDO.
     TRY.
-        cl_salv_table=>factory( IMPORTING r_salv_table = go_alv CHANGING t_table = gt_log ).
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table = go_alv
+          CHANGING
+            t_table      = gt_log ).
       CATCH cx_salv_msg INTO gx_msg.
         io_session->message(
           is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_error )

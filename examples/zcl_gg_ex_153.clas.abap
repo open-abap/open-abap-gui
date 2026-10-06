@@ -108,7 +108,10 @@ CLASS zcl_gg_ex_153 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Drag and drop from a tree to a grid' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -249,17 +252,16 @@ CLASS zcl_gg_ex_153 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_splitter EXPORTING parent = go_container.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_splitter
+            EXPORTING parent = go_container.
           CREATE OBJECT go_dd_tree.
           go_dd_tree->add( flavor     = 'FLIGHT'
                            dragsrc    = abap_true
@@ -272,20 +274,36 @@ CLASS zcl_gg_ex_153 IMPLEMENTATION.
                            droptarget = abap_true
                            effect     = cl_dragdrop=>copy ).
           go_dd_grid->get_handle( IMPORTING handle = gv_grid_handle ).
-          CREATE OBJECT go_tree EXPORTING parent              = go_splitter->top_left_container
-                                          node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single.
-          gt_nodes = VALUE #( ( node_key = 'LH' isfolder = abap_true expander = abap_true text = 'Lufthansa' ) ( node_key = 'LH0400' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0400 Frankfurt - New York' dragdropid = gv_tree_handle ) ( node_key = 'LH0402' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0402 Frankfurt - New York' dragdropid = gv_tree_handle ) ( node_key = 'UA' isfolder = abap_true expander = abap_true text = 'United Airlines' ) ( node_key = 'UA0941' relatkey = 'UA' relatship = cl_gui_simple_tree=>relat_last_child text = 'UA 0941 Frankfurt - San Francisco' dragdropid = gv_tree_handle ) ).
+          CREATE OBJECT go_tree
+            EXPORTING parent              = go_splitter->top_left_container
+                      node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single.
+          gt_nodes = VALUE #(
+            ( node_key = 'LH' isfolder = abap_true expander = abap_true text = 'Lufthansa' )
+            ( node_key = 'LH0400' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0400 Frankfurt - New York' dragdropid = gv_tree_handle )
+            ( node_key = 'LH0402' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0402 Frankfurt - New York' dragdropid = gv_tree_handle )
+            ( node_key = 'UA' isfolder = abap_true expander = abap_true text = 'United Airlines' )
+            ( node_key = 'UA0941' relatkey = 'UA' relatship = cl_gui_simple_tree=>relat_last_child text = 'UA 0941 Frankfurt - San Francisco' dragdropid = gv_tree_handle ) ).
           go_tree->add_nodes( table_structure_name = 'MTREESNODE'
                               node_table           = gt_nodes ).
           go_tree->expand_root_nodes( ).
           zcl_gg_ex_153_h2=>go_owner = me.
           zcl_gg_ex_153_h2=>go_session = io_session.
           SET HANDLER zcl_gg_ex_153_h2=>on_drag FOR go_tree.
-          CREATE OBJECT go_grid EXPORTING i_parent = go_splitter->bottom_right_container.
-          gt_fieldcat = VALUE #( ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 ) ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 ) ( fieldname = 'CITYFROM' coltext = 'From' outputlen = 15 ) ( fieldname = 'CITYTO' coltext = 'To' outputlen = 15 ) ).
+          CREATE OBJECT go_grid
+            EXPORTING i_parent = go_splitter->bottom_right_container.
+          gt_fieldcat = VALUE #(
+            ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
+            ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )
+            ( fieldname = 'CITYFROM' coltext = 'From' outputlen = 15 )
+            ( fieldname = 'CITYTO' coltext = 'To' outputlen = 15 ) ).
           gs_layout-grid_title = 'Bookings'.
           gs_layout-s_dragdrop-grid_ddid = gv_grid_handle.
-          go_grid->set_table_for_first_display( EXPORTING is_layout = gs_layout CHANGING it_outtab = gt_bookings it_fieldcatalog = gt_fieldcat ).
+          go_grid->set_table_for_first_display(
+            EXPORTING
+              is_layout       = gs_layout
+            CHANGING
+              it_outtab       = gt_bookings
+              it_fieldcatalog = gt_fieldcat ).
           zcl_gg_ex_153_h2=>go_owner = me.
           zcl_gg_ex_153_h2=>go_session = io_session.
           SET HANDLER zcl_gg_ex_153_h2=>on_drop FOR go_grid.

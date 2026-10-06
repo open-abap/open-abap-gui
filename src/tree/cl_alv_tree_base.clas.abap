@@ -70,6 +70,8 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
     METHODS free REDEFINITION.
 
   PROTECTED SECTION.
+    METHODS dispatch_frontend_event REDEFINITION.
+    METHODS is_application_event REDEFINITION.
 
     DATA m_batch_mode TYPE sy-batch.
     DATA m_fcode TYPE sy-ucomm.
@@ -406,6 +408,18 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
 ENDCLASS.
 
 CLASS cl_alv_tree_base IMPLEMENTATION.
+  METHOD is_application_event.
+    result = abap_true.
+  ENDMETHOD.
+
+  METHOD dispatch_frontend_event.
+    handle_browser_event( event    = event
+                          node_key = VALUE #( params[ 1 ] OPTIONAL )
+      fieldname                    = VALUE #( params[ 2 ] OPTIONAL )
+                          value    = VALUE #( params[ 3 ] OPTIONAL )
+      checked                      = xsdbool( VALUE string( params[ 4 ] OPTIONAL ) = 'X' ) ).
+  ENDMETHOD.
+
   METHOD register_instance.
     IF control IS BOUND.
       APPEND control TO mt_instances.
@@ -1016,7 +1030,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF lv_heading IS INITIAL.
       lv_heading = 'Hierarchy'.
     ENDIF.
-    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }<div class="gg-alv-tree-columns"><table role="tree" aria-label="ALV tree" data-field-count="{ lines( mt_fieldcatalog ) }" style="width:100%;min-width:{ lv_table_width }px;table-layout:fixed"><colgroup><col{ lv_hierarchy_style }/>|.
+    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }<div class="gg-alv-tree-columns"><table role="tree" data-gg-control-id="{ escape_html( control_id ) }" aria-label="ALV tree" data-field-count="{ lines( mt_fieldcatalog ) }" style="width:100%;min-width:{ lv_table_width }px;table-layout:fixed"><colgroup><col{ lv_hierarchy_style }/>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_col_fieldcat).
       IF ls_col_fieldcat-no_out IS INITIAL AND ls_col_fieldcat-tech IS INITIAL.
         READ TABLE lt_html_column_width INTO DATA(ls_col_width)

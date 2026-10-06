@@ -161,7 +161,24 @@ CLASS zcl_gg_ex_061 IMPLEMENTATION.
       APPEND INITIAL LINE TO lt_ggconv_excluded ASSIGNING FIELD-SYMBOL(<lv_ggconv_excluded>).
       <lv_ggconv_excluded> = lv_ggconv_excluded.
     ENDLOOP.
-    io_session->get_list( )->set_status( VALUE #( status = 'ORDER' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'APPROVE' ) ( 'RELEASE' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ( 14 ) ) icon_bar = VALUE #( ( ucomm = 'APPROVE' label = 'Approve' icon = 'ICON_OKAY' ) ( ucomm = 'RELEASE' label = 'Release' icon = 'ICON_CHANGE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 13 ucomm = 'APPROVE' ) ( number = 14 ucomm = 'RELEASE' ) ) excluded_ucomm = lt_ggconv_excluded ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'ORDER' active_ucomm = VALUE #(
+      ( 'BACK' )
+      ( '%EX' )
+      ( 'RW' )
+      ( 'APPROVE' )
+      ( 'RELEASE' ) ) active_pf_keys = VALUE #(
+      ( 3 )
+      ( 15 )
+      ( 12 )
+      ( 13 )
+      ( 14 ) ) icon_bar = VALUE #(
+      ( ucomm = 'APPROVE' label = 'Approve' icon = 'ICON_OKAY' )
+      ( ucomm = 'RELEASE' label = 'Release' icon = 'ICON_CHANGE' ) ) pf_actions = VALUE #(
+      ( number = 3 ucomm = 'BACK' )
+      ( number = 15 ucomm = '%EX' )
+      ( number = 12 ucomm = 'RW' )
+      ( number = 13 ucomm = 'APPROVE' )
+      ( number = 14 ucomm = 'RELEASE' ) ) excluded_ucomm = lt_ggconv_excluded ) ).
   ENDMETHOD.
 
 ENDCLASS.

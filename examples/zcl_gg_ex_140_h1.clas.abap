@@ -30,7 +30,9 @@ CLASS zcl_gg_ex_140_h1 IMPLEMENTATION.
     DATA lt_children TYPE zcl_gg_ex_140=>ty_nodes.
     CASE node_key.
       WHEN 'LH'.
-        lt_children = VALUE #( ( node_key = 'LH0400' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0400 Frankfurt - New York' ) ( node_key = 'LH0402' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0402 Frankfurt - New York' ) ).
+        lt_children = VALUE #(
+          ( node_key = 'LH0400' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0400 Frankfurt - New York' )
+          ( node_key = 'LH0402' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0402 Frankfurt - New York' ) ).
       WHEN 'UA'.
         lt_children = VALUE #( ( node_key = 'UA0941' relatkey = 'UA' relatship = cl_gui_simple_tree=>relat_last_child text = 'UA 0941 Frankfurt - San Francisco' ) ).
     ENDCASE.

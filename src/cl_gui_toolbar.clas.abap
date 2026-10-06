@@ -124,6 +124,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     DATA mt_hidden_buttons TYPE ttb_button.
     DATA mt_context_items TYPE zcl_gg_context_menu_state=>ty_items.
+    DATA mv_context_fcode TYPE ui_func.
     DATA mv_context_left TYPE i.
     DATA mv_context_top TYPE i.
 
@@ -222,7 +223,7 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
     READ TABLE m_table_button INTO DATA(ls_button)
       WITH KEY function = fcode.
     IF sy-subrc = 0 AND ls_button-disabled IS INITIAL
-        AND ( ls_button-butn_type = 3 OR ls_button-butn_type = 4 ).
+        AND ( ls_button-butn_type = 1 OR ls_button-butn_type = 2 ).
       RAISE EVENT dropdown_clicked
         EXPORTING
           fcode = fcode
@@ -240,7 +241,9 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
         html    = `` ).
       RETURN.
     ENDIF.
-    lv_html = |<ul class="gg-toolbar-menu" id="{ control_id }-menu" role="menu" aria-label="Toolbar menu">|.
+    READ TABLE m_table_button INTO DATA(ls_button) WITH KEY function = mv_context_fcode.
+    DATA(lv_label) = COND string( WHEN ls_button-text IS INITIAL THEN 'Menu' ELSE ls_button-text ).
+    lv_html = |<details class="gg-toolbar-dropdown"><summary aria-haspopup="menu">{ cl_gui_control=>escape_html( lv_label ) }</summary><ul class="gg-toolbar-menu" id="{ control_id }-menu" role="menu" aria-label="Toolbar menu">|.
     LOOP AT mt_context_items INTO DATA(ls_item).
       IF ls_item-hidden = abap_true.
         CONTINUE.
@@ -257,7 +260,7 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
                                              params = VALUE #( ( ls_item-fcode ) ) ).
       lv_html = lv_html && |<li role="none"><button type="submit" role="menuitem" name="gg_control_event" value="{ lv_event }" formnovalidate{ COND string( WHEN ls_item-disabled = abap_true THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ cl_gui_control=>escape_html( ls_item-text ) }</button></li>|.
     ENDLOOP.
-    lv_html = lv_html && '</ul>'.
+    lv_html = lv_html && '</ul></details>'.
     cl_gui_control=>set_html(
       control = me
       html    = lv_html ).
@@ -328,6 +331,8 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
 
   METHOD set_static_ctxmenu.
     DATA lo_menu TYPE REF TO cl_ctmenu.
+    mv_context_fcode = fcode.
+
     TRY.
         lo_menu ?= ctxmenu.
       CATCH cx_root.

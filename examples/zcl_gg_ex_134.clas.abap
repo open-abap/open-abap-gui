@@ -246,26 +246,27 @@ CLASS zcl_gg_ex_134 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_splitter EXPORTING parent  = go_container
-                                              rows    = 1
-                                              columns = 2.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_splitter
+            EXPORTING parent  = go_container
+                      rows    = 1
+                      columns = 2.
           DATA(lo_left) = go_splitter->get_container( row    = 1
                                                       column = 1 ).
-          CREATE OBJECT go_editor EXPORTING parent = lo_left.
+          CREATE OBJECT go_editor
+            EXPORTING parent = lo_left.
           go_editor->set_textstream( gv_text ).
           DATA(lo_right) = go_splitter->get_container( row    = 1
                                                        column = 2 ).
-          CREATE OBJECT go_viewer EXPORTING parent = lo_right.
+          CREATE OBJECT go_viewer
+            EXPORTING parent = lo_right.
           form_show_document( io_session = io_session ).
         ENDIF.
       WHEN OTHERS.
@@ -300,8 +301,14 @@ CLASS zcl_gg_ex_134 IMPLEMENTATION.
   METHOD form_show_document.
     DATA(lv_escaped) = escape( val    = gv_text
                                format = cl_abap_format=>e_html_text ).
-    gt_html = VALUE #( ( '<h2>Document viewer</h2>' ) ( CONV ty_html_line( |<p>{ lv_escaped }</p>| ) ) ).
-    go_viewer->load_data( IMPORTING assigned_url = gv_url CHANGING data_table = gt_html ).
+    gt_html = VALUE #(
+      ( '<h2>Document viewer</h2>' )
+      ( CONV ty_html_line( |<p>{ lv_escaped }</p>| ) ) ).
+    go_viewer->load_data(
+      IMPORTING
+        assigned_url = gv_url
+      CHANGING
+        data_table   = gt_html ).
     go_viewer->show_url( url = gv_url ).
   ENDMETHOD.
 

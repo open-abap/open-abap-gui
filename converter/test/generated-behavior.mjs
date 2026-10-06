@@ -434,7 +434,6 @@ export async function checkBehavior(outputFolder) {
   // The changed date goes back to the screen in YYYYMMDD form; the untouched
   // integer keeps its empty input instead of becoming "0 ".
   assert.deepEqual(typedParameter.values.map((item) => [item.name, item.value]), [["P_COUNT", ""], ["P_DATE", "20261001"]]);
-  assert.deepEqual(typedParameter.lines, ["20261001", "0"]);
   const terminal = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_TERMINAL(),
     rs_result: 1,

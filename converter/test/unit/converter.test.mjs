@@ -346,7 +346,7 @@ test("lowers classic list color constants through the scaffold interface", async
   assert.doesNotMatch(result.classSource, /abap\.builtin\.col_(?:normal|negative)/);
   assert.match(result.classSource, /zif_gg_list_processing_types_v1=>color_normal/);
   assert.match(result.classSource, /zif_gg_list_processing_types_v1=>color_negative/);
-  assert.match(result.classSource, /set_format\( VALUE #\( color = lv_color \) \)/i);
+  assert.match(result.classSource, /set_format\( VALUE #\( BASE lo_writer->get_format\( \) color = lv_color \) \)/i);
   assert.match(result.classSource, /io_session->get_list\( \)->get_context\( \)-page/);
 });
 
@@ -420,9 +420,9 @@ test("writes NO-GROUPING fields without the addition", async () => {
     filename: "znogrouping.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.match(result.classSource, /lo_writer->write_field\( VALUE #\( text = \|\{ ls_date-count \}\| \) \)\./);
-  assert.match(result.classSource, /text = \|\{ ls_date-count \}\| placement = VALUE #\( new_line = abap_true \) write_format = VALUE #\( no_zero = abap_true \)/);
-  assert.match(result.classSource, /text = \|\{ ls_date-count \}\| placement = VALUE #\( position = 20 \)/);
+  assert.match(result.classSource, /lo_writer->write_field\( VALUE #\( text = lo_writer->format_value\( iv_value = ls_date-count \) \) \)\./);
+  assert.match(result.classSource, /text = lo_writer->format_value\( iv_value = ls_date-count \) placement = VALUE #\( new_line = abap_true \) write_format = VALUE #\( no_zero = abap_true \)/);
+  assert.match(result.classSource, /text = lo_writer->format_value\( iv_value = ls_date-count \) placement = VALUE #\( position = 20 \)/);
   assert.doesNotMatch(result.classSource, /NO-GROUPING|TODO GGCONV/i);
 });
 
@@ -662,7 +662,7 @@ test("lowers balanced dynamic WRITE name expressions without duplicating them", 
   assert.equal(result.supported, true);
   assert.match(result.classSource, /CASE gv_prefix\+1\(8\)\./);
   assert.equal((result.classSource.match(/gv_prefix\+1\(8\)/g) ?? []).length, 1);
-  assert.match(result.classSource, /write_field\( VALUE #\( text = \|\{ gv_value \}\|/);
+  assert.match(result.classSource, /write_field\( VALUE #\( text = lo_writer->format_value\( iv_value = gv_value \)/);
 });
 
 test("lowers dynamic WRITE variable names with a guarded known-target dispatch", async () => {
@@ -680,7 +680,7 @@ test("lowers dynamic WRITE variable names with a guarded known-target dispatch",
   });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /dynamic WRITE operand/);
-  assert.match(result.classSource, /CASE gv_name\.[\s\S]*WHEN 'GV_VALUE'\.[\s\S]*write_field\( VALUE #\( text = \|\{ gv_value \}\| placement = VALUE #\( new_line = abap_true \) \) \)\.[\s\S]*WHEN OTHERS\.[\s\S]*ENDCASE\./);
+  assert.match(result.classSource, /CASE gv_name\.[\s\S]*WHEN 'GV_VALUE'\.[\s\S]*write_field\( VALUE #\( text = lo_writer->format_value\( iv_value = gv_value \) placement = VALUE #\( new_line = abap_true \) \) \)\.[\s\S]*WHEN OTHERS\.[\s\S]*ENDCASE\./);
 });
 
 test("keeps lowered dynamic WRITE expression exceptions inside their source TRY block", async () => {
@@ -743,7 +743,7 @@ test("carries object creation and method calls over as written", async () => {
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /CREATE OBJECT go_calc\./);
-  assert.match(result.classSource, /CREATE OBJECT go_any TYPE zcl_calc EXPORTING iv_start = 1\./);
+  assert.match(result.classSource, /CREATE OBJECT go_any TYPE zcl_calc\s+EXPORTING iv_start = 1\./);
   assert.match(result.classSource, /zcl_calc=>reset\( \)\./);
   assert.match(result.classSource, /CALL METHOD zcl_calc=>log EXPORTING iv_text = 'x'\./);
   assert.match(result.classSource, /go_calc->add\( 2 \)\./);
@@ -1040,7 +1040,7 @@ test("lowers selection-screen PAI details the way SAP runs them", async () => {
   // A value request runs as written and offers the value it assigns.
   assert.match(result.classSource, /mv_p_det = 'picked'\.\s+IF mv_p_det <> it_values\[ name = 'P_DET' \]-value\./);
   // RETURN_TAB is optional.
-  assert.match(result.classSource, /f4_table_value_request\( [^\n]*CHANGING ct_value_tab = gt_values \)\./);
+  assert.match(result.classSource, /f4_table_value_request\(\s+[\s\S]*?CHANGING\s+ct_value_tab = gt_values \)\./);
   assert.match(result.classSource, /add_listbox\( VALUE #\( name = 'P_LIST'[^\n]*obligatory = abap_true/);
 });
 
@@ -1066,11 +1066,11 @@ test("lowers classic list statements the way SAP runs them", async () => {
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   // HIDE belongs to the line just written, a chained HIDE in one group.
-  assert.match(result.classSource, /text = 'first' format = VALUE #\( quickinfo = 'Tip' \) placement = VALUE #\( new_line = abap_true \) hide = VALUE #\( \( name = 'GV_NODE' value = \|\{ gv_node \}\| \) \( name = 'GS_ROW-ID' value = \|\{ gs_row-id \}\| \) \) \) \)\./);
+  assert.match(result.classSource.replace(/\s+/g, ' '), /text = 'first' format = VALUE #\( quickinfo = 'Tip' \) placement = VALUE #\( new_line = abap_true \) hide = VALUE #\( \( name = 'GV_NODE' value = \|\{ gv_node \}\| \) \( name = 'GS_ROW-ID' value = \|\{ gs_row-id \}\| \) \) \) \)\./);
   assert.match(result.classSource, /write_icon\( VALUE #\( name = 'ICON_GREEN_LIGHT' quickinfo = 'Icon' hide = VALUE #\( \( name = 'GV_NODE'/);
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
   // WRITE /(10) f gives an output length.
-  assert.match(result.classSource, /text = \|\{ gv_amount \}\| placement = VALUE #\( length = 10 new_line = abap_true \)/);
+  assert.match(result.classSource, /text = lo_writer->format_value\( iv_value = gv_amount \) placement = VALUE #\( length = 10 new_line = abap_true \)/);
   // Choosing a line restores the hidden globals.
   assert.match(result.classSource, /IF line_exists\( is_line-fields\[ name = 'GS_ROW-ID' \] \)\.\s+gs_row-id = is_line-fields\[ name = 'GS_ROW-ID' \]-value\./);
   // MODIFY LINE n reads line n itself; a bare INVERSE means ON.
@@ -1834,7 +1834,7 @@ test("keeps report IR serializable and renames generated-name collisions", async
   assert.equal(result.reportIR.statements.some((statement) => Object.hasOwn(statement, "node")), false);
   assert.equal(result.manifest.identifierRenames.LO_WRITER, "mv_lo_writer");
   assert.match(result.classSource, /DATA mv_lo_writer TYPE i/);
-  assert.match(result.classSource, /text = \|\{ mv_lo_writer \}\|/);
+  assert.match(result.classSource, /text = lo_writer->format_value\( iv_value = mv_lo_writer \)/);
   assert.doesNotThrow(() => JSON.stringify(result.reportIR));
   assert.equal(result.scaffoldIR.kind, "scaffold-class");
   assert.doesNotThrow(() => JSON.stringify(result.scaffoldIR));
@@ -1855,7 +1855,7 @@ test("preserves constants and converts static attributes to class state", async 
   assert.equal(result.supported, true);
   assert.match(result.classSource, /CONSTANTS gc_value TYPE i VALUE 1/);
   assert.match(result.classSource, /DATA gv_static TYPE i/);
-  assert.match(result.classSource, /text = \|\{ gc_value \}\|/);
+  assert.match(result.classSource, /text = lo_writer->format_value\( iv_value = gc_value \)/);
 });
 
 test("lowers method-local field symbols only when static binding is provable", async () => {
@@ -2202,8 +2202,8 @@ test("does not duplicate WRITE operands or rewrite short-circuit conditions", as
   });
   assert.equal(result.supported, true);
   assert.match(result.classSource, /IF gv_left = 0 AND gv_right = lines\( gt_rows \)\./);
-  assert.equal((result.classSource.match(/text = \|\{ lines\( gt_rows \) \}\|/g) ?? []).length, 1);
-  assert.ok(result.classSource.indexOf("text = |{ gv_left }|") < result.classSource.indexOf("text = |{ lines( gt_rows ) }|"));
+  assert.equal((result.classSource.match(/text = lo_writer->format_value\( iv_value = lines\( gt_rows \) \)/g) ?? []).length, 1);
+  assert.ok(result.classSource.indexOf("text = lo_writer->format_value( iv_value = gv_left )") < result.classSource.indexOf("text = lo_writer->format_value( iv_value = lines( gt_rows ) )"));
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 
@@ -2343,8 +2343,8 @@ test("keeps scaffold-owned control constructors and methods type-aware", async (
   const result = await convertProgram({ source, filename: "zcontrol_objects.prog.abap" });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /TODO GGCONV-E501: unsupported (?:CreateObject|Call|Free)/);
-  assert.match(result.classSource, /CREATE OBJECT go_host EXPORTING container_name = 'ROOT'\./);
-  assert.match(result.classSource, /CREATE OBJECT go_grid EXPORTING i_parent = go_host\./);
+  assert.match(result.classSource, /CREATE OBJECT go_host\s+EXPORTING container_name = 'ROOT'\./);
+  assert.match(result.classSource, /CREATE OBJECT go_grid\s+EXPORTING i_parent = go_host\./);
   assert.match(result.classSource, /CALL METHOD go_grid->refresh_table_display\./);
   assert.match(result.classSource, /CLEAR go_grid\./);
 });

@@ -2,6 +2,9 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
 
   PRIVATE SECTION.
     METHODS test1 FOR TESTING.
+    METHODS fullscreen_salv_transport FOR TESTING RAISING cx_salv_not_found cx_salv_data_error cx_salv_existing.
+    METHODS on_salv_function FOR EVENT added_function OF cl_salv_events_table IMPORTING e_salv_function.
+    DATA mv_salv_function TYPE string.
     METHODS cfw_lifecycle FOR TESTING.
     METHODS textedit_roundtrip FOR TESTING.
     METHODS container_and_column_state FOR TESTING.
@@ -52,6 +55,47 @@ CLASS lcl_test_grid IMPLEMENTATION.
 ENDCLASS.
 
 CLASS ltcl_test IMPLEMENTATION.
+  METHOD on_salv_function.
+    mv_salv_function = e_salv_function.
+  ENDMETHOD.
+
+  METHOD fullscreen_salv_transport.
+    TYPES: BEGIN OF ty_row, name TYPE string, END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lo_salv TYPE REF TO cl_salv_table.
+    cl_gui_control=>clear( ).
+    lt_rows = VALUE #( ( name = 'Hide' ) ( name = 'Keep' ) ( name = 'Keep' ) ).
+    cl_salv_table=>factory( IMPORTING r_salv_table = lo_salv CHANGING t_table = lt_rows ).
+    lo_salv->get_functions( )->add_function( name     = 'ZGO'
+                                             text     = 'Go'
+                                             tooltip  = 'Go'
+                                             position = 1 ).
+    lo_salv->get_selections( )->set_selection_mode( if_salv_c_selection_mode=>multiple ).
+    lo_salv->get_filters( )->add_filter( columnname = 'NAME'
+                                         sign       = 'I'
+                                         option     = 'EQ'
+                                         low        = 'Keep' ).
+    SET HANDLER on_salv_function FOR lo_salv->get_event( ).
+    DATA(lv_html) = lo_salv->get_html( ).
+    FIND REGEX 'name="gg-ctl:([^:"]+):present"' IN lv_html SUBMATCHES DATA(lv_id).
+    cl_abap_unit_assert=>assert_not_initial( lv_id ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_html CS 'name="gg_control_event"' ) ).
+    cl_gui_cfw=>receive_frontend( event  = ''
+                                  values = VALUE #(
+      ( name = |gg-ctl:{ lv_id }:present| value = 'X' )
+      ( name = |gg-ctl:{ lv_id }:row:1| value = 'X' ) ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_abap_unit_assert=>assert_equals( act = lo_salv->get_selections( )->get_selected_rows( )
+      exp                                   = VALUE salv_t_row( ( 2 ) ) ).
+    cl_gui_cfw=>receive_frontend( event = lv_id && '|FUNCTION|ZGO'
+      values                            = VALUE #( ( name = |gg-ctl:{ lv_id }:present| value = 'X' ) ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_gui_cfw=>dispatch_pending( ).
+    cl_abap_unit_assert=>assert_equals( act = mv_salv_function
+                                        exp = 'ZGO' ).
+    cl_gui_control=>clear( ).
+  ENDMETHOD.
+
 
   METHOD test1.
 
@@ -531,7 +575,7 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-icon"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-tree-toolbar-spacer' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'height:32px' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<table role="tree" aria-label="ALV tree"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<table role="tree"' AND lv_html CS 'aria-label="ALV tree"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<ul role="tree"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-node-key="TREE-1"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Product hierarchy</th>' ) ).

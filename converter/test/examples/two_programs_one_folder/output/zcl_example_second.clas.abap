@@ -81,8 +81,12 @@ CLASS zcl_example_second IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_SECOND' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    CALL METHOD zcl_example_shared=>describe EXPORTING iv_who = `the second report` IMPORTING ev_text = gv_text.
-    lo_writer->write_field( VALUE #( text = |{ gv_text }| placement = VALUE #( new_line = abap_true ) ) ).
+    CALL METHOD zcl_example_shared=>describe
+      EXPORTING
+        iv_who = `the second report`
+      IMPORTING
+        ev_text = gv_text.
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_text ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

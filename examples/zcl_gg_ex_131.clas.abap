@@ -176,30 +176,32 @@ CLASS zcl_gg_ex_131 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_splitter EXPORTING parent  = go_container
-                                              rows    = 1
-                                              columns = 3.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_splitter
+            EXPORTING parent  = go_container
+                      rows    = 1
+                      columns = 3.
           DATA(lo_first) = go_splitter->get_container( row    = 1
                                                        column = 1 ).
-          CREATE OBJECT go_editor EXPORTING parent = lo_first.
+          CREATE OBJECT go_editor
+            EXPORTING parent = lo_first.
           go_editor->set_textstream( 'Editor in cell 1' ).
           DATA(lo_second) = go_splitter->get_container( row    = 1
                                                         column = 2 ).
-          CREATE OBJECT go_picture EXPORTING parent = lo_second.
+          CREATE OBJECT go_picture
+            EXPORTING parent = lo_second.
           go_picture->load_picture_from_url_async( gv_url ).
           DATA(lo_third) = go_splitter->get_container( row    = 1
                                                        column = 3 ).
-          CREATE OBJECT go_toolbar EXPORTING parent = lo_third.
+          CREATE OBJECT go_toolbar
+            EXPORTING parent = lo_third.
           go_toolbar->add_button( fcode     = 'APPLY'
                                   icon      = icon_okay
                                   butn_type = cntb_btype_button

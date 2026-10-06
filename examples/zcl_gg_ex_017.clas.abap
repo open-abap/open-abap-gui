@@ -103,7 +103,7 @@ CLASS zcl_gg_ex_017 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'PARAMETERS AS CHECKBOX' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_test = it_values[ name = 'P_TEST' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_test }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_test ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

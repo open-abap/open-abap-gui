@@ -104,7 +104,10 @@ CLASS zcl_gg_ex_147 IMPLEMENTATION.
 * The SALV events are system events: PAI does not run unless a handler sets
 * an OK code, so the handlers ask for PAI to show their result.
     io_session->get_list( )->set_title( 'SALV selections and events' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' seatsocc = 180 ) ( carrid = 'UA' connid = '0941' seatsocc = 210 ) ( carrid = 'AF' connid = '0010' seatsocc = 160 ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' seatsocc = 180 )
+      ( carrid = 'UA' connid = '0941' seatsocc = 210 )
+      ( carrid = 'AF' connid = '0010' seatsocc = 160 ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -230,18 +233,22 @@ CLASS zcl_gg_ex_147 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
           TRY.
-              cl_salv_table=>factory( EXPORTING r_container = go_container IMPORTING r_salv_table = go_alv CHANGING t_table = gt_flights ).
+              cl_salv_table=>factory(
+                EXPORTING
+                  r_container  = go_container
+                IMPORTING
+                  r_salv_table = go_alv
+                CHANGING
+                  t_table      = gt_flights ).
               go_column ?= go_alv->get_columns( )->get_column( 'CARRID' ).
               go_column->set_cell_type( if_salv_c_cell_type=>hotspot ).
             CATCH cx_salv_error.

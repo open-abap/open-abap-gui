@@ -158,10 +158,10 @@ CLASS zcl_gg_ex_073 IMPLEMENTATION.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
     LOOP AT mv_s_mul INTO DATA(ls_s_mul_range).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_mul_range-sign }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_mul_range-option }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_mul_range-low }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_mul_range-high }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_mul_range-sign ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_mul_range-option ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_mul_range-low ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_mul_range-high ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

@@ -8,6 +8,7 @@ CLASS cl_salv_form_uie_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_for
              row     TYPE i,
              column  TYPE i,
              colspan TYPE i,
+             rowspan TYPE i,
              element TYPE REF TO cl_salv_form_element,
            END OF ty_cell.
     DATA mt_cells TYPE STANDARD TABLE OF ty_cell WITH DEFAULT KEY.
@@ -16,6 +17,7 @@ CLASS cl_salv_form_uie_layout_grid DEFINITION PUBLIC INHERITING FROM cl_salv_for
         row     TYPE i
         column  TYPE i
         colspan TYPE i
+        rowspan TYPE i DEFAULT 1
         element TYPE REF TO cl_salv_form_element.
     METHODS render_html REDEFINITION.
 ENDCLASS.
@@ -44,12 +46,14 @@ CLASS cl_salv_form_uie_layout_grid IMPLEMENTATION.
     APPEND VALUE #( row     = lv_row
                     column  = lv_column
                     colspan = colspan
+                    rowspan = rowspan
                     element = element ) TO mt_cells.
     SORT mt_cells BY row column.
   ENDMETHOD.
 
   METHOD render_html.
     DATA lv_row TYPE i.
+    DATA lv_align TYPE string.
 
     LOOP AT mt_cells INTO DATA(ls_cell).
       IF ls_cell-row <> lv_row.
@@ -60,7 +64,17 @@ CLASS cl_salv_form_uie_layout_grid IMPLEMENTATION.
         result = result && '<tr>'.
       ENDIF.
       DATA(lv_colspan) = COND string( WHEN ls_cell-colspan > 1 THEN | colspan="{ ls_cell-colspan }"| ).
-      result = result && |<td{ lv_colspan }>{ ls_cell-element->render_html( ) }</td>|.
+      DATA(lv_rowspan) = COND string( WHEN ls_cell-rowspan > 1 THEN | rowspan="{ ls_cell-rowspan }"| ).
+
+      CLEAR lv_align.
+      IF ls_cell-element IS INSTANCE OF cl_salv_form_uie.
+        DATA(lo_layout) = CAST cl_salv_form_uie( ls_cell-element )->get_layout_data( ).
+        IF lo_layout IS INSTANCE OF cl_salv_form_layout_data_grid.
+          DATA(lv_h_align) = CAST cl_salv_form_layout_data_grid( lo_layout )->get_h_align( ).
+          lv_align = SWITCH #( lv_h_align WHEN 2 THEN 'center' WHEN 3 THEN 'right' ELSE 'left' ).
+        ENDIF.
+      ENDIF.
+      result = result && |<td{ lv_colspan }{ lv_rowspan }{ COND string( WHEN lv_align IS NOT INITIAL THEN | style="text-align:{ lv_align }"| ) }>{ ls_cell-element->render_html( ) }</td>|.
     ENDLOOP.
     IF lv_row <> 0.
       result = result && '</tr>'.

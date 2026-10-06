@@ -5,4 +5,8 @@ test("ZCL_GG_EX_129 — renders a dynamic document with escaped text", async ({p
   await expect(page.locator("body")).toContainText("Dynamic & safe document");
   await expect(page.locator("body")).toContainText("Text with <markup> & attributes stays text.");
   await expect(page.getByRole("link", {name: "Open document"})).toBeVisible();
+  await expect(page.getByRole("columnheader", {name: "Field", exact: true})).toBeVisible();
+  await expect(page.getByRole("columnheader", {name: "Value", exact: true})).toBeVisible();
+  await expect(page.getByRole("cell", {name: "Status", exact: true})).toBeVisible();
+  await expect(page.getByRole("cell", {name: "Draft", exact: true})).toBeVisible();
 });

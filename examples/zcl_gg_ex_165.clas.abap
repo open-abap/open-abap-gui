@@ -114,7 +114,7 @@ CLASS zcl_gg_ex_165 IMPLEMENTATION.
       IF sy-subrc <> 0.
         EXIT.
       ENDIF.
-      lo_writer->write_field( VALUE #( text = |{ gv_line }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_line ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDDO.
     CLOSE DATASET mv_p_file.
   ENDMETHOD.

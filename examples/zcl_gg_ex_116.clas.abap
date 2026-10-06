@@ -111,8 +111,13 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'Two-screen flight editor' ).
 * CONTROLS declaration represented by dynpro metadata.
     io_session->get_list( )->set_title( 'Two-screen flight editor' ).
-    gt_carriers = VALUE #( ( carrid = 'LH' carrname = 'Lufthansa' ) ( carrid = 'UA' carrname = 'United Airlines' ) ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ).
+    gt_carriers = VALUE #(
+      ( carrid = 'LH' carrname = 'Lufthansa' )
+      ( carrid = 'UA' carrname = 'United Airlines' ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -292,7 +297,11 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
     ENDIF.
     CASE is_context-module.
       WHEN 'F4_CARRID'.
-        io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ).
+        io_session->get_compatibility( )->f4_table_value_request(
+          EXPORTING
+            is_request   = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' )
+          CHANGING
+            ct_value_tab = gt_carriers ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -313,19 +322,48 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
 * Screen 100 chooses the airline, screen 200 edits its flights.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'HEADER' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ( 'EDIT' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'EDIT' label = 'Edit flights' icon = 'ICON_CHANGE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'EDIT' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'HEADER' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' )
+          ( 'EDIT' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 13 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'EDIT' label = 'Edit flights' icon = 'ICON_CHANGE' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 13 ucomm = 'EDIT' ) ) ) ).
         io_session->get_dialog( )->set_title( 'Airline' ).
       WHEN 'STATUS_0200'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'ITEMS' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ( 'SAVE' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 11 ) ( 13 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 11 ucomm = 'SAVE' ) ( number = 13 ucomm = 'SAVE' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'ITEMS' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' )
+          ( 'SAVE' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 11 )
+          ( 13 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 11 ucomm = 'SAVE' )
+          ( number = 13 ucomm = 'SAVE' ) ) ) ).
         io_session->get_dialog( )->set_title( |Flights of { gv_carrid }| ).
         tc_flights-lines = lines( gt_shown ).
       WHEN OTHERS.
@@ -343,7 +381,11 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
           io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_error text = |Airline { gv_carrid } does not exist| ) ).
         ENDIF.
       WHEN 'F4_CARRID'.
-        io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ).
+        io_session->get_compatibility( )->f4_table_value_request(
+          EXPORTING
+            is_request   = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-dynpro-screen dynprofield = 'GV_CARRID' value_org = 'S' )
+          CHANGING
+            ct_value_tab = gt_carriers ).
       WHEN 'USER_COMMAND_0100'.
         IF gv_ok_code = 'EDIT'.
           CLEAR gv_ok_code.

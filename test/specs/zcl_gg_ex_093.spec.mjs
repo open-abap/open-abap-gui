@@ -2,6 +2,18 @@ import {test, expect, openExample, statusMessage} from "../fixtures.mjs";
 
 const found = (page) => page.locator(".gg-list-line[data-found]");
 
+test("list shortcuts open Find and search options control matching", async ({page, host}) => {
+  await openExample(page, host, 93);
+  await page.keyboard.press("Control+f");
+  const dialog = page.getByRole("dialog", {name: "Find"});
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("textbox", {name: "Find"}).fill("frankfurt");
+  await dialog.getByLabel("Options").selectOption("CASE");
+  await dialog.getByRole("button", {name: "Find", exact: true}).click();
+  await expect(found(page)).toHaveCount(0);
+  await expect(statusMessage(page)).toContainText("was not found");
+});
+
 test("ZCL_GG_EX_093 — Find and Find next search the list", async ({page, host}) => {
   await openExample(page, host, 93);
   const toolbar = page.locator(".wb-commandbar");
@@ -22,8 +34,8 @@ test("ZCL_GG_EX_093 — Find and Find next search the list", async ({page, host}
   }
   await toolbar.getByRole("button", {name: "Find next"}).click();
   await page.waitForLoadState("load");
-  await expect(found(page)).toHaveCount(0);
-  await expect(statusMessage(page)).toContainText('No further hits for "frankfurt"');
+  await expect(found(page)).toContainText("LH       0400");
+  await expect(page.getByRole("navigation", {name: "Search results"})).toBeVisible();
 });
 
 test("ZCL_GG_EX_093 — Cancel closes the Find dialog box", async ({page, host}) => {

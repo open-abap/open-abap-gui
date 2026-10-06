@@ -78,7 +78,7 @@ CLASS zcl_gg_ex_005 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'FORMAT color and attributes' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    lo_writer->set_format( VALUE #( color = 4 intensified = abap_true ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = 4 intensified = abap_true ) ).
     lo_writer->write_field( VALUE #( text = 'key column' ) ).
     lo_writer->reset_format( ).
     lo_writer->write_field( VALUE #( text = 'plain' ) ).
