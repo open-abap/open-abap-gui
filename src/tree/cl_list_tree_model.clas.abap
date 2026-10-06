@@ -84,9 +84,9 @@ CLASS cl_list_tree_model IMPLEMENTATION.
         lv_parent = ls_relative-parent_key.
       ENDIF.
     ENDIF.
-    store_node( VALUE #( node_key   = CONV string( node_key )
+    store_node( VALUE #( node_key   = node_key
                          parent_key = lv_parent
-                         text       = CONV string( node_key )
+                         text       = node_key
                          expanded   = xsdbool( expander = abap_true OR isfolder = abap_true )
                          hidden     = hidden ) ).
     IF item_table IS NOT INITIAL.

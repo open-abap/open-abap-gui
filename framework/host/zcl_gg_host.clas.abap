@@ -886,9 +886,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
     ENDIF.
     rs_result-list_outcome-find = is_list_find.
     IF lv_selection_screen_active = abap_false
-        AND zcl_gg_host_list_processor=>is_function( CONV #( iv_user_command ) ) = abap_true.
+        AND zcl_gg_host_list_processor=>is_function( iv_user_command ) = abap_true.
       rs_result-list_outcome = zcl_gg_host_list_processor=>process(
-        iv_ucomm  = CONV #( iv_user_command )
+        iv_ucomm  = iv_user_command
         iv_value  = iv_list_value
         iv_target = iv_list_target
         iv_cursor = rs_result-list_cursor
@@ -1318,7 +1318,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
                       cursor_value = iv_cursor_value ) TO rt_path.
 * The list processor's own functions never reach AT USER-COMMAND.
     ELSEIF iv_user_command IS NOT INITIAL
-        AND zcl_gg_host_list_processor=>is_function( CONV #( iv_user_command ) ) = abap_false.
+        AND zcl_gg_host_list_processor=>is_function( iv_user_command ) = abap_false.
       APPEND VALUE #( kind  = 'COMMAND'
                       ucomm = iv_user_command ) TO rt_path.
     ELSEIF iv_pf_key > 0.
@@ -1443,7 +1443,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     ENDIF.
 
     DATA(lt_variant_values) = zcl_gg_host_variant=>load(
-      iv_name   = CONV zif_gg_session_types_v1=>ty_variant( is_submit-variant )
+      iv_name   = is_submit-variant
       iv_report = CONV string( is_submit-program )
       iv_owner  = 'GG_BROWSER' ).
     LOOP AT lt_variant_values INTO DATA(ls_variant_value).

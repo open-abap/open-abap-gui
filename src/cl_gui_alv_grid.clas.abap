@@ -1197,7 +1197,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         mv_menu_html = '<ul class="gg-alv-context-menu" role="menu">'.
         LOOP AT zcl_gg_context_menu_state=>get_items( lo_menu ) INTO DATA(ls_menuitem) WHERE hidden = abap_false.
           APPEND CONV #( ls_menuitem-fcode ) TO mt_menu_fcodes.
-          mv_menu_html = mv_menu_html && |<li><button type="submit" role="menuitem" { function_attributes( CONV #( ls_menuitem-fcode ) ) }{ COND string( WHEN ls_menuitem-disabled = abap_true THEN ` disabled` ) }>{ escape_html( CONV string( ls_menuitem-text ) ) }</button></li>|.
+          mv_menu_html = mv_menu_html && |<li><button type="submit" role="menuitem" { function_attributes( ls_menuitem-fcode ) }{ COND string( WHEN ls_menuitem-disabled = abap_true THEN ` disabled` ) }>{ escape_html( ls_menuitem-text ) }</button></li>|.
         ENDLOOP.
         mv_menu_html = mv_menu_html && '</ul>'.
         refresh_table_display( ).
@@ -1319,7 +1319,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 * A grid without a parent renders a SALV list; its functions are list
 * commands. A grid control sends its functions to itself.
     IF iv_function = mc_fc_print OR iv_function = mc_fc_pc_file OR iv_function = mc_fc_call_xml_export.
-      result = |data-gg-alv-command="{ escape_html( CONV string( iv_function ) ) }" |.
+      result = |data-gg-alv-command="{ escape_html( iv_function ) }" |.
     ENDIF.
     IF control_id IS INITIAL.
       result = result && |name="gg_ucomm" value="{ iv_function }"|.
