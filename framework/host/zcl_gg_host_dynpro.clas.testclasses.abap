@@ -4,9 +4,19 @@
 CLASS lcl_ok_code_program DEFINITION FINAL.
   PUBLIC SECTION.
     INTERFACES zif_gg_dynpro_v1.
+    INTERFACES zif_gg_resumable_v1.
+    DATA popup_test TYPE abap_bool.
+    DATA calls TYPE i.
+    DATA tails TYPE i.
+    DATA after_calls TYPE i.
 ENDCLASS.
 
 CLASS lcl_ok_code_program IMPLEMENTATION.
+
+  METHOD zif_gg_resumable_v1~resume.
+    io_session->get_compatibility( )->popup_to_confirm( VALUE #( text_question = 'Continue?' ) ).
+    tails = tails + 1.
+  ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.
     rv_screen = '0100'.
@@ -32,6 +42,7 @@ CLASS lcl_ok_code_program IMPLEMENTATION.
       io_builder->end_processing( ).
       io_builder->begin_pai( ).
       io_builder->add_module( VALUE #( name = 'USER_COMMAND' ) ).
+      io_builder->add_module( VALUE #( name = 'AFTER' ) ).
       io_builder->end_processing( ).
       io_builder->end_screen( ).
     ENDLOOP.
@@ -51,6 +62,25 @@ CLASS lcl_ok_code_program IMPLEMENTATION.
     DATA lv_field TYPE zif_gg_dynpro_types_v1=>ty_name.
     DATA lv_seen TYPE string.
 
+    IF popup_test = abap_true.
+      IF is_context-module = 'AFTER'.
+        after_calls = after_calls + 1.
+        RETURN.
+      ENDIF.
+      calls = calls + 1.
+      TRY.
+          io_session->get_compatibility( )->popup_to_confirm( VALUE #( text_question = 'Continue?' ) ).
+        CATCH zcx_gg_control_flow INTO DATA(lx_popup).
+          RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup->mv_kind
+            iv_operation                                           = lx_popup->mv_operation
+                                                   iv_continuation = 'AFTER_POPUP' ).
+      ENDTRY.
+      tails = tails + 1.
+      RETURN.
+    ENDIF.
+    IF is_context-module = 'AFTER'.
+      RETURN.
+    ENDIF.
     lv_field = SWITCH #( is_context-screen
       WHEN '0100' THEN 'MY_OK'
       WHEN '0200' THEN 'OTHER_OK'
@@ -85,6 +115,8 @@ CLASS ltcl_gg_host_dynpro DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL
     METHODS uses_the_screens_own_field FOR TESTING.
     METHODS falls_back_to_gv_ok_code FOR TESTING.
     METHODS writes_cfw_code_to_field FOR TESTING.
+    METHODS required_table_cells FOR TESTING.
+    METHODS popup_does_not_replay_pai FOR TESTING.
 
     METHODS run
       IMPORTING
@@ -102,7 +134,74 @@ CLASS ltcl_gg_host_dynpro DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL
 
 ENDCLASS.
 
+CLASS zcl_gg_host_dynpro DEFINITION LOCAL FRIENDS ltcl_gg_host_dynpro.
+
 CLASS ltcl_gg_host_dynpro IMPLEMENTATION.
+
+  METHOD popup_does_not_replay_pai.
+    DATA(lo_program) = NEW lcl_ok_code_program( ).
+    lo_program->popup_test = abap_true.
+    DATA(ls_first) = zcl_gg_host_dynpro=>run( io_program   = lo_program
+                                              io_resumable = lo_program
+                                              iv_ucomm     = 'CFW' ).
+    cl_abap_unit_assert=>assert_equals( act = lo_program->calls
+                                        exp = 1 ).
+    DATA(ls_second) = zcl_gg_host_dynpro=>run( io_program        = lo_program
+                                               io_resumable      = lo_program
+      iv_ucomm                                                   = 'CFW'
+                                               iv_submitted      = abap_false
+                                               iv_resume_first   = abap_true
+      iv_resume_continuation                                     = ls_first-popup_continuation
+                                               is_resume_context = ls_first-popup_context
+      iv_popup_action                                            = 'CONFIRM:1'
+                                               iv_screen         = ls_first-screen
+                                               is_shown          = zcl_gg_host_dynpro=>shown( ls_first ) ).
+    cl_abap_unit_assert=>assert_initial( ls_second-popup-kind ).
+    cl_abap_unit_assert=>assert_equals( act = lo_program->calls
+                                        exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lo_program->tails
+                                        exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lo_program->after_calls
+                                        exp = 1 ).
+  ENDMETHOD.
+
+  METHOD required_table_cells.
+    DATA(lo_session) = NEW zcl_gg_host_session( io_list = NEW zcl_gg_host_list( ) ).
+    DATA(lt_controls) = VALUE zcl_gg_host_dynpro_builder=>ty_controls(
+      ( screen = '0100' name = 'FIELD' kind = 'TABLE_COLUMN' parent = 'TABLE' ) ).
+    DATA(lt_states) = VALUE zif_gg_dynpro_types_v1=>ty_states(
+      ( container = 'TABLE' name = 'FIELD' row = 0 visible = abap_true enabled = abap_true
+        required = abap_true input = abap_true )
+      ( container = 'TABLE' name = 'FIELD' row = 1 visible = abap_true enabled = abap_true
+        required = abap_true input = abap_true ) ).
+    TRY.
+        zcl_gg_host_dynpro=>check_required( io_session  = lo_session
+                                            it_controls = lt_controls
+          iv_screen                                     = '0100'
+                                            iv_exit     = abap_false
+                                            it_values   = VALUE #( )
+                                            it_states   = lt_states ).
+        cl_abap_unit_assert=>fail( 'Missing table cell did not block PAI' ).
+      CATCH zcx_gg_control_flow.
+    ENDTRY.
+    cl_abap_unit_assert=>assert_equals( act = lo_session->get_cursor( )-row
+                                        exp = 1 ).
+    zcl_gg_host_dynpro=>check_required( io_session  = lo_session
+                                        it_controls = lt_controls
+      iv_screen                                     = '0100'
+                                        iv_exit     = abap_false
+      it_values                                     = VALUE #( ( container = 'TABLE' name = 'FIELD' row = 1 value = 'filled' ) )
+      it_states                                     = lt_states ).
+    MODIFY lt_states FROM VALUE zif_gg_dynpro_types_v1=>ty_state( container = 'TABLE' name = 'FIELD' row = 1
+      visible = abap_true enabled = abap_true input = abap_true recommended = abap_true )
+      TRANSPORTING required recommended WHERE row = 1.
+    zcl_gg_host_dynpro=>check_required( io_session  = lo_session
+                                        it_controls = lt_controls
+      iv_screen                                     = '0100'
+                                        iv_exit     = abap_false
+                                        it_values   = VALUE #( )
+                                        it_states   = lt_states ).
+  ENDMETHOD.
 
   METHOD run.
     rs_result = zcl_gg_host_dynpro=>run(

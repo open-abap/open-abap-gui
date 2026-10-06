@@ -182,7 +182,15 @@ CLASS zcl_gg_ex_101 IMPLEMENTATION.
       gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'VALIDATE' ) ) icon_bar = VALUE #( ( ucomm = 'VALIDATE' label = 'Validate' icon = 'ICON_CHECK' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 )
+        ( 13 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' )
+        ( number = 13 ucomm = 'VALIDATE' ) ) icon_bar = VALUE #( ( ucomm = 'VALIDATE' label = 'Validate' icon = 'ICON_CHECK' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -273,15 +281,27 @@ CLASS zcl_gg_ex_101 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ( 'VALIDATE' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'VALIDATE' label = 'Validate' icon = 'ICON_CHECK' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'VALIDATE' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' )
+          ( 'VALIDATE' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 13 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'VALIDATE' label = 'Validate' icon = 'ICON_CHECK' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 13 ucomm = 'VALIDATE' ) ) ) ).
         IF gv_city IS INITIAL.
           io_session->get_dialog( )->set_cursor( VALUE #( field = 'GV_CITY' ) ).
         ENDIF.

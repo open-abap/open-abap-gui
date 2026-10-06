@@ -142,14 +142,14 @@ CLASS zcl_gg_ex_161 IMPLEMENTATION.
     mv_p_clean = it_values[ name = 'P_CLEAN' ]-value.
     mv_p_tsave = it_values[ name = 'P_TSAVE' ]-value.
     IF mv_p_clean = abap_true.
-      lo_writer->write_field( VALUE #( text = |{ TEXT-001 }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-001 ) placement = VALUE #( new_line = abap_true ) ) ).
     ELSE.
-      lo_writer->write_field( VALUE #( text = |{ TEXT-002 }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-002 ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.
     IF mv_p_tsave = abap_true.
-      lo_writer->write_field( VALUE #( text = |{ TEXT-003 }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-003 ) placement = VALUE #( new_line = abap_true ) ) ).
     ELSE.
-      lo_writer->write_field( VALUE #( text = |{ TEXT-004 }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-004 ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.
   ENDMETHOD.
 

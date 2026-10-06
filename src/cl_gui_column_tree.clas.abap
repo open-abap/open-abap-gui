@@ -297,7 +297,15 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
       DATA(lv_node_image_attr) = COND string(
         WHEN lv_node_image IS INITIAL THEN ``
         ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ).
-      lv_html = lv_html && |<tr class="gg-column-tree-node" role="treeitem" tabindex="0" aria-level="{ lv_tree_level }" data-tree-level="{ lv_tree_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_expanded_attr }{ lv_hidden_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px">{ lv_disclosure }<span class="gg-tree-node-icon" aria-hidden="true"{ lv_node_image_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label" tabindex="0" data-gg-click-event="{ lv_select_event }" data-gg-dblclick-event="{ lv_double_click_event }">{ escape_html( ls_node-text ) }</span></span></th>|.
+      DATA(lv_drag) = drag_attributes( handle     = ls_node-dragdropid
+                                       control_id = control_id
+                                       key        = ls_node-node_key ).
+      DATA(lv_drop) = drop_attributes( handle     = ls_node-dragdropid
+                                       control_id = control_id
+                                       row        = ls_node-node_key ).
+      REPLACE FIRST OCCURRENCE OF ' tabindex="0"' IN lv_drag WITH ''.
+      REPLACE FIRST OCCURRENCE OF ' tabindex="0"' IN lv_drop WITH ''.
+      lv_html = lv_html && |<tr class="gg-column-tree-node" role="treeitem" tabindex="0"{ lv_drag }{ lv_drop } aria-level="{ lv_tree_level }" data-tree-level="{ lv_tree_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }"{ lv_expanded_attr }{ lv_hidden_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px">{ lv_disclosure }<span class="gg-tree-node-icon" aria-hidden="true"{ lv_node_image_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label" tabindex="0" data-gg-click-event="{ lv_select_event }" data-gg-dblclick-event="{ lv_double_click_event }">{ escape_html( ls_node-text ) }</span></span></th>|.
       LOOP AT mt_columns INTO DATA(ls_extra_column) FROM 2 WHERE hidden = abap_false.
         DATA(ls_item) = VALUE ty_html_item( ).
         READ TABLE mt_html_items INTO ls_item
@@ -308,11 +316,14 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
           WHEN item_class_checkbox.
             DATA(lv_checked) = COND string( WHEN ls_item-chosen = abap_true THEN ' checked' ELSE `` ).
             DATA(lv_editable) = COND string( WHEN ls_item-editable = abap_true THEN `` ELSE ' disabled' ).
-            lv_item_markup = |<input type="checkbox"{ lv_checked }{ lv_editable } aria-label="{ escape_html( ls_extra_column-name ) }"> { lv_item_text }|.
+            lv_item_markup = |<button type="submit" role="checkbox" aria-checked="{ COND string( WHEN ls_item-chosen = abap_true THEN 'true' ELSE 'false' ) }" name="gg_control_event" value="{ frontend_event_value( event  = 'CHECKBOX'
+                                                                                                                                                                                                                      params = VALUE #( ( ls_node-node_key ) ( ls_extra_column-name ) ) ) }" formnovalidate{ lv_editable } aria-label="{ escape_html( ls_extra_column-name ) }">{ lv_item_text }</button>|.
           WHEN item_class_button.
-            lv_item_markup = |<button type="button" class="gg-tree-item-button" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( ls_extra_column-name ) }">{ lv_item_text }</button>|.
+            lv_item_markup = |<button type="submit" class="gg-tree-item-button" name="gg_control_event" value="{ frontend_event_value( event  = 'BUTTON'
+                                                                                                                                       params = VALUE #( ( ls_node-node_key ) ( ls_extra_column-name ) ) ) }" formnovalidate>{ lv_item_text }</button>|.
           WHEN item_class_link.
-            lv_item_markup = |<a href="#" class="gg-tree-item-link" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( ls_extra_column-name ) }">{ lv_item_text }</a>|.
+            lv_item_markup = |<button type="submit" role="link" class="gg-tree-item-link" name="gg_control_event" value="{ frontend_event_value( event  = 'LINK'
+                                                                                                                                                 params = VALUE #( ( ls_node-node_key ) ( ls_extra_column-name ) ) ) }" formnovalidate>{ lv_item_text }</button>|.
           WHEN OTHERS.
             lv_item_markup = lv_item_text.
         ENDCASE.

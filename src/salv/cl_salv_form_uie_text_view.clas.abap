@@ -1,5 +1,11 @@
 CLASS cl_salv_form_uie_text_view DEFINITION PUBLIC INHERITING FROM cl_salv_form_uie.
   PUBLIC SECTION.
+    METHODS get_id
+      RETURNING
+        VALUE(result) TYPE string.
+    METHODS set_label_id
+      IMPORTING
+        value TYPE string.
     METHODS set_text
       IMPORTING
         value TYPE any.
@@ -15,6 +21,9 @@ CLASS cl_salv_form_uie_text_view DEFINITION PUBLIC INHERITING FROM cl_salv_form_
   PROTECTED SECTION.
     DATA mv_text TYPE string.
     DATA mv_tooltip TYPE string.
+    DATA mv_id TYPE string.
+    DATA mv_label_id TYPE string.
+    CLASS-DATA mv_id_counter TYPE i.
     METHODS render_html REDEFINITION.
     METHODS html
       IMPORTING
@@ -24,6 +33,18 @@ CLASS cl_salv_form_uie_text_view DEFINITION PUBLIC INHERITING FROM cl_salv_form_
 ENDCLASS.
 
 CLASS cl_salv_form_uie_text_view IMPLEMENTATION.
+  METHOD get_id.
+    IF mv_id IS INITIAL.
+      mv_id_counter = mv_id_counter + 1.
+      mv_id = |gg-salv-form-{ mv_id_counter }|.
+    ENDIF.
+    result = mv_id.
+  ENDMETHOD.
+
+  METHOD set_label_id.
+    mv_label_id = value.
+  ENDMETHOD.
+
   METHOD set_text.
     mv_text = value.
   ENDMETHOD.
@@ -46,6 +67,6 @@ CLASS cl_salv_form_uie_text_view IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_html.
-    result = |<span class="gg-salv-form-text" title="{ html( mv_tooltip ) }">{ html( mv_text ) }</span>|.
+    result = |<span class="gg-salv-form-text" id="{ get_id( ) }"{ COND string( WHEN mv_label_id IS NOT INITIAL THEN | role="group" aria-labelledby="{ html( mv_label_id ) }"| ) } title="{ html( mv_tooltip ) }">{ html( mv_text ) }</span>|.
   ENDMETHOD.
 ENDCLASS.

@@ -212,9 +212,9 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   METHOD form_show_factor.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     DATA(lv_result) = mv_p_factor * 3.
-    lo_writer->write_field( VALUE #( text = |{ lv_result }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = lv_result ) placement = VALUE #( new_line = abap_true ) ) ).
     LOOP AT mv_s_date INTO DATA(ls_date).
-      lo_writer->write_field( VALUE #( text = |{ ls_date-low }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_date-low ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

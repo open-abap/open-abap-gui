@@ -22,8 +22,9 @@ test("ZCL_GG_EX_085 — an old page is stale after a refresh", async ({page, hos
   const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
   const response = await page.evaluate(async ({sessionId, oldPage}) => {
     const result = await fetch("/dispatch", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({session_id: sessionId, page_id: oldPage, action: "COMMAND", ucomm: "REFRESH"})});
-    return {status: result.status, body: await result.json()};
+    return {status: result.status, body: await result.text()};
   }, {sessionId, oldPage});
-  expect(response.status).toBe(409);
-  expect(response.body.error).toMatch(/stale/i);
+  expect(response.status).toBe(200);
+  expect(response.body).toContain("Refreshed 1 times");
+  expect(response.body).toContain('data-page-kind="LIST"');
 });

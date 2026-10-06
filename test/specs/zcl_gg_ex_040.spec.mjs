@@ -11,6 +11,10 @@ test(`ZCL_GG_EX_040 — double-clicking the status bar message shows its technic
   await openExample(page, host, 40);
   const details = page.getByRole("dialog", {name: "Technical information"});
   await expect(details).toBeHidden();
+  const info = page.getByRole("alertdialog", {name: "Information"});
+  await expect(info).toContainText("alpha beta");
+  await info.getByRole("button", {name: "OK", exact: true}).click();
+  await expect(info).toHaveCount(0);
 
   await statusMessage(page).dblclick();
   await expect(details).toBeVisible();

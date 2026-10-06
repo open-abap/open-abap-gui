@@ -28,8 +28,9 @@ CLASS zcl_gg_ex_153_h2 IMPLEMENTATION.
 
   METHOD on_drag.
     DATA lo_flight TYPE REF TO zcl_gg_ex_153_h1.
-    CREATE OBJECT lo_flight EXPORTING io_owner   = go_owner
-                                      io_session = go_session.
+    CREATE OBJECT lo_flight
+      EXPORTING io_owner   = go_owner
+                io_session = go_session.
     lo_flight->node_key = node_key.
     drag_drop_object->object = lo_flight.
   ENDMETHOD.

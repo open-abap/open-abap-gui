@@ -57,6 +57,7 @@ INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
            currency      TYPE ty_name,
            unit          TYPE ty_name,
            decimals      TYPE i,
+           decimals_set  TYPE abap_bool,
            round         TYPE i,
            exponent      TYPE i,
            edit_mask     TYPE string,

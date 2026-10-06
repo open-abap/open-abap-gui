@@ -111,6 +111,7 @@ CLASS zcl_gg_ex_046 IMPLEMENTATION.
 
   METHOD zif_gg_list_processing_v1~at_line_selection.
     DATA(ls_line) = io_session->get_list( )->read_line( iv_index = 1 ).
+    sy-subrc = COND #( WHEN ls_line-index > 0 THEN 0 ELSE 4 ).
     DATA(ls_modify_line_1) = io_session->get_list( )->read_line( iv_index = 1 ).
     ls_modify_line_1-format-intensified = abap_true.
     io_session->get_list( )->modify_line( ls_modify_line_1 ).

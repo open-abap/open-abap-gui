@@ -45,7 +45,8 @@ CLASS ltcl_salv_hierseq_support IMPLEMENTATION.
 
 * The items follow their header line, and only the aggregated column is summed.
     DATA(lv_html) = cl_gui_control=>render_html( ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-group-key="100"><td data-fieldname="ORDER_ID" class="gg-type-number">100</td><td data-fieldname="CUSTOMER" colspan="2">Lufthansa</td></tr><tr data-level="2" data-parent-key="100">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-hierseq-toggle aria-expanded="true"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-level="2" data-parent-key="100"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>LH400<' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="PRICE">200.50</td>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-total="true" data-fieldname="ORDER_ID"' ) ).

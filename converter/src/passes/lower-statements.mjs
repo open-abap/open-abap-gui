@@ -6,6 +6,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import { isGenericParameterType, methodParameterType } from "./collect-routines.mjs";
 import { isWritableArgument, performArguments } from "./analyze-routine-writes.mjs";
+import { isPopupStatement } from "./lower-continuations.mjs";
 
 const TYPE_CODES = new Map([
   ["C", "C"], ["N", "N"], ["D", "D"], ["T", "T"], ["I", "I"], ["INT4", "I"],
@@ -856,6 +857,7 @@ function parseWrite(raw, context) {
     noZero: /\bNO-ZERO\b/i.test(rest),
     noSign: /\bNO-SIGN\b/i.test(rest),
     justification: /\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/i.exec(rest)?.[1],
+    dateMask: /\b(?:DD\/MM\/YY(?:YY)?|MM\/DD\/YY(?:YY)?|DDMMYY|MMDDYY|YYMMDD)\b/i.exec(rest)?.[0]?.toUpperCase(),
   };
   rest = rest
     .replace(/\b(?:HOTSPOT|INTENSIFIED|INVERSE)(?:\s+ON)?\b/gi, "")
@@ -867,6 +869,7 @@ function parseWrite(raw, context) {
     .replace(/\bNO-GROUPING\b/gi, "")
     .replace(/\bDECIMALS\s+\d+/gi, "")
     .replace(/\bROUND\s+\d+/gi, "")
+    .replace(/\b(?:DD\/MM\/YY(?:YY)?|MM\/DD\/YY(?:YY)?|DDMMYY|MMDDYY|YYMMDD)\b/gi, "")
     .replace(/\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/gi, "")
     .trim();
   const placement = [];
@@ -875,7 +878,7 @@ function parseWrite(raw, context) {
   if (newLine) placement.push("new_line = abap_true");
   if (additions.noGap) placement.push("no_gap = abap_true");
   const format = [];
-  if (additions.decimals) format.push(`decimals = ${additions.decimals}`);
+  if (additions.decimals !== undefined) format.push(`decimals = ${additions.decimals} decimals_set = abap_true`);
   if (additions.currency) format.push(`currency = |{ ${valueExpression(additions.currency, context)} }|`);
   if (additions.round) format.push(`round = ${additions.round}`);
   if (additions.noZero) format.push("no_zero = abap_true");
@@ -884,7 +887,11 @@ function parseWrite(raw, context) {
     const name = additions.justification === "LEFT-JUSTIFIED" ? "left" : additions.justification === "CENTERED" ? "center" : "right";
     format.push(`justification = zif_gg_list_processing_types_v1=>justify_${name}`);
   }
-  const fields = [`text = ${expressionText(rest, context)}`];
+  const value = valueExpression(rest, context);
+  const formatted = /^'(?:''|[^'])*'$|^\|.*\|$/s.test(value)
+    ? expressionText(rest, context)
+    : `lo_writer->format_value( iv_value = ${value}${additions.dateMask ? ` iv_date_mask = '${additions.dateMask}'` : ""} )`;
+  const fields = [`text = ${formatted}`];
   const fieldFormat = [];
   if (colorField) fieldFormat.push(`color = zif_gg_list_processing_types_v1=>${colorField}`);
   if (intensified) fieldFormat.push("intensified = abap_true");
@@ -896,10 +903,10 @@ function parseWrite(raw, context) {
   if (format.length) fields.push(`write_format = VALUE #( ${format.join(" ")} )`);
   const type = kind === "CHECKBOX" ? "write_checkbox" : kind === "ICON" ? "write_icon" : kind === "SYMBOL" ? "write_symbol" : "write_field";
   if (type === "write_field") return `lo_writer->${type}( VALUE #( ${fields.join(" ")} ) ).`;
-  const value = type === "write_checkbox"
+  const controlValue = type === "write_checkbox"
     ? `name = 'CHECKBOX' value = ${valueExpression(rest, context)}`
     : `name = ${/^'[\s\S]*'$/.test(rest) ? rest : quote(valueExpression(rest, context).toUpperCase())}`;
-  const typeFields = [value];
+  const typeFields = [controlValue];
   if (placement.length) typeFields.push(`placement = VALUE #( ${placement.join(" ")} )`);
   if (quickinfo) typeFields.push(`quickinfo = ${quickinfo}`);
   return `lo_writer->${type}( VALUE #( ${typeFields.join(" ")} ) ).`;
@@ -913,9 +920,7 @@ function unsupportedWriteFormat(text) {
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\b/gi, "");
-  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic)
-    // Date masks need the field's type, which the writer does not get.
-    || /\b(?:DD\/MM\/YY(?:YY)?|MM\/DD\/YY(?:YY)?|DDMMYY|MMDDYY|YYMMDD)\b/i.test(classic);
+  return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
 function parseFormat(raw, context) {
@@ -937,7 +942,7 @@ function parseFormat(raw, context) {
     const match = new RegExp(`${keyword}\\s+(ON|OFF)`).exec(text);
     if (match) fields.push(`${field} = abap_${match[1] === "ON" ? "true" : "false"}`);
   }
-  return `lo_writer->set_format( VALUE #( ${fields.join(" ")} ) ).`;
+  return `lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) ${fields.join(" ")} ) ).`;
 }
 
 // A message type is a letter, quoted or not, or a dynamic operand such as
@@ -1230,7 +1235,7 @@ function lowerSingleStatement(statement, context) {
         "$1( COND i( WHEN $2 = abap_true THEN 1 ELSE 0 ) )",
       );
     }
-    return rewriteStatementValues(lowered, context);
+    return wrapPopup(statement, context, rewriteStatementValues(lowered, context));
   }
   if (statement.kind === "Write") {
     const iconAssignment = /^WRITE\s+([A-Z][A-Z0-9_]*)\s+AS\s+ICON(?:\s+QUICKINFO\s+.+?)?\s+TO\s+([A-Z][A-Z0-9_]*)\.?$/i.exec(raw);
@@ -1465,17 +1470,28 @@ function lowerSingleStatement(statement, context) {
     return `sy-subrc = COND #( WHEN io_session->get_compatibility( )->authority_check( iv_object = ${quote(match[1].toUpperCase())} iv_id = ${quote(match[2].toUpperCase())} iv_value = CONV string( ${valueExpression(match[3], context)} ) ) = abap_true THEN 0 ELSE 4 ).`;
   }
   if (statement.kind === "CallFunction") {
-    const target = /TABLES\s+([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1];
+    const target = /TABLES\s+[A-Z][A-Z0-9_]*\s*=\s*([A-Z][A-Z0-9_>-]*)/i.exec(raw)?.[1];
     if (/CALL\s+FUNCTION\s+'LIST_FROM_MEMORY'/i.test(raw) && target) {
-      return `${target} = io_session->get_navigation( )->get_list_from_memory( ).`;
+      return `zcl_gg_list_memory=>from_lines( EXPORTING it_lines = io_session->get_navigation( )->get_list_from_memory( ) CHANGING ct_list = ${valueExpression(target, context)} ).\nsy-subrc = COND #( WHEN ${valueExpression(target, context)} IS INITIAL THEN 4 ELSE 0 ).`;
+    }
+    if (/CALL\s+FUNCTION\s+'LIST_TO_ASCI'/i.test(raw)) {
+      const list = /\bLISTOBJECT\s*=\s*([A-Z][A-Z0-9_>-]*)/i.exec(raw)?.[1];
+      const ascii = /\bLISTASCI\s*=\s*([A-Z][A-Z0-9_>-]*)/i.exec(raw)?.[1];
+      if (list && ascii) return `zcl_gg_list_memory=>to_ascii( EXPORTING it_list = ${valueExpression(list, context)} CHANGING ct_ascii = ${valueExpression(ascii, context)} ).\nsy-subrc = 0.`;
     }
     // Function modules with a compatibility adapter become session calls; any
     // other function module is the target system's and is called as written.
-    return lowerCompatibilityFunction(replaceOutsideStrings(raw, [
+    const compatible = lowerCompatibilityFunction(replaceOutsideStrings(raw, [
       ...context.replacements,
       ["sy-repid", "io_session->get_context( )-program-program"],
       ["sy-dynnr", selectionScreenNumber(context)],
     ])) ?? rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+    const popupContinuation = context.continuations?.find(item => item.filename === statement.filename
+      && item.span.start.line === statement.span.start.line && item.span.start.column === statement.span.start.column);
+    if (popupContinuation && /CALL\s+FUNCTION\s+'POPUP_/i.test(raw)) {
+      return `TRY.\n${compatible}\nCATCH zcx_gg_control_flow INTO DATA(lx_popup_${popupContinuation.id.toLowerCase()}).\nRAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = lx_popup_${popupContinuation.id.toLowerCase()}->mv_kind iv_operation = lx_popup_${popupContinuation.id.toLowerCase()}->mv_operation iv_continuation = '${popupContinuation.id}' ).\nENDTRY.`;
+    }
+    return compatible;
   }
   if (statement.kind === "Leave") {
     if (/LIST-PROCESSING/i.test(raw)) {
@@ -1533,10 +1549,11 @@ function lowerSingleStatement(statement, context) {
     return [`DATA(ls_cursor) = io_session->get_list( )->get_cursor( ).`, ...assignments.map((item) => `${item}.`)].join("\n");
   }
   if (statement.kind === "ReadLine") {
-    const match = /READ\s+LINE\s+(\d+)(?:\s+INDEX\s+(\d+))?(?:\s+LEVEL\s+(\d+))?/i.exec(raw);
-    const index = match?.[2] ?? match?.[1] ?? "1";
-    const level = match?.[3];
-    return `DATA(ls_line) = io_session->get_list( )->read_line( ${level ? `iv_level = ${level} ` : ""}iv_index = ${index} ).`;
+    const match = /READ\s+LINE\s+(\S+)(?:\s+INDEX\s+(\S+))?/i.exec(stripPeriod(raw));
+    if (!match) return undefined;
+    const index = valueExpression(match[1], context);
+    const level = match[2] ? valueExpression(match[2], context) : undefined;
+    return `DATA(ls_line) = io_session->get_list( )->read_line( ${level ? `iv_level = ${level} ` : ""}iv_index = ${index} ).\nsy-subrc = COND #( WHEN ls_line-index > 0 THEN 0 ELSE 4 ).`;
   }
   if (statement.kind === "ModifyLine") {
     // MODIFY LINE n [INDEX level] or MODIFY CURRENT LINE, with LINE FORMAT
@@ -1650,7 +1667,11 @@ function lowerSingleStatement(statement, context) {
     }
     if (tabbedBlocks && new RegExp(`^(?:${tabbedBlocks})-(?:PROG|DYNNR)\\s*=`, "i").test(raw)) return "* Selection tab state is maintained by the host screen.";
     // SCREEN flags are 1 or 0, quoted or not; the state flags they map to are
-    // abap_bool. SCREEN-REQUIRED 2 (recommended) is kept as required.
+    // Required 2 draws the marker but leaves validation to the program.
+    if (/<ls_state>-required\s*=\s*'?2'?\s*\./i.test(converted)) {
+      return converted.replace(/<ls_state>-required\s*=\s*'?2'?\s*\./i,
+        "<ls_state>-required = abap_false.\n<ls_state>-recommended = abap_true.");
+    }
     const flags = "visible|intensified|input|output|password|no_display|obligatory|required";
     const one = String.raw`['"]?[12]['"]?`;
     const zero = String.raw`['"]?0['"]?`;
@@ -1658,6 +1679,7 @@ function lowerSingleStatement(statement, context) {
     converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*COND\s*#\(\s*WHEN\s+(.+?)\s+THEN\s+${zero}\s+ELSE\s+${one}\s*\)\.`, "i"), "<ls_state>-$1 = xsdbool( NOT ( $2 ) ).");
     converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*${one}(?=\s*\.)`, "gi"), "<ls_state>-$1 = abap_true");
     converted = converted.replace(new RegExp(String.raw`<ls_state>-(${flags})\s*=\s*${zero}(?=\s*\.)`, "gi"), "<ls_state>-$1 = abap_false");
+    if (/<ls_state>-required\s*=/.test(converted)) converted += "\n<ls_state>-recommended = abap_false.";
     const target = /^\s*([A-Z][A-Z0-9_]*)\s*=/i.exec(raw)?.[1]?.toUpperCase();
     if (target && context.dynamicCommentNames?.includes(target)
         && context.event !== "local_class") {
@@ -1699,7 +1721,15 @@ function lowerSingleStatement(statement, context) {
   // Everything else is carried over as written, with only the value rewrites;
   // abaplint splits a chained statement into one statement per element, so a
   // trailing comma becomes the terminator.
-  return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+  return wrapPopup(statement, context, rewriteStatementValues(raw.replace(/,\s*$/, "."), context));
+}
+
+function wrapPopup(statement, context, rewritten) {
+  const continuation = isPopupStatement(statement) && context.continuations?.find(item => item.filename === statement.filename
+    && item.span.start.line === statement.span.start.line && item.span.start.column === statement.span.start.column);
+  if (!continuation) return rewritten;
+  const caught = `lx_popup_${continuation.id.toLowerCase()}`;
+  return `TRY.\n${rewritten}\nCATCH zcx_gg_control_flow INTO DATA(${caught}).\nRAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = ${caught}->mv_kind iv_operation = ${caught}->mv_operation iv_continuation = '${continuation.id}' ).\nENDTRY.`;
 }
 
 // A block opener that lowers to nothing but a comment cannot leave its body and

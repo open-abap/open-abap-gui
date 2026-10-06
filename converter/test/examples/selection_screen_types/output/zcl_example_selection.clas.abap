@@ -351,22 +351,22 @@ CLASS zcl_example_selection IMPLEMENTATION.
     mv_p_opt2 = it_values[ name = 'P_OPT2' ]-value.
     mv_s_carr = CORRESPONDING #( it_values[ name = 'S_CARR' ]-ranges ).
     gv_next = mv_p_count + 1.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_count }| placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_next }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_date }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_amount }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_name }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_flag }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_count ) placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_next ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_date ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_amount ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_name ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_flag ) ) ).
     IF mv_p_opt1 = abap_true.
       lo_writer->write_field( VALUE #( text = 'Option 1' placement = VALUE #( new_line = abap_true ) ) ).
     ELSE.
       lo_writer->write_field( VALUE #( text = 'Option 2' placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.
     LOOP AT mv_s_carr INTO DATA(ls_carr).
-      lo_writer->write_field( VALUE #( text = |{ ls_carr-sign }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_carr-option }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_carr-low }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_carr-high }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_carr-sign ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_carr-option ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_carr-low ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_carr-high ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

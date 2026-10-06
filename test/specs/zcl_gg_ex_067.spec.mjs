@@ -12,14 +12,14 @@ test("ZCL_GG_EX_067 — renders typed parameter definitions and values", async (
   await expect(page.locator('[name="P_INT"]')).toHaveValue("42");
   await expect(page.locator('[name="P_DEC"]')).toHaveValue("123.45");
   await expect(page.locator('[name="P_CHAR"]')).toHaveAttribute("required", "");
-  await page.locator('[name="P_CHAR"]').fill("typed value");
+  await page.locator('[name="P_CHAR"]').fill("typed value ");
   await submit(page);
   await expectPageKind(page, "LIST");
   await expect(page.locator(".gg-list-line")).toHaveText([
-    "20260830",
-    "123456",
+    "30/08/2026",
+    "12:34:56",
     "42",
     "123.45",
-    "typed value",
+    "typed value ",
   ]);
 });

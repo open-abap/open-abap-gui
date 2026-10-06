@@ -116,8 +116,8 @@ CLASS zcl_gg_ex_047 IMPLEMENTATION.
     DATA(ls_cursor) = io_session->get_list( )->get_cursor( ).
     gv_field = ls_cursor-field.
     gv_line = ls_cursor-line.
-    lo_writer->write_field( VALUE #( text = |{ gv_field }| placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_line }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_field ) placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_line ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~at_user_command.

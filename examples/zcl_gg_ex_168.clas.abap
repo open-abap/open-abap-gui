@@ -125,10 +125,10 @@ CLASS zcl_gg_ex_168 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_s_data = CORRESPONDING #( it_values[ name = 'S_DATA' ]-ranges ).
     LOOP AT mv_s_data INTO DATA(ls_data).
-      lo_writer->write_field( VALUE #( text = |{ ls_data-sign }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_data-option }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_data-low }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ ls_data-high }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_data-sign ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_data-option ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_data-low ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_data-high ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

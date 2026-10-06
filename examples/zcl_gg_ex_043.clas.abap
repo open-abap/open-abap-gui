@@ -83,7 +83,7 @@ CLASS zcl_gg_ex_043 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     DO 3 TIMES.
       gv_id = sy-index.
-      lo_writer->write_field( VALUE #( text = |{ gv_id }| placement = VALUE #( new_line = abap_true ) hide = VALUE #( ( name = 'GV_ID' value = |{ gv_id }| ) ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_id ) placement = VALUE #( new_line = abap_true ) hide = VALUE #( ( name = 'GV_ID' value = |{ gv_id }| ) ) ) ).
     ENDDO.
   ENDMETHOD.
 
@@ -120,7 +120,7 @@ CLASS zcl_gg_ex_043 IMPLEMENTATION.
     IF line_exists( is_line-fields[ name = 'GV_ID' ] ).
       gv_id = is_line-fields[ name = 'GV_ID' ]-value.
     ENDIF.
-    lo_writer->write_field( VALUE #( text = |{ gv_id }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_id ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~at_user_command.

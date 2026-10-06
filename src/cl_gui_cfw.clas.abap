@@ -1,4 +1,4 @@
-CLASS cl_gui_cfw DEFINITION PUBLIC FRIENDS zcl_gg_host_dynpro zcl_gg_host_runtime.
+CLASS cl_gui_cfw DEFINITION PUBLIC FRIENDS zcl_gg_host_dynpro zcl_gg_host_runtime zcl_gg_host.
   PUBLIC SECTION.
     CONSTANTS rc_noevent TYPE i VALUE -1.
 

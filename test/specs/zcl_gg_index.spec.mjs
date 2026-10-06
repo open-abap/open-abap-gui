@@ -1,4 +1,5 @@
 import {test, expect} from "../fixtures.mjs";
+import {readdir} from "node:fs/promises";
 
 test("index renders the open-abap workbench shell", async ({page, host}) => {
   const response = await page.goto(`${host.baseUrl}/`);
@@ -99,7 +100,10 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("navigation", {name: "Applications"})).toHaveCount(0);
   const transactions = page.getByRole("navigation", {name: "Transactions"});
   await expect(transactions).toBeVisible();
-  await expect(transactions.locator(".wb-app-list > li")).toHaveCount(177);
+  const transactionLinks = await transactions.getByRole("link").all();
+  expect(transactionLinks.length).toBeGreaterThanOrEqual(177);
+  const transactionUrls = await Promise.all(transactionLinks.map(link => link.getAttribute("href")));
+  expect(new Set(transactionUrls).size).toBe(transactionUrls.length);
   const reports = page.getByRole("navigation", {name: "Reports"});
   await expect(reports).toBeVisible();
   await expect(reports.locator(".wb-app-list > li")).toHaveCount(2);
@@ -205,7 +209,16 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("link", {name: "ZGG_EX_169"})).toContainText(
     "Selection tabs with icons",
   );
-  await expect(page.getByRole("link", {name: /^ZGG_EX_/})).toHaveCount(170);
+  const committedExamples = (await readdir(new URL("../../examples/", import.meta.url)))
+    .filter(name => /^zcl_gg_ex_\d{3}\.clas\.abap$/.test(name))
+    .map(name => name.match(/\d{3}/)[0]);
+  const exampleUrls = await page.getByRole("link", {name: /^ZGG_EX_/}).evaluateAll(
+    links => links.map(link => link.getAttribute("href")),
+  );
+  for (const id of committedExamples) {
+    expect(exampleUrls).toContain(`/transaction?tcode=ZGG_EX_${id}`);
+  }
+  expect(new Set(exampleUrls).size).toBe(exampleUrls.length);
   await expect(page.getByRole("link", {name: "ZCL_GG_INTEGRATION_HTML_REPORT"})).toHaveCount(0);
 });
 

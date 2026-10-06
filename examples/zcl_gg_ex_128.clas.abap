@@ -221,19 +221,26 @@ CLASS zcl_gg_ex_128 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_viewer EXPORTING parent = go_container.
-          gt_html = VALUE #( ( '<h2>Sandboxed viewer</h2>' ) ( '<p>The content is HTML from the program; scripts do not run.</p>' ) ( '<script>document.title = "script ran"</script>' ) ( '<p><a href="SAPEVENT:CONFIRM">Confirm</a></p>' ) ).
-          go_viewer->load_data( IMPORTING assigned_url = gv_url CHANGING data_table = gt_html ).
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_viewer
+            EXPORTING parent = go_container.
+          gt_html = VALUE #(
+            ( '<h2>Sandboxed viewer</h2>' )
+            ( '<p>The content is HTML from the program; scripts do not run.</p>' )
+            ( '<script>document.title = "script ran"</script>' )
+            ( '<p><a href="SAPEVENT:CONFIRM">Confirm</a></p>' ) ).
+          go_viewer->load_data(
+            IMPORTING
+              assigned_url = gv_url
+            CHANGING
+              data_table   = gt_html ).
           go_viewer->show_url( url = gv_url ).
           gt_events = VALUE #( ( eventid = cl_gui_html_viewer=>m_id_sapevent appl_event = abap_true ) ).
           go_viewer->set_registered_events( gt_events ).

@@ -84,10 +84,14 @@ CLASS zcl_gg_ex_084 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     gv_row = 'A'.
     gv_secret = 'alpha'.
-    lo_writer->write_field( VALUE #( text = 'Repeated row' placement = VALUE #( new_line = abap_true ) hide = VALUE #( ( name = 'GV_ROW' value = |{ gv_row }| ) ( name = 'GV_SECRET' value = |{ gv_secret }| ) ) ) ).
+    lo_writer->write_field( VALUE #( text = 'Repeated row' placement = VALUE #( new_line = abap_true ) hide = VALUE #(
+      ( name = 'GV_ROW' value = |{ gv_row }| )
+      ( name = 'GV_SECRET' value = |{ gv_secret }| ) ) ) ).
     gv_row = 'B'.
     gv_secret = 'bravo'.
-    lo_writer->write_field( VALUE #( text = 'Repeated row' placement = VALUE #( new_line = abap_true ) hide = VALUE #( ( name = 'GV_ROW' value = |{ gv_row }| ) ( name = 'GV_SECRET' value = |{ gv_secret }| ) ) ) ).
+    lo_writer->write_field( VALUE #( text = 'Repeated row' placement = VALUE #( new_line = abap_true ) hide = VALUE #(
+      ( name = 'GV_ROW' value = |{ gv_row }| )
+      ( name = 'GV_SECRET' value = |{ gv_secret }| ) ) ) ).
     CLEAR gv_row.
     CLEAR gv_secret.
   ENDMETHOD.

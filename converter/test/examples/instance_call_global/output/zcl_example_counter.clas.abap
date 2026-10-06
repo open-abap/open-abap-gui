@@ -91,7 +91,7 @@ CLASS zcl_example_counter IMPLEMENTATION.
     lo_second->add( iv_amount = 5 ).
     gv_value = go_counter->get_value( ) + lo_second->get_value( ).
     lo_writer->write_field( VALUE #( text = 'Total:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_value }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_value ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

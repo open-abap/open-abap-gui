@@ -276,9 +276,9 @@ CLASS zcl_gg_ex_070 IMPLEMENTATION.
     mv_p_onev = it_values[ name = 'P_ONEV' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     IF mv_p_one = abap_true.
-      lo_writer->write_field( VALUE #( text = |{ mv_p_onev }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_onev ) ) ).
     ELSE.
-      lo_writer->write_field( VALUE #( text = |{ mv_p_allv }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_allv ) ) ).
     ENDIF.
   ENDMETHOD.
 

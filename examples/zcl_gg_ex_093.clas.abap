@@ -86,17 +86,23 @@ CLASS zcl_gg_ex_093 IMPLEMENTATION.
 * wrote; the program is not called for them.
     io_session->get_list( )->set_title( 'Find in a list' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    gt_flights = VALUE #( ( carrid = 'AA' connid = '0017' cityfrom = 'New York' cityto = 'San Francisco' ) ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ( carrid = 'SQ' connid = '0026' cityfrom = 'Singapore' cityto = 'Frankfurt' ) ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'JL' connid = '0407' cityfrom = 'Tokyo' cityto = 'Frankfurt' ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'AA' connid = '0017' cityfrom = 'New York' cityto = 'San Francisco' )
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' )
+      ( carrid = 'SQ' connid = '0026' cityfrom = 'Singapore' cityto = 'Frankfurt' )
+      ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'JL' connid = '0407' cityfrom = 'Tokyo' cityto = 'Frankfurt' ) ).
     lo_writer->write_field( VALUE #( text = 'Airline' placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'Flight' placement = VALUE #( position = 10 ) ) ).
     lo_writer->write_field( VALUE #( text = 'From' placement = VALUE #( position = 18 ) ) ).
     lo_writer->write_field( VALUE #( text = 'To' placement = VALUE #( position = 40 ) ) ).
     lo_writer->uline( VALUE #( ) ).
     LOOP AT gt_flights INTO gs_flight.
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-carrid }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-connid }| placement = VALUE #( position = 10 ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-cityfrom }| placement = VALUE #( position = 18 ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-cityto }| placement = VALUE #( position = 40 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-carrid ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-connid ) placement = VALUE #( position = 10 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-cityfrom ) placement = VALUE #( position = 18 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-cityto ) placement = VALUE #( position = 40 ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

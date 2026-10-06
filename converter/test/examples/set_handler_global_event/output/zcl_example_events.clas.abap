@@ -93,7 +93,7 @@ CLASS zcl_example_events IMPLEMENTATION.
     go_order->set_status( `RELEASED` ).
     SET HANDLER go_listener->on_status_changed FOR ALL INSTANCES ACTIVATION abap_false.
     LOOP AT gt_log INTO gv_line.
-      lo_writer->write_field( VALUE #( text = |{ gv_line }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_line ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

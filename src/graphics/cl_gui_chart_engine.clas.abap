@@ -70,6 +70,8 @@ CLASS cl_gui_chart_engine DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       RETURNING
         VALUE(result) TYPE string.
 
+    METHODS svg_pie RETURNING VALUE(result) TYPE string.
+
     METHODS svg_lines
       RETURNING
         VALUE(result) TYPE string.
@@ -171,7 +173,19 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
 
   METHOD color.
     DATA(lt_colors) = VALUE string_table( ( `#2668a3` ) ( `#e07b24` ) ( `#3f9b49` ) ( `#b03a48` ) ( `#7a5aa6` ) ).
-    result = lt_colors[ ( index - 1 ) MOD lines( lt_colors ) + 1 ].
+    DATA(lt_custom) = elements( xml = mv_customizing
+                                tag = 'Color' ).
+    IF lt_custom IS INITIAL.
+      lt_custom = elements( xml = mv_customizing
+                            tag = 'FillColor' ).
+    ENDIF.
+    DATA(lv_color) = VALUE string( lt_custom[ index ] OPTIONAL ).
+    REPLACE FIRST OCCURRENCE OF '#' IN lv_color WITH ''.
+    IF ( strlen( lv_color ) = 6 OR strlen( lv_color ) = 3 ) AND lv_color CO '0123456789abcdefABCDEF'.
+      result = '#' && lv_color.
+    ELSE.
+      result = lt_colors[ ( index - 1 ) MOD lines( lt_colors ) + 1 ].
+    ENDIF.
   ENDMETHOD.
 
   METHOD svg_columns.
@@ -181,6 +195,19 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
 
     DATA(lv_series_count) = nmax( val1 = lines( mt_series )
                                   val2 = 1 ).
+    DATA(lv_stacked) = xsdbool( setting( 'ChartType' ) CS 'Stacked' ).
+    IF lv_stacked = abap_true.
+      lv_series_count = 1.
+      LOOP AT mt_categories INTO DATA(lv_cat).
+        DATA(lv_cat_index) = sy-tabix.
+        DATA(lv_total) = CONV decfloat34( 0 ).
+        LOOP AT mt_series INTO DATA(ls_stack).
+          lv_total = lv_total + VALUE #( ls_stack-values[ lv_cat_index ] OPTIONAL ).
+        ENDLOOP.
+        mv_maximum = nmax( val1 = mv_maximum
+                           val2 = lv_total ).
+      ENDLOOP.
+    ENDIF.
     DATA(lv_category_count) = nmax( val1 = lines( mt_categories )
                                     val2 = 1 ).
     DATA(lv_extent) = COND i( WHEN horizontal = abap_true THEN c_height - 2 * c_margin ELSE c_width - 2 * c_margin ).
@@ -190,19 +217,26 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
                          val2 = 2 ).
     LOOP AT mt_categories INTO DATA(lv_category).
       DATA(lv_category_index) = sy-tabix.
+      DATA(lv_stack_offset) = 0.
       LOOP AT mt_series INTO DATA(ls_series).
         DATA(lv_series_index) = sy-tabix.
         READ TABLE ls_series-values INTO DATA(lv_value) INDEX lv_category_index.
         lv_length = lv_value * lv_scale / mv_maximum.
         DATA(lv_offset) = ( lv_category_index - 1 ) * lv_slot + 4 + ( lv_series_index - 1 ) * lv_bar.
+        IF lv_stacked = abap_true.
+          lv_offset = ( lv_category_index - 1 ) * lv_slot + 4.
+        ENDIF.
         IF horizontal = abap_true.
-          lv_x = 2 * c_margin.
+          lv_x = 2 * c_margin + lv_stack_offset.
           lv_y = c_margin + lv_offset.
           result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_length }" height="{ lv_bar }" fill="{ color( lv_series_index ) }"><title>{ escape_html( lv_category ) }: { lv_value }</title></rect>|.
         ELSE.
           lv_x = c_margin + lv_offset.
-          lv_y = c_height - c_margin - lv_length.
+          lv_y = c_height - c_margin - lv_length - lv_stack_offset.
           result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_bar }" height="{ lv_length }" fill="{ color( lv_series_index ) }"><title>{ escape_html( lv_category ) }: { lv_value }</title></rect>|.
+        ENDIF.
+        IF lv_stacked = abap_true.
+          lv_stack_offset = lv_stack_offset + lv_length.
         ENDIF.
       ENDLOOP.
       IF horizontal = abap_true.
@@ -212,6 +246,38 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
         lv_x = c_margin + ( lv_category_index - 1 ) * lv_slot + lv_slot DIV 2.
         result = result && |<text x="{ lv_x }" y="{ c_height - c_margin + 16 }" text-anchor="middle">{ escape_html( lv_category ) }</text>|.
       ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD svg_pie.
+    DATA lv_total TYPE decfloat34.
+    READ TABLE mt_series INTO DATA(ls_series) INDEX 1.
+
+    LOOP AT ls_series-values INTO DATA(lv_value) WHERE table_line > 0.
+      lv_total = lv_total + lv_value.
+    ENDLOOP.
+    IF lv_total <= 0.
+      RETURN.
+    ENDIF.
+    DATA(lv_angle) = CONV f( 0 ).
+    LOOP AT ls_series-values INTO lv_value.
+      DATA(lv_index) = sy-tabix.
+      IF lv_value <= 0.
+        CONTINUE.
+      ENDIF.
+      DATA(lv_next) = lv_angle + CONV f( lv_value / lv_total ) * 2 * CONV f( '3.141592653589793' ).
+      DATA(lv_x1) = CONV i( 280 + 90 * cos( lv_angle ) ).
+      DATA(lv_y1) = CONV i( 130 + 90 * sin( lv_angle ) ).
+      DATA(lv_x2) = CONV i( 280 + 90 * cos( lv_next ) ).
+      DATA(lv_y2) = CONV i( 130 + 90 * sin( lv_next ) ).
+      DATA(lv_large) = COND i( WHEN lv_value > lv_total / 2 THEN 1 ELSE 0 ).
+      DATA(lv_label) = VALUE string( mt_categories[ lv_index ] OPTIONAL ).
+      IF lv_value = lv_total.
+        result = result && |<circle cx="280" cy="130" r="90" fill="{ color( lv_index ) }"><title>{ escape_html( lv_label ) }: { lv_value }</title></circle>|.
+      ELSE.
+        result = result && |<path d="M 280 130 L { lv_x1 } { lv_y1 } A 90 90 0 { lv_large } 1 { lv_x2 } { lv_y2 } Z" fill="{ color( lv_index ) }"><title>{ escape_html( lv_label ) }: { lv_value }</title></path>|.
+      ENDIF.
+      lv_angle = lv_next.
     ENDLOOP.
   ENDMETHOD.
 
@@ -266,11 +332,21 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
     DATA(lv_title) = setting( 'Caption' ).
     DATA(lv_body) = SWITCH string( lv_type
       WHEN 'Lines' OR 'Line' THEN svg_lines( )
+      WHEN 'Pie' THEN svg_pie( )
       WHEN 'Bars' OR 'StackedBars' THEN svg_columns( abap_true )
       ELSE svg_columns( abap_false ) ).
-    LOOP AT mt_series INTO DATA(ls_series).
-      lv_legend = lv_legend && |<li><span class="gg-chart-swatch" style="background:{ color( sy-tabix ) }"></span>{ escape_html( ls_series-label ) }</li>|.
-    ENDLOOP.
+    IF setting( 'Dimension' ) = 'Three' OR setting( 'Dimension' ) = '3D'.
+      lv_body = |<g data-chart-depth="true" transform="translate(6 8)" opacity="0.45">{ lv_body }</g><g>{ lv_body }</g>|.
+    ENDIF.
+    IF lv_type = 'Pie'.
+      LOOP AT mt_categories INTO DATA(lv_category).
+        lv_legend = lv_legend && |<li><span class="gg-chart-swatch" style="background:{ color( sy-tabix ) }"></span>{ escape_html( lv_category ) }</li>|.
+      ENDLOOP.
+    ELSE.
+      LOOP AT mt_series INTO DATA(ls_series).
+        lv_legend = lv_legend && |<li><span class="gg-chart-swatch" style="background:{ color( sy-tabix ) }"></span>{ escape_html( ls_series-label ) }</li>|.
+      ENDLOOP.
+    ENDIF.
     cl_gui_control=>set_html(
       control = me
       html    = |<figure class="gg-chart" data-chart-type="{ escape_html( COND string( WHEN lv_type IS INITIAL THEN 'Columns' ELSE lv_type ) ) }">| &&

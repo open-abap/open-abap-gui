@@ -82,14 +82,14 @@ CLASS zcl_gg_ex_086 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'Multiple MODIFY LINE operations' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     gv_row = 1.
-    lo_writer->set_format( VALUE #( color = zif_gg_list_processing_types_v1=>color_heading intensified = abap_true ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_heading intensified = abap_true ) ).
     lo_writer->write_field( VALUE #( text = 'Row one' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->set_format( VALUE #( color = zif_gg_list_processing_types_v1=>color_key intensified = abap_false ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_key intensified = abap_false ) ).
     lo_writer->write_field( VALUE #( text = 'fragment A' placement = VALUE #( position = 16 ) hide = VALUE #( ( name = 'GV_ROW' value = |{ gv_row }| ) ) ) ).
     gv_row = 2.
     lo_writer->reset_format( ).
     lo_writer->write_field( VALUE #( text = 'Row two' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->set_format( VALUE #( color = zif_gg_list_processing_types_v1=>color_positive ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_positive ) ).
     lo_writer->write_field( VALUE #( text = 'fragment B' placement = VALUE #( position = 16 ) hide = VALUE #( ( name = 'GV_ROW' value = |{ gv_row }| ) ) ) ).
     lo_writer->reset_format( ).
   ENDMETHOD.

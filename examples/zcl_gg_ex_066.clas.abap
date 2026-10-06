@@ -84,7 +84,7 @@ CLASS zcl_gg_ex_066 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     io_session->get_list( )->set_status( VALUE #( status = 'SHELL66' active_ucomm = VALUE #( ( 'RUN66' ) ) active_pf_keys = VALUE #( ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'RUN66' label = cl_abap_codepage=>convert_from( CONV xstring( '52756E20226E6F77222026203C676F3E20F09F9A80' ) ) icon = 'ICON_EXECUTE_OBJECT' ) ) pf_actions = VALUE #( ( number = 13 ucomm = 'RUN66' ) ) ) ).
     io_session->get_list( )->set_title( cl_abap_codepage=>convert_from( CONV xstring( '52544C20D7A9D79CD795D79D20F09F9A802026203C7469746C653E' ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ TEXT-001 }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-001 ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.
@@ -122,7 +122,7 @@ CLASS zcl_gg_ex_066 IMPLEMENTATION.
   METHOD zif_gg_list_processing_v1~at_user_command.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     IF iv_ucomm = 'RUN66'.
-      lo_writer->write_field( VALUE #( text = |{ TEXT-002 }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = TEXT-002 ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.
   ENDMETHOD.
 

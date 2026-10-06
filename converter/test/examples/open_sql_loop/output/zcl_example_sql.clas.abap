@@ -109,16 +109,16 @@ CLASS zcl_example_sql IMPLEMENTATION.
     mv_p_carr = it_values[ name = 'P_CARR' ]-value.
     SELECT carrid connid price FROM sflight INTO TABLE gt_flights WHERE carrid = mv_p_carr.
     LOOP AT gt_flights INTO gs_flight.
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-carrid }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-connid }| ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-price }| ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-carrid ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-connid ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-price ) ) ).
     ENDLOOP.
     SELECT carrid connid price FROM sflight INTO gs_flight UP TO 3 ROWS.
-      lo_writer->write_field( VALUE #( text = |{ gs_flight-connid }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-connid ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDSELECT.
     SELECT SINGLE price FROM sflight INTO gv_price WHERE carrid = mv_p_carr.
     lo_writer->write_field( VALUE #( text = 'First price' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_price }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_price ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

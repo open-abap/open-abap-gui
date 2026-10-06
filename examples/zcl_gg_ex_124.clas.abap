@@ -266,17 +266,16 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_picture EXPORTING parent = go_container.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_picture
+            EXPORTING parent = go_container.
           go_picture->set_alt_text( 'Refresh icon' ).
           form_load_picture( io_session = io_session ).
         ENDIF.
@@ -318,7 +317,11 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD form_load_picture.
-    go_picture->load_picture_from_url( EXPORTING url = gv_url IMPORTING result = gv_result ).
+    go_picture->load_picture_from_url(
+      EXPORTING
+        url    = gv_url
+      IMPORTING
+        result = gv_result ).
     gv_state = COND #( WHEN gv_result = 1 THEN 'Picture loaded' ELSE 'Picture could not be loaded' ).
   ENDMETHOD.
 

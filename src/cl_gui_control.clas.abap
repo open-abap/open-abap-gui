@@ -309,7 +309,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
       IMPORTING
         handle        TYPE i
         control_id    TYPE string
-        row           TYPE i
+        row           TYPE string
       RETURNING
         VALUE(result) TYPE string.
 
@@ -581,6 +581,9 @@ CLASS cl_gui_control IMPLEMENTATION.
     IF sy-subrc = 0.
       ls_snapshot-html = html.
       MODIFY mt_snapshots FROM ls_snapshot INDEX sy-tabix.
+      IF ls_snapshot-kind = 'SALV_FULLSCREEN'.
+        mv_external_html = html.
+      ENDIF.
     ENDIF.
   ENDMETHOD.
 
@@ -844,7 +847,7 @@ CLASS cl_gui_control IMPLEMENTATION.
     ELSE.
       result = |<section class="gg-controls gg-controls-standalone" aria-label="GUI controls" style="display:flow-root;position:relative;min-height:{ lv_standalone_height }px">|.
     ENDIF.
-    LOOP AT mt_snapshots INTO DATA(ls_snapshot).
+    LOOP AT mt_snapshots INTO DATA(ls_snapshot) WHERE kind <> 'EVENT_BRIDGE' AND kind <> 'SALV_FULLSCREEN'.
       IF iv_container_name IS NOT INITIAL
           AND ls_snapshot-control_id <> lv_host_id
           AND belongs_to_container(
@@ -1256,8 +1259,13 @@ CLASS cl_gui_control IMPLEMENTATION.
       IF lv_is_alv_toolbar = abap_false AND lines( is_snapshot-buttons ) > 6 AND sy-tabix = 7.
         result = result && '<details class="gg-toolbar-overflow"><summary>More toolbar actions</summary><div role="toolbar" aria-label="More control toolbar actions">'.
       ENDIF.
-      IF ls_button-butn_type = 2 OR ls_button-function IS INITIAL.
+      IF ls_button-butn_type = 3
+          OR ls_button-function IS INITIAL.
         result = result && |<span class="gg-toolbar-separator" role="separator" aria-orientation="vertical"></span>|.
+        CONTINUE.
+      ENDIF.
+      IF lv_is_alv_toolbar = abap_false AND is_snapshot-html IS NOT INITIAL
+          AND ( ls_button-butn_type = 1 OR ls_button-butn_type = 2 ).
         CONTINUE.
       ENDIF.
       lv_button_label = COND #( WHEN ls_button-text IS INITIAL
@@ -1267,10 +1275,10 @@ CLASS cl_gui_control IMPLEMENTATION.
         WHEN ls_button-icon IS INITIAL THEN ``
         ELSE zcl_gg_host_icons=>icon( iv_name = CONV string( ls_button-icon ) ) ).
       DATA(lv_toolbar_type) = COND string(
-        WHEN ls_button-butn_type = 3 OR ls_button-butn_type = 4 THEN ' aria-haspopup="menu"'
+        WHEN ls_button-butn_type = 1 OR ls_button-butn_type = 2 THEN ' aria-haspopup="menu"'
         ELSE `` ).
       DATA(lv_toolbar_menu) = COND string(
-        WHEN ls_button-butn_type = 3 OR ls_button-butn_type = 4
+        WHEN ls_button-butn_type = 1 OR ls_button-butn_type = 2
           THEN | aria-controls="{ escape( is_snapshot-control_id ) }-menu"|
         ELSE `` ).
       DATA(lv_toolbar_checked) = COND string(
@@ -1314,7 +1322,7 @@ CLASS cl_gui_control IMPLEMENTATION.
     IF is_snapshot-text_fixed_font <> 0.
       lv_textedit_style = lv_textedit_style && `font-family:ui-monospace,SFMono-Regular,Consolas,monospace;`.
     ENDIF.
-    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ lv_textedit_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( is_snapshot-control_id ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</textarea>|.
+    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ lv_textedit_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( |gg-ctl:{ is_snapshot-control_id }:TEXT| ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</textarea>|.
     IF is_snapshot-text_toolbar_mode = abap_true OR is_snapshot-text_statusbar_mode = abap_true.
       result = |<section class="gg-textedit-shell gg-control { iv_state_class }" style="{ lv_shell_style }" id="{ escape( is_snapshot-control_id ) }-shell" aria-label="Text editor shell"{ iv_hidden }>|.
       IF is_snapshot-text_toolbar_mode = abap_true.
@@ -1583,9 +1591,17 @@ CLASS cl_gui_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD free.
+    LOOP AT mt_objects INTO DATA(ls_child).
+      IF ls_child-control->parent = me AND ls_child-control->mv_alive = abap_true.
+        ls_child-control->free( ).
+      ENDIF.
+    ENDLOOP.
     mv_alive = abap_false.
     mv_visible = abap_false.
-    sync( me ).
+    DELETE mt_snapshots WHERE control_id = me->control_id.
+    IF mo_focus = me.
+      CLEAR mo_focus.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_alignment.
@@ -1594,6 +1610,7 @@ CLASS cl_gui_control IMPLEMENTATION.
 
   METHOD drag_attributes.
     DATA(lo_dragdrop) = cl_dragdrop=>find( handle ).
+    DATA lv_flavor TYPE cndd_flavor.
     IF lo_dragdrop IS NOT BOUND.
       RETURN.
     ENDIF.
@@ -1601,7 +1618,11 @@ CLASS cl_gui_control IMPLEMENTATION.
     IF lt_flavors IS NOT INITIAL.
       DATA(lv_flavors) = concat_lines_of( table = lt_flavors
                                           sep   = `,` ).
-      result = | draggable="true" data-gg-drag="{ escape( |{ control_id }\|{ key }| ) }" data-gg-flavors="{ escape( lv_flavors ) }"|.
+
+      lv_flavor = lt_flavors[ 1 ].
+      lo_dragdrop->get( EXPORTING flavor = lv_flavor IMPORTING effect = DATA(lv_effect) ).
+      DATA(lv_effect_name) = SWITCH string( lv_effect WHEN 1 THEN 'copy' WHEN 2 THEN 'move' ELSE 'copyMove' ).
+      result = | tabindex="0" aria-keyshortcuts="Control+Space" data-gg-effect="{ lv_effect_name }" draggable="true" data-gg-drag="{ escape( |{ control_id }\|{ key }| ) }" data-gg-flavors="{ escape( lv_flavors ) }"|.
     ENDIF.
   ENDMETHOD.
 
@@ -1614,7 +1635,7 @@ CLASS cl_gui_control IMPLEMENTATION.
     IF lt_flavors IS NOT INITIAL.
       DATA(lv_flavors) = concat_lines_of( table = lt_flavors
                                           sep   = `,` ).
-      result = | data-gg-drop="{ escape( |{ control_id }\|DROP\|{ row }| ) }" data-gg-drop-flavors="{ escape( lv_flavors ) }"|.
+      result = | tabindex="0" aria-keyshortcuts="Enter" data-gg-drop="{ escape( |{ control_id }\|DROP\|{ row }| ) }" data-gg-drop-flavors="{ escape( lv_flavors ) }"|.
     ENDIF.
   ENDMETHOD.
 

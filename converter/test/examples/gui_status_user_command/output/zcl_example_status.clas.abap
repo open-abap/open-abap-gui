@@ -83,7 +83,9 @@ CLASS zcl_example_status IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Counter with a GUI status' ).
-    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #( ( 'ADD' ) ( 'RESET' ) ) ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #(
+      ( 'ADD' )
+      ( 'RESET' ) ) ) ).
     io_session->get_list( )->set_title( |{ 'Counter' } report| ).
     form_show( io_session = io_session ).
   ENDMETHOD.
@@ -138,7 +140,7 @@ CLASS zcl_example_status IMPLEMENTATION.
   METHOD form_show.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     lo_writer->write_field( VALUE #( text = 'Count:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_count }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_count ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

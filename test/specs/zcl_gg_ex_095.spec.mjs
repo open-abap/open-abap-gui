@@ -1,6 +1,29 @@
 import {test, expect, openExample, statusMessage} from "../fixtures.mjs";
 import {readFile} from "node:fs/promises";
 
+test("list saving supports rich text", async ({page, host}) => {
+  await openExample(page, host, 95);
+  const download = await saveAs(page, "Rich text", "carriers.rtf");
+  const content = await readFile(await download.path(), "utf8");
+  expect(content).toMatch(/^\{\\rtf1/);
+  expect(content).toContain("Lufthansa");
+  expect(content).toContain("\\par ");
+});
+
+test("list saving can copy to the browser clipboard", async ({page, host}) => {
+  await openExample(page, host, 95);
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("menuitem", {name: "List"}).click();
+  await page.getByRole("button", {name: "Save to local file"}).click();
+  const dialog = page.getByRole("dialog", {name: "Save list in file"});
+  await dialog.getByRole("radio", {name: "Clipboard", exact: true}).check();
+  await dialog.getByRole("button", {name: "Save", exact: true}).click();
+  await expect(dialog).toHaveCount(0);
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("Lufthansa");
+  expect(copied).toContain("Singapore Airlines");
+});
+
 const saveAs = async (page, format, filename) => {
   await page.getByRole("menuitem", {name: "List"}).click();
   await page.getByRole("button", {name: "Save to local file"}).click();
@@ -26,5 +49,5 @@ test("ZCL_GG_EX_095 — unconverted keeps the columns of the list", async ({page
   await openExample(page, host, 95);
   const download = await saveAs(page, "Unconverted", "carriers.txt");
   const content = await readFile(await download.path(), "utf8");
-  expect(content.split("\r\n")[1]).toMatch(/^LH\s+Lufthansa\s+EUR$/);
+  expect(content.split("\r\n")[1]).toMatch(/^LH\s+Lufthansa\s+EUR\s*$/);
 });

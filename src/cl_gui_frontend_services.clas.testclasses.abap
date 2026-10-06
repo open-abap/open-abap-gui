@@ -1,9 +1,32 @@
 CLASS ltcl_gui_frontend_services DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
   PRIVATE SECTION.
     METHODS browser_boundary_is_safe FOR TESTING.
+    METHODS clipboard_roundtrip FOR TESTING.
 ENDCLASS.
 
 CLASS ltcl_gui_frontend_services IMPLEMENTATION.
+  METHOD clipboard_roundtrip.
+    DATA(lo_host) = NEW zcl_gg_host_compatibility( ).
+    DATA lv_rc TYPE i.
+    DATA lt_text TYPE string_table.
+    lo_host->zif_gg_compatibility_v1~set_popup_request( iv_action = 'CLIPBOARD:OK'
+      it_values                                                   = VALUE #( ( name = 'CONTENT' value = |first\r\nsecond  | ) ) ).
+    cl_gui_frontend_services=>clipboard_import( IMPORTING data = lt_text length = DATA(lv_lines) ).
+    cl_abap_unit_assert=>assert_equals( act = lv_lines
+                                        exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = lt_text[ 2 ]
+                                        exp = `second  ` ).
+    cl_gui_frontend_services=>clipboard_export( IMPORTING data = lt_text CHANGING rc = lv_rc ).
+    cl_abap_unit_assert=>assert_equals( act = lv_rc
+                                        exp = 0 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_text )
+                                        exp = 2 ).
+    DATA(lt_actions) = lo_host->get_downloads( ).
+    cl_abap_unit_assert=>assert_true( lt_actions[ 1 ]-clipboard ).
+    cl_abap_unit_assert=>assert_equals( act = cl_abap_codepage=>convert_from( lt_actions[ 1 ]-content )
+      exp                                   = |first\r\nsecond  | ).
+  ENDMETHOD.
+
   METHOD browser_boundary_is_safe.
     DATA lv_separator TYPE string.
     DATA lv_platform TYPE i.

@@ -297,9 +297,6 @@ CLASS zcl_gg_ex_155 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD input_modules.
@@ -308,15 +305,17 @@ CLASS zcl_gg_ex_155 IMPLEMENTATION.
         CASE gv_ok_code.
           WHEN 'OPEN'.
             IF go_dialog IS INITIAL.
-              CREATE OBJECT go_dialog EXPORTING width   = gv_width
-                                                height  = gv_height
-                                                top     = gv_top
-                                                left    = gv_left
-                                                caption = 'Flight notes'.
+              CREATE OBJECT go_dialog
+                EXPORTING width   = gv_width
+                          height  = gv_height
+                          top     = gv_top
+                          left    = gv_left
+                          caption = 'Flight notes'.
               zcl_gg_ex_155_h1=>go_owner = me.
               zcl_gg_ex_155_h1=>go_session = io_session.
               SET HANDLER zcl_gg_ex_155_h1=>on_close FOR go_dialog.
-              CREATE OBJECT go_editor EXPORTING parent = go_dialog.
+              CREATE OBJECT go_editor
+                EXPORTING parent = go_dialog.
               go_editor->set_textstream( 'LH 0400 leaves Frankfurt at 10:10.' ).
               gv_state = 'Dialog box open'.
             ENDIF.

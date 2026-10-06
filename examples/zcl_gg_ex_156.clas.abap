@@ -96,7 +96,10 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Popups' ).
-    gt_connections = VALUE #( ( text = 'LH 0400 Frankfurt - New York' ) ( text = 'UA 0941 Frankfurt - San Francisco' ) ( text = 'AF 0010 Paris - New York' ) ).
+    gt_connections = VALUE #(
+      ( text = 'LH 0400 Frankfurt - New York' )
+      ( text = 'UA 0941 Frankfurt - San Francisco' )
+      ( text = 'AF 0010 Paris - New York' ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -245,9 +248,6 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD input_modules.
@@ -255,8 +255,14 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
       WHEN 'USER_COMMAND_0100'.
         CASE gv_ok_code.
           WHEN 'CONFIRM'.
-            gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar = 'Cancel booking' text_question = 'Cancel the booking for LH 0400?' text_button_1 = 'Yes' text_button_2 = 'No' display_cancel_button = abap_false ) ).
+            TRY.
+                gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar = 'Cancel booking' text_question = 'Cancel the booking for LH 0400?' text_button_1 = 'Yes' text_button_2 = 'No' display_cancel_button = abap_false ) ).
 
+              CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_f1bd5416a3).
+                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_f1bd5416a3->mv_kind
+                                                         iv_operation    = lx_popup_c_f1bd5416a3->mv_operation
+                                                         iv_continuation = 'C_F1BD5416A3' ).
+            ENDTRY.
             IF sy-subrc <> 0.
               gv_result = 'Popup failed'.
             ELSEIF gv_answer = '1'.
@@ -265,7 +271,13 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
               gv_result = 'Booking kept'.
             ENDIF.
           WHEN 'INFORM'.
-            io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Flight status' text1 = 'Flight LH 0400 is fully booked.' text2 = 'Choose another connection.' ) ).
+            TRY.
+                io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Flight status' text1 = 'Flight LH 0400 is fully booked.' text2 = 'Choose another connection.' ) ).
+              CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_e1ba149966).
+                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_e1ba149966->mv_kind
+                                                         iv_operation    = lx_popup_c_e1ba149966->mv_operation
+                                                         iv_continuation = 'C_E1BA149966' ).
+            ENDTRY.
             gv_result = 'Information acknowledged'.
           WHEN 'VALUES'.
             CLEAR gt_fields.
@@ -274,7 +286,17 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
             gs_field-fieldtext = 'Airline'.
             gs_field-value = 'LH'.
             APPEND gs_field TO gt_fields.
-            gv_returncode = io_session->get_compatibility( )->popup_get_values( EXPORTING is_request = VALUE #( title = 'Choose airline' ) CHANGING ct_fields = gt_fields ).
+            TRY.
+                gv_returncode = io_session->get_compatibility( )->popup_get_values(
+                  EXPORTING
+                    is_request = VALUE #( title = 'Choose airline' )
+                  CHANGING
+                    ct_fields  = gt_fields ).
+              CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_3ce2c0dc07).
+                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_3ce2c0dc07->mv_kind
+                                                         iv_operation    = lx_popup_c_3ce2c0dc07->mv_operation
+                                                         iv_continuation = 'C_3CE2C0DC07' ).
+            ENDTRY.
             IF sy-subrc <> 0 OR gv_returncode = 'A'.
               gv_result = 'Input cancelled'.
             ELSE.
@@ -282,7 +304,17 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
               gv_result = |Airline { gs_field-value }|.
             ENDIF.
           WHEN 'TABLE'.
-            gv_choice = io_session->get_compatibility( )->popup_with_table_display( EXPORTING is_request = VALUE #( title = 'Choose connection' start_column = 10 start_row = 5 end_column = 60 end_row = 10 ) CHANGING ct_values = gt_connections ).
+            TRY.
+                gv_choice = io_session->get_compatibility( )->popup_with_table_display(
+                  EXPORTING
+                    is_request = VALUE #( title = 'Choose connection' start_column = 10 start_row = 5 end_column = 60 end_row = 10 )
+                  CHANGING
+                    ct_values  = gt_connections ).
+              CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_6b4164868e).
+                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_6b4164868e->mv_kind
+                                                         iv_operation    = lx_popup_c_6b4164868e->mv_operation
+                                                         iv_continuation = 'C_6B4164868E' ).
+            ENDTRY.
             IF sy-subrc <> 0.
               gv_result = 'Selection cancelled'.
             ELSE.
@@ -301,6 +333,71 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
     CASE is_resume-continuation-id.
       WHEN 'AFTER_0100'.
         RETURN.
+      WHEN 'C_F1BD5416A3'.
+        TRY.
+            gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar = 'Cancel booking' text_question = 'Cancel the booking for LH 0400?' text_button_1 = 'Yes' text_button_2 = 'No' display_cancel_button = abap_false ) ).
+
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_f1bd5416a3).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_f1bd5416a3->mv_kind
+                                                     iv_operation    = lx_popup_c_f1bd5416a3->mv_operation
+                                                     iv_continuation = 'C_F1BD5416A3' ).
+        ENDTRY.
+        IF sy-subrc <> 0.
+          gv_result = 'Popup failed'.
+        ELSEIF gv_answer = '1'.
+          gv_result = 'Booking cancelled'.
+        ELSE.
+          gv_result = 'Booking kept'.
+        ENDIF.
+        CLEAR gv_ok_code.
+      WHEN 'C_E1BA149966'.
+        TRY.
+            io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Flight status' text1 = 'Flight LH 0400 is fully booked.' text2 = 'Choose another connection.' ) ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_e1ba149966).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_e1ba149966->mv_kind
+                                                     iv_operation    = lx_popup_c_e1ba149966->mv_operation
+                                                     iv_continuation = 'C_E1BA149966' ).
+        ENDTRY.
+        gv_result = 'Information acknowledged'.
+        CLEAR gv_ok_code.
+      WHEN 'C_3CE2C0DC07'.
+        TRY.
+            gv_returncode = io_session->get_compatibility( )->popup_get_values(
+              EXPORTING
+                is_request = VALUE #( title = 'Choose airline' )
+              CHANGING
+                ct_fields  = gt_fields ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_3ce2c0dc07).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_3ce2c0dc07->mv_kind
+                                                     iv_operation    = lx_popup_c_3ce2c0dc07->mv_operation
+                                                     iv_continuation = 'C_3CE2C0DC07' ).
+        ENDTRY.
+        IF sy-subrc <> 0 OR gv_returncode = 'A'.
+          gv_result = 'Input cancelled'.
+        ELSE.
+          READ TABLE gt_fields INTO gs_field INDEX 1.
+          gv_result = |Airline { gs_field-value }|.
+        ENDIF.
+        CLEAR gv_ok_code.
+      WHEN 'C_6B4164868E'.
+        TRY.
+            gv_choice = io_session->get_compatibility( )->popup_with_table_display(
+              EXPORTING
+                is_request = VALUE #( title = 'Choose connection' start_column = 10 start_row = 5 end_column = 60 end_row = 10 )
+              CHANGING
+                ct_values  = gt_connections ).
+          CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_6b4164868e).
+            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_6b4164868e->mv_kind
+                                                     iv_operation    = lx_popup_c_6b4164868e->mv_operation
+                                                     iv_continuation = 'C_6B4164868E' ).
+        ENDTRY.
+        IF sy-subrc <> 0.
+          gv_result = 'Selection cancelled'.
+        ELSE.
+          READ TABLE gt_connections INTO gs_connection INDEX gv_choice.
+          gv_result = gs_connection-text.
+        ENDIF.
+        CLEAR gv_ok_code.
       WHEN OTHERS.
         RETURN.
     ENDCASE.

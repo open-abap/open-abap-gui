@@ -173,3 +173,34 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'Dynamic document table' ) ).
   ENDMETHOD.
 ENDCLASS.
+
+CLASS ltcl_document_regressions DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
+  PRIVATE SECTION.
+    METHODS columns_and_multiple_tables FOR TESTING.
+ENDCLASS.
+
+CLASS cl_dd_document DEFINITION LOCAL FRIENDS ltcl_document_regressions.
+
+CLASS ltcl_document_regressions IMPLEMENTATION.
+  METHOD columns_and_multiple_tables.
+    DATA(lo_doc) = NEW cl_dd_document( ).
+    DATA lo_table TYPE REF TO cl_dd_table_element.
+    DATA lo_column TYPE REF TO cl_dd_area.
+    lo_doc->add_table( EXPORTING no_of_columns = 1 IMPORTING table = lo_table ).
+    lo_table->add_column( EXPORTING heading = 'First' IMPORTING column = lo_column ).
+    lo_column->add_text( text = 'One' ).
+    lo_table->new_row( ).
+    lo_column->add_text( text = 'Two' ).
+    lo_doc->add_table( EXPORTING no_of_columns = 1 IMPORTING table = lo_table ).
+    lo_table->add_column( EXPORTING heading = 'Second' IMPORTING column = lo_column ).
+    lo_column->add_text( text = 'Three' ).
+    lo_doc->merge_document( ).
+    DATA(lv_html) = lo_doc->mv_document_html.
+    FIND FIRST OCCURRENCE OF 'First' IN lv_html MATCH OFFSET DATA(lv_first).
+    FIND FIRST OCCURRENCE OF 'Two' IN lv_html MATCH OFFSET DATA(lv_two).
+    FIND FIRST OCCURRENCE OF 'Second' IN lv_html MATCH OFFSET DATA(lv_second).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_first < lv_two AND lv_two < lv_second ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_html CS 'Three' ) ).
+  ENDMETHOD.
+
+ENDCLASS.

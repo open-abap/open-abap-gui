@@ -199,9 +199,9 @@ CLASS zcl_example_ddic_texts IMPLEMENTATION.
     mv_p_rows = it_values[ name = 'P_ROWS' ]-value.
     mv_s_date = CORRESPONDING #( it_values[ name = 'S_DATE' ]-ranges ).
     lo_writer->write_field( VALUE #( text = 'Carrier:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_carr }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_carr ) ) ).
     lo_writer->write_field( VALUE #( text = 'Rows:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_rows }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_rows ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

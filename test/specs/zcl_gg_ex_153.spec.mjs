@@ -3,6 +3,18 @@ import {test, expect, openExample} from "../fixtures.mjs";
 const node = (page, key) => page.locator(`[data-control-kind="SIMPLE_TREE"] li[data-node-key="${key}"]`);
 const bookings = (page) => page.getByRole("table", {name: "Bookings"});
 
+test("ZCL_GG_EX_153 supports keyboard drag and drop", async ({page, host}) => {
+  await openExample(page, host, 153);
+  const source = node(page, "LH0400");
+  await source.focus();
+  await source.press("Control+Space");
+  const target = page.locator('[data-control-kind="ALV_GRID"] [data-gg-drop]');
+  await target.focus();
+  await target.press("Enter");
+  await expect(bookings(page).locator("tbody tr")).toHaveCount(1);
+  await expect(bookings(page).locator("tbody tr").first()).toContainText("0400");
+});
+
 test("ZCL_GG_EX_153 — flights with a drag handle can be dragged, folders cannot", async ({page, host}) => {
   await openExample(page, host, 153);
   await expect(node(page, "LH0400")).toHaveAttribute("draggable", "true");

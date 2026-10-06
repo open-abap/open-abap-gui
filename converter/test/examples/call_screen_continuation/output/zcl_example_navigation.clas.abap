@@ -121,7 +121,7 @@ CLASS zcl_example_navigation IMPLEMENTATION.
     mv_p_target = it_values[ name = 'P_TARGET' ]-value.
     gv_step = 1.
     lo_writer->write_field( VALUE #( text = 'Before navigation, step' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_step }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_step ) ) ).
     CASE mv_p_target.
       WHEN 'S'.
         io_session->get_dialog( )->call_screen(
@@ -134,7 +134,7 @@ CLASS zcl_example_navigation IMPLEMENTATION.
     ENDCASE.
     gv_step = 2.
     lo_writer->write_field( VALUE #( text = 'After navigation, step' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ gv_step }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_step ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.
@@ -236,9 +236,6 @@ CLASS zcl_example_navigation IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
@@ -297,11 +294,11 @@ CLASS zcl_example_navigation IMPLEMENTATION.
       WHEN 'AFTER_0100'.
         gv_step = 2.
         lo_writer->write_field( VALUE #( text = 'After navigation, step' placement = VALUE #( new_line = abap_true ) ) ).
-        lo_writer->write_field( VALUE #( text = |{ gv_step }| ) ).
+        lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_step ) ) ).
       WHEN 'AFTER_SUBMIT'.
         gv_step = 2.
         lo_writer->write_field( VALUE #( text = 'After navigation, step' placement = VALUE #( new_line = abap_true ) ) ).
-        lo_writer->write_field( VALUE #( text = |{ gv_step }| ) ).
+        lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_step ) ) ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.

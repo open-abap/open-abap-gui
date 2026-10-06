@@ -213,9 +213,9 @@ CLASS zcl_gg_ex_078 IMPLEMENTATION.
     mv_p_car = it_values[ name = 'P_CAR' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_rng = CORRESPONDING #( it_values[ name = 'S_RNG' ]-ranges ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_car }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_car ) ) ).
     LOOP AT mv_s_rng INTO DATA(ls_s_rng_range).
-      lo_writer->write_field( VALUE #( text = |{ ls_s_rng_range-low }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_rng_range-low ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -262,8 +262,15 @@ CLASS zcl_gg_ex_078 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD form_carrier_help.
-    gt_carriers = VALUE #( ( carrid = 'AA' ) ( carrid = 'LH' ) ( carrid = 'SQ' ) ).
-    io_session->get_compatibility( )->f4_table_value_request( EXPORTING is_request = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-selection-screen dynprofield = iv_field value_org = 'S' ) CHANGING ct_value_tab = gt_carriers ).
+    gt_carriers = VALUE #(
+      ( carrid = 'AA' )
+      ( carrid = 'LH' )
+      ( carrid = 'SQ' ) ).
+    io_session->get_compatibility( )->f4_table_value_request(
+      EXPORTING
+        is_request   = VALUE #( retfield = 'CARRID' dynpprog = io_session->get_context( )-program-program dynpnr = io_session->get_context( )-selection-screen dynprofield = iv_field value_org = 'S' )
+      CHANGING
+        ct_value_tab = gt_carriers ).
   ENDMETHOD.
 
 ENDCLASS.

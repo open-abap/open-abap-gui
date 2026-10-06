@@ -25,11 +25,13 @@ CLASS zcx_gg_control_flow DEFINITION PUBLIC INHERITING FROM cx_no_check FINAL CR
 
     DATA mv_kind      TYPE ty_kind READ-ONLY.
     DATA mv_operation TYPE string READ-ONLY.
+    DATA mv_continuation TYPE string READ-ONLY.
 
     METHODS constructor
       IMPORTING
         iv_kind      TYPE ty_kind
-        iv_operation TYPE string OPTIONAL.
+        iv_operation TYPE string OPTIONAL
+        iv_continuation TYPE string OPTIONAL.
 
 ENDCLASS.
 
@@ -39,6 +41,7 @@ CLASS zcx_gg_control_flow IMPLEMENTATION.
     super->constructor( ).
     mv_kind      = iv_kind.
     mv_operation = iv_operation.
+    mv_continuation = iv_continuation.
   ENDMETHOD.
 
 ENDCLASS.

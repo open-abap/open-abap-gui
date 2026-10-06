@@ -4,7 +4,7 @@ import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStat
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
 import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.mjs";
-import { isSuspendingStatement } from "../passes/lower-continuations.mjs";
+import { isPopupStatement, isSuspendingStatement } from "../passes/lower-continuations.mjs";
 import { screenOkCode } from "../dynpro-metadata.mjs";
 import { methodParameterType } from "../passes/collect-routines.mjs";
 import { DEFAULT_SELECTION_SCREEN } from "../passes/collect-selection-screens.mjs";
@@ -143,14 +143,24 @@ function continuationLocalNames(ir) {
     .filter((item) => !global(item) && ['data', 'static'].includes(item.kind))
     .flatMap((item) => item.names ?? [])
     .map((name) => name.toUpperCase()));
-  return new Set((ir.continuations ?? [])
+  const moduleNames = [];
+  let structureDepth = 0;
+  for (const item of ir.declarations ?? []) {
+    if (!dynproModuleStatements.has(item.statement)) continue;
+    if (item.kind === 'databegin') {
+      if (structureDepth === 0) moduleNames.push(/BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1]);
+      structureDepth++;
+    } else if (item.kind === 'dataend') structureDepth--;
+    else if (structureDepth === 0 && ['data', 'static'].includes(item.kind)) moduleNames.push(...item.names ?? []);
+  }
+  return new Set([...moduleNames, ...(ir.continuations ?? [])
     .filter((continuation) => continuation.liveVariables?.length)
     .flatMap((continuation) => (continuation.liveVariables ?? [])
       .filter((name) => localNames.has(name.toUpperCase()))
       .filter((name) => localDeclarations.some((declaration) =>
         (declaration.names ?? []).some((declaredName) => declaredName.toUpperCase() === name.toUpperCase())
           && declaredBefore(declaration, continuation))))
-    .map((name) => name.toUpperCase())
+    .map((name) => name.toUpperCase())].filter(Boolean)
   );
 }
 
@@ -361,8 +371,7 @@ function dataMembers(ir) {
   const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
   const consumed = new Set();
   const global = (item) => !routineStatements.has(item.statement)
-    && !dynproModuleStatements.has(item.statement)
-    && item.statement?.scope !== "local"
+    && (dynproModuleStatements.has(item.statement) || item.statement?.scope !== "local")
     && !item.statement?.localClassName;
   const rename = (text) => renameIdentifiers(text, allRenames(ir));
   const addStructured = (index, begin, end, keyword, target) => {
@@ -440,7 +449,7 @@ function dataMembers(ir) {
   for (const name of continuationLocalNames(ir)) {
     const declaration = declarations.find((item) => ['data', 'static'].includes(item.kind)
       && (item.names ?? []).some((itemName) => itemName.toUpperCase() === name));
-    if (!declaration || declaration.complex) continue;
+    if (!declaration || declaration.complex || emittedNames.has((continuationRenames(ir)[name] ?? name).toUpperCase())) continue;
     const raw = declaration.kind === 'static'
       ? declaration.raw.replace(/^STATICS\b/i, 'DATA')
       : declaration.raw;
@@ -1036,7 +1045,7 @@ function truncateTerminalPaths(statements) {
     output.push(statement);
     if (BLOCK_OPENERS.has(kind)) depth++;
     else if (BLOCK_ENDS.has(kind)) depth = Math.max(0, depth - 1);
-    else if (isTerminal(statement) || isSuspendingStatement(statement)) {
+    else if (isTerminal(statement) || (isSuspendingStatement(statement) && !isPopupStatement(statement))) {
       if (depth === 0) return output;
       skipDepth = depth;
     }
@@ -1224,15 +1233,9 @@ function resumeMethod(ir) {
     const ownerIsModule = ir.modules?.includes(owner) === true;
     const ownerStatements = owner?.statements ?? [];
     const tail = truncateTerminalPaths(resumeTail(ownerStatements, ownerStatements.indexOf(statement)));
+    if (isPopupStatement(statement)) tail.unshift(statement);
     let lowered;
-    if (tail.some((item) => item.kind === "CallFunction" && /LIST_FROM_MEMORY/i.test(item.text))) {
-      lowered = [
-        "DATA(lt_lines) = io_session->get_navigation( )->get_list_from_memory( ).",
-        "LOOP AT lt_lines INTO DATA(lv_line).",
-        "io_session->get_list( )->get_writer( )->write_field( VALUE #( text = lv_line placement = VALUE #( new_line = abap_true ) ) ).",
-        "ENDLOOP.",
-      ];
-    } else {
+    {
       const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
       context.screenStates = ownerIsModule ? storedScreenStates("dynpro")
         : ir.routines?.includes(owner) ? routineScreenStates(ir, owner)
@@ -1243,7 +1246,8 @@ function resumeMethod(ir) {
     if (!lowered.some((line) => String(line).trim() && !/^\s*\*/.test(line))) lowered.push("RETURN.");
     cases.push(`WHEN '${id}'.`, ...lowered);
   }
-  const body = ["CASE is_resume-continuation-id.", ...(cases.length ? cases : ["WHEN OTHERS.", "RETURN."]), ...(cases.length ? ["WHEN OTHERS.", "RETURN."] : []), "ENDCASE."];
+    const body = ["CASE is_resume-continuation-id.", ...(cases.length ? cases : ["WHEN OTHERS.", "RETURN."]), ...(cases.length ? ["WHEN OTHERS.", "RETURN."] : []), "ENDCASE."];
+    if (body.some(line => /\bis_context\b/i.test(line))) body.unshift("DATA(is_context) = is_resume-module_context.");
   // One writer serves every continuation: each WHEN declaring its own inline
   // DATA(lo_writer) would declare the same name twice in one method.
   return method("zif_gg_resumable_v1~resume", body.some((line) => line.includes("lo_writer->")) ? addWriterDeclaration(body) : body, "Continuation states are explicit so unsupported suspension semantics remain visible.");
@@ -1987,7 +1991,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
       };
       const body = [
         ...globalFieldSymbolDeclarations(ir, module.statements),
-        ...removePromotedDeclarations(ir, lowerStatements(module.statements, context).map((item) => item.text)),
+        ...removePromotedDeclarations(ir, lowerStatements(module.statements.filter(statement => !ir.declarations?.some(item => item.statement === statement)), context).map((item) => item.text)),
       ];
       lines.push(`WHEN '${module.name}'.`, ...body);
     }
@@ -2068,7 +2072,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
       };
       const body = [
         ...globalFieldSymbolDeclarations(ir, module.statements),
-        ...removePromotedDeclarations(ir, lowerStatements(module.statements, context).map((item) => item.text)),
+        ...removePromotedDeclarations(ir, lowerStatements(module.statements.filter(statement => !ir.declarations?.some(item => item.statement === statement)), context).map((item) => item.text)),
       ];
       lines.push(`WHEN '${module.name}'.`, ...body);
     }
@@ -2087,9 +2091,6 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
   ];
   const helpRequest = [
     ...requestDispatch("poh"),
-    "IF line_exists( ct_values[ name = 'GV_RESULT' ] ).",
-    "rv_text = ct_values[ name = 'GV_RESULT' ]-value.",
-    "ENDIF.",
   ];
   const methods = [
     method(interfaceMethod("get_initial_screen"), [`rv_screen = '${initial}'.`]),

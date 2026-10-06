@@ -85,7 +85,24 @@ CLASS zcl_gg_ex_044 IMPLEMENTATION.
 * refused.
     io_session->get_list( )->set_title( 'Exclude a function from a status' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'REFR' ) ( 'DEL' ) ) excluded_ucomm = VALUE #( ( 'DEL' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ( 14 ) ) icon_bar = VALUE #( ( ucomm = 'REFR' label = 'Refresh' icon = 'ICON_REFRESH' ) ( ucomm = 'DEL' label = 'Delete' icon = 'ICON_DELETE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 13 ucomm = 'REFR' ) ( number = 14 ucomm = 'DEL' ) ) ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #(
+      ( 'BACK' )
+      ( '%EX' )
+      ( 'RW' )
+      ( 'REFR' )
+      ( 'DEL' ) ) excluded_ucomm = VALUE #( ( 'DEL' ) ) active_pf_keys = VALUE #(
+      ( 3 )
+      ( 15 )
+      ( 12 )
+      ( 13 )
+      ( 14 ) ) icon_bar = VALUE #(
+      ( ucomm = 'REFR' label = 'Refresh' icon = 'ICON_REFRESH' )
+      ( ucomm = 'DEL' label = 'Delete' icon = 'ICON_DELETE' ) ) pf_actions = VALUE #(
+      ( number = 3 ucomm = 'BACK' )
+      ( number = 15 ucomm = '%EX' )
+      ( number = 12 ucomm = 'RW' )
+      ( number = 13 ucomm = 'REFR' )
+      ( number = 14 ucomm = 'DEL' ) ) ) ).
     lo_writer->write_field( VALUE #( text = 'Bookings of flight LH 0400' placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'Ada Lovelace     2 seats' placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'Grace Hopper     1 seat' placement = VALUE #( new_line = abap_true ) ) ).

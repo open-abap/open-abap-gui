@@ -159,7 +159,7 @@ CLASS zcl_gg_ex_051 IMPLEMENTATION.
     CASE is_resume-continuation-id.
       WHEN 'AFTER_0500'.
         IF is_resume-subrc = 0.
-          lo_writer->write_field( VALUE #( text = |{ mv_p_b }| ) ).
+          lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_b ) ) ).
         ENDIF.
       WHEN OTHERS.
         RETURN.

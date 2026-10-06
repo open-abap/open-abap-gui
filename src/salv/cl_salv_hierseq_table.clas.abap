@@ -114,6 +114,7 @@ CLASS cl_salv_hierseq_table DEFINITION PUBLIC INHERITING FROM cl_salv_model_base
         it_columns    TYPE salv_t_column_ref
         iv_level      TYPE i
         iv_width      TYPE i
+        iv_expanded   TYPE abap_bool DEFAULT abap_true
       RETURNING
         VALUE(result) TYPE string.
 
@@ -304,16 +305,14 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
                                        it_columns = lt_columns1
                                        iv_level   = 1
                                        iv_width   = lv_width ).
-      IF is_expanded( <header> ) = abap_false.
-        CONTINUE.
-      ENDIF.
       LOOP AT <items> ASSIGNING <item>.
         IF is_child( is_header = <header>
                      is_item   = <item> ) = abap_true.
-          lv_html = lv_html && render_row( is_row     = <item>
-                                           it_columns = lt_columns2
-                                           iv_level   = 2
-                                           iv_width   = lv_width ).
+          lv_html = lv_html && render_row( is_row      = <item>
+                                           it_columns  = lt_columns2
+                                           iv_level    = 2
+                                           iv_expanded = is_expanded( <header> )
+                                           iv_width    = lv_width ).
         ENDIF.
       ENDLOOP.
     ENDLOOP.
@@ -371,7 +370,7 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
         lv_key = condense( CONV string( <key> ) ).
       ENDIF.
     ENDIF.
-    result = |<tr data-level="{ iv_level }"{ COND string( WHEN iv_level = 1 THEN | data-group-key="{ cl_gui_control=>escape_html( lv_key ) }"| ELSE | data-parent-key="{ cl_gui_control=>escape_html( lv_key ) }"| ) }>|.
+    result = |<tr data-level="{ iv_level }"{ COND string( WHEN iv_level = 1 THEN | data-group-key="{ cl_gui_control=>escape_html( lv_key ) }"| ELSE | data-parent-key="{ cl_gui_control=>escape_html( lv_key ) }"{ COND string( WHEN iv_expanded = abap_false THEN ` hidden` ) }| ) }>|.
     LOOP AT it_columns INTO DATA(ls_column).
       DATA(lv_index) = sy-tabix.
       ASSIGN COMPONENT ls_column-columnname OF STRUCTURE is_row TO <value>.
@@ -382,7 +381,9 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
       DATA(lv_cell_span) = colspan( iv_index = lv_index
                                     iv_count = lines( it_columns )
                                     iv_width = iv_width ).
-      result = result && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_column-columnname ) ) }"{ COND string( WHEN lv_type CA 'IPFbsa8' THEN ` class="gg-type-number"` ) }{ lv_cell_span }>{ cl_gui_control=>escape_html( condense( CONV string( <value> ) ) ) }</td>|.
+      DATA(lv_toggle) = COND string( WHEN iv_level = 1 AND lv_index = 1
+        THEN |<button type="button" data-hierseq-toggle aria-expanded="{ COND string( WHEN is_expanded( is_row ) = abap_true THEN 'true' ELSE 'false' ) }" aria-label="Toggle { cl_gui_control=>escape_html( lv_key ) }">&#9662;</button>| ).
+      result = result && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_column-columnname ) ) }"{ COND string( WHEN lv_type CA 'IPFbsa8' THEN ` class="gg-type-number"` ) }{ lv_cell_span }>{ lv_toggle }{ cl_gui_control=>escape_html( condense( CONV string( <value> ) ) ) }</td>|.
     ENDLOOP.
     result = result && `</tr>`.
   ENDMETHOD.

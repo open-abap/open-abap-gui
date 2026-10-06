@@ -77,16 +77,34 @@ CLASS zcl_gg_ex_082 IMPLEMENTATION.
     mv_p_value = ct_values[ name = 'P_VALUE' ]-value.
     CASE iv_ucomm.
       WHEN 'VAR_SAVE'.
-        io_session->get_compatibility( )->variant_refresh( EXPORTING is_request = VALUE #( report = io_session->get_context( )-program-program ) CHANGING ct_selection = gt_contents ).
+        io_session->get_compatibility( )->variant_refresh(
+          EXPORTING
+            is_request   = VALUE #( report = io_session->get_context( )-program-program )
+          CHANGING
+            ct_selection = gt_contents ).
         gs_variant-report = io_session->get_context( )-program-program.
         gs_variant-variant = mv_p_name.
-        io_session->get_compatibility( )->variant_create( EXPORTING is_request = VALUE #( report = io_session->get_context( )-program-program variant = mv_p_name ) CHANGING ct_contents = gt_contents ct_text = gt_text ).
+        io_session->get_compatibility( )->variant_create(
+          EXPORTING
+            is_request  = VALUE #( report = io_session->get_context( )-program-program variant = mv_p_name )
+          CHANGING
+            ct_contents = gt_contents
+            ct_text     = gt_text ).
         IF sy-subrc <> 0.
-          io_session->get_compatibility( )->variant_change( EXPORTING is_request = VALUE #( report = io_session->get_context( )-program-program variant = mv_p_name ) CHANGING ct_contents = gt_contents ct_text = gt_text ).
+          io_session->get_compatibility( )->variant_change(
+            EXPORTING
+              is_request  = VALUE #( report = io_session->get_context( )-program-program variant = mv_p_name )
+            CHANGING
+              ct_contents = gt_contents
+              ct_text     = gt_text ).
         ENDIF.
         io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_success text = 'Variant saved' ) ).
       WHEN 'VAR_LOAD'.
-        io_session->get_compatibility( )->variant_contents( EXPORTING is_request = VALUE #( report = io_session->get_context( )-program-program variant = mv_p_name ) CHANGING ct_contents = gt_contents ).
+        io_session->get_compatibility( )->variant_contents(
+          EXPORTING
+            is_request  = VALUE #( report = io_session->get_context( )-program-program variant = mv_p_name )
+          CHANGING
+            ct_contents = gt_contents ).
         IF sy-subrc <> 0.
           io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_warning text = 'Variant not found' ) ).
         ELSE.

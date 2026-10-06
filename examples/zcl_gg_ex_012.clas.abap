@@ -104,7 +104,7 @@ CLASS zcl_gg_ex_012 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'INITIALIZATION' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_date = it_values[ name = 'P_DATE' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_date }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_date ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

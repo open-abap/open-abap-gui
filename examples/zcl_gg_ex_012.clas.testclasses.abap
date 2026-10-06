@@ -12,7 +12,7 @@ CLASS ltcl_ex_12 IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
-      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `20260101` ) ) ).
+      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `01/01/2026` ) ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'P_DATE' ]-value
       exp = '20260101' ).

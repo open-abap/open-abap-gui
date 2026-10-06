@@ -173,8 +173,8 @@ CLASS zcl_example_tabs IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_carr = it_values[ name = 'P_CARR' ]-value.
     mv_p_rows = it_values[ name = 'P_ROWS' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_carr }| placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_rows }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_carr ) placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_rows ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

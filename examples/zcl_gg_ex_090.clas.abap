@@ -83,7 +83,7 @@ CLASS zcl_gg_ex_090 IMPLEMENTATION.
 * The source stays 7-bit ASCII; the wide text arrives as UTF-8 bytes.
     io_session->get_list( )->set_title( 'Unicode wide-list layout' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    lo_writer->write_field( VALUE #( text = |{ cl_abap_codepage=>convert_from( gc_wide_utf8 ) }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = cl_abap_codepage=>convert_from( gc_wide_utf8 ) ) placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'logical column' placement = VALUE #( position = 28 ) ) ).
   ENDMETHOD.
 

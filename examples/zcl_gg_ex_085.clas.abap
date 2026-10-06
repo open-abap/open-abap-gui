@@ -86,7 +86,19 @@ CLASS zcl_gg_ex_085 IMPLEMENTATION.
 * goes straight to the basic list.
     io_session->get_list( )->set_title( 'Refresh a detail list' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'REFRESH' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'REFRESH' label = 'Refresh' icon = 'ICON_REFRESH' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 13 ucomm = 'REFRESH' ) ) ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #(
+      ( 'BACK' )
+      ( '%EX' )
+      ( 'RW' )
+      ( 'REFRESH' ) ) active_pf_keys = VALUE #(
+      ( 3 )
+      ( 15 )
+      ( 12 )
+      ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'REFRESH' label = 'Refresh' icon = 'ICON_REFRESH' ) ) pf_actions = VALUE #(
+      ( number = 3 ucomm = 'BACK' )
+      ( number = 15 ucomm = '%EX' )
+      ( number = 12 ucomm = 'RW' )
+      ( number = 13 ucomm = 'REFRESH' ) ) ) ).
     lo_writer->write_field( VALUE #( text = 'Flight LH 0400, Frankfurt to New York' placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 

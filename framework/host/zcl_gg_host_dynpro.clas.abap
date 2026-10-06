@@ -14,6 +14,8 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              cursor             TYPE zif_gg_session_types_v1=>ty_dialog_cursor,
              modal_position     TYPE zif_gg_session_types_v1=>ty_modal_position,
              modal_returned     TYPE abap_bool,
+             popup_continuation TYPE string,
+             popup_context      TYPE zif_gg_dynpro_types_v1=>ty_module_context,
              popup              TYPE zif_gg_compatibility_v1=>ty_popup,
              values             TYPE zif_gg_dynpro_types_v1=>ty_values,
              lines              TYPE zcl_gg_host_list=>ty_text_lines,
@@ -67,6 +69,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_modal_position      TYPE zif_gg_session_types_v1=>ty_modal_position OPTIONAL
         io_resumable           TYPE REF TO zif_gg_resumable_v1 OPTIONAL
         iv_resume_continuation TYPE string OPTIONAL
+        is_resume_context      TYPE zif_gg_dynpro_types_v1=>ty_module_context OPTIONAL
 * The screen whose CALL SCREEN started the current screen sequence; LEAVE TO
 * SCREEN 0 returns there and continues after that CALL SCREEN.
         iv_return_screen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number OPTIONAL
@@ -299,6 +302,20 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       CHANGING
         ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
 
+    CLASS-METHODS process_requests
+      IMPORTING
+        io_program       TYPE REF TO zif_gg_dynpro_v1
+        io_flow          TYPE REF TO zcl_gg_host_dynpro_flow
+        io_session       TYPE REF TO zcl_gg_host_session
+        iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name
+        it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
+      CHANGING
+        cs_context       TYPE zif_gg_dynpro_types_v1=>ty_module_context
+        ct_help_values   TYPE zif_gg_dynpro_types_v1=>ty_values
+        cv_help_text     TYPE string.
+
     CLASS-METHODS process_modules
       IMPORTING
         io_program       TYPE REF TO zif_gg_dynpro_v1
@@ -313,6 +330,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
         iv_next_screen   TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         iv_replay_pbo    TYPE abap_bool DEFAULT abap_true
+        iv_after_module  TYPE zif_gg_dynpro_types_v1=>ty_module_name OPTIONAL
       CHANGING
         cs_context       TYPE zif_gg_dynpro_types_v1=>ty_module_context
         ct_values        TYPE zif_gg_dynpro_types_v1=>ty_values
@@ -649,7 +667,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             AND iv_resume_continuation IS NOT INITIAL
             AND io_resumable IS BOUND.
           io_resumable->resume(
-            is_resume  = VALUE #( continuation = VALUE #( id = iv_resume_continuation ) )
+            is_resume  = VALUE #( continuation = VALUE #( id = iv_resume_continuation ) module_context = is_resume_context )
             io_session = lo_session ).
           io_program->initialization(
             EXPORTING
@@ -663,7 +681,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             io_flow          = lo_flow
             io_session       = lo_session
             iv_screen        = lv_screen
-            iv_submitted     = iv_submitted
+            iv_submitted     = xsdbool( iv_submitted = abap_true OR is_resume_context-module IS NOT INITIAL )
+            iv_after_module  = is_resume_context-module
             iv_ucomm         = iv_ucomm
             iv_ok_code       = lv_ok_code
             iv_value_request = iv_value_request
@@ -681,6 +700,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
             cv_menu_field    = lv_context_menu_field ).
       CATCH zcx_gg_control_flow INTO lx_flow.
         rs_result-terminal = lx_flow->mv_operation.
+        rs_result-popup_continuation = lx_flow->mv_continuation.
+        rs_result-popup_context = ls_context.
         rs_result-terminal_state = xsdbool(
           lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_program
           OR lx_flow->mv_kind = zcx_gg_control_flow=>kind_leave_to_transaction ).
@@ -903,6 +924,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD process_modules.
+    DATA lv_after_module TYPE zif_gg_dynpro_types_v1=>ty_module_name.
     DATA lv_submit_allowed TYPE abap_bool.
     DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
     DATA ls_step TYPE zcl_gg_host_dynpro_flow=>ty_step.
@@ -1026,6 +1048,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
 * runs only when a handler set a new OK code.
     lv_ucomm = iv_ucomm.
     lv_submitted = iv_submitted.
+    lv_after_module = iv_after_module.
     lv_event_kind = process_frontend(
       EXPORTING
         iv_ok_code   = iv_ok_code
@@ -1059,6 +1082,12 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         CLEAR lv_table_control.
         LOOP AT lt_steps INTO ls_step
             WHERE screen = iv_screen AND phase = 'PAI'.
+          IF lv_after_module IS NOT INITIAL.
+            IF ls_step-kind = 'MODULE' AND ls_step-module-name = lv_after_module.
+              CLEAR lv_after_module.
+            ENDIF.
+            CONTINUE.
+          ENDIF.
           CASE ls_step-kind.
             WHEN 'BEGIN_TABLE_LOOP'.
               lv_table_control = ls_step-table_loop-table_control.
@@ -1125,6 +1154,12 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       ELSE.
         LOOP AT io_flow->get_modules( ) INTO ls_module
             WHERE screen = iv_screen AND phase = 'PAI'.
+          IF lv_after_module IS NOT INITIAL.
+            IF ls_module-module-name = lv_after_module.
+              CLEAR lv_after_module.
+            ENDIF.
+            CONTINUE.
+          ENDIF.
           IF ls_module-module-at_exit_command = abap_true AND lv_exit_command = abap_false.
             CONTINUE.
           ENDIF.
@@ -1176,16 +1211,26 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         co_menu       = co_menu
         cv_menu_field = cv_menu_field ).
 
+    process_requests( EXPORTING io_program = io_program
+                                io_flow = io_flow
+                                io_session = io_session
+      iv_screen = iv_screen
+                                iv_value_request = iv_value_request
+                                iv_help_request = iv_help_request
+      it_values = ct_values CHANGING cs_context = cs_context ct_help_values = ct_help_values cv_help_text = cv_help_text ).
+  ENDMETHOD.
+
+  METHOD process_requests.
     IF iv_value_request IS NOT INITIAL.
       cs_context-screen = iv_screen.
       cs_context-field = iv_value_request.
-      LOOP AT io_flow->get_modules( ) INTO ls_module
+      LOOP AT io_flow->get_modules( ) INTO DATA(ls_module)
           WHERE screen = iv_screen AND phase = 'POV'.
         io_session->set_event( 'PROCESS ON VALUE-REQUEST' ).
         cs_context-module = ls_module-module-name.
         ct_help_values = io_program->process_on_value_request(
           is_context = cs_context
-          it_values  = ct_values
+          it_values  = it_values
           io_session = io_session ).
       ENDLOOP.
     ENDIF.
@@ -1199,7 +1244,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         cs_context-module = ls_module-module-name.
         cv_help_text = io_program->process_on_help_request(
           is_context = cs_context
-          it_values  = ct_values
+          it_values  = it_values
           io_session = io_session ).
       ENDLOOP.
     ENDIF.
@@ -1228,17 +1273,21 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       RETURN.
     ENDIF.
     LOOP AT it_states INTO DATA(ls_state)
-        WHERE container IS INITIAL AND required = abap_true AND input = abap_true.
+        WHERE required = abap_true AND input = abap_true.
+      IF ls_state-visible = abap_false OR ls_state-enabled = abap_false
+          OR ( ls_state-container IS NOT INITIAL AND ls_state-row = 0 ).
+        CONTINUE.
+      ENDIF.
       IF NOT line_exists( it_controls[ screen = iv_screen name = ls_state-name ] )
           AND NOT line_exists( it_controls[ screen = iv_screen state_name = ls_state-name ] ).
         CONTINUE.
       ENDIF.
       READ TABLE it_values INTO DATA(ls_value)
-        WITH KEY container = `` name = ls_state-name row = 0.
+        WITH KEY container = ls_state-container name = ls_state-name row = ls_state-row.
       IF sy-subrc = 0 AND ls_value-value IS NOT INITIAL.
         CONTINUE.
       ENDIF.
-      io_session->zif_gg_dialog_session_v1~set_cursor( VALUE #( field = ls_state-name ) ).
+      io_session->zif_gg_dialog_session_v1~set_cursor( VALUE #( field = ls_state-name row = ls_state-row ) ).
       io_session->zif_gg_session_v1~message( VALUE #(
         type  = zif_gg_session_types_v1=>message_type_error
         text  = `Fill in all required entry fields`

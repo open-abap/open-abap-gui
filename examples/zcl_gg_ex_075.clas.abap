@@ -167,8 +167,8 @@ CLASS zcl_gg_ex_075 IMPLEMENTATION.
     mv_p_det = it_values[ name = 'P_DET' ]-value.
     mv_p_gen = it_values[ name = 'P_GEN' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_gen }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_det }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_gen ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_det ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

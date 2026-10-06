@@ -46,10 +46,13 @@ CLASS lcl_report IMPLEMENTATION.
     DATA lo_gui_viewer TYPE REF TO cl_gui_html_viewer.
     DATA lt_gui_html TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
+    IF mv_mode = 'LIVE'.
+      APPEND 'START' TO events.
+    ENDIF.
     lo_writer = writer( io_session ).
 
     CASE mv_mode.
-      WHEN 'HELLO'.
+      WHEN 'HELLO' OR 'LIVE'.
         lo_writer->write_field( VALUE #( text = 'hello world' ) ).
 
       WHEN 'ESCAPE'.
@@ -130,7 +133,7 @@ CLASS lcl_report IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~get_list_processing.
-    IF mv_mode = 'PAGE'.
+    IF mv_mode = 'PAGE' OR mv_mode = 'LIVE'.
       ro_list_processing = me.
     ENDIF.
   ENDMETHOD.
@@ -282,11 +285,13 @@ CLASS lcl_report IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~at_line_selection.
-    RETURN.
+    APPEND 'LINE' TO events.
+    writer( io_session )->write_field( VALUE #( text = 'detail' ) ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~at_user_command.
-    RETURN.
+    APPEND 'COMMAND' TO events.
+    writer( io_session )->write_field( VALUE #( text = 'command detail' ) ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~at_pf.
@@ -300,6 +305,7 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
     METHODS write_literal FOR TESTING.
+    METHODS list_events_do_not_replay FOR TESTING.
     METHODS placement_and_gap FOR TESTING.
     METHODS skip_and_uline FOR TESTING.
     METHODS stop_reaches_end FOR TESTING.
@@ -327,6 +333,23 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
 ENDCLASS.
 
 CLASS ltcl_host IMPLEMENTATION.
+
+  METHOD list_events_do_not_replay.
+    DATA(lo_report) = NEW lcl_report( 'LIVE' ).
+    DATA(ls_first) = zcl_gg_host=>run( lo_report ).
+    DATA(ls_second) = zcl_gg_host=>run( io_report     = lo_report
+                                        is_previous   = ls_first
+                                        iv_line_index = 1 ).
+    DATA(ls_third) = zcl_gg_host=>run( io_report       = lo_report
+                                       is_previous     = ls_second
+      it_list_path                                     = ls_second-list_path
+                                       iv_user_command = 'DETAIL' ).
+    cl_abap_unit_assert=>assert_equals( act = lo_report->events
+      exp                                   = VALUE string_table( ( `START` ) ( `LINE` ) ( `COMMAND` ) ) ).
+    cl_abap_unit_assert=>assert_equals( act = ls_third-list_level
+                                        exp = 2 ).
+    cl_abap_unit_assert=>assert_true( xsdbool( ls_third-lines[ 1 ] CS 'command detail' ) ).
+  ENDMETHOD.
 
   METHOD selection_tab_events.
     DATA(lo_report) = NEW lcl_report( 'TABS' ).
@@ -517,7 +540,9 @@ CLASS ltcl_host IMPLEMENTATION.
       session_id = ls_start-current_page-session_id
       page_id    = 'wrong'
       action     = zif_gg_host_html_v1=>action_submit ) ).
-    cl_abap_unit_assert=>assert_false( ls_stale-valid ).
+    cl_abap_unit_assert=>assert_true( ls_stale-valid ).
+    cl_abap_unit_assert=>assert_equals( act = ls_stale-current_page-page_id
+                                        exp = ls_start-current_page-page_id ).
     DATA(ls_next) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = ls_start-current_page-session_id
       page_id    = ls_start-current_page-page_id
@@ -533,7 +558,9 @@ CLASS ltcl_host IMPLEMENTATION.
       session_id = ls_start-current_page-session_id
       page_id    = ls_start-current_page-page_id
       action     = zif_gg_host_html_v1=>action_submit ) ).
-    cl_abap_unit_assert=>assert_false( ls_duplicate-valid ).
+    cl_abap_unit_assert=>assert_true( ls_duplicate-valid ).
+    cl_abap_unit_assert=>assert_equals( act = ls_duplicate-current_page-page_id
+                                        exp = ls_next-current_page-page_id ).
     DATA(ls_missing) = zcl_gg_host_runtime=>dispatch( VALUE #(
       session_id = 'missing'
       page_id    = 'missing'

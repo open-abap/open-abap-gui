@@ -92,8 +92,15 @@ CLASS zcl_gg_ex_083 IMPLEMENTATION.
 * (2). HIDE keeps the key of each line; Back returns one level.
     io_session->get_list( )->set_title( 'Drill down through list levels' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ).
-    gt_bookings = VALUE #( ( carrid = 'LH' connid = '0400' customer = 'Ada Lovelace' seats = 2 ) ( carrid = 'LH' connid = '0400' customer = 'Grace Hopper' seats = 1 ) ( carrid = 'LH' connid = '0402' customer = 'Alan Turing' seats = 3 ) ( carrid = 'UA' connid = '0941' customer = 'Edsger Dijkstra' seats = 1 ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'LH' connid = '0402' cityfrom = 'Frankfurt' cityto = 'New York' )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' ) ).
+    gt_bookings = VALUE #(
+      ( carrid = 'LH' connid = '0400' customer = 'Ada Lovelace' seats = 2 )
+      ( carrid = 'LH' connid = '0400' customer = 'Grace Hopper' seats = 1 )
+      ( carrid = 'LH' connid = '0402' customer = 'Alan Turing' seats = 3 )
+      ( carrid = 'UA' connid = '0941' customer = 'Edsger Dijkstra' seats = 1 ) ).
     CLEAR gv_connid.
     gv_carrid = 'LH'.
     lo_writer->write_field( VALUE #( text = 'LH Lufthansa' placement = VALUE #( new_line = abap_true ) hide = VALUE #( ( name = 'GV_CARRID' value = |{ gv_carrid }| ) ) ) ).
@@ -151,14 +158,14 @@ CLASS zcl_gg_ex_083 IMPLEMENTATION.
       WHEN 1.
         LOOP AT gt_flights INTO gs_flight WHERE carrid = gv_carrid.
           gv_connid = gs_flight-connid.
-          lo_writer->write_field( VALUE #( text = |{ gs_flight-connid }| placement = VALUE #( new_line = abap_true ) ) ).
-          lo_writer->write_field( VALUE #( text = |{ gs_flight-cityfrom }| ) ).
-          lo_writer->write_field( VALUE #( text = |{ gs_flight-cityto }| hide = VALUE #( ( name = 'GV_CONNID' value = |{ gv_connid }| ) ) ) ).
+          lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-connid ) placement = VALUE #( new_line = abap_true ) ) ).
+          lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-cityfrom ) ) ).
+          lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_flight-cityto ) hide = VALUE #( ( name = 'GV_CONNID' value = |{ gv_connid }| ) ) ) ).
         ENDLOOP.
       WHEN 2.
         LOOP AT gt_bookings INTO gs_booking WHERE carrid = gv_carrid AND connid = gv_connid.
-          lo_writer->write_field( VALUE #( text = |{ gs_booking-customer }| placement = VALUE #( new_line = abap_true ) ) ).
-          lo_writer->write_field( VALUE #( text = |{ gs_booking-seats }| ) ).
+          lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_booking-customer ) placement = VALUE #( new_line = abap_true ) ) ).
+          lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_booking-seats ) ) ).
         ENDLOOP.
         lo_writer->write_field( VALUE #( text = |Chosen in list { io_session->get_list( )->get_context( )-list_index }, line { io_session->get_list( )->get_context( )-selected_line }| placement = VALUE #( new_line = abap_true ) ) ).
     ENDCASE.

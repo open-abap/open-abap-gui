@@ -100,7 +100,11 @@ CLASS zcl_gg_ex_149 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Chart engine' ).
-    gt_months = VALUE #( ( month = 'June' seatsmax = 800 seatsocc = 610 ) ( month = 'July' seatsmax = 800 seatsocc = 720 ) ( month = 'August' seatsmax = 840 seatsocc = 690 ) ( month = 'September' seatsmax = 840 seatsocc = 640 ) ).
+    gt_months = VALUE #(
+      ( month = 'June' seatsmax = 800 seatsocc = 610 )
+      ( month = 'July' seatsmax = 800 seatsocc = 720 )
+      ( month = 'August' seatsmax = 840 seatsocc = 690 )
+      ( month = 'September' seatsmax = 840 seatsocc = 640 ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -245,17 +249,16 @@ CLASS zcl_gg_ex_149 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_chart EXPORTING parent = go_container.
+          CREATE OBJECT go_container
+            EXPORTING container_name = 'CC_MAIN'.
+          CREATE OBJECT go_chart
+            EXPORTING parent = go_container.
           go_chart->set_data( data = zcl_gg_ex_149_h1=>data_xml( io_owner = me io_session = io_session ) ).
         ENDIF.
         go_chart->set_customizing( data = |<SAPChartCustomizing version="1.1"><GlobalSettings><Defaults><ChartType>{ gv_chart_type }</ChartType></Defaults></GlobalSettings><Elements><ChartElements><Title><Caption>Seats per month</Caption></Title></ChartElements></Elements></SAPChartCustomizing>| ).

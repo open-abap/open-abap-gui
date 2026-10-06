@@ -140,8 +140,8 @@ CLASS zcl_gg_ex_081 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_bad = it_values[ name = 'P_BAD' ]-value.
     mv_p_good = it_values[ name = 'P_GOOD' ]-value.
-    lo_writer->write_field( VALUE #( text = |{ mv_p_good }| ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_bad }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_good ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_bad ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

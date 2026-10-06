@@ -113,9 +113,12 @@ CLASS zcl_example_inline IMPLEMENTATION.
     mv_p_factor = it_values[ name = 'P_FACTOR' ]-value.
     lv_json = ``.
     lv_label = 'DATA(lv_json)'.
-    lt_rows = VALUE ty_rows( ( name = `a` ) ( name = `b` ) ).
+    lt_rows = VALUE ty_rows(
+      ( name = `a` )
+      ( name = `b` ) ).
     LOOP AT lt_rows INTO ls_row.
-      lv_json = lv_json && ls_row-name.
+      lv_json = lv_json
+        && ls_row-name.
     ENDLOOP.
     form_show( io_session = io_session ).
   ENDMETHOD.
@@ -163,7 +166,7 @@ CLASS zcl_example_inline IMPLEMENTATION.
   METHOD form_show.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     DATA(lv_local) = |{ lv_label } { lv_json } { mv_p_factor }|.
-    lo_writer->write_field( VALUE #( text = |{ lv_local }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = lv_local ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

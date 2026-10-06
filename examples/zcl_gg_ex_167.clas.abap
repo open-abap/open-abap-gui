@@ -42,7 +42,9 @@ CLASS zcl_gg_ex_167 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~initialization.
     mv_p_mode = ct_values[ name = 'P_MODE' ]-value.
-    gt_values = VALUE #( ( key = 'D' text = 'Display' ) ( key = 'C' text = 'Change' ) ).
+    gt_values = VALUE #(
+      ( key = 'D' text = 'Display' )
+      ( key = 'C' text = 'Change' ) ).
     io_session->get_compatibility( )->set_selection_list_values(
       iv_id     = CONV string( gc_vrm_id-mode )
       it_values = gt_values ).
@@ -110,7 +112,7 @@ CLASS zcl_gg_ex_167 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_mode = it_values[ name = 'P_MODE' ]-value.
     lo_writer->write_field( VALUE #( text = 'Mode:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_mode }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_mode ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

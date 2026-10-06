@@ -87,7 +87,7 @@ CLASS zcl_example_incl_type IMPLEMENTATION.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_INCL_TYPE' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     form_fill( io_session = io_session ).
-    lo_writer->write_field( VALUE #( text = |{ lines( gt_alv ) }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = lines( gt_alv ) ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

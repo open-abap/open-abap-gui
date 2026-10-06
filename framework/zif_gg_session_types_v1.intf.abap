@@ -123,8 +123,9 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
          END OF ty_continuation.
 
   TYPES: BEGIN OF ty_resume,
-           continuation TYPE ty_continuation,
-           subrc        TYPE i,
+           module_context TYPE zif_gg_dynpro_types_v1=>ty_module_context,
+           continuation   TYPE ty_continuation,
+           subrc          TYPE i,
          END OF ty_resume.
 
 * MESSAGE <type><number>(<id>) WITH <v1> .. <v4>. An initial id means a free

@@ -150,15 +150,14 @@ CLASS zcl_example_dialog IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'GREET' ) ( 'BACK' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'GREET' )
+          ( 'BACK' ) ) ) ).
         io_session->get_dialog( )->set_title( 'Greeting' ).
       WHEN OTHERS.
         RETURN.

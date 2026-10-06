@@ -30,8 +30,9 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * offers them: a dialog is a popup of the screen, an upload carries the bytes
 * the user picked in it, and a download is handed to the browser with the page.
     TYPES: BEGIN OF ty_download,
-             filename TYPE string,
-             content  TYPE xstring,
+             filename  TYPE string,
+             content   TYPE xstring,
+             clipboard TYPE abap_bool,
            END OF ty_download.
     TYPES ty_downloads TYPE STANDARD TABLE OF ty_download WITH DEFAULT KEY.
 
@@ -52,8 +53,11 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING VALUE(rv_content) TYPE xstring.
 
     METHODS add_download
-      IMPORTING iv_filename TYPE string
-                iv_content  TYPE xstring.
+      IMPORTING iv_filename  TYPE string
+                iv_content   TYPE xstring
+                iv_clipboard TYPE abap_bool DEFAULT abap_false.
+
+    METHODS clipboard_input RETURNING VALUE(rv_text) TYPE string.
 
     METHODS get_downloads
       RETURNING VALUE(rt_downloads) TYPE ty_downloads.
@@ -390,7 +394,24 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_download.
-    APPEND VALUE #( filename = iv_filename content = iv_content ) TO mt_downloads.
+    APPEND VALUE #( filename = iv_filename content = iv_content clipboard = iv_clipboard ) TO mt_downloads.
+  ENDMETHOD.
+
+  METHOD clipboard_input.
+    IF mv_popup_interactive = abap_false.
+      RETURN.
+    ENDIF.
+    CASE mv_popup_action.
+      WHEN 'CLIPBOARD:OK'.
+        rv_text = VALUE #( mt_popup_input[ name = 'CONTENT' ]-value OPTIONAL ).
+        RETURN.
+      WHEN 'CLIPBOARD:CANCEL'.
+        RETURN.
+    ENDCASE.
+    ms_popup = VALUE #( kind = 'CLIPBOARD' title = 'Paste from clipboard'
+      buttons = VALUE #( ( value = 'OK' text = 'Paste' ) ( value = 'CANCEL' text = 'Cancel' ) ) ).
+    RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind      = zcx_gg_control_flow=>kind_popup
+                                             iv_operation = 'CLIPBOARD' ).
   ENDMETHOD.
 
   METHOD get_downloads.

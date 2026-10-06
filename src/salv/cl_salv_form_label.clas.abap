@@ -34,6 +34,9 @@ CLASS cl_salv_form_label IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_html.
-    result = |<span class="gg-salv-form-label" title="{ html( mv_tooltip ) }">{ html( mv_text ) }</span>|.
+    IF mo_label_for IS BOUND.
+      mo_label_for->set_label_id( get_id( ) ).
+    ENDIF.
+    result = |<span class="gg-salv-form-label" id="{ get_id( ) }" title="{ html( mv_tooltip ) }">{ html( mv_text ) }</span>|.
   ENDMETHOD.
 ENDCLASS.

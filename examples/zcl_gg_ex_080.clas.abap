@@ -286,7 +286,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = it_values[ name = 'P_RAD2' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( it_values[ name = 'S_END' ]-ranges ).
-    lo_writer->write_field( VALUE #( text = |{ gv_order }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_order ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

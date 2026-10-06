@@ -6,5 +6,5 @@ test(`ZCL_GG_EX_012 — applies INITIALIZATION values`, async ({page, host}) => 
   await submit(page);
   await expectPageKind(page, "LIST");
   await expect(page.locator(".gg-list-line")).toHaveCount(1);
-  await expect(page.locator(".gg-list")).toContainText("20260101");
+  await expect(page.locator(".gg-list")).toContainText("01/01/2026");
 });

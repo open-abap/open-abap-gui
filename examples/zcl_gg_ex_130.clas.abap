@@ -199,9 +199,6 @@ CLASS zcl_gg_ex_130 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
@@ -212,9 +209,13 @@ CLASS zcl_gg_ex_130 IMPLEMENTATION.
           go_document->add_text( text      = 'Document events'
                                  sap_style = cl_dd_area=>heading ).
           go_document->new_line( ).
-          go_document->add_link( EXPORTING url = '/safe/document'
-                                           text = 'Open document'
-                                           name = 'OPEN_DOC' IMPORTING link = go_link ).
+          go_document->add_link(
+            EXPORTING
+              url  = '/safe/document'
+              text = 'Open document'
+              name = 'OPEN_DOC'
+            IMPORTING
+              link = go_link ).
           zcl_gg_ex_130_h1=>go_owner = me.
           zcl_gg_ex_130_h1=>go_session = io_session.
           SET HANDLER zcl_gg_ex_130_h1=>on_clicked FOR go_link.

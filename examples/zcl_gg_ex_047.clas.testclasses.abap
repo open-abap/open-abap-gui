@@ -15,7 +15,7 @@ CLASS ltcl_ex_47 IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
-      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `GV_FIELD 1` ) ) ).
+      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `GV_FIELD                       1` ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

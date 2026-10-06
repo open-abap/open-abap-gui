@@ -90,7 +90,7 @@ CLASS zcl_example_types IMPLEMENTATION.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_TYPES' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     sflight-carrid = 'LH'.
-    lo_writer->write_field( VALUE #( text = |{ sflight-carrid }| placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = sflight-carrid ) placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

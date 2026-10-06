@@ -17,6 +17,8 @@ CLASS zcl_gg_ex_163 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     TYPES: BEGIN OF ty_status, traffic_light TYPE c LENGTH 4, event TYPE c LENGTH 30, object TYPE c LENGTH 20, END OF ty_status.
     DATA gt_statuses TYPE STANDARD TABLE OF ty_status WITH DEFAULT KEY.
     DATA ok_code TYPE sy-ucomm.
+    DATA mv_ggconv_lo_salv TYPE REF TO cl_salv_table.
+    DATA mv_ggconv_lo_column TYPE REF TO cl_salv_column_table.
     METHODS output_modules
       IMPORTING
         is_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
@@ -97,7 +99,9 @@ CLASS zcl_gg_ex_163 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'SALV column cast to column table' ).
-    gt_statuses = VALUE #( ( traffic_light = '@08@' event = 'CREATED' object = 'BUS2032' ) ( traffic_light = '@0A@' event = 'CHANGED' object = 'BUS2105' ) ).
+    gt_statuses = VALUE #(
+      ( traffic_light = '@08@' event = 'CREATED' object = 'BUS2032' )
+      ( traffic_light = '@0A@' event = 'CHANGED' object = 'BUS2105' ) ).
     io_session->get_dialog( )->call_screen(
       is_call         = VALUE #( screen = '0100' )
       is_continuation = VALUE #( id = 'AFTER_0100' ) ).
@@ -149,7 +153,13 @@ CLASS zcl_gg_ex_163 IMPLEMENTATION.
       ok_code = CONV #( ct_values[ name = 'OK_CODE' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS163' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS163' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -204,27 +214,38 @@ CLASS zcl_gg_ex_163 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
-    DATA lo_salv TYPE REF TO cl_salv_table.
-    DATA lo_column TYPE REF TO cl_salv_column_table.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS163' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS163' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' ) ) ) ).
         io_session->get_dialog( )->set_title( 'Event status' ).
         TRY.
-            cl_salv_table=>factory( IMPORTING r_salv_table = lo_salv CHANGING t_table = gt_statuses ).
-            lo_column ?= lo_salv->get_columns( )->get_column( 'TRAFFIC_LIGHT' ).
-            lo_column->set_icon( abap_true ).
-            lo_column->set_short_text( 'Status' ).
+            cl_salv_table=>factory(
+              IMPORTING
+                r_salv_table = mv_ggconv_lo_salv
+              CHANGING
+                t_table      = gt_statuses ).
+            mv_ggconv_lo_column ?= mv_ggconv_lo_salv->get_columns( )->get_column( 'TRAFFIC_LIGHT' ).
+            mv_ggconv_lo_column->set_icon( abap_true ).
+            mv_ggconv_lo_column->set_short_text( 'Status' ).
           CATCH cx_salv_msg cx_salv_not_found.
             RETURN.
         ENDTRY.
-        lo_salv->display( ).
+        mv_ggconv_lo_salv->display( ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.

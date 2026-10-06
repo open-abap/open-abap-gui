@@ -210,9 +210,9 @@ CLASS zcl_gg_ex_169 IMPLEMENTATION.
     mv_p_log = it_values[ name = 'P_LOG' ]-value.
     mv_p_max = it_values[ name = 'P_MAX' ]-value.
     lo_writer->write_field( VALUE #( text = 'Carrier:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_carr }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_carr ) ) ).
     lo_writer->write_field( VALUE #( text = 'Maximum rows:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_max }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_max ) ) ).
     IF mv_p_log = abap_true.
       lo_writer->write_field( VALUE #( text = 'Log requested' placement = VALUE #( new_line = abap_true ) ) ).
     ENDIF.

@@ -256,19 +256,40 @@ CLASS zcl_gg_ex_110 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' ) ) ) ).
       WHEN 'STATUS_0200'.
 * A modal dialog box: its own status and title, and it returns to the
 * screen that called it.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'DIALOG' active_ucomm = VALUE #( ( 'OK' ) ( 'CANCEL' ) ) active_pf_keys = VALUE #( ( 0 ) ( 12 ) ( 13 ) ( 14 ) ) exit_ucomm = VALUE #( ( 'CANCEL' ) ) icon_bar = VALUE #( ( ucomm = 'OK' label = 'Continue' icon = 'ICON_OKAY' ) ( ucomm = 'CANCEL' label = 'Cancel' icon = 'ICON_CANCEL' ) ) pf_actions = VALUE #( ( number = 0 ucomm = 'OK' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'OK' ) ( number = 14 ucomm = 'CANCEL' ) ) ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'DIALOG' active_ucomm = VALUE #(
+          ( 'OK' )
+          ( 'CANCEL' ) ) active_pf_keys = VALUE #(
+          ( 0 )
+          ( 12 )
+          ( 13 )
+          ( 14 ) ) exit_ucomm = VALUE #( ( 'CANCEL' ) ) icon_bar = VALUE #(
+          ( ucomm = 'OK' label = 'Continue' icon = 'ICON_OKAY' )
+          ( ucomm = 'CANCEL' label = 'Cancel' icon = 'ICON_CANCEL' ) ) pf_actions = VALUE #(
+          ( number = 0 ucomm = 'OK' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 13 ucomm = 'OK' )
+          ( number = 14 ucomm = 'CANCEL' ) ) ) ).
         io_session->get_dialog( )->set_title( 'Change name' ).
       WHEN OTHERS.
         RETURN.

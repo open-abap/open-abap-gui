@@ -72,6 +72,10 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         is_settings TYPE zif_gg_list_processing_types_v1=>ty_settings.
 
+    METHODS activate_level
+      IMPORTING
+        iv_level TYPE i.
+
     METHODS finish_output
       RETURNING
         VALUE(rt_lines) TYPE ty_text_lines.
@@ -188,7 +192,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_current_fragments TYPE ty_fragments.
     DATA mv_title     TYPE string.
     DATA mv_current   TYPE string.
-    DATA mv_column    TYPE i.
+    DATA mv_column    TYPE i VALUE 1.
     DATA mv_page      TYPE i.
     DATA mv_visible_page TYPE i.
     DATA mv_line      TYPE i.
@@ -345,6 +349,10 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD begin_event.
+    IF mv_list_level >= 20.
+      RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = zcx_gg_control_flow=>kind_unsupported
+        iv_operation                                   = 'Maximum list level 20 exceeded' ).
+    ENDIF.
     end_line( ).
     mv_list_index = mv_list_level.
     mv_event_line = iv_line.
@@ -609,7 +617,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
 
     rv_text = iv_text.
     lv_decimals = is_format-decimals.
-    IF lv_decimals = 0 AND is_format-currency IS NOT INITIAL.
+    IF is_format-decimals_set = abap_false AND lv_decimals = 0 AND is_format-currency IS NOT INITIAL.
       lv_decimals = 2.
     ENDIF.
     IF is_format-edit_mask IS NOT INITIAL.
@@ -617,7 +625,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
       REPLACE FIRST OCCURRENCE OF '*' IN rv_text WITH iv_text.
     ENDIF.
 
-    IF lv_decimals > 0 AND rv_text CO '0123456789.-+'.
+    IF ( lv_decimals > 0 OR is_format-decimals_set = abap_true ) AND rv_text CO '0123456789.-+'.
+      rv_text = |{ round( val = CONV decfloat34( rv_text )
+                          dec = lv_decimals ) }|.
       FIND FIRST OCCURRENCE OF '.' IN rv_text MATCH OFFSET lv_offset.
       IF sy-subrc = 0.
         lv_integer = substring( val = rv_text
@@ -636,7 +646,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
                                  off = 0
                                  len = lv_decimals ).
       ENDIF.
-      rv_text = lv_integer && `.` && lv_fraction.
+      rv_text = COND #( WHEN lv_decimals = 0 THEN lv_integer ELSE lv_integer && `.` && lv_fraction ).
 * Without DECIMALS a number keeps the decimals of its type, as the text
 * already shows them.
     ENDIF.
@@ -838,6 +848,73 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
     ms_format = is_format.
   ENDMETHOD.
 
+  METHOD activate_level.
+    IF iv_level = mv_list_level.
+      RETURN.
+    ENDIF.
+    load_buffer( buffer_of( iv_level ) ).
+  ENDMETHOD.
+
+  METHOD zif_gg_list_writer_v1~format_value.
+    DATA lv_type TYPE c LENGTH 1.
+    DESCRIBE FIELD iv_value TYPE lv_type.
+    CASE lv_type.
+      WHEN 'C'.
+        CONCATENATE iv_value `` INTO rv_text RESPECTING BLANKS.
+      WHEN 'D'.
+        DATA(lv_date) = CONV string( iv_value ).
+        DATA(lv_year) = substring( val = lv_date
+                                   len = 4 ).
+        DATA(lv_month) = substring( val = lv_date
+                                    off = 4
+                                    len = 2 ).
+        DATA(lv_day) = substring( val = lv_date
+                                  off = 6
+                                  len = 2 ).
+        CASE iv_date_mask.
+          WHEN 'USER'.
+            rv_text = |{ CONV d( iv_value ) DATE = USER }|.
+          WHEN 'DD/MM/YYYY'.
+            rv_text = lv_day && '/' && lv_month && '/' && lv_year.
+          WHEN 'MM/DD/YYYY'.
+            rv_text = lv_month && '/' && lv_day && '/' && lv_year.
+          WHEN 'DD/MM/YY'.
+            rv_text = lv_day && '/' && lv_month && '/' && substring( val = lv_year
+                                                                     off = 2 ).
+          WHEN 'MM/DD/YY'.
+            rv_text = lv_month && '/' && lv_day && '/' && substring( val = lv_year
+                                                                     off = 2 ).
+          WHEN 'DDMMYY'.
+            rv_text = lv_day && lv_month && substring( val = lv_year
+                                                       off = 2 ).
+          WHEN 'MMDDYY'.
+            rv_text = lv_month && lv_day && substring( val = lv_year
+                                                       off = 2 ).
+          WHEN 'YYMMDD'.
+            rv_text = substring( val = lv_year
+                                 off = 2 ) && lv_month && lv_day.
+          WHEN OTHERS.
+            rv_text = lv_year && '-' && lv_month && '-' && lv_day.
+        ENDCASE.
+      WHEN 'T'.
+        DATA(lv_time) = CONV string( iv_value ).
+        rv_text = substring( val = lv_time
+                             len = 2 ) && ':'
+          && substring( val = lv_time
+                        off = 2
+                        len = 2 ) && ':'
+          && substring( val = lv_time
+                        off = 4
+                        len = 2 ).
+      WHEN OTHERS.
+        rv_text = |{ iv_value }|.
+    ENDCASE.
+  ENDMETHOD.
+
+  METHOD zif_gg_list_writer_v1~get_format.
+    rs_format = ms_format.
+  ENDMETHOD.
+
   METHOD zif_gg_list_writer_v1~reset_format.
     CLEAR ms_format.
   ENDMETHOD.
@@ -874,6 +951,12 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_session_v1~set_level.
+    DATA(lv_maximum) = COND i( WHEN mv_event_active = abap_true THEN mv_event_level
+                               ELSE mv_list_level + 1 ).
+    IF iv_level > 20 OR iv_level > lv_maximum.
+      RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = zcx_gg_control_flow=>kind_unsupported
+        iv_operation                                   = 'Invalid list level' ).
+    ENDIF.
     mv_list_level = iv_level.
     IF mv_list_level < 0.
       CLEAR mv_list_level.

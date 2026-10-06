@@ -197,7 +197,19 @@ CLASS zcl_gg_ex_064 IMPLEMENTATION.
       gv_field = CONV #( ct_values[ name = 'GV_FIELD' ]-value ).
     ENDIF.
     IF is_context-screen = '0100'.
-      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ( 14 ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'ADD' ) ( number = 14 ucomm = 'UNDO' ) ) icon_bar = VALUE #( ( ucomm = 'ADD' label = 'Add note' icon = 'ICON_CREATE' ) ( ucomm = 'UNDO' label = 'Remove note' icon = 'ICON_DELETE' ) ) ) ).
+      io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
+        ( 3 )
+        ( 15 )
+        ( 12 )
+        ( 13 )
+        ( 14 ) ) pf_actions = VALUE #(
+        ( number = 3 ucomm = 'BACK' )
+        ( number = 15 ucomm = 'EXIT' )
+        ( number = 12 ucomm = 'CANCEL' )
+        ( number = 13 ucomm = 'ADD' )
+        ( number = 14 ucomm = 'UNDO' ) ) icon_bar = VALUE #(
+        ( ucomm = 'ADD' label = 'Add note' icon = 'ICON_CREATE' )
+        ( ucomm = 'UNDO' label = 'Remove note' icon = 'ICON_DELETE' ) ) ) ).
     ENDIF.
     TRY.
         output_modules(
@@ -308,9 +320,6 @@ CLASS zcl_gg_ex_064 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_on_help_request.
     DATA ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     ct_values = it_values.
-    IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      rv_text = ct_values[ name = 'GV_RESULT' ]-value.
-    ENDIF.
   ENDMETHOD.
 
   METHOD output_modules.
@@ -328,7 +337,27 @@ CLASS zcl_gg_ex_064 IMPLEMENTATION.
           APPEND INITIAL LINE TO lt_ggconv_excluded ASSIGNING FIELD-SYMBOL(<lv_ggconv_excluded>).
           <lv_ggconv_excluded> = lv_ggconv_excluded.
         ENDLOOP.
-        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #( ( 'BACK' ) ( 'EXIT' ) ( 'CANCEL' ) ( 'ADD' ) ( 'UNDO' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ( 14 ) ) exit_ucomm = VALUE #( ( 'BACK' ) ( 'CANCEL' ) ( 'EXIT' ) ) icon_bar = VALUE #( ( ucomm = 'ADD' label = 'Add note' icon = 'ICON_CREATE' ) ( ucomm = 'UNDO' label = 'Remove note' icon = 'ICON_DELETE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = 'EXIT' ) ( number = 12 ucomm = 'CANCEL' ) ( number = 13 ucomm = 'ADD' ) ( number = 14 ucomm = 'UNDO' ) ) excluded_ucomm = lt_ggconv_excluded ) ).
+        io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'EXIT' )
+          ( 'CANCEL' )
+          ( 'ADD' )
+          ( 'UNDO' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 13 )
+          ( 14 ) ) exit_ucomm = VALUE #(
+          ( 'BACK' )
+          ( 'CANCEL' )
+          ( 'EXIT' ) ) icon_bar = VALUE #(
+          ( ucomm = 'ADD' label = 'Add note' icon = 'ICON_CREATE' )
+          ( ucomm = 'UNDO' label = 'Remove note' icon = 'ICON_DELETE' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = 'EXIT' )
+          ( number = 12 ucomm = 'CANCEL' )
+          ( number = 13 ucomm = 'ADD' )
+          ( number = 14 ucomm = 'UNDO' ) ) excluded_ucomm = lt_ggconv_excluded ) ).
         io_session->get_dialog( )->set_title( |Notes: { gv_count }| ).
         io_session->get_dialog( )->set_cursor( VALUE #( field = CONV string( gv_cursor ) ) ).
       WHEN OTHERS.

@@ -88,14 +88,32 @@ CLASS zcl_gg_ex_094 IMPLEMENTATION.
 * AT USER-COMMAND.
     io_session->get_list( )->set_title( 'Print a list' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'PRI' ) ( 'TOTAL' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 86 ) ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'TOTAL' label = 'Total' icon = 'ICON_SUM' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 86 ucomm = 'PRI' ) ( number = 13 ucomm = 'TOTAL' ) ) ) ).
-    gt_bookings = VALUE #( ( customer = 'Ada Lovelace' seats = 2 ) ( customer = 'Grace Hopper' seats = 3 ) ( customer = 'Alan Turing' seats = 1 ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #(
+      ( 'BACK' )
+      ( '%EX' )
+      ( 'RW' )
+      ( 'PRI' )
+      ( 'TOTAL' ) ) active_pf_keys = VALUE #(
+      ( 3 )
+      ( 15 )
+      ( 12 )
+      ( 86 )
+      ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'TOTAL' label = 'Total' icon = 'ICON_SUM' ) ) pf_actions = VALUE #(
+      ( number = 3 ucomm = 'BACK' )
+      ( number = 15 ucomm = '%EX' )
+      ( number = 12 ucomm = 'RW' )
+      ( number = 86 ucomm = 'PRI' )
+      ( number = 13 ucomm = 'TOTAL' ) ) ) ).
+    gt_bookings = VALUE #(
+      ( customer = 'Ada Lovelace' seats = 2 )
+      ( customer = 'Grace Hopper' seats = 3 )
+      ( customer = 'Alan Turing' seats = 1 ) ).
     lo_writer->write_field( VALUE #( text = 'Customer' placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'Seats' placement = VALUE #( position = 24 ) ) ).
     lo_writer->uline( VALUE #( ) ).
     LOOP AT gt_bookings INTO gs_booking.
-      lo_writer->write_field( VALUE #( text = |{ gs_booking-customer }| placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gs_booking-seats }| placement = VALUE #( position = 24 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_booking-customer ) placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_booking-seats ) placement = VALUE #( position = 24 ) ) ).
     ENDLOOP.
   ENDMETHOD.
 
@@ -139,7 +157,7 @@ CLASS zcl_gg_ex_094 IMPLEMENTATION.
         gv_seats = gv_seats + gs_booking-seats.
       ENDLOOP.
       lo_writer->write_field( VALUE #( text = 'Seats booked' placement = VALUE #( new_line = abap_true ) ) ).
-      lo_writer->write_field( VALUE #( text = |{ gv_seats }| placement = VALUE #( position = 24 ) ) ).
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_seats ) placement = VALUE #( position = 24 ) ) ).
     ENDIF.
   ENDMETHOD.
 

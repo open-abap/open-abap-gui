@@ -263,13 +263,13 @@ CLASS zcl_example_ddic IMPLEMENTATION.
     mv_p_date = it_values[ name = 'P_DATE' ]-value.
     mv_s_date = CORRESPONDING #( it_values[ name = 'S_DATE' ]-ranges ).
     lo_writer->write_field( VALUE #( text = 'Runs:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_count }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_count ) ) ).
     lo_writer->write_field( VALUE #( text = 'Amount:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_amount }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_amount ) ) ).
     lo_writer->write_field( VALUE #( text = 'Date:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_date }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_date ) ) ).
     lo_writer->write_field( VALUE #( text = 'Carrier:' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = |{ mv_p_carr }| ) ).
+    lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_carr ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_get.

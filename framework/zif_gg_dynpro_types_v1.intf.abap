@@ -235,6 +235,7 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            input             TYPE abap_bool,
            output            TYPE abap_bool,
            required          TYPE abap_bool,
+           recommended       TYPE abap_bool,
            intensified       TYPE abap_bool,
            no_display        TYPE abap_bool,
            password          TYPE abap_bool,

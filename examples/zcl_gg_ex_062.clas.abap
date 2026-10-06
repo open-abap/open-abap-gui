@@ -81,7 +81,19 @@ CLASS zcl_gg_ex_062 IMPLEMENTATION.
 * offered, in the application toolbar and on Ctrl+S.
     io_session->get_list( )->set_title( 'Change the status after a function' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    io_session->get_list( )->set_status( VALUE #( status = 'EDIT' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'CHECK' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'CHECK' label = 'Check' icon = 'ICON_OKAY' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 13 ucomm = 'CHECK' ) ) ) ).
+    io_session->get_list( )->set_status( VALUE #( status = 'EDIT' active_ucomm = VALUE #(
+      ( 'BACK' )
+      ( '%EX' )
+      ( 'RW' )
+      ( 'CHECK' ) ) active_pf_keys = VALUE #(
+      ( 3 )
+      ( 15 )
+      ( 12 )
+      ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'CHECK' label = 'Check' icon = 'ICON_OKAY' ) ) pf_actions = VALUE #(
+      ( number = 3 ucomm = 'BACK' )
+      ( number = 15 ucomm = '%EX' )
+      ( number = 12 ucomm = 'RW' )
+      ( number = 13 ucomm = 'CHECK' ) ) ) ).
     lo_writer->write_field( VALUE #( text = 'Order 4711, not checked' placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
@@ -121,7 +133,21 @@ CLASS zcl_gg_ex_062 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     CASE iv_ucomm.
       WHEN 'CHECK'.
-        io_session->get_list( )->set_status( VALUE #( status = 'CHECKED' active_ucomm = VALUE #( ( 'BACK' ) ( '%EX' ) ( 'RW' ) ( 'SAVE' ) ) active_pf_keys = VALUE #( ( 3 ) ( 15 ) ( 12 ) ( 11 ) ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) pf_actions = VALUE #( ( number = 3 ucomm = 'BACK' ) ( number = 15 ucomm = '%EX' ) ( number = 12 ucomm = 'RW' ) ( number = 11 ucomm = 'SAVE' ) ( number = 13 ucomm = 'SAVE' ) ) ) ).
+        io_session->get_list( )->set_status( VALUE #( status = 'CHECKED' active_ucomm = VALUE #(
+          ( 'BACK' )
+          ( '%EX' )
+          ( 'RW' )
+          ( 'SAVE' ) ) active_pf_keys = VALUE #(
+          ( 3 )
+          ( 15 )
+          ( 12 )
+          ( 11 )
+          ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'SAVE' label = 'Save' icon = 'ICON_SYSTEM_SAVE' ) ) pf_actions = VALUE #(
+          ( number = 3 ucomm = 'BACK' )
+          ( number = 15 ucomm = '%EX' )
+          ( number = 12 ucomm = 'RW' )
+          ( number = 11 ucomm = 'SAVE' )
+          ( number = 13 ucomm = 'SAVE' ) ) ) ).
         lo_writer->write_field( VALUE #( text = 'Order 4711, checked' placement = VALUE #( new_line = abap_true ) ) ).
       WHEN 'SAVE'.
         lo_writer->write_field( VALUE #( text = 'Order 4711, saved' placement = VALUE #( new_line = abap_true ) ) ).

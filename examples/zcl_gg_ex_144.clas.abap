@@ -84,9 +84,16 @@ CLASS zcl_gg_ex_144 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'SALV table' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 180 ) ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' seatsocc = 210 ) ( carrid = 'AF' connid = '0010' cityfrom = 'Paris' cityto = 'New York' seatsocc = 160 ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' seatsocc = 180 )
+      ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' seatsocc = 210 )
+      ( carrid = 'AF' connid = '0010' cityfrom = 'Paris' cityto = 'New York' seatsocc = 160 ) ).
     TRY.
-        cl_salv_table=>factory( IMPORTING r_salv_table = go_alv CHANGING t_table = gt_flights ).
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table = go_alv
+          CHANGING
+            t_table      = gt_flights ).
       CATCH cx_salv_msg INTO gx_msg.
         io_session->message(
           is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_error )

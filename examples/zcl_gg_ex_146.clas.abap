@@ -86,10 +86,17 @@ CLASS zcl_gg_ex_146 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'SALV header and footer' ).
-    gt_flights = VALUE #( ( carrid = 'LH' connid = '0400' seatsocc = 180 ) ( carrid = 'UA' connid = '0941' seatsocc = 210 ) ( carrid = 'AF' connid = '0010' seatsocc = 160 ) ).
+    gt_flights = VALUE #(
+      ( carrid = 'LH' connid = '0400' seatsocc = 180 )
+      ( carrid = 'UA' connid = '0941' seatsocc = 210 )
+      ( carrid = 'AF' connid = '0010' seatsocc = 160 ) ).
     gv_total = REDUCE i( INIT n = 0 FOR ls_flight IN gt_flights NEXT n = n + ls_flight-seatsocc ).
     TRY.
-        cl_salv_table=>factory( IMPORTING r_salv_table = go_alv CHANGING t_table = gt_flights ).
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table = go_alv
+          CHANGING
+            t_table      = gt_flights ).
       CATCH cx_salv_msg INTO gx_msg.
         io_session->message(
           is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_error )

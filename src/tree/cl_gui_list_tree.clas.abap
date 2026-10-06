@@ -37,11 +37,15 @@ CLASS cl_gui_list_tree IMPLEMENTATION.
       parent  = parent
       kind    = 'LIST_TREE' ).
     parent->add_child( me ).
+    hierarchy_header_set_text( hierarchy_header-heading ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
   METHOD hierarchy_header_set_text.
     cl_gui_control=>set_payload( control = me
                                  payload = CONV string( text ) ).
+    mv_html_header = CONV string( text ).
+    refresh_tree_html( ).
   ENDMETHOD.
 
 ENDCLASS.

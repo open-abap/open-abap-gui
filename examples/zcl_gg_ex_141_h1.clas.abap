@@ -35,18 +35,27 @@ CLASS zcl_gg_ex_141_h1 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD build_nodes.
-    io_owner->gt_nodes = VALUE #( ( node_key = 'ROOT' isfolder = abap_true expander = abap_true ) ( node_key = 'LH0400' relatkey = 'ROOT' relatship = cl_gui_column_tree=>relat_last_child ) ( node_key = 'UA0941' relatkey = 'ROOT' relatship = cl_gui_column_tree=>relat_last_child ) ).
-    io_owner->gt_items = VALUE #( ( node_key = 'ROOT' item_name = '1' class = cl_gui_column_tree=>item_class_text text = 'Flights' ) ( node_key = 'LH0400' item_name = '1' class = cl_gui_column_tree=>item_class_text text = 'LH 0400' ) ( node_key = 'LH0400' item_name = '2' class = cl_gui_column_tree=>item_class_text text = 'On time' ) ( node_key = 'UA0941' item_name = '1' class = cl_gui_column_tree=>item_class_text text = 'UA 0941' ) ( node_key = 'UA0941' item_name = '2' class = cl_gui_column_tree=>item_class_text text = 'Delayed' ) ).
+    io_owner->gt_nodes = VALUE #(
+      ( node_key = 'ROOT' isfolder = abap_true expander = abap_true )
+      ( node_key = 'LH0400' relatkey = 'ROOT' relatship = cl_gui_column_tree=>relat_last_child )
+      ( node_key = 'UA0941' relatkey = 'ROOT' relatship = cl_gui_column_tree=>relat_last_child ) ).
+    io_owner->gt_items = VALUE #(
+      ( node_key = 'ROOT' item_name = '1' class = cl_gui_column_tree=>item_class_text text = 'Flights' )
+      ( node_key = 'LH0400' item_name = '1' class = cl_gui_column_tree=>item_class_text text = 'LH 0400' )
+      ( node_key = 'LH0400' item_name = '2' class = cl_gui_column_tree=>item_class_text text = 'On time' )
+      ( node_key = 'UA0941' item_name = '1' class = cl_gui_column_tree=>item_class_text text = 'UA 0941' )
+      ( node_key = 'UA0941' item_name = '2' class = cl_gui_column_tree=>item_class_text text = 'Delayed' ) ).
   ENDMETHOD.
 
   METHOD create_list_tree.
     io_owner->gs_header-heading = 'Flight'.
     io_owner->gs_header-width = 20.
-    CREATE OBJECT io_owner->go_list_tree TYPE cl_gui_list_tree EXPORTING parent              = io_owner->go_splitter->top_left_container
-                                                                         node_selection_mode = cl_gui_list_tree=>node_sel_mode_single
-                                                                         item_selection      = abap_false
-                                                                         with_headers        = abap_true
-                                                                         hierarchy_header    = io_owner->gs_header.
+    CREATE OBJECT io_owner->go_list_tree TYPE cl_gui_list_tree
+      EXPORTING parent              = io_owner->go_splitter->top_left_container
+                node_selection_mode = cl_gui_list_tree=>node_sel_mode_single
+                item_selection      = abap_false
+                with_headers        = abap_true
+                hierarchy_header    = io_owner->gs_header.
     io_owner->go_list_tree->add_nodes_and_items( node_table                = io_owner->gt_nodes
                                                  item_table                = io_owner->gt_items
                                                  item_table_structure_name = 'MTREEITM' ).
@@ -57,11 +66,12 @@ CLASS zcl_gg_ex_141_h1 IMPLEMENTATION.
     DATA lt_items TYPE zcl_gg_ex_141=>ty_items.
     io_owner->gs_header-heading = 'Flight'.
     io_owner->gs_header-width = 20.
-    CREATE OBJECT io_owner->go_column_tree TYPE cl_gui_column_tree EXPORTING parent                = io_owner->go_splitter->bottom_right_container
-                                                                             node_selection_mode   = cl_gui_column_tree=>node_sel_mode_single
-                                                                             item_selection        = abap_false
-                                                                             hierarchy_column_name = 'FLIGHT'
-                                                                             hierarchy_header      = io_owner->gs_header.
+    CREATE OBJECT io_owner->go_column_tree TYPE cl_gui_column_tree
+      EXPORTING parent                = io_owner->go_splitter->bottom_right_container
+                node_selection_mode   = cl_gui_column_tree=>node_sel_mode_single
+                item_selection        = abap_false
+                hierarchy_column_name = 'FLIGHT'
+                hierarchy_header      = io_owner->gs_header.
     io_owner->go_column_tree->add_column( name        = 'STATUS'
                                           width       = 15
                                           header_text = 'Status' ).
