@@ -32,7 +32,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@abaplint/core": "^2.120.64"
+    "@abaplint/core": "^2.120.68"
   },
   "license": ""
 }
