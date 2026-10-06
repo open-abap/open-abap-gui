@@ -662,7 +662,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       LOOP AT rs_request-values INTO DATA(ls_value).
         INSERT VALUE #(
           container = ``
-          name      = CONV zif_gg_dynpro_types_v1=>ty_name( ls_value-name )
+          name      = ls_value-name
           row       = 0
           value     = ls_value-value ) INTO TABLE rs_request-dynpro_values.
       ENDLOOP.

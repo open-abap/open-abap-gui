@@ -86,7 +86,11 @@ await rm(screenshotsDirectory, {recursive: true, force: true});
 await mkdir(screenshotsDirectory, {recursive: true});
 
 const browser = await chromium.launch({headless: true});
-const page = await browser.newPage({viewport});
+// Screenshots are compared pixel by pixel against the main branch, so they
+// must not catch a popup or a status bar message halfway through its entry
+// animation. The pages drop their animations when the reader asks for reduced
+// motion; disabling animations on capture covers any that do not.
+const page = await browser.newPage({viewport, reducedMotion: "reduce"});
 const browserErrors = [];
 
 // The HTML viewer shows program HTML in a frame sandboxed without scripts, so a
@@ -146,6 +150,7 @@ try {
     await page.screenshot({
       path: resolve(screenshotsDirectory, `${tcode.toLowerCase()}.png`),
       fullPage: false,
+      animations: "disabled",
     });
   }
 
@@ -155,6 +160,7 @@ try {
     await page.screenshot({
       path: resolve(screenshotsDirectory, `${program.toLowerCase()}.png`),
       fullPage: false,
+      animations: "disabled",
     });
   }
 

@@ -658,7 +658,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     rs_result-modal_position = is_modal_position.
     rs_result-help_name = COND #( WHEN iv_value_request IS INITIAL
                                   THEN iv_help_request
-                                  ELSE CONV zif_gg_dynpro_types_v1=>ty_name( iv_value_request ) ).
+                                  ELSE iv_value_request ).
     lo_session->set_processor(
       iv_processor = zif_gg_session_types_v1=>processor_dynpro
       iv_screen    = lv_screen ).
