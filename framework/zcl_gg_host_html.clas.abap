@@ -519,6 +519,11 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
 * element in the selector outranks the font:inherit of the input rules above.
     rv_html = rv_html && |.gg-selection input.gg-type-date,.gg-selection input.gg-type-time,.gg-dynpro input.gg-type-date,.gg-dynpro input.gg-type-time\{font-family:var(--gg-mono-font);\}|.
     rv_html = rv_html && |.gg-dynpro input[type=checkbox],.gg-dynpro input[type=radio]\{width:14px;height:14px;margin:0;flex:0 0 auto;accent-color:#28679e;\}|.
+* A checkbox or radio button sits centred on its text, a little apart from it.
+* The text box is trimmed to cap height and baseline, so the letters are
+* centred, not the line box with the font's extra ascent.
+    rv_html = rv_html && |.gg-dynpro label.gg-dynpro-control\{display:flex;align-items:center;gap:6px;\}|.
+    rv_html = rv_html && |.gg-dynpro label.gg-dynpro-control>span\{text-box:trim-both cap alphabetic;\}|.
     rv_html = rv_html && |.gg-dynpro-control>input[type=text],.gg-dynpro-control>input[type=password]\{width:100%;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text]:focus:not([readonly]),.gg-dynpro input[type=password]:focus:not([readonly]),.gg-dynpro select:focus\{background-color:#fff1a6;\}|.
     rv_html = rv_html && |.gg-dynpro button\{min-height:26px;padding:2px 12px;border:1px solid #8c8c8c;border-radius:2px;background:linear-gradient(#fefefe,#d9d9d9);color:#163e6b;cursor:pointer;\}|.
