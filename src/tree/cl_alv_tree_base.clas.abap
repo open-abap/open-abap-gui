@@ -864,6 +864,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     DATA lr_data_row TYPE REF TO data.
     DATA ls_new_node TYPE ty_html_node.
     DATA lv_insert_index TYPE i.
+    FIELD-SYMBOLS <data_row_copy> TYPE any.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
       WITH KEY node_key = node_key.
     IF sy-subrc = 0.
@@ -873,7 +874,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 * the caller's variable usually changes with the next node.
     IF data_row IS SUPPLIED.
       CREATE DATA lr_data_row LIKE data_row.
-      lr_data_row->* = data_row.
+      ASSIGN lr_data_row->* TO <data_row_copy>.
+      <data_row_copy> = data_row.
     ENDIF.
     ls_new_node = VALUE #( node_key     = node_key
                            parent_key   = parent_key
