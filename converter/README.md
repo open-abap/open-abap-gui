@@ -29,16 +29,6 @@ preserved in the emitted class, set `partialStrategy: "skeleton"`. The default
 `"preserve"` strategy keeps supported lowering around the explicit TODOs for
 hands-on migration work.
 
-Read-only workbench adapters can use `previewProgram` or
-`previewRepositoryProgram` from `src/index.mjs`. The preview contract requires
-an explicit target class, reports a collision before offering generated source,
-and returns `repositoryChanged: false`; source is returned only when the caller
-explicitly requests it after inspecting diagnostics. The adapter accepts only a
-read-side `getProgram` callback and has no save or activation path. A real
-workbench can wrap that adapter with `createWorkbenchService`; its separate
-`save`/`create` methods require authorization, CSRF validation, a matching
-repository revision, and an explicit writer before they can mutate anything.
-
 The CLI is driven by the same `abap_transpile.json` the transpiler reads:
 
 ```text
@@ -320,11 +310,6 @@ browser gates in one sequence. 058 screen/flow/status parity is checked when the
 corresponding explicit metadata is supplied. `browser` builds a disposable generated
 058 class, runs its ABAP Unit transitions, and drives the generated transaction
 through the HTTP/Playwright boundary without changing the shipped catalog.
-The workbench Tools menu opens `/converter/preview`, a read-only HTTP adapter
-that lists display-authorized programs, requires an explicit target class and
-collision confirmation, and offers diagnostics before generated source or a
-download. Save and activation remain unavailable until a separately authorized
-repository writer is supplied.
 `coverage` reports capability coverage by parsed AST construct across
 the repository fixtures.
 The converter also enforces configurable source byte/line and conversion-time

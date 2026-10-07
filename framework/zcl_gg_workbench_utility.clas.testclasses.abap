@@ -3,6 +3,7 @@ CLASS ltcl_gg_workbench_utility DEFINITION FINAL FOR TESTING DURATION SHORT RISK
   PRIVATE SECTION.
     METHODS renders_styles FOR TESTING.
     METHODS renders_top FOR TESTING.
+    METHODS renders_main_menu FOR TESTING.
     METHODS renders_status_owned_icon_bar FOR TESTING.
     METHODS routes_back_when_active FOR TESTING.
     METHODS renders_bottom FOR TESTING.
@@ -129,12 +130,36 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '<nav class="wb-menu-items wb-status-menu-items" role="menubar" aria-label="Application menu"><details' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Sample</summary>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Options</summary>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Applications</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1>' ) ).
-* The app bar shows the title only, so the CUA status name never reaches the page.
+* The app bar shows the title only; the CUA status name shows in System > Status.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1></header>' ) ).
-    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_dynpro_html CS 'STATUS' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '<dt>GUI status</dt><dd>STATUS</dd>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<dt>GUI status</dt>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_dynpro_html CS 'wb-appbar--dynpro' ) ).
+  ENDMETHOD.
+
+  METHOD renders_main_menu.
+    DATA(lv_html) = zcl_gg_workbench_utility=>render_top( ).
+
+* The main menu holds System and Help, nothing else.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'aria-haspopup="menu" aria-expanded="false" aria-controls="wb-system-menu" data-system-menu>System</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<a class="wb-menu" role="menuitem" href="https://open-abap.org" target="_blank" rel="noopener noreferrer">Help</a>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>Applications<' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>Favorites<' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '>Tools<' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '/converter/preview' ) ).
+* System > Status opens the status dialog, hidden until then.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-controls="wb-system-status" data-system-status-open>Status...</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '<div id="wb-system-status" class="wb-dialog" role="dialog" aria-modal="true" aria-labelledby="wb-system-status-title" hidden>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>System: Status</h2>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |<dt>Client</dt><dd>{ sy-mandt }</dd>| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |<dt>User</dt><dd>{ sy-uname }</dd>| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |<dt>System ID</dt><dd>{ sy-sysid }</dd>| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      |<dt>System date</dt><dd>{ sy-datum+6(2) }.{ sy-datum+4(2) }.{ sy-datum(4) }</dd>| ) ).
   ENDMETHOD.
 
   METHOD renders_bottom.
@@ -223,7 +248,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
       'title="alpha beta" aria-haspopup="dialog" aria-controls="wb-message-details">' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
-      '<div id="wb-message-details" class="wb-message-details" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>' ) ).
+      '<div id="wb-message-details" class="wb-dialog" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Message type</dt><dd>I</dd>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Message class</dt><dd>ZGG_EX</dd>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<dt>Message number</dt><dd>001</dd>' ) ).

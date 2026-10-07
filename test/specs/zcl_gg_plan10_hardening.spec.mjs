@@ -58,7 +58,9 @@ test("PLAN10 - keeps URL and upload metadata browser-owned", async ({page, host}
   await page.waitForLoadState("load");
   await expect(page.locator("#gg-dynpro-control-n-GV_FIRST_LINE")).toHaveText("browser-owned fixture");
 
+  // The shell's own Help link is the one absolute URL the page may carry.
   const unsafeLinks = await page.locator("a[href], iframe[src]").evaluateAll((elements) => elements
+    .filter((element) => !element.closest(".wb-menubar"))
     .map((element) => element.getAttribute("href") || element.getAttribute("src") || "")
     .filter((url) => /^(?:javascript:|data:|file:|https?:\/\/)/i.test(url)));
   expect(unsafeLinks).toEqual([]);

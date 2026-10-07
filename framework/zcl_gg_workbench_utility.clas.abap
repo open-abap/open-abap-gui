@@ -54,6 +54,31 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS form_workbench TYPE string VALUE 'wb-command-workbench'.
     CONSTANTS form_dispatch  TYPE string VALUE 'wb-command-dispatch'.
     CONSTANTS form_transaction TYPE string VALUE 'wb-command-transaction'.
+    CONSTANTS system_status_id TYPE string VALUE 'wb-system-status'.
+    CONSTANTS help_url TYPE string VALUE 'https://open-abap.org'.
+
+* System > Status: the session's client, user and language, the system and
+* the host, as SAP GUI shows them in its System: Status dialog.
+    CLASS-METHODS render_system_status
+      IMPORTING
+        is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
+    TYPES: BEGIN OF ty_status_row,
+             label TYPE string,
+             value TYPE string,
+           END OF ty_status_row.
+    TYPES ty_status_rows TYPE STANDARD TABLE OF ty_status_row WITH DEFAULT KEY.
+
+* One titled group of the System: Status dialog.
+    CLASS-METHODS status_group
+      IMPORTING
+        iv_id          TYPE string
+        iv_title       TYPE string
+        it_rows        TYPE ty_status_rows
+      RETURNING
+        VALUE(rv_html) TYPE string.
 
     CLASS-METHODS status_attrs
       IMPORTING
@@ -206,35 +231,50 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-status-info:not(:empty){--wb-status-accent:#0a6ed1;--wb-status-tint:#f5faff}' &&
       '@keyframes wb-status-pop{0%{opacity:0;transform:translateX(-6px)}100%{opacity:1;transform:none}}' &&
       '@media(prefers-reduced-motion:reduce){.wb-status-feedback:not(:empty){animation:none}}' &&
-* The technical information of the message opens above everything, the
-* clipped message included.
-      '.wb-message-details{position:fixed;inset:0;z-index:1400;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(19,45,72,.48)}' &&
-      '.wb-message-details[hidden]{display:none}' &&
-      '.wb-message-details-panel{width:min(460px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#f8fbfe;border:1px solid #7594b2;border-radius:5px;box-shadow:0 18px 48px rgba(18,52,84,.34);color:#1d2d3e;font-size:13px}' &&
-      '.wb-message-details-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;background:linear-gradient(#f8fbfe,#e2edf7);border-bottom:1px solid #b4c8db}' &&
-      '.wb-message-details-header h2{margin:0;color:#174a80;font-size:16px;font-weight:650;line-height:1.25}' &&
-      '.wb-message-details-close{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid transparent;border-radius:3px;background:transparent;color:#315a7f;cursor:pointer}' &&
-      '.wb-message-details-close:hover,.wb-message-details-close:focus{border-color:#86a9cc;background:#d9e8f7;color:#123b64;outline:0}' &&
-      '.wb-message-details-close .wb-icon{width:17px;height:17px}' &&
-      '.wb-message-details dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0;padding:12px 14px 14px}' &&
-      '.wb-message-details dt{color:#315a7f}' &&
-      '.wb-message-details dd{margin:0;min-height:1.2em;font-family:Consolas,"Courier New",monospace;overflow-wrap:anywhere}' &&
+* A dialog, the technical information of the message or the system status,
+* opens above everything, the clipped message included.
+      '.wb-dialog{position:fixed;inset:0;z-index:1400;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(19,45,72,.48)}' &&
+      '.wb-dialog[hidden]{display:none}' &&
+      '.wb-dialog-panel{width:min(460px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#f8fbfe;border:1px solid #7594b2;border-radius:5px;box-shadow:0 18px 48px rgba(18,52,84,.34);color:#1d2d3e;font-size:13px}' &&
+      '.wb-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;background:linear-gradient(#f8fbfe,#e2edf7);border-bottom:1px solid #b4c8db}' &&
+      '.wb-dialog-header h2{margin:0;color:#174a80;font-size:16px;font-weight:650;line-height:1.25}' &&
+      '.wb-dialog-close{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid transparent;border-radius:3px;background:transparent;color:#315a7f;cursor:pointer}' &&
+      '.wb-dialog-close:hover,.wb-dialog-close:focus{border-color:#86a9cc;background:#d9e8f7;color:#123b64;outline:0}' &&
+      '.wb-dialog-close .wb-icon{width:17px;height:17px}' &&
+      '.wb-dialog dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0;padding:12px 14px 14px}' &&
+      '.wb-dialog dt{color:#315a7f}' &&
+      '.wb-dialog dd{margin:0;min-height:1.2em;font-family:Consolas,"Courier New",monospace;overflow-wrap:anywhere}' &&
+* The system status groups its values in titled frames, each value in an
+* output field, as SAP GUI does.
+      '.wb-system-status{width:min(520px,100%)}' &&
+      '.wb-system-status section{margin:10px 14px;border:1px solid #b4c8db;border-radius:3px;background:var(--gg-panel)}' &&
+      '.wb-system-status section:last-child{margin-bottom:14px}' &&
+      '.wb-system-status h3{margin:0;padding:4px 10px;color:#174a80;font-size:13px;font-weight:600;background:linear-gradient(#f8fbfe,#e2edf7);border-bottom:1px solid #b4c8db}' &&
+      '.wb-system-status dl{grid-template-columns:130px minmax(0,1fr);align-items:center;padding:8px 10px}' &&
+      '.wb-system-status dd{justify-self:start;min-width:12ch;padding:2px 6px;background:#fff;border:1px solid var(--gg-border);border-radius:2px}' &&
       '.wb-status-context{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:18px;white-space:nowrap}' &&
       '.wb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' &&
       '.wb-skip-link:focus{position:fixed;left:8px;top:8px;z-index:2000;width:auto;height:auto;padding:6px 10px;margin:0;overflow:visible;clip:auto;white-space:normal;background:var(--gg-action);color:#132d4b;border:1px solid var(--gg-border-dark);box-shadow:0 2px 6px rgba(34,67,102,.24)}' &&
       '@media(max-width:760px){.wb-runtime-content,.wb-statusbar{margin-left:10px;margin-right:10px}.wb-command-input{width:130px}}' &&
-      '@media(max-width:760px){html,body{height:auto;min-height:100%;overflow:auto}.wb-shell{height:auto;min-height:100vh;overflow:visible}.wb-menubar{height:auto;min-height:32px;overflow-x:auto;white-space:nowrap}.wb-commandbar{height:auto;min-height:38px;flex-wrap:wrap;align-content:center;padding:4px 10px}.wb-command-input{flex:1 1 140px;width:auto;min-width:0}.wb-command-error{order:4;flex-basis:100%;max-width:100%;margin:0}.wb-appbar{padding:6px 10px}.wb-toolbar{overflow-x:auto;white-space:nowrap;padding:4px 10px}.wb-runtime-content{margin:6px 10px 0;padding:10px;overflow:auto}.wb-runtime-content--dynpro{margin:6px 10px 0;padding:0;overflow:auto}.wb-shell{padding-bottom:40px;box-sizing:border-box}.wb-statusbar{position:fixed;left:10px;right:10px;bottom:8px;z-index:5;gap:8px;margin:0;padding:0 8px}.wb-status-feedback:not(:empty){margin-left:-8px}.wb-status-context{gap:8px}}'.
+      '@media(max-width:760px){html,body{height:auto;min-height:100%;overflow:auto}.wb-shell{height:auto;min-height:100vh;overflow:visible}.wb-menubar{height:auto;min-height:32px;white-space:nowrap}.wb-commandbar{height:auto;min-height:38px;flex-wrap:wrap;align-content:center;padding:4px 10px}.wb-command-input{flex:1 1 140px;width:auto;min-width:0}.wb-command-error{order:4;flex-basis:100%;max-width:100%;margin:0}.wb-appbar{padding:6px 10px}.wb-toolbar{overflow-x:auto;white-space:nowrap;padding:4px 10px}.wb-runtime-content{margin:6px 10px 0;padding:10px;overflow:auto}.wb-runtime-content--dynpro{margin:6px 10px 0;padding:0;overflow:auto}.wb-shell{padding-bottom:40px;box-sizing:border-box}.wb-statusbar{position:fixed;left:10px;right:10px;bottom:8px;z-index:5;gap:8px;margin:0;padding:0 8px}.wb-status-feedback:not(:empty){margin-left:-8px}.wb-status-context{gap:8px}}'.
   ENDMETHOD.
 
   METHOD render_top.
-* The app bar carries the title and nothing else. The CUA status name stays
-* internal; it is only read to enable or disable commands.
+* The app bar carries the title and nothing else. The CUA status name enables
+* or disables commands and shows only in System > Status, as on SAP.
     DATA lv_title TYPE string.
     DATA lv_content_form TYPE string.
 
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
     lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
-    rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu" data-toolbar-scope="shell-menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items"><button class="wb-menu" type="button" role="menuitem">Applications</button><button class="wb-menu" type="button" role="menuitem">Edit</button><button class="wb-menu" type="button" role="menuitem">Favorites</button><a class="wb-menu" role="menuitem" href="/converter/preview">Tools</a><button class="wb-menu" type="button" role="menuitem">System</button><button class="wb-menu" type="button" role="menuitem">Help</button></div></nav>'.
+* The main menu holds what the shell itself can do: System shows the status
+* of the session, Help opens the open-abap documentation in a new tab.
+    rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu" data-toolbar-scope="shell-menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items">' &&
+      '<div class="wb-menu-dropdown"><button class="wb-menu" type="button" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="wb-system-menu" data-system-menu>System</button>' &&
+      '<div class="wb-menu-popup" id="wb-system-menu" role="menu" aria-label="System" hidden>' &&
+      |<button class="wb-menu-action" type="button" role="menuitem" aria-haspopup="dialog" aria-controls="{ system_status_id }" data-system-status-open>Status...</button></div></div>| &&
+      |<a class="wb-menu" role="menuitem" href="{ help_url }" target="_blank" rel="noopener noreferrer">Help</a></div></nav>| &&
+      render_system_status( is_status ).
     rv_html = rv_html && render_commandbar(
       iv_runtime      = iv_runtime
       iv_error        = iv_error
@@ -563,10 +603,73 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     IF is_message-field IS NOT INITIAL.
       lv_rows = lv_rows && |<dt>Field</dt><dd>{ zcl_gg_host_html=>escape_text( condense( CONV string( is_message-field ) ) ) }</dd>|.
     ENDIF.
-    rv_html = |<div id="{ message_details_id }" class="wb-message-details" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>| &&
-      |<div class="wb-message-details-panel"><header class="wb-message-details-header"><h2 id="wb-message-details-title">Technical information</h2>| &&
-      |<button class="wb-message-details-close" type="button" data-message-details-close aria-label="Close technical information">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header>| &&
+    rv_html = |<div id="{ message_details_id }" class="wb-dialog" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>| &&
+      |<div class="wb-dialog-panel"><header class="wb-dialog-header"><h2 id="wb-message-details-title">Technical information</h2>| &&
+      |<button class="wb-dialog-close" type="button" data-message-details-close aria-label="Close technical information">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header>| &&
       |<dl>{ lv_rows }</dl></div></div>|.
+  ENDMETHOD.
+
+  METHOD status_group.
+    DATA lv_rows TYPE string.
+
+    LOOP AT it_rows INTO DATA(ls_row).
+      lv_rows = lv_rows && |<dt>{ zcl_gg_host_html=>escape_text( ls_row-label ) }</dt><dd>{ zcl_gg_host_html=>escape_text( ls_row-value ) }</dd>|.
+    ENDLOOP.
+    rv_html = |<section aria-labelledby="{ system_status_id }-{ iv_id }"><h3 id="{ system_status_id }-{ iv_id }">| &&
+      |{ zcl_gg_host_html=>escape_text( iv_title ) }</h3><dl>{ lv_rows }</dl></section>|.
+  ENDMETHOD.
+
+  METHOD render_system_status.
+    DATA lt_system TYPE ty_status_rows.
+    DATA lv_database TYPE string.
+
+    lt_system = VALUE #(
+      ( label = `System ID` value = sy-sysid )
+      ( label = `Release`   value = sy-saprl ) ).
+    IF is_status-status IS NOT INITIAL.
+      APPEND VALUE #( label = `GUI status` value = is_status-status ) TO lt_system.
+    ENDIF.
+    IF sy-dbsys IS NOT INITIAL.
+      lv_database = status_group(
+        iv_id    = `database`
+        iv_title = `Database data`
+        it_rows  = VALUE #( ( label = `Database system` value = sy-dbsys ) ) ).
+    ENDIF.
+
+    rv_html = |<div id="{ system_status_id }" class="wb-dialog" role="dialog" aria-modal="true" aria-labelledby="{ system_status_id }-title" hidden>| &&
+      |<div class="wb-dialog-panel wb-system-status"><header class="wb-dialog-header"><h2 id="{ system_status_id }-title">System: Status</h2>| &&
+      |<button class="wb-dialog-close" type="button" data-system-status-close aria-label="Close system status">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header>| &&
+* Dates and times read as SAP GUI shows them, DD.MM.YYYY and HH:MM:SS.
+      status_group(
+        iv_id    = `usage`
+        iv_title = `Usage data`
+        it_rows  = VALUE #(
+          ( label = `Client`      value = sy-mandt )
+          ( label = `User`        value = sy-uname )
+          ( label = `Language`    value = sy-langu )
+          ( label = `System date` value = |{ sy-datum+6(2) }.{ sy-datum+4(2) }.{ sy-datum(4) }| )
+          ( label = `System time` value = |{ sy-uzeit(2) }:{ sy-uzeit+2(2) }:{ sy-uzeit+4(2) }| )
+          ( label = `Time zone`   value = sy-zonlo ) ) ) &&
+      status_group(
+        iv_id    = `system`
+        iv_title = `System data`
+        it_rows  = lt_system ) &&
+      status_group(
+        iv_id    = `host`
+        iv_title = `Host data`
+        it_rows  = VALUE #( ( label = `Server name` value = sy-host ) ) ) &&
+      lv_database && `</div></div>`.
+
+* The System menu opens on click and closes on a click elsewhere or Escape.
+* While the dialog is open it keeps the keyboard, as the message details do:
+* Escape closes it before the shell would read Escape as Cancel.
+    rv_html = rv_html && '<script>(function(){var toggle=document.querySelector("[data-system-menu]");var menu=document.getElementById("wb-system-menu");var open=document.querySelector("[data-system-status-open]");var dialog=document.getElementById("' && system_status_id && '");if(!toggle||!menu||!open||!dialog){return;}var close=dialog.querySelector("[data-system-status-close]");' &&
+      'var setMenu=function(show){menu.hidden=!show;toggle.setAttribute("aria-expanded",String(show));};' &&
+      'toggle.addEventListener("click",function(){setMenu(menu.hidden);if(!menu.hidden){open.focus();}});' &&
+      'document.addEventListener("click",function(event){if(!menu.hidden&&!toggle.parentNode.contains(event.target)){setMenu(false);}});' &&
+      'var hide=function(){if(dialog.hidden){return;}dialog.hidden=true;toggle.focus();};' &&
+      'open.addEventListener("click",function(){setMenu(false);dialog.hidden=false;close.focus();});close.addEventListener("click",hide);dialog.addEventListener("click",function(event){if(event.target===dialog){hide();}});' &&
+      'window.addEventListener("keydown",function(event){if(!menu.hidden&&event.key==="Escape"){event.preventDefault();event.stopPropagation();setMenu(false);toggle.focus();return;}if(dialog.hidden){return;}event.stopPropagation();if(event.key==="Escape"){event.preventDefault();hide();}else if(event.key==="Tab"){event.preventDefault();close.focus();}},true);}());</script>'.
   ENDMETHOD.
 
   METHOD render_bottom.

@@ -1,6 +1,44 @@
 import {test, expect} from "../fixtures.mjs";
 import {readdir} from "node:fs/promises";
 
+test("main menu holds System and Help; System > Status shows the session", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/`);
+
+  const menubar = page.getByRole("menubar", {name: "Main menu"});
+  await expect(menubar.getByRole("menuitem")).toHaveText(["System", "Help"]);
+  const help = menubar.getByRole("menuitem", {name: "Help"});
+  await expect(help).toHaveAttribute("href", "https://open-abap.org");
+  await expect(help).toHaveAttribute("target", "_blank");
+
+  const system = menubar.getByRole("menuitem", {name: "System"});
+  const statusItem = page.getByRole("menuitem", {name: "Status..."});
+  await expect(statusItem).toBeHidden();
+  await system.click();
+  await expect(system).toHaveAttribute("aria-expanded", "true");
+  await expect(statusItem).toBeFocused();
+  // A click elsewhere closes the menu.
+  await page.locator(".wb-appbar").click();
+  await expect(statusItem).toBeHidden();
+
+  await system.click();
+  await statusItem.click();
+  await expect(statusItem).toBeHidden();
+  const dialog = page.getByRole("dialog", {name: "System: Status"});
+  await expect(dialog).toBeVisible();
+  for (const group of ["Usage data", "System data", "Host data"]) {
+    await expect(dialog.getByRole("heading", {name: group})).toBeVisible();
+  }
+  await expect(dialog.locator("dt", {hasText: "Client"}).locator("+ dd")).toHaveText(/\S/);
+  await expect(dialog.locator("dt", {hasText: "System date"}).locator("+ dd")).toHaveText(/^\d{2}\.\d{2}\.\d{4}$/);
+  await expect(dialog.getByRole("button", {name: "Close system status"})).toBeFocused();
+
+  // Escape closes the dialog without reaching the shell's Cancel.
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(system).toBeFocused();
+  await expect(page).toHaveURL(`${host.baseUrl}/`);
+});
+
 test("index renders the open-abap workbench shell", async ({page, host}) => {
   const response = await page.goto(`${host.baseUrl}/`);
 
