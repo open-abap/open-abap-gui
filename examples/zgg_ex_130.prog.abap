@@ -21,7 +21,7 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_document IS INITIAL.
-    CREATE OBJECT go_document.
+    go_document = NEW #( ).
     go_document->add_text( text      = 'Document events'
                            sap_style = cl_dd_area=>heading ).
     go_document->new_line( ).

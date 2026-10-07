@@ -254,11 +254,9 @@ CLASS zcl_gg_ex_142 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_tree
-            EXPORTING parent              = go_container
-                      node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_tree = NEW #( parent              = go_container
+                           node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single ).
           gt_events = VALUE #(
             ( eventid = cl_gui_simple_tree=>eventid_selection_changed appl_event = abap_false )
             ( eventid = cl_gui_simple_tree=>eventid_node_double_click appl_event = abap_true ) ).

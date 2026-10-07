@@ -243,8 +243,7 @@ CLASS zcl_gg_ex_162 IMPLEMENTATION.
             ( fieldname = 'EVENT' coltext = 'Event' inttype = 'C' )
             ( fieldname = 'OBJECT' coltext = 'Object' inttype = 'C' )
             ( fieldname = 'PAUSED_BY' coltext = 'Paused by' inttype = 'C' ) ).
-          CREATE OBJECT go_grid
-            EXPORTING i_parent = cl_gui_container=>default_screen.
+          go_grid = NEW #( i_parent = cl_gui_container=>default_screen ).
           go_grid->set_table_for_first_display( CHANGING it_outtab = gt_events it_fieldcatalog = mv_ggconv_lt_fcat ).
         ELSE.
           go_grid->refresh_table_display( ).

@@ -255,10 +255,8 @@ CLASS zcl_gg_ex_149 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_chart
-            EXPORTING parent = go_container.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_chart = NEW #( parent = go_container ).
           go_chart->set_data( data = zcl_gg_ex_149_h1=>data_xml( io_owner = me io_session = io_session ) ).
         ENDIF.
         go_chart->set_customizing( data = |<SAPChartCustomizing version="1.1"><GlobalSettings><Defaults><ChartType>{ gv_chart_type }</ChartType></Defaults></GlobalSettings><Elements><ChartElements><Title><Caption>Seats per month</Caption></Title></ChartElements></Elements></SAPChartCustomizing>| ).

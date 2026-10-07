@@ -351,7 +351,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   METHOD begin_event.
     IF mv_list_level >= 20.
       RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING iv_kind = zcx_gg_control_flow=>kind_unsupported
-        iv_operation                                   = 'Maximum list level 20 exceeded'.
+        iv_operation                                             = 'Maximum list level 20 exceeded'.
     ENDIF.
     end_line( ).
     mv_list_index = mv_list_level.
@@ -955,7 +955,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
                                ELSE mv_list_level + 1 ).
     IF iv_level > 20 OR iv_level > lv_maximum.
       RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING iv_kind = zcx_gg_control_flow=>kind_unsupported
-        iv_operation                                   = 'Invalid list level'.
+        iv_operation                                             = 'Invalid list level'.
     ENDIF.
     mv_list_level = iv_level.
     IF mv_list_level < 0.

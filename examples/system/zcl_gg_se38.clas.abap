@@ -198,13 +198,9 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
 
   METHOD show_source.
     IF mo_source IS NOT BOUND.
-      CREATE OBJECT mo_source_container
-        EXPORTING
-          container_name = 'CC_SOURCE'.
-      CREATE OBJECT mo_source
-        EXPORTING
-          parent        = mo_source_container
-          wordwrap_mode = cl_gui_textedit=>wordwrap_off.
+      mo_source_container = NEW #( container_name = 'CC_SOURCE' ).
+      mo_source = NEW #( parent        = mo_source_container
+                         wordwrap_mode = cl_gui_textedit=>wordwrap_off ).
       mo_source->set_readonly_mode( ).
       mo_source->set_font_fixed( ).
       mo_source->set_toolbar_mode( cl_gui_textedit=>false ).

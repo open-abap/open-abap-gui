@@ -22,12 +22,8 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_calendar
-      EXPORTING
-        parent = go_container.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_calendar = NEW #( parent = go_container ).
     go_calendar->go_to_date( '20260830' ).
     go_calendar->set_selection( date_begin = '20260830'
                                 date_end   = '20260901' ).

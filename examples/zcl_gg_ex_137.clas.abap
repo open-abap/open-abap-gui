@@ -241,10 +241,8 @@ CLASS zcl_gg_ex_137 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_grid
-            EXPORTING i_parent = go_container.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_grid = NEW #( i_parent = go_container ).
           gt_fieldcat = VALUE #(
             ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
             ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )

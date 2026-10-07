@@ -205,7 +205,7 @@ CLASS zcl_gg_ex_130 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_document IS INITIAL.
-          CREATE OBJECT go_document.
+          go_document = NEW #( ).
           go_document->add_text( text      = 'Document events'
                                  sap_style = cl_dd_area=>heading ).
           go_document->new_line( ).

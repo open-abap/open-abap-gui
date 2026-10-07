@@ -72,16 +72,16 @@ CLASS cl_salv_form_uie_layout_grid IMPLEMENTATION.
       CLEAR lv_align.
       CLEAR: lo_uie, lo_layout.
       TRY.
-        lo_uie ?= ls_cell-element.
-        IF lo_uie IS BOUND.
-          lo_layout ?= lo_uie->get_layout_data( ).
-        ENDIF.
-        IF lo_layout IS BOUND.
-          lv_h_align = lo_layout->get_h_align( ).
-          lv_align = SWITCH #( lv_h_align WHEN 2 THEN 'center' WHEN 3 THEN 'right' ELSE 'left' ).
-        ENDIF.
-      CATCH cx_sy_move_cast_error.
-        CLEAR lv_align.
+          lo_uie ?= ls_cell-element.
+          IF lo_uie IS BOUND.
+            lo_layout ?= lo_uie->get_layout_data( ).
+          ENDIF.
+          IF lo_layout IS BOUND.
+            lv_h_align = lo_layout->get_h_align( ).
+            lv_align = SWITCH #( lv_h_align WHEN 2 THEN 'center' WHEN 3 THEN 'right' ELSE 'left' ).
+          ENDIF.
+        CATCH cx_sy_move_cast_error.
+          CLEAR lv_align.
       ENDTRY.
       result = result && |<td{ lv_colspan }{ lv_rowspan }{ COND string( WHEN lv_align IS NOT INITIAL THEN | style="text-align:{ lv_align }"| ) }>{ ls_cell-element->render_html( ) }</td>|.
     ENDLOOP.

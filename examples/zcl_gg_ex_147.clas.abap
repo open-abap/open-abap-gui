@@ -239,8 +239,7 @@ CLASS zcl_gg_ex_147 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
           TRY.
               cl_salv_table=>factory(
                 EXPORTING

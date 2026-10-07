@@ -258,25 +258,22 @@ CLASS zcl_gg_ex_153 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_splitter
-            EXPORTING parent = go_container.
-          CREATE OBJECT go_dd_tree.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_splitter = NEW #( parent = go_container ).
+          go_dd_tree = NEW #( ).
           go_dd_tree->add( flavor     = 'FLIGHT'
                            dragsrc    = abap_true
                            droptarget = abap_false
                            effect     = cl_dragdrop=>copy ).
           go_dd_tree->get_handle( IMPORTING handle = gv_tree_handle ).
-          CREATE OBJECT go_dd_grid.
+          go_dd_grid = NEW #( ).
           go_dd_grid->add( flavor     = 'FLIGHT'
                            dragsrc    = abap_false
                            droptarget = abap_true
                            effect     = cl_dragdrop=>copy ).
           go_dd_grid->get_handle( IMPORTING handle = gv_grid_handle ).
-          CREATE OBJECT go_tree
-            EXPORTING parent              = go_splitter->top_left_container
-                      node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single.
+          go_tree = NEW #( parent              = go_splitter->top_left_container
+                           node_selection_mode = cl_gui_simple_tree=>node_sel_mode_single ).
           gt_nodes = VALUE #(
             ( node_key = 'LH' isfolder = abap_true expander = abap_true text = 'Lufthansa' )
             ( node_key = 'LH0400' relatkey = 'LH' relatship = cl_gui_simple_tree=>relat_last_child text = 'LH 0400 Frankfurt - New York' dragdropid = gv_tree_handle )
@@ -289,8 +286,7 @@ CLASS zcl_gg_ex_153 IMPLEMENTATION.
           zcl_gg_ex_153_h2=>go_owner = me.
           zcl_gg_ex_153_h2=>go_session = io_session.
           SET HANDLER zcl_gg_ex_153_h2=>on_drag FOR go_tree.
-          CREATE OBJECT go_grid
-            EXPORTING i_parent = go_splitter->bottom_right_container.
+          go_grid = NEW #( i_parent = go_splitter->bottom_right_container ).
           gt_fieldcat = VALUE #(
             ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
             ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )

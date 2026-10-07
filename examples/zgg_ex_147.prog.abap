@@ -47,9 +47,7 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
     TRY.
         cl_salv_table=>factory(
           EXPORTING

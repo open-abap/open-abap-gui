@@ -267,14 +267,12 @@ CLASS zcl_gg_ex_120 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_dock IS INITIAL.
-          CREATE OBJECT go_dock
-            EXPORTING repid     = io_session->get_context( )-program-program
-                      dynnr     = io_session->get_context( )-dynpro-screen
-                      side      = gv_side
-                      extension = gv_extension
-                      caption   = 'Docked tools'.
-          CREATE OBJECT go_editor
-            EXPORTING parent = go_dock.
+          go_dock = NEW #( repid     = io_session->get_context( )-program-program
+                           dynnr     = io_session->get_context( )-dynpro-screen
+                           side      = gv_side
+                           extension = gv_extension
+                           caption   = 'Docked tools' ).
+          go_editor = NEW #( parent = go_dock ).
           go_editor->set_textstream( 'Docked content' ).
           gv_state = |Docked left, { gv_extension } pixels|.
         ENDIF.

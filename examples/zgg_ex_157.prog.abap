@@ -35,12 +35,8 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_GRID'.
-    CREATE OBJECT go_grid
-      EXPORTING
-        i_parent = go_container.
+    go_container = NEW #( container_name = 'CC_GRID' ).
+    go_grid = NEW #( i_parent = go_container ).
     gs_variant-report = sy-repid.
     gs_variant-handle = 'FLTS'.
     gs_layout-grid_title = 'Flights'.

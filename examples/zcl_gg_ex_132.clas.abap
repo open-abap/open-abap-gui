@@ -267,10 +267,8 @@ CLASS zcl_gg_ex_132 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_editor
-            EXPORTING parent = go_container.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_editor = NEW #( parent = go_container ).
           go_editor->set_toolbar_mode( cl_gui_textedit=>true ).
           go_editor->set_statusbar_mode( cl_gui_textedit=>true ).
         ENDIF.

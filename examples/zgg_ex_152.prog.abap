@@ -24,7 +24,7 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_timer IS INITIAL.
-    CREATE OBJECT go_timer.
+    go_timer = NEW #( ).
     SET HANDLER lcl_handler=>on_finished FOR go_timer.
     go_timer->interval = 1.
   ENDIF.

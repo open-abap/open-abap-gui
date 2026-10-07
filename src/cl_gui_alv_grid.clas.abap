@@ -841,8 +841,15 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selected_columns.
+    FIELD-SYMBOLS <lt_index_columns> TYPE ANY TABLE.
+
     IF mr_selected_columns IS BOUND.
-      et_index_columns = mr_selected_columns->*.
+      ASSIGN mr_selected_columns->* TO <lt_index_columns>.
+      IF sy-subrc = 0.
+        et_index_columns = <lt_index_columns>.
+      ELSE.
+        CLEAR et_index_columns.
+      ENDIF.
     ELSE.
       CLEAR et_index_columns.
     ENDIF.
@@ -1015,9 +1022,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     IF mt_frontend_cells IS INITIAL.
       RETURN.
     ENDIF.
-    CREATE OBJECT lo_protocol
-      EXPORTING
-        i_calling_alv = me.
+    lo_protocol = NEW #( i_calling_alv = me ).
     lo_protocol->mt_mod_cells = mt_frontend_cells.
     lo_protocol->mt_good_cells = mt_frontend_cells.
     RAISE EVENT data_changed
@@ -1087,7 +1092,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
 * The grid raises toolbar when the toolbar is built; the handlers add the
 * application functions to e_object->mt_toolbar.
-    CREATE OBJECT lo_toolbar.
+    lo_toolbar = NEW #( ).
     lo_toolbar->mt_toolbar = mt_toolbar_base.
     RAISE EVENT toolbar
       EXPORTING

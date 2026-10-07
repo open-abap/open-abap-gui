@@ -25,14 +25,10 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_CALENDAR'.
-    CREATE OBJECT go_calendar
-      EXPORTING
-        parent          = go_container
-        selection_style = cnca_sel_week
-        focus_date      = '20260830'.
+    go_container = NEW #( container_name = 'CC_CALENDAR' ).
+    go_calendar = NEW #( parent          = go_container
+                         selection_style = cnca_sel_week
+                         focus_date      = '20260830' ).
     gt_events = VALUE #( ( eventid    = cl_gui_calendar=>m_id_date_selected
                            appl_event = abap_true ) ).
     go_calendar->set_registered_events( gt_events ).

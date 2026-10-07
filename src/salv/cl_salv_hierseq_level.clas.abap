@@ -72,6 +72,7 @@ CLASS cl_salv_hierseq_level IMPLEMENTATION.
     DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
     DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
     DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
+    FIELD-SYMBOLS <lt_table> TYPE ANY TABLE.
 
     mt_binding = t_binding.
     mr_table = value.
@@ -79,8 +80,12 @@ CLASS cl_salv_hierseq_level IMPLEMENTATION.
     IF mr_table IS NOT BOUND.
       RETURN.
     ENDIF.
+    ASSIGN mr_table->* TO <lt_table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
     TRY.
-        lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( mr_table->* ).
+        lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( <lt_table> ).
         lo_line_descr = lo_table_descr->get_table_line_type( ).
         IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
           lo_struct_descr ?= lo_line_descr.

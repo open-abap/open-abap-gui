@@ -102,7 +102,7 @@ CLASS zcl_gg_ex_146 IMPLEMENTATION.
           is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_error )
           ia_text    = gx_msg ).
     ENDTRY.
-    CREATE OBJECT go_top.
+    go_top = NEW #( ).
     go_top->create_header_information( row     = 1
                                        column  = 1
                                        colspan = 2
@@ -120,7 +120,7 @@ CLASS zcl_gg_ex_146 IMPLEMENTATION.
                          column = 2
                          text   = gv_total ).
     go_alv->set_top_of_list( go_top ).
-    CREATE OBJECT go_end.
+    go_end = NEW #( ).
     go_end->create_text( text = 'End of report' ).
     go_alv->set_end_of_list( go_end ).
     go_alv->display( ).

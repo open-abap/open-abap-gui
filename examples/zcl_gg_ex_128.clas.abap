@@ -227,10 +227,8 @@ CLASS zcl_gg_ex_128 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_viewer
-            EXPORTING parent = go_container.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_viewer = NEW #( parent = go_container ).
           gt_html = VALUE #(
             ( '<h2>Sandboxed viewer</h2>' )
             ( '<p>The content is HTML from the program; scripts do not run.</p>' )

@@ -159,10 +159,8 @@ CLASS zcl_gg_ex_123 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_editor
-            EXPORTING parent = go_container.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_editor = NEW #( parent = go_container ).
           go_editor->set_textstream( |Read-only text{ cl_abap_char_utilities=>newline }This cannot be edited| ).
           go_editor->set_readonly_mode( cl_gui_textedit=>true ).
         ENDIF.

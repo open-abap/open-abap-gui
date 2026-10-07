@@ -250,7 +250,7 @@ CLASS zcl_gg_ex_152 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_timer IS INITIAL.
-          CREATE OBJECT go_timer.
+          go_timer = NEW #( ).
           zcl_gg_ex_152_h1=>go_owner = me.
           zcl_gg_ex_152_h1=>go_session = io_session.
           SET HANDLER zcl_gg_ex_152_h1=>on_finished FOR go_timer.

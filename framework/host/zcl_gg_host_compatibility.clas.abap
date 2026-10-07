@@ -410,8 +410,8 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDCASE.
     ms_popup = VALUE #( kind = 'CLIPBOARD' title = 'Paste from clipboard'
       buttons = VALUE #( ( value = 'OK' text = 'Paste' ) ( value = 'CANCEL' text = 'Cancel' ) ) ).
-    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING iv_kind      = zcx_gg_control_flow=>kind_popup
-                                             iv_operation = 'CLIPBOARD'.
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING iv_kind = zcx_gg_control_flow=>kind_popup
+                                             iv_operation      = 'CLIPBOARD'.
   ENDMETHOD.
 
   METHOD get_downloads.

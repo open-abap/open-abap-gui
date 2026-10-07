@@ -234,11 +234,9 @@ CLASS zcl_gg_ex_141 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_splitter
-            EXPORTING parent      = go_container
-                      orientation = cl_gui_easy_splitter_container=>orientation_horizontal.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_splitter = NEW #( parent      = go_container
+                               orientation = cl_gui_easy_splitter_container=>orientation_horizontal ).
           zcl_gg_ex_141_h1=>build_nodes( io_owner   = me
                                          io_session = io_session ).
           zcl_gg_ex_141_h1=>create_list_tree( io_owner   = me

@@ -60,12 +60,8 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_grid
-      EXPORTING
-        i_parent = go_container.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_grid = NEW #( i_parent = go_container ).
     gt_fieldcat = VALUE #(
       ( fieldname = 'CARRID' coltext = 'Airline' key = abap_true outputlen = 7 )
       ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )

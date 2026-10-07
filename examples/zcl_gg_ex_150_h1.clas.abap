@@ -48,15 +48,12 @@ CLASS zcl_gg_ex_150_h1 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_controls.
-    CREATE OBJECT io_owner->go_container TYPE cl_gui_custom_container
-      EXPORTING container_name = 'CC_MAIN'.
-    CREATE OBJECT io_owner->go_splitter TYPE cl_gui_splitter_container
-      EXPORTING parent  = io_owner->go_container
-                rows    = 1
-                columns = 2.
-    CREATE OBJECT io_owner->go_grid TYPE cl_gui_alv_grid
-      EXPORTING i_parent      = io_owner->go_splitter->get_container( row = 1 column = 1 )
-                i_appl_events = abap_true.
+    io_owner->go_container = NEW cl_gui_custom_container( container_name = 'CC_MAIN' ).
+    io_owner->go_splitter = NEW cl_gui_splitter_container( parent  = io_owner->go_container
+                                                           rows    = 1
+                                                           columns = 2 ).
+    io_owner->go_grid = NEW cl_gui_alv_grid( i_parent      = io_owner->go_splitter->get_container( row = 1 column = 1 )
+                                             i_appl_events = abap_true ).
     io_owner->gt_fieldcat = VALUE #(
       ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
       ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )
@@ -66,8 +63,7 @@ CLASS zcl_gg_ex_150_h1 IMPLEMENTATION.
     go_session = io_session.
     SET HANDLER on_double_click FOR io_owner->go_grid.
     io_owner->go_grid->set_table_for_first_display( CHANGING it_outtab = io_owner->gt_flights it_fieldcatalog = io_owner->gt_fieldcat ).
-    CREATE OBJECT io_owner->go_chart TYPE cl_gui_chart_engine
-      EXPORTING parent = io_owner->go_splitter->get_container( row = 1 column = 2 ).
+    io_owner->go_chart = NEW cl_gui_chart_engine( parent = io_owner->go_splitter->get_container( row = 1 column = 2 ) ).
     io_owner->go_chart->set_data( data = chart_xml( io_owner = io_owner io_session = io_session ) ).
     io_owner->go_chart->set_customizing( data = |<SAPChartCustomizing version="1.1"><GlobalSettings><Defaults><ChartType>Columns</ChartType></Defaults></GlobalSettings><Elements><ChartElements><Title><Caption>Load factor in %</Caption></Title></ChartElements></Elements></SAPChartCustomizing>| ).
     io_owner->go_chart->render( ).

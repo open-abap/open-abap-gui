@@ -25,13 +25,9 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_splitter
-      EXPORTING
-        parent      = go_container
-        orientation = cl_gui_easy_splitter_container=>orientation_horizontal.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_splitter = NEW #( parent      = go_container
+                         orientation = cl_gui_easy_splitter_container=>orientation_horizontal ).
     lcl_trees=>build_nodes( ).
     lcl_trees=>create_list_tree( ).
     lcl_trees=>create_column_tree( ).
@@ -60,13 +56,11 @@ CLASS lcl_trees IMPLEMENTATION.
   METHOD create_list_tree.
     gs_header-heading = 'Flight'.
     gs_header-width = 20.
-    CREATE OBJECT go_list_tree
-      EXPORTING
-        parent              = go_splitter->top_left_container
-        node_selection_mode = cl_gui_list_tree=>node_sel_mode_single
-        item_selection      = abap_false
-        with_headers        = abap_true
-        hierarchy_header    = gs_header.
+    go_list_tree = NEW #( parent              = go_splitter->top_left_container
+                          node_selection_mode = cl_gui_list_tree=>node_sel_mode_single
+                          item_selection      = abap_false
+                          with_headers        = abap_true
+                          hierarchy_header    = gs_header ).
     go_list_tree->add_nodes_and_items(
       node_table                = gt_nodes
       item_table                = gt_items
@@ -79,13 +73,11 @@ CLASS lcl_trees IMPLEMENTATION.
 
     gs_header-heading = 'Flight'.
     gs_header-width = 20.
-    CREATE OBJECT go_column_tree
-      EXPORTING
-        parent                = go_splitter->bottom_right_container
-        node_selection_mode   = cl_gui_column_tree=>node_sel_mode_single
-        item_selection        = abap_false
-        hierarchy_column_name = 'FLIGHT'
-        hierarchy_header      = gs_header.
+    go_column_tree = NEW #( parent                = go_splitter->bottom_right_container
+                            node_selection_mode   = cl_gui_column_tree=>node_sel_mode_single
+                            item_selection        = abap_false
+                            hierarchy_column_name = 'FLIGHT'
+                            hierarchy_header      = gs_header ).
     go_column_tree->add_column( name        = 'STATUS'
                                 width       = 15
                                 header_text = 'Status' ).

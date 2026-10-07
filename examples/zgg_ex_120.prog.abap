@@ -13,16 +13,12 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_dock IS INITIAL.
-    CREATE OBJECT go_dock
-      EXPORTING
-        repid     = sy-repid
-        dynnr     = sy-dynnr
-        side      = gv_side
-        extension = gv_extension
-        caption   = 'Docked tools'.
-    CREATE OBJECT go_editor
-      EXPORTING
-        parent = go_dock.
+    go_dock = NEW #( repid     = sy-repid
+                     dynnr     = sy-dynnr
+                     side      = gv_side
+                     extension = gv_extension
+                     caption   = 'Docked tools' ).
+    go_editor = NEW #( parent = go_dock ).
     go_editor->set_textstream( 'Docked content' ).
     gv_state = |Docked left, { gv_extension } pixels|.
   ENDIF.

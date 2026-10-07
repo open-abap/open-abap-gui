@@ -252,21 +252,17 @@ CLASS zcl_gg_ex_134 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_splitter
-            EXPORTING parent  = go_container
-                      rows    = 1
-                      columns = 2.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_splitter = NEW #( parent  = go_container
+                               rows    = 1
+                               columns = 2 ).
           DATA(lo_left) = go_splitter->get_container( row    = 1
                                                       column = 1 ).
-          CREATE OBJECT go_editor
-            EXPORTING parent = lo_left.
+          go_editor = NEW #( parent = lo_left ).
           go_editor->set_textstream( gv_text ).
           DATA(lo_right) = go_splitter->get_container( row    = 1
                                                        column = 2 ).
-          CREATE OBJECT go_viewer
-            EXPORTING parent = lo_right.
+          go_viewer = NEW #( parent = lo_right ).
           form_show_document( io_session = io_session ).
         ENDIF.
       WHEN OTHERS.

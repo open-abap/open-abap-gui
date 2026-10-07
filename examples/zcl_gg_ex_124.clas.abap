@@ -272,10 +272,8 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
-          CREATE OBJECT go_picture
-            EXPORTING parent = go_container.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
+          go_picture = NEW #( parent = go_container ).
           go_picture->set_alt_text( 'Refresh icon' ).
           form_load_picture( io_session = io_session ).
         ENDIF.

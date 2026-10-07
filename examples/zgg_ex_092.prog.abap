@@ -16,7 +16,7 @@ DATA gs_flight TYPE ty_flight.
 DATA gt_cities TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
 END-OF-PAGE.
-  WRITE / |Page { sy-pagno }|.
+WRITE / |Page { sy-pagno }|.
 
 TOP-OF-PAGE.
   WRITE: / 'Airline', 10 'Flight', 18 'From', 40 'To'.

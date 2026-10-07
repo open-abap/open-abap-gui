@@ -17,21 +17,13 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_splitter
-      EXPORTING
-        parent        = go_container
-        orientation   = cl_gui_easy_splitter_container=>orientation_horizontal
-        sash_position = gv_sash.
-    CREATE OBJECT go_editor
-      EXPORTING
-        parent = go_splitter->top_left_container.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_splitter = NEW #( parent        = go_container
+                         orientation   = cl_gui_easy_splitter_container=>orientation_horizontal
+                         sash_position = gv_sash ).
+    go_editor = NEW #( parent = go_splitter->top_left_container ).
     go_editor->set_textstream( 'Easy splitter content' ).
-    CREATE OBJECT go_viewer
-      EXPORTING
-        parent = go_splitter->bottom_right_container.
+    go_viewer = NEW #( parent = go_splitter->bottom_right_container ).
     gt_html = VALUE #( ( '<h3>Easy splitter viewer</h3><p>The second pane is HTML content.</p>' ) ).
     go_viewer->load_data( IMPORTING assigned_url = gv_url
                           CHANGING  data_table   = gt_html ).

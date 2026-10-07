@@ -270,8 +270,7 @@ CLASS zcl_gg_ex_117 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_MAIN'.
+          go_container = NEW #( container_name = 'CC_MAIN' ).
           form_create_editor( io_session = io_session ).
         ENDIF.
       WHEN OTHERS.
@@ -320,8 +319,7 @@ CLASS zcl_gg_ex_117 IMPLEMENTATION.
 
   METHOD form_create_editor.
     gv_generation = gv_generation + 1.
-    CREATE OBJECT go_editor
-      EXPORTING parent = go_container.
+    go_editor = NEW #( parent = go_container ).
     go_editor->set_textstream( |Text editor in custom container CC_MAIN, generation { gv_generation }| ).
     gv_state = |Child created, generation { gv_generation }|.
   ENDMETHOD.

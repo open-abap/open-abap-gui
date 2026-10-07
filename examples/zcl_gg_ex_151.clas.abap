@@ -236,10 +236,8 @@ CLASS zcl_gg_ex_151 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_HTML'.
-          CREATE OBJECT go_viewer
-            EXPORTING parent = go_container.
+          go_container = NEW #( container_name = 'CC_HTML' ).
+          go_viewer = NEW #( parent = go_container ).
           gt_events = VALUE #( ( eventid = cl_gui_html_viewer=>m_id_sapevent appl_event = abap_true ) ).
           go_viewer->set_registered_events( gt_events ).
           zcl_gg_ex_151_h1=>go_owner = me.

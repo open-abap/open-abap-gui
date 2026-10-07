@@ -252,12 +252,10 @@ CLASS zcl_gg_ex_159 IMPLEMENTATION.
     CASE is_context-module.
       WHEN 'STATUS_0100'.
         IF go_container IS INITIAL.
-          CREATE OBJECT go_container
-            EXPORTING container_name = 'CC_CALENDAR'.
-          CREATE OBJECT go_calendar
-            EXPORTING parent          = go_container
-                      selection_style = cnca_sel_week
-                      focus_date      = '20260830'.
+          go_container = NEW #( container_name = 'CC_CALENDAR' ).
+          go_calendar = NEW #( parent          = go_container
+                               selection_style = cnca_sel_week
+                               focus_date      = '20260830' ).
           gt_events = VALUE #( ( eventid = cl_gui_calendar=>m_id_date_selected appl_event = abap_true ) ).
           go_calendar->set_registered_events( gt_events ).
           zcl_gg_ex_159_h1=>go_owner = me.
