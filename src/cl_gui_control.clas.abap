@@ -895,7 +895,7 @@ CLASS cl_gui_control IMPLEMENTATION.
       lv_state_class = state_class(
         iv_focused  = ls_snapshot-focused
         iv_disabled = xsdbool( ls_snapshot-enabled = abap_false )
-        iv_readonly = xsdbool( ls_snapshot-enabled = abap_false ) ).
+        iv_readonly = xsdbool( ls_snapshot-enabled = abap_false OR ls_snapshot-text_readonly = abap_true ) ).
       result = result && render_control_html(
         is_snapshot    = ls_snapshot
         iv_style       = lv_style
@@ -1312,7 +1312,9 @@ CLASS cl_gui_control IMPLEMENTATION.
     IF lv_textedit_cursor_column < 1.
       lv_textedit_cursor_column = 1.
     ENDIF.
-    DATA(lv_textedit_aria_readonly) = COND string( WHEN is_snapshot-text_readonly = abap_true THEN ' aria-readonly="true"' ELSE '' ).
+    DATA(lv_textedit_aria_readonly) = COND string( WHEN is_snapshot-text_readonly = abap_true THEN ' readonly aria-readonly="true"' ELSE '' ).
+* With word wrap off a long line stays one line and the editor scrolls sideways.
+    DATA(lv_textedit_wrap) = COND string( WHEN is_snapshot-text_wordwrap_mode = cl_gui_textedit=>wordwrap_off THEN ' wrap="off"' ELSE '' ).
     DATA(lv_textedit_style) = iv_style.
     DATA(lv_shell_style) = iv_style.
     IF is_snapshot-text_toolbar_mode = abap_true OR is_snapshot-text_statusbar_mode = abap_true.
@@ -1322,7 +1324,7 @@ CLASS cl_gui_control IMPLEMENTATION.
     IF is_snapshot-text_fixed_font <> 0.
       lv_textedit_style = lv_textedit_style && `font-family:ui-monospace,SFMono-Regular,Consolas,monospace;`.
     ENDIF.
-    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ lv_textedit_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( |gg-ctl:{ is_snapshot-control_id }:TEXT| ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</textarea>|.
+    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ lv_textedit_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( |gg-ctl:{ is_snapshot-control_id }:TEXT| ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ lv_textedit_wrap }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</textarea>|.
     IF is_snapshot-text_toolbar_mode = abap_true OR is_snapshot-text_statusbar_mode = abap_true.
       result = |<section class="gg-textedit-shell gg-control { iv_state_class }" style="{ lv_shell_style }" id="{ escape( is_snapshot-control_id ) }-shell" aria-label="Text editor shell"{ iv_hidden }>|.
       IF is_snapshot-text_toolbar_mode = abap_true.
@@ -1504,7 +1506,7 @@ CLASS cl_gui_control IMPLEMENTATION.
       DATA(lv_state_class) = state_class(
         iv_focused  = ls_snapshot-focused
         iv_disabled = xsdbool( ls_snapshot-enabled = abap_false )
-        iv_readonly = xsdbool( ls_snapshot-enabled = abap_false ) ).
+        iv_readonly = xsdbool( ls_snapshot-enabled = abap_false OR ls_snapshot-text_readonly = abap_true ) ).
       result = result && render_control_html(
         is_snapshot    = ls_snapshot
         iv_style       = lv_style
