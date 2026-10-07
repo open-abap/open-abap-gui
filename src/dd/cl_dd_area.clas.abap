@@ -310,7 +310,7 @@ CLASS cl_dd_area IMPLEMENTATION.
     CONDENSE lv_fontsize NO-GAPS.
     CONDENSE lv_fontstyle NO-GAPS.
     CONDENSE lv_emphasis NO-GAPS.
-    result = |<span class="gg-dd-text { escape_html( CONV string( style_class ) ) }" data-sap-style="{ escape_html( lv_style ) }" data-sap-color="{ escape_html( lv_color ) }" data-sap-fontsize="{ escape_html( lv_fontsize ) }" data-sap-fontstyle="{ escape_html( lv_fontstyle ) }" data-sap-emphasis="{ escape_html( lv_emphasis ) }" title="{ escape_html( a11y_tooltip ) }">{ lv_text }</span>|.
+    result = |<span class="gg-dd-text { escape_html( CONV string( style_class ) ) }" data-gg-style="{ escape_html( lv_style ) }" data-gg-color="{ escape_html( lv_color ) }" data-gg-fontsize="{ escape_html( lv_fontsize ) }" data-gg-fontstyle="{ escape_html( lv_fontstyle ) }" data-gg-emphasis="{ escape_html( lv_emphasis ) }" title="{ escape_html( a11y_tooltip ) }">{ lv_text }</span>|.
   ENDMETHOD.
 
   METHOD render_icon_html.

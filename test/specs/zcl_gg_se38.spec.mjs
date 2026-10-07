@@ -11,9 +11,23 @@ test("SE38 displays source and executes through the report runtime", async ({pag
   await page.locator('input[name="P_PROGRAM"]').fill("ZGG_EX_015");
   await page.getByRole("button", {name: "Display", exact: true}).click();
   await expect(page.locator('[data-screen="0200"]')).toHaveCount(1);
-  await expect(page.getByRole("status").filter({hasText: "REPORT zgg_ex_015."})).toBeVisible();
+  // The whole source shows in a read-only editor in a fixed font, unwrapped.
+  const source = page.getByRole("textbox", {name: "Text editor"});
+  await expect(source).toHaveValue(/^REPORT zgg_ex_015\.\n\nPARAMETERS p_carr .*\n\nSTART-OF-SELECTION\.\n {2}WRITE p_carr\.$/);
+  await expect(source).toBeEnabled();
+  await expect(source).not.toBeEditable();
+  await expect(source).toHaveAttribute("wrap", "off");
+  await expect(source).toHaveCSS("font-family", /monospace/);
+  await expect(page.getByRole("status", {name: "Text editor status"})).toBeVisible();
   await dispatch(page, {action: "SUBMIT", ucomm: "BACK"});
   await expect(page.locator('[data-screen="0100"]')).toHaveCount(1);
+  // The editor belongs to the source screen only.
+  await expect(page.getByRole("textbox", {name: "Text editor"})).toHaveCount(0);
+  await page.locator('input[name="P_PROGRAM"]').fill("ZGG_DRAFT");
+  await page.getByRole("button", {name: "Display", exact: true}).click();
+  await expect(source).toHaveValue("REPORT zgg_draft.\n* This version has never been activated.");
+  await dispatch(page, {action: "SUBMIT", ucomm: "BACK"});
+  await page.locator('input[name="P_PROGRAM"]').fill("ZGG_EX_015");
   await page.getByRole("button", {name: "Execute (F8)", exact: true}).click();
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "SELECTION");
   await expect(page.locator('input[name="P_CARR"]')).toHaveValue("LH");

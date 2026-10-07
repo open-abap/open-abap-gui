@@ -7,7 +7,7 @@ test("ZCL_GG_EX_044 — the excluded function is not offered", async ({page, hos
   await openExample(page, host, 44);
   await expect(toolbar(page).getByRole("button")).toHaveText(["Refresh"]);
   await expect(page.getByRole("button", {name: "Delete"})).toHaveCount(0);
-  // SAP shows the functions of the status, never its name.
+  // The page shows the functions of the status, never its name.
   await expect(page.locator(".gg-list-status")).toHaveCount(0);
 
   await submit(page, "Refresh");

@@ -29,7 +29,7 @@ CLASS ltcl_gg_host_icons DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL 
            END OF ty_expected.
     TYPES ty_expected_table TYPE STANDARD TABLE OF ty_expected WITH DEFAULT KEY.
 
-* The codes, ICON_* names and English quick info texts of the SAP ICON table.
+* The codes, ICON_* names and English quick info texts of the ICON table.
     CLASS-METHODS object_icons
       RETURNING
         VALUE(rt_icons) TYPE ty_expected_table.

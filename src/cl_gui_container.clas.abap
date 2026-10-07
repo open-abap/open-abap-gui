@@ -33,8 +33,8 @@ ENDCLASS.
 
 CLASS cl_gui_container IMPLEMENTATION.
   METHOD class_constructor.
-* DEFAULT_SCREEN and SCREEN0 stand for the dynpro itself, so SAP GUI has them
-* bound before any program runs. They are never registered as controls: a
+* DEFAULT_SCREEN and SCREEN0 stand for the dynpro itself, so they are bound
+* before any program runs. They are never registered as controls: a
 * control created on them gets no parent id and renders at the top level of
 * the screen, the same place as a control created without a parent.
     CREATE OBJECT default_screen.

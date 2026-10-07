@@ -1,6 +1,6 @@
 CLASS cl_gui_timer DEFINITION PUBLIC INHERITING FROM cl_gui_control.
   PUBLIC SECTION.
-* Seconds until FINISHED, as on SAP.
+* Seconds until FINISHED.
     DATA interval TYPE i.
 
     METHODS constructor

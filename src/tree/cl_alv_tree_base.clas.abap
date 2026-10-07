@@ -869,8 +869,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
-* The node keeps a copy of the line, as SAP adds it to the tree's output
-* table; the caller's variable usually changes with the next node.
+* The node keeps a copy of the line in the tree's output table;
+* the caller's variable usually changes with the next node.
     IF data_row IS SUPPLIED.
       CREATE DATA lr_data_row LIKE data_row.
       lr_data_row->* = data_row.
@@ -1087,7 +1087,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         WHEN lv_has_children = abap_true
           THEN |<button type="button" class="gg-tree-disclosure" data-tree-action="toggle" aria-label="{ COND string( WHEN lv_is_expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { escape_html( ls_node-text ) }">{ lv_tree_marker }</button>|
         ELSE '<span class="gg-tree-disclosure" aria-hidden="true"></span>' ).
-      result = result && |<tr class="gg-tree-node { cl_gui_control=>state_class( iv_selected = ls_node-selected ) }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ COND string( WHEN lv_has_children = abap_true THEN COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) ELSE `` ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-tree-selection="{ COND string( WHEN m_node_selection_mode = cl_gui_column_tree=>node_sel_mode_multiple THEN 'multiple' ELSE 'single' ) }"{ lv_selected }{ lv_hidden }><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px">{ lv_tree_toggle }<span class="gg-tree-node-icon" aria-hidden="true"{ COND string( WHEN lv_node_image IS INITIAL THEN `` ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ) }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
+      result = result && |<tr class="gg-tree-node { cl_gui_control=>state_class( iv_selected = ls_node-selected ) }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ COND string( WHEN lv_has_children = abap_true THEN COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) ELSE `` ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-tree-selection="{ COND string( WHEN m_node_selection_mode = cl_gui_column_tree=>node_sel_mode_multiple THEN 'multiple' ELSE 'single' ) }"{ lv_selected }{ lv_hidden }><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px">{ lv_tree_toggle }<span class="gg-tree-node-icon" aria-hidden="true"{ COND string( WHEN lv_node_image IS INITIAL THEN `` ELSE | data-gg-image="{ escape_html( lv_node_image ) }"| ) }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
       LOOP AT mt_fieldcatalog INTO ls_fieldcat.
         IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
           CONTINUE.

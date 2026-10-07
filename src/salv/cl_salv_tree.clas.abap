@@ -254,7 +254,7 @@ CLASS cl_salv_tree IMPLEMENTATION.
                                                       iv_fallback = lv_icon_name ).
         DATA(lv_icon_code_attr) = COND string(
           WHEN lv_icon_code IS INITIAL THEN ``
-          ELSE | data-sap-image="{ cl_gui_control=>escape_html( lv_icon_code ) }"| ).
+          ELSE | data-gg-image="{ cl_gui_control=>escape_html( lv_icon_code ) }"| ).
         value = value && |<tr role="treeitem" tabindex="0" aria-level="{ lv_level }" data-tree-level="{ lv_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ cl_gui_control=>escape_html( CONV string( lo_node->get_key( ) ) ) }" data-parent-key="{ cl_gui_control=>escape_html( lv_parent_key ) }"{ lv_selected_attr }{ lv_expanded_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ lv_icon_code_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ cl_gui_control=>escape_html( CONV string( lo_node->get_text( ) ) ) }</span></span></th>|.
         LOOP AT mo_columns->get( ) INTO ls_column_ref.
           DATA(lv_item_html) = render_item(

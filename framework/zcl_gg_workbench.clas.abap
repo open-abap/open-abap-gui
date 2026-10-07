@@ -12,7 +12,7 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_html) TYPE string.
 
 * The workbench a program returns to when it ends, with the program's last
-* message in the status bar, as the SAP menu shows it.
+* message in the status bar.
     CLASS-METHODS render_message
       IMPORTING
         iv_message     TYPE string

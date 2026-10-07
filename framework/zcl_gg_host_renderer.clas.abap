@@ -329,7 +329,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_value) TYPE i.
 
 * The scroll bar of a table control: each button shows other lines and runs
-* PAI without a function code, as scrolling does in SAP GUI.
+* PAI without a function code.
     CLASS-METHODS render_table_scroll
       IMPORTING
         is_control     TYPE zcl_gg_host_dynpro_builder=>ty_control_record
@@ -410,7 +410,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Lays the resizable controls of a dynpro out against the work area: each grows
 * or shrinks with it down to its minimum size, and the controls below or to the
-* right of it move by the same amount, as SAP GUI does when the window changes.
+* right of it move by the same amount.
     CLASS-METHODS resizing_script
       IMPORTING
         iv_width       TYPE i
@@ -439,7 +439,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       DATA(lv_modal) = |<div class="gg-modal-backdrop" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-target="{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }"><section class="gg-modal-panel" role="dialog" aria-modal="true" aria-label="Selection screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }"><header class="gg-modal-header"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span><span class="gg-modal-kind">{ zcl_gg_host_html=>escape_text( is_navigation-kind ) }</span>{ COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>| ELSE `` ) }</header>|.
       REPLACE FIRST OCCURRENCE OF '<main id="gg-main-content" aria-labelledby="wb-page-title">' IN rv_html WITH |<main id="gg-main-content" aria-labelledby="wb-page-title">{ lv_modal }|.
 * The backdrop covers the icon bar, so a selection screen shown as a popup
-* carries its Execute in the popup instead, as a SAP GUI popup does.
+* carries its Execute in the popup instead.
       DATA(lv_execute) = zcl_gg_workbench_utility=>render_execute_button( `gg-host-form` ).
       IF rv_html CS lv_execute.
         REPLACE FIRST OCCURRENCE OF lv_execute IN rv_html WITH ``.
@@ -656,7 +656,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       it_tabs   = it_tabs
       it_values = it_values ).
 
-* The status name is the program's; SAP shows its functions, not its name.
+* The status name is the program's; the page shows its functions, not its name.
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page">|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
     lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
@@ -995,9 +995,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
       it_messages   = it_messages
-* The workbench shell already carries the page title in wb-app-title, the way
-* SAP GUI shows it once in the window title bar. A second heading inside the
-* screen would duplicate it and give the page two h1 elements.
+* The workbench shell already carries the page title in wb-app-title.
+* A second heading inside the screen would duplicate it and give the page two h1 elements.
       iv_body       = lv_body ).
   ENDMETHOD.
 
@@ -1569,9 +1568,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         ENDCASE.
         rv_html = |<button class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" type="submit" name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-ucomm ) ) }"{ COND string( WHEN is_control-ucomm = 'EXECUTE' THEN ` data-key="F8" aria-keyshortcuts="F8"` ELSE `` ) }{ iv_attrs }>{ lv_button_icon }<span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></button>|.
       WHEN 'CHECKBOX'.
-        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input type="hidden" name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value=""><input class="{ iv_state_class }" type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="X"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>{ zcl_gg_host_html=>escape_text( is_control-text ) }</label>|.
+        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input type="hidden" name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value=""><input class="{ iv_state_class }" type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="X"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }><span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></label>|.
       WHEN 'RADIOBUTTON'.
-        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input class="{ iv_state_class }" type="radio" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-group ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>{ zcl_gg_host_html=>escape_text( is_control-text ) }</label>|.
+        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input class="{ iv_state_class }" type="radio" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-group ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }><span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></label>|.
       WHEN 'LISTBOX'.
         rv_html = |<select class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>|.
         rv_html = rv_html && listbox_options( it_fixed_values = CORRESPONDING #( is_control-fixed_values )
@@ -1954,7 +1953,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 
   METHOD ucomm_attr.
 * A checkbox, radio button or listbox with a function code triggers PAI with it
-* when it changes, as in SAP GUI.
+* when it changes.
     IF iv_ucomm IS NOT INITIAL.
       rv_attr = | data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( iv_ucomm ) ) }"|.
     ENDIF.

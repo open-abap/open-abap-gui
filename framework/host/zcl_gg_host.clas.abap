@@ -668,7 +668,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
           ENDIF.
 
 * Starting a program interactively sends its selection screen and waits for
-* Execute, as SAP GUI does. On that first send only the PBO events run and
+* Execute. On that first send only the PBO events run and
 * nothing is validated, so the screen carries no complaint about fields nobody
 * has filled in yet. START-OF-SELECTION follows the user's submit.
           lv_stop_before_start = iv_stop_before_start.
@@ -740,7 +740,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
             io_session = lo_session ).
           lv_selection_screen_active = xsdbool(
             lx_flow->mv_kind = zcx_gg_control_flow=>kind_message ).
-* VRM_SET_VALUES lists outlive an error message in PAI, as SAP keeps them.
+* VRM_SET_VALUES lists outlive an error message in PAI.
           apply_selection_lists( CHANGING ct_states = lt_states ).
       ENDTRY.
 
@@ -871,7 +871,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       it_states = lt_states ).
     rs_result-dynamic_selection = lo_session->zif_gg_session_v1~get_compatibility( )->get_dynamic_selection( ).
     rs_result-memory_render_lines = lo_session->get_list_render_from_memory( ).
-* In the background a program shows no screen at all, as on SAP.
+* In the background a program shows no screen at all.
     rs_result-dialog_suppressed = xsdbool( lo_session->is_dialog_suppressed( ) = abap_true
                                            OR iv_batch = abap_true ).
     rs_result-settings = lo_list->get_settings( ).
@@ -879,7 +879,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       rs_result-status = lo_session->get_status( ).
     ELSE.
       rs_result-status = lo_list->get_status( ).
-* A list whose program sets no status has SAP's standard list status.
+* A list whose program sets no status has the standard list status.
       IF rs_result-status IS INITIAL.
         rs_result-status = zcl_gg_host_list_processor=>standard_status( ).
       ENDIF.

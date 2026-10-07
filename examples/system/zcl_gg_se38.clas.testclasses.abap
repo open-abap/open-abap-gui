@@ -34,8 +34,13 @@ CLASS ltcl_gg_se38 IMPLEMENTATION.
       it_values  = VALUE #( ( name = 'P_PROGRAM' value = 'ZGG_EX_015' ) ) ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-screen
                                         exp = '0200' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'REPORT zgg_ex_015.' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'line numbers' ) ).
+* The whole source shows in a read-only, unwrapped text editor in a fixed font.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-control-kind="TEXTEDIT"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'readonly aria-readonly="true" wrap="off"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-fixed-font="1"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS |REPORT zgg_ex_015.{ cl_abap_char_utilities=>newline }| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'WRITE p_carr.</textarea>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS 'O_LINE_' ) ).
   ENDMETHOD.
 
   METHOD displays_chosen_subobject.

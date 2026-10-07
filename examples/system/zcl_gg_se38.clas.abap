@@ -17,6 +17,16 @@ CLASS zcl_gg_se38 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS screen_documentation TYPE zif_gg_dynpro_types_v1=>ty_screen_number VALUE '0220'.
     CONSTANTS screen_text_elements TYPE zif_gg_dynpro_types_v1=>ty_screen_number VALUE '0230'.
 
+* The source code shows in a read-only text editor on screen 0200: all its
+* lines, in a fixed font and unwrapped, with the cursor position in the
+* editor's status bar. The editor lives as long as the transaction.
+    DATA mo_source_container TYPE REF TO cl_gui_custom_container.
+    DATA mo_source TYPE REF TO cl_gui_textedit.
+
+    METHODS show_source
+      IMPORTING
+        iv_program TYPE string.
+
     METHODS put_value
       IMPORTING
         iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
@@ -94,18 +104,14 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CREATE' position = VALUE #( row = 364 column = 124 width = 96 ) ) text = 'Create' ucomm = 'CREATE' ) ).
     io_builder->end_screen( ).
 
-    io_builder->begin_screen( VALUE #( number = screen_source title = 'ABAP Source Code' height = 390 ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SOURCE' position = VALUE #( row = 12 column = 18 width = 540 ) ) text = 'Source Code - line numbers are supplied by the repository adapter.' ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_LINE_001' position = VALUE #( row = 44 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_LINE_002' position = VALUE #( row = 78 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_LINE_003' position = VALUE #( row = 112 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_LINE_004' position = VALUE #( row = 146 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_LINE_005' position = VALUE #( row = 180 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_LINE_006' position = VALUE #( row = 214 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SOURCE_CAPABILITY' position = VALUE #( row = 258 column = 18 width = 540 ) ) text = 'Editing, Save, and Activate are disabled until a real repository compiler is available.' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_ATTRIBUTES' position = VALUE #( row = 304 column = 18 width = 100 ) ) text = 'Attributes' ucomm = 'ATTRIBUTES' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DOCUMENTATION' position = VALUE #( row = 304 column = 128 width = 125 ) ) text = 'Documentation' ucomm = 'DOCUMENTATION' ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_TEXT_ELEMENTS' position = VALUE #( row = 304 column = 263 width = 120 ) ) text = 'Text Elements' ucomm = 'TEXT_ELEMENTS' ) ).
+    io_builder->begin_screen( VALUE #( number = screen_source title = 'ABAP Source Code' height = 470 ) ).
+* The editor grows with the work area; the text and the pushbuttons below it
+* move along.
+    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_SOURCE' position = VALUE #( row = 12 column = 18 width = 760 height = 340 ) ) resizing = VALUE #( vertical = abap_true min_height = 160 horizontal = abap_true min_width = 400 ) ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SOURCE_CAPABILITY' position = VALUE #( row = 366 column = 18 width = 540 ) ) text = 'Editing, Save, and Activate are disabled until a real repository compiler is available.' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_ATTRIBUTES' position = VALUE #( row = 408 column = 18 width = 100 ) ) text = 'Attributes' ucomm = 'ATTRIBUTES' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DOCUMENTATION' position = VALUE #( row = 408 column = 128 width = 125 ) ) text = 'Documentation' ucomm = 'DOCUMENTATION' ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_TEXT_ELEMENTS' position = VALUE #( row = 408 column = 263 width = 120 ) ) text = 'Text Elements' ucomm = 'TEXT_ELEMENTS' ) ).
     io_builder->end_screen( ).
 
     io_builder->begin_screen( VALUE #( number = screen_attributes title = 'Program Attributes' height = 300 ) ).
@@ -184,6 +190,27 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
                          iv_value = ls_capabilities-explanation CHANGING ct_values = ct_values ).
     ct_states[ name = 'PB_CHANGE' ]-enabled = abap_false.
     ct_states[ name = 'PB_CREATE' ]-enabled = abap_false.
+    IF is_context-screen = screen_source.
+      show_source( value_of( it_values = ct_values
+                             iv_name   = 'P_PROGRAM' ) ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD show_source.
+    IF mo_source IS NOT BOUND.
+      CREATE OBJECT mo_source_container
+        EXPORTING
+          container_name = 'CC_SOURCE'.
+      CREATE OBJECT mo_source
+        EXPORTING
+          parent        = mo_source_container
+          wordwrap_mode = cl_gui_textedit=>wordwrap_off.
+      mo_source->set_readonly_mode( ).
+      mo_source->set_font_fixed( ).
+      mo_source->set_toolbar_mode( cl_gui_textedit=>false ).
+      mo_source->set_statusbar_mode( cl_gui_textedit=>true ).
+    ENDIF.
+    mo_source->set_text_as_r3table( load_program( iv_program )-source_lines ).
   ENDMETHOD.
 
   METHOD subobjects.
@@ -218,21 +245,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD put_program.
-    DATA lv_row TYPE i.
-
-    LOOP AT is_program-source_lines INTO DATA(lv_line).
-      IF sy-tabix > 6.
-        EXIT.
-      ENDIF.
-      put_value( EXPORTING iv_name = CONV #( |O_LINE_{ sy-tabix WIDTH = 3 ALIGN = RIGHT PAD = '0' }| )
-                           iv_value = |{ sy-tabix WIDTH = 3 ALIGN = RIGHT PAD = '0' } { lv_line }| CHANGING ct_values = ct_values ).
-    ENDLOOP.
-    lv_row = lines( is_program-source_lines ) + 1.
-    WHILE lv_row <= 6.
-      put_value( EXPORTING iv_name = CONV #( |O_LINE_{ lv_row WIDTH = 3 ALIGN = RIGHT PAD = '0' }| )
-                           iv_value = `` CHANGING ct_values = ct_values ).
-      lv_row = lv_row + 1.
-    ENDWHILE.
     put_value( EXPORTING iv_name = 'O_ATTR_PROGRAM'
                          iv_value = is_program-program CHANGING ct_values = ct_values ).
     put_value( EXPORTING iv_name = 'O_ATTR_TYPE'
@@ -245,7 +257,6 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
                          iv_value = is_program-description CHANGING ct_values = ct_values ).
     put_value( EXPORTING iv_name = 'O_DOCUMENTATION'
                          iv_value = is_program-documentation CHANGING ct_values = ct_values ).
-    CLEAR lv_row.
     put_value( EXPORTING iv_name = 'O_TEXT_ELEMENTS'
                          iv_value = `` CHANGING ct_values = ct_values ).
     LOOP AT is_program-text_elements INTO DATA(lv_text).

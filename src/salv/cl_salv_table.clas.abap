@@ -474,8 +474,8 @@ CLASS cl_salv_table IMPLEMENTATION.
     IF mo_display_settings IS BOUND.
       ls_layout-zebra = mo_display_settings->is_striped_pattern( ).
     ENDIF.
-* A color column must hold a color table (LVC_T_SCOL); anything else is not
-* one, as SAP rejects it.
+* A color column must hold a color table (LVC_T_SCOL); anything else is
+* rejected.
     IF is_table_column( mo_columns->get_color_column( ) ) = abap_true.
       ls_layout-ctab_fname = mo_columns->get_color_column( ).
     ENDIF.
@@ -830,8 +830,8 @@ CLASS cl_salv_table IMPLEMENTATION.
     DATA lv_low TYPE decfloat34.
     DATA lv_high TYPE decfloat34.
 
-* Numbers compare as numbers, as SAP compares a numeric column with the
-* select-option: 90 is less than 100.
+* A numeric column compares with the select-option as numbers: 90 is less
+* than 100.
     DATA(lv_numeric) = xsdbool( matches( val   = condense( iv_value )
                                          regex = '^-?[0-9]+([.][0-9]+)?$' )
                             AND matches( val   = condense( iv_low )

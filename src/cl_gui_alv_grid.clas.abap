@@ -559,7 +559,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
     DATA mv_appl_events TYPE abap_bool.
 * Cells the user changed in the browser that are not in the output table yet.
     DATA mt_frontend_cells TYPE lvc_t_modi.
-* Errors a data_changed handler logged; the grid shows them like SAP's
+* Errors a data_changed handler logged; the grid shows them as its
 * protocol.
     DATA mt_protocol TYPE lvc_t_msg1.
 * Application functions a friend (cl_salv_table) supplies; the toolbar event
@@ -1085,7 +1085,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   METHOD build_toolbar.
     DATA lo_toolbar TYPE REF TO cl_alv_event_toolbar_set.
 
-* SAP raises toolbar when the toolbar is built; the handlers add the
+* The grid raises toolbar when the toolbar is built; the handlers add the
 * application functions to e_object->mt_toolbar.
     CREATE OBJECT lo_toolbar.
     lo_toolbar->mt_toolbar = mt_toolbar_base.
@@ -1107,8 +1107,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     DATA lv_row TYPE i.
     DATA lv_fieldname TYPE lvc_fname.
 
-* The grid posts its row marks and its input cells with every round trip, as
-* SAP GUI sends the selection and the changed cells of the frontend grid.
+* The grid posts its row marks and its input cells with every round trip.
     IF NOT line_exists( values[ name = 'present' ] ).
       RETURN.
     ENDIF.
@@ -1926,14 +1925,14 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     DATA lv_has_component TYPE abap_bool.
 
 * The grid shows the program's output table; set_table_for_first_display and
-* refresh_table_display read it again, as on SAP.
+* refresh_table_display read it again.
     CLEAR: mt_html_rows, mt_source_rows.
     IF mt_outtab IS NOT BOUND.
       RETURN.
     ENDIF.
     ASSIGN mt_outtab->* TO <outtab>.
 * A catalog entry without an internal type takes the type of the output
-* table's field, as SAP does.
+* table's field.
     READ TABLE <outtab> ASSIGNING <row> INDEX 1.
     IF sy-subrc = 0.
       LOOP AT mt_fieldcatalog ASSIGNING FIELD-SYMBOL(<ls_typed>) WHERE inttype IS INITIAL.
@@ -2184,8 +2183,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         lv_buttons = lv_buttons && |<button class="gg-alv-tool-button" type="submit" { function_attributes( CONV #( ls_standard-function ) ) } title="{ ls_standard-quickinfo }" aria-label="{ ls_standard-quickinfo }">{ zcl_gg_host_icons=>icon( iv_name = CONV string( ls_standard-icon ) ) }</button>|.
       ENDLOOP.
     ENDIF.
-* Application functions follow the standard ones, as SAP GUI adds them to the
-* right of the ALV functions.
+* Application functions follow the standard ones, to the right of the
+* ALV functions.
     LOOP AT mt_toolbar INTO DATA(ls_button).
       IF ls_button-butn_type = cntb_btype_sep.
         lv_buttons = lv_buttons && |<span class="gg-toolbar-separator" role="separator" aria-orientation="vertical"></span>|.
@@ -2230,7 +2229,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
                            ELSE ms_layout-s_dragdrop-cntr_ddid )
       control_id = control_id
       row        = `0` ).
-* A title set with set_gridtitle wins over the layout title, as on SAP.
+* A title set with set_gridtitle wins over the layout title.
     lv_title = COND #( WHEN mv_gridtitle IS INITIAL THEN ms_layout-grid_title ELSE mv_gridtitle ).
     result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ cl_gui_control=>escape_html( CONV string( lv_title ) ) }</h2></header>{ COND string( WHEN control_id IS NOT INITIAL THEN |<input type="hidden" name="{ frontend_field_name( 'present' ) }" value="X">| ) }{ render_protocol( ) }{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }{ render_layout_dialog( ) }{ mv_menu_html }<div class="gg-alv-grid-area"{ lv_grid_drop }><table data-sortable="true" data-zebra="{ COND string( WHEN ms_layout-zebra = abap_true THEN `true` ELSE `false` ) }" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ cl_gui_control=>escape_html( CONV string( ms_variant-variant ) ) }"{ COND string( WHEN lv_title IS NOT INITIAL THEN | aria-label="{ cl_gui_control=>escape_html( CONV string( lv_title ) ) }"| ) }><thead><tr>{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col" class="gg-alv-selector"><span class="gg-sr-only">Row selection</span></th>` ) }|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).

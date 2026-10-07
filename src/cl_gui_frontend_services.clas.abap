@@ -646,7 +646,7 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
     IF lo_host IS NOT BOUND.
       RETURN.
     ENDIF.
-* SAP declares this input table as EXPORTING by reference. Keep its content;
+* The signature declares this input table as EXPORTING by reference. Keep its content;
 * treating it as an ordinary output parameter would erase what must be copied.
     GET REFERENCE OF data INTO lr_clipboard.
     ASSIGN lr_clipboard->* TO <clipboard>.

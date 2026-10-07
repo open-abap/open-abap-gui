@@ -296,7 +296,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
         ELSE |<span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center"></span>| ).
       DATA(lv_node_image_attr) = COND string(
         WHEN lv_node_image IS INITIAL THEN ``
-        ELSE | data-sap-image="{ escape_html( lv_node_image ) }"| ).
+        ELSE | data-gg-image="{ escape_html( lv_node_image ) }"| ).
       DATA(lv_drag) = drag_attributes( handle     = ls_node-dragdropid
                                        control_id = control_id
                                        key        = ls_node-node_key ).

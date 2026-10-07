@@ -1,7 +1,7 @@
 REPORT zgg_ex_127.
 
-* SAP GUI has no stand-alone selector control; the dropdown listbox of a
-* dynpro field with values from VRM_SET_VALUES is the selector.
+* The selector is the dropdown listbox of a dynpro field with values from
+* VRM_SET_VALUES; there is no stand-alone selector control.
 
 DATA gv_carrier TYPE c LENGTH 2.
 DATA gv_ok_code TYPE sy-ucomm.

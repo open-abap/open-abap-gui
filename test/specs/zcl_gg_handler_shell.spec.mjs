@@ -58,7 +58,7 @@ for (const tcode of ["SE01", "SE09", "SE11", "SE16", "SE38"]) {
 
     expect(response?.status()).toBe(200);
     await expect(page.locator(".wb-brand")).toHaveText("open-abap");
-    await expect(page.getByRole("menuitem", {name: "Applications"})).toBeVisible();
+    await expect(page.getByRole("menuitem", {name: "System"})).toBeVisible();
     await expect(page.locator(".wb-appbar")).toBeVisible();
     await expect(page.locator(".wb-appbar--dynpro")).toHaveCount(0);
     await expect(page.locator(".wb-app-title")).toHaveAttribute("class", "wb-app-title");

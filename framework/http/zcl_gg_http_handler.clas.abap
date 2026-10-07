@@ -1090,7 +1090,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA ls_message TYPE zif_gg_session_types_v1=>ty_message.
 
 * A program the user started from the workbench has ended, so the user is
-* back at the workbench, with the program's last message as SAP shows it.
+* back at the workbench, with the program's last message.
     IF is_response-valid = abap_true AND is_response-ended = abap_true.
       zcl_gg_host_runtime=>close( is_response-session_id ).
       READ TABLE is_response-messages INTO ls_message INDEX lines( is_response-messages ).

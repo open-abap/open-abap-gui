@@ -26,8 +26,8 @@ CLASS cl_alv_variant DEFINITION PUBLIC.
       EXPORTING
         et_fcat     TYPE lvc_t_fcat.
 
-* The saved layouts of the grids, kept for the lifetime of the server as SAP
-* keeps them in its database. A layout belongs to a report and a handle, and
+* The saved layouts of the grids, kept for the lifetime of the server.
+* A layout belongs to a report and a handle, and
 * holds the visible columns in their order and the sort criteria.
     TYPES: BEGIN OF ty_layout,
              username TYPE sy-uname,

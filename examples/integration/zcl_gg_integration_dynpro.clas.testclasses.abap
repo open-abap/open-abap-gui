@@ -376,7 +376,7 @@ CLASS ltcl_gg_integration_dyn IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD stops_at_empty_required.
-* As on SAP, PAI does not run while a required field is empty.
+* PAI does not run while a required field is empty.
     DATA(ls_result) = zcl_gg_host_dynpro=>run(
       io_program = NEW zcl_gg_integration_dynpro( )
       iv_ucomm   = 'NEXT' ).

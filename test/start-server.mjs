@@ -2,7 +2,6 @@ import express from "express";
 import {createServer} from "node:http";
 import path from "node:path";
 import {pathToFileURL} from "node:url";
-import {createWorkbenchPreviewHandlers} from "../converter/src/workbench-http.mjs";
 
 // A crash prints its whole stack; ABAP call chains exceed V8's default of 10.
 Error.stackTraceLimit = Infinity;
@@ -34,7 +33,6 @@ function applyFixedSystemFields() {
 applyFixedSystemFields();
 const {cl_express_icf_shim} = await import(
   pathToFileURL(path.join(outputRoot, "cl_express_icf_shim.clas.mjs")).href);
-const converterWorkbench = createWorkbenchPreviewHandlers();
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
@@ -56,37 +54,7 @@ export function createAbapHtmlHostServer() {
   app.set("etag", false);
   app.use(express.raw({type: "*/*", limit: MAX_BODY_BYTES}));
 
-  app.get("/converter/preview", async (request, response) => {
-    try {
-      await converterWorkbench.get(request, response);
-    } catch (error) {
-      crash(error);
-    }
-  });
-  app.post("/converter/preview", async (request, response) => {
-    try {
-      await converterWorkbench.post(request, response);
-    } catch (error) {
-      crash(error);
-    }
-  });
-  app.post("/converter/preview/save", async (request, response) => {
-    try {
-      await converterWorkbench.save(request, response);
-    } catch (error) {
-      crash(error);
-    }
-  });
-  app.get("/converter/preview/download", async (request, response) => {
-    try {
-      await converterWorkbench.download(request, response);
-    } catch (error) {
-      crash(error);
-    }
-  });
-
-  // The read-only converter preview is an explicit workbench adapter. All
-  // other requests are handed to the fixed ABAP IF_HTTP_EXTENSION handler,
+  // Every request is handed to the fixed ABAP IF_HTTP_EXTENSION handler,
   // which owns the application behavior for the deployed GUI.
   app.all("*", async (request, response) => {
     try {

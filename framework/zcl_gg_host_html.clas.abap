@@ -86,7 +86,7 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_html) TYPE string.
 
     "! The message the status bar shows: the last one sent, as each MESSAGE
-    "! replaces the one before it in the SAP GUI status bar. Its type is the
+    "! replaces the one before it. Its type is the
     "! DISPLAY LIKE type when there is one.
     CLASS-METHODS status_message
       IMPORTING
@@ -434,7 +434,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-salv-hierseq tbody tr[data-level="1"] td\{background:#e8f0f7;font-weight:700;\}.gg-salv-hierseq tr[data-level="2"]>:first-child\{padding-left:24px;\}|.
     rv_html = rv_html && |.gg-selection input[type=text],.gg-selection select\{height:var(--gg-row);padding:2px 6px;border:1px solid var(--gg-border-dark);border-radius:1px;background:var(--gg-input);color:#123b64;box-sizing:border-box;font:inherit;box-shadow:inset 0 1px 2px rgba(54,87,116,.18);\}|.
     rv_html = rv_html && |.gg-selection input[type=text]:focus,.gg-selection select:focus\{border-color:#5e8fbd;box-shadow:0 0 0 2px rgba(94,143,189,.25),inset 0 1px 2px rgba(54,87,116,.18);outline:0;\}|.
-* Only the field holding the cursor is yellow, the way SAP GUI highlights it.
+* Only the field holding the cursor is yellow.
     rv_html = rv_html && |.gg-selection input[type=text]:focus:not([readonly]),.gg-selection select:focus\{background-color:#fff1a6;\}|.
     rv_html = rv_html && |.gg-selection input:disabled,.gg-selection select:disabled\{background:#d1d1d1;color:#808080;cursor:default;\}|.
     rv_html = rv_html && |.gg-selection .gg-choice\{gap:8px;min-height:26px;padding:2px 0;\}|.
@@ -519,6 +519,11 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
 * element in the selector outranks the font:inherit of the input rules above.
     rv_html = rv_html && |.gg-selection input.gg-type-date,.gg-selection input.gg-type-time,.gg-dynpro input.gg-type-date,.gg-dynpro input.gg-type-time\{font-family:var(--gg-mono-font);\}|.
     rv_html = rv_html && |.gg-dynpro input[type=checkbox],.gg-dynpro input[type=radio]\{width:14px;height:14px;margin:0;flex:0 0 auto;accent-color:#28679e;\}|.
+* A checkbox or radio button sits centred on its text, a little apart from it.
+* The text box is trimmed to cap height and baseline, so the letters are
+* centred, not the line box with the font's extra ascent.
+    rv_html = rv_html && |.gg-dynpro label.gg-dynpro-control\{display:flex;align-items:center;gap:6px;\}|.
+    rv_html = rv_html && |.gg-dynpro label.gg-dynpro-control>span\{text-box:trim-both cap alphabetic;\}|.
     rv_html = rv_html && |.gg-dynpro-control>input[type=text],.gg-dynpro-control>input[type=password]\{width:100%;\}|.
     rv_html = rv_html && |.gg-dynpro input[type=text]:focus:not([readonly]),.gg-dynpro input[type=password]:focus:not([readonly]),.gg-dynpro select:focus\{background-color:#fff1a6;\}|.
     rv_html = rv_html && |.gg-dynpro button\{min-height:26px;padding:2px 12px;border:1px solid #8c8c8c;border-radius:2px;background:linear-gradient(#fefefe,#d9d9d9);color:#163e6b;cursor:pointer;\}|.
@@ -718,7 +723,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_value = iv_value.
     CASE to_upper( iv_type ).
       WHEN 'D'.
-* An initial date is a blank field in SAP GUI.
+* An initial date is a blank field.
         IF iv_value = '00000000'.
           rv_value = ``.
         ELSEIF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
@@ -737,8 +742,8 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
           rv_value = |{ lv_first }.{ lv_second }.{ lv_third }|.
         ENDIF.
       WHEN 'T'.
-* An initial time is still a time, midnight, and SAP GUI shows it as such
-* rather than as a blank field, unlike an initial date.
+* An initial time is still a time, midnight, and shows as such rather
+* than as a blank field, unlike an initial date.
         IF iv_value IS INITIAL.
           rv_value = '00:00:00'.
         ELSEIF strlen( iv_value ) = 6 AND iv_value CO '0123456789'.

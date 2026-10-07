@@ -137,24 +137,24 @@ CLASS cl_dd_document IMPLEMENTATION.
     result = result && |.gg-dd-main\{min-width:0;\}|.
     result = result && |.gg-dd-right-area\{min-width:0;padding-top:3px;color:#172b3a;font-size:14px;line-height:1.4;\}|.
     result = result && |.gg-dd-text\{font:inherit;text-decoration:none;\}|.
-    result = result && |.gg-dd-text[data-sap-style="HEADING"]\{display:inline-block;margin:2px 0 3px;font-size:23px;font-weight:700;line-height:1.2;color:#111;\}|.
-    result = result && |.gg-dd-text[data-sap-style="KEY"]\{color:#075e98;background:#e3f0f4;\}|.
-    result = result && |.gg-dd-text[data-sap-style="GROUP_HEADING"]\{font-weight:700;color:#173c5e;\}|.
-    result = result && |.gg-dd-text[data-sap-emphasis="STRONG"]\{font-weight:700;\}|.
-    result = result && |.gg-dd-text[data-sap-color="LIST_POSITIVE"]\{color:#174c25;background:#c6f0be;\}|.
-    result = result && |.gg-dd-text[data-sap-color="LIST_HEADING"]\{color:#164b82;background:#d9e9f6;\}|.
-    result = result && |.gg-dd-text[data-sap-fontsize="SMALL"]\{font-size:11px;\}|.
-    result = result && |.gg-dd-text[data-sap-fontsize="MEDIUM"]\{font-size:14px;\}|.
-    result = result && |.gg-dd-text[data-sap-fontsize="LARGE"]\{font-size:18px;\}|.
-    result = result && |.gg-dd-text[data-sap-fontstyle="SERIF"]\{font-family:Georgia,serif;\}|.
-    result = result && |.gg-dd-text[data-sap-fontstyle="SANS_SERIF"]\{font-family:Arial,sans-serif;\}|.
+    result = result && |.gg-dd-text[data-gg-style="HEADING"]\{display:inline-block;margin:2px 0 3px;font-size:23px;font-weight:700;line-height:1.2;color:#111;\}|.
+    result = result && |.gg-dd-text[data-gg-style="KEY"]\{color:#075e98;background:#e3f0f4;\}|.
+    result = result && |.gg-dd-text[data-gg-style="GROUP_HEADING"]\{font-weight:700;color:#173c5e;\}|.
+    result = result && |.gg-dd-text[data-gg-emphasis="STRONG"]\{font-weight:700;\}|.
+    result = result && |.gg-dd-text[data-gg-color="LIST_POSITIVE"]\{color:#174c25;background:#c6f0be;\}|.
+    result = result && |.gg-dd-text[data-gg-color="LIST_HEADING"]\{color:#164b82;background:#d9e9f6;\}|.
+    result = result && |.gg-dd-text[data-gg-fontsize="SMALL"]\{font-size:11px;\}|.
+    result = result && |.gg-dd-text[data-gg-fontsize="MEDIUM"]\{font-size:14px;\}|.
+    result = result && |.gg-dd-text[data-gg-fontsize="LARGE"]\{font-size:18px;\}|.
+    result = result && |.gg-dd-text[data-gg-fontstyle="SERIF"]\{font-family:Georgia,serif;\}|.
+    result = result && |.gg-dd-text[data-gg-fontstyle="SANS_SERIF"]\{font-family:Arial,sans-serif;\}|.
     result = result && |.gg-dd-link\{color:#0066b3;text-decoration:underline;\}|.
     result = result && |.gg-dd-underline\{height:0;margin:8px 0 10px;border:0;border-top:1px solid #bccbd6;\}|.
     result = result && |.gg-dd-table\{width:100%;margin:6px 0 8px;border:2px solid #405680;border-collapse:collapse;table-layout:fixed;color:#172b3a;font:14px Arial,sans-serif;\}|.
     result = result && |.gg-dd-table th,.gg-dd-table td\{height:27px;padding:4px 6px;border:1px solid #91a6c0;text-align:left;vertical-align:middle;overflow-wrap:anywhere;\}|.
     result = result && |.gg-dd-table th\{background:#647fb8;color:#fff;font-weight:500;\}|.
     result = result && |.gg-dd-table td\{background:#f7fafc;\}|.
-    result = result && |.gg-dd-table tr[data-sap-color="LIST_POSITIVE"] td\{background:#c8f1bd;color:#174b24;\}|.
+    result = result && |.gg-dd-table tr[data-gg-color="LIST_POSITIVE"] td\{background:#c8f1bd;color:#174b24;\}|.
     result = result && |.gg-dd-table .gg-dd-icon\{display:inline-flex;align-items:center;justify-content:center;color:#176d35;\}|.
     result = result && |.gg-dd-form\{display:flex;flex-wrap:wrap;align-items:center;gap:7px 8px;margin:6px 0 0;color:#172b3a;\}|.
     result = result && |.gg-dd-form>.gg-dd-text\{flex:0 0 100%;font-weight:700;\}|.

@@ -443,7 +443,7 @@ function parseGuiStatus(values) {
     text: recordValue(record, "FUN_TEXT"),
     type: recordValue(record, "TYPE"),
     textType: recordValue(record, "TEXT_TYPE"),
-    // SAP GUI status exports use TEXT_NAME for catalog names in some
+    // GUI status exports use TEXT_NAME for catalog names in some
     // systems, but classic list statuses commonly carry the equivalent
     // icon identifier in ICON_ID. Keep the raw identifier so the host can
     // resolve both forms through its shared icon catalog.

@@ -302,8 +302,9 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_readonly_mode.
+* Read-only text can still be scrolled, selected and copied; only editing
+* stops. The control stays enabled.
     mv_readonly = readonly_mode.
-    set_enable( COND #( WHEN readonly_mode = true THEN ' ' ELSE 'X' ) ).
     cl_gui_control=>set_text_state(
       control  = me
       readonly = xsdbool( mv_readonly <> 0 ) ).
