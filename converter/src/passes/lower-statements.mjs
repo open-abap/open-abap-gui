@@ -1260,7 +1260,7 @@ function lowerSingleStatement(statement, context) {
   if (statement.kind === "Skip") return `lo_writer->skip( ${stripPeriod(raw).replace(/^SKIP\s*/i, "") || "1"} ).`;
   if (statement.kind === "Uline") {
     // ULINE [AT] [/][pos][(len)]; the writer starts a new line and leaves
-    // the list cursor at the start of the next one, as on SAP.
+    // the list cursor at the start of the next one.
     const match = /^ULINE\s*(?:AT\b\s*)?\/?\s*(\d+)?(?:\(\s*(\d+)\s*\))?/i.exec(stripPeriod(raw));
     const placement = [
       match?.[1] ? `position = ${match[1]}` : "",
@@ -1299,7 +1299,7 @@ function lowerSingleStatement(statement, context) {
       return rewriteStatementValues(named.replace(/,\s*$/, "."), context);
     }
     // A message in AT SELECTION-SCREEN ON <field> belongs to that field, which
-    // gets the cursor, as on SAP.
+    // gets the cursor.
     const message = parseMessage(raw, context);
     return context.messageField && message.startsWith("io_session->message( VALUE #(")
       ? message.replace(/ \) \)\.$/, ` field = ${context.messageField} ) ).`)

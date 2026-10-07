@@ -1,5 +1,5 @@
 // A program's text symbols (TEXT-nnn, 'text'(nnn)) move with its code into
-// the class. On SAP a class has its own text pool; abapGit keeps it in the
+// the class. A class has its own text pool; abapGit keeps it in the
 // class's .clas.xml, where the transpiler and abaplint read it.
 
 const escape = (value) => String(value)

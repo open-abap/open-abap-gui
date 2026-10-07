@@ -77,7 +77,7 @@ CLASS cl_gui_picture IMPLEMENTATION.
 
   METHOD load_picture_from_url.
     mv_url = url.
-* RESULT is 1 when the picture was loaded and 0 when not, as on SAP.
+* RESULT is 1 when the picture was loaded and 0 when not.
     IF is_safe_asset( ) = abap_true.
       mv_state = 'loaded'.
       result = 1.

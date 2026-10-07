@@ -264,7 +264,7 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD display.
-* A hierarchical-sequential list as SAP writes it: each header line followed
+* A hierarchical-sequential list: each header line followed
 * by its items, the column headings of both levels on top, and the totals of
 * the aggregated item columns at the end.
     FIELD-SYMBOLS <headers> TYPE STANDARD TABLE.

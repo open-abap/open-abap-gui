@@ -10,7 +10,7 @@ test("ZCL_GG_EX_103 — LOOP AT SCREEN shows and requires a field", async ({page
   await expect(address).toBeVisible();
   await expect(address).toHaveAttribute("required", "");
 
-  // The field is required now: as on SAP, PAI runs only with it filled.
+  // The field is required now: PAI runs only with it filled.
   await delivery.uncheck();
   await page.waitForLoadState("load");
   await expect(page.getByRole("alert")).toContainText("Fill in all required entry fields");

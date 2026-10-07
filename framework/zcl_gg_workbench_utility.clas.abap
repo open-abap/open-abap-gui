@@ -34,8 +34,7 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * A message in the status bar carries its ABAP type: E, A and X are errors, W a
 * warning, S a success and I an information. Each type owns a colour, and the
 * two urgent types are announced assertively. is_message is the message as the
-* program sent it; double-clicking the bar shows its technical information,
-* as SAP GUI does.
+* program sent it; double-clicking the bar shows its technical information.
     CLASS-METHODS render_bottom
       IMPORTING
         iv_message     TYPE string OPTIONAL
@@ -58,7 +57,7 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS help_url TYPE string VALUE 'https://open-abap.org'.
 
 * System > Status: the session's client, user and language, the system and
-* the host, as SAP GUI shows them in its System: Status dialog.
+* the host.
     CLASS-METHODS render_system_status
       IMPORTING
         is_status      TYPE zif_gg_session_types_v1=>ty_gui_status
@@ -245,7 +244,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-dialog dt{color:#315a7f}' &&
       '.wb-dialog dd{margin:0;min-height:1.2em;font-family:Consolas,"Courier New",monospace;overflow-wrap:anywhere}' &&
 * The system status groups its values in titled frames, each value in an
-* output field, as SAP GUI does.
+* output field.
       '.wb-system-status{width:min(520px,100%)}' &&
       '.wb-system-status section{margin:10px 14px;border:1px solid #b4c8db;border-radius:3px;background:var(--gg-panel)}' &&
       '.wb-system-status section:last-child{margin-bottom:14px}' &&
@@ -261,7 +260,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
   METHOD render_top.
 * The app bar carries the title and nothing else. The CUA status name enables
-* or disables commands and shows only in System > Status, as on SAP.
+* or disables commands and shows only in System > Status.
     DATA lv_title TYPE string.
     DATA lv_content_form TYPE string.
 
@@ -370,13 +369,13 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-* A selection screen's Execute leads the icon bar, as in SAP GUI.
+* A selection screen's Execute leads the icon bar.
     IF iv_execute_form IS NOT INITIAL.
       lv_buttons = render_execute_button( iv_execute_form ).
     ENDIF.
 
     LOOP AT it_entries INTO DATA(ls_icon).
-* As on SAP, a function the status excludes is not shown in the application
+* A function the status excludes is not shown in the application
 * toolbar; the menus show it inactive.
       IF iv_runtime = abap_true
           AND line_exists( is_status-excluded_ucomm[ table_line = ls_icon-ucomm ] ).
@@ -495,7 +494,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     DATA lv_ucomm    TYPE zif_gg_session_types_v1=>ty_ucomm.
 
     lv_dispatch = iv_runtime.
-* As on SAP, each button of the system toolbar is a function key; it sends
+* Each button of the system toolbar is a function key; it sends
 * the function code the status assigns to that key.
     lv_ucomm = COND #( WHEN is_status-pf_actions IS INITIAL
                        THEN zif_gg_session_types_v1=>command_back
@@ -639,7 +638,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = |<div id="{ system_status_id }" class="wb-dialog" role="dialog" aria-modal="true" aria-labelledby="{ system_status_id }-title" hidden>| &&
       |<div class="wb-dialog-panel wb-system-status"><header class="wb-dialog-header"><h2 id="{ system_status_id }-title">System: Status</h2>| &&
       |<button class="wb-dialog-close" type="button" data-system-status-close aria-label="Close system status">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header>| &&
-* Dates and times read as SAP GUI shows them, DD.MM.YYYY and HH:MM:SS.
+* Dates and times read DD.MM.YYYY and HH:MM:SS.
       status_group(
         iv_id    = `usage`
         iv_title = `Usage data`
@@ -732,7 +731,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 * flavor in common posts the DROP event of the target.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var common=function(t,types){var f=(t.getAttribute("data-gg-drop-flavors")||"").split(",");for(var i=0;i<f.length;i++){if(types.indexOf("application/x-gg-flavor-"+f[i].toLowerCase())>=0){return f[i];}}return "";};document.addEventListener("dragstart",function(e){var s=e.target.closest&&e.target.closest("[data-gg-drag]");if(!s){return;}e.dataTransfer.setData("application/x-gg-drag",s.getAttribute("data-gg-drag"));(s.getAttribute("data-gg-flavors")||"").split(",").forEach(function(f){e.dataTransfer.setData("application/x-gg-flavor-"+f.toLowerCase(),f);});e.dataTransfer.effectAllowed=s.getAttribute("data-gg-effect")||"copyMove";});document.addEventListener("dragover",function(e){var t=e.target.closest&&e.target.closest("[data-gg-drop]");if(t&&common(t,Array.prototype.slice.call(e.dataTransfer.types))){e.preventDefault();e.dataTransfer.dropEffect=e.dataTransfer.effectAllowed==="copy"?"copy":e.dataTransfer.effectAllowed==="move"?"move":e.ctrlKey?"copy":"move";}});document.addEventListener("drop",function(e){var t=e.target.closest&&e.target.closest("[data-gg-drop]");if(!t){return;}var flavor=common(t,Array.prototype.slice.call(e.dataTransfer.types)),source=e.dataTransfer.getData("application/x-gg-drag"),form=t.closest("form");if(!flavor||!source||!form){return;}e.preventDefault();var b=document["cr"+"eateElement"]("button");b.type="submit";b.name="gg_control_event";b.value=t.getAttribute("data-gg-drop")+"|"+source+"|"+flavor;b.hidden=true;b.formNoValidate=true;form.appendChild(b);b.click();});}());</script></body></html>'.
 * A control element with data-gg-click-event or data-gg-dblclick-event posts
-* that control event, as SAP GUI raises the events of a tree node or grid cell.
+* that control event, such as the events of a tree node or grid cell.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var timer=null;var post=function(element,value){var form=element.closest("form");if(!form||!value){return;}var button=document["cr"+"eateElement"]("button");button.type="submit";button.name="gg_control_event";button.value=value;button.hidden=true;button.formNoValidate=true;form.appendChild(button);button.click();};var find=function(event,name){return event.target.closest?event.target.closest("["+name+"]"):null;};document.addEventListener("click",function(event){var element=find(event,"data-gg-click-event");if(!element){return;}event.preventDefault();clearTimeout(timer);var value=element.getAttribute("data-gg-click-event");if(element.hasAttribute("data-gg-dblclick-event")){timer=setTimeout(function(){post(element,value);},300);}else{post(element,value);}});document.addEventListener("dblclick",function(event){var element=find(event,"data-gg-dblclick-event");if(!element){return;}clearTimeout(timer);post(element,element.getAttribute("data-gg-dblclick-event"));});document.addEventListener("keydown",function(event){if(event.key!=="Enter"){return;}var element=find(event,"data-gg-click-event");if(!element){return;}event.preventDefault();post(element,element.getAttribute("data-gg-dblclick-event")||element.getAttribute("data-gg-click-event"));});}());</script></body></html>'.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){if(!document.querySelector(".gg-alv-tree table[role=\"tree\"]")){return;}var post=function(name,detail){if(window.__ggDisableTreeTransport){return;}var form=document.querySelector(".gg-page--dynpro form,.gg-page--selection form,.gg-page--list form");if(!form){return;}var add=function(field,value){var input=document["cr"+"eateElement"]("input");input.type="hidden";input.name=field;input.value=value===undefined||value===null?"":String(value);form.appendChild(input);};var value=name==="TREE_SELECT"?(detail.selectedKeys||[]).join(","):detail.expanded===undefined?detail.value||detail.sourceNodeKey||"":detail.expanded?"true":"false";var button=document["cr"+"eateElement"]("button");button.type="submit";button.name="gg_control_event";button.value=detail.controlId+"|"+name+"|"+(detail.nodeKey||"")+"|"+(detail.fieldname||"")+"|"+value+"|"+(detail.checked?"X":"");button.formNoValidate=true;button.hidden=true;form.appendChild(button);button.click();};var names={"gg-alv-tree-toggle":"TREE_TOGGLE","gg-alv-tree-select":"TREE_SELECT","gg-alv-tree-link-click":"TREE_LINK","gg-alv-tree-item-double-click":"TREE_ITEM_DOUBLE","gg-alv-tree-node-double-click":"TREE_NODE_DOUBLE","gg-alv-tree-checkbox-change":"TREE_CHECKBOX","gg-alv-tree-context-menu":"TREE_CONTEXT","gg-alv-tree-drag-start":"TREE_DRAG_START","gg-alv-tree-drop":"TREE_DROP","gg-alv-tree-item-button":"TREE_ITEM_BUTTON"};Object.keys(names).forEach(function(name){document.addEventListener(name,function(event){post(names[name],event.detail||{});});});}());</script></body></html>'.
     REPLACE FIRST OCCURRENCE OF '</body></html>' IN rv_html WITH '<script>(function(){var copy=function(text){if(navigator.clipboard&&navigator.clipboard.writeText){return navigator.clipboard.writeText(text);}var t=document["cr"+"eateElement"]("textarea");t.value=text;document.body.appendChild(t);t.select();var ok=document.execCommand("copy");t.remove();return ok?Promise.resolve():Promise.reject(new Error("Clipboard unavailable"));};document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-gg-clipboard],[data-gg-clipboard-read]");if(!b){return;}if(b.hasAttribute("data-gg-clipboard-read")){(navigator.clipboard&&navigator.clipboard.readText?navigator.clipboard.readText():Promise.reject(new Error("Clipboard unavailable"))).then(function(text){document.querySelector("[name=gg-popup-CONTENT]").value=text;}).catch(function(){document.querySelector("[name=gg-popup-CONTENT]").focus();});}else{var bytes=Uint8Array.from(atob(b.getAttribute("data-gg-clipboard")),function(c){return c.charCodeAt(0);});copy(new TextDecoder().decode(bytes)).then(function(){b.textContent="Copied";}).catch(function(){b.textContent="Copy failed; retry";});}});window.addEventListener("submit",function(e){var d=e.target.querySelector("[data-list-dialog=SAVE]"),format=d&&d.querySelector("[name=value]:checked");if(!format||format.value!=="CLIPBOARD"){return;}e.preventDefault();e.stopImmediatePropagation();var text=Array.from(document.querySelectorAll(".gg-list-line")).map(function(r){return r.textContent;}).join("\r\n");copy(text).then(function(){d.remove();}).catch(function(){var status=d.querySelector("[role=alert]");if(!status){status=document["cr"+"eateElement"]("p");status.setAttribute("role","alert");d.appendChild(status);}status.textContent="Clipboard unavailable. Choose another format.";});},true);}());</script></body></html>'.

@@ -163,8 +163,8 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
       act = lv_heading_count ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'grid-template-columns:minmax(0,72fr) minmax(0,28fr)' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<aside class="gg-dd-right-area">' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-sap-style="HEADING"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-sap-color="LIST_POSITIVE"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-gg-style="HEADING"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-gg-color="LIST_POSITIVE"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-icon="ICON_OKAY"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-circle-check"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_form_offset < lv_form_text_offset ) ).

@@ -37,7 +37,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
            END OF ty_result.
 
 * The screen as the user saw it: its field states, GUI status and title.
-* PAI runs against it; PBO runs once, after PAI, as on SAP. Without it the
+* PAI runs against it; PBO runs once, after PAI. Without it the
 * host runs the screen's PBO first, as the display before the input.
     TYPES: BEGIN OF ty_shown,
              screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
@@ -87,7 +87,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
 * The field attributes the screens are defined with. Each PBO starts from
-* them, as on SAP, and LOOP AT SCREEN changes them from there.
+* them, and LOOP AT SCREEN changes them from there.
     CLASS-DATA mt_static_states TYPE zif_gg_dynpro_types_v1=>ty_states.
     CLASS-DATA mt_static_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
 
@@ -295,7 +295,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rt_fields) TYPE string_table.
 
 * After an error or warning in PAI only the fields of its FIELD statement or
-* CHAIN stay ready for input, as on SAP.
+* CHAIN stay ready for input.
     CLASS-METHODS lock_after_error
       IMPORTING
         io_session TYPE REF TO zcl_gg_host_session
@@ -1044,7 +1044,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         cv_menu_field = cv_menu_field ).
 
 * Control Framework: the controls get what their HTML posted, and a system
-* event goes to its handlers, before PAI, as on SAP. After a system event PAI
+* event goes to its handlers, before PAI. After a system event PAI
 * runs only when a handler set a new OK code.
     lv_ucomm = iv_ucomm.
     lv_submitted = iv_submitted.
@@ -1266,7 +1266,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_required.
-* As on SAP, PAI starts only with every required field filled, unless a
+* PAI starts only with every required field filled, unless a
 * function of type E runs AT EXIT-COMMAND. The fields stay open and the
 * cursor goes to the first empty one.
     IF iv_exit = abap_true.
@@ -1768,7 +1768,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD refresh_after_input.
-* PBO follows PAI, as on SAP: it shows what PAI changed, the fields, the
+* PBO follows PAI: it shows what PAI changed, the fields, the
 * controls and the GUI status.
     IF iv_submitted <> abap_true OR iv_allowed <> abap_true.
       RETURN.

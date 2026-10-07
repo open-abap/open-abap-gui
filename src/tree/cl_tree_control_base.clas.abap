@@ -707,7 +707,7 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   METHOD dispatch_frontend_event.
     DATA lv_node_key TYPE tv_nodekey.
 
-* Expanding and selecting happen in the frontend on SAP; the program hears of
+* Expanding and selecting happen in the frontend; the program hears of
 * them only through the events it registered.
     lv_node_key = VALUE string( params[ 1 ] OPTIONAL ).
     READ TABLE mt_html_nodes INTO DATA(ls_node) WITH KEY node_key = CONV string( lv_node_key ).

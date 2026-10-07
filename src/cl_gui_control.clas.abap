@@ -7,8 +7,8 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
     TYPES ty_fields TYPE STANDARD TABLE OF ty_field WITH DEFAULT KEY.
 
 * How the caller wants a sapevent anchor inside an HTML viewer document to
-* reach the server. SAP GUI turns such an anchor back into an ABAP event; a
-* browser cannot, so the anchor is rewritten into a form that posts these
+* reach the server. A browser cannot turn such an anchor into an ABAP event,
+* so the anchor is rewritten into a form that posts these
 * fields plus the anchor's own action under action_field. The control framework
 * knows nothing about the transport itself, only how to build the form.
     TYPES: BEGIN OF ty_sapevent,
@@ -170,7 +170,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
 * The frontend half of a control is HTML in the browser. On each round trip
 * cl_gui_cfw hands the control the fields its HTML posted (named
 * gg-ctl:<control_id>:<key>, the key without the prefix) and the event the
-* user triggered, as SAP GUI does through the Control Framework.
+* user triggered.
     METHODS receive_frontend_values
       IMPORTING
         values TYPE ty_fields.
@@ -295,7 +295,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
 
 * Drag and drop between controls. A drag source carries data-gg-drag, a drop
 * target data-gg-drop, each with the flavors of its handle; a drop posts the
-* DROP event of the target. As on SAP, the source raises its drag event first,
+* DROP event of the target. The source raises its drag event first,
 * the target its drop event with the same object, then the source completes.
     CLASS-METHODS drag_attributes
       IMPORTING
@@ -604,8 +604,8 @@ CLASS cl_gui_control IMPLEMENTATION.
     DATA lv_low TYPE decfloat34.
     DATA lv_high TYPE decfloat34.
 
-* Numbers compare as numbers, as SAP compares a numeric column with the
-* select-option: 90 is less than 100.
+* A numeric column compares with the select-option as numbers: 90 is less
+* than 100.
     DATA(lv_numeric) = xsdbool( matches( val   = condense( iv_value )
                                          regex = '^-?[0-9]+([.][0-9]+)?$' )
                             AND matches( val   = condense( iv_low )
@@ -945,7 +945,7 @@ CLASS cl_gui_control IMPLEMENTATION.
           iv_parent_id = is_snapshot-control_id
           is_sapevent  = is_sapevent ).
 * The title bar shows the caption, and its close button raises the CLOSE
-* event of the dialog box, as the window's close button does in SAP GUI.
+* event of the dialog box.
         result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title"><span>{ escape( is_snapshot-payload ) }</span><button class="gg-dialog-close" type="submit" name="gg_control_event" value="{ escape( |{ is_snapshot-control_id }\|CLOSE| ) }" formnovalidate aria-label="Close" title="Close">&#x2715;</button></header><div class="gg-dialog-body">{ lv_dialog_html }</div></section>|.
       WHEN 'CUSTOM_CONTAINER' OR 'DOCKING_CONTAINER'.
         DATA(lv_container_html) = ``.
@@ -1031,7 +1031,7 @@ CLASS cl_gui_control IMPLEMENTATION.
         result = |<figure class="gg-control gg-graphic" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" role="img" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }<figcaption>{ escape( is_snapshot-payload ) }</figcaption></figure>|.
       WHEN 'TIMER'.
 * A running timer counts its interval down in the browser and then posts its
-* FINISHED event with the form it sits in, as the SAP GUI timer control does.
+* FINISHED event with the form it sits in.
 * Once the page submits, by the timer or by the user, it is being replaced, so
 * a second submit, which would come from a stale page, is dropped.
         IF is_snapshot-payload IS INITIAL.
@@ -1755,8 +1755,8 @@ CLASS cl_gui_control IMPLEMENTATION.
   METHOD rewrite_sapevent.
 * Replaces every <a href="sapevent:ACTION">label</a> of the document with a
 * form that posts the caller's fields plus the SAPEVENT event of the viewer
-* with ACTION, and keeps the rest of the document as it is. SAP GUI takes the
-* scheme in any case. Only the sapevent href is taken out of the opening tag,
+* with ACTION, and keeps the rest of the document as it is. The scheme
+* matches in any case. Only the sapevent href is taken out of the opening tag,
 * so no attribute has to be parsed and everything else the program wrote stays
 * on the button. A sapevent anchor must not sit inside a form of the document
 * itself, because nested forms are dropped by the browser.

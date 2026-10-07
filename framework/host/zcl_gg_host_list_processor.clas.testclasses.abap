@@ -72,7 +72,7 @@ CLASS ltcl_list_processor IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD find_and_find_next.
-* As on SAP, Find ignores case and Find next goes on after the last hit.
+* Find ignores case and Find next goes on after the last hit.
     DATA(ls_first) = zcl_gg_host_list_processor=>process(
       iv_ucomm = zcl_gg_host_list_processor=>find
       iv_value = `frankfurt`

@@ -1,7 +1,6 @@
 import {test, expect, openExample, submit} from "../fixtures.mjs";
 
-// The layouts live in the host for its lifetime, as SAP keeps them in its
-// database, so the tests of this file run in order: the second one saves the
+// The layouts live in the host for its lifetime, so the tests of this file run in order: the second one saves the
 // default layout.
 const grid = (page) => page.locator(".gg-alv");
 const headings = (page) => grid(page).locator("thead th.gg-grid-column");

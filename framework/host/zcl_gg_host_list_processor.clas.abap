@@ -1,6 +1,6 @@
 CLASS zcl_gg_host_list_processor DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
-* The functions SAP's list processor runs itself. They act on the list and
+* The functions the list processor runs itself. They act on the list and
 * never reach AT USER-COMMAND: paging (P--, P-, P+, P++) and Print (PRI) run
 * in the browser, which holds the list window; Find (%SC, %SC+) and Save to
 * local file (%PC) ask in a dialog box and are answered here.
@@ -97,7 +97,7 @@ CLASS zcl_gg_host_list_processor IMPLEMENTATION.
 
   METHOD standard_status.
 * Back, Exit and Cancel leave the list; the other functions are the list
-* processor's. The keys are SAP's: F3, Shift+F3 (F15), F12, Ctrl+P (F86),
+* processor's. The keys are F3, Shift+F3 (F15), F12, Ctrl+P (F86),
 * Ctrl+F (F71), Ctrl+G (F84) and F21 to F24 for the pages.
     rs_status = VALUE #(
       active_ucomm   = VALUE #( ( zif_gg_session_types_v1=>command_back )
@@ -206,7 +206,7 @@ CLASS zcl_gg_host_list_processor IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD search.
-* As on SAP, the search ignores case and goes on from the last hit.
+* The search ignores case and goes on from the last hit.
     LOOP AT it_lines INTO DATA(ls_line) WHERE index > iv_after.
       DATA(lv_text) = line_text( ls_line ).
       IF ( iv_match_case = abap_false AND lv_text CS iv_term )

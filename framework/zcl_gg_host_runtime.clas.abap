@@ -80,7 +80,7 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              controls            TYPE REF TO data,
              trees               TYPE cl_alv_tree_base=>ty_instances,
 * The report opened on its selection screen, which it shows again when a run
-* ends without a list, as SAP GUI does.
+* ends without a list.
              selection_start     TYPE abap_bool,
            END OF ty_session.
     TYPES ty_sessions TYPE STANDARD TABLE OF ty_session WITH DEFAULT KEY.
@@ -168,7 +168,7 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
         cs_session TYPE ty_session.
 
 * Screen 0 ends the screen sequence a report started with CALL SCREEN. The
-* report continues after its CALL SCREEN and runs to its end, as in SAP GUI.
+* report continues after its CALL SCREEN and runs to its end.
     CLASS-METHODS return_to_report
       IMPORTING
         is_session         TYPE ty_session
@@ -464,7 +464,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       ls_session-pending_popup_ucomm = lv_ucomm.
     ENDIF.
 * Only the Back action means BACK. A submit without a function code, Enter or
-* scrolling a table control, runs PAI with an empty OK code, as on SAP.
+* scrolling a table control, runs PAI with an empty OK code.
     IF lv_ucomm IS INITIAL AND lv_list_back = abap_false
         AND is_request-action = zif_gg_host_html_v1=>action_back.
       lv_ucomm = 'BACK'.
@@ -1218,8 +1218,8 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       iv_page_id             = iv_page_id
       iv_pause_at_navigation = abap_true ).
 * A report run that ends without list output leaves nothing to display. A
-* report the user started on its selection screen shows that screen again,
-* as SAP GUI does; any other report has finished.
+* report the user started on its selection screen shows that screen again;
+* any other report has finished.
     IF ls_result-page_kind = zif_gg_host_html_v1=>page_list
         AND ls_result-lines IS INITIAL
         AND cl_gui_control=>has_content( ) = abap_false.

@@ -2,8 +2,8 @@ CLASS zcl_gg_host_icons DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * Local, dependency-free SVG sprite based on the Tabler Icons outline set.
 * Keep callers on semantic names so the icon set can be changed centrally.
-* SAP icon values (@08@, @08\QTooltip@) and ICON_* constant names resolve
-* through one table, which also carries the SAP GUI colour tone and a label.
+* Icon values (@08@, @08\QTooltip@) and ICON_* constant names resolve
+* through one table, which also carries the colour tone and a label.
 
   PUBLIC SECTION.
     TYPES:
@@ -49,7 +49,7 @@ CLASS zcl_gg_host_icons DEFINITION PUBLIC FINAL CREATE PUBLIC.
         VALUE(rv_html) TYPE string.
 
     "! Escaped text, with a leading icon (@xx@, @xx\Qtooltip@ or the
-    "! converter's @ICON:name) rendered as an icon, as SAP GUI does in
+    "! converter's @ICON:name) rendered as an icon in
     "! tab, pushbutton and output texts.
     CLASS-METHODS text_html
       IMPORTING
@@ -193,7 +193,7 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       ( name = 'transport'           code = '4A' symbol = 'truck'             tone = ''         label = 'Transport' )
       ( name = 'background_job'      code = 'M4' symbol = 'clock-play'        tone = ''         label = 'Background job' )
       ( name = 'database_table'      code = 'PO' symbol = 'table'             tone = ''         label = 'Database table' )
-* logistics and business objects, named and described as in the SAP ICON table
+* logistics and business objects, named and described as in the ICON table
       ( name = 'object_folder'       code = 'FP' symbol = 'folder-open'       tone = ''         label = 'Open object folder' )
       ( name = 'other_object'        code = '2Q' symbol = 'box'               tone = ''         label = 'Other object' )
       ( name = 'order'               code = '9Z' symbol = 'clipboard-list'    tone = ''         label = 'Order' )
@@ -206,7 +206,7 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       ( name = 'retail_product'      code = 'TT' symbol = 'shopping-bag'      tone = ''         label = 'Retail product' )
       ( name = 'dummy'               code = '00' symbol = 'blank'             tone = ''         label = '' )
       ( name = 'space'               code = '5F' symbol = 'blank'             tone = ''         label = '' )
-* the rest of the open-abap ICON type pool, labelled with the SAP quick info
+* the rest of the open-abap ICON type pool, labelled with their quick info
       ( name = 'abap'                code = '9U' symbol = 'code'              tone = ''         label = 'ABAP Routine' )
       ( name = 'action_success'      code = '9P' symbol = 'circle-check'      tone = 'success'  label = 'Request successful' )
       ( name = 'active_inactive'     code = '9B' symbol = 'toggle-left'       tone = ''         label = 'Display mode active/inactive' )
@@ -468,7 +468,7 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
       ( name = 'ws_start_whse_proc_backgr' code = 'LT' symbol = 'clock-play'        tone = ''         label = 'Start whse proc. in background' )
       ( name = 'ws_truck'            code = '7Q' symbol = 'truck'             tone = ''         label = 'Transport (truck)' )
       ( name = 'xml_doc'             code = 'R4' symbol = 'file-type-xml'     tone = ''         label = 'XML document' )
-* no quick info in the SAP ICON table, so the label follows the name
+* no quick info in the ICON table, so the label follows the name
       ( name = 'rating_minus'        code = 'P6' symbol = 'thumb-down'        tone = ''         label = 'Rating minus' )
       ( name = 'wd_context'          code = 'S8' symbol = 'hierarchy'         tone = ''         label = 'Web Dynpro context' )
       ( name = 'wd_iframe'           code = 'T9' symbol = 'frame'             tone = ''         label = 'Web Dynpro iframe' )

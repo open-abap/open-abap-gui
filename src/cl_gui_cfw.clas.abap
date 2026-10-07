@@ -53,7 +53,7 @@ CLASS cl_gui_cfw DEFINITION PUBLIC FRIENDS zcl_gg_host_dynpro zcl_gg_host_runtim
         VALUE(kind) TYPE string.
 
 * After PAI: an application event the program did not dispatch is dispatched
-* now, as SAP does at the end of PAI.
+* now, at the end of PAI.
     CLASS-METHODS dispatch_pending
       RETURNING
         VALUE(dispatched) TYPE abap_bool.

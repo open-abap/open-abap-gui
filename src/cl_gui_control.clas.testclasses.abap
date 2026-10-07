@@ -246,10 +246,10 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>grand</span>' ) ).
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( lv_html CS 'style="width:30ch"' )
-      msg = 'hierarchy width uses SAP character units' ).
+      msg = 'hierarchy width uses character units' ).
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( lv_html CS 'style="width:24ch"' )
-      msg = 'item column width uses SAP character units' ).
+      msg = 'item column width uses character units' ).
     lo_tree->hierarchy_header_set_width(
       width     = 210
       width_pix = abap_true ).

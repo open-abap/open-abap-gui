@@ -566,7 +566,7 @@ function staticSelectionText(ir, token) {
 }
 
 // A text-pool entry of "." marks a selection text with dictionary reference:
-// SAP shows the field label of the data element the field is typed with. The
+// the screen shows the field label of the data element the field is typed with. The
 // label is read at runtime from the member holding the field's value.
 function selectionText(ir, item) {
   if (/^(?:D\s+)?\.$/.test(String(item.text ?? "").trim())) {
@@ -1059,7 +1059,7 @@ function hiddenGlobal(ir, name) {
 }
 
 // Choosing a line puts the values HIDE stored for it back into their global
-// fields before the event runs, as on SAP.
+// fields before the event runs.
 function hiddenRestore(ir, event) {
   if (!["at_line_selection", "at_user_command", "at_pf"].includes(event)) return [];
   return (ir.hiddenNames ?? []).filter((name) => hiddenGlobal(ir, name)).flatMap((name) => {
@@ -1297,7 +1297,7 @@ function dynproStateHydrate(ir, valuesName = "ct_values", keep = () => true) {
   ]);
 }
 
-// PAI takes over only the screen fields a user can change, as on SAP. Other
+// PAI takes over only the screen fields a user can change. Other
 // fields keep the program's values, which an event handler of a control may
 // have set before PAI. The active tab of a tabstrip comes from the screen too.
 function screenInputField(metadata) {

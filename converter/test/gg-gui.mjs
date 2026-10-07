@@ -1080,7 +1080,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
   <header><h2>${escapeHtml(result.programName)}</h2><span class="status">${statusLabel}</span><span class="comparison-status">${accepted ? "accepted" : "not accepted"}</span><span class="activation-status">Activation: ${escapeHtml(activationStatus)}</span><span class="diagnostic-count">${diagnosticSummary}</span></header>
   <div class="panels">
     <figure><figcaption>Generated browser <span>${dimensionsText(generated?.dimensions)}</span></figcaption>${imageMarkup({info: generated, alt: `${result.programName} generated browser screen`, missingLabel: "Generated image not present"})}</figure>
-    <figure><figcaption>SAP GUI reference <span>${dimensionsText(reference?.dimensions)}</span></figcaption>${imageMarkup({info: reference, alt: `${result.programName} SAP GUI reference`, missingLabel: "Reference image not present"})}</figure>
+    <figure><figcaption>GUI reference <span>${dimensionsText(reference?.dimensions)}</span></figcaption>${imageMarkup({info: reference, alt: `${result.programName} GUI reference`, missingLabel: "Reference image not present"})}</figure>
     <figure><figcaption>Optional pixel diff <span>${dimensionsText(diff?.dimensions)}</span></figcaption>${imageMarkup({info: diff, alt: `${result.programName} pixel difference`, missingLabel: "No diff image generated"})}</figure>
   </div>
   <p class="metadata"><strong>Reference dimensions:</strong> ${dimensionsText(reference?.dimensions)}<br><strong>Target:</strong> ${escapeHtml(result.targetClass)} - <strong>Transaction:</strong> ${escapeHtml(result.transactionCode)}<br><strong>Application-parity candidate:</strong> ${parityCandidate ? "yes" : "no"}<br><strong>First-screen smoke:</strong> ${escapeHtml(result.smokeTest?.status || "not-run")}${result.smokeTest?.pageKind ? ` (${escapeHtml(result.smokeTest.pageKind)})` : ""}<br><strong>Interaction audit:</strong> ${escapeHtml(result.interactionAudit?.status || "not-run")}${result.interactionAudit?.journeyCount !== undefined ? ` (${escapeHtml(result.interactionAudit.journeyCount)} journeys)` : ""}</p>
@@ -1157,7 +1157,7 @@ async function writeScreenshotIndex(results, revision, referenceRoot) {
   </head>
   <body>
     <h1>gg-gui conversion comparison</h1>
-  <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}; locale ${escapeHtml(screenshotEnvironment.locale)}; timezone ${escapeHtml(screenshotEnvironment.timezone)}; animations ${escapeHtml(screenshotEnvironment.animations)}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the SAP GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, visual-structure, and browser-chrome-invariance gates; pixel similarity is evidence only. See the <a href="../reference-manifest.json">reference manifest</a>, <a href="../reference-audit.json">reference audit</a>, and <a href="../fallback-audit.json">fallback audit</a>.</p>
+  <p class="intro">${results.length} reports from ${escapeHtml(revision)}. Browser capture viewport: ${screenshotViewport.width} x ${screenshotViewport.height}; locale ${escapeHtml(screenshotEnvironment.locale)}; timezone ${escapeHtml(screenshotEnvironment.timezone)}; animations ${escapeHtml(screenshotEnvironment.animations)}. Deterministic fixture: ${screenshotFixture.date} ${screenshotFixture.time} UTC, user ${escapeHtml(screenshotFixture.user)}, path ${escapeHtml(screenshotFixture.tempDirectory)}, URL ${escapeHtml(screenshotFixture.externalUrl)}. Each card includes the generated browser screen, the GUI reference, and an optional diff image. Comparison acceptance requires semantic-content, interactive-behavior, visual-structure, and browser-chrome-invariance gates; pixel similarity is evidence only. See the <a href="../reference-manifest.json">reference manifest</a>, <a href="../reference-audit.json">reference audit</a>, and <a href="../fallback-audit.json">fallback audit</a>.</p>
     <main>
 ${cards}
     </main>
@@ -1214,7 +1214,7 @@ async function writeReferenceManifest(revision, referenceRoot, contracts, report
   const expectedNames = [...contracts.values()]
     .map((contract) => `${contract.programName.toLowerCase()}.png`)
     .sort((left, right) => left.localeCompare(right));
-  assert.deepEqual(referenceNames, expectedNames, "Pinned SAP screenshot set must contain exactly one reference per gg-gui report");
+  assert.deepEqual(referenceNames, expectedNames, "Pinned reference screenshot set must contain exactly one reference per gg-gui report");
   assert.equal(contracts.size, reportFiles.length, "Reference manifest contract count must match source report count");
   const reports = [];
   for (const filename of reportFiles) {

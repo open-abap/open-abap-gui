@@ -83,8 +83,7 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
   TYPES ty_pages TYPE STANDARD TABLE OF ty_page WITH DEFAULT KEY.
 
 * Fields a control's HTML posts on every round trip (the selection, edited
-* cells), named gg-ctl:<control id>:<key>. SAP GUI keeps this state in the
-* frontend control and sends it to the server with the next round trip.
+* cells), named gg-ctl:<control id>:<key>.
   TYPES: BEGIN OF ty_control_value,
            name  TYPE string,
            value TYPE string,

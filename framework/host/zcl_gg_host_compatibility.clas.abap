@@ -20,8 +20,8 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS get_selection_list_values
       RETURNING VALUE(rt_lists) TYPE ty_selection_lists.
 
-    "! The fixed values of a data element's domain, read at runtime as SAP
-    "! does for a listbox; empty when the type is unknown or has none.
+    "! The fixed values of a data element's domain, read at runtime for a
+    "! listbox; empty when the type is unknown or has none.
     CLASS-METHODS domain_fixed_values
       IMPORTING iv_rollname      TYPE csequence
       RETURNING VALUE(rt_values) TYPE zif_gg_selection_screen_types=>ty_fixed_values.
@@ -197,7 +197,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_disposition.
     IF lv_action = 'VALUE'.
-* Cancel is no exception on SAP: the function module returns A.
+* Cancel is no exception: the function module returns A.
       IF lv_disposition = 'CANCEL'.
         rv_returncode = 'A'.
         sy-subrc = 0.

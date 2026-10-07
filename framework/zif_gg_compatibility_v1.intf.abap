@@ -1,6 +1,6 @@
 INTERFACE zif_gg_compatibility_v1 PUBLIC.
 
-* Typed compatibility boundary for classic SAP GUI function modules. The
+* Typed compatibility boundary for classic GUI function modules. The
 * converter maps only the finite, known families below. Unknown function
 * modules remain conversion diagnostics instead of being dispatched by name.
 

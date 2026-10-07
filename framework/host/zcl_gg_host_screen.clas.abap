@@ -385,7 +385,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_selection_screen_builder_v1~add_listbox.
-* As in SAP, the entries are the fixed values of the field's domain, read
+* The entries are the fixed values of the field's domain, read
 * now rather than copied into the program. Entries the program passes win,
 * and a VRM list set at runtime replaces either.
     DATA(lt_fixed_values) = is_listbox-fixed_values.
@@ -610,7 +610,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     IF sy-subrc <> 0.
       RETURN.
     ENDIF.
-* The medium field label, as SAP GUI shows it; the other labels and the
+* The medium field label; the other labels and the
 * short description stand in when the data element leaves it empty.
     IF ls_field-scrtext_m IS NOT INITIAL.
       rv_text = ls_field-scrtext_m.

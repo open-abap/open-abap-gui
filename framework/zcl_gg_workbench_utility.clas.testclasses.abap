@@ -56,7 +56,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'title="A &amp; &lt;Run&gt;"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'value="COMMAND:RUN"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'value="COMMAND:INACTIVE"' ) ).
-* As on SAP, an excluded function is not shown in the application toolbar.
+* An excluded function is not shown in the application toolbar.
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'data-ucomm="EXCLUDED"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-ucomm="INACTIVE" disabled' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-toolbar-separator' ) ).

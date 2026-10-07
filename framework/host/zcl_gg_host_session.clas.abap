@@ -346,7 +346,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
         AND ls_message-type <> zif_gg_session_types_v1=>message_type_success
         AND mv_processor = zif_gg_session_types_v1=>processor_dynpro
         AND mv_event = 'PROCESS AFTER INPUT'.
-* On SAP the fields of the FIELD statement or CHAIN stay ready for input and
+* The fields of the FIELD statement or CHAIN stay ready for input and
 * the cursor goes to the first one; after a module of its own none do.
       mv_error_raised = abap_true.
       mt_error_fields = mt_field_context.

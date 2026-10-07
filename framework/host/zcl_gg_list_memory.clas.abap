@@ -1,7 +1,6 @@
 CLASS zcl_gg_list_memory DEFINITION PUBLIC FINAL CREATE PRIVATE.
   PUBLIC SECTION.
-* ABAPLIST is opaque. This host uses length-prefixed UTF-8 JSON rather than
-* claiming to reproduce a SAP kernel's private list-memory byte format.
+* ABAPLIST is opaque. This host uses length-prefixed UTF-8 JSON.
     CLASS-METHODS from_lines
       IMPORTING it_lines TYPE string_table
       CHANGING ct_list   TYPE STANDARD TABLE.
