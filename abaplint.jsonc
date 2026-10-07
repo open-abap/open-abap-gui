@@ -10,7 +10,7 @@
   },
   "syntax": {
     "version": {
-      "release": "open-abap",
+      "release": "v740sp08",
       "language": "Normal"
     },
     "errorNamespace": "."

@@ -176,11 +176,11 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
           CLEAR lo_dynpro.
       ENDTRY.
       IF lv_report = abap_true AND lv_dynpro = abap_true.
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Transaction class { lv_class_name } implements both ZIF_GG_REPORT_V1 and ZIF_GG_DYNPRO_V1| ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Transaction class { lv_class_name } implements both ZIF_GG_REPORT_V1 and ZIF_GG_DYNPRO_V1|.
       ELSEIF lv_report = abap_false AND lv_dynpro = abap_false.
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Transaction class { lv_class_name } implements neither ZIF_GG_REPORT_V1 nor ZIF_GG_DYNPRO_V1| ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Transaction class { lv_class_name } implements neither ZIF_GG_REPORT_V1 nor ZIF_GG_DYNPRO_V1|.
       ENDIF.
 
       ls_metadata = lo_metadata->get_transaction( ).
@@ -202,8 +202,8 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       TRANSLATE lv_tcode TO UPPER CASE.
       lv_error = validate_tcode( iv_tcode = lv_tcode ).
       IF lv_error IS NOT INITIAL.
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Invalid transaction metadata in { lv_class_name }: { lv_error }| ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Invalid transaction metadata in { lv_class_name }: { lv_error }|.
       ENDIF.
 
       lv_description = ls_metadata-description.
@@ -223,8 +223,8 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       ENDIF.
       lv_error = validate_description( iv_description = lv_description ).
       IF lv_error IS NOT INITIAL.
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Invalid transaction metadata in { lv_class_name }: { lv_error }| ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Invalid transaction metadata in { lv_class_name }: { lv_error }|.
       ENDIF.
 
       CLEAR ls_transaction.
@@ -241,8 +241,8 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       IF sy-tabix > 1.
         READ TABLE mt_transactions INTO DATA(ls_previous) INDEX sy-tabix - 1.
         IF ls_current-tcode = ls_previous-tcode.
-          RAISE EXCEPTION NEW zcx_gg_transaction_error(
-            iv_message = |Duplicate transaction code { ls_current-tcode } in { ls_previous-class_name } and { ls_current-class_name }| ).
+          RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+            iv_message = |Duplicate transaction code { ls_current-tcode } in { ls_previous-class_name } and { ls_current-class_name }|.
         ENDIF.
       ENDIF.
     ENDLOOP.

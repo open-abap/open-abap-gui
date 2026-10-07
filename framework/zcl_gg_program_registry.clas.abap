@@ -80,8 +80,8 @@ CLASS zcl_gg_program_registry IMPLEMENTATION.
       TRY.
           lo_report ?= lo_object.
         CATCH cx_sy_move_cast_error.
-          RAISE EXCEPTION NEW zcx_gg_transaction_error(
-            iv_message = |Program class { lv_class_name } does not implement ZIF_GG_REPORT_V1| ).
+          RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+            iv_message = |Program class { lv_class_name } does not implement ZIF_GG_REPORT_V1|.
       ENDTRY.
 
       ls_metadata = lo_metadata->get_program( ).
@@ -90,8 +90,8 @@ CLASS zcl_gg_program_registry IMPLEMENTATION.
       ls_program-description = condense( ls_metadata-description ).
       ls_program-class_name = lv_class_name.
       IF ls_program-program IS INITIAL.
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Invalid program metadata in { lv_class_name }: program is initial| ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Invalid program metadata in { lv_class_name }: program is initial|.
       ENDIF.
       IF ls_program-description IS INITIAL.
         ls_program-description = ls_program-program.
@@ -104,8 +104,8 @@ CLASS zcl_gg_program_registry IMPLEMENTATION.
       IF sy-tabix > 1.
         READ TABLE mt_programs INTO DATA(ls_previous) INDEX sy-tabix - 1.
         IF ls_current-program = ls_previous-program.
-          RAISE EXCEPTION NEW zcx_gg_transaction_error(
-            iv_message = |Duplicate program { ls_current-program } in { ls_previous-class_name } and { ls_current-class_name }| ).
+          RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+            iv_message = |Duplicate program { ls_current-program } in { ls_previous-class_name } and { ls_current-class_name }|.
         ENDIF.
       ENDIF.
     ENDLOOP.

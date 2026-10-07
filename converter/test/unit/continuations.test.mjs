@@ -114,7 +114,7 @@ test("reopens a TRY around a resumed suspension and passes the unwinding through
   assert.equal(result.diagnostics.some((item) => item.code === "GGCONV-W402"), false);
   const start = methodBody(result.classSource, "zif_gg_report_v1~start_of_selection");
   // Only the handler that would catch zcx_gg_control_flow passes it on.
-  assert.match(start, /call_screen\([\s\S]*CATCH cx_sy_conversion_error\.\s+lo_writer[\s\S]*CATCH cx_root INTO DATA\(lx_error\)\.\s+IF lx_error IS INSTANCE OF zcx_gg_control_flow\.\s+RAISE EXCEPTION lx_error\.\s+ENDIF\.\s+lo_writer[\s\S]*caught/);
+  assert.match(start, /call_screen\([\s\S]*CATCH cx_sy_conversion_error\.\s+lo_writer[\s\S]*CATCH zcx_gg_control_flow INTO DATA\(lx_ggconv_flow_[0-9a-f]{8}\)\.\s+RAISE EXCEPTION lx_ggconv_flow_[0-9a-f]{8}\.\s+CATCH cx_root INTO DATA\(lx_error\)\.[\s\S]*lo_writer[\s\S]*caught/);
   assert.match(start, /ENDTRY\.[\s\S]*after try/);
   const afterScreen = resumeBranch(methodBody(result.classSource, "zif_gg_resumable_v1~resume"), "AFTER_0100");
   assert.match(afterScreen, /^\s*TRY\.[\s\S]*after screen[\s\S]*CATCH cx_sy_conversion_error\.[\s\S]*conversion[\s\S]*CATCH cx_root INTO[\s\S]*caught[\s\S]*ENDTRY\.[\s\S]*after try/);
@@ -129,7 +129,7 @@ test("gives a cx_root handler without a target one to pass the host's unwinding 
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   const start = methodBody(result.classSource, "zif_gg_report_v1~start_of_selection");
   assert.match(start, /DATA lx_ggconv_caught TYPE REF TO cx_root\./);
-  assert.match(start, /CATCH cx_root INTO lx_ggconv_caught\.\s+IF lx_ggconv_caught IS INSTANCE OF zcx_gg_control_flow\.\s+RAISE EXCEPTION lx_ggconv_caught\.\s+ENDIF\./);
+  assert.match(start, /CATCH zcx_gg_control_flow INTO DATA\(lx_ggconv_flow_[0-9a-f]{8}\)\.\s+RAISE EXCEPTION lx_ggconv_flow_[0-9a-f]{8}\.\s+CATCH cx_root INTO lx_ggconv_caught\./);
 });
 
 test("drops only the unreachable rest of a block after a terminal statement", async () => {

@@ -160,9 +160,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
         ( value = '2' text = COND string( WHEN is_request-text_button_2 IS INITIAL THEN 'Cancel' ELSE is_request-text_button_2 ) ) )
       start_column = is_request-start_column
       start_row    = is_request-start_row ).
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_popup
-      iv_operation = 'POPUP TO CONFIRM' ).
+      iv_operation = 'POPUP TO CONFIRM'.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_to_inform.
@@ -182,9 +182,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       text_lines = VALUE #( ( is_request-text1 ) ( is_request-text2 ) ( is_request-text3 ) ( is_request-text4 ) )
       buttons    = VALUE #( ( value = 'CLOSE' text = 'Close' ) ) ).
     DELETE ms_popup-text_lines WHERE table_line IS INITIAL.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_popup
-      iv_operation = 'POPUP TO INFORM' ).
+      iv_operation = 'POPUP TO INFORM'.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_get_values.
@@ -231,9 +231,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ms_popup-buttons = VALUE #( ( value = 'APPLY' text = 'Apply' ) ( value = 'CANCEL' text = 'Cancel' ) ).
     ms_popup-start_column = is_request-start_column.
     ms_popup-start_row = is_request-start_row.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_popup
-      iv_operation = 'POPUP GET VALUES' ).
+      iv_operation = 'POPUP GET VALUES'.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_with_table_display.
@@ -267,9 +267,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       APPEND CONV string( <lv_value> ) TO ms_popup-table_values.
     ENDLOOP.
     APPEND VALUE #( value = '0' text = 'Cancel' ) TO ms_popup-buttons.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_popup
-      iv_operation = 'POPUP WITH TABLE DISPLAY' ).
+      iv_operation = 'POPUP WITH TABLE DISPLAY'.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~popup_to_select_month.
@@ -302,9 +302,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
                               ( value = 'CANCEL' text = 'Cancel' ) )
       start_column = is_request-start_column
       start_row    = is_request-start_row ).
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_popup
-      iv_operation = 'POPUP TO SELECT MONTH' ).
+      iv_operation = 'POPUP TO SELECT MONTH'.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~f4_table_value_request.
@@ -377,9 +377,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       fields  = VALUE #( ( name = 'FILENAME' text = 'File name' value = iv_default_name ) )
       buttons = VALUE #( ( value = 'OK' text = COND string( WHEN iv_kind = 'FILE_SAVE' THEN 'Save' ELSE 'Open' ) )
                          ( value = 'CANCEL' text = 'Cancel' ) ) ).
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_popup
-      iv_operation = iv_kind ).
+      iv_operation = iv_kind.
   ENDMETHOD.
 
   METHOD uploaded_file.
@@ -410,8 +410,8 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDCASE.
     ms_popup = VALUE #( kind = 'CLIPBOARD' title = 'Paste from clipboard'
       buttons = VALUE #( ( value = 'OK' text = 'Paste' ) ( value = 'CANCEL' text = 'Cancel' ) ) ).
-    RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind      = zcx_gg_control_flow=>kind_popup
-                                             iv_operation = 'CLIPBOARD' ).
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING iv_kind      = zcx_gg_control_flow=>kind_popup
+                                             iv_operation = 'CLIPBOARD'.
   ENDMETHOD.
 
   METHOD get_downloads.
@@ -596,9 +596,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       APPEND VALUE #( value = |{ sy-tabix }| text = |Select row { sy-tabix }| ) TO ms_popup-buttons.
     ENDLOOP.
     APPEND VALUE #( value = '0' text = 'Cancel' ) TO ms_popup-buttons.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_popup
-      iv_operation = 'CLASSIC ALV POPUP TO SELECT' ).
+      iv_operation = 'CLASSIC ALV POPUP TO SELECT'.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_events_get.

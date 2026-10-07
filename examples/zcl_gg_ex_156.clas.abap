@@ -259,9 +259,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
                 gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar = 'Cancel booking' text_question = 'Cancel the booking for LH 0400?' text_button_1 = 'Yes' text_button_2 = 'No' display_cancel_button = abap_false ) ).
 
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_f1bd5416a3).
-                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_f1bd5416a3->mv_kind
-                                                         iv_operation    = lx_popup_c_f1bd5416a3->mv_operation
-                                                         iv_continuation = 'C_F1BD5416A3' ).
+                RAISE EXCEPTION TYPE zcx_gg_control_flow
+                  EXPORTING
+                    iv_kind         = lx_popup_c_f1bd5416a3->mv_kind
+                    iv_operation    = lx_popup_c_f1bd5416a3->mv_operation
+                    iv_continuation = 'C_F1BD5416A3'.
             ENDTRY.
             IF sy-subrc <> 0.
               gv_result = 'Popup failed'.
@@ -274,9 +276,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
             TRY.
                 io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Flight status' text1 = 'Flight LH 0400 is fully booked.' text2 = 'Choose another connection.' ) ).
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_e1ba149966).
-                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_e1ba149966->mv_kind
-                                                         iv_operation    = lx_popup_c_e1ba149966->mv_operation
-                                                         iv_continuation = 'C_E1BA149966' ).
+                RAISE EXCEPTION TYPE zcx_gg_control_flow
+                  EXPORTING
+                    iv_kind         = lx_popup_c_e1ba149966->mv_kind
+                    iv_operation    = lx_popup_c_e1ba149966->mv_operation
+                    iv_continuation = 'C_E1BA149966'.
             ENDTRY.
             gv_result = 'Information acknowledged'.
           WHEN 'VALUES'.
@@ -293,9 +297,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
                   CHANGING
                     ct_fields  = gt_fields ).
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_3ce2c0dc07).
-                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_3ce2c0dc07->mv_kind
-                                                         iv_operation    = lx_popup_c_3ce2c0dc07->mv_operation
-                                                         iv_continuation = 'C_3CE2C0DC07' ).
+                RAISE EXCEPTION TYPE zcx_gg_control_flow
+                  EXPORTING
+                    iv_kind         = lx_popup_c_3ce2c0dc07->mv_kind
+                    iv_operation    = lx_popup_c_3ce2c0dc07->mv_operation
+                    iv_continuation = 'C_3CE2C0DC07'.
             ENDTRY.
             IF sy-subrc <> 0 OR gv_returncode = 'A'.
               gv_result = 'Input cancelled'.
@@ -311,9 +317,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
                   CHANGING
                     ct_values  = gt_connections ).
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_6b4164868e).
-                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_6b4164868e->mv_kind
-                                                         iv_operation    = lx_popup_c_6b4164868e->mv_operation
-                                                         iv_continuation = 'C_6B4164868E' ).
+                RAISE EXCEPTION TYPE zcx_gg_control_flow
+                  EXPORTING
+                    iv_kind         = lx_popup_c_6b4164868e->mv_kind
+                    iv_operation    = lx_popup_c_6b4164868e->mv_operation
+                    iv_continuation = 'C_6B4164868E'.
             ENDTRY.
             IF sy-subrc <> 0.
               gv_result = 'Selection cancelled'.
@@ -338,9 +346,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
             gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar = 'Cancel booking' text_question = 'Cancel the booking for LH 0400?' text_button_1 = 'Yes' text_button_2 = 'No' display_cancel_button = abap_false ) ).
 
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_f1bd5416a3).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_f1bd5416a3->mv_kind
-                                                     iv_operation    = lx_popup_c_f1bd5416a3->mv_operation
-                                                     iv_continuation = 'C_F1BD5416A3' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_f1bd5416a3->mv_kind
+                iv_operation    = lx_popup_c_f1bd5416a3->mv_operation
+                iv_continuation = 'C_F1BD5416A3'.
         ENDTRY.
         IF sy-subrc <> 0.
           gv_result = 'Popup failed'.
@@ -354,9 +364,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
         TRY.
             io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Flight status' text1 = 'Flight LH 0400 is fully booked.' text2 = 'Choose another connection.' ) ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_e1ba149966).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_e1ba149966->mv_kind
-                                                     iv_operation    = lx_popup_c_e1ba149966->mv_operation
-                                                     iv_continuation = 'C_E1BA149966' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_e1ba149966->mv_kind
+                iv_operation    = lx_popup_c_e1ba149966->mv_operation
+                iv_continuation = 'C_E1BA149966'.
         ENDTRY.
         gv_result = 'Information acknowledged'.
         CLEAR gv_ok_code.
@@ -368,9 +380,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
               CHANGING
                 ct_fields  = gt_fields ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_3ce2c0dc07).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_3ce2c0dc07->mv_kind
-                                                     iv_operation    = lx_popup_c_3ce2c0dc07->mv_operation
-                                                     iv_continuation = 'C_3CE2C0DC07' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_3ce2c0dc07->mv_kind
+                iv_operation    = lx_popup_c_3ce2c0dc07->mv_operation
+                iv_continuation = 'C_3CE2C0DC07'.
         ENDTRY.
         IF sy-subrc <> 0 OR gv_returncode = 'A'.
           gv_result = 'Input cancelled'.
@@ -387,9 +401,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
               CHANGING
                 ct_values  = gt_connections ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_6b4164868e).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_6b4164868e->mv_kind
-                                                     iv_operation    = lx_popup_c_6b4164868e->mv_operation
-                                                     iv_continuation = 'C_6B4164868E' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_6b4164868e->mv_kind
+                iv_operation    = lx_popup_c_6b4164868e->mv_operation
+                iv_continuation = 'C_6B4164868E'.
         ENDTRY.
         IF sy-subrc <> 0.
           gv_result = 'Selection cancelled'.

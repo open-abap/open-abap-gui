@@ -54,6 +54,9 @@ CLASS cl_salv_form_uie_layout_grid IMPLEMENTATION.
   METHOD render_html.
     DATA lv_row TYPE i.
     DATA lv_align TYPE string.
+    DATA lo_uie TYPE REF TO cl_salv_form_uie.
+    DATA lo_layout TYPE REF TO cl_salv_form_layout_data_grid.
+    DATA lv_h_align TYPE i.
 
     LOOP AT mt_cells INTO DATA(ls_cell).
       IF ls_cell-row <> lv_row.
@@ -67,13 +70,19 @@ CLASS cl_salv_form_uie_layout_grid IMPLEMENTATION.
       DATA(lv_rowspan) = COND string( WHEN ls_cell-rowspan > 1 THEN | rowspan="{ ls_cell-rowspan }"| ).
 
       CLEAR lv_align.
-      IF ls_cell-element IS INSTANCE OF cl_salv_form_uie.
-        DATA(lo_layout) = CAST cl_salv_form_uie( ls_cell-element )->get_layout_data( ).
-        IF lo_layout IS INSTANCE OF cl_salv_form_layout_data_grid.
-          DATA(lv_h_align) = CAST cl_salv_form_layout_data_grid( lo_layout )->get_h_align( ).
+      CLEAR: lo_uie, lo_layout.
+      TRY.
+        lo_uie ?= ls_cell-element.
+        IF lo_uie IS BOUND.
+          lo_layout ?= lo_uie->get_layout_data( ).
+        ENDIF.
+        IF lo_layout IS BOUND.
+          lv_h_align = lo_layout->get_h_align( ).
           lv_align = SWITCH #( lv_h_align WHEN 2 THEN 'center' WHEN 3 THEN 'right' ELSE 'left' ).
         ENDIF.
-      ENDIF.
+      CATCH cx_sy_move_cast_error.
+        CLEAR lv_align.
+      ENDTRY.
       result = result && |<td{ lv_colspan }{ lv_rowspan }{ COND string( WHEN lv_align IS NOT INITIAL THEN | style="text-align:{ lv_align }"| ) }>{ ls_cell-element->render_html( ) }</td>|.
     ENDLOOP.
     IF lv_row <> 0.
