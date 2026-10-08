@@ -33,6 +33,10 @@ CLASS zcx_gg_control_flow DEFINITION PUBLIC INHERITING FROM cx_no_check FINAL CR
         iv_operation TYPE string OPTIONAL
         iv_continuation TYPE string OPTIONAL.
 
+    CLASS-METHODS propagate
+      IMPORTING
+        ix_control_flow TYPE REF TO zcx_gg_control_flow.
+
 ENDCLASS.
 
 CLASS zcx_gg_control_flow IMPLEMENTATION.
@@ -42,6 +46,11 @@ CLASS zcx_gg_control_flow IMPLEMENTATION.
     mv_kind      = iv_kind.
     mv_operation = iv_operation.
     mv_continuation = iv_continuation.
+  ENDMETHOD.
+
+  METHOD propagate.
+*   Forward the same host transfer past an application's catch-all handler.
+    RAISE EXCEPTION ix_control_flow.
   ENDMETHOD.
 
 ENDCLASS.

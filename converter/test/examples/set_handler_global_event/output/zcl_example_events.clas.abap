@@ -88,7 +88,8 @@ CLASS zcl_example_events IMPLEMENTATION.
     zcl_example_events_h1=>go_session = io_session.
     SET HANDLER zcl_example_events_h1=>on_order_created.
     go_order = zcl_example_order=>create( ).
-    go_listener = NEW #( ).
+    go_listener = NEW #( io_owner   = me
+                         io_session = io_session ).
     SET HANDLER go_listener->on_status_changed FOR go_order.
     go_order->set_status( `RELEASED` ).
     SET HANDLER go_listener->on_status_changed FOR ALL INSTANCES ACTIVATION abap_false.

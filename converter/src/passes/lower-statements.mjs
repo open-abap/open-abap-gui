@@ -166,6 +166,13 @@ export function controlObjectTypes(declarations = [], localClasses = [], {parame
     result[String(parameter.name ?? "").toUpperCase()] = localClassNames.has(type) ? `LOCAL:${type}` : type;
   }
   for (const statement of statements ?? []) {
+    const declaration = /^\s*DATA\s+([A-Z][A-Z0-9_]*)\s+TYPE\s+REF\s+TO\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text ?? "");
+    if (declaration) {
+      const type = declaration[2].toUpperCase();
+      if (CONVERTIBLE_CONTROL_CLASSES.has(type) || localClassNames.has(type)) {
+        result[declaration[1].toUpperCase()] = localClassNames.has(type) ? `LOCAL:${type}` : type;
+      }
+    }
     const match = /\bDATA\s*\(\s*([A-Z][A-Z0-9_]*)\s*\)\s*=\s*([A-Z][A-Z0-9_]*)\s*->\s*([A-Z][A-Z0-9_]*)\s*\(/i.exec(statement.text ?? "");
     if (!match) continue;
     const receiver = match[2].toUpperCase();
@@ -1188,8 +1195,13 @@ function bridgeLocalConstructors(statement, context) {
   const owner = context.localClassOwner ?? "me";
   const session = context.sessionVariable ?? "io_session";
   const pattern = new RegExp(`\\bNEW\\s+(${localClasses.join("|")})\\s*\\(\\s*(\\)|[A-Z][A-Z0-9_]*\\s*=(?!=))`, "gi");
-  const text = transformOutsideStrings(statement.text, (part) => part.replace(pattern, (match, name, next) =>
+  let text = transformOutsideStrings(statement.text, (part) => part.replace(pattern, (match, name, next) =>
     `NEW ${name}( io_owner = ${owner} io_session = ${session} ${next}`));
+  const inferred = /^(\s*([A-Z][A-Z0-9_]*)\s*=\s*NEW\s+#\s*\(\s*)(\)|[A-Z][A-Z0-9_]*\s*=(?!=))/i.exec(maskLiterals(text));
+  if (inferred && context.controlObjectTypes?.[inferred[2].toUpperCase()]?.startsWith("LOCAL:")) {
+    const offset = inferred[1].length;
+    text = `${text.slice(0, offset)}io_owner = ${owner} io_session = ${session} ${text.slice(offset)}`;
+  }
   return text === statement.text ? statement : { ...statement, text };
 }
 
@@ -1713,7 +1725,7 @@ function lowerSingleStatement(statement, context) {
   // Suspensions, MESSAGE and LEAVE unwind the generated method with
   // zcx_gg_control_flow, a cx_no_check. A handler for cx_root or cx_no_check
   // would catch that unwinding, which the statement it models never raises,
-  // so the handler first passes it on unchanged.
+  // so a dedicated handler first passes it on unchanged.
   if (statement.kind === "Catch" && catchesControlFlow(raw)) {
     const catchText = rewriteStatementValues(raw, context);
     const hasTarget = /\bINTO\s+(?:DATA\s*\(\s*[A-Z][A-Z0-9_]*\s*\)|[A-Z][A-Z0-9_]*)\s*\.?\s*$/i.test(stripPeriod(catchText));
@@ -1721,7 +1733,7 @@ function lowerSingleStatement(statement, context) {
     const caught = generatedLocalName("lx_ggconv_flow", statement);
     return [
       `CATCH zcx_gg_control_flow INTO DATA(${caught}).`,
-      `RAISE EXCEPTION ${caught}.`,
+      `zcx_gg_control_flow=>propagate( ${caught} ).`,
       forwardedCatch,
     ].join("\n");
   }

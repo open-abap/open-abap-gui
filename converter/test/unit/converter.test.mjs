@@ -776,6 +776,34 @@ test("still rewrites object creation for report-local classes", async () => {
   assert.match(result.classSource, /go_app->run\( \)\./);
 });
 
+test("passes the owner and session to inferred constructors inside local methods", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zinferred_create.",
+      "CLASS lcl_item DEFINITION.",
+      "  PUBLIC SECTION.",
+      "ENDCLASS.",
+      "CLASS lcl_item IMPLEMENTATION.",
+      "ENDCLASS.",
+      "CLASS lcl_events DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS create.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD create.",
+      "    DATA lo_item TYPE REF TO lcl_item.",
+      "    lo_item = NEW #( ).",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "START-OF-SELECTION.",
+      "  lcl_events=>create( ).",
+    ].join("\n"),
+    filename: "zinferred_create.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(flat(result.helperSources[1].source), /lo_item = NEW #\( io_owner = io_owner io_session = io_session \)\./i);
+});
+
 test("carries event registrations over as written", async () => {
   const source = [
     "REPORT zglobalhandler.",
@@ -804,6 +832,8 @@ test("carries event registrations over as written", async () => {
   ].join("\n");
   const result = await convertProgram({ source, filename: "zglobalhandler.prog.abap" });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(flat(result.classSource), /go_events = NEW #\( io_owner = me io_session = io_session \)\./i);
+  assert.match(flat(result.classSource), /go_model = NEW #\( \)\./i);
   assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR go_model\./);
   assert.match(result.classSource, /SET HANDLER go_events->on_changed FOR ALL INSTANCES ACTIVATION abap_false\./);
   assert.match(result.classSource, /SET HANDLER zcl_globalhandler_h1=>on_created\./);

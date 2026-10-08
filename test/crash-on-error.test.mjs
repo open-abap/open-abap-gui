@@ -13,15 +13,13 @@ const EXIT_TIMEOUT_MS = 15_000;
 const CAST_FAILURE_PATH = "/program?name=ZGG_INT_CAST_FAILURE";
 
 const serverUrl = pathToFileURL(path.resolve("test/start-server.mjs")).href;
-const shimUrl = pathToFileURL(path.resolve(
-  process.env.OPEN_ABAP_GUI_OUTPUT ?? "output", "cl_express_icf_shim.clas.mjs")).href;
 
 // Sends the response headers before the ABAP handler runs, so the handler's
 // exception arrives after headers are sent. start-server.mjs calls the shim
-// through this same module instance, so patching its run reaches the server.
+// through the registered class, so patching its run reaches the server.
 const HEADERS_FIRST_SERVER = `
 const {launchAbapHtmlHost} = await import(${JSON.stringify(serverUrl)});
-const {cl_express_icf_shim} = await import(${JSON.stringify(shimUrl)});
+const cl_express_icf_shim = globalThis.abap.Classes.CL_EXPRESS_ICF_SHIM;
 const run = cl_express_icf_shim.run;
 cl_express_icf_shim.run = async (input) => {
   input.res.writeHead(200, {"content-type": "text/html; charset=utf-8"});

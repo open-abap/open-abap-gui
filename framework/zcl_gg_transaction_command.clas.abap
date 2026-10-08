@@ -58,7 +58,7 @@ CLASS zcl_gg_transaction_command IMPLEMENTATION.
     lv_tcode = substring( val = lv_command
                           off = 2 ).
 *   A bare /n ends the current transaction and returns to the menu.
-    IF condense( lv_tcode ) IS INITIAL.
+    IF condense( lv_tcode ) = ``.
       rs_result-valid = abap_true.
       rs_result-menu = abap_true.
       RETURN.
