@@ -173,6 +173,11 @@ try {
     ...programs.map(({program, description}) => ({tcode: program, description})),
   ]);
   console.log(`Captured ${screenshotCount} screenshots (${transactions.length} transactions, ${programs.length} converter example reports) and wrote ${resolve(screenshotsDirectory, "index.html")}`);
+} catch (error) {
+  if (browserErrors.length > 0) {
+    throw new Error(`${error.message}\nBrowser errors:\n${browserErrors.join("\n")}`, {cause: error});
+  }
+  throw error;
 } finally {
   await browser.close();
 }
