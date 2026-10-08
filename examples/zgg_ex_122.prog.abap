@@ -12,15 +12,11 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_editor
-      EXPORTING
-        parent                     = go_container
-        wordwrap_mode              = cl_gui_textedit=>wordwrap_at_fixed_position
-        wordwrap_position          = 72
-        wordwrap_to_linebreak_mode = cl_gui_textedit=>true.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_editor = NEW #( parent                     = go_container
+                       wordwrap_mode              = cl_gui_textedit=>wordwrap_at_fixed_position
+                       wordwrap_position          = 72
+                       wordwrap_to_linebreak_mode = cl_gui_textedit=>true ).
     go_editor->set_toolbar_mode( cl_gui_textedit=>true ).
     go_editor->set_statusbar_mode( cl_gui_textedit=>true ).
     go_editor->set_font_fixed( cl_gui_textedit=>true ).

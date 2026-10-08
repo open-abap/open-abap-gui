@@ -71,9 +71,9 @@ CLASS lcl_ok_code_program IMPLEMENTATION.
       TRY.
           io_session->get_compatibility( )->popup_to_confirm( VALUE #( text_question = 'Continue?' ) ).
         CATCH zcx_gg_control_flow INTO DATA(lx_popup).
-          RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup->mv_kind
-            iv_operation                                           = lx_popup->mv_operation
-                                                   iv_continuation = 'AFTER_POPUP' ).
+          RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING iv_kind = lx_popup->mv_kind
+            iv_operation                                             = lx_popup->mv_operation
+                                                   iv_continuation   = 'AFTER_POPUP'.
       ENDTRY.
       tails = tails + 1.
       RETURN.

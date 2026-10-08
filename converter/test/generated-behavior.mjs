@@ -56,6 +56,32 @@ export async function prepareBehaviorFixtures({inputFolder}) {
   if (!resumeResult.classSource) throw new Error("converter produced no resumable state class");
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_RESUME.clas.abap"), resumeResult.classSource, "utf8");
 
+  const catchResult = await convertProgram({
+    source: [
+      "REPORT zcatch_resume.",
+      "SELECTION-SCREEN BEGIN OF SCREEN 0500 AS WINDOW.",
+      "PARAMETERS p_value TYPE c LENGTH 3.",
+      "SELECTION-SCREEN END OF SCREEN 0500.",
+      "START-OF-SELECTION.",
+      "  TRY.",
+      "      RAISE EXCEPTION TYPE cx_sy_zerodivide.",
+      "    CATCH cx_root.",
+      "      WRITE 'caught'.",
+      "  ENDTRY.",
+      "  TRY.",
+      "      CALL SELECTION-SCREEN 0500.",
+      "      WRITE / 'resumed'.",
+      "    CATCH cx_root INTO DATA(lx_error).",
+      "      WRITE / 'swallowed'.",
+      "  ENDTRY.",
+    ].join("\n"),
+    filename: "zcatch_resume.prog.abap",
+    className: "ZCL_BV_CATCH",
+    transactionCode: "ZBVCATCH",
+  });
+  assert.equal(catchResult.supported, true, JSON.stringify(catchResult.diagnostics));
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_CATCH.clas.abap"), catchResult.classSource, "utf8");
+
   const dynproStateResult = await convertProgram({
     source: await fs.readFile(path.join(repository, "converter", "test", "fixtures", "regression_dynpro_state.prog.abap.txt"), "utf8"),
     filename: "zdynpro_state.prog.abap",
@@ -320,8 +346,8 @@ function inputValues(entries, hostClass) {
 // subset of keys would hide it outright.
 export async function checkBehavior(outputFolder) {
   await import(pathToFileURL(path.join(outputFolder, "init.mjs")).href);
-  const { zcl_gg_host } = await import(pathToFileURL(path.join(outputFolder, "zcl_gg_host.clas.mjs")).href);
-  const { zcl_gg_host_dynpro } = await import(pathToFileURL(path.join(outputFolder, "zcl_gg_host_dynpro.clas.mjs")).href);
+  const zcl_gg_host = abap.Classes.ZCL_GG_HOST;
+  const zcl_gg_host_dynpro = abap.Classes.ZCL_GG_HOST_DYNPRO;
   const stateResult = normalize(await zcl_gg_host.run({
     io_report: new abap.Classes.ZCL_BV_STATE(),
     rs_result: 1,
@@ -346,6 +372,24 @@ export async function checkBehavior(outputFolder) {
     is_resume_submit: paused.get().submit,
   }));
   assert.deepEqual(resumed.lines, ["3", "OK"]);
+
+  const catchReport = new abap.Classes.ZCL_BV_CATCH();
+  const catchPaused = await zcl_gg_host.run({
+    io_report: catchReport,
+    rs_result: 1,
+    iv_pause_at_navigation: abap.builtin.abap_true,
+  });
+  const catchView = normalize(catchPaused);
+  assert.deepEqual(catchView.lines, ["caught"]);
+  assert.equal(catchView.navigation.kind, "CALL_SELECTION_SCREEN");
+  const catchResumed = normalize(await zcl_gg_host.run({
+    io_report: catchReport,
+    rs_result: 1,
+    is_resume_navigation: catchPaused.get().navigation,
+    is_resume_submit: catchPaused.get().submit,
+  }));
+  assert.ok(catchResumed.lines.includes("resumed"));
+  assert.ok(!catchResumed.lines.includes("swallowed"));
 
   const dynproState = new abap.Classes.ZCL_BV_DSTATE();
   const firstDynproResult = await zcl_gg_host_dynpro.run({

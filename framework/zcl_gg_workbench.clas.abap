@@ -126,7 +126,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
 * already listed above.
     LOOP AT lt_programs INTO ls_program.
       IF line_exists( lt_transactions[ class_name = ls_program-class_name ] ).
-        DELETE lt_programs.
+        DELETE lt_programs INDEX sy-tabix.
       ENDIF.
     ENDLOOP.
     IF lt_programs IS NOT INITIAL.

@@ -111,11 +111,22 @@ CLASS cl_salv_form_layout_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_column_label_for.
+    DATA lo_label TYPE REF TO cl_salv_form_label.
+    DATA lo_text TYPE REF TO cl_salv_form_uie_text_view.
+
     LOOP AT mt_cells INTO DATA(ls_label) WHERE column = label_column.
       READ TABLE mt_cells INTO DATA(ls_text) WITH KEY row = ls_label-row column = text_column.
-      IF sy-subrc = 0 AND ls_label-element IS INSTANCE OF cl_salv_form_label
-          AND ls_text-element IS INSTANCE OF cl_salv_form_uie_text_view.
-        CAST cl_salv_form_label( ls_label-element )->set_label_for( CAST cl_salv_form_uie_text_view( ls_text-element ) ).
+      IF sy-subrc = 0.
+        CLEAR: lo_label, lo_text.
+        TRY.
+            lo_label ?= ls_label-element.
+            lo_text ?= ls_text-element.
+          CATCH cx_sy_move_cast_error.
+            CLEAR: lo_label, lo_text.
+        ENDTRY.
+        IF lo_label IS BOUND AND lo_text IS BOUND.
+          lo_label->set_label_for( lo_text ).
+        ENDIF.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.

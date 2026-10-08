@@ -362,9 +362,11 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
                     user_action       = gv_action
                   EXCEPTIONS OTHERS   = 1 ).
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_4f586f7cdd).
-                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_4f586f7cdd->mv_kind
-                                                         iv_operation    = lx_popup_c_4f586f7cdd->mv_operation
-                                                         iv_continuation = 'C_4F586F7CDD' ).
+                RAISE EXCEPTION TYPE zcx_gg_control_flow
+                  EXPORTING
+                    iv_kind         = lx_popup_c_4f586f7cdd->mv_kind
+                    iv_operation    = lx_popup_c_4f586f7cdd->mv_operation
+                    iv_continuation = 'C_4F586F7CDD'.
             ENDTRY.
             IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok.
               gv_state = 'Download cancelled'.
@@ -396,9 +398,11 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
                     user_action       = gv_action
                   EXCEPTIONS OTHERS   = 1 ).
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_5a948424ee).
-                RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_5a948424ee->mv_kind
-                                                         iv_operation    = lx_popup_c_5a948424ee->mv_operation
-                                                         iv_continuation = 'C_5A948424EE' ).
+                RAISE EXCEPTION TYPE zcx_gg_control_flow
+                  EXPORTING
+                    iv_kind         = lx_popup_c_5a948424ee->mv_kind
+                    iv_operation    = lx_popup_c_5a948424ee->mv_operation
+                    iv_continuation = 'C_5A948424EE'.
             ENDTRY.
             IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok OR gv_rc <> 1.
               gv_state = 'Upload cancelled'.
@@ -448,9 +452,11 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
                 user_action       = gv_action
               EXCEPTIONS OTHERS   = 1 ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_4f586f7cdd).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_4f586f7cdd->mv_kind
-                                                     iv_operation    = lx_popup_c_4f586f7cdd->mv_operation
-                                                     iv_continuation = 'C_4F586F7CDD' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_4f586f7cdd->mv_kind
+                iv_operation    = lx_popup_c_4f586f7cdd->mv_operation
+                iv_continuation = 'C_4F586F7CDD'.
         ENDTRY.
         IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok.
           gv_state = 'Download cancelled'.
@@ -483,9 +489,11 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
                 user_action       = gv_action
               EXCEPTIONS OTHERS   = 1 ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_5a948424ee).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_5a948424ee->mv_kind
-                                                     iv_operation    = lx_popup_c_5a948424ee->mv_operation
-                                                     iv_continuation = 'C_5A948424EE' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_5a948424ee->mv_kind
+                iv_operation    = lx_popup_c_5a948424ee->mv_operation
+                iv_continuation = 'C_5A948424EE'.
         ENDTRY.
         IF sy-subrc <> 0 OR gv_action <> cl_gui_frontend_services=>action_ok OR gv_rc <> 1.
           gv_state = 'Upload cancelled'.

@@ -30,17 +30,13 @@ MODULE user_command_0100 INPUT.
   CASE gv_ok_code.
     WHEN 'OPEN'.
       IF go_dialog IS INITIAL.
-        CREATE OBJECT go_dialog
-          EXPORTING
-            width   = gv_width
-            height  = gv_height
-            top     = gv_top
-            left    = gv_left
-            caption = 'Flight notes'.
+        go_dialog = NEW #( width   = gv_width
+                           height  = gv_height
+                           top     = gv_top
+                           left    = gv_left
+                           caption = 'Flight notes' ).
         SET HANDLER lcl_handler=>on_close FOR go_dialog.
-        CREATE OBJECT go_editor
-          EXPORTING
-            parent = go_dialog.
+        go_editor = NEW #( parent = go_dialog ).
         go_editor->set_textstream( 'LH 0400 leaves Frankfurt at 10:10.' ).
         gv_state = 'Dialog box open'.
       ENDIF.

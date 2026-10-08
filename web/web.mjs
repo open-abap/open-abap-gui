@@ -1,6 +1,7 @@
 import {Buffer} from "buffer";
-import {cl_express_icf_shim} from "../output/cl_express_icf_shim.clas.mjs";
 import "../output/init.mjs";
+
+const cl_express_icf_shim = globalThis.abap.Classes.CL_EXPRESS_ICF_SHIM;
 
 const ROUTE_ORIGIN = "https://open-abap-gui.invalid";
 const originalFetch = globalThis.fetch;

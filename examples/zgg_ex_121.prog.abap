@@ -36,15 +36,11 @@ MODULE user_command_0100 INPUT.
 ENDMODULE.
 
 FORM open_dialog.
-  CREATE OBJECT go_dialog
-    EXPORTING
-      width   = 360
-      height  = 180
-      caption = 'Dialog content'.
+  go_dialog = NEW #( width   = 360
+                     height  = 180
+                     caption = 'Dialog content' ).
   SET HANDLER lcl_handler=>on_close FOR go_dialog.
-  CREATE OBJECT go_editor
-    EXPORTING
-      parent = go_dialog.
+  go_editor = NEW #( parent = go_dialog ).
   go_editor->set_textstream( 'Modal dialog body' ).
   gv_state = 'Dialog box open'.
 ENDFORM.

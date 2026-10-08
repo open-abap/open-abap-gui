@@ -45,19 +45,12 @@ CLASS lcl_cockpit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_controls.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_splitter
-      EXPORTING
-        parent  = go_container
-        rows    = 1
-        columns = 2.
-    CREATE OBJECT go_grid
-      EXPORTING
-        i_parent      = go_splitter->get_container( row    = 1
-                                                    column = 1 )
-        i_appl_events = abap_true.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_splitter = NEW #( parent  = go_container
+                         rows    = 1
+                         columns = 2 ).
+    go_grid = NEW #( i_parent      = go_splitter->get_container( row = 1 column = 1 )
+                     i_appl_events = abap_true ).
     gt_fieldcat = VALUE #(
       ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
       ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )
@@ -68,10 +61,7 @@ CLASS lcl_cockpit IMPLEMENTATION.
       CHANGING
         it_outtab       = gt_flights
         it_fieldcatalog = gt_fieldcat ).
-    CREATE OBJECT go_chart
-      EXPORTING
-        parent = go_splitter->get_container( row    = 1
-                                             column = 2 ).
+    go_chart = NEW #( parent = go_splitter->get_container( row = 1 column = 2 ) ).
     go_chart->set_data( data = chart_xml( ) ).
     go_chart->set_customizing( data = |<SAPChartCustomizing version="1.1"><GlobalSettings><Defaults>|
                                    && |<ChartType>Columns</ChartType></Defaults></GlobalSettings><Elements>|

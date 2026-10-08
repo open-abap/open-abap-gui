@@ -37,10 +37,10 @@ CLASS cl_gui_container IMPLEMENTATION.
 * before any program runs. They are never registered as controls: a
 * control created on them gets no parent id and renders at the top level of
 * the screen, the same place as a control created without a parent.
-    CREATE OBJECT default_screen.
+    default_screen = NEW #( ).
     default_screen->mv_alive = abap_true.
     default_screen->mv_visible = abap_true.
-    CREATE OBJECT screen0.
+    screen0 = NEW #( ).
     screen0->mv_alive = abap_true.
     screen0->mv_visible = abap_true.
   ENDMETHOD.

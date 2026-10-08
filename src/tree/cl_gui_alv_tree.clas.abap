@@ -355,14 +355,14 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
             node_key = node_key.
         result = abap_true.
       WHEN 'TREE_CONTEXT'.
-        CREATE OBJECT lo_menu.
+        lo_menu = NEW #( ).
         RAISE EVENT node_context_menu_request
           EXPORTING
             node_key = CONV lvc_nkey( node_key )
             menu     = lo_menu.
         result = abap_true.
       WHEN 'TREE_DRAG_START'.
-        CREATE OBJECT lo_drag_drop.
+        lo_drag_drop = NEW #( ).
         RAISE EVENT on_drag
           EXPORTING
             drag_drop_object = lo_drag_drop
@@ -370,7 +370,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
             node_key         = CONV lvc_nkey( node_key ).
         result = abap_true.
       WHEN 'TREE_DROP'.
-        CREATE OBJECT lo_drag_drop.
+        lo_drag_drop = NEW #( ).
         RAISE EVENT on_drop
           EXPORTING
             drag_drop_object = lo_drag_drop

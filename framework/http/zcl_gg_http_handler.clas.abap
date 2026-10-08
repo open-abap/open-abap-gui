@@ -1044,8 +1044,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       WHEN zcl_gg_transaction_registry=>kind_dynpro.
         lo_dynpro ?= ro_object.
       WHEN OTHERS.
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind| ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind|.
     ENDCASE.
   ENDMETHOD.
 
@@ -1072,8 +1072,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           io_dynpro  = lo_dynpro
           iv_program = CONV #( is_transaction-class_name ) ).
       WHEN OTHERS.
-        RAISE EXCEPTION NEW zcx_gg_transaction_error(
-          iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind| ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind|.
     ENDCASE.
   ENDMETHOD.
 

@@ -166,6 +166,13 @@ export function controlObjectTypes(declarations = [], localClasses = [], {parame
     result[String(parameter.name ?? "").toUpperCase()] = localClassNames.has(type) ? `LOCAL:${type}` : type;
   }
   for (const statement of statements ?? []) {
+    const declaration = /^\s*DATA\s+([A-Z][A-Z0-9_]*)\s+TYPE\s+REF\s+TO\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text ?? "");
+    if (declaration) {
+      const type = declaration[2].toUpperCase();
+      if (CONVERTIBLE_CONTROL_CLASSES.has(type) || localClassNames.has(type)) {
+        result[declaration[1].toUpperCase()] = localClassNames.has(type) ? `LOCAL:${type}` : type;
+      }
+    }
     const match = /\bDATA\s*\(\s*([A-Z][A-Z0-9_]*)\s*\)\s*=\s*([A-Z][A-Z0-9_]*)\s*->\s*([A-Z][A-Z0-9_]*)\s*\(/i.exec(statement.text ?? "");
     if (!match) continue;
     const receiver = match[2].toUpperCase();
@@ -769,6 +776,17 @@ function catchesControlFlow(raw) {
   return classes.split(/\s+/).some((name) => /^(?:CX_ROOT|CX_NO_CHECK)$/i.test(name));
 }
 
+function generatedLocalName(prefix, statement) {
+  const span = statement.span ?? {};
+  const start = span.startOffset ?? `${span.start?.line ?? span.start?.row ?? 0}:${span.start?.column ?? span.start?.col ?? 0}`;
+  const value = `${statement.filename ?? ""}:${start}`;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  }
+  return `${prefix}_${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
 function continuationId(statement, context) {
   return context.continuations?.find((item) =>
     item.filename === statement.filename &&
@@ -1177,8 +1195,13 @@ function bridgeLocalConstructors(statement, context) {
   const owner = context.localClassOwner ?? "me";
   const session = context.sessionVariable ?? "io_session";
   const pattern = new RegExp(`\\bNEW\\s+(${localClasses.join("|")})\\s*\\(\\s*(\\)|[A-Z][A-Z0-9_]*\\s*=(?!=))`, "gi");
-  const text = transformOutsideStrings(statement.text, (part) => part.replace(pattern, (match, name, next) =>
+  let text = transformOutsideStrings(statement.text, (part) => part.replace(pattern, (match, name, next) =>
     `NEW ${name}( io_owner = ${owner} io_session = ${session} ${next}`));
+  const inferred = /^(\s*([A-Z][A-Z0-9_]*)\s*=\s*NEW\s+#\s*\(\s*)(\)|[A-Z][A-Z0-9_]*\s*=(?!=))/i.exec(maskLiterals(text));
+  if (inferred && context.controlObjectTypes?.[inferred[2].toUpperCase()]?.startsWith("LOCAL:")) {
+    const offset = inferred[1].length;
+    text = `${text.slice(0, offset)}io_owner = ${owner} io_session = ${session} ${text.slice(offset)}`;
+  }
   return text === statement.text ? statement : { ...statement, text };
 }
 
@@ -1489,7 +1512,7 @@ function lowerSingleStatement(statement, context) {
     const popupContinuation = context.continuations?.find(item => item.filename === statement.filename
       && item.span.start.line === statement.span.start.line && item.span.start.column === statement.span.start.column);
     if (popupContinuation && /CALL\s+FUNCTION\s+'POPUP_/i.test(raw)) {
-      return `TRY.\n${compatible}\nCATCH zcx_gg_control_flow INTO DATA(lx_popup_${popupContinuation.id.toLowerCase()}).\nRAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = lx_popup_${popupContinuation.id.toLowerCase()}->mv_kind iv_operation = lx_popup_${popupContinuation.id.toLowerCase()}->mv_operation iv_continuation = '${popupContinuation.id}' ).\nENDTRY.`;
+      return `TRY.\n${compatible}\nCATCH zcx_gg_control_flow INTO DATA(lx_popup_${popupContinuation.id.toLowerCase()}).\nRAISE EXCEPTION TYPE zcx_gg_control_flow\n  EXPORTING\n    iv_kind = lx_popup_${popupContinuation.id.toLowerCase()}->mv_kind\n    iv_operation = lx_popup_${popupContinuation.id.toLowerCase()}->mv_operation\n    iv_continuation = '${popupContinuation.id}'.\nENDTRY.`;
     }
     return compatible;
   }
@@ -1702,16 +1725,16 @@ function lowerSingleStatement(statement, context) {
   // Suspensions, MESSAGE and LEAVE unwind the generated method with
   // zcx_gg_control_flow, a cx_no_check. A handler for cx_root or cx_no_check
   // would catch that unwinding, which the statement it models never raises,
-  // so the handler first passes it on unchanged.
+  // so a dedicated handler first passes it on unchanged.
   if (statement.kind === "Catch" && catchesControlFlow(raw)) {
     const catchText = rewriteStatementValues(raw, context);
-    const into = /\bINTO\s+(?:DATA\s*\(\s*([A-Z][A-Z0-9_]*)\s*\)|([A-Z][A-Z0-9_]*))\s*\.?\s*$/i.exec(stripPeriod(catchText));
-    const caught = (into?.[1] ?? into?.[2])?.toLowerCase() ?? "lx_ggconv_caught";
+    const hasTarget = /\bINTO\s+(?:DATA\s*\(\s*[A-Z][A-Z0-9_]*\s*\)|[A-Z][A-Z0-9_]*)\s*\.?\s*$/i.test(stripPeriod(catchText));
+    const forwardedCatch = hasTarget ? catchText : `${stripPeriod(catchText)} INTO lx_ggconv_caught.`;
+    const caught = generatedLocalName("lx_ggconv_flow", statement);
     return [
-      into ? catchText : `${stripPeriod(catchText)} INTO ${caught}.`,
-      `IF ${caught} IS INSTANCE OF zcx_gg_control_flow.`,
-      `RAISE EXCEPTION ${caught}.`,
-      "ENDIF.",
+      `CATCH zcx_gg_control_flow INTO DATA(${caught}).`,
+      `zcx_gg_control_flow=>propagate( ${caught} ).`,
+      forwardedCatch,
     ].join("\n");
   }
   // A statement abaplint could not parse is already reported as GGCONV-E201;
@@ -1729,7 +1752,7 @@ function wrapPopup(statement, context, rewritten) {
     && item.span.start.line === statement.span.start.line && item.span.start.column === statement.span.start.column);
   if (!continuation) return rewritten;
   const caught = `lx_popup_${continuation.id.toLowerCase()}`;
-  return `TRY.\n${rewritten}\nCATCH zcx_gg_control_flow INTO DATA(${caught}).\nRAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = ${caught}->mv_kind iv_operation = ${caught}->mv_operation iv_continuation = '${continuation.id}' ).\nENDTRY.`;
+  return `TRY.\n${rewritten}\nCATCH zcx_gg_control_flow INTO DATA(${caught}).\nRAISE EXCEPTION TYPE zcx_gg_control_flow\n  EXPORTING\n    iv_kind = ${caught}->mv_kind\n    iv_operation = ${caught}->mv_operation\n    iv_continuation = '${continuation.id}'.\nENDTRY.`;
 }
 
 // A block opener that lowers to nothing but a comment cannot leave its body and

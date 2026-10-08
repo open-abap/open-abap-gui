@@ -19,40 +19,28 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_outer
-      EXPORTING
-        parent  = go_container
-        rows    = 2
-        columns = 1.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_outer = NEW #( parent  = go_container
+                      rows    = 2
+                      columns = 1 ).
     go_outer->set_row_height( id     = 1
                               height = gv_row_height ).
     DATA(lo_top) = go_outer->get_container( row    = 1
                                             column = 1 ).
-    CREATE OBJECT go_editor_top
-      EXPORTING
-        parent = lo_top.
+    go_editor_top = NEW #( parent = lo_top ).
     go_editor_top->set_textstream( 'Outer editor pane' ).
     DATA(lo_bottom) = go_outer->get_container( row    = 2
                                                column = 1 ).
-    CREATE OBJECT go_inner
-      EXPORTING
-        parent  = lo_bottom
-        rows    = 1
-        columns = 2.
+    go_inner = NEW #( parent  = lo_bottom
+                      rows    = 1
+                      columns = 2 ).
     DATA(lo_left) = go_inner->get_container( row    = 1
                                              column = 1 ).
-    CREATE OBJECT go_editor_left
-      EXPORTING
-        parent = lo_left.
+    go_editor_left = NEW #( parent = lo_left ).
     go_editor_left->set_textstream( 'Nested editor pane' ).
     DATA(lo_right) = go_inner->get_container( row    = 1
                                               column = 2 ).
-    CREATE OBJECT go_viewer
-      EXPORTING
-        parent = lo_right.
+    go_viewer = NEW #( parent = lo_right ).
     gt_html = VALUE #( ( '<h3>HTML viewer pane</h3><p>Nested splitter content.</p>' ) ).
     go_viewer->load_data( IMPORTING assigned_url = gv_url
                           CHANGING  data_table   = gt_html ).

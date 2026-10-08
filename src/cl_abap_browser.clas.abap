@@ -67,9 +67,7 @@ CLASS cl_abap_browser IMPLEMENTATION.
       FREE mo_viewer.
     ENDIF.
     IF mo_viewer IS NOT BOUND.
-      CREATE OBJECT mo_viewer
-        EXPORTING
-          parent = lo_container.
+      mo_viewer = NEW #( parent = lo_container ).
     ENDIF.
     mo_viewer->close_document( ).
     APPEND mv_html TO lt_html.

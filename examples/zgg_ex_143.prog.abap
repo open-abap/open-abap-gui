@@ -29,15 +29,11 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_tree
-      EXPORTING
-        parent              = go_container
-        node_selection_mode = cl_gui_column_tree=>node_sel_mode_single
-        item_selection      = abap_false
-        no_html_header      = abap_true.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_tree = NEW #( parent              = go_container
+                     node_selection_mode = cl_gui_column_tree=>node_sel_mode_single
+                     item_selection      = abap_false
+                     no_html_header      = abap_true ).
     gt_fieldcat = VALUE #(
       ( fieldname = 'CARRID' coltext = 'Airline' outputlen = 7 )
       ( fieldname = 'CONNID' coltext = 'Flight' outputlen = 6 )

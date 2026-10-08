@@ -41,12 +41,8 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_chart
-      EXPORTING
-        parent = go_container.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_chart = NEW #( parent = go_container ).
     go_chart->set_data( data = lcl_chart=>data_xml( ) ).
   ENDIF.
   PERFORM render.

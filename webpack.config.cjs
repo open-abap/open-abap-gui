@@ -76,11 +76,13 @@ module.exports = {
     new webpack.NormalModuleReplacementPlugin(
       /%23ui2%23cl_json\.clas(?:\.locals)?\.mjs$/,
       (resource) => {
+        // Resolve from the importing module: generated libraries now have
+        // their own subdirectories under output.
         const filename = resource.request.replace(/^\.\//, "").replaceAll(
           "%23ui2%23",
           "#ui2#",
         );
-        resource.request = path.resolve(__dirname, "output", filename);
+        resource.request = path.resolve(resource.context, filename);
       },
     ),
     new webpack.ProvidePlugin({

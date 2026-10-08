@@ -282,9 +282,11 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
         TRY.
             io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_dac79e0a08).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_dac79e0a08->mv_kind
-                                                     iv_operation    = lx_popup_c_dac79e0a08->mv_operation
-                                                     iv_continuation = 'C_DAC79E0A08' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_dac79e0a08->mv_kind
+                iv_operation    = lx_popup_c_dac79e0a08->mv_operation
+                iv_continuation = 'C_DAC79E0A08'.
         ENDTRY.
       WHEN OTHERS.
         RETURN.
@@ -339,9 +341,11 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
         TRY.
             io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_dac79e0a08).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_dac79e0a08->mv_kind
-                                                     iv_operation    = lx_popup_c_dac79e0a08->mv_operation
-                                                     iv_continuation = 'C_DAC79E0A08' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_dac79e0a08->mv_kind
+                iv_operation    = lx_popup_c_dac79e0a08->mv_operation
+                iv_continuation = 'C_DAC79E0A08'.
         ENDTRY.
       WHEN OTHERS.
         RETURN.
@@ -385,9 +389,11 @@ CLASS zcl_gg_ex_102 IMPLEMENTATION.
         TRY.
             io_session->get_compatibility( )->popup_to_inform( is_request = VALUE #( title = 'Airline' text1 = 'The two-letter code of the airline,' text2 = 'for example LH for Lufthansa.' ) ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_dac79e0a08).
-            RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind         = lx_popup_c_dac79e0a08->mv_kind
-                                                     iv_operation    = lx_popup_c_dac79e0a08->mv_operation
-                                                     iv_continuation = 'C_DAC79E0A08' ).
+            RAISE EXCEPTION TYPE zcx_gg_control_flow
+              EXPORTING
+                iv_kind         = lx_popup_c_dac79e0a08->mv_kind
+                iv_operation    = lx_popup_c_dac79e0a08->mv_operation
+                iv_continuation = 'C_DAC79E0A08'.
         ENDTRY.
       WHEN OTHERS.
         RETURN.

@@ -30,7 +30,7 @@ START-OF-SELECTION.
       MESSAGE gx_msg TYPE 'E'.
   ENDTRY.
 
-  CREATE OBJECT go_top.
+  go_top = NEW #( ).
   go_top->create_header_information( row     = 1
                                      column  = 1
                                      colspan = 2
@@ -49,7 +49,7 @@ START-OF-SELECTION.
                        text   = gv_total ).
   go_alv->set_top_of_list( go_top ).
 
-  CREATE OBJECT go_end.
+  go_end = NEW #( ).
   go_end->create_text( text = 'End of report' ).
   go_alv->set_end_of_list( go_end ).
   go_alv->display( ).

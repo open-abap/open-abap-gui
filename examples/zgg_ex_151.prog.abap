@@ -85,12 +85,8 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_HTML'.
-    CREATE OBJECT go_viewer
-      EXPORTING
-        parent = go_container.
+    go_container = NEW #( container_name = 'CC_HTML' ).
+    go_viewer = NEW #( parent = go_container ).
     gt_events = VALUE #( ( eventid    = cl_gui_html_viewer=>m_id_sapevent
                            appl_event = abap_true ) ).
     go_viewer->set_registered_events( gt_events ).

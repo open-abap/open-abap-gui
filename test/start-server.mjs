@@ -31,8 +31,8 @@ function applyFixedSystemFields() {
 }
 
 applyFixedSystemFields();
-const {cl_express_icf_shim} = await import(
-  pathToFileURL(path.join(outputRoot, "cl_express_icf_shim.clas.mjs")).href);
+// init.mjs registers the current classes, regardless of the output layout.
+const cl_express_icf_shim = globalThis.abap.Classes.CL_EXPRESS_ICF_SHIM;
 
 const MAX_BODY_BYTES = 1024 * 1024;
 

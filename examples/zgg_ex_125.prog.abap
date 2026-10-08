@@ -23,12 +23,8 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
-    CREATE OBJECT go_toolbar
-      EXPORTING
-        parent = go_container.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
+    go_toolbar = NEW #( parent = go_container ).
     go_toolbar->add_button( fcode     = 'RUN'
                             icon      = icon_execute_object
                             butn_type = cntb_btype_button
@@ -48,7 +44,7 @@ MODULE status_0100 OUTPUT.
                             butn_type = cntb_btype_dropdown
                             text      = 'Menu'
                             quickinfo = 'Open toolbar menu' ).
-    CREATE OBJECT go_menu.
+    go_menu = NEW #( ).
     go_menu->add_function( fcode = 'MENU_ACTION'
                            text  = 'Menu action' ).
     go_toolbar->set_static_ctxmenu( fcode   = 'MENU'

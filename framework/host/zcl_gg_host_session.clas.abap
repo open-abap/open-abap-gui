@@ -275,9 +275,9 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD unsupported.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_unsupported
-      iv_operation = iv_operation ).
+      iv_operation = iv_operation.
   ENDMETHOD.
 
   METHOD set_field_context.
@@ -363,9 +363,9 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
         OR ls_message-type = zif_gg_session_types_v1=>message_type_success.
       RETURN.
     ENDIF.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_message
-      iv_operation = ls_message-text ).
+      iv_operation = ls_message-text.
   ENDMETHOD.
 
   METHOD text_of.
@@ -393,7 +393,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_session_v1~stop.
-    RAISE EXCEPTION NEW zcx_gg_control_flow( iv_kind = zcx_gg_control_flow=>kind_stop ).
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING iv_kind = zcx_gg_control_flow=>kind_stop.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~set_title.
@@ -403,9 +403,9 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   METHOD zif_gg_dialog_session_v1~set_status.
     DATA(lv_error) = zcl_gg_host_status=>validate( is_status ).
     IF lv_error IS NOT INITIAL.
-      RAISE EXCEPTION NEW zcx_gg_control_flow(
+      RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
         iv_kind      = zcx_gg_control_flow=>kind_unsupported
-        iv_operation = lv_error ).
+        iv_operation = lv_error.
     ENDIF.
     ms_status = is_status.
   ENDMETHOD.
@@ -423,54 +423,54 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~leave_screen.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_leave_screen
-      iv_operation = 'LEAVE SCREEN' ).
+      iv_operation = 'LEAVE SCREEN'.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~leave_to_screen.
     mv_next_screen = iv_screen.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_leave_to_screen
-      iv_operation = |LEAVE TO SCREEN { iv_screen }| ).
+      iv_operation = |LEAVE TO SCREEN { iv_screen }|.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~call_screen.
     ms_screen_call = is_call.
     ms_continuation = is_continuation.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_call_screen
-      iv_operation = 'CALL SCREEN' ).
+      iv_operation = 'CALL SCREEN'.
   ENDMETHOD.
 
   METHOD zif_gg_dialog_session_v1~call_selection_screen.
     ms_selection_call = is_call.
     ms_continuation = is_continuation.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_call_selection_screen
-      iv_operation = 'CALL SELECTION-SCREEN' ).
+      iv_operation = 'CALL SELECTION-SCREEN'.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~leave_program.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_leave_program
-      iv_operation = 'LEAVE PROGRAM' ).
+      iv_operation = 'LEAVE PROGRAM'.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~submit.
 * The host starts the submitted report from the stored call.
     ms_submit_call = is_submit.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_submit
-      iv_operation = |SUBMIT { is_submit-program }| ).
+      iv_operation = |SUBMIT { is_submit-program }|.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~submit_and_return.
     ms_submit_call = is_submit.
     ms_continuation = is_continuation.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_submit_return
-      iv_operation = |SUBMIT { is_submit-program } AND RETURN| ).
+      iv_operation = |SUBMIT { is_submit-program } AND RETURN|.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~get_list_from_memory.
@@ -480,17 +480,17 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
   METHOD zif_gg_navigation_v1~call_transaction.
     ms_transaction_call = is_call.
     ms_continuation = is_continuation.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_call_transaction
-      iv_operation = |CALL TRANSACTION { is_call-tcode }| ).
+      iv_operation = |CALL TRANSACTION { is_call-tcode }|.
   ENDMETHOD.
 
   METHOD zif_gg_navigation_v1~leave_to_transaction.
 * The host starts the target from the stored call, as for CALL TRANSACTION.
     ms_transaction_call = is_call.
-    RAISE EXCEPTION NEW zcx_gg_control_flow(
+    RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
       iv_kind      = zcx_gg_control_flow=>kind_leave_to_transaction
-      iv_operation = |LEAVE TO TRANSACTION { is_call-tcode }| ).
+      iv_operation = |LEAVE TO TRANSACTION { is_call-tcode }|.
   ENDMETHOD.
 
 ENDCLASS.

@@ -350,11 +350,16 @@ CLASS cl_salv_table IMPLEMENTATION.
     DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
     DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
     DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
+    FIELD-SYMBOLS <lt_table> TYPE ANY TABLE.
 
     IF mr_table IS NOT BOUND OR mo_columns IS NOT BOUND.
       RETURN.
     ENDIF.
-    lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( mr_table->* ).
+    ASSIGN mr_table->* TO <lt_table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( <lt_table> ).
     lo_line_descr = lo_table_descr->get_table_line_type( ).
     IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
       lo_struct_descr ?= lo_line_descr.
@@ -535,11 +540,16 @@ CLASS cl_salv_table IMPLEMENTATION.
     DATA ls_fieldcat TYPE lvc_s_fcat.
     DATA ls_ddic TYPE dfies.
     DATA ls_color TYPE lvc_s_colo.
+    FIELD-SYMBOLS <lt_table> TYPE ANY TABLE.
 
     IF mr_table IS NOT BOUND.
       RETURN.
     ENDIF.
-    lo_table_descr ?= cl_abap_typedescr=>describe_by_data( mr_table->* ).
+    ASSIGN mr_table->* TO <lt_table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_typedescr=>describe_by_data( <lt_table> ).
     lo_line_descr = lo_table_descr->get_table_line_type( ).
     IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
       lo_struct_descr ?= lo_line_descr.
@@ -635,11 +645,16 @@ CLASS cl_salv_table IMPLEMENTATION.
     DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
     DATA lo_struct_descr TYPE REF TO cl_abap_structdescr.
     DATA lo_type TYPE REF TO cl_abap_typedescr.
+    FIELD-SYMBOLS <lt_table> TYPE ANY TABLE.
 
     IF mr_table IS NOT BOUND OR iv_columnname IS INITIAL.
       RETURN.
     ENDIF.
-    lo_table_descr ?= cl_abap_typedescr=>describe_by_data( mr_table->* ).
+    ASSIGN mr_table->* TO <lt_table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_typedescr=>describe_by_data( <lt_table> ).
     IF lo_table_descr->get_table_line_type( )->kind <> cl_abap_typedescr=>kind_struct.
       RETURN.
     ENDIF.

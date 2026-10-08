@@ -181,10 +181,16 @@ CLASS cl_salv_tree IMPLEMENTATION.
   METHOD build_metadata.
     DATA lo_table_descr TYPE REF TO cl_abap_tabledescr.
     DATA lo_line_descr TYPE REF TO cl_abap_datadescr.
+    FIELD-SYMBOLS <lt_table> TYPE ANY TABLE.
+
     IF mr_table IS NOT BOUND.
       RETURN.
     ENDIF.
-    lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( mr_table->* ).
+    ASSIGN mr_table->* TO <lt_table>.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lo_table_descr ?= cl_abap_tabledescr=>describe_by_data( <lt_table> ).
     lo_line_descr = lo_table_descr->get_table_line_type( ).
     IF lo_line_descr->kind = cl_abap_typedescr=>kind_struct.
       DATA(lo_struct_descr) = CAST cl_abap_structdescr( lo_line_descr ).

@@ -12,9 +12,7 @@ START-OF-SELECTION.
 
 MODULE status_0100 OUTPUT.
   IF go_container IS INITIAL.
-    CREATE OBJECT go_container
-      EXPORTING
-        container_name = 'CC_MAIN'.
+    go_container = NEW #( container_name = 'CC_MAIN' ).
     PERFORM create_editor.
   ENDIF.
 ENDMODULE.
@@ -45,9 +43,7 @@ ENDMODULE.
 
 FORM create_editor.
   gv_generation = gv_generation + 1.
-  CREATE OBJECT go_editor
-    EXPORTING
-      parent = go_container.
+  go_editor = NEW #( parent = go_container ).
   go_editor->set_textstream( |Text editor in custom container CC_MAIN, generation { gv_generation }| ).
   gv_state = |Child created, generation { gv_generation }|.
 ENDFORM.
