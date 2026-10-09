@@ -513,8 +513,8 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_display.
-    cl_gui_control=>set_external_html(
-      |<section class="gg-classic-alv" aria-label="Classic ALV" data-list-type="{ is_request-list_type }"><header><h2>{ cl_gui_control=>escape_html( COND string( WHEN is_request-grid_title IS INITIAL THEN is_request-title ELSE is_request-grid_title ) ) }</h2><p>Classic function-module ALV routed through the semantic renderer; callbacks remain server-owned.</p></header>{ render_classic_table( EXPORTING is_request = is_request CHANGING ct_outtab = ct_outtab ) }</section>| ).
+    zcl_gg_gui_runtime=>set_external_html(
+      |<section class="gg-classic-alv" aria-label="Classic ALV" data-list-type="{ is_request-list_type }"><header><h2>{ zcl_gg_gui_runtime=>escape_html( COND string( WHEN is_request-grid_title IS INITIAL THEN is_request-title ELSE is_request-grid_title ) ) }</h2><p>Classic function-module ALV routed through the semantic renderer; callbacks remain server-owned.</p></header>{ render_classic_table( EXPORTING is_request = is_request CHANGING ct_outtab = ct_outtab ) }</section>| ).
     sy-subrc = 0.
   ENDMETHOD.
 
@@ -532,8 +532,8 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
             t_table_level2          = ct_item ).
         lo_hierseq->display( ).
       CATCH cx_salv_error cx_salv_no_check cx_salv_method_not_supported INTO DATA(lx_error).
-        cl_gui_control=>set_external_html(
-          |<section class="gg-classic-alv gg-classic-alv-hierseq" aria-label="Classic hierarchical ALV"><h2>{ cl_gui_control=>escape_html( is_request-title ) }</h2><p>Hierarchical ALV fallback: { cl_gui_control=>escape_html( lx_error->get_text( ) ) }</p><p>Header and item tables remain separate; no native success is claimed.</p></section>| ).
+        zcl_gg_gui_runtime=>set_external_html(
+          |<section class="gg-classic-alv gg-classic-alv-hierseq" aria-label="Classic hierarchical ALV"><h2>{ zcl_gg_gui_runtime=>escape_html( is_request-title ) }</h2><p>Hierarchical ALV fallback: { zcl_gg_gui_runtime=>escape_html( lx_error->get_text( ) ) }</p><p>Header and item tables remain separate; no native success is claimed.</p></section>| ).
     ENDTRY.
     sy-subrc = 0.
   ENDMETHOD.
@@ -549,7 +549,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
         is_request = is_request
       CHANGING
         ct_outtab  = ct_outtab ).
-    APPEND |<section class="gg-classic-alv-block" aria-label="Classic ALV block { lines( mt_classic_blocks ) + 1 }"><h2>{ cl_gui_control=>escape_html( is_request-title ) }</h2>{ lv_html }</section>| TO mt_classic_blocks.
+    APPEND |<section class="gg-classic-alv-block" aria-label="Classic ALV block { lines( mt_classic_blocks ) + 1 }"><h2>{ zcl_gg_gui_runtime=>escape_html( is_request-title ) }</h2>{ lv_html }</section>| TO mt_classic_blocks.
     sy-subrc = 0.
   ENDMETHOD.
 
@@ -559,7 +559,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     IF lv_html IS INITIAL.
       lv_html = '<p data-native-capability="unavailable">No classic ALV block was appended.</p>'.
     ENDIF.
-    cl_gui_control=>set_external_html(
+    zcl_gg_gui_runtime=>set_external_html(
       |<section class="gg-classic-alv-blocks" aria-label="Classic ALV blocks"><h2>Classic block list</h2><div class="gg-classic-alv-scroll">{ lv_html }</div></section>| ).
     sy-subrc = 0.
   ENDMETHOD.
@@ -1170,7 +1170,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
         lo_salv->set_list_header( lv_title ).
         rv_html = lo_salv->get_html( ).
       CATCH cx_salv_error cx_salv_no_check cx_salv_method_not_supported INTO DATA(lx_error).
-        rv_html = |<p data-native-capability="unavailable">Classic ALV semantic renderer failed safely: { cl_gui_control=>escape_html( lx_error->get_text( ) ) }</p>|.
+        rv_html = |<p data-native-capability="unavailable">Classic ALV semantic renderer failed safely: { zcl_gg_gui_runtime=>escape_html( lx_error->get_text( ) ) }</p>|.
     ENDTRY.
   ENDMETHOD.
 

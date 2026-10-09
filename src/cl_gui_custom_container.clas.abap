@@ -23,16 +23,13 @@ CLASS cl_gui_custom_container IMPLEMENTATION.
     mv_repid = repid.
     mv_dynnr = dynnr.
     mv_lifetime = lifetime.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'CUSTOM_CONTAINER' ).
     cl_gui_control=>set_payload(
       control = me
       payload = |name={ mv_container_name }; repid={ mv_repid }; dynnr={ mv_dynnr }; lifetime={ mv_lifetime }; parent={ COND string( WHEN parent IS BOUND THEN parent->control_id ELSE `` ) }| ).
-    IF parent IS BOUND.
-      parent->add_child( me ).
-    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

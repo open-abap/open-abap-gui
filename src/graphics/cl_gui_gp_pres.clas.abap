@@ -31,7 +31,7 @@ CLASS cl_gui_gp_pres IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       kind    = 'GP_PRES' ).
     cl_gui_control=>set_payload(

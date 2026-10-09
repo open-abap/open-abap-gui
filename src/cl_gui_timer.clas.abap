@@ -41,9 +41,10 @@ CLASS cl_gui_timer IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    cl_gui_control=>initialize( control = me
-                                parent  = parent
-                                kind    = 'TIMER' ).
+    zcl_gg_gui_runtime=>initialize(
+      control = me
+      parent  = parent
+      kind    = 'TIMER' ).
     publish( ).
   ENDMETHOD.
 

@@ -103,11 +103,11 @@ CLASS ltcl_splitter_container IMPLEMENTATION.
       act = lv_width
       exp = 60
       msg = 'sash flags do not change column width' ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( cl_gui_control=>render_html( ) CS 'rows=2; columns=2' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( zcl_gg_gui_runtime=>render_html( ) CS 'rows=2; columns=2' ) ).
   ENDMETHOD.
 
   METHOD honors_relative_sizing.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_host) = NEW cl_gui_custom_container( container_name = 'SPLITTER-SIZING' ).
     DATA(lo_splitter) = NEW cl_gui_splitter_container(
       parent  = lo_host
@@ -127,14 +127,14 @@ CLASS ltcl_splitter_container IMPLEMENTATION.
       id     = 3
       height = 34 ).
 
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( lv_html CS 'grid-template-columns:38% 62%' )
       msg = 'relative column width and remaining width' ).
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( lv_html CS 'grid-template-rows:8% 58% 34%' )
       msg = 'relative row heights' ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
 ENDCLASS.

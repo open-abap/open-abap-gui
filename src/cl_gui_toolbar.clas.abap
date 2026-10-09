@@ -243,7 +243,7 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
     ENDIF.
     READ TABLE m_table_button INTO DATA(ls_button) WITH KEY function = mv_context_fcode.
     DATA(lv_label) = COND string( WHEN ls_button-text IS INITIAL THEN 'Menu' ELSE ls_button-text ).
-    lv_html = |<details class="gg-toolbar-dropdown"><summary aria-haspopup="menu">{ cl_gui_control=>escape_html( lv_label ) }</summary><ul class="gg-toolbar-menu" id="{ control_id }-menu" role="menu" aria-label="Toolbar menu">|.
+    lv_html = |<details class="gg-toolbar-dropdown"><summary aria-haspopup="menu">{ zcl_gg_gui_runtime=>escape_html( lv_label ) }</summary><ul class="gg-toolbar-menu" id="{ control_id }-menu" role="menu" aria-label="Toolbar menu">|.
     LOOP AT mt_context_items INTO DATA(ls_item).
       IF ls_item-hidden = abap_true.
         CONTINUE.
@@ -253,12 +253,12 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
         CONTINUE.
       ENDIF.
       IF ls_item-fcode IS INITIAL.
-        lv_html = lv_html && |<li role="none" class="gg-toolbar-menu-label">{ cl_gui_control=>escape_html( ls_item-text ) }</li>|.
+        lv_html = lv_html && |<li role="none" class="gg-toolbar-menu-label">{ zcl_gg_gui_runtime=>escape_html( ls_item-text ) }</li>|.
         CONTINUE.
       ENDIF.
       DATA(lv_event) = frontend_event_value( event  = 'FUNCTION'
                                              params = VALUE #( ( ls_item-fcode ) ) ).
-      lv_html = lv_html && |<li role="none"><button type="submit" role="menuitem" name="gg_control_event" value="{ lv_event }" formnovalidate{ COND string( WHEN ls_item-disabled = abap_true THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ cl_gui_control=>escape_html( ls_item-text ) }</button></li>|.
+      lv_html = lv_html && |<li role="none"><button type="submit" role="menuitem" name="gg_control_event" value="{ lv_event }" formnovalidate{ COND string( WHEN ls_item-disabled = abap_true THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ zcl_gg_gui_runtime=>escape_html( ls_item-text ) }</button></li>|.
     ENDLOOP.
     lv_html = lv_html && '</ul></details>'.
     cl_gui_control=>set_html(
@@ -322,11 +322,10 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'TOOLBAR' ).
-    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD set_static_ctxmenu.

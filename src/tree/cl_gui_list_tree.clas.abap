@@ -32,11 +32,10 @@ ENDCLASS.
 CLASS cl_gui_list_tree IMPLEMENTATION.
 
   METHOD constructor.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'LIST_TREE' ).
-    parent->add_child( me ).
     hierarchy_header_set_text( hierarchy_header-heading ).
     refresh_tree_html( ).
   ENDMETHOD.

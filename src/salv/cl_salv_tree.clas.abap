@@ -165,7 +165,7 @@ CLASS cl_salv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD display.
-    cl_gui_control=>set_external_html( get_html( ) ).
+    zcl_gg_gui_runtime=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD trigger_link_click.
@@ -206,10 +206,10 @@ CLASS cl_salv_tree IMPLEMENTATION.
     IF lv_header IS INITIAL.
       lv_header = 'SALV tree'.
     ENDIF.
-    value = |<section class="gg-salv-tree" aria-label="SALV tree"><h2>{ cl_gui_control=>escape_html( lv_header ) }</h2><div class="gg-salv-tree-scroll"><table><thead><tr><th scope="col">{ cl_gui_control=>escape_html( CONV string( mo_tree_settings->get_hierarchy_header( ) ) ) }</th>|.
+    value = |<section class="gg-salv-tree" aria-label="SALV tree"><h2>{ zcl_gg_gui_runtime=>escape_html( lv_header ) }</h2><div class="gg-salv-tree-scroll"><table><thead><tr><th scope="col">{ zcl_gg_gui_runtime=>escape_html( CONV string( mo_tree_settings->get_hierarchy_header( ) ) ) }</th>|.
     LOOP AT mo_columns->get( ) INTO DATA(ls_column_ref).
       DATA(lo_column) = ls_column_ref-r_column.
-      value = value && |<th scope="col" data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_column_ref-columnname ) ) }">{ cl_gui_control=>escape_html( COND string( WHEN lo_column->get_long_text( ) IS NOT INITIAL THEN lo_column->get_long_text( ) ELSE ls_column_ref-columnname ) ) }</th>|.
+      value = value && |<th scope="col" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_column_ref-columnname ) ) }">{ zcl_gg_gui_runtime=>escape_html( COND string( WHEN lo_column->get_long_text( ) IS NOT INITIAL THEN lo_column->get_long_text( ) ELSE ls_column_ref-columnname ) ) }</th>|.
     ENDLOOP.
     value = value && '</tr></thead><tbody>'.
     DATA(lt_selected) = mo_selections->get_selected_nodes( ).
@@ -260,13 +260,13 @@ CLASS cl_salv_tree IMPLEMENTATION.
                                                       iv_fallback = lv_icon_name ).
         DATA(lv_icon_code_attr) = COND string(
           WHEN lv_icon_code IS INITIAL THEN ``
-          ELSE | data-gg-image="{ cl_gui_control=>escape_html( lv_icon_code ) }"| ).
-        value = value && |<tr role="treeitem" tabindex="0" aria-level="{ lv_level }" data-tree-level="{ lv_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ cl_gui_control=>escape_html( CONV string( lo_node->get_key( ) ) ) }" data-parent-key="{ cl_gui_control=>escape_html( lv_parent_key ) }"{ lv_selected_attr }{ lv_expanded_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ lv_icon_code_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ cl_gui_control=>escape_html( CONV string( lo_node->get_text( ) ) ) }</span></span></th>|.
+          ELSE | data-gg-image="{ zcl_gg_gui_runtime=>escape_html( lv_icon_code ) }"| ).
+        value = value && |<tr role="treeitem" tabindex="0" aria-level="{ lv_level }" data-tree-level="{ lv_level }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-node-key="{ zcl_gg_gui_runtime=>escape_html( CONV string( lo_node->get_key( ) ) ) }" data-parent-key="{ zcl_gg_gui_runtime=>escape_html( lv_parent_key ) }"{ lv_selected_attr }{ lv_expanded_attr }><th scope="row"><span class="gg-tree-indent" style="display:flex;align-items:center;gap:3px;padding-left:{ lv_indent }px"><span class="gg-tree-disclosure" aria-hidden="true" style="display:inline-block;width:12px;text-align:center">{ lv_tree_marker }</span><span class="gg-tree-node-icon" aria-hidden="true"{ lv_icon_code_attr }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ zcl_gg_gui_runtime=>escape_html( CONV string( lo_node->get_text( ) ) ) }</span></span></th>|.
         LOOP AT mo_columns->get( ) INTO ls_column_ref.
           DATA(lv_item_html) = render_item(
             node       = lo_node
             columnname = ls_column_ref-columnname ).
-          value = value && |<td data-fieldname="{ cl_gui_control=>escape_html( CONV string( ls_column_ref-columnname ) ) }">{ lv_item_html }</td>|.
+          value = value && |<td data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_column_ref-columnname ) ) }">{ lv_item_html }</td>|.
         ENDLOOP.
         value = value && '</tr>'.
       ENDIF.
@@ -330,13 +330,13 @@ CLASS cl_salv_tree IMPLEMENTATION.
                                  columnname = columnname ).
     ENDIF.
     DATA(lv_type) = lo_item->get_type( ).
-    DATA(lv_key) = cl_gui_control=>escape_html( CONV string( node->get_key( ) ) ).
-    DATA(lv_column) = cl_gui_control=>escape_html( CONV string( columnname ) ).
-    DATA(lv_text_escaped) = cl_gui_control=>escape_html( lv_text ).
+    DATA(lv_key) = zcl_gg_gui_runtime=>escape_html( CONV string( node->get_key( ) ) ).
+    DATA(lv_column) = zcl_gg_gui_runtime=>escape_html( CONV string( columnname ) ).
+    DATA(lv_text_escaped) = zcl_gg_gui_runtime=>escape_html( lv_text ).
     DATA(lv_accessible_text) = COND string(
       WHEN lv_text IS INITIAL THEN |{ columnname } for { node->get_key( ) }|
       ELSE lv_text ).
-    DATA(lv_accessible_escaped) = cl_gui_control=>escape_html( lv_accessible_text ).
+    DATA(lv_accessible_escaped) = zcl_gg_gui_runtime=>escape_html( lv_accessible_text ).
     DATA(lv_state) = COND string( WHEN lo_item->is_editable( ) = abap_true THEN '' ELSE ' aria-readonly="true"' ).
     DATA(lv_checked) = COND string( WHEN lo_item->is_checked( ) = abap_true THEN ' checked' ELSE '' ).
     CASE lv_type.

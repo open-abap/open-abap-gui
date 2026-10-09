@@ -17,14 +17,6 @@ CLASS cl_abap_browser DEFINITION PUBLIC.
         dialog      TYPE abap_bool OPTIONAL
         printing    TYPE abap_bool OPTIONAL.
 
-    CLASS-METHODS get_last_html
-      RETURNING
-        VALUE(html_string) TYPE string.
-
-    CLASS-METHODS get_last_title
-      RETURNING
-        VALUE(title) TYPE string.
-
   PRIVATE SECTION.
     CLASS-DATA mv_html TYPE string.
     CLASS-DATA mv_title TYPE string.
@@ -41,7 +33,7 @@ CLASS cl_abap_browser IMPLEMENTATION.
       lv_xml = xml_string.
     ENDIF.
     show_html(
-      html_string = |<pre>{ cl_gui_control=>escape_html( lv_xml ) }</pre>|
+      html_string = |<pre>{ zcl_gg_gui_runtime=>escape_html( lv_xml ) }</pre>|
       title       = title
       container   = container
       dialog      = dialog
@@ -74,11 +66,4 @@ CLASS cl_abap_browser IMPLEMENTATION.
     mo_viewer->load_data( CHANGING data_table = lt_html ).
   ENDMETHOD.
 
-  METHOD get_last_html.
-    html_string = mv_html.
-  ENDMETHOD.
-
-  METHOD get_last_title.
-    title = mv_title.
-  ENDMETHOD.
 ENDCLASS.

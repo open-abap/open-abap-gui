@@ -7,7 +7,7 @@ CLASS ltcl_gui_object IMPLEMENTATION.
   METHOD reports_control_lifetime.
     DATA lv_valid TYPE i.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'VALIDITY' ).
     lo_container->is_valid( IMPORTING result = lv_valid ).
     cl_abap_unit_assert=>assert_equals(

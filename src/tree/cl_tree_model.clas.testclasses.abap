@@ -20,7 +20,7 @@ CLASS ltcl_tree_model IMPLEMENTATION.
     lo_model->add_nodes( lt_nodes ).
     lo_model->create_tree_control( parent = lo_host ).
     lo_model->expand_node( node_key = 'ROOT' ).
-    lv_html = cl_gui_control=>render_html(
+    lv_html = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'TREE_MODEL_SIMPLE' ).
 
@@ -53,7 +53,7 @@ CLASS ltcl_tree_model IMPLEMENTATION.
     lo_list->item_set_text( node_key  = 'P100'
                             item_name = 'NAME'
                             text      = 'Updated Keyboard' ).
-    lv_html = cl_gui_control=>render_html(
+    lv_html = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'TREE_MODEL_LIST' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'List Tree Root' ) ).
@@ -71,7 +71,7 @@ CLASS ltcl_tree_model IMPLEMENTATION.
     lo_column->add_items( lt_column_items ).
     lo_column->create_tree_control( parent = lo_column_host ).
     lo_column->expand_node( node_key = 'ROOT' ).
-    lv_html = cl_gui_control=>render_html(
+    lv_html = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'TREE_MODEL_COLUMN' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Column Tree Root' ) ).
