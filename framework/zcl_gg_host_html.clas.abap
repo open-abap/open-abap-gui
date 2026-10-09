@@ -315,6 +315,7 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-alv-tree thead th\{height:22px;background:linear-gradient(#e9f3fa,#c7dae9);border-color:#8daac4;font-weight:700;\}|.
     rv_html = rv_html && |.gg-alv-tree tbody tr:nth-child(even) td\{background:#edf4fa;\}|.
     rv_html = rv_html && |.gg-alv-tree tbody tr.gg-state-selected td\{background:#c7dced;color:#102f4d;font-weight:600;\}|.
+    rv_html = rv_html && |.gg-alv-tree tbody tr.gg-state-found th,.gg-alv-tree tbody tr.gg-state-found td\{background:#fff2a8;color:#25384a;\}|.
     rv_html = rv_html && |.gg-alv-tree tbody th\{font-weight:400;\}|.
     rv_html = rv_html && |.gg-alv-tree input[type=checkbox]\{accent-color:#6f9fc5;width:14px;height:14px;margin:0;vertical-align:middle;\}|.
     rv_html = rv_html && |.gg-alv-tree-toolbar-spacer\{flex:0 0 32px;\}|.

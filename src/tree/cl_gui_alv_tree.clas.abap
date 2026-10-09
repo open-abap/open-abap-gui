@@ -546,6 +546,13 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     IF it_fieldcatalog IS SUPPLIED.
       mt_fieldcatalog = it_fieldcatalog.
     ENDIF.
+    IF it_filter IS SUPPLIED.
+      mt_filter = it_filter.
+    ENDIF.
+    IF it_toolbar_excluding IS SUPPLIED.
+      mt_toolbar_excluding = it_toolbar_excluding.
+    ENDIF.
+    reveal_filter_matches( ).
     refresh_tree_html( ).
   ENDMETHOD.
 

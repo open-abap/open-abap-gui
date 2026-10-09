@@ -18,6 +18,7 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
     METHODS alv_tree_outtab_roundtrip FOR TESTING.
+    METHODS alv_tree_find_filter FOR TESTING.
     METHODS simple_tree_renders_nodes FOR TESTING.
     METHODS column_tree_renders_hierarchy FOR TESTING.
     METHODS html_alv_structured_rows FOR TESTING.
@@ -580,6 +581,113 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-node-key="TREE-1"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Product hierarchy</th>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'style="width:221px;min-width:221px;max-width:221px"' ) ).
+  ENDMETHOD.
+
+  METHOD alv_tree_find_filter.
+    TYPES: BEGIN OF ty_row,
+             category TYPE string,
+             detail   TYPE string,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fieldcat TYPE lvc_t_fcat.
+    DATA lv_root TYPE lvc_nkey.
+    DATA lv_north TYPE lvc_nkey.
+    DATA lv_south TYPE lvc_nkey.
+    DATA lo_toolbar TYPE REF TO cl_gui_toolbar.
+
+    cl_gui_control=>clear( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-TREE-SEARCH' ).
+    DATA(lo_tree) = NEW cl_gui_alv_tree( parent = lo_container ).
+    lt_fieldcat = VALUE #(
+      ( fieldname = 'CATEGORY' coltext = 'Category' )
+      ( fieldname = 'DETAIL' coltext = 'Detail' ) ).
+    lo_tree->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fieldcat ).
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = space
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        i_node_text      = 'Parent'
+      IMPORTING
+        e_new_node_key   = lv_root ).
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = lv_root
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        i_node_text      = 'North branch'
+        is_outtab_line   = VALUE ty_row( category = 'North' detail = 'First' )
+      IMPORTING
+        e_new_node_key   = lv_north ).
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = lv_root
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        i_node_text      = 'South branch'
+        is_outtab_line   = VALUE ty_row( category = 'South' detail = 'Needle' )
+      IMPORTING
+        e_new_node_key   = lv_south ).
+    lo_tree->get_toolbar_object( IMPORTING er_toolbar = lo_toolbar ).
+    DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Filter"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Find"' ) ).
+
+    cl_gui_cfw=>receive_frontend(
+      event  = lo_toolbar->control_id && '|FUNCTION|&FILTER'
+      values = VALUE #( ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = cl_gui_cfw=>process_frontend( )
+      exp = 'S' ).
+    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'role="dialog" aria-label="FILTER"' ) ).
+    cl_gui_cfw=>receive_frontend(
+      event  = lo_tree->control_id && '|SEARCH|APPLY'
+      values = VALUE #(
+        ( name = |gg-ctl:{ lo_tree->control_id }:field| value = 'CATEGORY' )
+        ( name = |gg-ctl:{ lo_tree->control_id }:option| value = 'CP' )
+        ( name = |gg-ctl:{ lo_tree->control_id }:term| value = 'N*' ) ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = cl_gui_cfw=>process_frontend( )
+      exp = 'S' ).
+    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_root }"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_north }"| ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS |data-node-key="{ lv_south }"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="true"' ) ).
+
+    cl_gui_cfw=>queue_browser_event(
+      event    = 'TREE_TOGGLE'
+      node_key = CONV string( lv_root )
+      value    = 'false' ).
+    cl_gui_cfw=>dispatch( ).
+    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
+
+    cl_gui_cfw=>receive_frontend(
+      event  = lo_toolbar->control_id && '|FUNCTION|&FILTER'
+      values = VALUE #( ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_gui_cfw=>receive_frontend(
+      event  = lo_tree->control_id && '|SEARCH|CLEAR'
+      values = VALUE #( ) ).
+    cl_gui_cfw=>process_frontend( ).
+    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_south }"| ) ).
+
+    cl_gui_cfw=>receive_frontend(
+      event  = lo_toolbar->control_id && '|FUNCTION|&FIND'
+      values = VALUE #( ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_gui_cfw=>receive_frontend(
+      event  = lo_tree->control_id && '|SEARCH|APPLY'
+      values = VALUE #( ( name = |gg-ctl:{ lo_tree->control_id }:term| value = 'needle' ) ) ).
+    cl_gui_cfw=>process_frontend( ).
+    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-state-found' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_south }"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="true"' ) ).
+    cl_gui_control=>clear( ).
   ENDMETHOD.
 
   METHOD simple_tree_renders_nodes.
