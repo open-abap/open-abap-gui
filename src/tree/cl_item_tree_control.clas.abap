@@ -264,11 +264,11 @@ CLASS cl_item_tree_control IMPLEMENTATION.
         WHEN item_class_button THEN 'BUTTON'
         WHEN item_class_link THEN 'LINK' ELSE '' ).
       IF lv_event IS INITIAL.
-        result = result && |<span class="gg-tree-item" data-item-name="{ escape_html( ls_item-item_name ) }">{ escape_html( ls_item-text ) }</span>|.
+        result = result && |<span class="gg-tree-item" data-item-name="{ zcl_gg_gui_runtime=>escape_html( ls_item-item_name ) }">{ zcl_gg_gui_runtime=>escape_html( ls_item-text ) }</span>|.
       ELSE.
         DATA(lv_value) = frontend_event_value( event  = lv_event
                                                params = VALUE #( ( node_key ) ( ls_item-item_name ) ) ).
-        result = result && |<button class="gg-tree-item" type="submit" name="gg_control_event" value="{ lv_value }" formnovalidate{ COND string( WHEN lv_event = 'CHECKBOX' THEN | role="checkbox" aria-checked="{ COND string( WHEN ls_item-chosen = abap_true THEN 'true' ELSE 'false' ) }"| ELSE COND string( WHEN lv_event = 'LINK' THEN ` role="link"` ) ) }>{ escape_html( ls_item-text ) }</button>|.
+        result = result && |<button class="gg-tree-item" type="submit" name="gg_control_event" value="{ lv_value }" formnovalidate{ COND string( WHEN lv_event = 'CHECKBOX' THEN | role="checkbox" aria-checked="{ COND string( WHEN ls_item-chosen = abap_true THEN 'true' ELSE 'false' ) }"| ELSE COND string( WHEN lv_event = 'LINK' THEN ` role="link"` ) ) }>{ zcl_gg_gui_runtime=>escape_html( ls_item-text ) }</button>|.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.

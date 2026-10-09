@@ -45,8 +45,6 @@ CLASS cl_gui_easy_splitter_container IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'EASY_SPLITTER' ).
-    IF parent IS BOUND.
-    ENDIF.
     top_left_container = NEW cl_gui_custom_container(
       container_name = |EASY-{ control_id }-TOP-LEFT|
       parent         = me ).

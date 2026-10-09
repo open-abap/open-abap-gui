@@ -296,8 +296,6 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
       parent  = parent
       kind    = 'ALV_TREE' ).
     cl_alv_tree_base=>register_instance( me ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
   METHOD handle_browser_event.

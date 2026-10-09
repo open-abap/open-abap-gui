@@ -21,8 +21,6 @@ CLASS cl_gui_barchart IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'BARCHART' ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

@@ -2,8 +2,9 @@ CLASS lcl_link_bridge IMPLEMENTATION.
   METHOD constructor.
     super->constructor( ).
     mo_link = link.
-    zcl_gg_gui_runtime=>initialize( control = me
-                                kind    = 'EVENT_BRIDGE' ).
+    zcl_gg_gui_runtime=>initialize(
+      control = me
+      kind    = 'EVENT_BRIDGE' ).
   ENDMETHOD.
 
   METHOD is_application_event.

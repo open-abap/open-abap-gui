@@ -99,8 +99,6 @@ CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'DRAGDROP' ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
   METHOD start_dragging.

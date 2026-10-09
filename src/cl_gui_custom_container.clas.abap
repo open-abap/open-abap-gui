@@ -30,8 +30,6 @@ CLASS cl_gui_custom_container IMPLEMENTATION.
     cl_gui_control=>set_payload(
       control = me
       payload = |name={ mv_container_name }; repid={ mv_repid }; dynnr={ mv_dynnr }; lifetime={ mv_lifetime }; parent={ COND string( WHEN parent IS BOUND THEN parent->control_id ELSE `` ) }| ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

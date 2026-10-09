@@ -57,8 +57,6 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
                   width  = width
                   left   = left
                   top    = top ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
   METHOD set_caption.

@@ -92,8 +92,6 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
     cl_gui_control=>set_payload(
       control = me
       payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }; floating={ mv_floating }| ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
   METHOD dock_at.

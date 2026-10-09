@@ -140,8 +140,6 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     mv_week_begin_day = COND #( WHEN week_begin_day > 0 THEN week_begin_day ELSE 1 ).
     mv_selection_style = selection_style.
     refresh_html( ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
   METHOD go_to_date.

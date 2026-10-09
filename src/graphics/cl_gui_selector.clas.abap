@@ -21,8 +21,6 @@ CLASS cl_gui_selector IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'SELECTOR' ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

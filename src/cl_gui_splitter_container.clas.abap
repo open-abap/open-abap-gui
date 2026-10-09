@@ -215,8 +215,6 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'SPLITTER_CONTAINER' ).
-    IF parent IS BOUND.
-    ENDIF.
     mv_rows = COND #( WHEN rows > 0 THEN rows ELSE 1 ).
     mv_columns = COND #( WHEN columns > 0 THEN columns ELSE 1 ).
     mv_row_mode = mode_relative.

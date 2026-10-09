@@ -974,8 +974,9 @@ CLASS ltcl_test IMPLEMENTATION.
         action_field = 'gg_control_event'
         fields       = VALUE #( ( name = 'session_id' value = 'HOST-1' ) ) ).
     ENDIF.
-    rv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false
-                                           is_sapevent = ls_sapevent ).
+    rv_html = zcl_gg_gui_runtime=>render_html(
+      iv_document = abap_false
+      is_sapevent = ls_sapevent ).
     zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 

@@ -91,8 +91,6 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
       control = me
       parent  = parent
       kind    = 'CHART_ENGINE' ).
-    IF parent IS BOUND.
-    ENDIF.
   ENDMETHOD.
 
   METHOD set_data.
@@ -228,11 +226,11 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
         IF horizontal = abap_true.
           lv_x = 2 * c_margin + lv_stack_offset.
           lv_y = c_margin + lv_offset.
-          result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_length }" height="{ lv_bar }" fill="{ color( lv_series_index ) }"><title>{ escape_html( lv_category ) }: { lv_value }</title></rect>|.
+          result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_length }" height="{ lv_bar }" fill="{ color( lv_series_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_category ) }: { lv_value }</title></rect>|.
         ELSE.
           lv_x = c_margin + lv_offset.
           lv_y = c_height - c_margin - lv_length - lv_stack_offset.
-          result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_bar }" height="{ lv_length }" fill="{ color( lv_series_index ) }"><title>{ escape_html( lv_category ) }: { lv_value }</title></rect>|.
+          result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_bar }" height="{ lv_length }" fill="{ color( lv_series_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_category ) }: { lv_value }</title></rect>|.
         ENDIF.
         IF lv_stacked = abap_true.
           lv_stack_offset = lv_stack_offset + lv_length.
@@ -240,10 +238,10 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
       ENDLOOP.
       IF horizontal = abap_true.
         lv_y = c_margin + ( lv_category_index - 1 ) * lv_slot + lv_slot DIV 2 + 4.
-        result = result && |<text x="{ 2 * c_margin - 6 }" y="{ lv_y }" text-anchor="end">{ escape_html( lv_category ) }</text>|.
+        result = result && |<text x="{ 2 * c_margin - 6 }" y="{ lv_y }" text-anchor="end">{ zcl_gg_gui_runtime=>escape_html( lv_category ) }</text>|.
       ELSE.
         lv_x = c_margin + ( lv_category_index - 1 ) * lv_slot + lv_slot DIV 2.
-        result = result && |<text x="{ lv_x }" y="{ c_height - c_margin + 16 }" text-anchor="middle">{ escape_html( lv_category ) }</text>|.
+        result = result && |<text x="{ lv_x }" y="{ c_height - c_margin + 16 }" text-anchor="middle">{ zcl_gg_gui_runtime=>escape_html( lv_category ) }</text>|.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
@@ -272,9 +270,9 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
       DATA(lv_large) = COND i( WHEN lv_value > lv_total / 2 THEN 1 ELSE 0 ).
       DATA(lv_label) = VALUE string( mt_categories[ lv_index ] OPTIONAL ).
       IF lv_value = lv_total.
-        result = result && |<circle cx="280" cy="130" r="90" fill="{ color( lv_index ) }"><title>{ escape_html( lv_label ) }: { lv_value }</title></circle>|.
+        result = result && |<circle cx="280" cy="130" r="90" fill="{ color( lv_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_label ) }: { lv_value }</title></circle>|.
       ELSE.
-        result = result && |<path d="M 280 130 L { lv_x1 } { lv_y1 } A 90 90 0 { lv_large } 1 { lv_x2 } { lv_y2 } Z" fill="{ color( lv_index ) }"><title>{ escape_html( lv_label ) }: { lv_value }</title></path>|.
+        result = result && |<path d="M 280 130 L { lv_x1 } { lv_y1 } A 90 90 0 { lv_large } 1 { lv_x2 } { lv_y2 } Z" fill="{ color( lv_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_label ) }: { lv_value }</title></path>|.
       ENDIF.
       lv_angle = lv_next.
     ENDLOOP.
@@ -299,19 +297,19 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
     ENDLOOP.
     LOOP AT mt_categories INTO DATA(lv_category).
       lv_x = c_margin + ( sy-tabix - 1 ) * lv_step.
-      result = result && |<text x="{ lv_x }" y="{ c_height - c_margin + 16 }" text-anchor="middle">{ escape_html( lv_category ) }</text>|.
+      result = result && |<text x="{ lv_x }" y="{ c_height - c_margin + 16 }" text-anchor="middle">{ zcl_gg_gui_runtime=>escape_html( lv_category ) }</text>|.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD data_table.
-    result = |<table class="gg-chart-data"><caption>{ escape_html( title ) }</caption><thead><tr><th scope="col"></th>|.
+    result = |<table class="gg-chart-data"><caption>{ zcl_gg_gui_runtime=>escape_html( title ) }</caption><thead><tr><th scope="col"></th>|.
     LOOP AT mt_series INTO DATA(ls_series).
-      result = result && |<th scope="col">{ escape_html( ls_series-label ) }</th>|.
+      result = result && |<th scope="col">{ zcl_gg_gui_runtime=>escape_html( ls_series-label ) }</th>|.
     ENDLOOP.
     result = result && '</tr></thead><tbody>'.
     LOOP AT mt_categories INTO DATA(lv_category).
       DATA(lv_index) = sy-tabix.
-      result = result && |<tr><th scope="row">{ escape_html( lv_category ) }</th>|.
+      result = result && |<tr><th scope="row">{ zcl_gg_gui_runtime=>escape_html( lv_category ) }</th>|.
       LOOP AT mt_series INTO ls_series.
         READ TABLE ls_series-values INTO DATA(lv_value) INDEX lv_index.
         result = result && |<td>{ lv_value }</td>|.
@@ -339,18 +337,18 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
     ENDIF.
     IF lv_type = 'Pie'.
       LOOP AT mt_categories INTO DATA(lv_category).
-        lv_legend = lv_legend && |<li><span class="gg-chart-swatch" style="background:{ color( sy-tabix ) }"></span>{ escape_html( lv_category ) }</li>|.
+        lv_legend = lv_legend && |<li><span class="gg-chart-swatch" style="background:{ color( sy-tabix ) }"></span>{ zcl_gg_gui_runtime=>escape_html( lv_category ) }</li>|.
       ENDLOOP.
     ELSE.
       LOOP AT mt_series INTO DATA(ls_series).
-        lv_legend = lv_legend && |<li><span class="gg-chart-swatch" style="background:{ color( sy-tabix ) }"></span>{ escape_html( ls_series-label ) }</li>|.
+        lv_legend = lv_legend && |<li><span class="gg-chart-swatch" style="background:{ color( sy-tabix ) }"></span>{ zcl_gg_gui_runtime=>escape_html( ls_series-label ) }</li>|.
       ENDLOOP.
     ENDIF.
     cl_gui_control=>set_html(
       control = me
-      html    = |<figure class="gg-chart" data-chart-type="{ escape_html( COND string( WHEN lv_type IS INITIAL THEN 'Columns' ELSE lv_type ) ) }">| &&
-                |{ COND string( WHEN lv_title IS NOT INITIAL THEN |<figcaption>{ escape_html( lv_title ) }</figcaption>| ) }| &&
-                |<svg role="img" aria-label="{ escape_html( COND string( WHEN lv_title IS INITIAL THEN 'Chart' ELSE lv_title ) ) }" viewBox="0 0 { c_width } { c_height }" | &&
+      html    = |<figure class="gg-chart" data-chart-type="{ zcl_gg_gui_runtime=>escape_html( COND string( WHEN lv_type IS INITIAL THEN 'Columns' ELSE lv_type ) ) }">| &&
+                |{ COND string( WHEN lv_title IS NOT INITIAL THEN |<figcaption>{ zcl_gg_gui_runtime=>escape_html( lv_title ) }</figcaption>| ) }| &&
+                |<svg role="img" aria-label="{ zcl_gg_gui_runtime=>escape_html( COND string( WHEN lv_title IS INITIAL THEN 'Chart' ELSE lv_title ) ) }" viewBox="0 0 { c_width } { c_height }" | &&
                 |width="{ c_width }" height="{ c_height }"><line x1="{ c_margin }" y1="{ c_height - c_margin }" x2="{ c_width - c_margin }" y2="{ c_height - c_margin }" stroke="#8daac4"/>| &&
                 |{ lv_body }</svg><ul class="gg-chart-legend">{ lv_legend }</ul>{ data_table( lv_title ) }</figure>| ).
   ENDMETHOD.

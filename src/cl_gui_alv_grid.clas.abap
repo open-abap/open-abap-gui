@@ -773,8 +773,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD enable_fullscreen_events.
     IF control_id IS INITIAL.
-      zcl_gg_gui_runtime=>initialize( control = me
-                                  kind    = 'SALV_FULLSCREEN' ).
+      zcl_gg_gui_runtime=>initialize(
+        control = me
+        kind    = 'SALV_FULLSCREEN' ).
     ENDIF.
   ENDMETHOD.
 
@@ -1200,7 +1201,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         mv_menu_html = '<ul class="gg-alv-context-menu" role="menu">'.
         LOOP AT zcl_gg_context_menu_state=>get_items( lo_menu ) INTO DATA(ls_menuitem) WHERE hidden = abap_false.
           APPEND CONV #( ls_menuitem-fcode ) TO mt_menu_fcodes.
-          mv_menu_html = mv_menu_html && |<li><button type="submit" role="menuitem" { function_attributes( ls_menuitem-fcode ) }{ COND string( WHEN ls_menuitem-disabled = abap_true THEN ` disabled` ) }>{ escape_html( ls_menuitem-text ) }</button></li>|.
+          mv_menu_html = mv_menu_html && |<li><button type="submit" role="menuitem" { function_attributes( ls_menuitem-fcode ) }{ COND string( WHEN ls_menuitem-disabled = abap_true THEN ` disabled` ) }>{ zcl_gg_gui_runtime=>escape_html( ls_menuitem-text ) }</button></li>|.
         ENDLOOP.
         mv_menu_html = mv_menu_html && '</ul>'.
         refresh_table_display( ).
@@ -1322,7 +1323,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 * A grid without a parent renders a SALV list; its functions are list
 * commands. A grid control sends its functions to itself.
     IF iv_function = mc_fc_print OR iv_function = mc_fc_pc_file OR iv_function = mc_fc_call_xml_export.
-      result = |data-gg-alv-command="{ escape_html( iv_function ) }" |.
+      result = |data-gg-alv-command="{ zcl_gg_gui_runtime=>escape_html( iv_function ) }" |.
     ENDIF.
     IF control_id IS INITIAL.
       result = result && |name="gg_ucomm" value="{ iv_function }"|.
@@ -1352,7 +1353,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         lv_action = COND #( WHEN mv_layout_dialog = mc_fc_filter THEN 'FILTER' ELSE 'FIND' ).
         lv_body = |<label>Column <select name="{ frontend_field_name( 'layout_field' ) }">|.
         LOOP AT mt_fieldcatalog INTO DATA(ls_choice) WHERE tech IS INITIAL AND no_out IS INITIAL.
-          lv_body = lv_body && |<option value="{ escape_html( CONV string( ls_choice-fieldname ) ) }">{ escape_html( CONV string( ls_choice-fieldname ) ) }</option>|.
+          lv_body = lv_body && |<option value="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_choice-fieldname ) ) }">{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_choice-fieldname ) ) }</option>|.
         ENDLOOP.
         lv_body = lv_body && |</select></label><label>Text <input name="{ frontend_field_name( 'layout_term' ) }" type="text"></label>|.
         IF mv_layout_dialog = mc_fc_filter.
@@ -2033,9 +2034,11 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       | data-gg-context-event="{ frontend_event_value( event  = 'CONTEXT'
                                                        params = VALUE #( ( |{ is_row-index }| ) ( CONV string( is_cell-fieldname ) ) ) ) }"| ).
     IF is_cell-f4 = abap_true AND control_id IS NOT INITIAL.
-      lv_cell_content = lv_cell_content && |<button type="submit" class="gg-help-button" aria-label="Value help { escape_html( CONV string( is_cell-fieldname ) ) }" { submit_attributes( iv_event  = 'F4'
-                                                                                                                                                                                          iv_param1 = |{ is_row-index }|
-                                                                                                                                                                                          iv_param2 = CONV string( is_cell-fieldname ) ) }>...</button>|.
+      DATA(lv_f4_attributes) = submit_attributes(
+        iv_event  = 'F4'
+        iv_param1 = |{ is_row-index }|
+        iv_param2 = CONV string( is_cell-fieldname ) ).
+      lv_cell_content = lv_cell_content && |<button type="submit" class="gg-help-button" aria-label="Value help { zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) }" { lv_f4_attributes }>...</button>|.
     ENDIF.
     result = |<td{ lv_double_click }{ lv_context }{ COND string( WHEN lv_bad = abap_true THEN ` aria-invalid="true"` ) } class="gg-grid-cell { lv_cell_state_class } { is_cell-type_class }{ lv_disabled_class }" data-subtotal="{ COND string( WHEN is_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ zcl_gg_gui_runtime=>escape_html( is_cell-emphasize ) }" data-lvc-color="{ zcl_gg_gui_runtime=>escape_html( lv_cell_color_code ) }" data-lvc-style="{ lv_lvc_style }" style="{ lv_cell_color_style }"{ COND string( WHEN is_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) }">{ lv_cell_content }</td>|.
   ENDMETHOD.

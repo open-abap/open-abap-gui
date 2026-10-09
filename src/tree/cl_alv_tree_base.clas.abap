@@ -613,17 +613,17 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
     DATA(lv_body) = ``.
     IF mv_search_dialog = 'FILTER'.
-      lv_body = |<label>Column <select name="{ frontend_field_name( 'field' ) }"><option value="{ escape_html( CONV string( c_hierarchy_column_name ) ) }">Hierarchy</option>|.
+      lv_body = |<label>Column <select name="{ frontend_field_name( 'field' ) }"><option value="{ zcl_gg_gui_runtime=>escape_html( CONV string( c_hierarchy_column_name ) ) }">Hierarchy</option>|.
       LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat)
           WHERE tech IS INITIAL AND no_out IS INITIAL.
         DATA(lv_heading) = COND string(
           WHEN ls_fieldcat-coltext IS NOT INITIAL THEN CONV string( ls_fieldcat-coltext )
           ELSE CONV string( ls_fieldcat-fieldname ) ).
-        lv_body = lv_body && |<option value="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_heading ) }</option>|.
+        lv_body = lv_body && |<option value="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ zcl_gg_gui_runtime=>escape_html( lv_heading ) }</option>|.
       ENDLOOP.
       lv_body = lv_body && |</select></label><label>Comparison <select name="{ frontend_field_name( 'option' ) }"><option>EQ</option><option>NE</option><option>CP</option><option>GE</option><option>LE</option></select></label>|.
     ENDIF.
-    lv_body = lv_body && |<label>Text <input name="{ frontend_field_name( 'term' ) }" type="text" value="{ COND string( WHEN mv_search_dialog = 'FIND' THEN escape_html( mv_find_text ) ELSE `` ) }"></label>|.
+    lv_body = lv_body && |<label>Text <input name="{ frontend_field_name( 'term' ) }" type="text" value="{ COND string( WHEN mv_search_dialog = 'FIND' THEN zcl_gg_gui_runtime=>escape_html( mv_find_text ) ELSE `` ) }"></label>|.
     DATA(lv_apply) = frontend_event_value( event  = 'SEARCH'
                                            params = VALUE #( ( `APPLY` ) ) ).
     DATA(lv_clear) = frontend_event_value( event  = 'SEARCH'
@@ -1301,7 +1301,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     IF lv_heading IS INITIAL.
       lv_heading = 'Hierarchy'.
     ENDIF.
-    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }{ render_search_dialog( ) }<div class="gg-alv-tree-columns"><table role="tree" data-gg-control-id="{ escape_html( control_id ) }" aria-label="ALV tree" data-field-count="{ lines( mt_fieldcatalog ) }" style="width:100%;min-width:{ lv_table_width }px;table-layout:fixed"><colgroup><col{ lv_hierarchy_style }/>|.
+    result = |<section class="gg-alv-tree" aria-label="ALV tree">{ lv_toolbar_spacer }{ render_search_dialog( ) }<div class="gg-alv-tree-columns"><table role="tree" data-gg-control-id="{ zcl_gg_gui_runtime=>escape_html( control_id ) }" aria-label="ALV tree" data-field-count="{ lines( mt_fieldcatalog ) }" style="width:100%;min-width:{ lv_table_width }px;table-layout:fixed"><colgroup><col{ lv_hierarchy_style }/>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_col_fieldcat).
       IF ls_col_fieldcat-no_out IS INITIAL AND ls_col_fieldcat-tech IS INITIAL.
         READ TABLE lt_html_column_width INTO DATA(ls_col_width)
@@ -1313,10 +1313,10 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         ENDIF.
       ENDIF.
     ENDLOOP.
-    result = result && |<col style="width:auto"/></colgroup><thead><tr><th scope="col"{ lv_hierarchy_style }>{ escape_html( CONV string( lv_heading ) ) }</th>|.
+    result = result && |<col style="width:auto"/></colgroup><thead><tr><th scope="col"{ lv_hierarchy_style }>{ zcl_gg_gui_runtime=>escape_html( CONV string( lv_heading ) ) }</th>|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
-        result = result && |<th scope="col" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ escape_html( CONV string( ls_fieldcat-inttype ) ) }">{ escape_html( COND string( WHEN ls_fieldcat-coltext IS INITIAL THEN ls_fieldcat-fieldname ELSE ls_fieldcat-coltext ) ) }</th>|.
+        result = result && |<th scope="col" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-inttype ) ) }">{ zcl_gg_gui_runtime=>escape_html( COND string( WHEN ls_fieldcat-coltext IS INITIAL THEN ls_fieldcat-fieldname ELSE ls_fieldcat-coltext ) ) }</th>|.
       ENDIF.
     ENDLOOP.
     result = result && '</tr></thead><tbody>'.
@@ -1374,9 +1374,9 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
       DATA(lv_indent) = ( lv_depth - 1 ) * 18.
       DATA(lv_tree_toggle) = COND string(
         WHEN lv_has_children = abap_true
-          THEN |<button type="button" class="gg-tree-disclosure" data-tree-action="toggle" aria-label="{ COND string( WHEN lv_is_expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { escape_html( ls_node-text ) }">{ lv_tree_marker }</button>|
+          THEN |<button type="button" class="gg-tree-disclosure" data-tree-action="toggle" aria-label="{ COND string( WHEN lv_is_expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { zcl_gg_gui_runtime=>escape_html( ls_node-text ) }">{ lv_tree_marker }</button>|
         ELSE '<span class="gg-tree-disclosure" aria-hidden="true"></span>' ).
-      result = result && |<tr class="gg-tree-node { cl_gui_control=>state_class( iv_selected = ls_node-selected ) }{ COND string( WHEN node_contains_text( ls_node ) = abap_true THEN ` gg-state-found` ELSE `` ) }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ COND string( WHEN lv_has_children = abap_true THEN COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) ELSE `` ) }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-tree-selection="{ COND string( WHEN m_node_selection_mode = cl_gui_column_tree=>node_sel_mode_multiple THEN 'multiple' ELSE 'single' ) }"{ lv_selected }{ lv_hidden }><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px">{ lv_tree_toggle }<span class="gg-tree-node-icon" aria-hidden="true"{ COND string( WHEN lv_node_image IS INITIAL THEN `` ELSE | data-gg-image="{ escape_html( lv_node_image ) }"| ) }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ escape_html( ls_node-text ) }</span></span></th>|.
+      result = result && |<tr class="gg-tree-node { cl_gui_control=>state_class( iv_selected = ls_node-selected ) }{ COND string( WHEN node_contains_text( ls_node ) = abap_true THEN ` gg-state-found` ELSE `` ) }" role="treeitem" tabindex="0" aria-level="{ lv_depth }" aria-expanded="{ COND string( WHEN lv_has_children = abap_true THEN COND string( WHEN lv_is_expanded = abap_true THEN 'true' ELSE 'false' ) ELSE `` ) }" data-node-key="{ zcl_gg_gui_runtime=>escape_html( ls_node-node_key ) }" data-parent-key="{ zcl_gg_gui_runtime=>escape_html( ls_node-parent_key ) }" data-has-children="{ COND string( WHEN lv_has_children = abap_true THEN 'true' ELSE 'false' ) }" data-tree-selection="{ COND string( WHEN m_node_selection_mode = cl_gui_column_tree=>node_sel_mode_multiple THEN 'multiple' ELSE 'single' ) }"{ lv_selected }{ lv_hidden }><th scope="row"><span class="gg-tree-indent" style="padding-left:{ lv_indent }px">{ lv_tree_toggle }<span class="gg-tree-node-icon" aria-hidden="true"{ COND string( WHEN lv_node_image IS INITIAL THEN `` ELSE | data-gg-image="{ zcl_gg_gui_runtime=>escape_html( lv_node_image ) }"| ) }>{ lv_node_icon }</span><span class="gg-tree-node-label">{ zcl_gg_gui_runtime=>escape_html( ls_node-text ) }</span></span></th>|.
       LOOP AT mt_fieldcatalog INTO ls_fieldcat.
         IF ls_fieldcat-no_out IS NOT INITIAL OR ls_fieldcat-tech IS NOT INITIAL.
           CONTINUE.
@@ -1387,24 +1387,24 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         DATA(ls_item_layout) = VALUE lvc_s_layi( ).
         READ TABLE ls_node-item_layout INTO ls_item_layout
           WITH KEY fieldname = ls_fieldcat-fieldname.
-        DATA(lv_item_markup) = escape_html( lv_tree_value ).
+        DATA(lv_item_markup) = zcl_gg_gui_runtime=>escape_html( lv_tree_value ).
         IF ls_item_layout-class = 3 OR ls_fieldcat-checkbox = abap_true.
           DATA(lv_checked) = COND string(
             WHEN lv_tree_value = 'X' OR lv_tree_value = '1' THEN ' checked'
             ELSE `` ).
           lv_item_markup = COND string(
             WHEN lv_tree_value IS INITIAL THEN ``
-            ELSE |<input type="checkbox" aria-label="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }"{ lv_checked }>| ).
+            ELSE |<input type="checkbox" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }"{ lv_checked }>| ).
         ELSEIF ls_item_layout-class = 5.
-          lv_item_markup = |<a href="#" class="gg-tree-item-link" data-tree-action="link" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</a>|.
+          lv_item_markup = |<a href="#" class="gg-tree-item-link" data-tree-action="link" data-node-key="{ zcl_gg_gui_runtime=>escape_html( ls_node-node_key ) }" data-item-name="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ zcl_gg_gui_runtime=>escape_html( lv_tree_value ) }</a>|.
         ELSEIF ls_item_layout-class = 4.
-          lv_item_markup = |<button type="button" class="gg-tree-item-button" data-tree-action="button" data-node-key="{ escape_html( ls_node-node_key ) }" data-item-name="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_tree_value ) }</button>|.
+          lv_item_markup = |<button type="button" class="gg-tree-item-button" data-tree-action="button" data-node-key="{ zcl_gg_gui_runtime=>escape_html( ls_node-node_key ) }" data-item-name="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ zcl_gg_gui_runtime=>escape_html( lv_tree_value ) }</button>|.
         ENDIF.
         DATA(lv_cell_class) = COND string(
           WHEN ls_fieldcat-fieldname = 'QUANTITY' OR ls_fieldcat-fieldname = 'PRICE'
             THEN 'gg-alv-tree-cell gg-alv-tree-cell--number'
           ELSE 'gg-alv-tree-cell' ).
-        result = result && |<td class="{ lv_cell_class }" data-fieldname="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-total="{ COND string( WHEN ls_fieldcat-do_sum = 'X' THEN 'true' ELSE 'false' ) }">{ lv_item_markup }</td>|.
+        result = result && |<td class="{ lv_cell_class }" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-total="{ COND string( WHEN ls_fieldcat-do_sum = 'X' THEN 'true' ELSE 'false' ) }">{ lv_item_markup }</td>|.
       ENDLOOP.
       result = result && '<td class="gg-alv-tree-filler" aria-hidden="true"></td></tr>'.
     ENDLOOP.
