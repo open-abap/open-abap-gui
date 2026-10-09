@@ -256,7 +256,7 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD teardown.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD renders_as_alv_grid.
@@ -426,7 +426,7 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     lo_salv->display( ).
 
 * The toolbar shows above the grid even without rows.
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'CC_MAIN' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="ALV toolbar"' ) ).
@@ -473,7 +473,7 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
         t_table      = lt_rows ).
     lo_salv->display( ).
 
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'CC_MAIN' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-control-kind="ALV_GRID"' ) ).

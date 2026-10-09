@@ -211,12 +211,11 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
     DATA lv_column TYPE i.
     DATA ls_cell TYPE ty_cell.
 
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'SPLITTER_CONTAINER' ).
     IF parent IS BOUND.
-      parent->add_child( me ).
     ENDIF.
     mv_rows = COND #( WHEN rows > 0 THEN rows ELSE 1 ).
     mv_columns = COND #( WHEN columns > 0 THEN columns ELSE 1 ).

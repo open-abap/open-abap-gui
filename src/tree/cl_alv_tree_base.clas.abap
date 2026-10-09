@@ -120,7 +120,7 @@ CLASS cl_alv_tree_base DEFINITION PUBLIC INHERITING FROM cl_gui_control
     DATA mv_html_top_node TYPE string.
     DATA mv_find_text TYPE string.
     DATA mv_search_dialog TYPE string.
-    DATA mt_search_input TYPE ty_fields.
+    DATA mt_search_input TYPE zcl_gg_gui_runtime=>ty_fields.
     TYPES: BEGIN OF ty_html_column_width,
              fieldname TYPE string,
              width     TYPE i,

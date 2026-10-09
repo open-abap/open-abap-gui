@@ -317,11 +317,10 @@ CLASS cl_gui_textedit IMPLEMENTATION.
     mv_cursor_line = 1.
     mv_selection_from_line = 1.
     mv_selection_to_line = 1.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'TEXTEDIT' ).
-    parent->add_child( me ).
     cl_gui_control=>set_text_state(
       control           = me
       wordwrap_mode     = mv_wordwrap_mode

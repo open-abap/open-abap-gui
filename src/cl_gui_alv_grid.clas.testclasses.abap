@@ -24,7 +24,7 @@ CLASS cl_gui_alv_grid DEFINITION LOCAL FRIENDS ltcl_grid_regressions.
 
 CLASS ltcl_grid_regressions IMPLEMENTATION.
   METHOD setup.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     mt_rows = VALUE #( ( name = 'Zulu' amount = 8 ) ( name = 'Alpha' amount = 2 ) ).
     mo_grid = NEW cl_gui_alv_grid( i_parent = cl_gui_container=>default_screen ).
     DATA(lt_fields) = VALUE lvc_t_fcat( ( fieldname = 'NAME' inttype = 'C' col_pos = 1 )
@@ -35,7 +35,7 @@ CLASS ltcl_grid_regressions IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD teardown.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD standard_sort_and_sum.

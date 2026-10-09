@@ -41,12 +41,11 @@ CLASS cl_gui_easy_splitter_container IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'EASY_SPLITTER' ).
     IF parent IS BOUND.
-      parent->add_child( me ).
     ENDIF.
     top_left_container = NEW cl_gui_custom_container(
       container_name = |EASY-{ control_id }-TOP-LEFT|

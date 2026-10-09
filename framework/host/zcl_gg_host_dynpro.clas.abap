@@ -891,7 +891,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         io_menu           = lo_context_menu
         iv_menu_field     = CONV string( lv_context_menu_field )
         iv_controls_html  = lv_controls_html
-        iv_dialogs_html   = cl_gui_control=>render_dialogs_html(
+        iv_dialogs_html   = zcl_gg_gui_runtime=>render_dialogs_html(
           zcl_gg_host_renderer=>sapevent_transport(
             iv_session_id = lv_session_id
             iv_page_id    = lv_page_id ) )
@@ -1997,7 +1997,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     READ TABLE it_controls INTO DATA(ls_custom_control)
       WITH KEY kind = 'CUSTOM_CONTROL'.
     IF sy-subrc = 0.
-      rv_html = cl_gui_control=>render_html(
+      rv_html = zcl_gg_gui_runtime=>render_html(
         iv_document        = abap_false
         iv_container_name  = CONV string( ls_custom_control-name )
         is_sapevent        = zcl_gg_host_renderer=>sapevent_transport(
@@ -2005,7 +2005,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           iv_page_id    = iv_page_id )
         iv_without_dialogs = abap_true ).
     ELSE.
-      rv_html = cl_gui_control=>render_html(
+      rv_html = zcl_gg_gui_runtime=>render_html(
         iv_document        = abap_false
         is_sapevent        = zcl_gg_host_renderer=>sapevent_transport(
           iv_session_id = iv_session_id

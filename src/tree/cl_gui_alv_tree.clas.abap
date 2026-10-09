@@ -291,13 +291,12 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     m_item_selection = item_selection.
     m_no_toolbar = no_toolbar.
     m_no_html_header = no_html_header.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'ALV_TREE' ).
     cl_alv_tree_base=>register_instance( me ).
     IF parent IS BOUND.
-      parent->add_child( me ).
     ENDIF.
   ENDMETHOD.
 

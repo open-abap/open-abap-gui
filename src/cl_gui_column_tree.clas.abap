@@ -175,7 +175,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'COLUMN_TREE' ).
@@ -188,7 +188,6 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
                     header_text  = hierarchy_header-heading
                     tooltip      = hierarchy_header-tooltip ) TO mt_columns.
     refresh_column_html( ).
-    parent->add_child( me ).
   ENDMETHOD.
 
   METHOD free.

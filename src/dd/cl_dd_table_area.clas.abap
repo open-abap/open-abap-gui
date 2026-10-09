@@ -45,7 +45,7 @@ CLASS cl_dd_table_area IMPLEMENTATION.
       mv_header_open = abap_true.
       open_row( ).
     ENDIF.
-    append_fragment( |<th scope="col">{ cl_gui_control=>escape_html( CONV string( text ) ) }</th>| ).
+    append_fragment( |<th scope="col">{ zcl_gg_gui_runtime=>escape_html( CONV string( text ) ) }</th>| ).
   ENDMETHOD.
 
   METHOD new_row.
@@ -130,19 +130,19 @@ CLASS cl_dd_table_area IMPLEMENTATION.
     ELSE.
       lv_row_class = 'gg-dd-data-row'.
       IF mv_next_row_style IS NOT INITIAL.
-        lv_attributes = lv_attributes && | data-gg-style="{ cl_gui_control=>escape_html( mv_next_row_style ) }"|.
+        lv_attributes = lv_attributes && | data-gg-style="{ zcl_gg_gui_runtime=>escape_html( mv_next_row_style ) }"|.
       ENDIF.
       IF mv_next_row_color IS NOT INITIAL.
-        lv_attributes = lv_attributes && | data-gg-color="{ cl_gui_control=>escape_html( mv_next_row_color ) }"|.
+        lv_attributes = lv_attributes && | data-gg-color="{ zcl_gg_gui_runtime=>escape_html( mv_next_row_color ) }"|.
       ENDIF.
       IF mv_next_row_fontsize IS NOT INITIAL.
-        lv_attributes = lv_attributes && | data-gg-fontsize="{ cl_gui_control=>escape_html( mv_next_row_fontsize ) }"|.
+        lv_attributes = lv_attributes && | data-gg-fontsize="{ zcl_gg_gui_runtime=>escape_html( mv_next_row_fontsize ) }"|.
       ENDIF.
       IF mv_next_row_fontstyle IS NOT INITIAL.
-        lv_attributes = lv_attributes && | data-gg-fontstyle="{ cl_gui_control=>escape_html( mv_next_row_fontstyle ) }"|.
+        lv_attributes = lv_attributes && | data-gg-fontstyle="{ zcl_gg_gui_runtime=>escape_html( mv_next_row_fontstyle ) }"|.
       ENDIF.
       IF mv_next_row_emphasis IS NOT INITIAL.
-        lv_attributes = lv_attributes && | data-gg-emphasis="{ cl_gui_control=>escape_html( mv_next_row_emphasis ) }"|.
+        lv_attributes = lv_attributes && | data-gg-emphasis="{ zcl_gg_gui_runtime=>escape_html( mv_next_row_emphasis ) }"|.
       ENDIF.
     ENDIF.
     append_fragment( |<tr class="{ lv_row_class }"{ lv_attributes }>| ).

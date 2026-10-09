@@ -301,7 +301,7 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD close_screen.
-    cl_gui_control=>clear_external_html( ).
+    zcl_gg_gui_runtime=>clear_external_html( ).
   ENDMETHOD.
 
   METHOD refresh.
@@ -313,7 +313,7 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_screen_popup.
-    cl_gui_control=>set_external_html( get_html( ) ).
+    zcl_gg_gui_runtime=>set_external_html( get_html( ) ).
   ENDMETHOD.
 
   METHOD get_event.
@@ -396,7 +396,7 @@ CLASS cl_salv_table IMPLEMENTATION.
 
   METHOD publish.
     IF mo_container IS NOT BOUND.
-      cl_gui_control=>set_external_html( get_html( ) ).
+      zcl_gg_gui_runtime=>set_external_html( get_html( ) ).
       RETURN.
     ENDIF.
     IF mo_grid IS NOT BOUND.

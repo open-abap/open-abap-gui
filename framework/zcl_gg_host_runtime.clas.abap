@@ -235,9 +235,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     " A new host session starts with a fresh browser control surface. The
     " control classes keep their snapshots statically, so leaving a prior
     " session in place would let old controls overlay the next page.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     cl_alv_tree_base=>clear_instances( ).
-    cl_gui_control=>clear_external_html( ).
+    zcl_gg_gui_runtime=>clear_external_html( ).
     lv_session_id = next_session_id( ).
     IF io_dynpro_program IS BOUND.
       TRY.
@@ -631,7 +631,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           OR zcx_gg_control_flow=>kind_submit_return.
         lv_caller = is_session-session_id.
         ls_ended = is_session.
-        ls_ended-controls = cl_gui_control=>save_state( ).
+        ls_ended-controls = zcl_gg_gui_runtime=>save_state( ).
         ls_ended-trees = cl_alv_tree_base=>save_instances( ).
         store( ls_ended ).
       WHEN zcx_gg_control_flow=>kind_submit.
@@ -718,7 +718,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
     lv_page_id = |{ ls_caller-session_id }-{ ls_caller-next_page }|.
     ls_caller-next_page = ls_caller-next_page + 1.
-    cl_gui_control=>restore_state( ls_caller-controls ).
+    zcl_gg_gui_runtime=>restore_state( ls_caller-controls ).
     cl_alv_tree_base=>restore_instances( ls_caller-trees ).
     CLEAR: ls_caller-controls, ls_caller-trees.
     store( ls_caller ).
@@ -1222,7 +1222,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
 * any other report has finished.
     IF ls_result-page_kind = zif_gg_host_html_v1=>page_list
         AND ls_result-lines IS INITIAL
-        AND cl_gui_control=>has_content( ) = abap_false.
+        AND zcl_gg_gui_runtime=>has_content( ) = abap_false.
       IF ls_session-selection_start = abap_true.
         DATA(lt_messages) = ls_result-messages.
         ls_result = zcl_gg_host=>run(

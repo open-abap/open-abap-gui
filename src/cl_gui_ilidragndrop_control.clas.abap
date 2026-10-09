@@ -95,12 +95,11 @@ ENDCLASS.
 CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
 
   METHOD constructor.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'DRAGDROP' ).
     IF parent IS BOUND.
-      parent->add_child( me ).
     ENDIF.
   ENDMETHOD.
 

@@ -82,7 +82,7 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'DOCKING_CONTAINER' ).
@@ -93,7 +93,6 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
       control = me
       payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }; floating={ mv_floating }| ).
     IF parent IS BOUND.
-      parent->add_child( me ).
     ENDIF.
   ENDMETHOD.
 

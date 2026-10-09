@@ -132,7 +132,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'CALENDAR' ).
@@ -141,7 +141,6 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     mv_selection_style = selection_style.
     refresh_html( ).
     IF parent IS BOUND.
-      parent->add_child( me ).
     ENDIF.
   ENDMETHOD.
 
@@ -248,7 +247,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     DATA lv_info_html TYPE string.
 
     LOOP AT mt_day_info INTO DATA(ls_day_info).
-      lv_info_html = lv_info_html && |<span class="gg-calendar-day-info" data-date="{ CONV string( ls_day_info-date ) }" data-color="{ ls_day_info-color }">{ cl_gui_control=>escape_html( CONV string( ls_day_info-text ) ) }</span>|.
+      lv_info_html = lv_info_html && |<span class="gg-calendar-day-info" data-date="{ CONV string( ls_day_info-date ) }" data-color="{ ls_day_info-color }">{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_day_info-text ) ) }</span>|.
     ENDLOOP.
     cl_gui_control=>set_html(
       control = me
@@ -456,9 +455,9 @@ CLASS cl_gui_calendar IMPLEMENTATION.
       DATA(lv_event) = frontend_event_value( event  = 'DATE_SELECTED'
                                              params = VALUE #( ( lv_date_text ) ) ).
       DATA(lv_label) = |{ iv_date(4) }-{ iv_date+4(2) }-{ iv_date+6(2) }|.
-      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ cl_gui_control=>escape_html( lv_day_title ) }"><button type="submit" name="gg_control_event" value="{ lv_event }" formnovalidate aria-label="{ lv_label }">{ lv_day_text }</button></td>|.
+      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ zcl_gg_gui_runtime=>escape_html( lv_day_title ) }"><button type="submit" name="gg_control_event" value="{ lv_event }" formnovalidate aria-label="{ lv_label }">{ lv_day_text }</button></td>|.
     ELSE.
-      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ cl_gui_control=>escape_html( lv_day_title ) }"><span>{ lv_day_text }</span></td>|.
+      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ zcl_gg_gui_runtime=>escape_html( lv_day_title ) }"><span>{ lv_day_text }</span></td>|.
     ENDIF.
   ENDMETHOD.
 

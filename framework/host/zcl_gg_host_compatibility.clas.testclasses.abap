@@ -66,13 +66,13 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
     DATA lo_compatibility TYPE REF TO zif_gg_compatibility_v1.
     lo_compatibility ?= NEW zcl_gg_host_compatibility( ).
     APPEND VALUE #( carrier = 'Lufthansa' flight = 'LH400' seats = 180 ) TO lt_rows.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     lo_compatibility->alv_display(
       EXPORTING
         is_request = VALUE #( grid_title = 'Classic flights' list_type = 0 )
       CHANGING
         ct_outtab  = lt_rows ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-classic-alv' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Classic flights' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'LH400' ) ).
@@ -132,7 +132,7 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
       CHANGING
         ct_outtab  = lt_rows ).
     lo_compatibility->alv_block_display( is_request = VALUE #( ) ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-classic-alv-blocks' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Block row' ) ).
   ENDMETHOD.
