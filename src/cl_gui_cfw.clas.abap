@@ -43,7 +43,7 @@ CLASS cl_gui_cfw DEFINITION PUBLIC FRIENDS zcl_gg_host_dynpro zcl_gg_host_runtim
     CLASS-METHODS receive_frontend
       IMPORTING
         event  TYPE string
-        values TYPE cl_gui_control=>ty_fields.
+        values TYPE zcl_gg_gui_runtime=>ty_fields.
 
 * Before PAI: the controls get their frontend values and a system event goes
 * to its handlers. KIND is S after a system event, A when an application event
@@ -84,14 +84,23 @@ CLASS cl_gui_cfw DEFINITION PUBLIC FRIENDS zcl_gg_host_dynpro zcl_gg_host_runtim
     CLASS-DATA mv_browser_field TYPE string.
     CLASS-DATA mv_browser_value TYPE string.
     CLASS-DATA mv_browser_checked TYPE abap_bool.
+* Same structure as zcl_gg_gui_runtime=>ty_fields, declared here because
+* static data is created when the class loads, and src/ must load without
+* framework/, consumers get only src/ as a transpiler library.
+    TYPES: BEGIN OF ty_control_value,
+             name  TYPE string,
+             value TYPE string,
+           END OF ty_control_value.
+    TYPES ty_control_values TYPE STANDARD TABLE OF ty_control_value WITH DEFAULT KEY.
+
     CLASS-DATA mv_control_event TYPE string.
-    CLASS-DATA mt_control_values TYPE cl_gui_control=>ty_fields.
+    CLASS-DATA mt_control_values TYPE ty_control_values.
 ENDCLASS.
 
 CLASS cl_gui_cfw IMPLEMENTATION.
   METHOD update_view.
     mv_update_count = mv_update_count + 1.
-    cl_gui_control=>render_html( iv_document = abap_false ).
+    zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
   ENDMETHOD.
 
   METHOD dispatch.
@@ -130,7 +139,7 @@ CLASS cl_gui_cfw IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD process_frontend.
-    DATA lt_values TYPE cl_gui_control=>ty_fields.
+    DATA lt_values TYPE zcl_gg_gui_runtime=>ty_fields.
     DATA lt_parts TYPE string_table.
     DATA lv_prefix TYPE string.
 

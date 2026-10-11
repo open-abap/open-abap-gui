@@ -40,7 +40,7 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
 
     APPEND VALUE #( id = 1 name = 'Root' ) TO lt_rows.
     APPEND VALUE #( id = 2 name = 'Leaf <safe>' ) TO lt_rows.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     cl_salv_tree=>factory(
       EXPORTING
         hide_header = abap_false
@@ -61,7 +61,7 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
     lo_tree->get_tree_settings( )->set_header( 'Tree header' ).
     lo_tree->display( ).
 
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-salv-tree' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Leaf &lt;safe&gt;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-level="2"' ) ).
@@ -72,9 +72,9 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-selected="true"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="true"' ) ).
     lo_tree->get_nodes( )->collapse_all( ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     lo_tree->display( ).
-    lv_html = cl_gui_control=>render_html( ).
+    lv_html = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'Leaf &lt;safe&gt;' ) ).
   ENDMETHOD.
@@ -95,7 +95,7 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
     lt_rows = VALUE #( ( id = 1 name = 'Root' )
                        ( id = 2 name = 'Leaf' ) ).
     ls_leaf = lt_rows[ 2 ].
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     cl_salv_tree=>factory(
       IMPORTING
         r_salv_tree = lo_tree
@@ -120,13 +120,13 @@ CLASS ltcl_salv_tree_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = lo_handler->called ).
     lo_tree->display( ).
 
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-salv-event="link-click"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Open leaf' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'type="checkbox"' ) ).
     lo_root->collapse( ).
     lo_tree->display( ).
-    lv_html = cl_gui_control=>render_html( ).
+    lv_html = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'Open leaf' ) ).
   ENDMETHOD.
 ENDCLASS.

@@ -18,6 +18,7 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS html_control_snapshot FOR TESTING.
     METHODS html_control_registry FOR TESTING.
     METHODS alv_tree_outtab_roundtrip FOR TESTING.
+    METHODS alv_tree_find_filter FOR TESTING.
     METHODS simple_tree_renders_nodes FOR TESTING.
     METHODS column_tree_renders_hierarchy FOR TESTING.
     METHODS html_alv_structured_rows FOR TESTING.
@@ -63,7 +64,7 @@ CLASS ltcl_test IMPLEMENTATION.
     TYPES: BEGIN OF ty_row, name TYPE string, END OF ty_row.
     DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
     DATA lo_salv TYPE REF TO cl_salv_table.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     lt_rows = VALUE #( ( name = 'Hide' ) ( name = 'Keep' ) ( name = 'Keep' ) ).
     cl_salv_table=>factory( IMPORTING r_salv_table = lo_salv CHANGING t_table = lt_rows ).
     lo_salv->get_functions( )->add_function( name     = 'ZGO'
@@ -93,7 +94,7 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_gui_cfw=>dispatch_pending( ).
     cl_abap_unit_assert=>assert_equals( act = mv_salv_function
                                         exp = 'ZGO' ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
 
@@ -154,7 +155,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lv_text TYPE string.
     DATA lv_file_result TYPE abap_bool.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'TEXTEDIT-ROUNDTRIP' ).
     DATA(lo_editor) = NEW cl_gui_textedit( parent = lo_root ).
     lo_editor->set_toolbar_mode( cl_gui_textedit=>true ).
@@ -215,7 +216,7 @@ CLASS ltcl_test IMPLEMENTATION.
       act = lv_to_pos
       exp = 2 ).
 
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-toolbar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-textedit-tool-button' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'COMMAND:TEXTEDIT_CUT' ) ).
@@ -225,7 +226,7 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-wordwrap-position="72"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-protected-from="1"' ) ).
 
-    DATA(lv_host_html) = cl_gui_control=>render_html(
+    DATA(lv_host_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'TEXTEDIT-ROUNDTRIP' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_host_html CS 'gg-textedit-shell' ) ).
@@ -250,7 +251,7 @@ CLASS ltcl_test IMPLEMENTATION.
       tooltip = 'Tree heading'
       width   = 180 ).
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'NAMED-ROOT' ).
     DATA(lo_tree) = NEW cl_gui_column_tree(
       parent                = lo_root
@@ -265,7 +266,7 @@ CLASS ltcl_test IMPLEMENTATION.
     lo_tree->hierarchy_header_set_text( 'Updated hierarchy' ).
     lo_tree->column_set_hidden( column_name = 'DETAIL'
                                 hidden      = abap_false ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'name=NAMED-ROOT' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Updated hierarchy' ) ).
@@ -282,7 +283,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lt_columns TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
     DATA lt_selected_columns TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-ROOT' ).
     DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
     APPEND VALUE #( flag = 'X' note = 'edit me' ) TO lt_rows.
@@ -295,7 +296,7 @@ CLASS ltcl_test IMPLEMENTATION.
     APPEND 2 TO lt_columns.
     lo_grid->set_selected_columns( it_col_table = lt_columns ).
     lo_grid->get_selected_columns( IMPORTING et_index_columns = lt_selected_columns ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
 
     cl_abap_unit_assert=>assert_equals(
       act = lt_selected_columns[ 1 ]
@@ -313,7 +314,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lt_fcat TYPE lvc_t_fcat.
     DATA lt_filtered TYPE lvc_t_fidx.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-CRITERIA' ).
     DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_root ).
     lt_rows = VALUE #( ( carrier = 'LH' seats = 180 )
@@ -333,7 +334,7 @@ CLASS ltcl_test IMPLEMENTATION.
                                            down      = 'X'
                                            spos      = 1 ) ) ).
     lo_grid->get_filtered_entries( IMPORTING et_filtered_entries = lt_filtered ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_equals(
       act = lines( lt_filtered )
       exp = 1 ).
@@ -345,12 +346,12 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-alv-tool-button' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Refresh"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Sort ascending"' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD picture_safe_state.
     DATA lv_result TYPE i.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'PICTURE-ROOT' ).
     DATA(lo_picture) = NEW cl_gui_picture( parent = lo_root ).
     lo_picture->load_picture_from_url(
@@ -361,13 +362,13 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lv_result
       exp = 0 ).
-    DATA(lv_rejected_html) = cl_gui_control=>render_html( ).
+    DATA(lv_rejected_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_rejected_html CS 'data-picture-state="rejected"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_rejected_html CS 'src="javascript:' ) ).
     lo_picture->load_picture_from_url_async( '/assets/icons/refresh.svg' ).
     lo_picture->set_display_mode( cl_gui_picture=>display_mode_fit_center ).
     lo_picture->set_3d_border( 1 ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'src="/assets/icons/refresh.svg"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-picture-state="loaded"' ) ).
@@ -386,7 +387,7 @@ CLASS ltcl_test IMPLEMENTATION.
                                top    = 5
                                width  = 120
                                height = 30 ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<textarea' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '&lt;unsafe&gt;' ) ).
@@ -433,7 +434,7 @@ CLASS ltcl_test IMPLEMENTATION.
         t_table      = lt_salv_rows ).
     lo_salv->set_list_header( 'SALV & table' ).
     lo_salv->display( ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-calendar-week-grid' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'type="date"' ) ).
@@ -448,14 +449,14 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lo_salv->get_html( ) CS 'SALV &amp; table' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-alv"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<root>' ) ).
-    cl_gui_control=>clear_external_html( ).
+    zcl_gg_gui_runtime=>clear_external_html( ).
   ENDMETHOD.
 
   METHOD calendar_week_navigator.
     DATA lv_april_offset TYPE i.
     DATA lv_january_offset TYPE i.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'CALENDAR-WEEK-NAVIGATOR' ).
     DATA(lo_calendar) = NEW cl_gui_calendar(
       parent         = lo_root
@@ -463,7 +464,7 @@ CLASS ltcl_test IMPLEMENTATION.
       focus_date     = '20260824'
       display_months = 3
       week_begin_day = 1 ).
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'CALENDAR-WEEK-NAVIGATOR' ).
 
@@ -480,14 +481,14 @@ CLASS ltcl_test IMPLEMENTATION.
     FIND FIRST OCCURRENCE OF '>2026/4</th>' IN lv_html MATCH OFFSET lv_april_offset.
     FIND FIRST OCCURRENCE OF '>2027/1</th>' IN lv_html MATCH OFFSET lv_january_offset.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_april_offset < lv_january_offset ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD dialogbox_nested_surface.
     DATA lv_html TYPE string.
     DATA lv_textedit_count TYPE i.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'DIALOG-HOST' ).
     DATA(lo_dialog) = NEW cl_gui_dialogbox_container(
       parent  = lo_root
@@ -498,7 +499,7 @@ CLASS ltcl_test IMPLEMENTATION.
       caption = 'SAP GUI modeless control dialog' ).
     DATA(lo_editor) = NEW cl_gui_textedit( parent = lo_dialog ).
     lo_editor->set_textstream( 'The owning dynpro remains active.' ).
-    lv_html = cl_gui_control=>render_html(
+    lv_html = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'DIALOG-HOST' ).
     FIND ALL OCCURRENCES OF 'data-control-kind="TEXTEDIT"' IN lv_html MATCH COUNT lv_textedit_count.
@@ -507,12 +508,12 @@ CLASS ltcl_test IMPLEMENTATION.
       exp = 1
       act = lv_textedit_count ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-dialog-title"><span>SAP GUI modeless control dialog</span>' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |value="{ lo_dialog->control_id }\|CLOSE"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |value="{ zcl_gg_gui_runtime=>get_control_id( control = lo_dialog ) }\|CLOSE"| ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-dialog-body"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-dialog-width="600"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-dialog-height="320"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'The owning dynpro remains active.' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD alv_tree_outtab_roundtrip.
@@ -557,7 +558,7 @@ CLASS ltcl_test IMPLEMENTATION.
                             butn_type = 0
                             text      = 'Tree action' ).
     lo_tree->frontend_update( ).
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ALV_TREE_OUTTAB' ).
 
@@ -582,21 +583,128 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'style="width:221px;min-width:221px;max-width:221px"' ) ).
   ENDMETHOD.
 
+  METHOD alv_tree_find_filter.
+    TYPES: BEGIN OF ty_row,
+             category TYPE string,
+             detail   TYPE string,
+           END OF ty_row.
+    DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
+    DATA lt_fieldcat TYPE lvc_t_fcat.
+    DATA lv_root TYPE lvc_nkey.
+    DATA lv_north TYPE lvc_nkey.
+    DATA lv_south TYPE lvc_nkey.
+    DATA lo_toolbar TYPE REF TO cl_gui_toolbar.
+
+    zcl_gg_gui_runtime=>clear( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-TREE-SEARCH' ).
+    DATA(lo_tree) = NEW cl_gui_alv_tree( parent = lo_container ).
+    lt_fieldcat = VALUE #(
+      ( fieldname = 'CATEGORY' coltext = 'Category' )
+      ( fieldname = 'DETAIL' coltext = 'Detail' ) ).
+    lo_tree->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fieldcat ).
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = space
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        i_node_text      = 'Parent'
+      IMPORTING
+        e_new_node_key   = lv_root ).
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = lv_root
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        i_node_text      = 'North branch'
+        is_outtab_line   = VALUE ty_row( category = 'North' detail = 'First' )
+      IMPORTING
+        e_new_node_key   = lv_north ).
+    lo_tree->add_node(
+      EXPORTING
+        i_relat_node_key = lv_root
+        i_relationship   = cl_tree_control_base=>relat_last_child
+        i_node_text      = 'South branch'
+        is_outtab_line   = VALUE ty_row( category = 'South' detail = 'Needle' )
+      IMPORTING
+        e_new_node_key   = lv_south ).
+    lo_tree->get_toolbar_object( IMPORTING er_toolbar = lo_toolbar ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Filter"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Find"' ) ).
+
+    cl_gui_cfw=>receive_frontend(
+      event  = zcl_gg_gui_runtime=>get_control_id( control = lo_toolbar ) && '|FUNCTION|&FILTER'
+      values = VALUE #( ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = cl_gui_cfw=>process_frontend( )
+      exp = 'S' ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'role="dialog" aria-label="FILTER"' ) ).
+    cl_gui_cfw=>receive_frontend(
+      event  = zcl_gg_gui_runtime=>get_control_id( control = lo_tree ) && '|SEARCH|APPLY'
+      values = VALUE #(
+        ( name = |gg-ctl:{ zcl_gg_gui_runtime=>get_control_id( control = lo_tree ) }:field| value = 'CATEGORY' )
+        ( name = |gg-ctl:{ zcl_gg_gui_runtime=>get_control_id( control = lo_tree ) }:option| value = 'CP' )
+        ( name = |gg-ctl:{ zcl_gg_gui_runtime=>get_control_id( control = lo_tree ) }:term| value = 'N*' ) ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = cl_gui_cfw=>process_frontend( )
+      exp = 'S' ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_root }"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_north }"| ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS |data-node-key="{ lv_south }"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="true"' ) ).
+
+    cl_gui_cfw=>queue_browser_event(
+      event    = 'TREE_TOGGLE'
+      node_key = CONV string( lv_root )
+      value    = 'false' ).
+    cl_gui_cfw=>dispatch( ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
+
+    cl_gui_cfw=>receive_frontend(
+      event  = zcl_gg_gui_runtime=>get_control_id( control = lo_toolbar ) && '|FUNCTION|&FILTER'
+      values = VALUE #( ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_gui_cfw=>receive_frontend(
+      event  = zcl_gg_gui_runtime=>get_control_id( control = lo_tree ) && '|SEARCH|CLEAR'
+      values = VALUE #( ) ).
+    cl_gui_cfw=>process_frontend( ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_south }"| ) ).
+
+    cl_gui_cfw=>receive_frontend(
+      event  = zcl_gg_gui_runtime=>get_control_id( control = lo_toolbar ) && '|FUNCTION|&FIND'
+      values = VALUE #( ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_gui_cfw=>receive_frontend(
+      event  = zcl_gg_gui_runtime=>get_control_id( control = lo_tree ) && '|SEARCH|APPLY'
+      values = VALUE #( ( name = |gg-ctl:{ zcl_gg_gui_runtime=>get_control_id( control = lo_tree ) }:term| value = 'needle' ) ) ).
+    cl_gui_cfw=>process_frontend( ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-state-found' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-node-key="{ lv_south }"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="true"' ) ).
+    zcl_gg_gui_runtime=>clear( ).
+  ENDMETHOD.
+
   METHOD simple_tree_renders_nodes.
     DATA lt_nodes TYPE string_table.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'SIMPLE-TREE-TEST' ).
     DATA(lo_tree) = NEW cl_gui_simple_tree( parent = lo_root ).
     lt_nodes = VALUE #( ( `Root` ) ( `Editor` ) ).
     lo_tree->add_nodes( table_structure_name = 'TREEV_NODE'
                         node_table           = lt_nodes ).
 
-    DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Root</span>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Editor</span>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'Tree nodes:' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD alv_subtotals.
@@ -612,7 +720,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lv_input_offset TYPE i.
     DATA lv_total_offset TYPE i.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-SUBTOTALS' ).
     DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_container ).
     lt_rows = VALUE #(
@@ -630,7 +738,7 @@ CLASS ltcl_test IMPLEMENTATION.
         it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat
         it_sort         = lt_sort ).
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ALV-SUBTOTALS' ).
 
@@ -649,7 +757,7 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_audio_offset < lv_display_offset ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_display_offset < lv_input_offset ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_input_offset < lv_total_offset ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD alv_total_decimal_places.
@@ -660,7 +768,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
     DATA lt_fcat TYPE lvc_t_fcat.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-TOTAL-DECIMALS' ).
     DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_container ).
     lt_rows = VALUE #(
@@ -673,13 +781,13 @@ CLASS ltcl_test IMPLEMENTATION.
       CHANGING
         it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat ).
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ALV-TOTAL-DECIMALS' ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="EXPLICIT_PRICE">12.40</td>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="INFERRED_PRICE">1.60</td>' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD column_tree_renders_hierarchy.
@@ -693,7 +801,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lt_items TYPE STANDARD TABLE OF ty_item WITH DEFAULT KEY.
     DATA ls_header TYPE treev_hhdr.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_host) = NEW cl_gui_custom_container( container_name = 'COLUMN-TREE-HIERARCHY' ).
     ls_header-heading = 'Hierarchy'.
     ls_header-width = 220.
@@ -719,7 +827,7 @@ CLASS ltcl_test IMPLEMENTATION.
       item_table_structure_name = 'TREEMCITAC' ).
     lo_tree->expand_root_nodes( level_count = 2 ).
 
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'COLUMN-TREE-HIERARCHY' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-tree-level="2"' ) ).
@@ -730,7 +838,7 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-expanded="false"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-folder-open"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-map-pin"' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD html_alv_structured_rows.
@@ -752,7 +860,7 @@ CLASS ltcl_test IMPLEMENTATION.
       CHANGING
         it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CARRIER">AA</td>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-fieldname="CONNECTION">17</td>' ) ).
@@ -775,7 +883,7 @@ CLASS ltcl_test IMPLEMENTATION.
     DATA lt_rows TYPE STANDARD TABLE OF ty_row WITH DEFAULT KEY.
     DATA lt_fcat TYPE lvc_t_fcat.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'ALV-FORMATTING' ).
     DATA(lo_grid) = NEW cl_gui_alv_grid( i_parent = lo_container ).
     lt_rows = VALUE #(
@@ -807,7 +915,7 @@ CLASS ltcl_test IMPLEMENTATION.
         it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat ).
 
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ALV-FORMATTING' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'href="#wb-icon-circle-check"' ) ).
@@ -825,32 +933,32 @@ CLASS ltcl_test IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-lvc-style="disabled"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '@01@' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '@02@' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD control_capability_boundary.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_root) = NEW cl_gui_custom_container( container_name = 'ALV-BOUNDARY' ).
     DATA(lo_grid) = NEW lcl_test_grid( i_parent = lo_root ).
     lo_grid->show_boundary(
       heading     = 'Dynamic table <unavailable>'
       explanation = 'No rows & styles were changed.' ).
 
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ALV-BOUNDARY' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-capability-boundary' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Dynamic table &lt;unavailable&gt;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'No rows &amp; styles were changed.' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD viewer_html.
     DATA lt_events TYPE cntl_simple_events.
     DATA lt_document TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
-    DATA ls_sapevent TYPE cl_gui_control=>ty_sapevent.
+    DATA ls_sapevent TYPE zcl_gg_gui_runtime=>ty_sapevent.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'SAPEVENT' ).
     DATA(lo_viewer) = NEW cl_gui_html_viewer( parent = lo_container ).
     IF iv_register = abap_true.
@@ -866,9 +974,10 @@ CLASS ltcl_test IMPLEMENTATION.
         action_field = 'gg_control_event'
         fields       = VALUE #( ( name = 'session_id' value = 'HOST-1' ) ) ).
     ENDIF.
-    rv_html = cl_gui_control=>render_html( iv_document = abap_false
-                                           is_sapevent = ls_sapevent ).
-    cl_gui_control=>clear( ).
+    rv_html = zcl_gg_gui_runtime=>render_html(
+      iv_document = abap_false
+      is_sapevent = ls_sapevent ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD html_viewer_sapevent.

@@ -75,7 +75,7 @@ CLASS cl_dd_table_element IMPLEMENTATION.
 
   METHOD add_column.
     column = NEW cl_dd_area( ).
-    APPEND cl_gui_control=>escape_html( CONV string( heading ) ) TO mt_headings.
+    APPEND zcl_gg_gui_runtime=>escape_html( CONV string( heading ) ) TO mt_headings.
     APPEND column TO table_of_columns.
   ENDMETHOD.
 

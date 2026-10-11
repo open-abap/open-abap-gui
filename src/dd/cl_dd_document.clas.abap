@@ -61,7 +61,7 @@ CLASS cl_dd_document IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD print_document.
-    cl_gui_control=>set_external_html( mv_document_html ).
+    zcl_gg_gui_runtime=>set_external_html( mv_document_html ).
   ENDMETHOD.
 
   METHOD vertical_split.
@@ -125,7 +125,7 @@ CLASS cl_dd_document IMPLEMENTATION.
       APPEND mv_document_html TO lt_html.
       html_control->load_data( CHANGING data_table = lt_html ).
     ELSE.
-      cl_gui_control=>set_external_html( mv_document_html ).
+      zcl_gg_gui_runtime=>set_external_html( mv_document_html ).
     ENDIF.
   ENDMETHOD.
 
@@ -168,11 +168,11 @@ CLASS cl_dd_document IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_picture.
-    html_content = html_content && |<img class="gg-dd-picture" src="{ cl_gui_control=>escape_html( CONV string( picture_id ) ) }" width="{ width }" alt="Dynamic document picture">|.
+    html_content = html_content && |<img class="gg-dd-picture" src="{ zcl_gg_gui_runtime=>escape_html( CONV string( picture_id ) ) }" width="{ width }" alt="Dynamic document picture">|.
   ENDMETHOD.
 
   METHOD set_document_background.
-    html_content = html_content && |<div class="gg-dd-background" data-picture="{ cl_gui_control=>escape_html( CONV string( picture_id ) ) }"></div>|.
+    html_content = html_content && |<div class="gg-dd-background" data-picture="{ zcl_gg_gui_runtime=>escape_html( CONV string( picture_id ) ) }"></div>|.
   ENDMETHOD.
 
 ENDCLASS.

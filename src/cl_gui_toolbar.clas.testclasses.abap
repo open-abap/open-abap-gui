@@ -39,7 +39,7 @@ CLASS cl_gui_toolbar DEFINITION LOCAL FRIENDS ltcl_gui_toolbar.
 
 CLASS ltcl_gui_toolbar IMPLEMENTATION.
   METHOD updates_button_state.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'TOOLBAR_TEST' ).
     DATA(lo_toolbar) = NEW cl_gui_toolbar( parent = lo_container ).
     lo_toolbar->add_button(
@@ -56,7 +56,7 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
       fcode     = 'TEST'
       text      = 'Updated'
       quickinfo = 'Updated button' ).
-    DATA(lv_toolbar_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    DATA(lv_toolbar_html) = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS '|FUNCTION|TEST"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS '>Updated</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_toolbar_html CS 'aria-pressed="true"' ) ).
@@ -64,13 +64,13 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
     lo_toolbar->set_button_visible(
       fcode   = 'TEST'
       visible = ' ' ).
-    lv_toolbar_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    lv_toolbar_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_toolbar_html CS '|FUNCTION|TEST' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD renders_menus_and_events.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'TOOLBAR-MENU' ).
     DATA(lo_toolbar) = NEW cl_gui_toolbar( parent = lo_container ).
     lo_toolbar->add_button(
@@ -103,7 +103,7 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
     lo_toolbar->press_dropdown( fcode = 'MENU'
                                 posx  = 12
                                 posy  = 34 ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_equals(
       act = lo_handler->selected
       exp = 'RUN' ).
@@ -121,11 +121,11 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<details class="gg-toolbar-dropdown"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Unavailable' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'disabled aria-disabled="true"' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD renders_toolbar_overflow.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'TOOLBAR-OVERFLOW' ).
     DATA(lo_toolbar) = NEW cl_gui_toolbar( parent = lo_container ).
     DO 7 TIMES.
@@ -136,10 +136,10 @@ CLASS ltcl_gui_toolbar IMPLEMENTATION.
         text      = |Button { sy-index }|
         quickinfo = |Button { sy-index }| ).
     ENDDO.
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-toolbar-overflow' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'More toolbar actions' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-keyshortcuts="Enter"' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 ENDCLASS.

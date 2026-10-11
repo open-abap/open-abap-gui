@@ -14,7 +14,7 @@ CLASS ltcl_gui_timer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD finishes_once_per_run.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_timer) = NEW cl_gui_timer( ).
     SET HANDLER on_finished FOR lo_timer.
     lo_timer->interval = 1.
@@ -38,19 +38,19 @@ CLASS ltcl_gui_timer IMPLEMENTATION.
                                        params = VALUE #( ) ).
     cl_abap_unit_assert=>assert_equals( act = mv_finished
                                         exp = 1 ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD renders_countdown.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_timer) = NEW cl_gui_timer( ).
     lo_timer->interval = 2.
 
-    cl_abap_unit_assert=>assert_true( act = xsdbool( cl_gui_control=>render_html( ) CS 'data-running="false"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( zcl_gg_gui_runtime=>render_html( ) CS 'data-running="false"' ) ).
     lo_timer->run( ).
-    DATA(lv_html) = cl_gui_control=>render_html( ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-interval="2" aria-hidden="true" hidden><button type="submit" name="gg_control_event" value="{ lo_timer->control_id }\|FINISHED"| ) ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-interval="2" aria-hidden="true" hidden><button type="submit" name="gg_control_event" value="{ zcl_gg_gui_runtime=>get_control_id( control = lo_timer ) }\|FINISHED"| ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<script>' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 ENDCLASS.

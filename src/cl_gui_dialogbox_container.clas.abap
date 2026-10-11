@@ -47,7 +47,7 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
 
   METHOD constructor.
     super->constructor( ).
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'DIALOGBOX_CONTAINER' ).
@@ -57,9 +57,6 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
                   width  = width
                   left   = left
                   top    = top ).
-    IF parent IS BOUND.
-      parent->add_child( me ).
-    ENDIF.
   ENDMETHOD.
 
   METHOD set_caption.

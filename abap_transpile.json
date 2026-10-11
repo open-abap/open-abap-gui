@@ -5,6 +5,8 @@
   "output_folder": "output",
   "write_unit_tests": true,
   "write_source_map": true,
+  "incremental_output": true,
+  "skip_duplicate_dependencies": false,
   "options": {
     "setup": {
       "filename": "../setup.mjs",

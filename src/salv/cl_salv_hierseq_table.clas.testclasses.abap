@@ -29,7 +29,7 @@ CLASS ltcl_salv_hierseq_support IMPLEMENTATION.
     APPEND VALUE #( order_id = 100 customer = 'Lufthansa' ) TO lt_headers.
     APPEND VALUE #( order_id = 100 flight = 'LH400' price = '120.00' ) TO lt_items.
     lt_binding = VALUE #( ( master = 'ORDER_ID' slave = 'ORDER_ID' ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     cl_salv_hierseq_table=>factory(
       EXPORTING
         t_binding_level1_level2 = lt_binding
@@ -44,7 +44,7 @@ CLASS ltcl_salv_hierseq_support IMPLEMENTATION.
     lo_hierseq->display( ).
 
 * The items follow their header line, and only the aggregated column is summed.
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-hierseq-toggle aria-expanded="true"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-level="2" data-parent-key="100"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>LH400<' ) ).
@@ -83,7 +83,7 @@ CLASS ltcl_salv_hierseq_support IMPLEMENTATION.
     lo_hierseq->get_columns( 2 )->get_column( 'GROUP_ID' )->set_technical( abap_true ).
     lo_hierseq->display( ).
 
-    DATA(lv_html) = cl_gui_control=>render_html( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Group<' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Owner<' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>Visible item<' ) ).

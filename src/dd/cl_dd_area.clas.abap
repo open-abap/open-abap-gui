@@ -282,7 +282,7 @@ CLASS cl_dd_area IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD escape_html.
-    result = cl_gui_control=>escape_html( value ).
+    result = zcl_gg_gui_runtime=>escape_html( value ).
   ENDMETHOD.
 
   METHOD render_text_html.

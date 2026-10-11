@@ -634,8 +634,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
       cl_gui_cfw=>process_frontend( ).
       cl_gui_cfw=>dispatch_pending( ).
     ELSE.
-      cl_gui_control=>clear( ).
-      cl_gui_control=>clear_external_html( ).
+      zcl_gg_gui_runtime=>clear( ).
+      zcl_gg_gui_runtime=>clear_external_html( ).
 
       lo_list   = NEW zcl_gg_host_list( ).
       lo_screen = NEW zcl_gg_host_screen( ).
@@ -1025,7 +1025,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         is_context    = ls_context ).
     ELSEIF cs_result-messages IS NOT INITIAL
         AND cs_result-lines IS INITIAL
-        AND cl_gui_control=>has_content( ) = abap_false.
+        AND zcl_gg_gui_runtime=>has_content( ) = abap_false.
       lv_page_kind = zif_gg_host_html_v1=>page_message.
       ls_context-processor = zif_gg_session_types_v1=>processor_report.
       lv_title = 'Message'.
@@ -1044,8 +1044,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ENDIF.
 * The functions of the status are offered by the toolbars, the menus and
 * the function keys; the list itself adds none.
-      IF cl_gui_control=>has_content( ) = abap_true.
-        lv_controls_html = cl_gui_control=>render_html(
+      IF zcl_gg_gui_runtime=>has_content( ) = abap_true.
+        lv_controls_html = zcl_gg_gui_runtime=>render_html(
           iv_document = abap_false
           is_sapevent = zcl_gg_host_renderer=>sapevent_transport(
             iv_session_id = iv_session_id

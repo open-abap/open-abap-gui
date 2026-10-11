@@ -18,7 +18,7 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
       lv_run = lv_run && `x `.
     ENDDO.
     lv_run = lv_run && `x`.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_document) = NEW cl_dd_document( ).
     lo_document->html_insert(
       EXPORTING
@@ -32,7 +32,7 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS lv_run ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS `xx` ) ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD renders_document_content.
@@ -45,7 +45,7 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
     DATA lv_offline TYPE string.
     DATA lv_document_html TYPE string.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_document) = NEW cl_dd_document( background_color = 35 ).
     lo_document->add_text(
       text         = '<unsafe>'
@@ -102,7 +102,7 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document_html CS 'role="img"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document_html CS 'name="CARRIER"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_document_html CS 'Economy' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( cl_gui_control=>has_content( ) ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( zcl_gg_gui_runtime=>has_content( ) ) ).
   ENDMETHOD.
 
   METHOD renders_styled_split_table.
@@ -113,7 +113,7 @@ CLASS ltcl_dd_document_support IMPLEMENTATION.
     DATA lv_html TYPE string.
     DATA lv_heading_count TYPE i.
 
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
     DATA(lo_document) = NEW cl_dd_document( ).
     lo_document->vertical_split(
       EXPORTING

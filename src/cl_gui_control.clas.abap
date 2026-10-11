@@ -1,32 +1,6 @@
-CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_gui_cfw.
+CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_gui_cfw zcl_gg_gui_runtime.
   PUBLIC SECTION.
-    TYPES: BEGIN OF ty_field,
-             name  TYPE string,
-             value TYPE string,
-           END OF ty_field.
-    TYPES ty_fields TYPE STANDARD TABLE OF ty_field WITH DEFAULT KEY.
-
-* How the caller wants a sapevent anchor inside an HTML viewer document to
-* reach the server. A browser cannot turn such an anchor into an ABAP event,
-* so the anchor is rewritten into a form that posts these
-* fields plus the anchor's own action under action_field. The control framework
-* knows nothing about the transport itself, only how to build the form.
-    TYPES: BEGIN OF ty_sapevent,
-             url          TYPE string,
-             action_field TYPE string,
-             fields       TYPE ty_fields,
-           END OF ty_sapevent.
-
     DATA parent TYPE REF TO cl_gui_container.
-    DATA control_id TYPE string.
-    DATA mv_width TYPE i.
-    DATA mv_height TYPE i.
-    DATA mv_left TYPE i.
-    DATA mv_top TYPE i.
-    DATA mv_enabled TYPE abap_bool.
-    DATA mv_visible TYPE abap_bool.
-    DATA mv_alive TYPE abap_bool.
-    DATA mv_kind TYPE string.
 
     CONSTANTS align_at_bottom TYPE i VALUE 8.
     CONSTANTS align_at_left TYPE i VALUE 1.
@@ -44,57 +18,6 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
     CONSTANTS state_alive TYPE i VALUE 0.
     CONSTANTS state_alive_on_other_screen TYPE i VALUE 1.
     CONSTANTS state_dead TYPE i VALUE -1.
-
-    CLASS-METHODS initialize
-      IMPORTING
-        control TYPE REF TO cl_gui_control
-        parent  TYPE REF TO cl_gui_container OPTIONAL
-        kind    TYPE string DEFAULT 'CONTROL'.
-
-    CLASS-METHODS render_html
-      IMPORTING
-        iv_document        TYPE abap_bool DEFAULT abap_true
-        iv_container_name  TYPE string OPTIONAL
-        is_sapevent        TYPE ty_sapevent OPTIONAL
-        iv_without_dialogs TYPE abap_bool DEFAULT abap_false
-      RETURNING
-        VALUE(result)      TYPE string.
-
-* The dialog boxes, each at its position on the screen. A screen renders them
-* apart from its containers, so no container clips them.
-    CLASS-METHODS render_dialogs_html
-      IMPORTING
-        is_sapevent   TYPE ty_sapevent OPTIONAL
-      RETURNING
-        VALUE(result) TYPE string.
-
-    CLASS-METHODS has_content
-      RETURNING
-        VALUE(result) TYPE abap_bool.
-
-    CLASS-METHODS clear.
-
-* The registry as an opaque handle, so a program's controls survive a
-* CALL TRANSACTION that starts from a cleared surface.
-    CLASS-METHODS save_state
-      RETURNING
-        VALUE(result) TYPE REF TO data.
-
-    CLASS-METHODS restore_state
-      IMPORTING
-        state TYPE REF TO data.
-
-    CLASS-METHODS set_external_html
-      IMPORTING
-        html TYPE string.
-
-    CLASS-METHODS clear_external_html.
-
-    CLASS-METHODS escape_html
-      IMPORTING
-        text          TYPE string
-      RETURNING
-        VALUE(result) TYPE string.
 
     CLASS-METHODS set_focus
       IMPORTING
@@ -163,6 +86,16 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         cntl_system_error.
 
   PROTECTED SECTION.
+    DATA control_id TYPE string.
+    DATA mv_width TYPE i.
+    DATA mv_height TYPE i.
+    DATA mv_left TYPE i.
+    DATA mv_top TYPE i.
+    DATA mv_enabled TYPE abap_bool.
+    DATA mv_visible TYPE abap_bool.
+    DATA mv_alive TYPE abap_bool.
+    DATA mv_kind TYPE string.
+
 * The events set with set_registered_events, and whether each one is an
 * application event (PAI runs) or a system event (PAI does not run).
     DATA mt_frontend_events TYPE cntl_simple_events.
@@ -173,7 +106,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
 * user triggered.
     METHODS receive_frontend_values
       IMPORTING
-        values TYPE ty_fields.
+        values TYPE zcl_gg_gui_runtime=>ty_fields.
 
     METHODS dispatch_frontend_event
       IMPORTING
@@ -338,6 +271,44 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         object TYPE REF TO cl_dragdropobject.
 
   PRIVATE SECTION.
+    CLASS-METHODS initialize
+      IMPORTING
+        control TYPE REF TO cl_gui_control
+        parent  TYPE REF TO cl_gui_container OPTIONAL
+        kind    TYPE string DEFAULT 'CONTROL'.
+    CLASS-METHODS render_html
+      IMPORTING
+        iv_document        TYPE abap_bool DEFAULT abap_true
+        iv_container_name  TYPE string OPTIONAL
+        is_sapevent        TYPE zcl_gg_gui_runtime=>ty_sapevent OPTIONAL
+        iv_without_dialogs TYPE abap_bool DEFAULT abap_false
+      RETURNING
+        VALUE(result)      TYPE string.
+    CLASS-METHODS render_dialogs_html
+      IMPORTING
+        is_sapevent   TYPE zcl_gg_gui_runtime=>ty_sapevent OPTIONAL
+      RETURNING
+        VALUE(result) TYPE string.
+    CLASS-METHODS has_content
+      RETURNING
+        VALUE(result) TYPE abap_bool.
+    CLASS-METHODS clear.
+    CLASS-METHODS save_state
+      RETURNING
+        VALUE(result) TYPE REF TO data.
+    CLASS-METHODS restore_state
+      IMPORTING
+        state TYPE REF TO data.
+    CLASS-METHODS set_external_html
+      IMPORTING
+        html TYPE string.
+    CLASS-METHODS clear_external_html.
+    CLASS-METHODS escape_html
+      IMPORTING
+        text          TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
 * The control registry row is internal: it is only read by this class, the
 * render path, and nothing else. Keep the type private so no invented
 * structure appears in a public section.
@@ -408,7 +379,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
     CLASS-METHODS rewrite_sapevent
       IMPORTING
         document      TYPE string
-        sapevent      TYPE ty_sapevent
+        sapevent      TYPE zcl_gg_gui_runtime=>ty_sapevent
         control_id    TYPE string
       RETURNING
         VALUE(result) TYPE string.
@@ -446,7 +417,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
     CLASS-METHODS render_nested_html
       IMPORTING
         iv_parent_id  TYPE string
-        is_sapevent   TYPE ty_sapevent OPTIONAL
+        is_sapevent   TYPE zcl_gg_gui_runtime=>ty_sapevent OPTIONAL
       RETURNING
         VALUE(result) TYPE string.
     CLASS-METHODS standalone_external_script
@@ -461,7 +432,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         iv_hidden      TYPE string
         iv_disabled    TYPE string
         iv_state_class TYPE string
-        is_sapevent    TYPE ty_sapevent OPTIONAL
+        is_sapevent    TYPE zcl_gg_gui_runtime=>ty_sapevent OPTIONAL
       RETURNING
         VALUE(result)  TYPE string.
     CLASS-METHODS render_splitter_html
@@ -470,7 +441,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         iv_style       TYPE string
         iv_hidden      TYPE string
         iv_state_class TYPE string
-        is_sapevent    TYPE ty_sapevent OPTIONAL
+        is_sapevent    TYPE zcl_gg_gui_runtime=>ty_sapevent OPTIONAL
       RETURNING
         VALUE(result)  TYPE string.
     CLASS-METHODS splitter_payload_value
@@ -1773,7 +1744,7 @@ CLASS cl_gui_control IMPLEMENTATION.
     DATA lv_action     TYPE string.
     DATA lv_attributes TYPE string.
     DATA lv_form       TYPE string.
-    DATA ls_field      TYPE ty_field.
+    DATA ls_field      TYPE zcl_gg_gui_runtime=>ty_field.
 
     lv_rest = document.
     WHILE lv_rest IS NOT INITIAL.

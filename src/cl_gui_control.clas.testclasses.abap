@@ -84,13 +84,13 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
         it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat
         it_filter       = lt_filter ).
-    DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
     LOOP AT lt_rows INTO DATA(ls_row).
       IF lv_html CS |>{ ls_row-carrier }<|.
         result = result && CONV string( ls_row-carrier ).
       ENDIF.
     ENDLOOP.
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
   METHOD grid_on_default_screen.
@@ -110,8 +110,8 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
       CHANGING
         it_outtab       = lt_rows
         it_fieldcatalog = lt_fcat ).
-    DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
-    cl_gui_control=>clear( ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    zcl_gg_gui_runtime=>clear( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-control-kind="ALV_GRID"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>LH<' ) ).
@@ -231,7 +231,7 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
       item_table                = lt_items
       item_table_structure_name = 'MTREEITM' ).
 
-    DATA(lv_html) = cl_gui_control=>render_html( iv_document = abap_false ).
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
 * Root at level 1 gets no indent, its child 18px, the grandchild 36px.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-tree-level="1" data-has-children="true" data-node-key="R"' )
                                       msg = 'root level' ).
@@ -253,11 +253,11 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
     lo_tree->hierarchy_header_set_width(
       width     = 210
       width_pix = abap_true ).
-    lv_html = cl_gui_control=>render_html( iv_document = abap_false ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( lv_html CS 'style="width:210px"' )
       msg = 'pixel widths stay in pixels' ).
-    cl_gui_control=>clear( ).
+    zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.
 
 ENDCLASS.

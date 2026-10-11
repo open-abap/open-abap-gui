@@ -21,7 +21,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_session_id      TYPE string
         iv_page_id         TYPE string
       RETURNING
-        VALUE(rs_sapevent) TYPE cl_gui_control=>ty_sapevent.
+        VALUE(rs_sapevent) TYPE zcl_gg_gui_runtime=>ty_sapevent.
 
     CLASS-METHODS render_list
       IMPORTING

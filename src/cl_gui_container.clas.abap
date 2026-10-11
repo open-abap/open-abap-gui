@@ -5,17 +5,7 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     CONSTANTS visible_true TYPE c LENGTH 1 VALUE '1'.
     CONSTANTS visible_false TYPE c LENGTH 1 VALUE '0'.
 
-    TYPES ty_child_ids TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
-
     CLASS-METHODS class_constructor.
-
-    METHODS add_child
-      IMPORTING
-        child TYPE REF TO cl_gui_control.
-
-    METHODS get_children
-      RETURNING
-        VALUE(children) TYPE ty_child_ids.
 
     METHODS link
       IMPORTING
@@ -27,8 +17,6 @@ CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
         cntl_system_error
         lifetime_dynpro_dynpro_link.
 
-  PRIVATE SECTION.
-    DATA mt_child_ids TYPE ty_child_ids.
 ENDCLASS.
 
 CLASS cl_gui_container IMPLEMENTATION.
@@ -43,16 +31,6 @@ CLASS cl_gui_container IMPLEMENTATION.
     screen0 = NEW #( ).
     screen0->mv_alive = abap_true.
     screen0->mv_visible = abap_true.
-  ENDMETHOD.
-
-  METHOD add_child.
-    IF child IS BOUND AND NOT line_exists( mt_child_ids[ table_line = child->control_id ] ).
-      APPEND child->control_id TO mt_child_ids.
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD get_children.
-    children = mt_child_ids.
   ENDMETHOD.
 
   METHOD link.

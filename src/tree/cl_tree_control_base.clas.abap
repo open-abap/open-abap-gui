@@ -758,7 +758,7 @@ CLASS cl_tree_control_base IMPLEMENTATION.
   METHOD tree_html.
     DATA lv_toggle TYPE string.
     IF mv_html_header IS NOT INITIAL.
-      result = |<div class="gg-tree-header">{ escape_html( mv_html_header ) }</div>|.
+      result = |<div class="gg-tree-header">{ zcl_gg_gui_runtime=>escape_html( mv_html_header ) }</div>|.
     ENDIF.
 
 
@@ -772,7 +772,7 @@ CLASS cl_tree_control_base IMPLEMENTATION.
       IF node_has_children( ls_node-node_key ) = abap_true.
         DATA(lv_toggle_event) = frontend_event_value( event  = 'TOGGLE'
                                                       params = lv_key_params ).
-        lv_toggle = |<button type="submit" class="gg-tree-toggle" name="gg_control_event" value="{ lv_toggle_event }" formnovalidate aria-label="{ COND string( WHEN ls_node-expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { escape_html( ls_node-text ) }">{ COND string( WHEN ls_node-expanded = abap_true THEN '-' ELSE '+' ) }</button>|.
+        lv_toggle = |<button type="submit" class="gg-tree-toggle" name="gg_control_event" value="{ lv_toggle_event }" formnovalidate aria-label="{ COND string( WHEN ls_node-expanded = abap_true THEN 'Collapse' ELSE 'Expand' ) } { zcl_gg_gui_runtime=>escape_html( ls_node-text ) }">{ COND string( WHEN ls_node-expanded = abap_true THEN '-' ELSE '+' ) }</button>|.
       ELSE.
         lv_toggle = |<span class="gg-tree-toggle" aria-hidden="true"></span>|.
       ENDIF.
@@ -797,8 +797,8 @@ CLASS cl_tree_control_base IMPLEMENTATION.
       DATA(lv_image) = COND string( WHEN ls_node-expanded = abap_true AND ls_node-open_image IS NOT INITIAL
         THEN ls_node-open_image ELSE ls_node-node_image ).
       DATA(lv_icon) = COND string( WHEN lv_image IS NOT INITIAL THEN zcl_gg_host_icons=>icon( lv_image ) ).
-      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ escape_html( ls_node-node_key ) }" data-parent-key="{ escape_html( ls_node-parent_key ) }" style="padding-left:{ ( lv_depth - 1 ) * 18 }px"{ lv_selected }{ lv_drag }{ lv_drop }>| &&
-        |{ lv_toggle }{ lv_icon }<span class="gg-tree-label" tabindex="0" data-gg-click-event="{ lv_select }" data-gg-dblclick-event="{ lv_double_click }">{ escape_html( ls_node-text ) }</span>{ node_items_html( ls_node-node_key ) }</li>|.
+      result = result && |<li class="gg-tree-node { lv_state_class }" role="treeitem" aria-level="{ lv_depth }" aria-expanded="{ lv_expanded }" data-node-key="{ zcl_gg_gui_runtime=>escape_html( ls_node-node_key ) }" data-parent-key="{ zcl_gg_gui_runtime=>escape_html( ls_node-parent_key ) }" style="padding-left:{ ( lv_depth - 1 ) * 18 }px"{ lv_selected }{ lv_drag }{ lv_drop }>| &&
+        |{ lv_toggle }{ lv_icon }<span class="gg-tree-label" tabindex="0" data-gg-click-event="{ lv_select }" data-gg-dblclick-event="{ lv_double_click }">{ zcl_gg_gui_runtime=>escape_html( ls_node-text ) }</span>{ node_items_html( ls_node-node_key ) }</li>|.
     ENDLOOP.
     result = result && |</ul>|.
   ENDMETHOD.

@@ -16,7 +16,7 @@ CLASS ltcl_abap_browser IMPLEMENTATION.
       title       = 'Browser fixture'
       container   = lo_container ).
 
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ABAP_BROWSER_HTML' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'Browser HTML fixture' ) ).
@@ -32,7 +32,7 @@ CLASS ltcl_abap_browser IMPLEMENTATION.
     cl_abap_browser=>show_xml(
       xml_string = lv_xml
       container  = lo_container ).
-    DATA(lv_html) = cl_gui_control=>render_html(
+    DATA(lv_html) = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ABAP_BROWSER_XML' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'XML string fixture' ) ).
@@ -40,7 +40,7 @@ CLASS ltcl_abap_browser IMPLEMENTATION.
     cl_abap_browser=>show_xml(
       xml_xstring = lv_xxml
       container   = lo_container ).
-    lv_html = cl_gui_control=>render_html(
+    lv_html = zcl_gg_gui_runtime=>render_html(
       iv_document       = abap_false
       iv_container_name = 'ABAP_BROWSER_XML' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'XML xstring fixture' ) ).

@@ -291,14 +291,11 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     m_item_selection = item_selection.
     m_no_toolbar = no_toolbar.
     m_no_html_header = no_html_header.
-    cl_gui_control=>initialize(
+    zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
       kind    = 'ALV_TREE' ).
     cl_alv_tree_base=>register_instance( me ).
-    IF parent IS BOUND.
-      parent->add_child( me ).
-    ENDIF.
   ENDMETHOD.
 
   METHOD handle_browser_event.
@@ -546,6 +543,13 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     IF it_fieldcatalog IS SUPPLIED.
       mt_fieldcatalog = it_fieldcatalog.
     ENDIF.
+    IF it_filter IS SUPPLIED.
+      mt_filter = it_filter.
+    ENDIF.
+    IF it_toolbar_excluding IS SUPPLIED.
+      mt_toolbar_excluding = it_toolbar_excluding.
+    ENDIF.
+    reveal_filter_matches( ).
     refresh_tree_html( ).
   ENDMETHOD.
 
