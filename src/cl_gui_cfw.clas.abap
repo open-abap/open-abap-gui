@@ -84,8 +84,17 @@ CLASS cl_gui_cfw DEFINITION PUBLIC FRIENDS zcl_gg_host_dynpro zcl_gg_host_runtim
     CLASS-DATA mv_browser_field TYPE string.
     CLASS-DATA mv_browser_value TYPE string.
     CLASS-DATA mv_browser_checked TYPE abap_bool.
+* Same structure as zcl_gg_gui_runtime=>ty_fields, declared here because
+* static data is created when the class loads, and src/ must load without
+* framework/, consumers get only src/ as a transpiler library.
+    TYPES: BEGIN OF ty_control_value,
+             name  TYPE string,
+             value TYPE string,
+           END OF ty_control_value.
+    TYPES ty_control_values TYPE STANDARD TABLE OF ty_control_value WITH DEFAULT KEY.
+
     CLASS-DATA mv_control_event TYPE string.
-    CLASS-DATA mt_control_values TYPE zcl_gg_gui_runtime=>ty_fields.
+    CLASS-DATA mt_control_values TYPE ty_control_values.
 ENDCLASS.
 
 CLASS cl_gui_cfw IMPLEMENTATION.
