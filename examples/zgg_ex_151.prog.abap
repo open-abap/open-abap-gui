@@ -13,7 +13,7 @@ TYPES: BEGIN OF ty_flight,
 CLASS lcl_gui DEFINITION.
   PUBLIC SECTION.
     CLASS-METHODS on_sapevent FOR EVENT sapevent OF cl_gui_html_viewer
-      IMPORTING action getdata.
+      IMPORTING action getdata postdata.
     CLASS-METHODS render.
   PRIVATE SECTION.
     CLASS-METHODS add
@@ -31,9 +31,25 @@ DATA gv_ok_code TYPE sy-ucomm.
 
 CLASS lcl_gui IMPLEMENTATION.
   METHOD on_sapevent.
+    DATA lv_post TYPE string.
+    DATA lv_seats TYPE string.
+    DATA lv_carrid TYPE c LENGTH 3.
+    DATA lv_connid TYPE n LENGTH 4.
+
     CASE action.
       WHEN 'flight'.
         APPEND getdata TO gt_pages.
+      WHEN 'book' OR 'release'.
+        CONCATENATE LINES OF postdata INTO lv_post.
+        FIND REGEX 'seats=(\d+)' IN lv_post SUBMATCHES lv_seats.
+        SPLIT getdata AT '-' INTO lv_carrid lv_connid.
+        READ TABLE gt_flights ASSIGNING FIELD-SYMBOL(<ls_flight>)
+          WITH KEY carrid = lv_carrid connid = lv_connid.
+        IF sy-subrc = 0 AND action = 'book'.
+          <ls_flight>-seatsocc = <ls_flight>-seatsocc + lv_seats.
+        ELSEIF sy-subrc = 0.
+          <ls_flight>-seatsocc = <ls_flight>-seatsocc - lv_seats.
+        ENDIF.
       WHEN 'back'.
         IF lines( gt_pages ) > 1.
           DELETE gt_pages INDEX lines( gt_pages ).
@@ -66,6 +82,10 @@ CLASS lcl_gui IMPLEMENTATION.
       READ TABLE gt_flights INTO ls_flight WITH KEY carrid = lv_carrid connid = lv_connid.
       add( |<h1>Flight { ls_flight-carrid } { ls_flight-connid }</h1>| ).
       add( |<p>{ ls_flight-cityfrom } to { ls_flight-cityto }, { ls_flight-seatsocc } seats occupied.</p>| ).
+      add( |<form method="post" action="SAPEVENT:book?{ lv_page }">| ).
+      add( '<label>Seats <input type="number" name="seats" value="1"></label>' ).
+      add( '<button type="submit">Book</button>' ).
+      add( |<button type="submit" formaction="SAPEVENT:release?{ lv_page }">Release</button></form>| ).
       add( '<p><a href="SAPEVENT:back">Back to the flights</a></p>' ).
     ENDIF.
     add( '</body></html>' ).
