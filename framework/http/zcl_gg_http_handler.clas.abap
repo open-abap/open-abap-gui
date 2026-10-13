@@ -1184,19 +1184,16 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD send_failure.
-    DATA lv_error TYPE string.
-
-* A script that posted JSON gets the error as JSON; a page the browser
-* requested shows it in the workbench's status bar.
-    lv_error = zcl_gg_exception_text=>describe( ix_error ).
+* A script that posted JSON gets the error as JSON; the browser shows the
+* exception's details inside the shell.
     IF server->request->get_header_field( 'content-type' ) CS 'application/json'.
       send_error( server    = server
-                  iv_error  = lv_error
+                  iv_error  = zcl_gg_exception_text=>describe( ix_error )
                   iv_status = 500 ).
     ELSE.
-      send_workbench_error( server    = server
-                            iv_error  = lv_error
-                            iv_status = 500 ).
+      send_html( server    = server
+                 iv_html   = zcl_gg_workbench=>render_exception( ix_error )
+                 iv_status = 500 ).
     ENDIF.
   ENDMETHOD.
 

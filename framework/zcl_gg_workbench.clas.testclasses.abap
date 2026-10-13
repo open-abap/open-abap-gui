@@ -2,6 +2,7 @@ CLASS ltcl_gg_workbench DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL H
 
   PRIVATE SECTION.
     METHODS renders_raw_html FOR TESTING.
+    METHODS renders_exception_in_shell FOR TESTING.
 
 ENDCLASS.
 
@@ -31,6 +32,24 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'aria-live="assertive"' ) ).
 *   The rejected command is reported, never echoed back into the command field.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value=""' ) ).
+  ENDMETHOD.
+
+  METHOD renders_exception_in_shell.
+    DATA(lx_error) = NEW cx_sy_dyn_call_illegal_func( function = '<Z_FUNC>' ).
+
+    DATA(lv_html) = zcl_gg_workbench=>render_exception( lx_error ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-commandbar"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-page-kind="ERROR"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool(
+      lv_html CS '<pre class="gg-list gg-exception">Unhandled exception CX_SY_DYN_CALL_ILLEGAL_FUNC' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'FUNCTION = &lt;Z_FUNC&gt;</pre>' ) ).
+*   No program runs any more, so Back returns to the workbench.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'aria-label="Return to workbench"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<form id="wb-command-workbench" method="get" action="/" hidden>' ) ).
+*   The details are the page; the status bar stays empty.
+    cl_abap_unit_assert=>assert_true( act = xsdbool(
+      lv_html CS '<span id="wb-status-message" class="wb-status-feedback" aria-live="polite"></span>' ) ).
   ENDMETHOD.
 
 ENDCLASS.

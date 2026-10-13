@@ -20,6 +20,14 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+* An exception no program handled, its details as text inside the shell. No
+* program is running any more, so Back returns to the workbench.
+    CLASS-METHODS render_exception
+      IMPORTING
+        ix_error       TYPE REF TO cx_root
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
   PRIVATE SECTION.
     CLASS-METHODS render_workbench
       IMPORTING
@@ -53,6 +61,16 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       iv_error      = iv_error
       iv_session_id = iv_session_id
       iv_page_id    = iv_page_id ).
+  ENDMETHOD.
+
+  METHOD render_exception.
+    rv_html = zcl_gg_host_html=>document(
+      iv_session_id = ``
+      iv_page_id    = ``
+      iv_kind       = zif_gg_host_html_v1=>page_error
+      iv_title      = `Unhandled exception`
+      iv_body       = |<pre class="gg-list gg-exception">{
+                        zcl_gg_host_html=>escape_text( zcl_gg_exception_text=>details( ix_error ) ) }</pre>| ).
   ENDMETHOD.
 
   METHOD render_message.

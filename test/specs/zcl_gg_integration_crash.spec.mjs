@@ -1,12 +1,12 @@
 import path from "node:path";
 import {pathToFileURL} from "node:url";
-import {test, expect, startHost, stopHost, statusMessage} from "../fixtures.mjs";
+import {test, expect, startHost, stopHost, expectPageKind, expectWorkbench} from "../fixtures.mjs";
 
 // ZGG_INT_CAST_FAILURE fails its INITIALIZATION with a real cast error that
 // no program handles. The HTTP handler answers the request with the
-// exception's explanation, and the server keeps serving.
+// exception's details, and the server keeps serving.
 const CAST_FAILURE = "/program?name=ZGG_INT_CAST_FAILURE";
-const EXPLANATION = "CX_SY_MOVE_CAST_ERROR: Casting failed, types not compatible";
+const DETAILS = "Unhandled exception CX_SY_MOVE_CAST_ERROR\nCasting failed, types not compatible";
 
 // Sends the response headers before the ABAP handler runs the failing
 // program, so the shim fails in JavaScript when it sends the handler's answer.
@@ -35,11 +35,14 @@ async function expectServing(baseUrl) {
   expect(await program.text()).toContain("started without a transaction");
 }
 
-test("an unhandled ABAP exception is shown in the workbench's status bar", async ({page, host}) => {
+test("an unhandled ABAP exception shows its details in the shell, F3 returns to the menu", async ({page, host}) => {
   const response = await page.goto(host.baseUrl + CAST_FAILURE);
   expect(response.status()).toBe(500);
-  await expect(page.locator("#wb-app-panel")).toBeVisible();
-  await expect(statusMessage(page)).toHaveText(EXPLANATION);
+  await expectPageKind(page, "ERROR");
+  await expect(page.locator("main pre")).toHaveText(DETAILS);
+
+  await page.keyboard.press("F3");
+  await expectWorkbench(page);
 
   await expectServing(host.baseUrl);
 });
