@@ -2,8 +2,10 @@ import express from "express";
 import {createServer} from "node:http";
 import path from "node:path";
 import {pathToFileURL} from "node:url";
+import {errorResponse, formatError, isDevelopment} from "../web/format-error.mjs";
 
-// A crash prints its whole stack; ABAP call chains exceed V8's default of 10.
+// A logged failure shows its whole stack; ABAP call chains exceed V8's
+// default of 10.
 Error.stackTraceLimit = Infinity;
 
 const outputRoot = path.resolve(process.env.OPEN_ABAP_GUI_OUTPUT ?? "output");
@@ -36,14 +38,21 @@ const cl_express_icf_shim = globalThis.abap.Classes.CL_EXPRESS_ICF_SHIM;
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
-// An exception that leaves a request handler is an application crash, not a
-// response. Express would answer it and keep serving, so it is rethrown
-// outside Express as an uncaught exception: Node prints the original stack
-// and the process exits with a nonzero code, whether or not headers were sent.
-function crash(error) {
-  process.nextTick(() => {
-    throw error;
-  });
+// ZCL_GG_HTTP_HANDLER answers every ABAP exception itself. A request that
+// still fails, in JavaScript, is answered here with the error's explanation,
+// and the server keeps serving. The log gets the stack; the response gets it
+// only in development. Once the response has started there is nothing left
+// to answer with, so the connection is closed instead.
+function answerFailure(error, request, response, status = 500) {
+  if (status >= 500) {
+    console.error(`${request.method} ${request.originalUrl} failed: ${formatError(error, {stack: true})}`);
+  }
+  if (response.headersSent) {
+    response.destroy();
+    return;
+  }
+  const body = errorResponse(error, {stack: status >= 500 && isDevelopment()});
+  response.status(status).set("cache-control", "no-store").type("application/json").send(body);
 }
 
 // This module is the transport adapter and executable server entry point.
@@ -64,22 +73,16 @@ export function createAbapHtmlHostServer() {
         class: "ZCL_GG_HTTP_HANDLER",
       });
     } catch (error) {
-      crash(error);
+      answerFailure(error, request, response);
     }
   });
 
   // Express reaches this only for its own errors. A client error from request
-  // parsing, such as an oversized body, is answered; anything else crashes.
+  // parsing, such as an oversized body, keeps its status.
   app.use((error, request, response, next) => {
     const status = error?.status ?? error?.statusCode;
-    if (error?.expose !== true || !(status >= 400 && status < 500) || response.headersSent) {
-      crash(error);
-      return;
-    }
-    response.status(status).type("application/json").send({
-      valid: false,
-      error: error.message,
-    });
+    const clientError = error?.expose === true && status >= 400 && status < 500;
+    answerFailure(error, request, response, clientError ? status : 500);
   });
 
   const server = createServer(app);

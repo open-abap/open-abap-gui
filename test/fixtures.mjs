@@ -4,15 +4,16 @@ import {once} from "node:events";
 
 const HOST_STARTUP_TIMEOUT_MS = 30_000;
 
-async function stopHost(child) {
+export async function stopHost(child) {
   if (child.exitCode === null) {
     child.kill();
     await once(child, "close");
   }
 }
 
-async function startHost() {
-  const child = spawn(process.execPath, ["test/start-server.mjs"], {
+// Starts test/start-server.mjs, or another entry point given as Node arguments.
+export async function startHost(args = ["test/start-server.mjs"]) {
+  const child = spawn(process.execPath, args, {
     cwd: process.cwd(),
     env: {...process.env, OPEN_ABAP_GUI_PORT: "0"},
     stdio: ["ignore", "pipe", "pipe"],

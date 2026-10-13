@@ -1,8 +1,9 @@
 CLASS zcl_gg_integration_crash DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * A report whose INITIALIZATION fails with a real cast error. Nothing in the
-* host catches it, so the web server terminates with the original stack; the
-* subprocess regression test in test/crash-on-error.test.mjs starts it.
+* host catches it, so the web server answers the request with the exception's
+* explanation and keeps serving; test/specs/zcl_gg_integration_crash.spec.mjs
+* starts it.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -13,7 +14,7 @@ ENDCLASS.
 CLASS zcl_gg_integration_crash IMPLEMENTATION.
 
   METHOD zif_gg_program_v1~get_program.
-    rs_program = VALUE #( program = 'ZGG_INT_CAST_FAILURE' description = 'Cast failure (stops the server)' ).
+    rs_program = VALUE #( program = 'ZGG_INT_CAST_FAILURE' description = 'Cast failure' ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.

@@ -1,5 +1,6 @@
 import {Buffer} from "buffer";
 import "../output/init.mjs";
+import {formatError, isDevelopment} from "./format-error.mjs";
 
 const cl_express_icf_shim = globalThis.abap.Classes.CL_EXPRESS_ICF_SHIM;
 
@@ -351,7 +352,8 @@ function installNavigationHandlers() {
 
 function showError(error) {
   console.error(error);
-  document.body.innerHTML = `<main style="font:16px system-ui;padding:2rem"><h1>Preview failed</h1><pre style="white-space:pre-wrap">${String(error.message || error)}</pre></main>`;
+  document.body.innerHTML = `<main style="font:16px system-ui;padding:2rem"><h1>Preview failed</h1><pre style="white-space:pre-wrap"></pre></main>`;
+  document.querySelector("main pre").textContent = formatError(error, {stack: isDevelopment()});
 }
 
 if (originalFetch !== undefined) {

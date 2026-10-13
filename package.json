@@ -9,7 +9,6 @@
     "transpile": "abap_transpile",
     "transpile:test": "node test/transpile-tests.mjs",
     "unit": "node test/transpile-tests.mjs && echo RUNNING && node output/index.mjs",
-    "test:crash": "node --test test/crash-on-error.test.mjs",
     "test:html-browser": "playwright test",
     "install:html-browser": "playwright install chromium",
     "test:html-e2e": "npm run transpile:test && npm run test:html-browser",
@@ -20,7 +19,7 @@
     "web:build": "npm run web:transpile && webpack --config webpack.config.cjs --mode production && npm run web:screenshots && npm run web:diff",
     "test:converter": "npm --prefix converter run test",
     "test:examples": "node test/examples-drift.mjs",
-    "test": "npm run lint && npm run lint:framework && npm run unit && npm run test:crash && npm run test:html-browser && npm run test:examples && npm run test:converter",
+    "test": "npm run lint && npm run lint:framework && npm run unit && npm run test:html-browser && npm run test:examples && npm run test:converter",
     "regression": "node .github/regression/run.js"
   },
   "license": "",
