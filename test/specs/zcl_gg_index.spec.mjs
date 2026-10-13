@@ -49,6 +49,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
   await expect(page.getByRole("button", {name: "Close"})).toHaveCount(0);
   await expect(page.getByRole("button", {name: "Go"})).toHaveCount(0);
   await expect(page.getByRole("textbox", {name: "Command"})).toBeVisible();
+  await expect(page.getByRole("textbox", {name: "Command"})).toBeFocused();
   await expect(page.locator(".wb-appbar")).toHaveCSS("margin-top", "0px");
   await expect(page.locator(".wb-commandbar")).toHaveCSS("padding-left", "18px");
   await expect(page.locator(".wb-commandbar")).toHaveCSS("padding-right", "0px");

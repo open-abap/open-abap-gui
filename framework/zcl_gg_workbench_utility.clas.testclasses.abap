@@ -110,6 +110,10 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-menubar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-commandbar' ) ).
+* The workbench menu starts with the cursor in the command field; a program
+* places the cursor itself.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'id="ToolbarOkCode" name="command" type="text" placeholder="Command" autocomplete="off" value="" autofocus>' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_menu_html CS 'autofocus' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-appbar' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'wb-toolbar' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'wb-toolbar-button' ) ).

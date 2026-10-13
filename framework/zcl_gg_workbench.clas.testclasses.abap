@@ -31,7 +31,7 @@ CLASS ltcl_gg_workbench IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'Unknown &lt;transaction&gt; &amp; code' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'aria-live="assertive"' ) ).
 *   The rejected command is reported, never echoed back into the command field.
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value=""' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_error_html CS 'id="ToolbarOkCode" name="command" type="text" placeholder="Command" autocomplete="off" value=""' ) ).
   ENDMETHOD.
 
   METHOD renders_exception_in_shell.

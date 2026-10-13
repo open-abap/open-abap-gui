@@ -555,10 +555,13 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
     rv_html = '<section class="wb-commandbar" role="region" aria-label="Standard command toolbar" data-toolbar-scope="standard-command"><form id="' &&
       form_transaction && '" method="post" action="/transaction">' &&
-      '<label class="wb-sr-only" for="wb-command">Command</label>' &&
+      '<label class="wb-sr-only" for="ToolbarOkCode">Command</label>' &&
 *     The command field is never pre-filled. A command is consumed when it is
 *     submitted, so a rejected one is not echoed back for accidental resend.
-      '<input class="wb-command-input" id="wb-command" name="command" type="text" placeholder="Command" autocomplete="off" value="">'.
+*     The workbench menu has no fields of its own, so the cursor starts in the
+*     command field; a running program places the cursor itself.
+      |<input class="wb-command-input" id="ToolbarOkCode" name="command" type="text" placeholder="Command" autocomplete="off" value=""{
+        COND string( WHEN iv_runtime = abap_false THEN ` autofocus` ) }>|.
     IF iv_session_id IS NOT INITIAL OR iv_page_id IS NOT INITIAL.
       rv_html = rv_html &&
         |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }">|.
