@@ -21,7 +21,10 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
 
     CLASS-METHODS set_focus
       IMPORTING
-        control TYPE REF TO cl_gui_control.
+        control TYPE REF TO cl_gui_control
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error.
 
     METHODS get_width
       EXPORTING
@@ -51,7 +54,11 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
 
     METHODS set_registered_events
       IMPORTING
-        events TYPE any.
+        events TYPE any
+      EXCEPTIONS
+        cntl_error
+        cntl_system_error
+        illegal_event_combination.
 
     CLASS-METHODS get_focus
       EXPORTING
@@ -381,6 +388,30 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         document      TYPE string
         sapevent      TYPE zcl_gg_gui_runtime=>ty_sapevent
         control_id    TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+    CLASS-METHODS rewrite_sapevent_forms
+      IMPORTING
+        document      TYPE string
+        sapevent      TYPE zcl_gg_gui_runtime=>ty_sapevent
+        control_id    TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+* The attributes that post the SAPEVENT event of the viewer with ACTION, taken
+* from an attribute of the document, to the transport: ATTRIBUTE (action or
+* formaction) with the url, and the data-gg-sapevent marker the host checks a
+* posted event against.
+    CLASS-METHODS sapevent_attributes
+      IMPORTING
+        sapevent      TYPE zcl_gg_gui_runtime=>ty_sapevent
+        control_id    TYPE string
+        attribute     TYPE string
+        action        TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+    CLASS-METHODS url_encode
+      IMPORTING
+        text          TYPE string
       RETURNING
         VALUE(result) TYPE string.
     CLASS-METHODS safe_url
@@ -977,9 +1008,13 @@ CLASS cl_gui_control IMPLEMENTATION.
         IF lv_srcdoc IS NOT INITIAL.
           IF is_snapshot-sapevent = abap_true AND is_sapevent-url IS NOT INITIAL.
 * The document registered sapevent and the caller supplied a transport, so its
-* anchors become forms that submit to it. Submitting a form and, on a real
+* sapevent anchors and forms become forms that submit to it. Submitting a form and, on a real
 * click, replacing the top page are the only two things this needs; scripts
-* stay blocked and the frame keeps its opaque origin.
+* stay blocked and the frame keeps its opaque origin. The forms of the
+* document go first, so that the forms made of anchors are not looked at again.
+            lv_srcdoc = rewrite_sapevent_forms( document   = lv_srcdoc
+                                                sapevent   = is_sapevent
+                                                control_id = is_snapshot-control_id ).
             lv_srcdoc = rewrite_sapevent( document   = lv_srcdoc
                                           sapevent   = is_sapevent
                                           control_id = is_snapshot-control_id ).
@@ -1829,6 +1864,153 @@ CLASS cl_gui_control IMPLEMENTATION.
                            off = lv_close + 4 ).
     ENDWHILE.
     result = result && lv_rest.
+  ENDMETHOD.
+
+  METHOD rewrite_sapevent_forms.
+* A document can post a sapevent itself: <form action="sapevent:ACTION">, or a
+* submit button with formaction="sapevent:ACTION" inside a form. Such a form
+* posts to the transport instead, with the event in the query string of the
+* url, so that the action of the button that was pressed is the one that
+* arrives. The fields of the document are renamed to frontend values of the
+* viewer, gg-ctl:<control_id>:<name>, which is how cl_gui_cfw hands them to it.
+* The method is always post, so the fields arrive as postdata, also from a form
+* the document wrote for get. Forms without a sapevent are left as they are.
+    DATA lv_rest    TYPE string.
+    DATA lv_offset  TYPE i.
+    DATA lv_length  TYPE i.
+    DATA lv_tag_end TYPE i.
+    DATA lv_close   TYPE i.
+    DATA lv_tag     TYPE string.
+    DATA lv_body    TYPE string.
+    DATA lv_action  TYPE string.
+    DATA lv_hidden  TYPE string.
+    DATA lv_is_form TYPE abap_bool.
+    DATA ls_field   TYPE zcl_gg_gui_runtime=>ty_field.
+
+    LOOP AT sapevent-fields INTO ls_field.
+      lv_hidden = lv_hidden && |<input type="hidden" name="{ escape( ls_field-name ) }"| &&
+        | value="{ escape( ls_field-value ) }">|.
+    ENDLOOP.
+
+    lv_rest = document.
+    WHILE lv_rest IS NOT INITIAL.
+      FIND FIRST OCCURRENCE OF REGEX '<form[\s>]' IN lv_rest IGNORING CASE MATCH OFFSET lv_offset.
+      IF sy-subrc <> 0.
+        EXIT.
+      ENDIF.
+      result = result && substring( val = lv_rest
+                                    len = lv_offset ).
+      lv_rest = substring( val = lv_rest
+                           off = lv_offset ).
+      FIND FIRST OCCURRENCE OF '>' IN lv_rest MATCH OFFSET lv_tag_end.
+      IF sy-subrc <> 0.
+        EXIT.
+      ENDIF.
+      lv_tag = substring( val = lv_rest
+                          len = lv_tag_end + 1 ).
+      lv_rest = substring( val = lv_rest
+                           off = lv_tag_end + 1 ).
+      FIND FIRST OCCURRENCE OF '</form>' IN lv_rest IGNORING CASE MATCH OFFSET lv_close.
+      IF sy-subrc <> 0.
+        lv_close = strlen( lv_rest ).
+      ENDIF.
+      lv_body = substring( val = lv_rest
+                           len = lv_close ).
+      lv_rest = substring( val = lv_rest
+                           off = lv_close ).
+
+      FIND FIRST OCCURRENCE OF REGEX '\saction\s*=\s*"sapevent:([^"]*)"' IN lv_tag IGNORING CASE
+        MATCH OFFSET lv_offset MATCH LENGTH lv_length SUBMATCHES lv_action.
+      lv_is_form = xsdbool( sy-subrc = 0 ).
+      FIND FIRST OCCURRENCE OF REGEX '\sformaction\s*=\s*"sapevent:' IN lv_body IGNORING CASE.
+      IF lv_is_form = abap_false AND sy-subrc <> 0.
+        result = result && lv_tag && lv_body.
+        CONTINUE.
+      ENDIF.
+
+* An attribute that is written twice counts the first time, so the document's
+* own method and target are taken out before the form gets its own.
+      IF lv_is_form = abap_true.
+        lv_tag = substring( val = lv_tag
+                            len = lv_offset ) &&
+          sapevent_attributes( sapevent   = sapevent
+                               control_id = control_id
+                               attribute  = `action`
+                               action     = lv_action ) &&
+          substring( val = lv_tag
+                     off = lv_offset + lv_length ).
+        REPLACE ALL OCCURRENCES OF REGEX '\s(method|target)\s*=\s*("[^"]*"|''[^'']*''|[^\s>]*)'
+          IN lv_tag WITH `` IGNORING CASE.
+        lv_tag = substring( val = lv_tag
+                            len = strlen( lv_tag ) - 1 ) && ` method="post" target="_top">`.
+      ENDIF.
+
+      REPLACE ALL OCCURRENCES OF REGEX '(\sname\s*=\s*["''])' IN lv_body
+        WITH |$1gg-ctl:{ control_id }:| IGNORING CASE.
+      DO.
+        FIND FIRST OCCURRENCE OF REGEX '\sformaction\s*=\s*"sapevent:([^"]*)"' IN lv_body IGNORING CASE
+          MATCH OFFSET lv_offset MATCH LENGTH lv_length SUBMATCHES lv_action.
+        IF sy-subrc <> 0.
+          EXIT.
+        ENDIF.
+        lv_body = substring( val = lv_body
+                             len = lv_offset ) &&
+          sapevent_attributes( sapevent   = sapevent
+                               control_id = control_id
+                               attribute  = `formaction`
+                               action     = lv_action ) &&
+          ` formmethod="post" formtarget="_top"` &&
+          substring( val = lv_body
+                     off = lv_offset + lv_length ).
+      ENDDO.
+
+      result = result && lv_tag && lv_hidden && lv_body.
+    ENDWHILE.
+    result = result && lv_rest.
+  ENDMETHOD.
+
+  METHOD sapevent_attributes.
+* The action is taken out of an attribute of the document, so its entities
+* are undone before it goes into the query string of the url.
+    DATA lv_action TYPE string.
+    DATA lv_event  TYPE string.
+    DATA lv_url    TYPE string.
+
+    lv_action = action.
+    REPLACE ALL OCCURRENCES OF '&lt;' IN lv_action WITH '<'.
+    REPLACE ALL OCCURRENCES OF '&gt;' IN lv_action WITH '>'.
+    REPLACE ALL OCCURRENCES OF '&quot;' IN lv_action WITH '"'.
+    REPLACE ALL OCCURRENCES OF '&#39;' IN lv_action WITH ''''.
+    REPLACE ALL OCCURRENCES OF '&amp;' IN lv_action WITH '&'.
+    lv_event = |{ control_id }\|SAPEVENT\|{ lv_action }|.
+    lv_url = sapevent-url && COND string( WHEN sapevent-url CS '?' THEN `&` ELSE `?` ) &&
+      url_encode( sapevent-action_field ) && `=` && url_encode( lv_event ).
+    result = | { attribute }="{ escape( lv_url ) }" data-gg-sapevent="{ escape( lv_event ) }"|.
+  ENDMETHOD.
+
+  METHOD url_encode.
+* Percent-encodes everything outside the unreserved set, byte by byte in UTF-8.
+    DATA lv_index TYPE i.
+    DATA lv_char  TYPE string.
+    DATA lv_bytes TYPE xstring.
+    DATA lv_byte  TYPE x LENGTH 1.
+    DATA lv_hex   TYPE string.
+
+    DO strlen( text ) TIMES.
+      lv_index = sy-index - 1.
+      lv_char = text+lv_index(1).
+      IF to_upper( lv_char ) CA sy-abcde OR lv_char CA '0123456789-_.~'.
+        result = result && lv_char.
+      ELSE.
+        lv_bytes = cl_abap_codepage=>convert_to( lv_char ).
+        DO xstrlen( lv_bytes ) TIMES.
+          lv_index = sy-index - 1.
+          lv_byte = lv_bytes+lv_index(1).
+          lv_hex = lv_byte.
+          result = result && `%` && lv_hex.
+        ENDDO.
+      ENDIF.
+    ENDDO.
   ENDMETHOD.
 
   METHOD escape.

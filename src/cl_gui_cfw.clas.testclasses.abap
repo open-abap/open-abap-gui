@@ -26,6 +26,14 @@ CLASS ltcl_test DEFINITION FOR TESTING RISK LEVEL HARMLESS DURATION SHORT FINAL.
     METHODS control_capability_boundary FOR TESTING.
     METHODS html_viewer_sapevent FOR TESTING.
     METHODS html_viewer_without_sapevent FOR TESTING.
+    METHODS html_viewer_sapevent_form FOR TESTING.
+    METHODS html_viewer_sapevent_postdata FOR TESTING.
+    METHODS on_sapevent FOR EVENT sapevent OF cl_gui_html_viewer
+      IMPORTING action getdata postdata query_table.
+    DATA mv_sapevent_action TYPE string.
+    DATA mv_sapevent_getdata TYPE string.
+    DATA mt_sapevent_postdata TYPE cnht_post_data_tab.
+    DATA mt_sapevent_query TYPE cnht_query_table.
 
     METHODS viewer_html
       IMPORTING
@@ -1025,6 +1033,113 @@ CLASS ltcl_test IMPLEMENTATION.
                                          iv_document  = '<a href="sapevent:STAGE">Stage</a>' ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_no_transport CS 'sandbox=""' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_no_transport CS 'sapevent:STAGE' ) ).
+  ENDMETHOD.
+
+  METHOD html_viewer_sapevent_form.
+    DATA(lv_html) = viewer_html(
+      iv_register  = abap_true
+      iv_transport = abap_true
+      iv_document  = '<form id="f" method="get" target="_self" action="sapevent:stage?key=1&amp;b=2">' &&
+                     '<input type="text" name="comment" value="x">' &&
+                     '<input type="submit" value="Stage">' &&
+                     '<input type="submit" value="Commit" formaction="sapevent:commit"></form>' &&
+                     '<form action="/elsewhere"><input name="q"></form>' ).
+
+* The form posts its event in the query string of the transport's url, with
+* the entities of the attribute undone, and names it in the marker the host
+* checks a posted event against.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'action=&quot;/dispatch?gg_control_event=GUI-2%7CSAPEVENT%7Cstage%3Fkey%3D1%26b%3D2&quot;' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'data-gg-sapevent=&quot;GUI-2|SAPEVENT|stage?key=1&amp;amp;b=2&quot;' ) ).
+* Its own method and target give way to post and the top page.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'method=&quot;post&quot; target=&quot;_top&quot;&gt;&lt;input type=&quot;hidden&quot; name=&quot;session_id&quot;' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'method=&quot;get&quot;' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '_self' ) ).
+* The fields of the document become frontend values of the viewer.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'name=&quot;gg-ctl:GUI-2:comment&quot;' ) ).
+* A button with a sapevent formaction posts its own event.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      'formaction=&quot;/dispatch?gg_control_event=GUI-2%7CSAPEVENT%7Ccommit&quot;' &&
+      ' data-gg-sapevent=&quot;GUI-2|SAPEVENT|commit&quot; formmethod=&quot;post&quot; formtarget=&quot;_top&quot;' ) ).
+* A form without a sapevent is left as it was.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
+      '&lt;form action=&quot;/elsewhere&quot;&gt;&lt;input name=&quot;q&quot;&gt;' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( to_upper( lv_html ) CS 'SAPEVENT:' ) ).
+  ENDMETHOD.
+
+  METHOD html_viewer_sapevent_postdata.
+    DATA lt_events TYPE cntl_simple_events.
+    DATA lv_long TYPE string.
+
+    zcl_gg_gui_runtime=>clear( ).
+    DATA(lo_container) = NEW cl_gui_custom_container( container_name = 'SAPEVENT' ).
+    DATA(lo_viewer) = NEW cl_gui_html_viewer( parent = lo_container ).
+    APPEND VALUE #( eventid    = cl_gui_html_viewer=>m_id_sapevent
+                    appl_event = abap_true ) TO lt_events.
+    lo_viewer->set_registered_events( lt_events ).
+    SET HANDLER on_sapevent FOR lo_viewer.
+    DATA(lv_id) = zcl_gg_gui_runtime=>get_control_id( control = lo_viewer ).
+
+    cl_gui_cfw=>receive_frontend(
+      event  = |{ lv_id }\|SAPEVENT\|stage?key=a+b%21&flag|
+      values = VALUE #(
+        ( name = |gg-ctl:{ lv_id }:comment| value = 'a b & c=d 100%' )
+        ( name = |gg-ctl:{ lv_id }:mode| value = 'x' ) ) ).
+    cl_abap_unit_assert=>assert_equals( act = cl_gui_cfw=>process_frontend( )
+                                        exp = 'A' ).
+    cl_gui_cfw=>dispatch_pending( ).
+
+* getdata is the text after the "?" as it was written; postdata the fields as
+* typed, with only the separators of the pairs escaped.
+    cl_abap_unit_assert=>assert_equals( act = mv_sapevent_action
+                                        exp = 'stage' ).
+    cl_abap_unit_assert=>assert_equals( act = mv_sapevent_getdata
+                                        exp = 'key=a+b%21&flag' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = mt_sapevent_postdata
+      exp = VALUE cnht_post_data_tab( ( 'comment=a b %26 c%3Dd 100%25&mode=x' ) ) ).
+* query_table is the pairs of getdata, decoded, and then the fields.
+    cl_abap_unit_assert=>assert_equals(
+      act = mt_sapevent_query
+      exp = VALUE cnht_query_table( ( name = 'key' value = 'a b!' )
+                                    ( name = 'flag' value = '' )
+                                    ( name = 'comment' value = 'a b & c=d 100%' )
+                                    ( name = 'mode' value = 'x' ) ) ).
+
+* A long form is cut into lines of 256 characters.
+    lv_long = repeat( val = 'y'
+                      occ = 300 ).
+    cl_gui_cfw=>receive_frontend(
+      event  = |{ lv_id }\|SAPEVENT\|save|
+      values = VALUE #( ( name = |gg-ctl:{ lv_id }:text| value = lv_long ) ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_gui_cfw=>dispatch_pending( ).
+    cl_abap_unit_assert=>assert_equals( act = lines( mt_sapevent_postdata )
+                                        exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = strlen( mt_sapevent_postdata[ 1 ] )
+                                        exp = 256 ).
+    cl_abap_unit_assert=>assert_equals( act = mt_sapevent_postdata[ 2 ]
+                                        exp = repeat( val = 'y'
+                                                      occ = 49 ) ).
+
+* An anchor brings no fields, and the fields of an earlier form are gone.
+    cl_gui_cfw=>receive_frontend( event  = |{ lv_id }\|SAPEVENT\|back|
+                                  values = VALUE #( ) ).
+    cl_gui_cfw=>process_frontend( ).
+    cl_gui_cfw=>dispatch_pending( ).
+    cl_abap_unit_assert=>assert_equals( act = mv_sapevent_action
+                                        exp = 'back' ).
+    cl_abap_unit_assert=>assert_initial( mt_sapevent_postdata ).
+    zcl_gg_gui_runtime=>clear( ).
+  ENDMETHOD.
+
+  METHOD on_sapevent.
+    mv_sapevent_action = action.
+    mv_sapevent_getdata = getdata.
+    mt_sapevent_postdata = postdata.
+    mt_sapevent_query = query_table.
   ENDMETHOD.
 
 ENDCLASS.

@@ -1349,8 +1349,12 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
 * which the page carries escaped once more.
       DATA(lv_nested_button) = zcl_gg_host_html=>escape_attribute(
         |name="gg_control_event" value="{ lv_event_attribute }"| ).
+* A sapevent form of such a document posts its event in the url, and names it
+* in a marker attribute next to that url.
+      DATA(lv_nested_form) = zcl_gg_host_html=>escape_attribute( |data-gg-sapevent="{ lv_event_attribute }"| ).
       IF is_page-html NS |name="gg_control_event" value="{ lv_event_attribute }"|
           AND is_page-html NS lv_nested_button
+          AND is_page-html NS lv_nested_form
           AND is_page-html NS |data-gg-dblclick-event="{ lv_event_attribute }"|
           AND is_page-html NS |data-gg-click-event="{ lv_event_attribute }"|.
         rv_error = 'Control event is not offered by the current host page'.

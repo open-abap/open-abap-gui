@@ -23,3 +23,22 @@ test("ZCL_GG_EX_151 — a SAPEVENT link raises sapevent with action and getdata"
   await page.waitForLoadState("load");
   await expect(viewer(page).locator("h1")).toHaveText("Flights");
 });
+
+test("ZCL_GG_EX_151 — a SAPEVENT form raises sapevent with its fields as postdata", async ({page, host}) => {
+  await openExample(page, host, 151);
+  await viewer(page).getByRole("button", {name: "UA 0941"}).click();
+  await page.waitForLoadState("load");
+  const seats = () => viewer(page).locator("p").first();
+
+  // The form's own action.
+  await viewer(page).getByLabel("Seats").fill("5");
+  await viewer(page).getByRole("button", {name: "Book"}).click();
+  await page.waitForLoadState("load");
+  await expect(seats()).toHaveText("Frankfurt to San Francisco, 215 seats occupied.");
+
+  // A submit button's formaction overrides the form's action.
+  await viewer(page).getByLabel("Seats").fill("3");
+  await viewer(page).getByRole("button", {name: "Release"}).click();
+  await page.waitForLoadState("load");
+  await expect(seats()).toHaveText("Frankfurt to San Francisco, 212 seats occupied.");
+});

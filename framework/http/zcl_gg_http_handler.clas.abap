@@ -158,6 +158,11 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_page_id    TYPE string OPTIONAL
         iv_status     TYPE i DEFAULT 200.
 
+    CLASS-METHODS send_failure
+      IMPORTING
+        server   TYPE REF TO if_http_server
+        ix_error TYPE REF TO cx_root.
+
     CLASS-METHODS send_empty
       IMPORTING
         server    TYPE REF TO if_http_server
@@ -177,9 +182,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD if_http_extension~handle_request.
     DATA lv_method TYPE string.
 
-* Only the host's own transaction errors become a response. Any other
-* exception is an application crash and leaves unchanged, so the web entry
-* point terminates the process with the original stack.
+* The host's own transaction errors show their message. Any other exception
+* is one no program handled, and the request is answered with its
+* explanation, so the server keeps serving.
     TRY.
         lv_method = server->request->get_method( ).
         TRANSLATE lv_method TO UPPER CASE.
@@ -204,6 +209,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           server    = server
           iv_error  = lx_transaction_error->mv_message
           iv_status = 500 ).
+      CATCH cx_root INTO DATA(lx_error).
+        send_failure( server   = server
+                      ix_error = lx_error ).
     ENDTRY.
   ENDMETHOD.
 
@@ -1173,6 +1181,20 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     server->response->set_status(
       code   = iv_status
       reason = 'Error' ).
+  ENDMETHOD.
+
+  METHOD send_failure.
+* A script that posted JSON gets the error as JSON; the browser shows the
+* exception's details inside the shell.
+    IF server->request->get_header_field( 'content-type' ) CS 'application/json'.
+      send_error( server    = server
+                  iv_error  = zcl_gg_exception_text=>describe( ix_error )
+                  iv_status = 500 ).
+    ELSE.
+      send_html( server    = server
+                 iv_html   = zcl_gg_workbench=>render_exception( ix_error )
+                 iv_status = 500 ).
+    ENDIF.
   ENDMETHOD.
 
   METHOD send_empty.

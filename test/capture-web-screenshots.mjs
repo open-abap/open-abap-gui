@@ -14,8 +14,8 @@ function escapeHtml(value) {
 }
 
 // The reports the converter examples define, see test/web-converter-examples.mjs.
-// Only these reports are captured: other reports may stop the server on
-// purpose, like ZGG_INT_CAST_FAILURE.
+// Only these reports are captured: other reports may fail on purpose, like
+// ZGG_INT_CAST_FAILURE.
 async function converterExamplePrograms() {
   const examplesDirectory = resolve(process.cwd(), "converter", "test", "examples");
   const programs = new Set();
