@@ -53,11 +53,11 @@ export function declarationInfo(statement) {
     return { kind: "field-symbol", names, raw };
   }
   if (statement.kind === "Parameter") {
-    const match = /^PARAMETERS\s+([A-Z][A-Z0-9_]*)\s*(.*)$/i.exec(raw.replace(/\.$/, ""));
+    const match = /^PARAMETERS?\s*:?\s*([A-Z][A-Z0-9_]*)\s*(.*)$/i.exec(raw.replace(/\.$/, ""));
     return { kind: "parameter", name: match?.[1]?.toUpperCase(), raw, additions: match?.[2] ?? "" };
   }
   if (statement.kind === "SelectOption") {
-    const match = /^SELECT-OPTIONS\s+([A-Z][A-Z0-9_]*)\s*(.*)$/i.exec(raw.replace(/\.$/, ""));
+    const match = /^SELECT-OPTIONS\s*:?\s*([A-Z][A-Z0-9_]*)\s*(.*)$/i.exec(raw.replace(/\.$/, ""));
     return { kind: "select-option", name: match?.[1]?.toUpperCase(), raw, additions: match?.[2] ?? "" };
   }
   if (statement.kind === "Tables") {

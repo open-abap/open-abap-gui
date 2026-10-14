@@ -101,3 +101,18 @@ test("keeps MODIF ID on select-options, radio buttons and listboxes", async () =
   assert.match(result.classSource, /<ls_state>-visible = xsdbool\( mv_p_out = abap_true \)\./);
   assert.match(result.classSource, /<ls_state>-input = xsdbool\( mv_p_in = abap_true \)\./);
 });
+
+test("reads the obsolete PARAMETER keyword and a chained parameter", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zparameter.",
+      "TYPES ty TYPE i.",
+      "PARAMETER :p_file TYPE ty.",
+      "SELECT-OPTIONS: s_file FOR sy-datum.",
+    ].join("\n"),
+    filename: "zparameter.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(builderCall(result.classSource, "P_FILE"), /data_type = VALUE #\( typ = 'I' \)/);
+  assert.notEqual(builderCall(result.classSource, "S_FILE"), "");
+});
