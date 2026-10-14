@@ -6,7 +6,7 @@ import {test, expect, startHost, stopHost, expectPageKind, expectWorkbench} from
 // no program handles. The HTTP handler answers the request with the
 // exception's details, and the server keeps serving.
 const CAST_FAILURE = "/program?name=ZGG_INT_CAST_FAILURE";
-const DETAILS = "Unhandled exception CX_SY_MOVE_CAST_ERROR\nCasting failed, types not compatible";
+const DETAILS = "Unhandled exception CX_SY_MOVE_CAST_ERROR\nRaised at zcl_gg_integration_crash.clas.abap, line 45\nCasting failed, types not compatible";
 
 // Sends the response headers before the ABAP handler runs the failing
 // program, so the shim fails in JavaScript when it sends the handler's answer.

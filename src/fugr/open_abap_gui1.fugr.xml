@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_FUGR" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <AREAT>open-abap-gui</AREAT>
+   <INCLUDES>
+    <SOBJ_NAME>LOPEN_ABAP_GUI1TOP</SOBJ_NAME>
+    <SOBJ_NAME>SAPLOPEN_ABAP_GUI1</SOBJ_NAME>
+   </INCLUDES>
+   <FUNCTIONS>
+    <item>
+     <FUNCNAME>SAPGUI_PROGRESS_INDICATOR</FUNCNAME>
+     <SHORT_TEXT>Progress indicator</SHORT_TEXT>
+     <IMPORT>
+      <RSIMP>
+       <PARAMETER>PERCENTAGE</PARAMETER>
+       <DEFAULT>0</DEFAULT>
+       <OPTIONAL>X</OPTIONAL>
+      </RSIMP>
+      <RSIMP>
+       <PARAMETER>TEXT</PARAMETER>
+       <DEFAULT>SPACE</DEFAULT>
+       <OPTIONAL>X</OPTIONAL>
+      </RSIMP>
+     </IMPORT>
+    </item>
+   </FUNCTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>
