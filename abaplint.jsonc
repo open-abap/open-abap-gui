@@ -79,7 +79,9 @@
     "no_dynamic_stuff": false,
     "superfluous_value": true,
     "cyclic_oo": false,
-    "unnecessary_chaining": true,
+    "unnecessary_chaining": {
+      "exclude": ["zgg_ex_173\\.prog\\.abap$"]
+    },
     "parser_702_chaining": false,
     "omit_receiving": true,
     "align_parameters": true,
@@ -140,7 +142,9 @@
     "prefix_is_current_class": true,
     "sequential_blank": true,
     "superclass_final": true,
-    "space_before_colon": true,
+    "space_before_colon": {
+      "exclude": ["zgg_ex_173\\.prog\\.abap$"]
+    },
     "space_before_dot": {
       "ignoreGlobalDefinition": false,
       "ignoreExceptions": false
@@ -203,7 +207,9 @@
     "xml_consistency": true,
     "check_abstract": true,
     "parser_missing_space": true,
-    "colon_missing_space": true,
+    "colon_missing_space": {
+      "exclude": ["zgg_ex_173\\.prog\\.abap$"]
+    },
     "contains_tab": true,
     "empty_statement": true,
     "double_space": true,
@@ -241,6 +247,7 @@
     "check_syntax": true,
     "functional_writing": true,
     "obsolete_statement": {
+      "exclude": ["zgg_ex_173\\.prog\\.abap$"],
       "refresh": true,
       "compute": true,
       "sortByFS": true,

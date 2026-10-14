@@ -131,7 +131,7 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       ir.features.push("list-processing");
     }
     if (/\bMESSAGE\b/.test(text)) ir.features.push("messages");
-    if (/\bPARAMETERS\b|\bSELECT-OPTIONS\b/.test(text)) ir.features.push("selection-screen");
+    if (/\bPARAMETERS?\b|\bSELECT-OPTIONS\b/.test(text)) ir.features.push("selection-screen");
     if (eventName(statement)) ir.features.push(`event:${eventName(statement)}`);
   }
   ir.interfaces = [...interfaces].sort();
