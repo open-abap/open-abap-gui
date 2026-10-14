@@ -32,7 +32,7 @@ test("ZCL_GG_EX_172 — Execute shows the exception's details, Back returns to t
   await expectPageKind(page, "ERROR");
   await expect(page.locator(".wb-app-title")).toHaveText("Unhandled exception");
   await expect(page.locator("main pre")).toHaveText(
-    "Unhandled exception CX_SY_DYN_CALL_ILLEGAL_FUNC\nFUNCTION = RPY_TRANSACTION_READ");
+    "Unhandled exception CX_SY_DYN_CALL_ILLEGAL_FUNC\nRaised at zcl_gg_ex_172.clas.abap, line 112\nFUNCTION = RPY_TRANSACTION_READ");
   await expect(statusMessage(page)).toBeEmpty();
 
   await page.locator(".wb-commandbar").getByRole("button", {name: "Return to workbench"}).click();
