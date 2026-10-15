@@ -301,6 +301,19 @@ export async function prepareBehaviorFixtures({inputFolder}) {
   }
   await fs.writeFile(path.join(inputFolder, "ZCL_BV_OKCODE.clas.abap"), okCodeResult.classSource, "utf8");
 
+  // GGCONV-REG-018 to 021: names shared by a global and a component, FORM
+  // field symbols, WRITE ... TO ... UNIT and a header-line LOOP, run end to end.
+  const familiesResult = await convertProgram({
+    source: await fs.readFile(path.join(repository, "converter", "test", "fixtures", "regression_conversion_families.prog.abap.txt"), "utf8"),
+    filename: "zreg_families.prog.abap",
+    className: "ZCL_BV_FAMILIES",
+    transactionCode: "ZBVFAM",
+  });
+  assert.equal(familiesResult.supported, true, JSON.stringify(familiesResult.diagnostics));
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_FAMILIES.clas.abap"), familiesResult.classSource, "utf8");
+  for (const helper of familiesResult.helperSources) {
+    await fs.writeFile(path.join(inputFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
+  }
 }
 
 function plain(value) {
@@ -552,6 +565,15 @@ export async function checkBehavior(outputFolder) {
     await abap.Classes.ZCL_GG_DB_HELPER.destroy();
     dbSystem.set(previousDbSystem);
   }
+
+  const families = normalize(await zcl_gg_host.run({
+    io_report: new abap.Classes.ZCL_BV_FAMILIES(),
+    rs_result: 1,
+  }));
+  // The helper reads the component, not the global of the same name; the
+  // table key and component of ct_values stay; the header-line loop reads and
+  // changes its work area, which READ TABLE then refills from the table.
+  assert.deepEqual(families.lines.slice(0, 6).map((line) => line.trim()), ["ASN-1", "KG", "50", "3", "KOSTL", "12,500"]);
 
   console.log("converter behavior passed");
 }

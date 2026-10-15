@@ -93,6 +93,12 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         cntl_system_error.
 
   PROTECTED SECTION.
+    CLASS-METHODS escape_html
+      IMPORTING
+        text          TYPE string
+      RETURNING
+        VALUE(result) TYPE string.
+
     DATA control_id TYPE string.
     DATA mv_width TYPE i.
     DATA mv_height TYPE i.
@@ -310,11 +316,6 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
       IMPORTING
         html TYPE string.
     CLASS-METHODS clear_external_html.
-    CLASS-METHODS escape_html
-      IMPORTING
-        text          TYPE string
-      RETURNING
-        VALUE(result) TYPE string.
 
 * The control registry row is internal: it is only read by this class, the
 * render path, and nothing else. Keep the type private so no invented

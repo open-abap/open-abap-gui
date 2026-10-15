@@ -8,6 +8,8 @@ import { isPopupStatement, isSuspendingStatement } from "../passes/lower-continu
 import { screenOkCode } from "../dynpro-metadata.mjs";
 import { methodParameterType } from "../passes/collect-routines.mjs";
 import { DEFAULT_SELECTION_SCREEN } from "../passes/collect-selection-screens.mjs";
+import { replaceIdentifiers } from "../passes/replace-identifiers.mjs";
+import { hasHeaderLine, headerLineDeclarations, headerLinesIn, withoutHeaderLines } from "../passes/header-lines.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -73,29 +75,7 @@ function literal(value) {
 }
 
 function renameIdentifiers(text, renames = {}) {
-  let result = "";
-  let segment = "";
-  let quotedString = false;
-  const flush = () => {
-    let value = segment;
-    for (const [from, to] of Object.entries(renames)) value = value.replace(new RegExp(`\\b${from}\\b`, "gi"), to.toLowerCase());
-    result += value;
-    segment = "";
-  };
-  for (let index = 0; index < text.length; index++) {
-    const char = text[index];
-    if (char === "'" && quotedString && text[index + 1] === "'") {
-      result += "''";
-      index++;
-    } else if (char === "'") {
-      flush();
-      result += char;
-      quotedString = !quotedString;
-    } else if (quotedString) result += char;
-    else segment += char;
-  }
-  flush();
-  return result;
+  return replaceIdentifiers(text, Object.entries(renames).map(([from, to]) => [from, to.toLowerCase()]));
 }
 
 function allRenames(ir) {
@@ -115,6 +95,11 @@ function globalMemberNames(ir) {
     for (const name of declaration.names ?? []) {
       result[name] = ir.statePlan?.renames?.[name] ?? name.toLowerCase();
     }
+  }
+  // The work areas of header-line tables are members too.
+  for (const [name, header] of Object.entries(ir.headerLines?.global ?? {})) {
+    result[name] ??= name.toLowerCase();
+    result[header.toUpperCase()] = header;
   }
   return result;
 }
@@ -222,7 +207,12 @@ function addWriterDeclaration(body) {
   const generatedData = [];
   const rest = [];
   const flatBody = body.flatMap((line) => String(line).split("\n"));
-  for (const line of flatBody) {
+  // The method's own declarations stay first: a field symbol hoisted from
+  // further down may be typed LIKE LINE OF one of them.
+  let leading = 0;
+  while (leading < flatBody.length && /^\s*(?:DATA|TYPES|CONSTANTS|FIELD-SYMBOLS)\s/i.test(flatBody[leading])) leading++;
+  const declarations = flatBody.slice(0, leading);
+  for (const line of flatBody.slice(leading)) {
     if (/^\s*FIELD-SYMBOLS\b/i.test(line)) fieldSymbols.push(line);
     else if (/^\s*DATA\s+lv_ggconv_dynamic_name\s+TYPE\s+string\.\s*$/i.test(line)) generatedData.push(line);
     else if (line.trim() !== declaration) rest.push(line);
@@ -231,7 +221,7 @@ function addWriterDeclaration(body) {
   const fields = unique(fieldSymbols);
   const data = unique(generatedData);
   if (!fields.length && !data.length) return body.some((line) => line.trim() === declaration) ? body : [declaration, ...body];
-  return [...fields, ...data, declaration, ...rest];
+  return [...declarations, ...fields, ...data, declaration, ...rest];
 }
 
 // The program in the transaction metadata lets SUBMIT find the class through
@@ -374,7 +364,9 @@ function dataMembers(ir) {
     && (dynproModuleStatements.has(item.statement) || item.statement?.scope !== "local")
     && !item.statement?.localClassName;
   const rename = (text) => renameIdentifiers(text, allRenames(ir));
-  const addStructured = (index, begin, end, keyword, target) => {
+  const headerLines = ir.headerLines?.global ?? {};
+  const isDataObject = (operand) => Boolean(reportMember(ir, operand.split("-")[0].toUpperCase()));
+  const addStructured = (index, begin, end, keyword, target, endTarget) => {
     const components = [];
     for (let cursor = index + 1; cursor < declarations.length; cursor++) {
       consumed.add(cursor);
@@ -386,7 +378,7 @@ function dataMembers(ir) {
         if (component) components.push(rename(component));
       }
       if (declarations[cursor].kind === end) {
-        const endName = /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
+        const endName = endTarget ?? /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
         const declaration = structuredDeclaration(keyword, target, components, endName);
         ({ TYPES: typeMembers, CONSTANTS: constantMembers }[keyword] ?? dataMembers).push(rename(declaration));
         break;
@@ -406,7 +398,10 @@ function dataMembers(ir) {
     if (item.kind === "databegin" || item.kind === "typebegin") {
       const begin = /BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1];
       const keyword = item.kind === "typebegin" ? "TYPES" : "DATA";
-      addStructured(index, item.kind === "typebegin" ? "type" : "data", item.kind === "typebegin" ? "typeend" : "dataend", keyword, begin);
+      // BEGIN OF itab OCCURS n: the structure is the header line, see header-lines.mjs.
+      const header = item.kind === "databegin" && /\bOCCURS\b/i.test(item.raw) ? headerLines[begin?.toUpperCase()] : undefined;
+      addStructured(index, item.kind === "typebegin" ? "type" : "data", item.kind === "typebegin" ? "typeend" : "dataend", keyword, header ?? begin, header);
+      if (header) dataMembers.push(rename(`DATA ${begin.toLowerCase()} LIKE STANDARD TABLE OF ${header} WITH DEFAULT KEY.`));
     } else if (item.kind === "constantbegin") {
       addStructured(index, "constant", "constantend", "CONSTANTS", /BEGIN OF\s+([A-Z0-9_]+)/i.exec(item.raw)?.[1]);
     } else if (item.kind === "type" && !item.complex) {
@@ -418,12 +413,16 @@ function dataMembers(ir) {
       const declaration = item.kind === "static"
         ? declarationRaw.replace(/^STATICS\b/i, "DATA")
         : declarationRaw;
-      dataMembers.push(rename(declaration));
+      const header = hasHeaderLine(item) ? headerLines[item.names?.[0]?.toUpperCase()] : undefined;
+      if (header) dataMembers.push(...headerLineDeclarations(declaration, header, isDataObject).map(rename));
+      else dataMembers.push(rename(withoutHeaderLines(declaration, headerLines)));
     } else if (item.kind === "tables" && item.resolved && !item.complex) {
       dataMembers.push(rename(`DATA ${item.names?.[0]?.toLowerCase()} TYPE ${item.type}.`));
     } else if (item.kind === "ranges") {
       const declaration = rangeMember(item);
       if (declaration) dataMembers.push(rename(declaration));
+      const header = headerLines[item.names?.[0]?.toUpperCase()];
+      if (declaration && header) dataMembers.push(rename(`DATA ${header} LIKE LINE OF ${item.names[0].toLowerCase()}.`));
     }
   }
   const eventReferences = new Map();
@@ -739,6 +738,13 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
   return {
     event,
     selections: values,
+    // A FORM sees its own header-line tables too; routineBody adds them.
+    headerLines: headerLinesIn(ir),
+    dataObjects: new Set((ir.declarations ?? [])
+      .filter((item) => ["data", "static", "tables", "ranges", "databegin"].includes(item.kind))
+      .flatMap((item) => item.kind === "databegin" ? [/\bBEGIN\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(item.raw ?? "")?.[1]] : item.names ?? [])
+      .filter(Boolean)
+      .map((name) => name.toUpperCase())),
     tabbedBlocks: selectionTabbedBlocks(ir),
     messageId: ir.header?.messageId,
     constantNames: ir.constantNames,
@@ -1240,8 +1246,9 @@ function resumeMethod(ir) {
       context.screenStates = ownerIsModule ? storedScreenStates("dynpro")
         : ir.routines?.includes(owner) ? routineScreenStates(ir, owner)
         : storedScreenStates(screenStatePlan(ir).defaultKind);
+      if (ir.routines?.includes(owner)) context.headerLines = headerLinesIn(ir, owner.name);
       lowered = removePromotedDeclarations(ir, lowerStatements(tail, context).map((item) => item.text));
-      lowered = [...globalFieldSymbolDeclarations(ir, tail), ...lowered];
+      lowered = [...(ir.routines?.includes(owner) ? ir.headerLines?.parameters?.[owner.name] ?? [] : []), ...globalFieldSymbolDeclarations(ir, tail), ...lowered];
     }
     if (!lowered.some((line) => String(line).trim() && !/^\s*\*/.test(line))) lowered.push("RETURN.");
     cases.push(`WHEN '${id}'.`, ...lowered);
@@ -1362,8 +1369,10 @@ function routineBody(ir, routine) {
   });
   context.screenStates = routineScreenStates(ir, routine);
   context.contextMenu = /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""));
+  context.headerLines = headerLinesIn(ir, routine.name);
   let lowered = removePromotedDeclarations(ir, lowerStatements(active, context).map((item) => item.text));
-  lowered = [...globalFieldSymbolDeclarations(ir, active), ...lowered];
+  // The work areas for the header lines of TABLES parameters.
+  lowered = [...(ir.headerLines?.parameters?.[routine.name] ?? []), ...globalFieldSymbolDeclarations(ir, active), ...lowered];
   // Keep the ILI demo's fallback actions observable in browser runtimes.  The
   // native report deliberately does not construct the ActiveX control when it
   // is unavailable, so its later action forms would otherwise only update
