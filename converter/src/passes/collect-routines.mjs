@@ -52,6 +52,7 @@ function sectionParameters(section, text) {
       direction: section === "USING" ? "IMPORTING" : "CHANGING",
       byValue: Boolean(name[1]),
       type: parameterType(section, typing.join(" ")),
+      typing: typing.join(" "),
       ...(lineType ? { lineType: lineType.toLowerCase() } : {}),
     });
   }

@@ -197,12 +197,27 @@ the session holds (`sy-lsind`, `sy-repid`, …), the `SCREEN` work area inside
 `LOOP AT SCREEN`, and the list color constants. A system field that becomes a
 method call is kept as written when the statement only takes data objects, as
 `CONCATENATE` does. Declarations and comments are not rewritten.
+Renames apply to references only: a component (`ls-value`, `get( )-value`),
+an attribute or method (`->value`, `=>value`), a field symbol, a table key or
+constructor component (`itab[ name = ... ]`, `VALUE #( name = ... )`), a formal
+parameter, a column, and a keyword spelled like the name keep their spelling.
 This includes function modules without a compatibility adapter, `FREE`,
-dynamic `CREATE DATA`, dynamic Open SQL, and `PERFORM ... IN PROGRAM`, which
-are all valid inside a method. Diagnostics are reserved for a statement a rule
-exists for but cannot handle in that form (a `LOOP AT` over a table with a
-header line, a dynamic `PERFORM (name)`, an unproven field-symbol `ASSIGN`,
-unrepresented `WRITE` formatting) and for a statement abaplint cannot parse
+dynamic `CREATE DATA`, dynamic Open SQL, `PERFORM ... IN PROGRAM`, and
+`WRITE ... TO` with any formatting addition, `UNIT` and `CURRENCY` included,
+which are all valid inside a method. A list `WRITE ... UNIT` hands the unit to
+the writer in `write_format-unit`.
+A table with a header line (`DATA ... WITH HEADER LINE`, `DATA BEGIN OF ...
+OCCURS`, `RANGES`, a FORM's `TABLES p STRUCTURE s`) becomes a table of the same
+name plus a work area `<name>_header`. Every statement that used the header
+line, by naming the table where a work area goes or implicitly as in
+`LOOP AT itab.`, `APPEND itab.`, `READ TABLE itab INDEX 1.` or `MODIFY itab.`,
+uses the work area instead, so `LOOP AT itab.` becomes
+`LOOP AT itab INTO itab_header.`; `itab[]` and the table operands of table
+statements stay the table. Diagnostics are reserved for a statement a rule
+exists for but cannot handle in that form (a `LOOP AT` without a target over a
+table that has no header line or an untyped `TABLES` parameter, a dynamic
+`PERFORM (name)`, an unproven field-symbol `ASSIGN`, unrepresented `WRITE`
+formatting, `WRITE ... TO itab INDEX`) and for a statement abaplint cannot parse
 (`GGCONV-E201`). They use operation-family codes instead of the broad
 `GGCONV-E501` bucket, such as `E515` for unsafe field-symbol operations and
 `E516` for other unsupported forms.
@@ -328,8 +343,15 @@ lowering rules. Method-local elementary field symbols with static bindings and
 dynamic `WRITE` variable/offset name expressions are supported in their proven
 subsets; dynamic function calls, unsafe field-symbol operations, and dynamic
 database targets remain explicit diagnostics. Static Open SQL and ordinary internal-table loops
-are also preserved when their targets are statically named; implicit-header-table
-loops and local classes remain explicit diagnostics.
+are also preserved when their targets are statically named, and an
+implicit-header-table loop gets the table's header-line work area as its target.
+A field symbol declared in a FORM is emitted with the FORM's method when every
+binding of it is static: `ASSIGN`, or `ASSIGNING` in `LOOP AT`, `READ TABLE`,
+`APPEND`, `INSERT` or `COLLECT`.
+The generated class is parsed with the project's `abaplint.jsonc`, but at
+release 7.40 SP08 at least, the release the scaffold's own sources need; the
+report itself is still parsed with the configured release. `GGCONV-E202` names
+the generated file, line, method and the rejected statement.
 Composite fixtures under
 `converter/test/fixtures/` cover nested includes, reusable FORM routines,
 selection state, and seeded SQLite database behavior.

@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import { normalizeOptions, defaultClassName, fullClassName, defaultTransactionCode,normalizeObjectName, normalizeTransactionCode } from "./options.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
 import { resolveSources } from "./source-resolver.mjs";
-import { parseUnits, readConfig } from "./parser.mjs";
+import { generatedSourceConfig, parseUnits, readConfig } from "./parser.mjs";
 import { applyStyleFixes } from "./emit/style-fixes.mjs";
 import { emptyReportIR } from "./ir/report-ir.mjs";
 import { classifyProgram } from "./passes/classify-program.mjs";
@@ -24,6 +24,7 @@ import { resolveTypes } from "./passes/resolve-types.mjs";
 import { analyzeReferences } from "./passes/analyze-references.mjs";
 import { buildControlFlowGraphs } from "./passes/control-flow.mjs";
 import { analyzeFieldSymbols } from "./passes/analyze-field-symbols.mjs";
+import { collectHeaderLines } from "./passes/header-lines.mjs";
 import { detectDynamicAlv } from "./passes/analyze-dynamic-alv.mjs";
 import { scanCapabilities } from "./capability.mjs";
 import { emitClassSource, emitHelperSources, emitPartialApplication, emitPartialSkeleton, lowerToScaffoldIR } from "./emit/class-source.mjs";
@@ -194,6 +195,7 @@ function buildReportIR(parsed, resolved, options) {
   collectEvents(ir, allStatements);
   collectRoutines(ir);
   ir.declarations = collectDeclarations(allStatements);
+  collectHeaderLines(ir);
   ir.dynamicAlv = detectDynamicAlv(ir);
   ir.selections = collectSelectionScreens(ir.declarations);
   ir.safeFieldSymbols = [...new Set([
@@ -508,9 +510,54 @@ function addGeneratedLocations(classSource, sourceMap) {
   });
 }
 
-function mapGeneratedDiagnostic(item, sourceMap, generatedFilename) {
+// The METHOD a generated line belongs to, if any.
+function generatedMethodAt(source, line) {
+  const lines = String(source ?? "").split("\n").slice(0, line);
+  for (let index = lines.length - 1; index >= 0; index--) {
+    if (/^\s*ENDMETHOD\s*\./i.test(lines[index]) && index < line - 1) return undefined;
+    const match = /^\s*METHOD\s+([^\s.]+)\s*\./i.exec(lines[index]);
+    if (match) return match[1].toLowerCase();
+  }
+  return undefined;
+}
+
+// Says where in the generated source validation failed and what it rejected:
+// the source location the diagnostic is mapped to is only the routine or
+// event that produced the method.
+export function generatedValidationDiagnostic(item, unit) {
+  const method = generatedMethodAt(unit?.source, item.start.line);
+  const where = `${item.filename} line ${item.start.line}${method ? `, METHOD ${method}` : ""}`;
+  const rejected = item.construct && item.construct !== "parser input" ? `: ${item.construct}` : "";
+  return {
+    ...item,
+    code: "GGCONV-E202",
+    construct: item.construct,
+    message: `generated class failed parser validation (${where}): ${item.message}${rejected}`,
+    suggestion: "Fix the lowering rule before using generated source.",
+    phase: "validate-generated",
+  };
+}
+
+function normalizedStatementText(text) {
+  return String(text ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+function mapGeneratedDiagnostic(item, sourceMap, generatedFilename, statements = []) {
+  // A helper class has line numbers of its own, which the source map of the
+  // main class does not describe.
+  if (item.filename !== generatedFilename) return { ...item, internalLocation: { filename: item.filename, start: item.start, end: item.end } };
   const candidates = sourceMap.filter((segment) => segment.outputStart?.line <= item.start.line);
-  const source = candidates.sort((a, b) => a.outputStart.line - b.outputStart.line).at(-1);
+  const methodLine = Math.max(...candidates.map((segment) => segment.outputStart.line));
+  const method = candidates.filter((segment) => segment.outputStart.line === methodLine);
+  // The statement carried over as the rejected one, else the start of the
+  // routine or event the method was generated from.
+  const rejected = normalizedStatementText(item.construct);
+  const statementAt = (segment) => statements.find((statement) => statement.span?.start?.line === segment.start.line
+    && statement.span?.start?.column === segment.start.column);
+  const source = method.find((segment) => segment.segment === "statement" && rejected
+      && normalizedStatementText(statementAt(segment)?.text) === rejected)
+    ?? method.find((segment) => segment.segment === "event")
+    ?? method[0];
   if (!source) return { ...item, internalLocation: { filename: generatedFilename, start: item.start, end: item.end } };
   return {
     ...item,
@@ -663,16 +710,11 @@ export async function convertProgram(input = {}) {
     { filename: `${ir.targetClassName}.clas.abap`, source: classSource, ancestry: [], newline: "\n" },
     ...helperSources.map((helper) => ({ filename: `${helper.className}.clas.abap`, source: helper.source, ancestry: [], newline: "\n" })),
   ];
-  const generatedValidation = parseUnits(generatedUnits, config);
+  const generatedValidation = parseUnits(generatedUnits, generatedSourceConfig(config));
   diagnostics.push(...undeclaredFieldSymbolDiagnostics(generatedUnits));
-  diagnostics.push(...generatedValidation.diagnostics.map((item) => ({
-    ...item,
-    code: "GGCONV-E202",
-    construct: item.construct,
-    message: `generated class failed parser validation: ${item.message}`,
-    suggestion: "Fix the lowering rule before using generated source.",
-    phase: "validate-generated",
-  })).map((item) => mapGeneratedDiagnostic(item, sourceMap, `${ir.targetClassName}.clas.abap`)));
+  diagnostics.push(...generatedValidation.diagnostics
+    .map((item) => generatedValidationDiagnostic(item, generatedUnits.find((unit) => unit.filename === item.filename)))
+    .map((item) => mapGeneratedDiagnostic(item, sourceMap, `${ir.targetClassName}.clas.abap`, ir.statements)));
   const finalDiagnostics = sortDiagnostics(diagnostics);
   const finalSupported = !finalDiagnostics.some((item) => item.severity === "error" || item.code.startsWith("GGCONV-E")) && Boolean(ir.targetClassName);
   const manifest = createManifest(ir, finalDiagnostics, options);

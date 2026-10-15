@@ -7,6 +7,8 @@ import {fileURLToPath} from "node:url";
 import { isGenericParameterType, methodParameterType } from "./collect-routines.mjs";
 import { isWritableArgument, performArguments } from "./analyze-routine-writes.mjs";
 import { isPopupStatement } from "./lower-continuations.mjs";
+import { maskedCode, replaceIdentifiers } from "./replace-identifiers.mjs";
+import { headerLineBegin, headerLineDeclarations, headerLineEnd, withoutHeaderLines } from "./header-lines.mjs";
 
 const TYPE_CODES = new Map([
   ["C", "C"], ["N", "N"], ["D", "D"], ["T", "T"], ["I", "I"], ["INT4", "I"],
@@ -378,8 +380,23 @@ function dynamicWriteClose(raw, opening) {
   return -1;
 }
 
-export function dynamicWriteOperand(statement) {
+// WRITE ... TO formats a value into a variable. It writes nothing to the list
+// and is an ordinary statement in a class, with every formatting addition,
+// UNIT and CURRENCY included. Only the obsolete WRITE ... TO itab INDEX idx and
+// a source named at runtime, WRITE (name) TO, have no class equivalent.
+export function writeToTarget(statement) {
   if (statement.kind !== "Write") return undefined;
+  const code = maskedCode(statement.text.trim());
+  const match = /^WRITE\s*:?\s*([\s\S]*?)\s+TO\s+(\S[\s\S]*?)\s*[.,]?\s*$/i.exec(code);
+  if (!match) return undefined;
+  return {
+    supported: !/^\(/.test(match[1].trim()) && !/\bINDEX\b/i.test(match[2]),
+    dynamic: /^\(/.test(match[1].trim()),
+  };
+}
+
+export function dynamicWriteOperand(statement) {
+  if (statement.kind !== "Write" || writeToTarget(statement)) return undefined;
   const raw = statement.text.trim();
   const prefix = /^(\s*WRITE\s*:?\s*(?:\/\s*)?(?:AT\s+\d+(?:\(\d+\))?\s+)?)/i.exec(raw)?.[1];
   if (prefix === undefined || raw[prefix.length] !== "(") return undefined;
@@ -425,7 +442,8 @@ function quote(value) {
 }
 
 function titlebarExpression(text, operands, context) {
-  let result = String(text ?? "").replaceAll("|", "\\|");
+  // Template text escapes \ | { and } with a backslash.
+  let result = String(text ?? "").replace(/[\\|{}]/g, "\\$&");
   for (let index = 0; index < operands.length; index++) {
     const expression = valueExpression(operands[index], context);
     result = result.replaceAll(`&${index + 1}`, `{ ${expression} }`);
@@ -640,7 +658,7 @@ function transformTemplate(text, start, transform) {
 }
 
 function replaceOutsideStrings(text, replacements) {
-  return transformOutsideStrings(text, (part) => applyReplacements(part, replacements));
+  return replaceIdentifiers(text, replacements);
 }
 
 // Selection events receive the number directly. FORMs and helper methods
@@ -694,11 +712,9 @@ const SESSION_VALUE_REWRITES = [
 ];
 
 function rewriteValues(text, context, { session = true } = {}) {
-  const replacements = [...dataValueRewrites(context), ...(session ? SESSION_VALUE_REWRITES : [])];
-  return transformOutsideStrings(text, (part) => {
-    const replaced = applyReplacements(part, replacements);
-    return screenStates(context).kind === "dynpro" ? replaced : replaced.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory");
-  });
+  const replaced = replaceIdentifiers(text, [...dataValueRewrites(context), ...(session ? SESSION_VALUE_REWRITES : [])]);
+  if (screenStates(context).kind === "dynpro") return replaced;
+  return transformOutsideStrings(replaced, (part) => part.replace(/(<[A-Z][A-Z0-9_]*>)-required\b/gi, "$1-obligatory"));
 }
 
 // The table LOOP AT SCREEN runs over, see screen-states.mjs. Without one from
@@ -715,14 +731,6 @@ function rewriteStatementValues(text, context) {
   const rewritten = rewriteValues(text, context);
   const dataOnly = rewriteValues(text, context, { session: false });
   return rewritten === dataOnly || parsesAsStatement(rewritten) ? rewritten : dataOnly;
-}
-
-function applyReplacements(text, replacements) {
-  let output = text;
-  for (const [name, replacement] of replacements) {
-    output = output.replace(new RegExp(`\\b${name}\\b`, "gi"), replacement);
-  }
-  return output;
 }
 
 function screenLoopBinding(text, usedNames) {
@@ -870,6 +878,7 @@ function parseWrite(raw, context) {
   const additions = {
     noGap: /\bNO-GAP\b/i.test(rest),
     currency: /\bCURRENCY\s+([^\s,]+)/i.exec(rest)?.[1],
+    unit: /\bUNIT\s+([^\s,]+)/i.exec(rest)?.[1],
     decimals: /\bDECIMALS\s+(\d+)/i.exec(rest)?.[1],
     round: /\bROUND\s+(\d+)/i.exec(rest)?.[1],
     noZero: /\bNO-ZERO\b/i.test(rest),
@@ -881,6 +890,7 @@ function parseWrite(raw, context) {
     .replace(/\b(?:HOTSPOT|INTENSIFIED|INVERSE)(?:\s+ON)?\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
     .replace(/\bCURRENCY\s+[^\s,]+/gi, "")
+    .replace(/\bUNIT\s+[^\s,]+/gi, "")
     .replace(/\bNO-GAP\b|\bNO-ZERO\b|\bNO-SIGN\b/gi, "")
     // The list writer never inserts thousands separators, so every field is
     // already written without grouping.
@@ -898,6 +908,7 @@ function parseWrite(raw, context) {
   const format = [];
   if (additions.decimals !== undefined) format.push(`decimals = ${additions.decimals} decimals_set = abap_true`);
   if (additions.currency) format.push(`currency = |{ ${valueExpression(additions.currency, context)} }|`);
+  if (additions.unit) format.push(`unit = |{ ${valueExpression(additions.unit, context)} }|`);
   if (additions.round) format.push(`round = ${additions.round}`);
   if (additions.noZero) format.push("no_zero = abap_true");
   if (additions.noSign) format.push("no_sign = abap_true");
@@ -937,7 +948,7 @@ function unsupportedWriteFormat(text) {
   const classic = withoutLiterals
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
-    .replace(/\bCURRENCY\b/gi, "");
+    .replace(/\b(?:CURRENCY|UNIT)\b/gi, "");
   return /\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
@@ -1263,6 +1274,11 @@ function lowerSingleStatement(statement, context) {
   if (statement.kind === "Write") {
     const iconAssignment = /^WRITE\s+([A-Z][A-Z0-9_]*)\s+AS\s+ICON(?:\s+QUICKINFO\s+.+?)?\s+TO\s+([A-Z][A-Z0-9_]*)\.?$/i.exec(raw);
     if (iconAssignment) return `${iconAssignment[2].toLowerCase()} = '@ICON:${iconAssignment[1].toLowerCase().replace(/^icon_/, "")}'.`;
+    const writeTo = writeToTarget(statement);
+    if (writeTo) {
+      if (!writeTo.supported) return `* TODO GGCONV-E516: ${writeTo.dynamic ? "WRITE (name) TO names its source at runtime" : "WRITE ... TO itab INDEX is obsolete"} and requires manual lowering.`;
+      return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
+    }
     const dynamic = dynamicWriteOperand(statement);
     if (dynamic) {
       const targets = context.dynamicWriteTargets ?? [];
@@ -1338,7 +1354,9 @@ function lowerSingleStatement(statement, context) {
     if (!match) return undefined;
     const name = match[1].toLowerCase();
     const type = context.rangeDeclarations?.[match[1].toUpperCase()] ?? "TYPE RANGE OF string";
-    return `DATA ${name} ${type}.`;
+    // RANGES has a header line, see header-lines.mjs.
+    const header = context.headerLines?.[match[1].toUpperCase()];
+    return [`DATA ${name} ${type}.`, ...(header ? [`DATA ${header} LIKE LINE OF ${name}.`] : [])].join("\n");
   }
   // A static ASSIGN is carried over like any other statement. Whether its
   // target has a declaration is settled in lowerStatements, as for every use.
@@ -1393,7 +1411,8 @@ function lowerSingleStatement(statement, context) {
     return `io_session->get_list( )->set_level( iv_level = ${valueExpression(value, context)} ).`;
   }
   // A LOOP with an INTO or ASSIGNING target is carried over as written. One
-  // without reads a header line, which a class cannot have: over a
+  // without reads a header line, which a class cannot have: a header-line
+  // table's loop already got its work area in headerLineStatement, over a
   // select-option it is given an explicit range row, otherwise it is omitted.
   if (statement.kind === "Loop" && !isMethodSafeLoop(statement)) {
     const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1]?.toUpperCase();
@@ -1764,12 +1783,21 @@ const BLOCK_CLOSERS = new Map([
   ["Case", "EndCase"], ["Try", "EndTry"], ["While", "EndWhile"],
 ]);
 const BLOCK_CLOSER_KINDS = new Set(BLOCK_CLOSERS.values());
+const UNKNOWN_BLOCK_OPENERS = new Map([["IF", "If"], ["DO", "Do"], ["LOOP", "Loop"], ["CASE", "Case"], ["TRY", "Try"], ["WHILE", "While"]]);
+
+// A statement abaplint could not classify still opens its block when it starts
+// with the keyword of one, `IF itab[ ... ]` under an older release for example:
+// its closer parses, so it is dropped with it.
+function blockOpenerKind(statement) {
+  if (statement.kind !== "Unknown") return statement.kind;
+  return UNKNOWN_BLOCK_OPENERS.get(/^\s*([A-Z]+)\b/i.exec(statement.text)?.[1]?.toUpperCase()) ?? statement.kind;
+}
 
 function blockEndIndex(statements, start) {
-  const closer = BLOCK_CLOSERS.get(statements[start].kind);
+  const closer = BLOCK_CLOSERS.get(blockOpenerKind(statements[start]));
   let depth = 0;
   for (let index = start + 1; index < statements.length; index++) {
-    const kind = statements[index].kind;
+    const kind = blockOpenerKind(statements[index]);
     if (BLOCK_CLOSERS.has(kind)) depth++;
     else if (BLOCK_CLOSER_KINDS.has(kind)) {
       if (depth > 0) depth--;
@@ -1852,6 +1880,32 @@ function normalizeDynamicAlvStatement(statement, context) {
     .replace(new RegExp(`\\b${tableMember}\\s+IS\\s+NOT\\s+ASSIGNED\\b`, "i"), `${model.referenceMember.toLowerCase()} IS NOT BOUND`)
     .replace(new RegExp(`\\b${tableMember}\\s+IS\\s+ASSIGNED\\b`, "i"), `${model.referenceMember.toLowerCase()} IS BOUND`);
   return rewritten === raw ? statement : {...statement, text: rewritten};
+}
+
+// The statement without the header lines of the tables in scope, see
+// header-lines.mjs. A local declaration of such a table declares the table and
+// its work area instead.
+function headerLineStatement(statement, context) {
+  const headerLines = context.headerLines ?? {};
+  if (!Object.keys(headerLines).length || ["Comment", "Unknown", "Ranges"].includes(statement.kind)) return statement;
+  const raw = statement.text.trim();
+  if (statement.scope === "local" && statement.kind === "Data") {
+    const name = /^DATA\s*:?\s*([A-Z][A-Z0-9_]*)/i.exec(raw)?.[1]?.toUpperCase();
+    if (name && headerLines[name] && /\bWITH\s+HEADER\s+LINE\b/i.test(raw)) {
+      const isDataObject = (operand) => Boolean(context.dataObjects?.has(operand.split("-")[0].toUpperCase()));
+      return { ...statement, text: headerLineDeclarations(raw, headerLines[name], isDataObject).join("\n") };
+    }
+  }
+  if (statement.scope === "local" && statement.kind === "DataBegin") {
+    const name = /\bBEGIN\s+OF\s+([A-Z][A-Z0-9_]*)\s+OCCURS\b/i.exec(raw)?.[1]?.toUpperCase();
+    return name && headerLines[name] ? { ...statement, text: headerLineBegin(raw, headerLines[name]) } : statement;
+  }
+  if (statement.scope === "local" && statement.kind === "DataEnd") {
+    const name = /\bEND\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(raw)?.[1]?.toUpperCase();
+    return name && headerLines[name] ? { ...statement, text: headerLineEnd(raw, name, headerLines[name]).join("\n") } : statement;
+  }
+  const text = withoutHeaderLines(statement.text, headerLines);
+  return text === statement.text ? statement : { ...statement, text };
 }
 
 function referencedFieldSymbols(text) {
@@ -1949,6 +2003,7 @@ export function lowerStatements(statements, context) {
       screenStateSymbol,
     };
     statement = normalizeDynamicAlvStatement(statement, statementContext);
+    statement = headerLineStatement(statement, statementContext);
     const freeKey = freeChainKey(statement);
     const freeMembers = freeKey ? freeChains.get(freeKey) : undefined;
     if (statement.kind === "Free" && freeMembers?.length > 1) {
@@ -1983,7 +2038,7 @@ export function lowerStatements(statements, context) {
     const omitted = unbound.length
       ? `* TODO GGCONV-E515: statement omitted, field symbol${unbound.length > 1 ? "s" : ""} ${unbound.map((name) => `<${name.toLowerCase()}>`).join(" ")} ${unbound.length > 1 ? "have" : "has"} no convertible binding: ${statement.text.trim().replace(/\s+/g, " ")}`
       : `* TODO GGCONV-E501: unsupported statement omitted: ${statement.text.trim().replace(/\s+/g, " ")}`;
-    const blockEnd = BLOCK_CLOSERS.has(statement.kind) && isCommentOnly(lowered)
+    const blockEnd = BLOCK_CLOSERS.has(blockOpenerKind(statement)) && isCommentOnly(lowered)
       ? blockEndIndex(statements, index)
       : -1;
     if (blockEnd >= 0) {
@@ -1997,17 +2052,19 @@ export function lowerStatements(statements, context) {
     }
     if (lowered !== undefined) {
       const item = { text: lowered, statement, supported: !lowered.includes("TODO GGCONV") };
-      if (pendingHidden.length && statement.kind !== "Write" && lastWriteIndex >= 0) {
+      // WRITE ... TO writes no line, so HIDE does not attach to it.
+      const listWrite = statement.kind === "Write" && !writeToTarget(statement);
+      if (pendingHidden.length && !listWrite && lastWriteIndex >= 0) {
         output[lastWriteIndex].text = appendHiddenFields(output[lastWriteIndex].text, pendingHidden);
         pendingHidden = [];
       }
-      if (statement.kind === "Write" && pendingHidden.length) {
+      if (listWrite && pendingHidden.length) {
         item.text = appendHiddenFields(item.text, pendingHidden);
         pendingHidden = [];
       }
       if (statement.kind === "EndLoop" && screenLoops.at(-1)?.guarded) item.text = `${item.text}\nENDIF.`;
       output.push(item);
-      if (statement.kind === "Write") lastWriteIndex = output.length - 1;
+      if (listWrite) lastWriteIndex = output.length - 1;
       if (statement.kind === "Loop") {
         const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text.trim())?.[1]?.toUpperCase();
         if (context.selections?.some((selection) => selection.name === name && selection.ranges)) {

@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { Config, MemoryFile, Registry } from "@abaplint/core";
+import { Config, MemoryFile, Registry, Version } from "@abaplint/core";
 import { ABAPParser } from "@abaplint/core/build/src/abap/abap_parser.js";
 import { diagnostic, parserIssueToDiagnostic } from "./diagnostics.mjs";
 import { rangeFromOffsets } from "./source-resolver.mjs";
@@ -39,6 +39,22 @@ export async function readConfig(configPath = "abaplint.jsonc") {
   } catch {
     return Config.getDefault();
   }
+}
+
+// The generated class is written for the scaffold, whose own sources need
+// 7.40 SP08: VALUE #, inline declarations, xsdbool. A project configured for an
+// older release still has its reports parsed with that release, but checking
+// the generated class against it would reject every converted program.
+const PRE_SCAFFOLD_RELEASES = new Set(["v700", "v702", "v740sp02", "v740sp05"]);
+
+export function generatedSourceConfig(config = Config.getDefault()) {
+  if (!PRE_SCAFFOLD_RELEASES.has(config.getRelease()?.name)) return config;
+  const raw = JSON.parse(JSON.stringify(config.get()));
+  const version = raw.syntax.version;
+  raw.syntax.version = version && typeof version === "object"
+    ? { ...version, release: Version.v740sp08 }
+    : Version.v740sp08;
+  return new Config(JSON.stringify(raw));
 }
 
 export function parseUnits(units, config = Config.getDefault()) {
@@ -95,6 +111,46 @@ export function parsesAsStatement(text) {
       && statements.every((statement) => (statement.get?.()?.constructor?.name ?? statement.constructor.name) !== "Unknown"));
   }
   return statementParses.get(text);
+}
+
+const keywordParses = new Map();
+
+function keywordsOfStatements(text) {
+  statementParser ??= configuredParser(Config.getDefault());
+  const file = statementParser.parse([new MemoryFile("zggconv_probe.prog.abap", text)]).output[0];
+  const statements = file?.getStatements?.() ?? [];
+  if (!statements.length || statements.some((statement) => (statement.get?.()?.constructor?.name ?? statement.constructor.name) === "Unknown")) return undefined;
+  const lineStarts = [0];
+  for (let index = 0; index < text.length; index++) if (text[index] === "\n") lineStarts.push(index + 1);
+  const offsets = new Set();
+  for (const statement of statements) {
+    const visit = (node) => {
+      if (node.constructor.name === "TokenNode") {
+        const token = node.getFirstToken();
+        if (/^[A-Z_]/i.test(token.getStr())) offsets.add(lineStarts[token.getStart().getRow() - 1] + token.getStart().getCol() - 1);
+        return;
+      }
+      for (const child of node.getChildren?.() ?? []) visit(child);
+    };
+    visit(statement);
+  }
+  return offsets;
+}
+
+// The offsets of the keywords in ABAP text: what abaplint matched as a word of
+// the syntax rather than as a name, such as VALUE in `VALUE #( value = 1 )`.
+// The text is a statement or an expression; undefined if it parses as neither.
+export function keywordOffsets(text) {
+  if (!keywordParses.has(text)) {
+    const prefix = "ggconv_probe = ";
+    let offsets = keywordsOfStatements(text);
+    if (!offsets) {
+      const expression = keywordsOfStatements(`${prefix}${text}.`);
+      offsets = expression && new Set([...expression].filter((offset) => offset >= prefix.length).map((offset) => offset - prefix.length));
+    }
+    keywordParses.set(text, offsets);
+  }
+  return keywordParses.get(text);
 }
 
 export function parseSource(source, filename = "program.prog.abap", config = Config.getDefault()) {

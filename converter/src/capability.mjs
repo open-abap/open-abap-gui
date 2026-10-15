@@ -1,10 +1,11 @@
 import { diagnostic } from "./diagnostics.mjs";
 import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
-import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop, isStaticAssign } from "./passes/lower-statements.mjs";
+import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop, isStaticAssign, writeToTarget } from "./passes/lower-statements.mjs";
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
 import { LOOP_BLOCKS } from "./passes/blocks.mjs";
 import { isSuspendingStatement } from "./passes/lower-continuations.mjs";
+import { headerLinesOf } from "./passes/header-lines.mjs";
 
 export const ACTIONABLE_DIAGNOSTIC_CODES = Object.freeze({
   dynamicType: "GGCONV-E515",
@@ -56,7 +57,7 @@ function supportedClassicWriteFormat(text) {
     .replace(/'(?:''|[^'])*'/g, "")
     .replace(/\bHOTSPOT\b/gi, "")
     .replace(/\bCOLOR\s+COL_[A-Z_]+\b/gi, "")
-    .replace(/\bCURRENCY\b/gi, "");
+    .replace(/\b(?:CURRENCY|UNIT)\b/gi, "");
   return !/\b(COLOR|CURRENCY|UNIT|EXPONENT|EDIT\s+MASK|SIGN\s+AS\s+POSTFIX)\b/i.test(classic);
 }
 
@@ -96,14 +97,22 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       addStatementDiagnostic(diagnostics, statement, "dynamic ASSIGN names its source at runtime, which the converted class cannot resolve", "Name the source statically, or convert the ASSIGN manually.", "GGCONV-E501");
       continue;
     }
-    if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)) {
+    // A header-line table's loop is given its work area, see header-lines.mjs.
+    if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)
+      && !headerLinesOf(ir, statement)[loopName(statement)]) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
     if (statement.kind === "Perform" && /\bPERFORM\s+\(/i.test(statement.text)) {
       addStatementDiagnostic(diagnostics, statement, "dynamic PERFORM names a FORM that became a method", "Call the generated method directly or provide a manual method mapping.", "GGCONV-E401");
       continue;
     }
-    if (statement.kind === "Write" && !supportedClassicWriteFormat(statement.text)) {
+    const writeTo = writeToTarget(statement);
+    if (writeTo && !writeTo.supported) {
+      addStatementDiagnostic(diagnostics, statement, writeTo.dynamic
+        ? "WRITE (name) TO names its source at runtime, which the converted class cannot resolve"
+        : "WRITE ... TO itab INDEX is obsolete and has no class equivalent", "Name the source statically, or write to a variable and MODIFY the table line.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement);
+    }
+    if (statement.kind === "Write" && !writeTo && !supportedClassicWriteFormat(statement.text)) {
       addStatementDiagnostic(diagnostics, statement, "this WRITE formatting addition is not represented by the scaffold writer", "Move the formatting to FORMAT or provide a typed writer extension.", "GGCONV-E501");
     }
     if (statement.kind === "CallTransaction" && /\bUSING\b/.test(text.replace(/'(?:''|[^'])*'/g, ""))) {
@@ -126,7 +135,8 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       interfaces.add("zif_gg_resumable_v1");
       ir.features.push("continuation");
     }
-    if (["Write", "AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Hide", "ReadLine", "ModifyLine", "GetCursor", "SetPFStatus", "SetTitlebar"].includes(statement.kind) || /LINE-SIZE|LINE-COUNT|NO STANDARD PAGE HEADING/.test(text)) {
+    // WRITE ... TO writes no list.
+    if ((statement.kind === "Write" && !writeTo) || ["AtLineSelection", "AtUserCommand", "AtPF", "TopOfPage", "EndOfPage", "Hide", "ReadLine", "ModifyLine", "GetCursor", "SetPFStatus", "SetTitlebar"].includes(statement.kind) || /LINE-SIZE|LINE-COUNT|NO STANDARD PAGE HEADING/.test(text)) {
       interfaces.add("zif_gg_list_processing_v1");
       ir.features.push("list-processing");
     }

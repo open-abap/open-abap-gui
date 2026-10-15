@@ -1,0 +1,94 @@
+REPORT zreg_families.
+
+TYPES: BEGIN OF ty_field,
+         fieldname TYPE c LENGTH 30,
+       END OF ty_field.
+
+DATA shipment_ref TYPE string VALUE 'global'.
+DATA name TYPE string VALUE 'global'.
+DATA: BEGIN OF gt_items OCCURS 0,
+        id  TYPE i,
+        qty TYPE i,
+      END OF gt_items.
+DATA gv_total TYPE i.
+DATA gv_weight TYPE p LENGTH 13 DECIMALS 3 VALUE '12.5'.
+DATA gv_text TYPE c LENGTH 20.
+DATA gv_unit TYPE c LENGTH 3 VALUE 'KG'.
+
+CLASS lcl_asn DEFINITION.
+  PUBLIC SECTION.
+    TYPES: BEGIN OF ty_data,
+             shipment_ref TYPE string,
+           END OF ty_data.
+    TYPES: BEGIN OF ty_value,
+             name  TYPE string,
+             value TYPE string,
+           END OF ty_value.
+    TYPES ty_values TYPE STANDARD TABLE OF ty_value WITH EMPTY KEY.
+    DATA mv_p_basuni TYPE string VALUE 'KG'.
+    METHODS get RETURNING VALUE(rs_data) TYPE ty_data.
+    METHODS ref RETURNING VALUE(rv_ref) TYPE string.
+    METHODS sync CHANGING ct_values TYPE ty_values.
+ENDCLASS.
+
+CLASS lcl_asn IMPLEMENTATION.
+  METHOD get.
+    rs_data-shipment_ref = 'ASN-1'.
+  ENDMETHOD.
+  METHOD ref.
+    DATA lo_asn_clone TYPE REF TO lcl_asn.
+    DATA lv_shipment_ref TYPE string.
+    lo_asn_clone = NEW #( ).
+    lv_shipment_ref = lo_asn_clone->get( )-shipment_ref.
+    rv_ref = lv_shipment_ref.
+  ENDMETHOD.
+  METHOD sync.
+    IF ct_values[ name = 'P_BASUNI' ]-value <> mv_p_basuni.
+      ct_values[ name = 'P_BASUNI' ]-value = |{ mv_p_basuni }|.
+    ENDIF.
+    RETURN.
+  ENDMETHOD.
+ENDCLASS.
+
+START-OF-SELECTION.
+  DATA lo_asn TYPE REF TO lcl_asn.
+  DATA lt_values TYPE lcl_asn=>ty_values.
+  lo_asn = NEW #( ).
+  WRITE / lo_asn->ref( ).
+  lt_values = VALUE #( ( name = 'P_BASUNI' value = 'G' ) ).
+  lo_asn->sync( CHANGING ct_values = lt_values ).
+  WRITE / lt_values[ 1 ]-value.
+
+  gt_items-id = 1.
+  gt_items-qty = 2.
+  APPEND gt_items.
+  gt_items-id = 2.
+  gt_items-qty = 3.
+  APPEND gt_items.
+  LOOP AT gt_items.
+    gt_items-qty = gt_items-qty * 10.
+    gv_total = gv_total + gt_items-qty.
+  ENDLOOP.
+  WRITE / gv_total.
+  READ TABLE gt_items INDEX 2.
+  WRITE / gt_items-qty.
+
+  PERFORM get_costcenter.
+
+  WRITE gv_weight TO gv_text UNIT gv_unit.
+  WRITE / gv_text.
+
+FORM get_costcenter.
+  DATA: lt_fields  TYPE STANDARD TABLE OF ty_field WITH DEFAULT KEY,
+        lt_options TYPE STANDARD TABLE OF ty_field WITH DEFAULT KEY.
+  FIELD-SYMBOLS: <ls_field>  LIKE LINE OF lt_fields,
+                 <ls_option> LIKE LINE OF lt_options.
+
+  APPEND INITIAL LINE TO lt_options ASSIGNING <ls_option>.
+  <ls_option>-fieldname = '...'.
+  APPEND INITIAL LINE TO lt_fields ASSIGNING <ls_field>.
+  <ls_field>-fieldname = 'KOSTL'.
+  LOOP AT lt_fields ASSIGNING <ls_field>.
+    WRITE / <ls_field>-fieldname.
+  ENDLOOP.
+ENDFORM.

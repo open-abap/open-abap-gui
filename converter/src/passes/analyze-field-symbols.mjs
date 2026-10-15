@@ -33,12 +33,14 @@ function staticType(raw, tables) {
 
 // `LOOP AT itab ASSIGNING <fs>` and `READ TABLE itab ... ASSIGNING <fs>` bind
 // the field symbol to a row of a statically named table, which is exactly as
-// determined as an ASSIGN with a static source. All are lowered and emitted, so
-// all have to count as bindings or the emitted use loses its declaration.
+// determined as an ASSIGN with a static source; so do APPEND, INSERT and
+// COLLECT ... ASSIGNING, to the row they just added. All are lowered and
+// emitted, so all have to count as bindings or the emitted use loses its
+// declaration.
 function bindsStatically(text, name) {
   if (/^\s*ASSIGN\b/i.test(text)) return isStaticAssign(text) && assignTarget(text) === name;
   if (UNSAFE_ASSIGN_ADDITIONS.test(text)) return false;
-  if (!/^\s*(?:LOOP\s+AT|READ\s+TABLE)\s+(?:[A-Z][A-Z0-9_]*\b|<[A-Z][A-Z0-9_]*>)/i.test(text)) return false;
+  if (!/^\s*(?:(?:LOOP\s+AT|READ\s+TABLE)\s+(?:[A-Z][A-Z0-9_]*\b|<[A-Z][A-Z0-9_]*>)|(?:APPEND|INSERT|COLLECT)\b)/i.test(text)) return false;
   if (/^\s*LOOP\s+AT\s+SCREEN\b/i.test(text)) return false;
   const assigning = /\bASSIGNING\s+<([A-Z][A-Z0-9_]*)>/i.exec(text)?.[1]?.toUpperCase();
   return assigning === name;
