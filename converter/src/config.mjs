@@ -144,6 +144,7 @@ function emptyConfig(filename, root, diagnostics) {
     root,
     inputFolders: [],
     converterInputFolders: [],
+    converterExcludeFilters: [],
     libs: [],
     generatedFolder: undefined,
     diagnostics,
@@ -216,6 +217,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
 
   const converter = parsed.converter;
   let converterInputFolders = [];
+  let converterExcludeFilters = [];
   let generatedFolder;
   let language;
   if (converter === null || typeof converter !== "object" || Array.isArray(converter)) {
@@ -230,6 +232,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
     ));
   } else {
     converterInputFolders = parseFolders(converter.input_folder, "converter.input_folder", root, filename, diagnostics);
+    converterExcludeFilters = compileFilters(converter.exclude_filter, "converter.exclude_filter", filename, diagnostics);
     const declaredOutput = converter.output_folder;
     if (typeof declaredOutput !== "string" || declaredOutput.trim() === "") {
       diagnostics.push(configDiagnostic(
@@ -331,6 +334,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
     root,
     inputFolders,
     converterInputFolders,
+    converterExcludeFilters,
     libs,
     generatedFolder,
     ...(language === undefined ? {} : { language }),
@@ -393,7 +397,10 @@ export async function discoverTransactions(config) {
  * Find the executable programs in the converter input folders, in a
  * deterministic order. The transpiler's input_filter and exclude_filter do not
  * apply: they select what abap_transpile compiles, and the converter input is
- * a folder of its own.
+ * a folder of its own. `converter.exclude_filter` drops programs instead; like
+ * the transpiler's filter, it is matched against the path relative to the
+ * working directory, such as `src/zfoo.prog.abap`. An excluded program is
+ * still searched for INCLUDEs, it is only not converted.
  */
 export async function discoverPrograms(config) {
   const found = new Map();
@@ -402,9 +409,11 @@ export async function discoverPrograms(config) {
     await collectProgramFiles(folder, config.generatedFolder, found, visited);
   }
 
+  const excludeFilters = config.converterExcludeFilters ?? [];
   const selected = [...found.keys()]
     .sort((left, right) => left.localeCompare(right))
-    .map((filename) => ({ filename, relativePath: posix(path.relative(config.root, filename)) }));
+    .map((filename) => ({ filename, relativePath: posix(path.relative(config.root, filename)) }))
+    .filter((entry) => !excludeFilters.some((filter) => filter.test(entry.relativePath)));
 
   const programs = [];
   for (const entry of selected) {

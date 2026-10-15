@@ -118,20 +118,21 @@ if (configDiagnostics.length) {
 if (!config.valid) process.exit(2);
 
 const discovered = await discoverPrograms(config);
+const searched = config.converterExcludeFilters.length ? "converter.input_folder outside converter.exclude_filter" : "converter.input_folder";
 let programs = discovered;
 if (options.programs.length) {
   programs = [];
   for (const request of options.programs) {
     const matches = discovered.filter((program) => matchesRequest(program, request));
     if (!matches.length) {
-      console.error(`no program matching ${JSON.stringify(request)} was found in converter.input_folder`);
+      console.error(`no program matching ${JSON.stringify(request)} was found in ${searched}`);
       process.exit(2);
     }
     for (const match of matches) if (!programs.includes(match)) programs.push(match);
   }
 }
 if (!programs.length) {
-  console.error(`no executable programs were found in converter.input_folder`);
+  console.error(`no executable programs were found in ${searched}`);
   process.exit(2);
 }
 
