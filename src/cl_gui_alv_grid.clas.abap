@@ -499,6 +499,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
     CONSTANTS mc_mb_filter TYPE ui_func VALUE '&MB_FILTER'.
     CONSTANTS mc_mb_variant TYPE ui_func VALUE '&MB_VARIANT'.
     CONSTANTS mc_mb_view TYPE ui_func VALUE '&MB_VIEW'.
+    DATA m_display_protocol TYPE abap_bool VALUE abap_true.
 
   PROTECTED SECTION.
     METHODS drag REDEFINITION.
@@ -508,10 +509,12 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
     METHODS is_application_event REDEFINITION.
     DATA mt_outtab TYPE REF TO data.
     DATA mt_toolbar TYPE ttb_button.
-    DATA m_batch_mode TYPE sy-batch.
-    DATA m_display_protocol TYPE abap_bool.
 
   PRIVATE SECTION.
+    DATA mt_f4 TYPE lvc_t_f4.
+    DATA m_cl_variant TYPE REF TO cl_alv_variant.
+    DATA mt_hyperlinks TYPE lvc_t_hype.
+    DATA m_init_toolbar TYPE c LENGTH 1.
     TYPES: BEGIN OF ty_html_cell,
              fieldname       TYPE lvc_fname,
              text            TYPE string,
@@ -751,10 +754,6 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRI
         is_right      TYPE ty_html_row
       RETURNING
         VALUE(result) TYPE abap_bool.
-    DATA mt_f4 TYPE lvc_t_f4.
-    DATA m_cl_variant TYPE REF TO cl_alv_variant.
-    DATA mt_hyperlinks TYPE lvc_t_hype.
-    DATA m_init_toolbar TYPE c LENGTH 1.
 
 ENDCLASS.
 
