@@ -43,6 +43,7 @@ The keys it reads are:
 | key | converter use |
 | --- | --- |
 | `converter.input_folder` | folders scanned for `*.prog.abap` and `*.tran.xml`; searched first for INCLUDEs |
+| `converter.exclude_filter` | optional case-insensitive regular expressions; programs whose path matches are not converted |
 | `converter.output_folder` | where the generated classes are written; owned by the converter |
 | `converter.language` | optional one-character language key, such as `D`, for the texts to take; see below |
 | `input_folder` | searched for INCLUDEs after the converter input; must list `converter.output_folder` |
@@ -74,6 +75,12 @@ Everything else in the file belongs to the transpiler and is ignored, including
 transpiler adds: the converter reads that file, it never writes it and never
 validates it beyond the keys above. The filters select what abap_transpile
 compiles; they do not narrow the converter input, which is a folder of its own.
+To leave programs in `converter.input_folder` unconverted, list them in
+`converter.exclude_filter`. Like the transpiler's filter, each pattern is
+matched against the path relative to the working directory
+(`reports/zdraft.prog.abap`), so `"zdraft"` or `"^reports/legacy/"` both work.
+An excluded program is still searched for INCLUDEs, and a full run removes the
+class it produced before.
 
 `abap_transpile.json` is the only configuration file; the `converter` object is
 part of the transpiler's schema. Folder names resolve against the working

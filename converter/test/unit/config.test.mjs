@@ -164,6 +164,29 @@ test("discovers programs only in converter.input_folder, ignoring the transpiler
   assert.deepEqual(programs.map((item) => item.programName), ["ZALPHA", "ZBETA"]);
 });
 
+test("converter.exclude_filter drops programs by their path relative to the working directory", async () => {
+  const project = await workspace({
+    "reports/zalpha.prog.abap": REPORT("zalpha"),
+    "reports/zbeta.prog.abap": REPORT("zbeta"),
+    "reports/legacy/zgamma.prog.abap": REPORT("zgamma"),
+  }, { ...BASE, input_folder: ["src", "reports", "generated"], converter: { ...CONVERTER, input_folder: ["reports"], exclude_filter: ["ZBETA", "^reports/legacy/"] } });
+  await fs.mkdir(path.join(project.root, "src"));
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  assert.deepEqual(config.diagnostics, []);
+  assert.deepEqual((await discoverPrograms(config)).map((item) => item.programName), ["ZALPHA"]);
+
+  // A full run clears the generated folder, so an excluded program's old class goes too.
+  await fs.mkdir(config.generatedFolder);
+  await fs.writeFile(path.join(config.generatedFolder, "zcl_beta.clas.abap"), "* old\n", "utf8");
+  await convertConfiguredPrograms({ config });
+  assert.deepEqual((await fs.readdir(config.generatedFolder)).filter((name) => name.endsWith(".clas.abap")), ["zcl_alpha.clas.abap"]);
+
+  const invalid = await workspace({ "src/zone.prog.abap": REPORT("zone") }, { ...LISTED, converter: { ...CONVERTER, exclude_filter: ["z(broken"] } });
+  const invalidConfig = await loadTranspileConfig(invalid.configPath, { cwd: invalid.root });
+  assert.deepEqual(codes(invalidConfig.diagnostics), ["GGCONV-E114"]);
+  assert.equal(invalidConfig.valid, false);
+});
+
 test("ignores configuration keys the converter does not use", async () => {
   const extended = await workspace({ "src/zone.prog.abap": REPORT("zone") }, {
     ...BASE,
