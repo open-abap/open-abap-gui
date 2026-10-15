@@ -4,6 +4,7 @@ CLASS cl_gui_alv_grid_base DEFINITION PUBLIC INHERITING FROM cl_gui_control.
     DATA mv_delay_change_selection TYPE i.
     DATA mv_delay_move_current_cell TYPE i.
     DATA mv_toolbar_visible TYPE abap_bool.
+    DATA m_batch_mode TYPE sy-batch.
 
     EVENTS click_col_header
       EXPORTING
