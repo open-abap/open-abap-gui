@@ -8,11 +8,12 @@ ENDCLASS.
 CLASS ltcl_ex_12 IMPLEMENTATION.
 
   METHOD initializes_parameter.
+    DATA lv_date TYPE d VALUE '20260101'.
     DATA(ls_result) = zcl_gg_host=>run( NEW zcl_gg_ex_012( ) ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-lines
-      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `01/01/2026` ) ) ).
+      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( |{ lv_date DATE = USER }| ) ) ).
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-values[ name = 'P_DATE' ]-value
       exp = '20260101' ).
