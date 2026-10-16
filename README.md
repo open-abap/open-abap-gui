@@ -1,8 +1,11 @@
 # open-abap-gui
 
-wip
+GUI Dynpro controls and classic report/dynpro processing for [open-abap](https://github.com/open-abap), rendered as HTML in the browser.
 
-`npm test` transpiles without source maps. Use `npm run transpile` to generate
-source maps for debugging, then `node --enable-source-maps output/index.mjs`
-to run the ABAP unit tests with mapped stacks. `npm run test:html-e2e` also uses
-the faster test transpilation configuration.
+Work in progress.
+
+Preview of `main`: https://open-abap.github.io/open-abap-gui-preview-deployments/main/
+
+## abaplint.app
+
+Looking for a hosted setup? [abaplint.app](https://abaplint.app) runs abaplint automatically on your GitHub pull requests: no system installation, custom configurations supported, and findings reported right where you review code.
