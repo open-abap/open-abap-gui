@@ -1,5 +1,5 @@
 import { textLiteral } from "./abap-text.mjs";
-import { controlObjectTypes, lowerStatements, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
+import { bindsStatically, controlObjectTypes, lowerStatements, rebindingCall, restoreFieldSymbols, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
 import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
@@ -208,9 +208,10 @@ function addWriterDeclaration(body) {
   const rest = [];
   const flatBody = body.flatMap((line) => String(line).split("\n"));
   // The method's own declarations stay first: a field symbol hoisted from
-  // further down may be typed LIKE LINE OF one of them.
+  // further down may be typed LIKE LINE OF one of them. The comment above a
+  // FORM comes before its declarations.
   let leading = 0;
-  while (leading < flatBody.length && /^\s*(?:DATA|TYPES|CONSTANTS|FIELD-SYMBOLS)\s/i.test(flatBody[leading])) leading++;
+  while (leading < flatBody.length && /^\s*(?:(?:DATA|TYPES|CONSTANTS|FIELD-SYMBOLS)\s|\*|")/i.test(flatBody[leading])) leading++;
   const declarations = flatBody.slice(0, leading);
   for (const line of flatBody.slice(leading)) {
     if (/^\s*FIELD-SYMBOLS\b/i.test(line)) fieldSymbols.push(line);
@@ -461,6 +462,8 @@ function dataMembers(ir) {
   if (selectionTabbedBlocks(ir).length) {
     dataMembers.push("DATA mv_active_tab TYPE string.");
   }
+  // The binding of a global field symbol that outlives the method making it.
+  for (const { member } of Object.values(ir.fieldSymbolReferences ?? {})) dataMembers.push(`DATA ${member} TYPE REF TO data.`);
   const dynamicTypes = ir.dynamicAlv
     ? [
       `TYPES: BEGIN OF ${ir.dynamicAlv.rowType},`,
@@ -821,6 +824,7 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
       statements,
     }),
     safeFieldSymbols: ir.safeFieldSymbols ?? [],
+    fieldSymbolReferences: ir.fieldSymbolReferences ?? {},
     dynamicAlv: ir.dynamicAlv,
     rangeDeclarations: Object.fromEntries((ir.declarations ?? [])
       .filter((declaration) => declaration.kind === "ranges")
@@ -837,21 +841,41 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
   };
 }
 
-function globalFieldSymbolDeclarations(ir, statements) {
+// The report's FIELD-SYMBOLS a generated method uses, declared in it, as a
+// class cannot have field symbols. One bound in another method gets that
+// binding back from its data reference first, see fieldSymbolReferences.
+function globalFieldSymbolDeclarations(ir, statements, context) {
   const source = statements ?? [];
-  return (ir.declarations ?? [])
+  const uses = (name) => source.some((statement) => new RegExp(`<${name}>`, "i").test(statement.text));
+  const declarations = (ir.declarations ?? [])
     .filter((declaration) => declaration.kind === "field-symbol"
       && declaration.statement?.scope !== "local"
       && (!ir.dynamicAlv || !declaration.names?.some((name) => String(name).toUpperCase() === ir.dynamicAlv.tableSymbol))
       && (declaration.names ?? []).some((name) => ir.safeFieldSymbols?.includes(name.toUpperCase()))
-      && (declaration.names ?? []).some((name) => source.some((statement) => new RegExp(`<${name}>`, "i").test(statement.text))))
+      && (declaration.names ?? []).some(uses))
     .map((declaration) => {
-      if (!ir.dynamicAlv) return declaration.raw;
+      // Typed like a report global, which may have been renamed or have had
+      // a header line.
+      const raw = replaceIdentifiers(withoutHeaderLines(declaration.raw.replace(/,\s*$/, "."), ir.headerLines?.global ?? {}), context?.replacements ?? []);
+      if (!ir.dynamicAlv) return raw;
       const model = ir.dynamicAlv;
       const names = new Set((declaration.names ?? []).map((name) => String(name).toUpperCase()));
-      if (!names.has(model.tableSymbol)) return declaration.raw;
-      return declaration.raw.replace(/\bTYPE\s+(?:STANDARD\s+)?TABLE\b/i, `TYPE ${model.tableType}`);
+      if (!names.has(model.tableSymbol)) return raw;
+      return raw.replace(/\bTYPE\s+(?:STANDARD\s+)?TABLE\b/i, `TYPE ${model.tableType}`);
     });
+  const kept = Object.keys(ir.fieldSymbolReferences ?? {}).filter(uses);
+  // Not where the method binds it before anything else uses it.
+  const restored = kept.filter((name) => {
+    const first = source.find((statement) => new RegExp(`<${name}>`, "i").test(statement.text));
+    return !bindsStatically(first.text, name);
+  });
+  // A call that may change the binding takes it over again.
+  const calls = source.some((statement) => kept.some((name) => rebindingCall(statement, ir.fieldSymbolReferences[name])));
+  return [
+    ...declarations,
+    ...(restored.length || calls ? ["DATA lv_ggconv_subrc TYPE sy-subrc."] : []),
+    ...(restored.length ? [restoreFieldSymbols(restored, context)] : []),
+  ];
 }
 
 function selectionStateTransport(ir, event) {
@@ -1107,7 +1131,7 @@ function eventBody(ir, event, sourceStatements = ir.events[event] ?? [], qualifi
   // A value or help request without a block of its own needs no values.
   const requestEvent = ["at_selection_screen_value_req", "at_selection_screen_help_req"].includes(event);
   const transport = requestEvent && !statements.length ? { hydrate: [], flush: [] } : selectionStateTransport(ir, event);
-  const fieldSymbols = globalFieldSymbolDeclarations(ir, statements);
+  const fieldSymbols = globalFieldSymbolDeclarations(ir, statements, context);
   let body = [
     ...fieldSymbols,
     ...(statements.length ? hiddenRestore(ir, event) : []),
@@ -1248,7 +1272,7 @@ function resumeMethod(ir) {
         : storedScreenStates(screenStatePlan(ir).defaultKind);
       if (ir.routines?.includes(owner)) context.headerLines = headerLinesIn(ir, owner.name);
       lowered = removePromotedDeclarations(ir, lowerStatements(tail, context).map((item) => item.text));
-      lowered = [...(ir.routines?.includes(owner) ? ir.headerLines?.parameters?.[owner.name] ?? [] : []), ...globalFieldSymbolDeclarations(ir, tail), ...lowered];
+      lowered = [...(ir.routines?.includes(owner) ? ir.headerLines?.parameters?.[owner.name] ?? [] : []), ...globalFieldSymbolDeclarations(ir, tail, context), ...lowered];
     }
     if (!lowered.some((line) => String(line).trim() && !/^\s*\*/.test(line))) lowered.push("RETURN.");
     cases.push(`WHEN '${id}'.`, ...lowered);
@@ -1372,7 +1396,7 @@ function routineBody(ir, routine) {
   context.headerLines = headerLinesIn(ir, routine.name);
   let lowered = removePromotedDeclarations(ir, lowerStatements(active, context).map((item) => item.text));
   // The work areas for the header lines of TABLES parameters.
-  lowered = [...(ir.headerLines?.parameters?.[routine.name] ?? []), ...globalFieldSymbolDeclarations(ir, active), ...lowered];
+  lowered = [...(ir.headerLines?.parameters?.[routine.name] ?? []), ...globalFieldSymbolDeclarations(ir, active, context), ...lowered];
   // Keep the ILI demo's fallback actions observable in browser runtimes.  The
   // native report deliberately does not construct the ActiveX control when it
   // is unavailable, so its later action forms would otherwise only update
@@ -1999,7 +2023,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
         ...(direction === "OUTPUT" ? {} : { screenStates: storedScreenStates("dynpro", { row: "is_context-row" }) }),
       };
       const body = [
-        ...globalFieldSymbolDeclarations(ir, module.statements),
+        ...globalFieldSymbolDeclarations(ir, module.statements, context),
         ...removePromotedDeclarations(ir, lowerStatements(module.statements.filter(statement => !ir.declarations?.some(item => item.statement === statement)), context).map((item) => item.text)),
       ];
       lines.push(`WHEN '${module.name}'.`, ...body);
@@ -2080,7 +2104,7 @@ function dynproMethods(ir, metadata = ir.dynproMetadata, interfaceName = "zif_gg
         screenStates: storedScreenStates("dynpro", { row: "is_context-row" }),
       };
       const body = [
-        ...globalFieldSymbolDeclarations(ir, module.statements),
+        ...globalFieldSymbolDeclarations(ir, module.statements, context),
         ...removePromotedDeclarations(ir, lowerStatements(module.statements.filter(statement => !ir.declarations?.some(item => item.statement === statement)), context).map((item) => item.text)),
       ];
       lines.push(`WHEN '${module.name}'.`, ...body);
@@ -2234,7 +2258,7 @@ function helperMethodBody(ir, localClass, localMethod) {
   const statements = truncateTerminalPaths(localMethod.statements ?? []);
   const context = helperMethodContext(ir, localClass, localMethod);
   let body = lowerStatements(statements, context).map((item) => item.text);
-  body = [...globalFieldSymbolDeclarations(ir, statements), ...body];
+  body = [...globalFieldSymbolDeclarations(ir, statements, context), ...body];
   if (body.some((line) => line.includes("lo_writer->"))) body = addWriterDeclaration(body);
   // Lowering writes io_session, the writer declaration included; methods
   // without that parameter use the session the helper stores for its owner.

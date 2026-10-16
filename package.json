@@ -27,8 +27,8 @@
     "@abaplint/cli": "^2.120.80",
     "@abaplint/core": "^2.120.80",
     "@abaplint/database-sqlite": "^2.13.83",
-    "@abaplint/runtime": "^2.14.6",
-    "@abaplint/transpiler-cli": "^2.14.6",
+    "@abaplint/runtime": "^2.14.8",
+    "@abaplint/transpiler-cli": "^2.14.8",
     "express": "^4.22.3",
     "playwright": "^1.62.1"
   },

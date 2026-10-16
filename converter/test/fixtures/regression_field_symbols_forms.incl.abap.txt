@@ -1,0 +1,66 @@
+FORM bind_order.
+  READ TABLE gt_prod_ord_list ASSIGNING <gs_prod_ord_list> INDEX 2.
+  READ TABLE gt_prod_ord_list WITH KEY id = 99 TRANSPORTING NO FIELDS.
+ENDFORM.
+
+FORM release_order.
+  UNASSIGN <gs_prod_ord_list>.
+ENDFORM.
+
+" ASSIGNING aliases each row, INTO copies it; itab[] is the table body.
+FORM pick_list.
+  DATA lt_prod_ord_pick_list TYPE ty_orders.
+  DATA ls_pick TYPE ty_order.
+  FIELD-SYMBOLS <ls_prod_ord_pick_list> LIKE LINE OF lt_prod_ord_pick_list.
+  lt_prod_ord_pick_list = gt_prod_ord_list.
+  LOOP AT lt_prod_ord_pick_list[] ASSIGNING <ls_prod_ord_pick_list>.
+    <ls_prod_ord_pick_list>-qty = <ls_prod_ord_pick_list>-qty * 2.
+  ENDLOOP.
+  LOOP AT lt_prod_ord_pick_list[] INTO ls_pick.
+    ls_pick-qty = 0.
+  ENDLOOP.
+  LOOP AT lt_prod_ord_pick_list[] ASSIGNING <ls_prod_ord_pick_list>.
+    WRITE / <ls_prod_ord_pick_list>-qty.
+  ENDLOOP.
+ENDFORM.
+
+" INTO a field symbol fills the data object it is bound to, not the row.
+FORM dynamic_into.
+  DATA lv_total TYPE i.
+  DATA ls_work TYPE ty_order.
+  FIELD-SYMBOLS: <lt_table> TYPE ANY TABLE,
+                 <lv_line> TYPE any.
+  ASSIGN gt_prod_ord_list TO <lt_table>.
+  ASSIGN ls_work TO <lv_line>.
+  LOOP AT <lt_table> INTO <lv_line>.
+    lv_total = lv_total + ls_work-qty.
+    CLEAR <lv_line>.
+  ENDLOOP.
+  WRITE / lv_total.
+  READ TABLE gt_prod_ord_list INTO ls_work INDEX 1.
+  WRITE / ls_work-qty.
+ENDFORM.
+
+FORM build_dynamic.
+  CREATE DATA gr_table TYPE ty_orders.
+  ASSIGN gr_table->* TO <gt_dyn_table>.
+  CREATE DATA gr_line LIKE LINE OF <gt_dyn_table>.
+  ASSIGN gr_line->* TO <gv_line>.
+ENDFORM.
+
+FORM fill_dynamic.
+  ASSIGN COMPONENT 'ID' OF STRUCTURE <gv_line> TO <lv_field>.
+  <lv_field> = 7.
+  ASSIGN COMPONENT 'QTY' OF STRUCTURE <gv_line> TO <lv_field>.
+  <lv_field> = 70.
+  APPEND <gv_line> TO <gt_dyn_table>.
+  <lv_field> = 71.
+  APPEND <gv_line> TO <gt_dyn_table>.
+ENDFORM.
+
+FORM show_dynamic.
+  LOOP AT <gt_dyn_table> ASSIGNING <gv_alv_line>.
+    ASSIGN COMPONENT 'QTY' OF STRUCTURE <gv_alv_line> TO <lv_field>.
+    WRITE / <lv_field>.
+  ENDLOOP.
+ENDFORM.

@@ -23,7 +23,7 @@ import { selectInterfaces } from "./passes/select-interfaces.mjs";
 import { resolveTypes } from "./passes/resolve-types.mjs";
 import { analyzeReferences } from "./passes/analyze-references.mjs";
 import { buildControlFlowGraphs } from "./passes/control-flow.mjs";
-import { analyzeFieldSymbols } from "./passes/analyze-field-symbols.mjs";
+import { analyzeFieldSymbols, fieldSymbolReferences } from "./passes/analyze-field-symbols.mjs";
 import { collectHeaderLines } from "./passes/header-lines.mjs";
 import { detectDynamicAlv } from "./passes/analyze-dynamic-alv.mjs";
 import { scanCapabilities } from "./capability.mjs";
@@ -202,6 +202,7 @@ function buildReportIR(parsed, resolved, options) {
     ...analyzeFieldSymbols(ir),
     ...(ir.dynamicAlv?.fieldSymbols ?? []),
   ])].sort();
+  ir.fieldSymbolReferences = fieldSymbolReferences(ir, ir.dynamicAlv?.fieldSymbols ?? []);
   ir.modules = collectModules(allStatements);
   const moduleStatements = new Set(ir.modules.flatMap((module) => module.statements));
   const programScope = lazyProgramScope(parsed.units, parsed.config, dictionaryIndex(options.dictionaryFiles));

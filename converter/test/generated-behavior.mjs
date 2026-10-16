@@ -314,6 +314,26 @@ export async function prepareBehaviorFixtures({inputFolder}) {
   for (const helper of familiesResult.helperSources) {
     await fs.writeFile(path.join(inputFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
   }
+
+  // GGCONV-REG-023: generic and LIKE LINE OF field symbols declared in an
+  // include, bound in one FORM and used in another, and LOOPs over itab[] and
+  // a field-symbol table, run end to end.
+  const fieldSymbolFixture = (name) => fs.readFile(path.join(repository, "converter", "test", "fixtures", name), "utf8");
+  const fieldSymbolsResult = await convertProgram({
+    source: await fieldSymbolFixture("regression_field_symbols.prog.abap.txt"),
+    filename: "zreg_field_symbols.prog.abap",
+    className: "ZCL_BV_FSYMBOLS",
+    transactionCode: "ZBVFSYM",
+    resolveInclude: async (name) => ({
+      zreg_field_symbols_top: await fieldSymbolFixture("regression_field_symbols_top.incl.abap.txt"),
+      zreg_field_symbols_forms: await fieldSymbolFixture("regression_field_symbols_forms.incl.abap.txt"),
+    }[name]),
+  });
+  assert.equal(fieldSymbolsResult.supported, true, JSON.stringify(fieldSymbolsResult.diagnostics));
+  await fs.writeFile(path.join(inputFolder, "ZCL_BV_FSYMBOLS.clas.abap"), fieldSymbolsResult.classSource, "utf8");
+  for (const helper of fieldSymbolsResult.helperSources) {
+    await fs.writeFile(path.join(inputFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
+  }
 }
 
 function plain(value) {
@@ -574,6 +594,29 @@ export async function checkBehavior(outputFolder) {
   // table key and component of ct_values stay; the header-line loop reads and
   // changes its work area, which READ TABLE then refills from the table.
   assert.deepEqual(families.lines.slice(0, 6).map((line) => line.trim()), ["ASN-1", "KG", "50", "3", "KOSTL", "12,500"]);
+
+  const fieldSymbols = normalize(await zcl_gg_host.run({
+    io_report: new abap.Classes.ZCL_BV_FSYMBOLS(),
+    rs_result: 1,
+  }));
+  assert.deepEqual(fieldSymbols.lines.map((line) => line.trim()), [
+    // Writing a generic field symbol writes the global it is bound to.
+    "through data",
+    // bind_order's sy-subrc survives taking its binding over; the row it
+    // bound changes through the event's and the local class's alias.
+    "4", "25", "25",
+    // LOOP ... ASSIGNING over a generic table changes the rows.
+    "2", "11",
+    // itab[] ASSIGNING doubles each row, INTO changes only its copy.
+    "22", "52",
+    // INTO <lv_line> fills the work area it is bound to, not the row.
+    "37", "11",
+    // The dynamic table built in one FORM is filled and read in two others,
+    // and is the data object gr_table points to.
+    "70", "71", "2",
+    // UNASSIGN in a FORM unassigns it for the event too.
+    "unassigned",
+  ]);
 
   console.log("converter behavior passed");
 }

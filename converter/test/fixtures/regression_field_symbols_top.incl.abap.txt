@@ -1,0 +1,31 @@
+TYPES: BEGIN OF ty_order,
+         id  TYPE i,
+         qty TYPE i,
+       END OF ty_order.
+TYPES ty_orders TYPE STANDARD TABLE OF ty_order WITH DEFAULT KEY.
+
+DATA gt_prod_ord_list TYPE ty_orders.
+DATA gs_order TYPE ty_order.
+DATA gv_text TYPE string.
+DATA gv_count TYPE i.
+DATA gv_subrc TYPE i.
+DATA gr_table TYPE REF TO data.
+DATA gr_line TYPE REF TO data.
+
+FIELD-SYMBOLS: <lv_data> TYPE data,
+               <lv_field> TYPE any.
+
+FIELD-SYMBOLS <gt_itab> TYPE STANDARD TABLE.
+FIELD-SYMBOLS <gv_line> TYPE any.
+
+FIELD-SYMBOLS <gt_table> TYPE ANY TABLE.
+
+FIELD-SYMBOLS: <gt_dyn_table>     TYPE STANDARD TABLE,
+               <gt_alv_dyn_table> TYPE STANDARD TABLE,
+               <gv_alv_line>      TYPE any.
+
+FIELD-SYMBOLS: <gs_prod_ord_list> LIKE LINE OF gt_prod_ord_list.
+
+FIELD-SYMBOLS <struc> TYPE any.
+
+FIELD-SYMBOLS <lt_data> TYPE any.
