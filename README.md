@@ -27,6 +27,7 @@ npm install --save-dev @abaplint/open-abap-gui-converter @abaplint/transpiler-cl
   "libs": [
     { "url": "https://github.com/open-abap/open-abap-core" },
     { "url": "https://github.com/open-abap/express-icf-shim" },
+    { "url": "https://github.com/open-abap/open-abap-bal" },
     { "url": "https://github.com/open-abap/open-abap-gui", "files": ["/src/**", "/framework/**"] }
   ],
   "options": {
