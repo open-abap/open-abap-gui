@@ -346,15 +346,24 @@ explicit `LOAD-OF-PROGRAM` block is emitted to `load_of_program`, while
 pre-event statements remain in `start_of_selection` as required by report
 semantics.
 Method-safe ordinary ABAP statements are preserved only through explicit
-lowering rules. Method-local elementary field symbols with static bindings and
+lowering rules. Field symbols with static bindings and
 dynamic `WRITE` variable/offset name expressions are supported in their proven
 subsets; dynamic function calls, unsafe field-symbol operations, and dynamic
 database targets remain explicit diagnostics. Static Open SQL and ordinary internal-table loops
-are also preserved when their targets are statically named, and an
+are also preserved when their targets are statically named (`itab[]` is the
+table body, and the `INTO` work area may be a field symbol), and an
 implicit-header-table loop gets the table's header-line work area as its target.
-A field symbol declared in a FORM is emitted with the FORM's method when every
-binding of it is static: `ASSIGN`, or `ASSIGNING` in `LOOP AT`, `READ TABLE`,
-`APPEND`, `INSERT` or `COLLECT`.
+A field symbol declared in a FORM is emitted with the FORM's method when the
+FORM binds it statically: `ASSIGN`, or `ASSIGNING` in `LOOP AT`, `READ TABLE`,
+`APPEND`, `INSERT` or `COLLECT`. A report's global field symbol, of any type a
+method accepts (generic ones such as `TYPE any`, `TYPE data` or `TYPE STANDARD
+TABLE` included), is declared in each generated method that uses it. Where a
+method uses it before binding it, so relies on a binding another FORM, event or
+local-class method made, the class keeps that binding in a `REF TO data`
+attribute: each binding statement stores it, `UNASSIGN` clears it, and the
+method takes it over at its start and after a call that may have changed it,
+keeping `sy-subrc`. Every binding must be static for that; a field symbol also
+bound through a dynamic `ASSIGN` keeps `GGCONV-E515`.
 The generated class is parsed with the project's `abaplint.jsonc`, but at
 release 7.40 SP08 at least, the release the scaffold's own sources need; the
 report itself is still parsed with the configured release. `GGCONV-E202` names

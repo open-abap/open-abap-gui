@@ -1,6 +1,4 @@
-import { assignTarget, isStaticAssign } from "./lower-statements.mjs";
-
-const ELEMENTARY_TYPES =new Set(["C", "N", "D", "T", "I", "P", "F", "X", "STRING", "ABAP_BOOL"]);
+import { assignTarget, bindsStatically, rebindingCall } from "./lower-statements.mjs";
 
 function ownerStatements(ir, statement) {
   const event = ir.eventBlocks?.find((block) => block.statements?.includes(statement));
@@ -11,47 +9,23 @@ function ownerStatements(ir, statement) {
     .find((method) => method.statements?.includes(statement))?.statements ?? [];
 }
 
-const UNSAFE_ASSIGN_ADDITIONS = /\b(CASTING|INCREMENTING|DECIMALS|RANGE|ELSEWHERE)\b/i;
-const TABLE_DECLARATION_KINDS = new Set(["data", "static", "tables", "ranges"]);
-
-function declaredTables(ir) {
-  return new Set((ir.declarations ?? [])
-    .filter((declaration) => TABLE_DECLARATION_KINDS.has(declaration.kind))
-    .flatMap((declaration) => (declaration.names ?? []).map((name) => String(name).toUpperCase())));
-}
-
-// `TYPE <elementary>` is determined on its own. `TYPE|LIKE LINE OF <itab>` is
-// too, provided the table is named statically and declared by the program
-// itself: the row type is then whatever the emitted table declaration already
-// says, so no shape has to be guessed.
-function staticType(raw, tables) {
-  const type = /\bTYPE\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1]?.toUpperCase();
-  if (type && ELEMENTARY_TYPES.has(type)) return true;
-  const row = /\b(?:TYPE|LIKE)\s+LINE\s+OF\s+([A-Z][A-Z0-9_]*)(?![A-Z0-9_(-])/i.exec(raw)?.[1]?.toUpperCase();
-  return Boolean(row && tables.has(row));
-}
-
-// `LOOP AT itab ASSIGNING <fs>` and `READ TABLE itab ... ASSIGNING <fs>` bind
-// the field symbol to a row of a statically named table, which is exactly as
-// determined as an ASSIGN with a static source; so do APPEND, INSERT and
-// COLLECT ... ASSIGNING, to the row they just added. All are lowered and
-// emitted, so all have to count as bindings or the emitted use loses its
-// declaration.
-function bindsStatically(text, name) {
-  if (/^\s*ASSIGN\b/i.test(text)) return isStaticAssign(text) && assignTarget(text) === name;
-  if (UNSAFE_ASSIGN_ADDITIONS.test(text)) return false;
-  if (!/^\s*(?:(?:LOOP\s+AT|READ\s+TABLE)\s+(?:[A-Z][A-Z0-9_]*\b|<[A-Z][A-Z0-9_]*>)|(?:APPEND|INSERT|COLLECT)\b)/i.test(text)) return false;
-  if (/^\s*LOOP\s+AT\s+SCREEN\b/i.test(text)) return false;
-  const assigning = /\bASSIGNING\s+<([A-Z][A-Z0-9_]*)>/i.exec(text)?.[1]?.toUpperCase();
-  return assigning === name;
-}
-
-function staticallyAssigned(statements, name) {
-  return statements.some((statement) => bindsStatically(statement.text, name));
+// The field symbol a statement binds, whether or not the binding converts:
+// ASSIGN ... TO <fs>, or an ASSIGNING <fs> of LOOP, READ TABLE, APPEND, INSERT
+// or COLLECT.
+function bindsAtAll(text, name) {
+  if (/^\s*ASSIGN\b/i.test(text)) return assignTarget(text) === name;
+  return /\bASSIGNING\s+<([A-Z][A-Z0-9_]*)>/i.exec(text)?.[1]?.toUpperCase() === name;
 }
 
 function references(statements, name) {
   return statements.some((statement) => new RegExp(`<${name}>`, "i").test(statement.text));
+}
+
+// The owner binds the field symbol before anything else uses it, so the
+// binding it had in another procedure is never seen.
+function bindsFirst(statements, name) {
+  const first = statements.find((statement) => new RegExp(`<${name}>`, "i").test(statement.text));
+  return Boolean(first && bindsStatically(first.text, name));
 }
 
 function globalOwners(ir, name) {
@@ -63,32 +37,94 @@ function globalOwners(ir, name) {
   return owners.filter((statements) => references(statements, name));
 }
 
-// A declaration local to a FORM, method or module is emitted unchanged into the
-// one generated method that replaces it, so any type the original accepted is
-// still valid there, generic ones such as `TYPE STANDARD TABLE` included. Only
-// the obsolete untyped and STRUCTURE forms, which classes reject, are not.
+// A field-symbol declaration is emitted into each generated method that uses
+// it, so any type the original accepted is still valid there, generic ones
+// such as `TYPE any`, `TYPE data` and `TYPE STANDARD TABLE` included. Only the
+// obsolete untyped and STRUCTURE forms, which classes reject, are not.
 function methodType(raw) {
   return /\b(?:TYPE|LIKE)\b/i.test(raw) && !/\bSTRUCTURE\b/i.test(raw);
 }
 
-export function analyzeFieldSymbols(ir) {
+function classify(ir) {
   const safe = new Set();
-  const tables = declaredTables(ir);
+  const persistent = new Set();
   for (const declaration of ir.declarations ?? []) {
-    for (const name of declaration.names ?? []) {
-      if (declaration.kind !== "field-symbol") continue;
-      const typed = declaration.statement?.scope === "local" ? methodType(declaration.raw) : staticType(declaration.raw, tables);
-      if (!typed) continue;
-      const owner = declaration.statement?.scope === "local"
-        ? [ownerStatements(ir, declaration.statement)]
-        : globalOwners(ir, name);
+    if (declaration.kind !== "field-symbol" || !methodType(declaration.raw)) continue;
+    for (const declared of declaration.names ?? []) {
+      const name = declared.toUpperCase();
+      if (declaration.statement?.scope === "local") {
+        if (ownerStatements(ir, declaration.statement).some((statement) => bindsStatically(statement.text, name))) safe.add(name);
+        continue;
+      }
+      const owners = globalOwners(ir, name);
       // An unused global declaration has no binding to preserve and can be
-      // omitted. A used global field symbol is localized into each owning
-      // generated method, so every owner must establish a static binding.
-      const unusedGlobal = declaration.statement?.scope !== "local" && owner.length === 0;
-      const boundInOwners = owner.length > 0 && owner.every((statements) => staticallyAssigned(statements, name));
-      if (unusedGlobal || boundInOwners) safe.add(name.toUpperCase());
+      // omitted.
+      if (!owners.length) {
+        safe.add(name);
+        continue;
+      }
+      // A used global field symbol is declared in each owning method. Where
+      // every owner binds it before using it, that is all.
+      if (owners.every((owner) => bindsFirst(owner, name))) {
+        safe.add(name);
+        continue;
+      }
+      // Otherwise an owner relies on a binding another procedure made, which
+      // the class keeps in a data reference, see fieldSymbolReferences. Every
+      // binding has to survive conversion for that: one through a dynamic
+      // ASSIGN is omitted, and the uses relying on it would read the wrong
+      // object.
+      const statements = owners.flat();
+      const dynamic = statements.some((statement) => bindsAtAll(statement.text, name) && !bindsStatically(statement.text, name));
+      if (!dynamic && statements.some((statement) => bindsStatically(statement.text, name))) {
+        safe.add(name);
+        persistent.add(name);
+      } else if (owners.every((owner) => owner.some((statement) => bindsStatically(statement.text, name)))) {
+        safe.add(name);
+      }
     }
   }
-  return safe;
+  return { safe, persistent };
+}
+
+export function analyzeFieldSymbols(ir) {
+  return classify(ir).safe;
+}
+
+function rebinds(statement, name) {
+  return bindsStatically(statement.text, name)
+    || (statement.kind === "Unassign" && new RegExp(`<${name}>`, "i").test(statement.text));
+}
+
+// The FORMs whose call may bind or unassign the field symbol, themselves or
+// through a FORM they perform, and whether a local-class method may.
+function rebinders(ir, name) {
+  const routines = new Set((ir.routines ?? [])
+    .filter((routine) => (routine.statements ?? []).some((statement) => rebinds(statement, name)))
+    .map((routine) => routine.name.toUpperCase()));
+  const methods = (ir.localClasses ?? []).flatMap((item) => item.methods ?? []);
+  let reference = { routines: [...routines], methods: methods.some((method) => (method.statements ?? []).some((statement) => rebinds(statement, name))) };
+  for (let grown = true; grown;) {
+    grown = false;
+    for (const routine of ir.routines ?? []) {
+      if (routines.has(routine.name.toUpperCase()) || !(routine.statements ?? []).some((statement) => rebindingCall(statement, reference))) continue;
+      routines.add(routine.name.toUpperCase());
+      grown = true;
+    }
+    const methodsRebind = reference.methods || methods.some((method) => (method.statements ?? []).some((statement) => rebindingCall(statement, reference)));
+    grown ||= methodsRebind !== reference.methods;
+    reference = { routines: [...routines].sort(), methods: methodsRebind };
+  }
+  return reference;
+}
+
+// The binding of each global field symbol that is bound in one generated
+// method and used in another, by field-symbol name: the class attribute
+// keeping it, and the calls that may change it, see rebindingCall.
+export function fieldSymbolReferences(ir, excluded = []) {
+  const names = [...classify(ir).persistent].filter((name) => !excluded.includes(name)).sort();
+  return Object.fromEntries(names.map((name, index) => {
+    const member = `mr_ggconv_${name.toLowerCase()}`;
+    return [name, { member: member.length <= 30 ? member : `mr_ggconv_fs${index + 1}`, ...rebinders(ir, name) }];
+  }));
 }

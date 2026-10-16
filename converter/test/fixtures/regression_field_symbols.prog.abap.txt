@@ -1,0 +1,68 @@
+REPORT zreg_field_symbols.
+
+INCLUDE zreg_field_symbols_top.
+
+CLASS lcl_reader DEFINITION.
+  PUBLIC SECTION.
+    METHODS current_qty RETURNING VALUE(rv_qty) TYPE i.
+ENDCLASS.
+
+CLASS lcl_reader IMPLEMENTATION.
+  METHOD current_qty.
+    rv_qty = <gs_prod_ord_list>-qty.
+  ENDMETHOD.
+ENDCLASS.
+
+DATA go_reader TYPE REF TO lcl_reader.
+
+START-OF-SELECTION.
+  " A generic field symbol is an alias: writing it writes the global.
+  ASSIGN gv_text TO <lv_data>.
+  <lv_data> = 'through data'.
+  WRITE / gv_text.
+
+  " Bound in a FORM, used here and in a local class; the FORM's sy-subrc
+  " survives taking the binding over.
+  gt_prod_ord_list = VALUE #( ( id = 1 qty = 10 ) ( id = 2 qty = 20 ) ).
+  PERFORM bind_order.
+  gv_subrc = sy-subrc.
+  WRITE / gv_subrc.
+  <gs_prod_ord_list>-qty = 25.
+  READ TABLE gt_prod_ord_list INTO gs_order INDEX 2.
+  WRITE / gs_order-qty.
+  go_reader = NEW #( ).
+  gv_count = go_reader->current_qty( ).
+  WRITE / gv_count.
+
+  " Generic table field symbols.
+  ASSIGN gt_prod_ord_list TO <gt_itab>.
+  LOOP AT <gt_itab> ASSIGNING <struc>.
+    ASSIGN COMPONENT 'QTY' OF STRUCTURE <struc> TO <lv_field>.
+    <lv_field> = <lv_field> + 1.
+  ENDLOOP.
+  ASSIGN gt_prod_ord_list TO <gt_table>.
+  gv_count = lines( <gt_table> ).
+  WRITE / gv_count.
+  READ TABLE gt_prod_ord_list INTO gs_order INDEX 1.
+  WRITE / gs_order-qty.
+
+  PERFORM pick_list.
+  PERFORM dynamic_into.
+
+  " A dynamic table built, filled and read in three FORMs.
+  PERFORM build_dynamic.
+  PERFORM fill_dynamic.
+  PERFORM show_dynamic.
+  ASSIGN gr_table->* TO <lt_data>.
+  ASSIGN <lt_data> TO <gt_alv_dyn_table>.
+  gv_count = lines( <gt_alv_dyn_table> ).
+  WRITE / gv_count.
+
+  PERFORM release_order.
+  IF <gs_prod_ord_list> IS ASSIGNED.
+    WRITE / 'assigned'.
+  ELSE.
+    WRITE / 'unassigned'.
+  ENDIF.
+
+INCLUDE zreg_field_symbols_forms.

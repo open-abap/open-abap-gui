@@ -1907,13 +1907,16 @@ test("lowers method-local field symbols only when static binding is provable", a
   assert.match(safe.classSource, /ASSIGN gv_value TO <value>/);
   assert.doesNotMatch(safe.classSource, /TODO GGCONV/);
 
+  // The only binding names its source at runtime and is omitted, so nothing
+  // binds what the uses read.
   const unsafe = await convertProgram({
-    source: "REPORT zfields.\nFIELD-SYMBOLS <value> TYPE any.\n",
+    source: "REPORT zfields.\nDATA gv_name TYPE string VALUE 'GV_NAME'.\nFIELD-SYMBOLS <value> TYPE any.\nSTART-OF-SELECTION.\n  ASSIGN (gv_name) TO <value>.\n  WRITE <value>.\n",
     filename: "zfields.prog.abap",
     mode: "partial",
   });
   assert.equal(unsafe.supported, false);
-  assert.ok(unsafe.diagnostics.some((item) => item.code === "GGCONV-E515"));
+  assert.ok(unsafe.diagnostics.some((item) => item.code === "GGCONV-E515" && item.message === "field-symbol declarations require method-local binding analysis"));
+  assert.deepEqual(unsafe.reportIR.safeFieldSymbols, []);
 
   const dereferenced = await convertProgram({
     source: [

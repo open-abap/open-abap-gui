@@ -319,11 +319,15 @@ export const LOWERING_RULES = new Map([
 export function isMethodSafeLoop(statement) {
   if (statement.kind !== "Loop") return false;
   const body = statement.text.replace(/'(?:''|[^'])*'/g, "");
-  const loopTarget = "(?:(?:[A-Z][A-Z0-9_-]*|<[A-Z][A-Z0-9_]*>)(?:(?:->|-)[A-Z][A-Z0-9_-]*)*)";
+  // `itab[]` is the table body, for a table without a header line the table
+  // itself, so it is a loop source as much as `itab` is.
+  const loopTarget = "(?:(?:[A-Z][A-Z0-9_-]*|<[A-Z][A-Z0-9_]*>)(?:(?:->|-)[A-Z][A-Z0-9_-]*)*(?:\\[\\])?)";
+  // A work area may be a field symbol, or a component of one.
+  const workArea = "(?:[A-Z][A-Z0-9_-]*|<[A-Z][A-Z0-9_]*>(?:-[A-Z][A-Z0-9_-]*)*)";
   // The target may end in `>` or `)`, so the trailing guard has to be a
   // lookahead: a `\b` after either of those can never match. TRANSPORTING NO
   // FIELDS reads no row at all, so it needs no target either.
-  return new RegExp(`^\\s*LOOP\\s+AT\\s+${loopTarget}\\s+(?:ASSIGNING\\s+(?:FIELD-SYMBOL\\s*\\(\\s*<[A-Z][A-Z0-9_]*>\\s*\\)|<[A-Z][A-Z0-9_]*>)|(?:REFERENCE\\s+)?INTO\\s+(?:DATA\\s*\\(\\s*[A-Z][A-Z0-9_-]*\\s*\\)|[A-Z][A-Z0-9_-]*)|TRANSPORTING\\s+NO\\s+FIELDS)(?![A-Z0-9_-])`, "i").test(body)
+  return new RegExp(`^\\s*LOOP\\s+AT\\s+${loopTarget}\\s+(?:ASSIGNING\\s+(?:FIELD-SYMBOL\\s*\\(\\s*<[A-Z][A-Z0-9_]*>\\s*\\)|<[A-Z][A-Z0-9_]*>)|(?:REFERENCE\\s+)?INTO\\s+(?:DATA\\s*\\(\\s*[A-Z][A-Z0-9_-]*\\s*\\)|${workArea})|TRANSPORTING\\s+NO\\s+FIELDS)(?![A-Z0-9_-])`, "i").test(body)
     && !/^\s*LOOP\s+AT\s+SCREEN\b/i.test(body);
 }
 
@@ -347,6 +351,71 @@ export function isStaticAssign(text) {
 export function assignTarget(text) {
   const body = String(text ?? "").replace(/'(?:''|[^'])*'/g, "''");
   return /\bTO\s+(?:FIELD-SYMBOL\s*\(\s*)?<([A-Z][A-Z0-9_]*)>/i.exec(body)?.[1]?.toUpperCase();
+}
+
+const UNSAFE_BINDING_ADDITIONS = /\b(CASTING|INCREMENTING|DECIMALS|RANGE|ELSEWHERE)\b/i;
+
+// `LOOP AT itab ASSIGNING <fs>` and `READ TABLE itab ... ASSIGNING <fs>` bind
+// the field symbol to a row of a statically named table, which is exactly as
+// determined as an ASSIGN with a static source; so do APPEND, INSERT and
+// COLLECT ... ASSIGNING, to the row they just added. All are lowered and
+// emitted, so all have to count as bindings or the emitted use loses its
+// declaration.
+export function bindsStatically(text, name) {
+  if (/^\s*ASSIGN\b/i.test(text)) return isStaticAssign(text) && assignTarget(text) === name;
+  if (UNSAFE_BINDING_ADDITIONS.test(text)) return false;
+  if (!/^\s*(?:(?:LOOP\s+AT|READ\s+TABLE)\s+(?:[A-Z][A-Z0-9_]*\b|<[A-Z][A-Z0-9_]*>)|(?:APPEND|INSERT|COLLECT)\b)/i.test(text)) return false;
+  if (/^\s*LOOP\s+AT\s+SCREEN\b/i.test(text)) return false;
+  const assigning = /\bASSIGNING\s+<([A-Z][A-Z0-9_]*)>/i.exec(text)?.[1]?.toUpperCase();
+  return assigning === name;
+}
+
+// A global field symbol bound in one generated method and used in another
+// keeps its binding in a data reference of the class, see
+// fieldSymbolReferences in analyze-field-symbols.mjs. A method takes the
+// binding over where it starts and after each call, which may have rebound
+// it. ASSIGN sets sy-subrc, which the report's own statements around it may
+// still read.
+export function restoreFieldSymbols(names, context) {
+  const lines = ["lv_ggconv_subrc = sy-subrc."];
+  for (const name of names) {
+    const member = keptFieldSymbolMember(name, context);
+    const symbol = `<${name.toLowerCase()}>`;
+    lines.push(`IF ${member} IS BOUND.`, `  ASSIGN ${member}->* TO ${symbol}.`, "ELSE.", `  UNASSIGN ${symbol}.`, "ENDIF.");
+  }
+  lines.push("sy-subrc = lv_ggconv_subrc.");
+  return lines.join("\n");
+}
+
+function keptFieldSymbolMember(name, context) {
+  return `${context?.ownerPrefix ?? ""}${context.fieldSymbolReferences[name].member}`;
+}
+
+// A PERFORM of a FORM that may bind or unassign the field symbol, or one whose
+// FORM is not known statically; a method call where a local-class method may.
+export function rebindingCall(statement, reference) {
+  if (statement.kind === "Perform") {
+    const target = /^\s*PERFORM\s+([A-Z][A-Z0-9_]*)(?![A-Z0-9_(])/i.exec(statement.text)?.[1]?.toUpperCase();
+    return !target || /\bIN\s+PROGRAM\b/i.test(statement.text) || reference.routines.includes(target);
+  }
+  return ["Call", "CallMethod"].includes(statement.kind) && reference.methods;
+}
+
+// What follows a statement for the field symbols whose binding the class
+// keeps: a statement binding one hands the binding back, for LOOP ...
+// ASSIGNING inside the loop, so the reference follows each row; UNASSIGN
+// drops it; a call that may have changed it takes it over again.
+function keptFieldSymbolBindings(statement, names, context) {
+  const lines = [];
+  const referenced = new Set(referencedFieldSymbols(statement.text));
+  for (const name of names) {
+    const symbol = `<${name.toLowerCase()}>`;
+    if (statement.kind === "Unassign" && referenced.has(name)) lines.push(`CLEAR ${keptFieldSymbolMember(name, context)}.`);
+    else if (bindsStatically(statement.text, name)) lines.push(`IF ${symbol} IS ASSIGNED.`, `  GET REFERENCE OF ${symbol} INTO ${keptFieldSymbolMember(name, context)}.`, "ENDIF.");
+  }
+  const rebound = names.filter((name) => rebindingCall(statement, context.fieldSymbolReferences[name]));
+  if (rebound.length) lines.push(restoreFieldSymbols(rebound, context));
+  return lines;
 }
 
 function dynamicWriteExpressionSupported(operand) {
@@ -1981,6 +2050,8 @@ export function lowerStatements(statements, context) {
   const bound = Array.isArray(context.safeFieldSymbols)
     ? new Set([...context.safeFieldSymbols, ...inlineFieldSymbols(statements)])
     : undefined;
+  const kept = Object.keys(context.fieldSymbolReferences ?? {})
+    .filter((name) => statements.some((statement) => referencedFieldSymbols(statement.text).includes(name)));
   for (let index = 0; index < statements.length; index++) {
     let statement = statements[index];
     // HIDE stores its fields for the line written last. Before any WRITE of
@@ -2051,7 +2122,8 @@ export function lowerStatements(statements, context) {
       continue;
     }
     if (lowered !== undefined) {
-      const item = { text: lowered, statement, supported: !lowered.includes("TODO GGCONV") };
+      const following = kept.length && !isCommentOnly(lowered) ? keptFieldSymbolBindings(statement, kept, statementContext) : [];
+      const item = { text: [lowered, ...following].join("\n"), statement, supported: !lowered.includes("TODO GGCONV") };
       // WRITE ... TO writes no line, so HIDE does not attach to it.
       const listWrite = statement.kind === "Write" && !writeToTarget(statement);
       if (pendingHidden.length && !listWrite && lastWriteIndex >= 0) {
