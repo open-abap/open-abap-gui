@@ -67,7 +67,7 @@ export async function setupDatabase(abap, schemas, insert) {
 ```js
 import express from "express";
 import {initializeABAP} from "./output/init.mjs";
-import {cl_express_icf_shim} from "./output/cl_express_icf_shim.clas.mjs";
+import {cl_express_icf_shim} from "./output/express-icf-shim/cl_express_icf_shim.clas.mjs";
 await initializeABAP();
 
 const app = express();
