@@ -24,11 +24,11 @@
   },
   "license": "",
   "dependencies": {
-    "@abaplint/cli": "^2.120.80",
-    "@abaplint/core": "^2.120.80",
+    "@abaplint/cli": "^2.120.84",
+    "@abaplint/core": "^2.120.84",
     "@abaplint/database-sqlite": "^2.13.83",
-    "@abaplint/runtime": "^2.14.8",
-    "@abaplint/transpiler-cli": "^2.14.8",
+    "@abaplint/runtime": "^2.14.10",
+    "@abaplint/transpiler-cli": "^2.14.10",
     "express": "^4.22.3",
     "playwright": "^1.62.1"
   },
@@ -52,7 +52,7 @@
     "url": "^0.11.4",
     "util": "^0.12.5",
     "vm-browserify": "^1.1.2",
-    "webpack": "^5.111.1",
+    "webpack": "^5.112.0",
     "webpack-cli": "^7.2.3"
   }
 }
