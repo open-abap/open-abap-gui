@@ -1947,6 +1947,18 @@ function normalizeDynamicAlvStatement(statement, context) {
   return rewritten === raw ? statement : {...statement, text: rewritten};
 }
 
+// SELECT without INTO reads into the TABLES work area of the database table,
+// which a class has as a member of that name; the INTO is written out.
+function tablesWorkAreaSelect(statement, context) {
+  if (!["Select", "SelectLoop"].includes(statement.kind) || !context.tablesWorkAreas?.size) return statement;
+  const code = maskedCode(statement.text);
+  if (/\b(?:INTO|APPENDING)\b/i.test(code)) return statement;
+  const from = /\bFROM\s+([A-Z][A-Z0-9_]*)\b/i.exec(code);
+  if (!from || !context.tablesWorkAreas.has(from[1].toUpperCase())) return statement;
+  const end = from.index + from[0].length;
+  return { ...statement, text: `${statement.text.slice(0, end)} INTO ${from[1].toLowerCase()}${statement.text.slice(end)}` };
+}
+
 // The statement without the header lines of the tables in scope, see
 // header-lines.mjs. A local declaration of such a table declares the table and
 // its work area instead.
@@ -2070,6 +2082,7 @@ export function lowerStatements(statements, context) {
     };
     statement = normalizeDynamicAlvStatement(statement, statementContext);
     statement = headerLineStatement(statement, statementContext);
+    statement = tablesWorkAreaSelect(statement, statementContext);
     const freeKey = freeChainKey(statement);
     const freeMembers = freeKey ? freeChains.get(freeKey) : undefined;
     // A chain that frees a control is lowered as one CLEAR: chain. FREE itself

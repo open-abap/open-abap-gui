@@ -48,7 +48,12 @@ export async function runGeneratedValidation({transpile = true, behavior = true}
       for (const [name, value] of Object.entries(lintConfig.rules)) {
         if (name === "check_syntax" || value === false) continue;
         const rule = value === true ? {...ruleDefaults[name]} : value;
-        rule.exclude = [...(rule.exclude ?? []), "transpile-validation[\\\\/]helpers[\\\\/]"];
+        // An example class's exclude also covers its converted copy ZCL_CV_NNN.
+        const copies = (rule.exclude ?? []).flatMap((pattern) => {
+          const number = /^zcl_gg_ex_(\d{3})\\\.clas\\\.abap\$$/.exec(pattern)?.[1];
+          return number ? [`ZCL_CV_${number}\\.clas\\.abap$`] : [];
+        });
+        rule.exclude = [...(rule.exclude ?? []), ...copies, "transpile-validation[\\\\/]helpers[\\\\/]"];
         lintConfig.rules[name] = rule;
       }
     }

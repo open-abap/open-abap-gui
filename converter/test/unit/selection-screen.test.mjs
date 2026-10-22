@@ -144,3 +144,24 @@ test("gives a select-option a header line, also inside a FORM", async () => {
   assert.match(result.classSource, /IF sy-datum IN mv_s_date\./);
   assert.match(result.classSource, /CLEAR mv_s_date\./);
 });
+
+test("reads a SELECT without INTO into the TABLES work area", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT ztables.",
+      "TABLES t100.",
+      "SELECT-OPTIONS s_arbgb FOR t100-arbgb.",
+      "FORM run.",
+      "  SELECT SINGLE * FROM t100 WHERE arbgb IN s_arbgb.",
+      "ENDFORM.",
+      "START-OF-SELECTION.",
+      "  PERFORM run.",
+      "  SELECT * FROM t100 UP TO 2 ROWS.",
+      "  ENDSELECT.",
+    ].join("\n"),
+    filename: "ztables.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /SELECT SINGLE \* FROM t100 INTO t100 WHERE arbgb IN mv_s_arbgb\./);
+  assert.match(result.classSource, /SELECT \* FROM t100 INTO t100 UP TO 2 ROWS\./);
+});

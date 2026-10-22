@@ -15,12 +15,15 @@ export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
     .sort();
   for (const [index, name] of names.entries()) {
     const source = await fs.readFile(path.join(examples, name), "utf8");
-    const className = `ZCL_CV_${String(index + 1).padStart(3, "0")}`;
+    // Numbered like the example, so its lint excludes carry over, see
+    // generated-validation.mjs.
+    const number = /^zgg_ex_(\d{3})\.prog\.abap$/.exec(name)?.[1] ?? String(index + 1).padStart(3, "0");
+    const className = `ZCL_CV_${number}`;
     const input = {
       source,
       filename: path.join(examples, name),
       className,
-      transactionCode: `ZCV${String(index + 1).padStart(3, "0")}`,
+      transactionCode: `ZCV${number}`,
       mode: "partial",
     };
     if (name === "zgg_ex_058.prog.abap") input.dynproMetadata = {

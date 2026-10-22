@@ -746,6 +746,10 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
     selections: values,
     // A FORM sees its own header-line tables too; routineBody adds them.
     headerLines: headerLinesIn(ir),
+    tablesWorkAreas: new Set((ir.declarations ?? [])
+      .filter((item) => item.kind === "tables" && item.resolved)
+      .flatMap((item) => item.names ?? [])
+      .map((name) => name.toUpperCase())),
     dataObjects: new Set((ir.declarations ?? [])
       .filter((item) => ["data", "static", "tables", "ranges", "databegin"].includes(item.kind))
       .flatMap((item) => item.kind === "databegin" ? [/\bBEGIN\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(item.raw ?? "")?.[1]] : item.names ?? [])
