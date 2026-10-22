@@ -24,8 +24,23 @@ function generatedClassNames(result) {
 
 function collisionDiagnostics(converted) {
   const byClass = new Map();
+  const byProgram = new Map();
   const diagnostics = [];
   for (const entry of converted) {
+    // Two objects of one name cannot both exist in a system; the classes are
+    // kept apart by the run, but which one SUBMIT reaches would be arbitrary.
+    const firstProgram = byProgram.get(entry.program.programName);
+    if (firstProgram === undefined) byProgram.set(entry.program.programName, entry);
+    else {
+      diagnostics.push(diagnostic({
+        code: "GGCONV-E115",
+        filename: entry.program.filename,
+        construct: entry.program.programName,
+        message: `program ${entry.program.programName} is defined by both ${firstProgram.program.relativePath} and ${entry.program.relativePath}`,
+        suggestion: "Remove one of the copies, or exclude it with converter.exclude_filter.",
+        phase: "batch",
+      }));
+    }
     for (const className of generatedClassNames(entry.result)) {
       const first = byClass.get(className);
       if (first === undefined) {
@@ -117,10 +132,26 @@ export async function convertConfiguredPrograms({
     ...(overrides.existingClassFiles ?? {}),
   };
   const converted = [];
+  // A class handed out earlier in the run is as taken as one on disk, so two
+  // programs whose default name is taken do not both fall back to its _1.
+  const takenClassNames = new Set(existingClassNames);
+  const takenClassFiles = { ...existingClassFiles };
   for (const program of discovered) {
-    const plan = conversionPlan(config, program, { ...overrides, transactions, includeFolders, dictionaryFiles, existingClassNames, existingClassFiles });
+    const plan = conversionPlan(config, program, {
+      ...overrides,
+      transactions,
+      includeFolders,
+      dictionaryFiles,
+      existingClassNames: [...takenClassNames],
+      existingClassFiles: { ...takenClassFiles },
+    });
     const result = await runOne(converter, plan, fallbackStrategy);
     converted.push({ program, result });
+    for (const className of generatedClassNames(result)) {
+      if (takenClassNames.has(className)) continue;
+      takenClassNames.add(className);
+      takenClassFiles[className] = `${program.relativePath} (converted earlier in this run)`;
+    }
     if (typeof onResult === "function") await onResult({ program, result });
   }
 

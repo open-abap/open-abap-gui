@@ -86,9 +86,24 @@ export function declarationInfo(statement) {
   return { kind: statement.kind.toLowerCase(), raw };
 }
 
+// DATA: BEGIN OF s, f TYPE i, END OF s. declares s, not f: a component is part
+// of its structure's declaration and has no name of its own in the program, so
+// two structures can share component names. Its names are kept as
+// componentNames, out of the names and entries every symbol consumer reads.
+// The parts of a COMMON PART are data objects in their own right.
+function isCommonPart(statement) {
+  return /^DATA\s+(?:BEGIN|END)\s+OF\s+COMMON\s+PART\b/i.test(statement.text.trim());
+}
+
 export function collectDeclarations(statements) {
-  return statements.filter((statement) => DECLARATION_KINDS.has(statement.kind)).map((statement) => ({
-    ...declarationInfo(statement),
-    statement,
-  }));
+  let depth = 0;
+  return statements.filter((statement) => DECLARATION_KINDS.has(statement.kind)).map((statement) => {
+    const info = declarationInfo(statement);
+    if (statement.kind === "DataEnd" && !isCommonPart(statement)) depth = Math.max(0, depth - 1);
+    const component = depth > 0 && statement.kind === "Data";
+    if (statement.kind === "DataBegin" && !isCommonPart(statement)) depth++;
+    if (!component) return { ...info, statement };
+    const { names, entries, ...rest } = info;
+    return { ...rest, names: [], entries: [], componentNames: names, component: true, statement };
+  });
 }

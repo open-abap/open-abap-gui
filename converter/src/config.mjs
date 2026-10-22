@@ -8,12 +8,16 @@ export const DEFAULT_CONFIG_FILENAME = "abap_transpile.json";
 const PROGRAM_SUFFIX = ".prog.abap";
 const TRANSACTION_SUFFIX = ".tran.xml";
 
-// The program name has to be known before conversion so a caller-supplied
-// className(programName) callback can run, so it is read with a regexp here
-// rather than taken from classifyProgram. The conversion result remains
-// authoritative for programKind; an INCLUDE serialised as `<name>.prog.abap`
-// simply has no REPORT/PROGRAM header and is therefore not an entry point.
-const ENTRY_POINT = /^[ \t]*(?:REPORT|PROGRAM)\s+([A-Za-z0-9_/]+)/m;
+// As in SAP, the object decides the program name: `<name>.prog.abap`. The name
+// in the REPORT statement is irrelevant; a copied report keeps its original's,
+// and a program whose REPORT sits in its TOP include has none of its own.
+// Whether the object is an entry point is its program type, SUBC in the
+// .prog.xml: executable programs (1) and module pools (M) are converted,
+// includes (I) and subroutine pools (S) never. Only a program without a
+// .prog.xml falls back to the source, and counts as an entry point when it has
+// a REPORT/PROGRAM statement of its own.
+const ENTRY_POINT = /^[ \t]*(?:REPORT|PROGRAM)\s+[A-Za-z0-9_/]+/im;
+const ENTRY_POINT_TYPES = new Set(["1", "M"]);
 
 function configDiagnostic(filename, code, message, suggestion, construct = "abap_transpile.json") {
   return diagnostic({ code, filename, construct, message, suggestion, phase: "config" });
@@ -423,11 +427,23 @@ export async function discoverPrograms(config) {
     } catch {
       continue;
     }
-    const programName = ENTRY_POINT.exec(source)?.[1]?.toUpperCase();
-    if (!programName) continue;
+    const programType = await readProgramType(entry.filename);
+    if (programType === undefined ? !ENTRY_POINT.test(source) : !ENTRY_POINT_TYPES.has(programType)) continue;
+    // abapGit writes a namespace /ABC/ as #abc#.
+    const programName = path.basename(entry.filename).slice(0, -PROGRAM_SUFFIX.length).replaceAll("#", "/").toUpperCase();
     programs.push({ ...entry, source, programName });
   }
   return programs;
+}
+
+// SUBC from the program's .prog.xml, or undefined when there is none.
+async function readProgramType(filename) {
+  try {
+    const xml = await fs.readFile(filename.replace(/\.prog\.abap$/i, ".prog.xml"), "utf8");
+    return /<SUBC>\s*([^<\s]*)\s*<\/SUBC>/.exec(xml)?.[1]?.toUpperCase();
+  } catch {
+    return undefined;
+  }
 }
 
 const INCLUDE_SOURCE_SUFFIXES = [".prog.abap", ".incl.abap"];
@@ -536,6 +552,8 @@ export function conversionPlan(config, program, overrides = {}) {
     // absolute path separately, so it does not depend on the working directory.
     filename: program.relativePath ?? program.filename,
     source: program.source,
+    // The object name, which the source cannot be trusted to repeat.
+    programName: program.programName,
     dynproMetadataFilename: program.filename.replace(/\.prog\.abap$/i, ".prog.xml"),
     dynproScreenDirectory: path.dirname(program.filename),
     // A report's includes sit next to it or among the sources the transpiler

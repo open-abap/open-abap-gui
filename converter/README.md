@@ -38,6 +38,15 @@ node converter/bin/convert.mjs --program ZGG_EX_001 --class ZCL_REPORT --output 
 ```
 
 It takes no positional arguments; a single report is selected with `--program`.
+
+As in SAP, a program is its object: `zfoo.prog.abap` is program `ZFOO`, whatever
+name its REPORT statement gives (a copied report keeps its original's, and a
+program may have its REPORT statement in a TOP include). Executable programs
+(`SUBC` 1 in the `.prog.xml`) and module pools (`M`) are converted; includes
+(`I`) and subroutine pools (`S`) never are. A program without a `.prog.xml`
+counts as an entry point when it has a REPORT or PROGRAM statement of its own.
+Two files for one program name are reported as `GGCONV-E115`.
+
 The keys it reads are:
 
 | key | converter use |
@@ -114,14 +123,17 @@ programs map to the same class writes nothing at all and reports
 `GGCONV-E115`, rather than keeping one class and losing the other.
 
 A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`) unless
-`--class` names it. A program name may have 40 characters but a class name only
+`--class` names it; a customer module pool drops SAP's `SAPM` prefix
+(`SAPMZFOO` becomes `ZCL_FOO` too). A program name may have 40 characters but a class name only
 30, so a longer default name is cut to 25 characters and given a four-character
 hash of the program name (`ZRLX_SDFDDDDD_DATE_COND_PROMO` becomes
 `ZCL_RLX_SDFDDDDD_DATE_CON_3539`), reported as `GGCONV-W107`; the hash keeps
 reports that differ only in the cut-off tail apart. When that default name is already taken by a class or
 interface in `input_folder`, `converter.input_folder` or the libs, the report
 is generated as the next free name (`ZCL_FOO_1`, `ZCL_FOO_2`, …) and
-`GGCONV-W106` names the file that holds the original. The generated
+`GGCONV-W106` names the file that holds the original. A class handed to a
+program converted earlier in the same run is taken as well, so two programs
+that fall back from one name get different ones. The generated
 transaction or program metadata records the report's program name, so
 `SUBMIT zfoo` finds the renamed class through the transaction or program
 registry. A name given with `--class`
@@ -131,7 +143,12 @@ written for that report.
 No network or model call is used during conversion; the only network access is
 the CLI cloning a lib `url` before it starts. Includes are resolved from
 `converter.input_folder`, `input_folder` and the libs, by the optional `resolveInclude(name, parentFilename)` callback,
-or by deterministic filesystem candidates.
+or by deterministic filesystem candidates. The kernel's own includes have no
+source: `INCLUDE <icon>` and `INCLUDE <color>` need none, as open-abap-core's
+type pool ICON and the built-in list colors declare the same constants.
+`<symbol>`, `<line>` and `<list>` are skipped with `GGCONV-W109` when the
+generated class uses none of their constants, and are `GGCONV-E102` when it
+does; any other `INCLUDE <name>` is `GGCONV-E102`.
 
 Selection texts can be supplied as a `Map`, object, or simple text-pool string
 through `textPool`; unresolved `TEXT-*` keys remain deterministic and produce a

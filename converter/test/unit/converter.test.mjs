@@ -3,6 +3,7 @@ import test from "node:test";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "../../src/api.mjs";
+import { defaultClassName } from "../../src/options.mjs";
 import { loadDynproMetadata } from "../../src/dynpro-metadata.mjs";
 import { COMPATIBILITY_FUNCTION_MODULES } from "../../src/function-modules.mjs";
 import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
@@ -3144,4 +3145,155 @@ test("gives a class that uses text symbols the program's text pool", () => {
   assert.match(xml, /<KEY>003<\/KEY>/);
   assert.doesNotMatch(xml, /unused/);
   assert.equal(emitClassXml(ir, "WRITE 'no symbols'.\n"), undefined);
+});
+
+test("keeps structure components out of the program's symbols", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zcomponents.",
+      "DATA: BEGIN OF gt_a OCCURS 0, matnr TYPE c LENGTH 18, maktx TYPE c LENGTH 40, END OF gt_a.",
+      "DATA: BEGIN OF gt_b OCCURS 0, matnr TYPE c LENGTH 18, maktx TYPE c LENGTH 40, END OF gt_b.",
+      "DATA: BEGIN OF gt_c OCCURS 0.",
+      "        INCLUDE STRUCTURE t000.",
+      "DATA: maktx TYPE c LENGTH 40.",
+      "DATA: END OF gt_c.",
+      "PARAMETERS initdir(132) LOWER CASE.",
+      "DATA: BEGIN OF history OCCURS 10,",
+      "        initdir LIKE initdir,",
+      "      END OF history.",
+      // The parts of a COMMON PART are data objects of their own.
+      "DATA BEGIN OF COMMON PART shared.",
+      "DATA gv_shared TYPE i.",
+      "DATA END OF COMMON PART shared.",
+      "START-OF-SELECTION.",
+      "  gt_a-matnr = gt_b-matnr.",
+      "AT LINE-SELECTION.",
+      "  gt_a-maktx = gt_c-maktx.",
+    ].join("\n"),
+    filename: "zcomponents.prog.abap",
+  });
+  assert.deepEqual(result.diagnostics.filter((item) => item.code === "GGCONV-E204"), []);
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.reportIR.statePlan.globals, ["GV_SHARED"]);
+  assert.deepEqual(result.reportIR.sourceIndex.collisions, {});
+  // Referenced from two events, a component is still no attribute of its own.
+  assert.doesNotMatch(result.classSource, /^\s*DATA (?:matnr|maktx|initdir)\b/im);
+  assert.match(flat(result.classSource), /DATA: BEGIN OF gt_a_header, matnr TYPE c LENGTH 18, maktx TYPE c LENGTH 40, END OF gt_a_header\./);
+});
+
+test("lowers chained statements one element at a time", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zchains.",
+      "CLASS lcl_handler DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS on_toolbar FOR EVENT toolbar OF cl_gui_alv_grid.",
+      "    METHODS on_command FOR EVENT user_command OF cl_gui_alv_grid.",
+      "ENDCLASS.",
+      "CLASS lcl_handler IMPLEMENTATION.",
+      "  METHOD on_toolbar.",
+      "  ENDMETHOD.",
+      "  METHOD on_command.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "DATA lt_a TYPE STANDARD TABLE OF i.",
+      "DATA lt_b TYPE STANDARD TABLE OF i.",
+      "DATA r_x TYPE RANGE OF i WITH HEADER LINE.",
+      "DATA go_handler TYPE REF TO lcl_handler.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "START-OF-SELECTION.",
+      "  FREE: lt_a, lt_b.",
+      "  FREE: r_x, r_x[].",
+      "  SET HANDLER: go_handler->on_toolbar FOR go_grid, go_handler->on_command FOR go_grid.",
+      "  PERFORM: first, second USING 1.",
+      "FORM first.",
+      "  DATA lt_c TYPE STANDARD TABLE OF i.",
+      "  FREE: lt_c, lt_a.",
+      "ENDFORM.",
+      "FORM second USING pv_value TYPE i.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zchains.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /FREE lt_a\.\s+FREE lt_b\./);
+  assert.match(result.classSource, /FREE lt_c\.\s+FREE lt_a\./);
+  assert.doesNotMatch(result.classSource, /FREE [^.\n]*,/);
+  assert.match(result.classSource, /SET HANDLER go_handler->on_toolbar FOR go_grid\.\s+SET HANDLER go_handler->on_command FOR go_grid\./);
+  assert.match(flat(result.classSource), /form_first\( io_session = io_session \)\. form_second\( io_session = io_session pv_value = 1 \)\./);
+});
+
+test("decodes non-ASCII literals into a variable where an operand cannot be an expression", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT znonascii.",
+      "CONSTANTS gc_city TYPE string VALUE 'Città'.",
+      "DATA gv_line TYPE string.",
+      "DATA gv_werks TYPE c LENGTH 4.",
+      "DATA gt_parts TYPE STANDARD TABLE OF string.",
+      "START-OF-SELECTION.",
+      "  CONCATENATE 'Quantità' ';' 'UM' INTO gv_line.",
+      "  CONCATENATE 'Più' gv_werks INTO gv_line SEPARATED BY space.",
+      "  SPLIT gv_line AT 'à' INTO TABLE gt_parts.",
+    ].join("\n"),
+    filename: "znonascii.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  // A text field literal stays a text field, so CONCATENATE still ignores its trailing blanks.
+  assert.match(result.classSource, /DATA lv_ggconv_text_1 TYPE c LENGTH 8\.\s+lv_ggconv_text_1 = cl_abap_codepage=>convert_from\( CONV xstring\( '5175616E746974C3A0' \) \)\.\s+CONCATENATE lv_ggconv_text_1 ';' 'UM' INTO gv_line\./);
+  assert.match(result.classSource, /CONCATENATE lv_ggconv_text_2 gv_werks INTO gv_line SEPARATED BY space\./);
+  // SPLIT takes the expression as it is.
+  assert.match(result.classSource, /SPLIT gv_line AT cl_abap_codepage=>convert_from\( CONV xstring\( 'C3A0' \) \) INTO TABLE gt_parts\./);
+  // A constant's VALUE must be a literal, so it keeps its characters.
+  assert.match(result.classSource, /CONSTANTS gc_city TYPE string VALUE 'Città'\./);
+});
+
+test("lowers a WRITE with only a line break to a new line", async () => {
+  const result = await convertProgram({
+    source: "REPORT zbreak.\nSTART-OF-SELECTION.\n  WRITE /.\n  WRITE: / .\n  WRITE 'x'.\n",
+    filename: "zbreak.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /lo_writer->new_line\( \)\.\s+lo_writer->new_line\( \)\.\s+lo_writer->write_field/);
+  assert.doesNotMatch(result.classSource, /iv_value = \)/);
+});
+
+test("names the class of a customer module pool SAPMZ*/SAPMY* after the rest of its name", async () => {
+  assert.equal(defaultClassName("SAPMZRELEX_MONITOR"), "ZCL_RELEX_MONITOR");
+  assert.equal(defaultClassName("SAPMYTOOL"), "YCL_TOOL");
+  // Shortened like a report's: 25 characters and a hash of the program name.
+  assert.match(defaultClassName("SAPMZRELEX_MONITOR_WITH_A_LONG_NAME"), /^ZCL_RELEX_MONITOR_WITH_A_[0-9A-F]{4}$/);
+  assert.equal(defaultClassName("SAPMV45A"), undefined, "SAP's own module pools are not customer programs");
+  const result = await convertProgram({ source: "PROGRAM sapmzrelex_monitor.\n", filename: "sapmzrelex_monitor.prog.abap", loadDynproMetadata: false });
+  assert.equal(result.reportIR.targetClassName, "ZCL_RELEX_MONITOR");
+  assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E101"), JSON.stringify(result.diagnostics));
+});
+
+test("takes the program name from the caller over the REPORT statement", async () => {
+  const result = await convertProgram({ source: "REPORT zoriginal.\nWRITE 'x'.\n", filename: "zcopy.prog.abap", programName: "zcopy" });
+  assert.equal(result.reportIR.programName, "ZCOPY");
+  assert.equal(result.reportIR.targetClassName, "ZCL_COPY");
+  assert.match(result.classSource, /program = 'ZCOPY'/);
+});
+
+test("skips the kernel's system includes unless the generated class uses their constants", async () => {
+  const convert = (lines) => convertProgram({ source: ["REPORT zsystem.", ...lines].join("\n"), filename: "zsystem.prog.abap" });
+  const codesOf = (result) => untitled(result.diagnostics).map((item) => item.code);
+
+  // <icon> is TYPE-POOL icon, <color> the built-in list colors.
+  const provided = await convert(["INCLUDE <icon>.", "INCLUDE <color>.", "DATA gv_icon TYPE c LENGTH 4.", "START-OF-SELECTION.", "  gv_icon = icon_green_light.", "  WRITE 'x' COLOR COL_NEGATIVE."]);
+  assert.deepEqual(codesOf(provided), []);
+  assert.equal(provided.supported, true);
+
+  // WRITE ... AS SYMBOL writes the symbol's name, and line_count is the program's own.
+  const unused = await convert(["INCLUDE <symbol>.", "INCLUDE <line>.", "DATA line_count TYPE i.", "START-OF-SELECTION.", "  WRITE sym_phone AS SYMBOL.", "  line_count = 1."]);
+  assert.deepEqual(codesOf(unused), ["GGCONV-W109", "GGCONV-W109"]);
+  assert.equal(unused.supported, true);
+
+  const used = await convert(["INCLUDE <list>.", "DATA gv_symbol TYPE c LENGTH 4.", "START-OF-SELECTION.", "  gv_symbol = sym_phone."]);
+  assert.deepEqual(codesOf(used), ["GGCONV-E102"]);
+  assert.match(used.diagnostics.find((item) => item.code === "GGCONV-E102").message, /<list> is not available, and the generated class uses its constant sym_phone/);
+
+  const unknown = await convert(["INCLUDE <cntain>.", "START-OF-SELECTION."]);
+  assert.deepEqual(codesOf(unknown), ["GGCONV-E102"]);
 });

@@ -413,7 +413,7 @@ test("batch conversion names helper classes around existing classes", async () =
   assert.deepEqual(written, ["zcl_one.clas.abap", "zcl_one_h1_1.clas.abap"]);
 });
 
-test("batch conversion reports a helper class produced by two programs", async () => {
+test("batch conversion names a helper class around those of programs converted earlier in the run", async () => {
   // Helper names use the first 24 characters of the target class, which these share.
   const project = await workspace({
     "src/zlong_report_name_abcd_a.prog.abap": REPORT_WITH_LOCAL_CLASS("zlong_report_name_abcd_a"),
@@ -421,9 +421,13 @@ test("batch conversion reports a helper class produced by two programs", async (
   }, LISTED);
   const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
   const summary = await convertConfiguredPrograms({ config, overrides: { transactionCode: (name) => name.slice(-8) } });
-  assert.deepEqual(codes(summary.diagnostics), ["GGCONV-E115"]);
-  assert.match(summary.diagnostics[0].message, /ZCL_LONG_REPORT_NAME_ABC_H1/);
-  await assert.rejects(() => fs.readdir(config.generatedFolder), "a colliding run must not write a partial class set");
+  assert.deepEqual(summary.diagnostics, []);
+  assert.deepEqual((await fs.readdir(config.generatedFolder)).filter((name) => name.endsWith(".clas.abap")).sort(), [
+    "zcl_long_report_name_abc_h1.clas.abap",
+    "zcl_long_report_name_abc_h1_1.clas.abap",
+    "zcl_long_report_name_abcd_a.clas.abap",
+    "zcl_long_report_name_abcd_b.clas.abap",
+  ]);
 });
 
 function runCli(args, cwd = converterRoot) {
@@ -505,4 +509,104 @@ test("reads converter.language and takes transaction texts from I18N_TPOOL in th
   assert.equal(conversionPlan(config, program).language, "I");
   assert.equal(conversionPlan(config, program, { language: "D" }).language, "D");
   assert.ok(!("language" in conversionPlan({ ...config, language: undefined }, program)));
+});
+
+const PROG_XML = (name, subc) => [
+  '<?xml version="1.0" encoding="utf-8"?>',
+  '<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">',
+  ' <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">',
+  "  <asx:values>",
+  `   <PROGDIR><NAME>${name.toUpperCase()}</NAME><SUBC>${subc}</SUBC><FIXPT>X</FIXPT><UCCHECK>X</UCCHECK></PROGDIR>`,
+  "  </asx:values>",
+  " </asx:abap>",
+  "</abapGit>",
+].join("\n");
+
+test("names a program after its object, not after a copied REPORT statement", async () => {
+  // Copies keep their original's REPORT line; in SAP the object name decides.
+  const project = await workspace({
+    "src/zstock.prog.abap": REPORT("zstock"),
+    "src/zstock_1.prog.abap": REPORT("zstock"),
+    "src/zstock_2.prog.abap": REPORT("zstock"),
+  }, LISTED);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  assert.deepEqual((await discoverPrograms(config)).map((item) => item.programName).sort(), ["ZSTOCK", "ZSTOCK_1", "ZSTOCK_2"]);
+  const summary = await convertConfiguredPrograms({ config });
+  assert.deepEqual(summary.diagnostics, []);
+  assert.deepEqual(summary.programs.map((item) => [item.programName, item.targetClass]).sort(), [
+    ["ZSTOCK", "ZCL_STOCK"],
+    ["ZSTOCK_1", "ZCL_STOCK_1"],
+    ["ZSTOCK_2", "ZCL_STOCK_2"],
+  ]);
+  assert.match(await fs.readFile(path.join(config.generatedFolder, "zcl_stock_2.clas.abap"), "utf8"), /program = 'ZSTOCK_2'/);
+});
+
+test("discovers programs by their program type, so a REPORT in a TOP include is not an entry point", async () => {
+  const main = (name) => `INCLUDE ${name}_top.\nINCLUDE ${name}_forms.\nSTART-OF-SELECTION.\n  PERFORM run.\n`;
+  const top = (report) => `REPORT ${report}.\nDATA gv_count TYPE i.\n`;
+  const forms = "FORM run.\n  gv_count = gv_count + 1.\n  WRITE gv_count.\nENDFORM.\n";
+  const project = await workspace({
+    "src/zanag.prog.abap": main("zanag"),
+    "src/zanag.prog.xml": PROG_XML("zanag", "1"),
+    "src/zanag_top.prog.abap": top("zanag"),
+    "src/zanag_top.prog.xml": PROG_XML("zanag_top", "I"),
+    "src/zanag_forms.prog.abap": forms,
+    "src/zanag_forms.prog.xml": PROG_XML("zanag_forms", "I"),
+    // A copy whose TOP include still names the original.
+    "src/zwarehouse.prog.abap": main("zwarehouse"),
+    "src/zwarehouse.prog.xml": PROG_XML("zwarehouse", "1"),
+    "src/zwarehouse_top.prog.abap": top("zanag"),
+    "src/zwarehouse_top.prog.xml": PROG_XML("zwarehouse_top", "I"),
+    "src/zwarehouse_forms.prog.abap": forms,
+    "src/zwarehouse_forms.prog.xml": PROG_XML("zwarehouse_forms", "I"),
+    // A subroutine pool is not started on its own either.
+    "src/zpool.prog.abap": "PROGRAM zpool.\nFORM x.\nENDFORM.\n",
+    "src/zpool.prog.xml": PROG_XML("zpool", "S"),
+  }, LISTED);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  assert.deepEqual((await discoverPrograms(config)).map((item) => item.programName), ["ZANAG", "ZWAREHOUSE"]);
+  const summary = await convertConfiguredPrograms({ config });
+  assert.deepEqual(summary.diagnostics, []);
+  for (const program of summary.programs) {
+    assert.equal(program.supported, true, JSON.stringify(program.diagnostics));
+    assert.equal(program.programKind, "report");
+  }
+  assert.deepEqual(summary.programs.map((item) => item.targetClass), ["ZCL_ANAG", "ZCL_WAREHOUSE"]);
+  const warehouse = await fs.readFile(path.join(config.generatedFolder, "zcl_warehouse.clas.abap"), "utf8");
+  assert.match(warehouse, /program = 'ZWAREHOUSE'/);
+  assert.match(warehouse, /METHOD form_run\./, "the sibling includes are converted with the main program");
+});
+
+test("batch conversion counts class names handed out earlier in the run as taken", async () => {
+  // ZCL_ONE exists, so ZONE falls back to ZCL_ONE_1 - which ZONE_1, converted
+  // first, already has as its default name.
+  const project = await workspace({
+    "src/zone.prog.abap": REPORT("zone"),
+    "src/zone_1.prog.abap": REPORT("zone_1"),
+    "src/lib/zcl_one.clas.abap": GLOBAL_CLASS("zcl_one"),
+  }, LISTED);
+  const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+  const summary = await convertConfiguredPrograms({ config });
+  assert.deepEqual(summary.diagnostics, []);
+  assert.deepEqual(summary.programs.map((item) => [item.programName, item.targetClass]), [
+    ["ZONE_1", "ZCL_ONE_1"],
+    ["ZONE", "ZCL_ONE_2"],
+  ]);
+  assert.deepEqual((await fs.readdir(config.generatedFolder)).filter((name) => name.endsWith(".clas.abap")).sort(),
+    ["zcl_one_1.clas.abap", "zcl_one_2.clas.abap"]);
+
+  // The module pool SAPMZTWO and the report ZTWO both default to ZCL_TWO.
+  const pair = await workspace({
+    "src/sapmztwo.prog.abap": "PROGRAM sapmztwo.\n",
+    "src/ztwo.prog.abap": REPORT("ztwo"),
+  }, LISTED);
+  const pairConfig = await loadTranspileConfig(pair.configPath, { cwd: pair.root });
+  const pairSummary = await convertConfiguredPrograms({ config: pairConfig, write: false });
+  assert.deepEqual(pairSummary.diagnostics, []);
+  assert.deepEqual(pairSummary.programs.map((item) => [item.programName, item.targetClass]), [
+    ["SAPMZTWO", "ZCL_TWO"],
+    ["ZTWO", "ZCL_TWO_1"],
+  ]);
+  const renamed = pairSummary.programs[1].diagnostics.find((item) => item.code === "GGCONV-W106");
+  assert.match(renamed?.message ?? "", /ZCL_TWO already exists in src\/sapmztwo\.prog\.abap \(converted earlier in this run\)/);
 });

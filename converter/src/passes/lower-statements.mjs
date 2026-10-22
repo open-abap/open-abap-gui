@@ -969,6 +969,8 @@ function parseWrite(raw, context) {
     .replace(/\b(?:DD\/MM\/YY(?:YY)?|MM\/DD\/YY(?:YY)?|DDMMYY|MMDDYY|YYMMDD)\b/gi, "")
     .replace(/\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/gi, "")
     .trim();
+  // WRITE /. and WRITE: / . output nothing; they only break the line.
+  if (!rest && newLine && position === undefined && length === undefined) return "lo_writer->new_line( ).";
   const placement = [];
   if (position !== undefined) placement.push(`position = ${position}`);
   if (length !== undefined) placement.push(`length = ${length}`);
@@ -1302,9 +1304,11 @@ function lowerSingleStatement(statement, context) {
   const convertibleFreeChain = statement.kind === "Free"
     && context.freeChainControlKeys?.has(freeChainKey(statement));
   if (isConvertibleControlStatement(statement, context.controlObjectTypes) || convertibleFreeChain) {
+    // A chain element, such as one handler of SET HANDLER: a FOR x, b FOR x.,
+    // ends in its comma; emitted on its own, that becomes its terminator.
     let lowered = statement.kind === "Free"
       ? raw.replace(/^FREE\s*:??\s*/i, "CLEAR: ").replace(/,\s*$/, ".")
-      : raw;
+      : raw.replace(/,\s*$/, ".");
     if (statement.kind === "CreateObject") {
       const target = /^CREATE\s+OBJECT\s+([A-Z][A-Z0-9_]*)\b/i.exec(lowered)?.[1]?.toUpperCase();
       const explicitType = /\bTYPE\s+([A-Z][A-Z0-9_]*)\b/i.exec(lowered)?.[1]?.toUpperCase();
@@ -1697,7 +1701,9 @@ function lowerSingleStatement(statement, context) {
     // program is not converted and is still called as written.
     if (/\bPERFORM\s+\(/i.test(raw)) return "* TODO GGCONV-E401: dynamic PERFORM requires a manual method mapping.";
     if (/\bIN\s+PROGRAM\b/i.test(raw)) return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
-    const name = /^PERFORM\s+([^\s.]+)/i.exec(raw)?.[1];
+    // PERFORM: a, b. arrives as PERFORM a, and PERFORM b., each ending in its
+    // chain separator.
+    const name = /^PERFORM\s+([^\s.,]+)/i.exec(raw)?.[1];
     const routine = context.routines?.find((item) => item.name === name?.toUpperCase());
     const receiver = context.ownerPrefix ?? "";
     const session = context.sessionVariable ?? "io_session";
@@ -1706,7 +1712,7 @@ function lowerSingleStatement(statement, context) {
     // become CHANGING, but each keeps its own position count.
     const argumentsBySection = new Map();
     let section;
-    for (const token of splitPerformOperands(raw.replace(/^PERFORM\s+[^\s.]+\s*/i, "").replace(/\.$/, ""))) {
+    for (const token of splitPerformOperands(raw.replace(/^PERFORM\s+[^\s.,]+\s*/i, "").replace(/[.,]$/, ""))) {
       const upper = token.toUpperCase();
       if (["USING", "CHANGING", "TABLES"].includes(upper)) {
         section = upper;
@@ -2077,7 +2083,9 @@ export function lowerStatements(statements, context) {
     statement = headerLineStatement(statement, statementContext);
     const freeKey = freeChainKey(statement);
     const freeMembers = freeKey ? freeChains.get(freeKey) : undefined;
-    if (statement.kind === "Free" && freeMembers?.length > 1) {
+    // A chain that frees a control is lowered as one CLEAR: chain. FREE itself
+    // takes a single operand, so any other chain stays one FREE per element.
+    if (statement.kind === "Free" && freeMembers?.length > 1 && freeChainControlKeys.has(freeKey)) {
       if (freeMembers[0] !== statement) continue;
       const chainText = freeMembers
         .map((member) => member.text.trim()

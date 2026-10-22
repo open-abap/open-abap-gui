@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { normalizeOptions, defaultClassName, fullClassName, defaultTransactionCode,normalizeObjectName, normalizeTransactionCode } from "./options.mjs";
 import { diagnostic, sortDiagnostics } from "./diagnostics.mjs";
-import { resolveSources } from "./source-resolver.mjs";
+import { resolveSources, systemIncludeUse } from "./source-resolver.mjs";
 import { generatedSourceConfig, parseUnits, readConfig } from "./parser.mjs";
 import { applyStyleFixes } from "./emit/style-fixes.mjs";
 import { emptyReportIR } from "./ir/report-ir.mjs";
@@ -77,6 +77,35 @@ function undeclaredFieldSymbolDiagnostics(sources) {
     suggestion: "Emit the field-symbol declaration, or omit the statements that use it together with its binding.",
     phase: "validate-generated",
   })));
+}
+
+// A system include no library ships is skipped by the source resolver; it is
+// only missed if the generated class still uses one of its constants.
+function systemIncludeDiagnostics(systemIncludes = [], generatedUnits, ir) {
+  const declared = new Set(Object.keys(ir.sourceIndex?.byName ?? {}));
+  return systemIncludes.map((include) => {
+    const used = systemIncludeUse(include, generatedUnits.map((unit) => unit.source), declared);
+    return used
+      ? diagnostic({
+        code: "GGCONV-E102",
+        filename: include.filename,
+        start: include.start,
+        construct: `INCLUDE <${include.name.toLowerCase()}>`,
+        message: `system include <${include.name.toLowerCase()}> is not available, and the generated class uses its constant ${used}`,
+        suggestion: `Replace ${used} by its value, or declare it in the program.`,
+        phase: "source-resolution",
+      })
+      : diagnostic({
+        code: "GGCONV-W109",
+        severity: "warning",
+        filename: include.filename,
+        start: include.start,
+        construct: `INCLUDE <${include.name.toLowerCase()}>`,
+        message: `system include <${include.name.toLowerCase()}> is not available; it is skipped, as the generated class uses none of its constants`,
+        suggestion: "Remove the INCLUDE from the program.",
+        phase: "source-resolution",
+      });
+  });
 }
 
 function requiresDiagnosticShell(diagnostics) {
@@ -185,7 +214,9 @@ function buildReportIR(parsed, resolved, options) {
     sourceHash: resolved.sourceHash,
     newline: resolved.newline,
   });
-  ir.programName = classification.programName;
+  // A caller that knows the program object names it; the REPORT statement
+  // may be a copy's leftover or sit in an include.
+  ir.programName = options.programName ?? classification.programName;
   ir.programKind = classification.programKind;
   ir.units = parsed.units.map((unit) => ({ filename: unit.filename, ancestry: unit.ancestry }));
   ir.statements = allStatements;
@@ -713,6 +744,7 @@ export async function convertProgram(input = {}) {
   ];
   const generatedValidation = parseUnits(generatedUnits, generatedSourceConfig(config));
   diagnostics.push(...undeclaredFieldSymbolDiagnostics(generatedUnits));
+  diagnostics.push(...systemIncludeDiagnostics(resolved.systemIncludes, generatedUnits, ir));
   diagnostics.push(...generatedValidation.diagnostics
     .map((item) => generatedValidationDiagnostic(item, generatedUnits.find((unit) => unit.filename === item.filename)))
     .map((item) => mapGeneratedDiagnostic(item, sourceMap, `${ir.targetClassName}.clas.abap`, ir.statements)));

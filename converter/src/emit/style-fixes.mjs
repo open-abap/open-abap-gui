@@ -1,5 +1,11 @@
 import { ArtifactsRules, Config, Edits, MemoryFile, Registry } from "@abaplint/core";
 import {textLiteral} from "./abap-text.mjs";
+import {parsesAsStatement} from "../parser.mjs";
+
+const DECLARATIONS = new Set([
+  "Data", "DataBegin", "DataEnd", "Constant", "ConstantBegin", "ConstantEnd", "Static", "StaticBegin", "StaticEnd",
+  "ClassData", "ClassDataBegin", "ClassDataEnd", "Parameter", "SelectOption", "Type", "TypeBegin", "TypeEnd", "MethodDef",
+]);
 
 // Lowering writes each statement on one line. The quick fixes of these
 // abaplint rules give a call with several parameters one line per parameter,
@@ -75,23 +81,58 @@ export function applyStyleFixes(source, className) {
   const offsets = [];
   let offset = 0;
   for (const line of lines) { offsets.push(offset); offset += line.length + 1; }
+  const offsetOf = (position) => offsets[position.getRow() - 1] + position.getCol() - 1;
   const edits = [];
+  let hoisted = 0;
   for (const statement of registry.getFirstObject().getABAPFiles()[0].getStatements()) {
+    const statementEdits = [];
     for (const token of statement.getTokens()) {
       const literal = token.getStr();
       if (!/[^\x00-\x7f]/.test(literal)) continue;
       let replacement;
+      let text;
       if (token.constructor.name === "StringToken") {
         const quote = literal[0];
-        replacement = textLiteral(literal.slice(1, -1).replaceAll(quote + quote, quote));
+        text = literal.slice(1, -1).replaceAll(quote + quote, quote);
+        replacement = textLiteral(text);
       } else if (token.constructor.name.startsWith("StringTemplate")) {
         replacement = literal.replace(/[^\x00-\x7f]+/g, text => `{ ${textLiteral(text)} }`);
       }
-      if (replacement) {
-        const position = token.getStart();
-        edits.push({start: offsets[position.getRow() - 1] + position.getCol() - 1, literal, replacement});
-      }
+      if (replacement) statementEdits.push({start: offsetOf(token.getStart()), literal, replacement, text, quote: literal[0]});
     }
+    if (!statementEdits.length) continue;
+    // The decoded text is an expression, which only some operand positions
+    // accept: CONCATENATE, Open SQL and EXPORTING take data objects. There the
+    // text is decoded into a variable first. A declaration cannot be preceded
+    // by that, so its VALUE literal keeps its characters.
+    const start = offsetOf(statement.getFirstToken().getStart());
+    const end = offsetOf(statement.getLastToken().getEnd());
+    let inline = source.slice(start, end);
+    for (const edit of [...statementEdits].sort((a, b) => b.start - a.start)) {
+      inline = inline.slice(0, edit.start - start) + edit.replacement + inline.slice(edit.start - start + edit.literal.length);
+    }
+    if (parsesAsStatement(inline)) {
+      edits.push(...statementEdits);
+      continue;
+    }
+    const kind = statement.get().constructor.name;
+    if (DECLARATIONS.has(kind)) continue;
+    const indent = " ".repeat(statement.getFirstToken().getStart().getCol() - 1);
+    const host = /^Select/.test(kind) && source.slice(start, end).includes("@") ? "@" : "";
+    const declarations = [];
+    for (const edit of statementEdits) {
+      if (edit.text === undefined) {
+        edits.push(edit);
+        continue;
+      }
+      const name = `lv_ggconv_text_${++hoisted}`;
+      // A '...' literal is a text field: kept as type c, its trailing blanks
+      // are ignored where the literal's would be, as by CONCATENATE.
+      const type = edit.quote === "'" ? `c LENGTH ${Math.max(1, edit.text.length)}` : "string";
+      declarations.push(`DATA ${name} TYPE ${type}.\n${indent}${name} = ${edit.replacement}.\n${indent}`);
+      edits.push({...edit, replacement: `${host}${name}`});
+    }
+    edits.push({start, literal: "", replacement: declarations.join("")});
   }
   for (const {start, literal, replacement} of edits.sort((a, b) => b.start - a.start)) {
     source = source.slice(0, start) + replacement + source.slice(start + literal.length);
