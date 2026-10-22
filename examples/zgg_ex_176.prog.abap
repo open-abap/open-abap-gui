@@ -1,0 +1,14 @@
+REPORT zgg_ex_176.
+
+TABLES t100.
+SELECT-OPTIONS s_arbgb FOR t100-arbgb.
+
+FORM run.
+  DATA bar TYPE t100.
+  SELECT SINGLE * FROM t100
+    INTO CORRESPONDING FIELDS OF @bar
+    WHERE arbgb IN @s_arbgb.
+ENDFORM.
+
+START-OF-SELECTION.
+  PERFORM run.

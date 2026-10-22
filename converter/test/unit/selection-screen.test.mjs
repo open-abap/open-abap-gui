@@ -165,3 +165,23 @@ test("reads a SELECT without INTO into the TABLES work area", async () => {
   assert.match(result.classSource, /SELECT SINGLE \* FROM t100 INTO t100 WHERE arbgb IN mv_s_arbgb\./);
   assert.match(result.classSource, /SELECT \* FROM t100 INTO t100 UP TO 2 ROWS\./);
 });
+
+test("passes an escaped select-option to Open SQL as its table", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zescaped.",
+      "TABLES t100.",
+      "SELECT-OPTIONS s_arbgb FOR t100-arbgb.",
+      "FORM run.",
+      "  DATA bar TYPE t100.",
+      "  SELECT SINGLE * FROM t100 INTO CORRESPONDING FIELDS OF @bar WHERE arbgb IN @s_arbgb.",
+      "ENDFORM.",
+      "START-OF-SELECTION.",
+      "  PERFORM run.",
+    ].join("\n"),
+    filename: "zescaped.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /WHERE arbgb IN @mv_s_arbgb\./);
+  assert.doesNotMatch(result.classSource, /s_arbgb_header/);
+});

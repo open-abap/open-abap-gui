@@ -165,7 +165,8 @@ const TABLE_KEYWORD = /(?:\bTABLE|\bLINES?\s+OF|\bIN|\bLOOP\s+AT|\blines\(|\bSOR
 
 function denotesTable(code, start, end, statementKeyword, tablesSection) {
   if (/^\[/.test(code.slice(end))) return true;
-  const before = code.slice(0, start);
+  // An escaped Open SQL host variable, as in IN @itab, is the same operand.
+  const before = code.slice(0, start).replace(/@$/, "");
   if (TABLE_KEYWORD.test(before)) {
     // DELETE, MODIFY, SORT, REFRESH and FREE name the table right after the keyword.
     if (/\b(?:DELETE|MODIFY|SORT|REFRESH|FREE)\s*$/i.test(before)) return /^\s*(?:DELETE|MODIFY|SORT|REFRESH|FREE)\s*$/i.test(before) || /\bDUPLICATES\s+FROM\s*$/i.test(before);
