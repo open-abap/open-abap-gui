@@ -3259,13 +3259,13 @@ test("lowers a WRITE with only a line break to a new line", async () => {
 });
 
 test("names the class of a customer module pool SAPMZ*/SAPMY* after the rest of its name", async () => {
-  assert.equal(defaultClassName("SAPMZRELEX_MONITOR"), "ZCL_RELEX_MONITOR");
+  assert.equal(defaultClassName("SAPMZSTOCK_MONITOR"), "ZCL_STOCK_MONITOR");
   assert.equal(defaultClassName("SAPMYTOOL"), "YCL_TOOL");
   // Shortened like a report's: 25 characters and a hash of the program name.
-  assert.match(defaultClassName("SAPMZRELEX_MONITOR_WITH_A_LONG_NAME"), /^ZCL_RELEX_MONITOR_WITH_A_[0-9A-F]{4}$/);
+  assert.match(defaultClassName("SAPMZSTOCK_MONITOR_WITH_A_LONG_NAME"), /^ZCL_STOCK_MONITOR_WITH_A_[0-9A-F]{4}$/);
   assert.equal(defaultClassName("SAPMV45A"), undefined, "SAP's own module pools are not customer programs");
-  const result = await convertProgram({ source: "PROGRAM sapmzrelex_monitor.\n", filename: "sapmzrelex_monitor.prog.abap", loadDynproMetadata: false });
-  assert.equal(result.reportIR.targetClassName, "ZCL_RELEX_MONITOR");
+  const result = await convertProgram({ source: "PROGRAM sapmzstock_monitor.\n", filename: "sapmzstock_monitor.prog.abap", loadDynproMetadata: false });
+  assert.equal(result.reportIR.targetClassName, "ZCL_STOCK_MONITOR");
   assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E101"), JSON.stringify(result.diagnostics));
 });
 
