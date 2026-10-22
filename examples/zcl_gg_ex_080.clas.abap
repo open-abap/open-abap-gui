@@ -63,6 +63,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = ct_values[ name = 'P_RAD2' ]-value.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( ct_values[ name = 'S_END' ]-ranges ).
+    s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_FLD' ]-value <> mv_p_fld.
       ct_values[ name = 'P_FLD' ]-value = |{ mv_p_fld }|.
     ENDIF.
@@ -89,6 +90,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = ct_values[ name = 'P_RAD2' ]-value.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( ct_values[ name = 'S_END' ]-ranges ).
+    s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
     CLEAR gv_order.
     IF ct_values[ name = 'P_FLD' ]-value <> mv_p_fld.
       ct_values[ name = 'P_FLD' ]-value = |{ mv_p_fld }|.
@@ -116,6 +118,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = ct_values[ name = 'P_RAD2' ]-value.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( ct_values[ name = 'S_END' ]-ranges ).
+    s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
     form_record(
       io_session = io_session
       iv_step    = 'SCREEN' ).
@@ -146,6 +149,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
       mv_p_rad2 = ct_values[ name = 'P_RAD2' ]-value.
       mv_p_req = ct_values[ name = 'P_REQ' ]-value.
       mv_s_end = CORRESPONDING #( ct_values[ name = 'S_END' ]-ranges ).
+      s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
       form_record(
         io_session = io_session
         iv_step    = 'FIELD' ).
@@ -179,6 +183,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = ct_values[ name = 'P_RAD2' ]-value.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( ct_values[ name = 'S_END' ]-ranges ).
+    s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
     form_record(
       io_session = io_session
       iv_step    = 'END' ).
@@ -209,6 +214,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
       mv_p_rad2 = ct_values[ name = 'P_RAD2' ]-value.
       mv_p_req = ct_values[ name = 'P_REQ' ]-value.
       mv_s_end = CORRESPONDING #( ct_values[ name = 'S_END' ]-ranges ).
+      s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
       form_record(
         io_session = io_session
         iv_step    = 'BLOCK' ).
@@ -240,6 +246,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
       mv_p_rad2 = ct_values[ name = 'P_RAD2' ]-value.
       mv_p_req = ct_values[ name = 'P_REQ' ]-value.
       mv_s_end = CORRESPONDING #( ct_values[ name = 'S_END' ]-ranges ).
+      s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
       form_record(
         io_session = io_session
         iv_step    = 'RADIO' ).
@@ -277,6 +284,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = it_values[ name = 'P_RAD2' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( it_values[ name = 'S_END' ]-ranges ).
+    s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
@@ -287,6 +295,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = it_values[ name = 'P_RAD2' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( it_values[ name = 'S_END' ]-ranges ).
+    s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
     lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gv_order ) ) ).
   ENDMETHOD.
 
@@ -304,6 +313,7 @@ CLASS zcl_gg_ex_080 IMPLEMENTATION.
     mv_p_rad2 = it_values[ name = 'P_RAD2' ]-value.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_end = CORRESPONDING #( it_values[ name = 'S_END' ]-ranges ).
+    s_end_header = VALUE #( mv_s_end[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.

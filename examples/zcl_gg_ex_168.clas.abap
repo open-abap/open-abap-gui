@@ -13,7 +13,6 @@ CLASS zcl_gg_ex_168 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
   PRIVATE SECTION.
     DATA mv_s_data TYPE RANGE OF sy-datum.
-    DATA s_data_header LIKE LINE OF mv_s_data.
 
 ENDCLASS.
 

@@ -28,7 +28,7 @@ CLASS zcl_example_incsel_h1 IMPLEMENTATION.
     LOOP AT mo_owner->mv_s_date INTO DATA(ls_date).
       mo_owner->gv_count = mo_owner->gv_count + 1.
     ENDLOOP.
-    IF mo_owner->mv_s_date[ 1 ]-low IS INITIAL.
+    IF mo_owner->s_date_header-low IS INITIAL.
       mo_owner->gv_count = mo_owner->gv_count * 2.
     ENDIF.
   ENDMETHOD.

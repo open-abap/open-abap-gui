@@ -49,6 +49,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -63,6 +64,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -77,6 +79,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -91,6 +94,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -105,6 +109,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -119,6 +124,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -133,6 +139,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA lt_ggconv_s_mul LIKE mv_s_mul.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( ct_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -147,6 +154,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     IF iv_name = 'S_MUL'.
       mv_p_req = it_values[ name = 'P_REQ' ]-value.
       mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
+      s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
       gt_carriers = VALUE #(
         ( carrid = 'AA' )
         ( carrid = 'LH' )
@@ -171,6 +179,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
@@ -178,6 +187,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
     LOOP AT mv_s_mul INTO s_mul_header.
       lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = s_mul_header-sign ) placement = VALUE #( new_line = abap_true ) ) ).
       lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = s_mul_header-option ) ) ).
@@ -197,6 +207,7 @@ CLASS zcl_gg_ex_074 IMPLEMENTATION.
   METHOD zif_gg_report_v1~end_of_selection.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_mul = CORRESPONDING #( it_values[ name = 'S_MUL' ]-ranges ).
+    s_mul_header = VALUE #( mv_s_mul[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.

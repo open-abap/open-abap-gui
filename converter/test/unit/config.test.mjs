@@ -610,3 +610,27 @@ test("batch conversion counts class names handed out earlier in the run as taken
   const renamed = pairSummary.programs[1].diagnostics.find((item) => item.code === "GGCONV-W106");
   assert.match(renamed?.message ?? "", /ZCL_TWO already exists in src\/sapmztwo\.prog\.abap \(converted earlier in this run\)/);
 });
+
+test("converts module pools only with converter.module_pools", async () => {
+  const files = {
+    "src/zreport.prog.abap": REPORT("zreport"),
+    "src/zreport.prog.xml": PROG_XML("zreport", "1"),
+    "src/sapmzdialog.prog.abap": "PROGRAM sapmzdialog.\n",
+    "src/sapmzdialog.prog.xml": PROG_XML("sapmzdialog", "M"),
+  };
+  const discovered = async (converter) => {
+    const project = await workspace(files, { ...LISTED, converter: { ...CONVERTER, ...converter } });
+    const config = await loadTranspileConfig(project.configPath, { cwd: project.root });
+    return { config, names: (await discoverPrograms(config)).map((item) => item.programName) };
+  };
+
+  const byDefault = await discovered({});
+  assert.equal(byDefault.config.modulePools, false);
+  assert.deepEqual(byDefault.names, ["ZREPORT"]);
+  assert.deepEqual((await discovered({ module_pools: false })).names, ["ZREPORT"]);
+  assert.deepEqual((await discovered({ module_pools: true })).names, ["SAPMZDIALOG", "ZREPORT"]);
+
+  const invalid = await discovered({ module_pools: "yes" });
+  assert.deepEqual(codes(invalid.config.diagnostics), ["GGCONV-E121"]);
+  assert.equal(invalid.config.valid, false);
+});

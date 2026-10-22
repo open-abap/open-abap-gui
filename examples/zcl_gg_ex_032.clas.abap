@@ -43,6 +43,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   METHOD zif_gg_report_v1~initialization.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
@@ -53,6 +54,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_output.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
@@ -63,6 +65,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
@@ -73,6 +76,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
@@ -83,6 +87,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
 * once, after the multiple selection.
     lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
@@ -90,6 +95,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
       ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
     ENDIF.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     IF lines( mv_s_carr ) > 5.
       io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_error text = 'at most five entries' field = iv_name ) ).
     ENDIF.
@@ -103,6 +109,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
@@ -113,6 +120,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     lt_ggconv_s_carr = mv_s_carr.
     lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     IF lt_ggconv_s_carr <> mv_s_carr.
@@ -130,12 +138,14 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.
     mv_s_carr = CORRESPONDING #( it_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Check a select-option at the end' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_s_carr = CORRESPONDING #( it_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     lo_writer->write_field( VALUE #( text = |{ lines( mv_s_carr ) } airline entries chosen| placement = VALUE #( new_line = abap_true ) ) ).
   ENDMETHOD.
 
@@ -149,6 +159,7 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~end_of_selection.
     mv_s_carr = CORRESPONDING #( it_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.

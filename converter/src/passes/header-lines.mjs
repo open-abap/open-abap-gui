@@ -60,6 +60,10 @@ export function collectHeaderLines(ir) {
     if (!name) continue;
     const routine = declaration.statement?.scope === "local" ? routineOf(declaration.statement) : undefined;
     if (declaration.statement?.scope === "local" && !routine) continue;
+    // A select-option's table is its member; the work area only exists when
+    // some statement reads or writes the header line.
+    if (declaration.kind === "select-option" && !(ir.statements ?? []).some((statement) => statement.kind !== "SelectOption"
+      && /\bggconv_header_probe\b/.test(withoutHeaderLines(statement.text ?? "", { [name]: "ggconv_header_probe" })))) continue;
     const scope = routine ? (result.routines[routine.name] ??= {}) : result.global;
     scope[name] ??= workAreaName(name, used);
   }

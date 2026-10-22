@@ -46,6 +46,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
   METHOD zif_gg_report_v1~initialization.
     DATA lt_ggconv_s_arbgb LIKE mv_s_arbgb.
     mv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     lt_ggconv_s_arbgb = mv_s_arbgb.
     lt_ggconv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
     IF lt_ggconv_s_arbgb <> mv_s_arbgb.
@@ -56,6 +57,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_output.
     DATA lt_ggconv_s_arbgb LIKE mv_s_arbgb.
     mv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     lt_ggconv_s_arbgb = mv_s_arbgb.
     lt_ggconv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
     IF lt_ggconv_s_arbgb <> mv_s_arbgb.
@@ -66,6 +68,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen.
     DATA lt_ggconv_s_arbgb LIKE mv_s_arbgb.
     mv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     lt_ggconv_s_arbgb = mv_s_arbgb.
     lt_ggconv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
     IF lt_ggconv_s_arbgb <> mv_s_arbgb.
@@ -76,6 +79,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
     DATA lt_ggconv_s_arbgb LIKE mv_s_arbgb.
     mv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     lt_ggconv_s_arbgb = mv_s_arbgb.
     lt_ggconv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
     IF lt_ggconv_s_arbgb <> mv_s_arbgb.
@@ -86,6 +90,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_end_of.
     DATA lt_ggconv_s_arbgb LIKE mv_s_arbgb.
     mv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     lt_ggconv_s_arbgb = mv_s_arbgb.
     lt_ggconv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
     IF lt_ggconv_s_arbgb <> mv_s_arbgb.
@@ -96,6 +101,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_block.
     DATA lt_ggconv_s_arbgb LIKE mv_s_arbgb.
     mv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     lt_ggconv_s_arbgb = mv_s_arbgb.
     lt_ggconv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
     IF lt_ggconv_s_arbgb <> mv_s_arbgb.
@@ -106,6 +112,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_radio.
     DATA lt_ggconv_s_arbgb LIKE mv_s_arbgb.
     mv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     lt_ggconv_s_arbgb = mv_s_arbgb.
     lt_ggconv_s_arbgb = CORRESPONDING #( ct_values[ name = 'S_ARBGB' ]-ranges ).
     IF lt_ggconv_s_arbgb <> mv_s_arbgb.
@@ -123,11 +130,13 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.
     mv_s_arbgb = CORRESPONDING #( it_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Select-option header line in a FORM' ).
     mv_s_arbgb = CORRESPONDING #( it_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
     form_run( io_session = io_session ).
   ENDMETHOD.
 
@@ -141,6 +150,7 @@ CLASS zcl_gg_ex_174 IMPLEMENTATION.
 
   METHOD zif_gg_report_v1~end_of_selection.
     mv_s_arbgb = CORRESPONDING #( it_values[ name = 'S_ARBGB' ]-ranges ).
+    s_arbgb_header = VALUE #( mv_s_arbgb[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.

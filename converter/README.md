@@ -42,8 +42,9 @@ It takes no positional arguments; a single report is selected with `--program`.
 As in SAP, a program is its object: `zfoo.prog.abap` is program `ZFOO`, whatever
 name its REPORT statement gives (a copied report keeps its original's, and a
 program may have its REPORT statement in a TOP include). Executable programs
-(`SUBC` 1 in the `.prog.xml`) and module pools (`M`) are converted; includes
-(`I`) and subroutine pools (`S`) never are. A program without a `.prog.xml`
+(`SUBC` 1 in the `.prog.xml`) are converted, and module pools (`M`) when
+`converter.module_pools` is `true`; includes (`I`) and subroutine pools (`S`)
+never are. A program without a `.prog.xml`
 counts as an entry point when it has a REPORT or PROGRAM statement of its own.
 Two files for one program name are reported as `GGCONV-E115`.
 
@@ -55,6 +56,7 @@ The keys it reads are:
 | `converter.exclude_filter` | optional case-insensitive regular expressions; programs whose path matches are not converted |
 | `converter.output_folder` | where the generated classes are written; owned by the converter |
 | `converter.language` | optional one-character language key, such as `D`, for the texts to take; see below |
+| `converter.module_pools` | optional boolean, default `false`; `true` also converts module pools (`SUBC` M) |
 | `input_folder` | searched for INCLUDEs after the converter input; must list `converter.output_folder` |
 | `libs` | dependencies searched for INCLUDEs; their programs are never converted |
 

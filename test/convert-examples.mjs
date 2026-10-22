@@ -8,7 +8,7 @@ import { discoverPrograms, loadTranspileConfig } from "../converter/src/config.m
 const configPath = "build/abap_transpile.start.json";
 const config = JSON.parse(await fs.readFile("abap_transpile.json", "utf8"));
 config.input_folder.push("build/generated-examples");
-config.converter = { input_folder: ["examples"], output_folder: "build/generated-examples" };
+config.converter = { input_folder: ["examples"], output_folder: "build/generated-examples", module_pools: true };
 await fs.mkdir("build", { recursive: true });
 await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
 

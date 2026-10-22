@@ -98,7 +98,7 @@ function globalMemberNames(ir) {
   }
   // The work areas of header-line tables are members too.
   for (const [name, header] of Object.entries(ir.headerLines?.global ?? {})) {
-    result[name] ??= name.toLowerCase();
+    result[name] ??= ir.statePlan?.selectionState?.[name]?.member ?? name.toLowerCase();
     result[header.toUpperCase()] = header;
   }
   return result;
@@ -893,6 +893,10 @@ function selectionStateTransport(ir, event) {
     // A select-option member is a range table of its own type; the screen
     // transports LOW and HIGH as strings, CORRESPONDING converts each row.
     hydrate.push(item.ranges ? `${item.member} = CORRESPONDING #( ${field} ).` : `${item.member} = ${field}.`);
+    // The screen fields of a select-option are its header line, which after
+    // input holds the first row.
+    const header = item.ranges ? ir.headerLines?.global?.[name] : undefined;
+    if (header) hydrate.push(`${header} = VALUE #( ${item.member}[ 1 ] OPTIONAL ).`);
     if (source !== "ct_values") continue;
     if (item.ranges) {
       // As for parameters below, an untouched empty LOW of type i must not

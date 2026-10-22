@@ -12,12 +12,11 @@ const TRANSACTION_SUFFIX = ".tran.xml";
 // in the REPORT statement is irrelevant; a copied report keeps its original's,
 // and a program whose REPORT sits in its TOP include has none of its own.
 // Whether the object is an entry point is its program type, SUBC in the
-// .prog.xml: executable programs (1) and module pools (M) are converted,
-// includes (I) and subroutine pools (S) never. Only a program without a
-// .prog.xml falls back to the source, and counts as an entry point when it has
-// a REPORT/PROGRAM statement of its own.
+// .prog.xml: executable programs (1) are converted, module pools (M) only with
+// converter.module_pools, includes (I) and subroutine pools (S) never. Only a
+// program without a .prog.xml falls back to the source, and counts as an entry
+// point when it has a REPORT/PROGRAM statement of its own.
 const ENTRY_POINT = /^[ \t]*(?:REPORT|PROGRAM)\s+[A-Za-z0-9_/]+/im;
-const ENTRY_POINT_TYPES = new Set(["1", "M"]);
 
 function configDiagnostic(filename, code, message, suggestion, construct = "abap_transpile.json") {
   return diagnostic({ code, filename, construct, message, suggestion, phase: "config" });
@@ -224,6 +223,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
   let converterExcludeFilters = [];
   let generatedFolder;
   let language;
+  let modulePools = false;
   if (converter === null || typeof converter !== "object" || Array.isArray(converter)) {
     diagnostics.push(configDiagnostic(
       filename,
@@ -261,6 +261,19 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
           "converter.language must be a one-character SAP language key",
           'Use the key abapGit writes, such as "E" or "D", or leave it out.',
           "converter.language",
+        ));
+      }
+    }
+    if (converter.module_pools !== undefined) {
+      if (typeof converter.module_pools === "boolean") {
+        modulePools = converter.module_pools;
+      } else {
+        diagnostics.push(configDiagnostic(
+          filename,
+          "GGCONV-E121",
+          "converter.module_pools must be true or false",
+          "Set it to true to convert module pools (SUBC M), or leave it out.",
+          "converter.module_pools",
         ));
       }
     }
@@ -342,6 +355,7 @@ export async function loadTranspileConfig(configPath = DEFAULT_CONFIG_FILENAME, 
     libs,
     generatedFolder,
     ...(language === undefined ? {} : { language }),
+    modulePools,
     diagnostics,
     valid: !diagnostics.some((item) => item.severity === "error"),
   };
@@ -419,6 +433,7 @@ export async function discoverPrograms(config) {
     .map((filename) => ({ filename, relativePath: posix(path.relative(config.root, filename)) }))
     .filter((entry) => !excludeFilters.some((filter) => filter.test(entry.relativePath)));
 
+  const entryPointTypes = new Set(config.modulePools ? ["1", "M"] : ["1"]);
   const programs = [];
   for (const entry of selected) {
     let source;
@@ -428,7 +443,7 @@ export async function discoverPrograms(config) {
       continue;
     }
     const programType = await readProgramType(entry.filename);
-    if (programType === undefined ? !ENTRY_POINT.test(source) : !ENTRY_POINT_TYPES.has(programType)) continue;
+    if (programType === undefined ? !ENTRY_POINT.test(source) : !entryPointTypes.has(programType)) continue;
     // abapGit writes a namespace /ABC/ as #abc#.
     const programName = path.basename(entry.filename).slice(0, -PROGRAM_SUFFIX.length).replaceAll("#", "/").toUpperCase();
     programs.push({ ...entry, source, programName });

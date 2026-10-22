@@ -46,6 +46,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA lt_ggconv_s_car LIKE mv_s_car.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( ct_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -60,6 +61,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA lt_ggconv_s_car LIKE mv_s_car.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( ct_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -74,6 +76,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA lt_ggconv_s_car LIKE mv_s_car.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( ct_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -88,6 +91,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA lt_ggconv_s_car LIKE mv_s_car.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( ct_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -102,6 +106,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA lt_ggconv_s_car LIKE mv_s_car.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( ct_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -116,6 +121,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA lt_ggconv_s_car LIKE mv_s_car.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( ct_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -130,6 +136,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA lt_ggconv_s_car LIKE mv_s_car.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( ct_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_REQ' ]-value <> mv_p_req.
       ct_values[ name = 'P_REQ' ]-value = |{ mv_p_req }|.
     ENDIF.
@@ -151,6 +158,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( it_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
@@ -158,6 +166,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( it_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
     LOOP AT mv_s_car INTO s_car_header.
       lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = s_car_header-sign ) placement = VALUE #( new_line = abap_true ) ) ).
       lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = s_car_header-option ) ) ).
@@ -177,6 +186,7 @@ CLASS zcl_gg_ex_072 IMPLEMENTATION.
   METHOD zif_gg_report_v1~end_of_selection.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_car = CORRESPONDING #( it_values[ name = 'S_CAR' ]-ranges ).
+    s_car_header = VALUE #( mv_s_car[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.
