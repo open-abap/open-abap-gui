@@ -18,6 +18,7 @@ CLASS zcl_gg_ex_078 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mv_p_car TYPE c LENGTH 3.
     DATA mv_p_req TYPE c LENGTH 20.
     DATA mv_s_rng LIKE RANGE OF zsflight-carrid.
+    DATA s_rng_header LIKE LINE OF mv_s_rng.
     METHODS form_carrier_help
       IMPORTING
         io_session TYPE REF TO zif_gg_session_v1
@@ -214,8 +215,8 @@ CLASS zcl_gg_ex_078 IMPLEMENTATION.
     mv_p_req = it_values[ name = 'P_REQ' ]-value.
     mv_s_rng = CORRESPONDING #( it_values[ name = 'S_RNG' ]-ranges ).
     lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = mv_p_car ) ) ).
-    LOOP AT mv_s_rng INTO DATA(ls_s_rng_range).
-      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = ls_s_rng_range-low ) placement = VALUE #( new_line = abap_true ) ) ).
+    LOOP AT mv_s_rng INTO s_rng_header.
+      lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = s_rng_header-low ) placement = VALUE #( new_line = abap_true ) ) ).
     ENDLOOP.
   ENDMETHOD.
 

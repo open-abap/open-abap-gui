@@ -1485,19 +1485,9 @@ function lowerSingleStatement(statement, context) {
   }
   // A LOOP with an INTO or ASSIGNING target is carried over as written. One
   // without reads a header line, which a class cannot have: a header-line
-  // table's loop already got its work area in headerLineStatement, over a
-  // select-option it is given an explicit range row, otherwise it is omitted.
-  if (statement.kind === "Loop" && !isMethodSafeLoop(statement)) {
-    const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1]?.toUpperCase();
-    const selection = context.selections?.find((item) => item.name === name && item.ranges);
-    if (selection) {
-      const member = context.selectionState?.[name]?.member;
-      if (member) return `LOOP AT ${member} INTO DATA(ls_${name.toLowerCase()}_range).`;
-      const source = context.mutableValues ? "ct_values" : "it_values";
-      return `LOOP AT ${source}[ name = '${name}' ]-ranges INTO DATA(ls_${name.toLowerCase()}_range).`;
-    }
-    return undefined;
-  }
+  // table's loop already got its work area in headerLineStatement, otherwise
+  // it is omitted.
+  if (statement.kind === "Loop" && !isMethodSafeLoop(statement)) return undefined;
   if (statement.kind === "SetTitlebar") {
     const title = /SET TITLEBAR\s+['"]?([^\s.'"]+)/i.exec(raw)?.[1];
     if (!title) return "* TODO GGCONV-E501: dynamic titlebar.";
@@ -1962,7 +1952,7 @@ function normalizeDynamicAlvStatement(statement, context) {
 // its work area instead.
 function headerLineStatement(statement, context) {
   const headerLines = context.headerLines ?? {};
-  if (!Object.keys(headerLines).length || ["Comment", "Unknown", "Ranges"].includes(statement.kind)) return statement;
+  if (!Object.keys(headerLines).length || ["Comment", "Unknown", "Ranges", "SelectOption"].includes(statement.kind)) return statement;
   const raw = statement.text.trim();
   if (statement.scope === "local" && statement.kind === "Data") {
     const name = /^DATA\s*:?\s*([A-Z][A-Z0-9_]*)/i.exec(raw)?.[1]?.toUpperCase();
@@ -2037,7 +2027,6 @@ export function lowerStatements(statements, context) {
   const output = [];
   let pendingHidden = [];
   let lastWriteIndex = -1;
-  const rangeLoops = [];
   const screenLoops = [];
   const usedScreenNames = new Set();
   const freeChains = new Map();
@@ -2076,7 +2065,7 @@ export function lowerStatements(statements, context) {
     const statementContext = {
       ...context,
       freeChainControlKeys,
-      replacements: [...screenReplacements, ...rangeLoops, ...(context.replacements ?? []).filter(([name]) => !rangeLoops.some(([active]) => active === name))],
+      replacements: [...screenReplacements, ...(context.replacements ?? [])],
       screenStateSymbol,
     };
     statement = normalizeDynamicAlvStatement(statement, statementContext);
@@ -2145,13 +2134,6 @@ export function lowerStatements(statements, context) {
       if (statement.kind === "EndLoop" && screenLoops.at(-1)?.guarded) item.text = `${item.text}\nENDIF.`;
       output.push(item);
       if (listWrite) lastWriteIndex = output.length - 1;
-      if (statement.kind === "Loop") {
-        const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text.trim())?.[1]?.toUpperCase();
-        if (context.selections?.some((selection) => selection.name === name && selection.ranges)) {
-          rangeLoops.push([name, `ls_${name.toLowerCase()}_range`]);
-        }
-      }
-      if (statement.kind === "EndLoop") rangeLoops.pop();
       if (statement.kind === "LoopAtScreen") screenLoops.push({ kind: "screen", ...screenBinding, guarded: Boolean(screenStates(statementContext).guard) });
       if (statement.kind === "Loop") screenLoops.push({ kind: "other" });
       if (statement.kind === "EndLoop") screenLoops.pop();

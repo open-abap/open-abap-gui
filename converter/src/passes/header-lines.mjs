@@ -1,7 +1,8 @@
 import { maskedCode, nameOffsets } from "./replace-identifiers.mjs";
 
 // A class has no header lines. A report's table with one - DATA ... WITH
-// HEADER LINE, DATA BEGIN OF ... OCCURS, RANGES, and a FORM's TABLES parameter -
+// HEADER LINE, DATA BEGIN OF ... OCCURS, RANGES, SELECT-OPTIONS, and a FORM's
+// TABLES parameter -
 // becomes a table of the same name without one, plus a work area for the
 // header line. Every statement that used the header line, implicitly as in
 // LOOP AT itab. and APPEND itab., or by naming the table where a work area
@@ -22,7 +23,7 @@ function workAreaName(name, used) {
 
 export function hasHeaderLine(declaration) {
   const raw = declaration.raw ?? "";
-  if (declaration.kind === "ranges") return true;
+  if (declaration.kind === "ranges" || declaration.kind === "select-option") return true;
   if (declaration.kind === "databegin") return /\bBEGIN\s+OF\s+[A-Z][A-Z0-9_]*\s+OCCURS\b/i.test(raw);
   return declaration.kind === "data" && /\bWITH\s+HEADER\s+LINE\b/i.test(raw);
 }
@@ -48,14 +49,14 @@ function parameterWorkArea(parameter, ir) {
 // Header-line tables by scope: the program's own, and per FORM its local ones
 // and TABLES parameters, each mapped to the name of its work area.
 export function collectHeaderLines(ir) {
-  const used = new Set((ir.declarations ?? []).flatMap((item) => item.names ?? []).map((name) => String(name).toUpperCase()));
+  const used = new Set((ir.declarations ?? []).flatMap((item) => item.names ?? (item.name ? [item.name] : [])).map((name) => String(name).toUpperCase()));
   const routineOf = (statement) => (ir.routines ?? []).find((routine) => routine.statements?.includes(statement));
   const result = { global: {}, routines: {}, parameters: {} };
   for (const declaration of ir.declarations ?? []) {
     if (!hasHeaderLine(declaration) || declaration.statement?.localClassName) continue;
     const name = declaration.kind === "databegin"
       ? /\bBEGIN\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(declaration.raw)?.[1]?.toUpperCase()
-      : declaration.names?.[0]?.toUpperCase();
+      : (declaration.names?.[0] ?? declaration.name)?.toUpperCase();
     if (!name) continue;
     const routine = declaration.statement?.scope === "local" ? routineOf(declaration.statement) : undefined;
     if (declaration.statement?.scope === "local" && !routine) continue;

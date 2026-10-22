@@ -492,6 +492,9 @@ function dataMembers(ir) {
     const like = /\b(?:LIKE|FOR)\s+([A-Z][A-Z0-9_\/]*)/i.exec(String(state.additions ?? ""))?.[1]?.toUpperCase();
     if (like && selectionState[like]) emitSelection(like);
     members.push(`DATA ${state.member} ${selectionStateType(ir, state)}.`);
+    // SELECT-OPTIONS has a header line, see header-lines.mjs.
+    const header = state.ranges ? ir.headerLines?.global?.[name] : undefined;
+    if (header) members.push(`DATA ${header} LIKE LINE OF ${state.member}.`);
   };
   Object.keys(selectionState).forEach(emitSelection);
   for (const routine of ir.routines) {

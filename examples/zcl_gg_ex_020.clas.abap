@@ -15,6 +15,7 @@ CLASS zcl_gg_ex_020 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA zsflight TYPE zsflight.
     DATA gt_flights TYPE STANDARD TABLE OF zsflight WITH DEFAULT KEY.
     DATA mv_s_carr LIKE RANGE OF zsflight-carrid.
+    DATA s_carr_header LIKE LINE OF mv_s_carr.
 
 ENDCLASS.
 

@@ -14,6 +14,7 @@ CLASS zcl_gg_ex_032 DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     DATA zsflight TYPE zsflight.
     DATA mv_s_carr LIKE RANGE OF zsflight-carrid.
+    DATA s_carr_header LIKE LINE OF mv_s_carr.
 
 ENDCLASS.
 

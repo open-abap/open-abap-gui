@@ -20,6 +20,7 @@ CLASS zcl_gg_ex_080 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mv_p_rad2 TYPE c LENGTH 1.
     DATA mv_p_req TYPE c LENGTH 20.
     DATA mv_s_end LIKE RANGE OF zsflight-carrid.
+    DATA s_end_header LIKE LINE OF mv_s_end.
     METHODS form_record
       IMPORTING
         io_session TYPE REF TO zif_gg_session_v1

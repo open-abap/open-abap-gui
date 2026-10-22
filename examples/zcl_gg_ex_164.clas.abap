@@ -16,7 +16,9 @@ CLASS zcl_gg_ex_164 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mv_p_in TYPE c LENGTH 1.
     DATA mv_p_out TYPE c LENGTH 1.
     DATA mv_s_inq LIKE RANGE OF gv_queue.
+    DATA s_inq_header LIKE LINE OF mv_s_inq.
     DATA mv_s_outq LIKE RANGE OF gv_queue.
+    DATA s_outq_header LIKE LINE OF mv_s_outq.
 
 ENDCLASS.
 

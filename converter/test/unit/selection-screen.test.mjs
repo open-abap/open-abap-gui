@@ -116,3 +116,31 @@ test("reads the obsolete PARAMETER keyword and a chained parameter", async () =>
   assert.match(builderCall(result.classSource, "P_FILE"), /data_type = VALUE #\( typ = 'I' \)/);
   assert.notEqual(builderCall(result.classSource, "S_FILE"), "");
 });
+
+test("gives a select-option a header line, also inside a FORM", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zheader.",
+      "SELECT-OPTIONS s_date FOR sy-datum.",
+      "FORM run.",
+      "  s_date-sign = 'I'.",
+      "  LOOP AT s_date.",
+      "    WRITE / s_date-low.",
+      "  ENDLOOP.",
+      "  IF sy-datum IN s_date.",
+      "    CLEAR s_date[].",
+      "  ENDIF.",
+      "ENDFORM.",
+      "START-OF-SELECTION.",
+      "  PERFORM run.",
+    ].join("\n"),
+    filename: "zheader.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /DATA s_date_header LIKE LINE OF mv_s_date\./);
+  assert.match(result.classSource, /s_date_header-sign = 'I'\./);
+  assert.match(result.classSource, /LOOP AT mv_s_date INTO s_date_header\./);
+  assert.match(result.classSource, /iv_value = s_date_header-low/);
+  assert.match(result.classSource, /IF sy-datum IN mv_s_date\./);
+  assert.match(result.classSource, /CLEAR mv_s_date\./);
+});
