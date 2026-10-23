@@ -336,6 +336,12 @@ function selectionStateType(ir, state) {
   return `TYPE c LENGTH ${oldLength ?? 1}`;
 }
 
+// A component declared without TYPE or LIKE, as in line(5000), is c.
+function typedComponent(component) {
+  const match = /^([A-Z][A-Z0-9_]*)(?:\(\s*(\d+)\s*\))?$/i.exec(component);
+  return match ? `${match[1]} TYPE c LENGTH ${match[2] ?? 1}` : component;
+}
+
 // Re-emits a BEGIN OF ... END OF structure as one chain. INCLUDE TYPE and
 // INCLUDE STRUCTURE are statements of their own, so they break the chain.
 function structuredDeclaration(keyword, beginName, components, endName) {
@@ -426,7 +432,7 @@ function dataMembers(ir) {
         // broken, e.g. before INCLUDE TYPE; the structure is re-emitted as one
         // chain, so the terminator is replaced by a comma.
         const component = declarations[cursor].raw.replace(new RegExp(`^${keyword}\\s+`, "i"), "").replace(/\s*[,.]\s*$/, "");
-        if (component) components.push(rename(component));
+        if (component) components.push(rename(typedComponent(component)));
       }
       if (declarations[cursor].kind === end) {
         const endName = endTarget ?? /END OF\s+([A-Z0-9_]+)/i.exec(declarations[cursor].raw)?.[1] ?? target;
@@ -467,7 +473,7 @@ function dataMembers(ir) {
       const header = hasHeaderLine(item) ? headerLines[item.names?.[0]?.toUpperCase()] : undefined;
       // LOAD-OF-PROGRAM assigns a start value read from a system field, see globalStartValues.
       const start = ir.interfaces?.includes("zif_gg_report_v1") ? systemFieldStartValue(declaration) : undefined;
-      if (header) dataMembers.push(...headerLineDeclarations(declaration, header, isDataObject).map(rename));
+      if (header) dataMembers.push(...headerLineDeclarations(declaration, header, isDataObject, headerLines).map(rename));
       else dataMembers.push(rename(withoutHeaderLines(start?.declaration ?? declaration, headerLines)));
     } else if (item.kind === "tables" && item.resolved && !item.complex) {
       dataMembers.push(rename(`DATA ${item.names?.[0]?.toLowerCase()} TYPE ${item.type}.`));

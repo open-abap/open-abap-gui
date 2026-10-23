@@ -363,6 +363,27 @@ test("an implicit header-line LOOP gets the table's work area as its target", as
   assert.ok(errors(untyped, "GGCONV-E516").some((item) => item.message.includes("implicit-header-table LOOP")));
 });
 
+// LIKE a header-line table names its header line; the class's table of that
+// name has no line type to be LIKE, and TYPE ... OF names no type at all.
+test("LIKE a header-line table OCCURS n is a table of its work area", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zreg_like_header_line.",
+      "DATA: BEGIN OF bufline OCCURS 10,",
+      "        line(5000),",
+      "      END OF bufline.",
+      "DATA i_batch LIKE bufline OCCURS 10 WITH HEADER LINE.",
+      "START-OF-SELECTION.",
+      "  APPEND i_batch.",
+    ].join("\n"),
+    filename: "zreg_like_header_line.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const source = result.classSource;
+  assert.match(source, /DATA: BEGIN OF bufline_header, line TYPE c LENGTH 5000, END OF bufline_header\./);
+  assert.match(source, /DATA i_batch LIKE STANDARD TABLE OF bufline_header WITH DEFAULT KEY\.\n\s+DATA i_batch_header LIKE LINE OF i_batch\./);
+});
+
 test("header-line statements name the table or its work area as the statement means", () => {
   const cases = [
     ["LOOP AT itab FROM 2 WHERE id = 1.", "LOOP AT itab INTO itab_header FROM 2 WHERE id = 1."],

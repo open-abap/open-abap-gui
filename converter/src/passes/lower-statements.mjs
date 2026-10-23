@@ -1999,7 +1999,7 @@ function headerLineStatement(statement, context) {
     const name = /^DATA\s*:?\s*([A-Z][A-Z0-9_]*)/i.exec(raw)?.[1]?.toUpperCase();
     if (name && headerLines[name] && /\bWITH\s+HEADER\s+LINE\b/i.test(raw)) {
       const isDataObject = (operand) => Boolean(context.dataObjects?.has(operand.split("-")[0].toUpperCase()));
-      return { ...statement, text: headerLineDeclarations(raw, headerLines[name], isDataObject).join("\n") };
+      return { ...statement, text: headerLineDeclarations(raw, headerLines[name], isDataObject, headerLines).join("\n") };
     }
   }
   if (statement.scope === "local" && statement.kind === "DataBegin") {
