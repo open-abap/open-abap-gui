@@ -134,7 +134,8 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
 
   METHOD ensure_catalog.
     DATA lt_names TYPE string_table.
-    DATA lo_class TYPE REF TO cl_abap_classdescr.
+    DATA lt_reports TYPE string_table.
+    DATA lt_dynpros TYPE string_table.
     DATA ls_metadata TYPE zif_gg_transaction_v1=>ty_transaction.
     DATA ls_transaction TYPE ty_transaction.
     DATA lv_class_name TYPE string.
@@ -152,14 +153,16 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
     CLEAR mt_transactions.
     lt_names = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_TRANSACTION_V1` ).
     SORT lt_names.
+* The kind comes from discovery too, so the catalog needs no RTTI.
+    lt_reports = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_REPORT_V1` ).
+    lt_dynpros = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_DYNPRO_V1` ).
 
     LOOP AT lt_names INTO lv_class_name.
 * The metadata is static, so the catalog never instantiates a class. Discovery
 * found the class through the interface, so a failure here is an application
 * crash and keeps its original exception.
-      lo_class ?= cl_abap_typedescr=>describe_by_name( lv_class_name ).
-      lv_report = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_REPORT_V1' ] ) ).
-      lv_dynpro = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_DYNPRO_V1' ] ) ).
+      lv_report = xsdbool( line_exists( lt_reports[ table_line = lv_class_name ] ) ).
+      lv_dynpro = xsdbool( line_exists( lt_dynpros[ table_line = lv_class_name ] ) ).
       IF lv_report = abap_true AND lv_dynpro = abap_true.
         RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
           iv_message = |Transaction class { lv_class_name } implements both ZIF_GG_REPORT_V1 and ZIF_GG_DYNPRO_V1|.
