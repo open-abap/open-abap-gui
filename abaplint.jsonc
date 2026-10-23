@@ -71,7 +71,9 @@
     "index_completely_contained": true,
     "cds_legacy_view": true,
     "expand_macros": true,
-    "fully_type_itabs": true,
+    "fully_type_itabs": {
+      "exclude": ["kkblo.type.abap"]
+    },
     "cds_comment_style": true,
     "change_if_to_case": true,
     "dynpro_checks": true,
@@ -208,7 +210,9 @@
     "allowed_object_naming": false,
     "allowed_object_types": false,
     "ambiguous_statement": true,
-    "begin_single_include": true,
+    "begin_single_include": {
+      "exclude": ["slis.type.abap"]
+    },
     "call_transaction_authority_check": true,
     "7bit_ascii": true,
     "chain_mainly_declarations": true,

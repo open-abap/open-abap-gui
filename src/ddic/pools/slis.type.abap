@@ -241,3 +241,26 @@ TYPES: BEGIN OF slis_keyinfo_alv,
          header05 TYPE slis_fieldname,
          item05   TYPE slis_fieldname,
        END OF slis_keyinfo_alv.
+
+TYPES: BEGIN OF slis_fieldcat_main1,
+         ref_fieldname     TYPE c LENGTH 30,
+         ref_tabname       TYPE c LENGTH 30,
+         roundfieldname    TYPE slis_fieldname,
+         roundtabname      TYPE slis_tabname,
+         decimalsfieldname TYPE slis_fieldname,
+         decimalstabname   TYPE slis_tabname,
+         decimals_out      TYPE c LENGTH 6,
+         text_fieldname    TYPE slis_fieldname,
+         reptext_ddic      TYPE c LENGTH 55,
+         ddic_outputlen    TYPE n LENGTH 6,
+       END OF slis_fieldcat_main1.
+
+TYPES BEGIN OF slis_fieldcat_alv1.
+INCLUDE TYPE slis_fieldcat_main1.
+TYPES END OF slis_fieldcat_alv1.
+
+TYPES: BEGIN OF slis_filter_alv1,
+         ref_fieldname  LIKE dfies-fieldname,
+         ref_tabname    LIKE dfies-tabname,
+         ddic_outputlen LIKE dfies-outputlen,
+       END OF slis_filter_alv1.
