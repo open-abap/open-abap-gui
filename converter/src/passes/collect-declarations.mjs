@@ -1,3 +1,5 @@
+import { maskedCode } from "./replace-identifiers.mjs";
+
 const DECLARATION_KINDS = new Set([
   "Data", "DataBegin", "DataEnd", "Parameter", "SelectOption", "SelectionScreen", "Tables", "Ranges", "Type", "TypeBegin", "TypeEnd", "IncludeType", "Constant", "ConstantBegin", "ConstantEnd", "Static", "FieldSymbol",
 ]);
@@ -61,8 +63,11 @@ export function declarationInfo(statement) {
     return { kind: "select-option", name: match?.[1]?.toUpperCase(), raw, additions: match?.[2] ?? "" };
   }
   if (statement.kind === "Tables") {
-    const match = /^TABLES\s+([A-Z][A-Z0-9_]*)/i.exec(raw);
-    return { kind: "tables", names: match?.[1] ? [match[1].toUpperCase()] : [], raw };
+    const match = /^TABLES\s*:?\s*(\*?)([A-Z][A-Z0-9_]*)/i.exec(raw);
+    if (!match) return { kind: "tables", names: [], raw };
+    // TABLES *dbtab is a second work area of dbtab, see renameStarWorkAreas.
+    const table = match[2].toUpperCase();
+    return { kind: "tables", names: [match[1] ? starWorkArea(table).toUpperCase() : table], table, raw };
   }
   if (statement.kind === "Ranges") {
     const match = /^RANGES\s+([A-Z][A-Z0-9_]*)\s+FOR\s+(.+)$/i.exec(raw.replace(/\.$/, ""));
@@ -84,6 +89,35 @@ export function declarationInfo(statement) {
   // structure, so it is emitted as part of that structure, never on its own.
   if (statement.kind === "IncludeType") return { kind: "includetype", names: [], raw, complex: true };
   return { kind: statement.kind.toLowerCase(), raw };
+}
+
+function starWorkArea(table) {
+  return `star_${table.toLowerCase()}`.slice(0, 30);
+}
+
+// TABLES *dbtab declares a second work area of dbtab, named *dbtab, which is
+// no name in a class. It is named star_dbtab, in every statement that uses it;
+// SELECT ... FROM *dbtab reads dbtab into it, see tablesWorkAreaSelect.
+export function renameStarWorkAreas(statements) {
+  const tables = statements
+    .filter((statement) => statement.kind === "Tables")
+    .map((statement) => /^TABLES\s*:?\s*\*([A-Z][A-Z0-9_]*)/i.exec(statement.text.trim())?.[1])
+    .filter(Boolean);
+  if (!tables.length) return;
+  const pattern = new RegExp(`(^|[^A-Z0-9_\\-*>~])\\*(${tables.join("|")})\\b`, "gi");
+  for (const statement of statements) {
+    if (statement.kind === "Tables" || statement.kind === "Comment") continue;
+    // A leading blank keeps a statement starting with *dbtab from reading as a comment.
+    const code = maskedCode(` ${statement.text}`).slice(1);
+    let text = "";
+    let last = 0;
+    for (const match of code.matchAll(pattern)) {
+      const at = match.index + match[1].length;
+      text += statement.text.slice(last, at) + starWorkArea(match[2]);
+      last = at + 1 + match[2].length;
+    }
+    if (last) statement.text = text + statement.text.slice(last);
+  }
 }
 
 // DATA: BEGIN OF s, f TYPE i, END OF s. declares s, not f: a component is part

@@ -1,5 +1,5 @@
 import { textLiteral } from "./abap-text.mjs";
-import { bindsStatically, controlObjectTypes, lowerStatements, rebindingCall, restoreFieldSymbols, selectionExpression, selectionType } from "../passes/lower-statements.mjs";
+import { bindsStatically, controlObjectTypes, lowerStatements, rebindingCall, restoreFieldSymbols, selectionExpression, selectionType, startValueAssignment, systemFieldStartValue } from "../passes/lower-statements.mjs";
 import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.mjs";
 import { scaffoldIR } from "../ir/scaffold-ir.mjs";
 import { hasProgramMetadata } from "../passes/select-interfaces.mjs";
@@ -10,6 +10,7 @@ import { methodParameterType } from "../passes/collect-routines.mjs";
 import { DEFAULT_SELECTION_SCREEN } from "../passes/collect-selection-screens.mjs";
 import { replaceIdentifiers } from "../passes/replace-identifiers.mjs";
 import { hasHeaderLine, headerLineDeclarations, headerLinesIn, withoutHeaderLines } from "../passes/header-lines.mjs";
+import { likeHeads, likeTyping, scopedMember } from "../passes/like-typing.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -329,9 +330,10 @@ function selectionStateType(ir, state) {
     const member = reportMember(ir, like[1].toUpperCase());
     return member ? `LIKE ${member}${like[2].toLowerCase()}` : `TYPE ${`${like[1]}${like[2]}`.toLowerCase()}`;
   }
-  // PARAMETERS without a type is c of length 8; a checkbox or radio button is c of length 1.
+  // PARAMETERS without a type is c, of length 1 when no length is given, as a
+  // checkbox or radio button always is.
   if (/\b(?:AS\s+CHECKBOX|RADIOBUTTON\s+GROUP)\b/i.test(additions)) return "TYPE c LENGTH 1";
-  return `TYPE c LENGTH ${oldLength ?? 8}`;
+  return `TYPE c LENGTH ${oldLength ?? 1}`;
 }
 
 // Re-emits a BEGIN OF ... END OF structure as one chain. INCLUDE TYPE and
@@ -353,18 +355,66 @@ function structuredDeclaration(keyword, beginName, components, endName) {
   return statements.join(" ");
 }
 
+function isGlobalDeclaration(ir) {
+  const routineStatements = new Set((ir.routines ?? []).flatMap((routine) => routine.statements ?? []));
+  const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
+  return (item) => !routineStatements.has(item.statement)
+    && (dynproModuleStatements.has(item.statement) || item.statement?.scope !== "local")
+    && !item.statement?.localClassName;
+}
+
+function beginName(declaration) {
+  return /\bBEGIN\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(declaration.raw ?? "")?.[1];
+}
+
+// The program's data objects a declaration may name in LIKE, by the name they
+// have before the renames: a parameter or select-option is its member. A
+// TABLES work area, *dbtab's star_dbtab included, is typed by its table, see
+// like-typing.mjs.
+function globalLikeMember(ir) {
+  const names = new Map();
+  const global = isGlobalDeclaration(ir);
+  for (const declaration of ir.declarations ?? []) {
+    if (!global(declaration)) continue;
+    if (declaration.kind === "tables") {
+      for (const name of declaration.names ?? []) names.set(name.toUpperCase(), { type: (declaration.table ?? name).toLowerCase() });
+    } else if (["data", "static", "ranges", "constant"].includes(declaration.kind)) {
+      for (const name of declaration.names ?? []) names.set(name.toUpperCase(), name.toLowerCase());
+    } else if (["databegin", "constantbegin"].includes(declaration.kind) && beginName(declaration)) {
+      names.set(beginName(declaration).toUpperCase(), beginName(declaration).toLowerCase());
+    }
+  }
+  for (const [name, header] of Object.entries(ir.headerLines?.global ?? {})) {
+    names.set(name, name.toLowerCase());
+    names.set(header.toUpperCase(), header);
+  }
+  for (const [name, state] of Object.entries(ir.statePlan?.selectionState ?? {})) {
+    names.set(name, state.member);
+    names.set(state.member.toUpperCase(), state.member);
+  }
+  return (name) => names.get(name);
+}
+
+// The program's data declared VALUE sy-repid or another system field: as a
+// member it is declared without VALUE, and LOAD-OF-PROGRAM assigns the start
+// value, see systemFieldStartValue.
+function globalStartValues(ir) {
+  const global = isGlobalDeclaration(ir);
+  return (ir.declarations ?? [])
+    .filter((item) => global(item) && ["data", "static"].includes(item.kind) && !item.complex && !item.component && !hasHeaderLine(item))
+    .map((item) => systemFieldStartValue(item.raw))
+    .filter(Boolean);
+}
+
 function dataMembers(ir) {
   const typeMembers = [];
   const constantMembers = [];
   const dataMembers = [];
   const declarations = ir.declarations ?? [];
-  const routineStatements = new Set(ir.routines.flatMap((routine) => routine.statements));
-  const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
   const consumed = new Set();
-  const global = (item) => !routineStatements.has(item.statement)
-    && (dynproModuleStatements.has(item.statement) || item.statement?.scope !== "local")
-    && !item.statement?.localClassName;
-  const rename = (text) => renameIdentifiers(text, allRenames(ir));
+  const global = isGlobalDeclaration(ir);
+  const likeMember = globalLikeMember(ir);
+  const rename = (text) => renameIdentifiers(likeTyping(text, likeMember), allRenames(ir));
   const headerLines = ir.headerLines?.global ?? {};
   const isDataObject = (operand) => Boolean(reportMember(ir, operand.split("-")[0].toUpperCase()));
   const addStructured = (index, begin, end, keyword, target, endTarget) => {
@@ -415,8 +465,10 @@ function dataMembers(ir) {
         ? declarationRaw.replace(/^STATICS\b/i, "DATA")
         : declarationRaw;
       const header = hasHeaderLine(item) ? headerLines[item.names?.[0]?.toUpperCase()] : undefined;
+      // LOAD-OF-PROGRAM assigns a start value read from a system field, see globalStartValues.
+      const start = ir.interfaces?.includes("zif_gg_report_v1") ? systemFieldStartValue(declaration) : undefined;
       if (header) dataMembers.push(...headerLineDeclarations(declaration, header, isDataObject).map(rename));
-      else dataMembers.push(rename(withoutHeaderLines(declaration, headerLines)));
+      else dataMembers.push(rename(withoutHeaderLines(start?.declaration ?? declaration, headerLines)));
     } else if (item.kind === "tables" && item.resolved && !item.complex) {
       dataMembers.push(rename(`DATA ${item.names?.[0]?.toLowerCase()} TYPE ${item.type}.`));
     } else if (item.kind === "ranges") {
@@ -472,7 +524,18 @@ function dataMembers(ir) {
       `TYPES ${ir.dynamicAlv.tableType} TYPE STANDARD TABLE OF ${ir.dynamicAlv.rowType} WITH EMPTY KEY.`,
     ]
     : [];
-  const members = [...typeMembers, ...dynamicTypes, ...constantMembers, ...dataMembers, ...screenStateMembers(ir)];
+  // LIKE can only name an attribute declared earlier, so data typed LIKE a
+  // parameter's member, or LIKE such data, comes after the selection members.
+  const selectionMembers = new Set(Object.values(ir.statePlan?.selectionState ?? {}).map((state) => state.member.toUpperCase()));
+  const deferredNames = new Set();
+  const deferredMembers = [];
+  const earlyMembers = dataMembers.filter((member) => {
+    if (!likeHeads(member).some((name) => selectionMembers.has(name) || deferredNames.has(name))) return true;
+    for (const match of member.matchAll(/^DATA\s*:?\s*(?:BEGIN\s+OF\s+)?([A-Z][A-Z0-9_]*)/gim)) deferredNames.add(match[1].toUpperCase());
+    deferredMembers.push(member);
+    return false;
+  });
+  const members = [...typeMembers, ...dynamicTypes, ...constantMembers, ...earlyMembers, ...screenStateMembers(ir)];
   if (ir.dynamicAlv) members.push(`DATA ${ir.dynamicAlv.tableMember.toLowerCase()} TYPE ${ir.dynamicAlv.tableType}.`);
   for (const statement of ir.statements ?? []) {
     if (statement.kind !== "Controls") continue;
@@ -497,6 +560,7 @@ function dataMembers(ir) {
     if (header) members.push(`DATA ${header} LIKE LINE OF ${state.member}.`);
   };
   Object.keys(selectionState).forEach(emitSelection);
+  members.push(...deferredMembers);
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
     const parameterType = methodParameterType;
@@ -698,6 +762,19 @@ function selectionBuilder(ir) {
   return lines;
 }
 
+// The data objects a routine's declarations see besides the program's: its
+// parameters, its own declarations and the work areas of its header lines.
+function localDataObjects(ir, parameters, statements) {
+  const own = new Set(statements);
+  const names = [
+    ...parameters.map((parameter) => parameter.name),
+    ...(ir.declarations ?? []).filter((declaration) => own.has(declaration.statement)).flatMap((declaration) =>
+      ["databegin", "constantbegin"].includes(declaration.kind) ? [beginName(declaration)] : declaration.names ?? []),
+    ...Object.values(ir.headerLines?.routines ?? {}).flatMap((headers) => Object.values(headers)),
+  ];
+  return new Set(names.filter(Boolean).map((name) => String(name).toUpperCase()));
+}
+
 function methodContext(ir, event, {parameters = [], statements = ir.statements ?? []} = {}) {
   const mutable = ["initialization", "at_selection_screen", "at_selection_screen_on_field", "at_selection_screen_on_end_of", "at_selection_screen_on_block", "at_selection_screen_on_radio", "at_selection_screen_output"].includes(event);
   const values = ir.selections
@@ -746,15 +823,17 @@ function methodContext(ir, event, {parameters = [], statements = ir.statements ?
     selections: values,
     // A FORM sees its own header-line tables too; routineBody adds them.
     headerLines: headerLinesIn(ir),
-    tablesWorkAreas: new Set((ir.declarations ?? [])
+    // Each TABLES work area with its database table.
+    tablesWorkAreas: new Map((ir.declarations ?? [])
       .filter((item) => item.kind === "tables" && item.resolved)
-      .flatMap((item) => item.names ?? [])
-      .map((name) => name.toUpperCase())),
+      .flatMap((item) => (item.names ?? []).map((name) => [name.toUpperCase(), item.type]))),
     dataObjects: new Set((ir.declarations ?? [])
       .filter((item) => ["data", "static", "tables", "ranges", "databegin"].includes(item.kind))
       .flatMap((item) => item.kind === "databegin" ? [/\bBEGIN\s+OF\s+([A-Z][A-Z0-9_]*)/i.exec(item.raw ?? "")?.[1]] : item.names ?? [])
       .filter(Boolean)
       .map((name) => name.toUpperCase())),
+    // A local class's methods are class code already.
+    likeMember: event === "local_class" ? undefined : scopedMember(localDataObjects(ir, parameters, statements), globalLikeMember(ir)),
     tabbedBlocks: selectionTabbedBlocks(ir),
     messageId: ir.header?.messageId,
     constantNames: ir.constantNames,
@@ -1224,6 +1303,7 @@ function reportMethods(ir) {
       methods.push(method(`zif_gg_report_v1~${event}`, bodiesFor(event)));
     } else {
       const body = [...bodiesFor(event)];
+      if (event === "load_of_program") body.unshift(...globalStartValues(ir).map((start) => startValueAssignment(start, methodContext(ir, event))));
       if (event === "load_of_program" && ir.reportTitle) {
         body.unshift(`io_session->get_list( )->set_title( ${textLiteral(ir.reportTitle ?? ir.targetClassName)} ).`);
       }
@@ -1309,7 +1389,9 @@ function dynproStateComponents(ir) {
         || declaration.statement?.localClassName
         || (declaration.statement?.span?.start?.column ?? 1) > 1
         || !["data", "static"].includes(declaration.kind)
-        || declaration.complex) continue;
+        || declaration.complex
+        // A component of a BEGIN OF structure is no data object of its own.
+        || declaration.component) continue;
     const body = declaration.raw.replace(/^\s*(?:DATA|STATICS)\s*:??\s*/i, "").replace(/\.\s*$/, "");
     for (const part of body.split(",")) {
       const name = /^\s*([A-Z][A-Z0-9_]*)\b/i.exec(part)?.[1];
@@ -2410,7 +2492,9 @@ function helperSource(ir, options, localClass) {
         return { ...statement, text: bridged ? withImportingParameters(text, ownerSessionParameters) : text };
       }),
     (text) => text,
-  );
+  // PUBLIC SECTION . is the same statement; it is written PUBLIC SECTION., so
+  // the bridge goes into the program's own public section.
+  ).map((line) => line.replace(/^(\s*)(PUBLIC|PROTECTED|PRIVATE)\s+SECTION\s*\.\s*$/i, (_, space, visibility) => `${space}${visibility.toUpperCase()} SECTION.`));
   const publicSection = definitionWithStaticBridges.findIndex((line) => /^\s*PUBLIC SECTION\.$/i.test(line));
   const definitionBody = publicSection >= 0
     ? [...definitionWithStaticBridges.slice(0, publicSection + 1), ...bridge, ...definitionWithStaticBridges.slice(publicSection + 1)]

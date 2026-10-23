@@ -157,7 +157,7 @@ test("declares each selection parameter member with the parameter's own type", a
     "DATA mv_p_matnr TYPE matnr.",
     "DATA mv_p_numc TYPE n LENGTH 6.",
     "DATA mv_p_old TYPE c LENGTH 4.",
-    "DATA mv_p_plain TYPE c LENGTH 8.",
+    "DATA mv_p_plain TYPE c LENGTH 1.",
     "DATA mv_p_rad1 TYPE c LENGTH 1.",
     "DATA mv_p_stat TYPE ty_status.",
     // Inside a chain the FOR target is followed by a comma.

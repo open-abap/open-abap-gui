@@ -39,12 +39,14 @@ export function resolveTypes(ir, options) {
     if (declaration.kind === "tables") {
       const name = declaration.names?.[0];
       if (!name) continue;
-      // TABLES <name> declares a work area of the dictionary type <name>.
-      declaration.type = name.toLowerCase();
-      declaration.fields = typeInfo(lookup(dictionary, name), name)?.fields ?? {};
+      // TABLES <name> declares a work area of the dictionary type <name>,
+      // TABLES *<name> a second one.
+      const table = declaration.table ?? name;
+      declaration.type = table.toLowerCase();
+      declaration.fields = typeInfo(lookup(dictionary, table), table)?.fields ?? {};
       declaration.resolved = true;
       declaration.statement.resolvedType = true;
-      if (lookup(dictionary, name)) ir.resolvedTypes[name] = typeInfo(lookup(dictionary, name), name);
+      if (lookup(dictionary, table)) ir.resolvedTypes[name] = typeInfo(lookup(dictionary, table), table);
       continue;
     }
     if (declaration.kind === "type") {

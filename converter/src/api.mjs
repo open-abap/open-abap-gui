@@ -6,7 +6,7 @@ import { generatedSourceConfig, parseUnits, readConfig } from "./parser.mjs";
 import { applyStyleFixes } from "./emit/style-fixes.mjs";
 import { emptyReportIR } from "./ir/report-ir.mjs";
 import { classifyProgram } from "./passes/classify-program.mjs";
-import { collectDeclarations } from "./passes/collect-declarations.mjs";
+import { collectDeclarations, renameStarWorkAreas } from "./passes/collect-declarations.mjs";
 import { liftInlineDeclarations } from "./passes/lift-inline-declarations.mjs";
 import { dictionaryIndex, lazyProgramScope } from "./passes/program-scope.mjs";
 import { resolveSelectionTypes } from "./passes/resolve-selection-types.mjs";
@@ -207,6 +207,7 @@ function buildReportIR(parsed, resolved, options) {
     return plain;
   };
   const allStatements = orderedStatements(parsed.units).map(serializable);
+  renameStarWorkAreas(allStatements);
   const classification = classifyProgram(allStatements);
   const ir = emptyReportIR({
     filename: options.filename,
@@ -751,6 +752,11 @@ export async function convertProgram(input = {}) {
   const finalDiagnostics = sortDiagnostics(diagnostics);
   const finalSupported = !finalDiagnostics.some((item) => item.severity === "error" || item.code.startsWith("GGCONV-E")) && Boolean(ir.targetClassName);
   const manifest = createManifest(ir, finalDiagnostics, options);
+  // Also an error the generated source raised, as GGCONV-E202, leaves strict
+  // mode without a class to write.
+  if (!finalSupported && options.mode === "strict") {
+    return { classSource: undefined, manifest, diagnostics: finalDiagnostics, sourceMap: [], reportIR: ir, supported: false };
+  }
   const scaffold = lowerToScaffoldIR(ir, sourceMap);
   return { classSource, helperSources, manifest, diagnostics: finalDiagnostics, sourceMap, reportIR: ir, scaffoldIR: scaffold, supported: finalSupported };
 }

@@ -38,7 +38,9 @@
     "no_prefixes": false,
     "clear_exporting_parameters": true,
     "no_macros": true,
-    "no_mandt_in_database_operations": true,
+    "no_mandt_in_database_operations": {
+      "exclude": ["zgg_ex_183\\.prog\\.abap$", "zcl_gg_ex_183\\.clas\\.abap$"]
+    },
     "redundant_conversion": true,
     "sy_read_restriction": true,
     "prefer_pragmas": true,
@@ -75,7 +77,9 @@
     "dynpro_checks": true,
     "easy_to_find_messages": true,
     "align_type_expressions": true,
-    "no_external_form_calls": true,
+    "no_external_form_calls": {
+      "exclude": ["zgg_ex_184\\.prog\\.abap$", "zcl_gg_ex_184\\.clas\\.abap$"]
+    },
     "no_dynamic_stuff": false,
     "superfluous_value": true,
     "cyclic_oo": false,
@@ -106,7 +110,9 @@
     "type_form_parameters": true,
     "sy_modification": false,
     "selection_screen_naming": false,
-    "select_performance": true,
+    "select_performance": {
+      "exclude": ["zgg_ex_183\\.prog\\.abap$", "zcl_gg_ex_183\\.clas\\.abap$"]
+    },
     "select_add_order_by": true,
     "rfc_error_handling": true,
     "remove_descriptions": true,
@@ -146,6 +152,7 @@
       "exclude": ["zgg_ex_173\\.prog\\.abap$"]
     },
     "space_before_dot": {
+      "exclude": ["zgg_ex_177\\.prog\\.abap$"],
       "ignoreGlobalDefinition": false,
       "ignoreExceptions": false
     },
@@ -163,7 +170,9 @@
     "identical_descriptions": true,
     "check_subrc": false,
     "check_text_elements": true,
-    "line_only_punc": true,
+    "line_only_punc": {
+      "exclude": ["zgg_ex_185\\.prog\\.abap$"]
+    },
     "message_exists": true,
     "line_length": false,
     "names_no_dash": true,
@@ -244,10 +253,12 @@
     "parser_error": true,
     "unknown_types": true,
     "global_class": true,
-    "check_syntax": true,
+    "check_syntax": {
+      "exclude": ["zgg_ex_187\\.prog\\.abap$"]
+    },
     "functional_writing": true,
     "obsolete_statement": {
-      "exclude": ["zgg_ex_173\\.prog\\.abap$", "zgg_ex_175\\.prog\\.abap$"],
+      "exclude": ["zgg_ex_173\\.prog\\.abap$", "zgg_ex_175\\.prog\\.abap$", "zgg_ex_178\\.prog\\.abap$", "zgg_ex_180\\.prog\\.abap$", "zgg_ex_181\\.prog\\.abap$", "zgg_ex_182\\.prog\\.abap$", "zgg_ex_183\\.prog\\.abap$"],
       "refresh": true,
       "compute": true,
       "sortByFS": true,

@@ -3,6 +3,7 @@ import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
 import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop, isStaticAssign, writeToTarget } from "./passes/lower-statements.mjs";
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
+import { isExternalPerform } from "./passes/collect-routines.mjs";
 import { LOOP_BLOCKS } from "./passes/blocks.mjs";
 import { isSuspendingStatement } from "./passes/lower-continuations.mjs";
 import { headerLinesOf } from "./passes/header-lines.mjs";
@@ -98,6 +99,12 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
     }
     if (statement.kind === "Perform" && /\bPERFORM\s+\(/i.test(statement.text)) {
       addStatementDiagnostic(diagnostics, statement, "dynamic PERFORM names a FORM that became a method", "Call the generated method directly or provide a manual method mapping.", "GGCONV-E401");
+      continue;
+    }
+    const performed = statement.kind === "Perform" && !isExternalPerform(statement.text)
+      ? /^\s*PERFORM\s*:?\s*([A-Z_][A-Z0-9_\/]*)/i.exec(statement.text)?.[1]?.toUpperCase() : undefined;
+    if (performed && !(ir.routines ?? []).some((routine) => routine.name === performed)) {
+      addStatementDiagnostic(diagnostics, statement, `PERFORM ${performed.toLowerCase()} names a FORM the program does not define`, "Include the source that defines the FORM, or call the FORM of another program with IN PROGRAM.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement);
       continue;
     }
     const writeTo = writeToTarget(statement);

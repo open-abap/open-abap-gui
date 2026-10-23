@@ -17,7 +17,9 @@ const result = await convertProgram({
 `result` contains `classSource`, optional `helperSources` for hoisted report-local
 classes, serializable `reportIR` and `scaffoldIR` values, a stable JSON-ready
 `manifest`, source maps, diagnostics, and the `supported`
-flag. Strict mode returns no class source when an error diagnostic exists.
+flag. Strict mode returns no class source when an error diagnostic exists,
+also one the generated source raises, as `GGCONV-E202` when it fails the
+converter's parser validation; batch conversion then writes no file for it.
 Partial mode emits compilable output with explicit `TODO GGCONV-*` comments for
 unsupported semantics. When `partialStrategy: "skeleton"` is requested, a
 safe-entry failure gets the diagnostic-only shell; optional feature gaps get a
@@ -222,13 +224,21 @@ Every carried-over statement also gets the same value rewrites: system fields
 the session holds (`sy-lsind`, `sy-repid`, …), the `SCREEN` work area inside
 `LOOP AT SCREEN`, and the list color constants. A system field that becomes a
 method call is kept as written when the statement only takes data objects, as
-`CONCATENATE` does. Declarations and comments are not rewritten.
+`CONCATENATE` does. Comments are not rewritten, and declarations only where a
+class reads them differently: `LIKE` names a data object in a class, so `LIKE`
+a dictionary type or a `TABLES` work area (`LIKE mara-matnr`, `LIKE TABLE OF
+bapiret2`) becomes `TYPE`, and `LIKE` a parameter names its member; a start
+value read from a system field (`DATA lv_prog TYPE progname VALUE sy-repid`)
+is assigned after the declaration, in `load_of_program` for the program's own
+data. `TABLES *dbtab` declares a second work area `star_dbtab`, which
+`SELECT ... FROM *dbtab` reads `dbtab` into.
 Renames apply to references only: a component (`ls-value`, `get( )-value`),
 an attribute or method (`->value`, `=>value`), a field symbol, a table key or
 constructor component (`itab[ name = ... ]`, `VALUE #( name = ... )`), a formal
 parameter, a column, and a keyword spelled like the name keep their spelling.
 This includes function modules without a compatibility adapter, `FREE`,
-dynamic `CREATE DATA`, dynamic Open SQL, `PERFORM ... IN PROGRAM`, and
+dynamic `CREATE DATA`, dynamic Open SQL, `PERFORM ... IN PROGRAM` (the short
+form `PERFORM form(prog)`, which a class does not allow, is written so), and
 `WRITE ... TO` with any formatting addition, `UNIT` and `CURRENCY` included,
 which are all valid inside a method. A list `WRITE ... UNIT` hands the unit to
 the writer in `write_format-unit`.
