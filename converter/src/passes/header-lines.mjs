@@ -92,10 +92,14 @@ export function headerLinesOf(ir, statement) {
 }
 
 // `TYPE x OCCURS n` and `LIKE x OCCURS n` are standard tables of x; OCCURS and
-// WITH HEADER LINE do not exist in a class.
-function tableTyping(definition, isDataObject) {
+// WITH HEADER LINE do not exist in a class. LIKE a header-line table names its
+// header line, which is the work area in the class.
+function tableTyping(definition, isDataObject, headerLines) {
   const occurs = /^(TYPE|LIKE)\s+(\S+)\s+OCCURS\s+\S+(?:\s+WITH\s+HEADER\s+LINE)?\s*$/i.exec(definition);
   if (occurs) {
+    const [base, ...components] = occurs[2].split("-");
+    const header = occurs[1].toUpperCase() === "LIKE" ? headerLines[base.toUpperCase()] : undefined;
+    if (header) return `LIKE STANDARD TABLE OF ${[header, ...components].join("-")} WITH DEFAULT KEY`;
     const keyword = occurs[1].toUpperCase() === "LIKE" && isDataObject(occurs[2]) ? "LIKE" : "TYPE";
     return `${keyword} STANDARD TABLE OF ${occurs[2]} WITH DEFAULT KEY`;
   }
@@ -103,12 +107,12 @@ function tableTyping(definition, isDataObject) {
 }
 
 // The declarations replacing one DATA statement of a header-line table.
-export function headerLineDeclarations(raw, header, isDataObject = () => true) {
+export function headerLineDeclarations(raw, header, isDataObject = () => true, headerLines = {}) {
   const text = raw.trim().replace(/[.,]\s*$/, "");
   const match = /^DATA\s*:?\s*([A-Z][A-Z0-9_]*)\s+([\s\S]+)$/i.exec(text);
   if (!match) return [raw];
   const name = match[1].toLowerCase();
-  return [`DATA ${name} ${tableTyping(match[2].trim(), isDataObject)}.`, `DATA ${header} LIKE LINE OF ${name}.`];
+  return [`DATA ${name} ${tableTyping(match[2].trim(), isDataObject, headerLines)}.`, `DATA ${header} LIKE LINE OF ${name}.`];
 }
 
 // DATA BEGIN OF itab OCCURS n declares the header line; the table is declared

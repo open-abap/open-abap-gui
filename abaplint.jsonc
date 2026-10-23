@@ -71,7 +71,9 @@
     "index_completely_contained": true,
     "cds_legacy_view": true,
     "expand_macros": true,
-    "fully_type_itabs": true,
+    "fully_type_itabs": {
+      "exclude": ["kkblo.type.abap", "slis.type.abap"]
+    },
     "cds_comment_style": true,
     "change_if_to_case": true,
     "dynpro_checks": true,
@@ -84,7 +86,7 @@
     "superfluous_value": true,
     "cyclic_oo": false,
     "unnecessary_chaining": {
-      "exclude": ["zgg_ex_173\\.prog\\.abap$"]
+      "exclude": ["zgg_ex_173\\.prog\\.abap$", "zgg_ex_188\\.prog\\.abap$"]
     },
     "parser_702_chaining": false,
     "omit_receiving": true,
@@ -149,10 +151,10 @@
     "sequential_blank": true,
     "superclass_final": true,
     "space_before_colon": {
-      "exclude": ["zgg_ex_173\\.prog\\.abap$"]
+      "exclude": ["zgg_ex_173\\.prog\\.abap$", "zgg_ex_188\\.prog\\.abap$"]
     },
     "space_before_dot": {
-      "exclude": ["zgg_ex_177\\.prog\\.abap$"],
+      "exclude": ["zgg_ex_177\\.prog\\.abap$", "zgg_ex_188\\.prog\\.abap$"],
       "ignoreGlobalDefinition": false,
       "ignoreExceptions": false
     },
@@ -181,7 +183,9 @@
     "check_transformation_exists": true,
     "class_attribute_names": false,
     "description_empty": false,
-    "fully_type_constants": true,
+    "fully_type_constants": {
+      "exclude": ["zgg_ex_188\\.prog\\.abap$"]
+    },
     "function_module_recommendations": false,
     "identical_conditions": true,
     "identical_contents": true,
@@ -206,7 +210,9 @@
     "allowed_object_naming": false,
     "allowed_object_types": false,
     "ambiguous_statement": true,
-    "begin_single_include": true,
+    "begin_single_include": {
+      "exclude": ["slis.type.abap", "kkblo.type.abap"]
+    },
     "call_transaction_authority_check": true,
     "7bit_ascii": true,
     "chain_mainly_declarations": true,
@@ -258,7 +264,7 @@
     },
     "functional_writing": true,
     "obsolete_statement": {
-      "exclude": ["zgg_ex_173\\.prog\\.abap$", "zgg_ex_175\\.prog\\.abap$", "zgg_ex_178\\.prog\\.abap$", "zgg_ex_180\\.prog\\.abap$", "zgg_ex_181\\.prog\\.abap$", "zgg_ex_182\\.prog\\.abap$", "zgg_ex_183\\.prog\\.abap$"],
+      "exclude": ["zgg_ex_173\\.prog\\.abap$", "zgg_ex_175\\.prog\\.abap$", "zgg_ex_178\\.prog\\.abap$", "zgg_ex_180\\.prog\\.abap$", "zgg_ex_181\\.prog\\.abap$", "zgg_ex_182\\.prog\\.abap$", "zgg_ex_183\\.prog\\.abap$", "zgg_ex_188\\.prog\\.abap$"],
       "refresh": true,
       "compute": true,
       "sortByFS": true,
