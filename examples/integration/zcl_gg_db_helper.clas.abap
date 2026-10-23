@@ -27,7 +27,10 @@ CLASS zcl_gg_db_helper IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create.
-    environment = cl_osql_test_environment=>create( VALUE #( ( 'ZSFLIGHT' ) ) ).
+* The double moves every table into its own schema, so a table an example
+* program reads must be doubled too, or the read fails; T100 and VARID start
+* empty.
+    environment = cl_osql_test_environment=>create( VALUE #( ( 'ZSFLIGHT' ) ( 'T100' ) ( 'VARID' ) ) ).
   ENDMETHOD.
 
   METHOD reset.
