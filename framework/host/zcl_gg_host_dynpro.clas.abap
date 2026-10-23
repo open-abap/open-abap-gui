@@ -1979,6 +1979,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   METHOD program_name.
     DATA lo_transaction TYPE REF TO zif_gg_transaction_v1.
     DATA lo_report_dynpro TYPE REF TO zcl_gg_host_report_dynpro.
+    DATA ls_transaction TYPE zif_gg_transaction_v1=>ty_transaction.
 
     TRY.
         lo_report_dynpro ?= io_program.
@@ -1986,7 +1987,12 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       CATCH cx_sy_move_cast_error.
         TRY.
             lo_transaction ?= io_program.
-            rv_program = lo_transaction->get_transaction( )-program.
+            DATA(lv_class_name) = cl_abap_classdescr=>get_class_name( io_program ).
+            REPLACE FIRST OCCURRENCE OF '\CLASS=' IN lv_class_name WITH ''.
+            CALL METHOD (lv_class_name)=>('ZIF_GG_TRANSACTION_V1~GET_TRANSACTION')
+              RECEIVING
+                rs_transaction = ls_transaction.
+            rv_program = ls_transaction-program.
           CATCH cx_sy_move_cast_error.
             CLEAR rv_program.
         ENDTRY.

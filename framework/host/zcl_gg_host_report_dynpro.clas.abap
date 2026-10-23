@@ -35,13 +35,20 @@ CLASS zcl_gg_host_report_dynpro IMPLEMENTATION.
 
   METHOD get_program.
     DATA lo_transaction TYPE REF TO zif_gg_transaction_v1.
+    DATA ls_transaction TYPE zif_gg_transaction_v1=>ty_transaction.
 
     TRY.
         lo_transaction ?= mo_provider.
-        rv_program = lo_transaction->get_transaction( )-program.
       CATCH cx_sy_move_cast_error.
         CLEAR rv_program.
+        RETURN.
     ENDTRY.
+    DATA(lv_class_name) = cl_abap_classdescr=>get_class_name( mo_provider ).
+    REPLACE FIRST OCCURRENCE OF '\CLASS=' IN lv_class_name WITH ''.
+    CALL METHOD (lv_class_name)=>('ZIF_GG_TRANSACTION_V1~GET_TRANSACTION')
+      RECEIVING
+        rs_transaction = ls_transaction.
+    rv_program = ls_transaction-program.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~get_initial_screen.

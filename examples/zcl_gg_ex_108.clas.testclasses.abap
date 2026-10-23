@@ -8,9 +8,7 @@ ENDCLASS.
 CLASS ltcl_ex_108 IMPLEMENTATION.
 
   METHOD publishes_contract.
-    DATA lo_metadata TYPE REF TO zif_gg_transaction_v1.
-    lo_metadata ?= NEW zcl_gg_ex_108( ).
-    DATA(ls_transaction) = lo_metadata->get_transaction( ).
+    DATA(ls_transaction) = zcl_gg_ex_108=>zif_gg_transaction_v1~get_transaction( ).
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_transaction-tcode
