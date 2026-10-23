@@ -87,7 +87,9 @@ function functionParameter(raw, name) {
   const match = new RegExp(`\\b${String(name).replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\s*=\\s*`, "i").exec(raw);
   if (!match) return undefined;
   const start = match.index + match[0].length;
-  return raw.slice(start, scanParameterEnd(raw, start)).trim().replace(/\.\s*$/, "");
+  // The last parameter ends with the statement, whose period may stand on a
+  // line of its own, after commented-out parameters: value ., not value.
+  return raw.slice(start, scanParameterEnd(raw, start)).replace(/\s*\.\s*$/, "").trim();
 }
 
 // A by-reference IMPORTING parameter typed string takes no character field

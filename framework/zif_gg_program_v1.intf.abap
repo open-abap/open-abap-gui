@@ -3,7 +3,8 @@ INTERFACE zif_gg_program_v1 PUBLIC.
 * Public metadata for an executable report that no transaction starts. The
 * program is the classic program name the class implements, so the workbench
 * can list the report and SUBMIT of that program finds the class. description
-* is user-facing text. Implementations must return metadata without requiring
+* is user-facing text. The method is static so the registry reads it without
+* instantiating the class; implementations must return metadata without requiring
 * a host session or changing application state.
 
   TYPES: BEGIN OF ty_program,
@@ -11,7 +12,7 @@ INTERFACE zif_gg_program_v1 PUBLIC.
            description TYPE string,
          END OF ty_program.
 
-  METHODS get_program
+  CLASS-METHODS get_program
     RETURNING
       VALUE(rs_program) TYPE ty_program.
 

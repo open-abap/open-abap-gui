@@ -20,7 +20,7 @@ const only = process.argv.slice(2).filter((item) => /^\d{3}$/.test(item));
 // repository's, with the examples as converter input.
 const configPath = "build/abap_transpile.drift.json";
 const repositoryConfig = JSON.parse(await fs.readFile("abap_transpile.json", "utf8"));
-repositoryConfig.converter = { input_folder: ["examples"], output_folder: "build/generated-examples" };
+repositoryConfig.converter = { input_folder: ["examples"], output_folder: "build/generated-examples", module_pools: true };
 await fs.mkdir("build", { recursive: true });
 await fs.writeFile(configPath, JSON.stringify(repositoryConfig, null, 2), "utf8");
 const config = await loadTranspileConfig(configPath);

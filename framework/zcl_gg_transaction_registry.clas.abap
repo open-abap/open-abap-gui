@@ -134,10 +134,7 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
 
   METHOD ensure_catalog.
     DATA lt_names TYPE string_table.
-    DATA lo_object TYPE REF TO object.
-    DATA lo_metadata TYPE REF TO zif_gg_transaction_v1.
-    DATA lo_report TYPE REF TO zif_gg_report_v1.
-    DATA lo_dynpro TYPE REF TO zif_gg_dynpro_v1.
+    DATA lo_class TYPE REF TO cl_abap_classdescr.
     DATA ls_metadata TYPE zif_gg_transaction_v1=>ty_transaction.
     DATA ls_transaction TYPE ty_transaction.
     DATA lv_class_name TYPE string.
@@ -157,24 +154,12 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
     SORT lt_names.
 
     LOOP AT lt_names INTO lv_class_name.
-* Discovery found the class through the interface, so a constructor or cast
-* failure here is an application crash and keeps its original exception.
-      CREATE OBJECT lo_object TYPE (lv_class_name).
-      lo_metadata ?= lo_object.
-
-      CLEAR: lo_report, lo_dynpro, lv_report, lv_dynpro.
-      TRY.
-          lo_report ?= lo_object.
-          lv_report = abap_true.
-        CATCH cx_sy_move_cast_error.
-          CLEAR lo_report.
-      ENDTRY.
-      TRY.
-          lo_dynpro ?= lo_object.
-          lv_dynpro = abap_true.
-        CATCH cx_sy_move_cast_error.
-          CLEAR lo_dynpro.
-      ENDTRY.
+* The metadata is static, so the catalog never instantiates a class. Discovery
+* found the class through the interface, so a failure here is an application
+* crash and keeps its original exception.
+      lo_class ?= cl_abap_typedescr=>describe_by_name( lv_class_name ).
+      lv_report = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_REPORT_V1' ] ) ).
+      lv_dynpro = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_DYNPRO_V1' ] ) ).
       IF lv_report = abap_true AND lv_dynpro = abap_true.
         RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
           iv_message = |Transaction class { lv_class_name } implements both ZIF_GG_REPORT_V1 and ZIF_GG_DYNPRO_V1|.
@@ -183,7 +168,9 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
           iv_message = |Transaction class { lv_class_name } implements neither ZIF_GG_REPORT_V1 nor ZIF_GG_DYNPRO_V1|.
       ENDIF.
 
-      ls_metadata = lo_metadata->get_transaction( ).
+      CALL METHOD (lv_class_name)=>('ZIF_GG_TRANSACTION_V1~GET_TRANSACTION')
+        RECEIVING
+          rs_transaction = ls_metadata.
       lv_tcode = ls_metadata-tcode.
       SHIFT lv_tcode LEFT DELETING LEADING space.
       DATA(lv_tcode_length) = strlen( lv_tcode ).

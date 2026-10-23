@@ -92,6 +92,7 @@ const browser = await chromium.launch({headless: true});
 // motion; disabling animations on capture covers any that do not.
 const page = await browser.newPage({viewport, reducedMotion: "reduce"});
 const browserErrors = [];
+let currentPage = previewUrl;
 
 // The HTML viewer shows program HTML in a frame sandboxed without scripts, so a
 // script in that HTML is blocked by design (zgg_ex_128 has one); the browser
@@ -145,7 +146,8 @@ try {
     .sort((a, b) => a.program.localeCompare(b.program, undefined, {numeric: true}));
 
   for (const {tcode} of transactions) {
-    await page.goto(`${previewUrl}#/transaction?tcode=${encodeURIComponent(tcode)}`, {waitUntil: "load"});
+    currentPage = `${previewUrl}#/transaction?tcode=${encodeURIComponent(tcode)}`;
+    await page.goto(currentPage, {waitUntil: "load"});
     await waitForPreview();
     await page.screenshot({
       path: resolve(screenshotsDirectory, `${tcode.toLowerCase()}.png`),
@@ -155,7 +157,8 @@ try {
   }
 
   for (const {program} of programs) {
-    await page.goto(`${previewUrl}#/program?name=${encodeURIComponent(program)}`, {waitUntil: "load"});
+    currentPage = `${previewUrl}#/program?name=${encodeURIComponent(program)}`;
+    await page.goto(currentPage, {waitUntil: "load"});
     await waitForPreview();
     await page.screenshot({
       path: resolve(screenshotsDirectory, `${program.toLowerCase()}.png`),
@@ -175,7 +178,7 @@ try {
   console.log(`Captured ${screenshotCount} screenshots (${transactions.length} transactions, ${programs.length} converter example reports) and wrote ${resolve(screenshotsDirectory, "index.html")}`);
 } catch (error) {
   if (browserErrors.length > 0) {
-    throw new Error(`${error.message}\nBrowser errors:\n${browserErrors.join("\n")}`, {cause: error});
+    throw new Error(`${error.message}\nPage: ${currentPage}\nBrowser errors:\n${browserErrors.join("\n")}`, {cause: error});
   }
   throw error;
 } finally {

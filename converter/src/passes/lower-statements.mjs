@@ -4,11 +4,12 @@ import { parsesAsStatement } from "../parser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import { isGenericParameterType, methodParameterType } from "./collect-routines.mjs";
+import { inProgramPerform, isExternalPerform, isGenericParameterType, methodParameterType } from "./collect-routines.mjs";
 import { isWritableArgument, performArguments } from "./analyze-routine-writes.mjs";
 import { isPopupStatement } from "./lower-continuations.mjs";
 import { maskedCode, replaceIdentifiers } from "./replace-identifiers.mjs";
 import { headerLineBegin, headerLineDeclarations, headerLineEnd, withoutHeaderLines } from "./header-lines.mjs";
+import { likeTyping } from "./like-typing.mjs";
 
 const TYPE_CODES = new Map([
   ["C", "C"], ["N", "N"], ["D", "D"], ["T", "T"], ["I", "I"], ["INT4", "I"],
@@ -396,7 +397,7 @@ function keptFieldSymbolMember(name, context) {
 export function rebindingCall(statement, reference) {
   if (statement.kind === "Perform") {
     const target = /^\s*PERFORM\s+([A-Z][A-Z0-9_]*)(?![A-Z0-9_(])/i.exec(statement.text)?.[1]?.toUpperCase();
-    return !target || /\bIN\s+PROGRAM\b/i.test(statement.text) || reference.routines.includes(target);
+    return !target || isExternalPerform(statement.text) || reference.routines.includes(target);
   }
   return ["Call", "CallMethod"].includes(statement.kind) && reference.methods;
 }
@@ -802,6 +803,21 @@ function rewriteStatementValues(text, context) {
   return rewritten === dataOnly || parsesAsStatement(rewritten) ? rewritten : dataOnly;
 }
 
+// DATA ... VALUE sy-repid: in a report sy-repid is a constant, the program's
+// name; in a class it is the class's, and a start value is a literal or a
+// constant. The declaration goes without VALUE and the system field is
+// assigned after it, read as other statements read it. Other system fields
+// are no constants, but are read the same way.
+export function systemFieldStartValue(raw) {
+  const match = /^((?:DATA|STATICS)\s*:?\s*([A-Z][A-Z0-9_]*)\b[\s\S]*?)\s+VALUE\s+(sy-[A-Z]+)\s*[.,]?\s*$/i.exec(String(raw ?? "").trim());
+  if (!match || /\b(?:BEGIN|END)\s+OF\b/i.test(match[1])) return undefined;
+  return { declaration: `${match[1]}.`, name: match[2], value: match[3] };
+}
+
+export function startValueAssignment(start, context) {
+  return rewriteStatementValues(`${start.name} = ${start.value}.`, context);
+}
+
 function screenLoopBinding(text, usedNames) {
   const into = /\bINTO\s+(?:DATA\s*\(\s*([A-Z][A-Z0-9_]*)\s*\)|([A-Z][A-Z0-9_]*))/i.exec(text ?? "");
   const assigning = /\bASSIGNING\s+(?:FIELD-SYMBOL\s*\(\s*<\s*([A-Z][A-Z0-9_]*)\s*>\s*\)|<\s*([A-Z][A-Z0-9_]*)\s*>)/i.exec(text ?? "");
@@ -969,6 +985,8 @@ function parseWrite(raw, context) {
     .replace(/\b(?:DD\/MM\/YY(?:YY)?|MM\/DD\/YY(?:YY)?|DDMMYY|MMDDYY|YYMMDD)\b/gi, "")
     .replace(/\b(LEFT-JUSTIFIED|CENTERED|RIGHT-JUSTIFIED)\b/gi, "")
     .trim();
+  // WRITE /. and WRITE: / . output nothing; they only break the line.
+  if (!rest && newLine && position === undefined && length === undefined) return "lo_writer->new_line( ).";
   const placement = [];
   if (position !== undefined) placement.push(`position = ${position}`);
   if (length !== undefined) placement.push(`length = ${length}`);
@@ -1302,9 +1320,11 @@ function lowerSingleStatement(statement, context) {
   const convertibleFreeChain = statement.kind === "Free"
     && context.freeChainControlKeys?.has(freeChainKey(statement));
   if (isConvertibleControlStatement(statement, context.controlObjectTypes) || convertibleFreeChain) {
+    // A chain element, such as one handler of SET HANDLER: a FOR x, b FOR x.,
+    // ends in its comma; emitted on its own, that becomes its terminator.
     let lowered = statement.kind === "Free"
       ? raw.replace(/^FREE\s*:??\s*/i, "CLEAR: ").replace(/,\s*$/, ".")
-      : raw;
+      : raw.replace(/,\s*$/, ".");
     if (statement.kind === "CreateObject") {
       const target = /^CREATE\s+OBJECT\s+([A-Z][A-Z0-9_]*)\b/i.exec(lowered)?.[1]?.toUpperCase();
       const explicitType = /\bTYPE\s+([A-Z][A-Z0-9_]*)\b/i.exec(lowered)?.[1]?.toUpperCase();
@@ -1481,19 +1501,9 @@ function lowerSingleStatement(statement, context) {
   }
   // A LOOP with an INTO or ASSIGNING target is carried over as written. One
   // without reads a header line, which a class cannot have: a header-line
-  // table's loop already got its work area in headerLineStatement, over a
-  // select-option it is given an explicit range row, otherwise it is omitted.
-  if (statement.kind === "Loop" && !isMethodSafeLoop(statement)) {
-    const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(raw)?.[1]?.toUpperCase();
-    const selection = context.selections?.find((item) => item.name === name && item.ranges);
-    if (selection) {
-      const member = context.selectionState?.[name]?.member;
-      if (member) return `LOOP AT ${member} INTO DATA(ls_${name.toLowerCase()}_range).`;
-      const source = context.mutableValues ? "ct_values" : "it_values";
-      return `LOOP AT ${source}[ name = '${name}' ]-ranges INTO DATA(ls_${name.toLowerCase()}_range).`;
-    }
-    return undefined;
-  }
+  // table's loop already got its work area in headerLineStatement, otherwise
+  // it is omitted.
+  if (statement.kind === "Loop" && !isMethodSafeLoop(statement)) return undefined;
   if (statement.kind === "SetTitlebar") {
     const title = /SET TITLEBAR\s+['"]?([^\s.'"]+)/i.exec(raw)?.[1];
     if (!title) return "* TODO GGCONV-E501: dynamic titlebar.";
@@ -1696,17 +1706,20 @@ function lowerSingleStatement(statement, context) {
     // A dynamic PERFORM names a FORM that became a method; a FORM in another
     // program is not converted and is still called as written.
     if (/\bPERFORM\s+\(/i.test(raw)) return "* TODO GGCONV-E401: dynamic PERFORM requires a manual method mapping.";
-    if (/\bIN\s+PROGRAM\b/i.test(raw)) return rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
-    const name = /^PERFORM\s+([^\s.]+)/i.exec(raw)?.[1];
+    if (isExternalPerform(raw)) return rewriteStatementValues(inProgramPerform(raw).replace(/,\s*$/, "."), context);
+    // PERFORM: a, b. arrives as PERFORM a, and PERFORM b., each ending in its
+    // chain separator.
+    const name = /^PERFORM\s+([^\s.,]+)/i.exec(raw)?.[1];
     const routine = context.routines?.find((item) => item.name === name?.toUpperCase());
     const receiver = context.ownerPrefix ?? "";
     const session = context.sessionVariable ?? "io_session";
-    if (!routine) return name ? `${receiver}form_${name.toLowerCase()}( ).` : "* TODO GGCONV-E401: dynamic PERFORM.";
+    // A FORM the program does not define has no method; see capability.mjs.
+    if (!routine) return "* TODO GGCONV-E516: PERFORM of a FORM the program does not define requires manual conversion.";
     // Arguments pair with parameters per section; TABLES and CHANGING both
     // become CHANGING, but each keeps its own position count.
     const argumentsBySection = new Map();
     let section;
-    for (const token of splitPerformOperands(raw.replace(/^PERFORM\s+[^\s.]+\s*/i, "").replace(/\.$/, ""))) {
+    for (const token of splitPerformOperands(raw.replace(/^PERFORM\s+[^\s.,]+\s*/i, "").replace(/[.,]$/, ""))) {
       const upper = token.toUpperCase();
       if (["USING", "CHANGING", "TABLES"].includes(upper)) {
         section = upper;
@@ -1802,12 +1815,15 @@ function lowerSingleStatement(statement, context) {
     return converted;
   }
   if (["Data", "DataBegin", "DataEnd", "Type", "TypeBegin", "TypeEnd", "Constant", "ConstantBegin", "ConstantEnd", "Static", "StaticBegin", "StaticEnd"].includes(statement.kind)) {
-    const declaration = statement.kind.startsWith("Static") ? raw.replace(/^STATICS\b/i, "DATA") : raw;
+    const statics = statement.kind.startsWith("Static") ? raw.replace(/^STATICS\b/i, "DATA") : raw;
+    const declaration = context.likeMember ? likeTyping(statics, context.likeMember) : statics;
     // abaplint splits a chained declaration into one statement per element and
     // repeats the keyword while keeping the separating comma. Each emitted
     // element is a standalone statement, so a trailing comma must become its
     // terminator; BEGIN OF and END OF included, which gives the valid unchained
     // `TYPES BEGIN OF x. TYPES id TYPE i. TYPES END OF x.` form.
+    const start = ["Data", "Static"].includes(statement.kind) ? systemFieldStartValue(declaration) : undefined;
+    if (start) return `${replaceOutsideStrings(start.declaration, context.replacements)}\n${startValueAssignment(start, context)}`;
     return replaceOutsideStrings(declaration.replace(/,\s*$/, "."), context.replacements);
   }
   // Suspensions, MESSAGE and LEAVE unwind the generated method with
@@ -1951,12 +1967,33 @@ function normalizeDynamicAlvStatement(statement, context) {
   return rewritten === raw ? statement : {...statement, text: rewritten};
 }
 
+// SELECT without INTO reads into the TABLES work area of the database table,
+// which a class has as a member of that name; the INTO is written out after
+// the FROM clause and its additions, as CLIENT SPECIFIED, BYPASSING BUFFER and
+// UP TO n ROWS. SELECT ... FROM *dbtab reads dbtab into the work area *dbtab,
+// which is named star_dbtab, see renameStarWorkAreas.
+function tablesWorkAreaSelect(statement, context) {
+  if (!["Select", "SelectLoop"].includes(statement.kind) || !context.tablesWorkAreas?.size) return statement;
+  const code = maskedCode(statement.text);
+  const from = /\bFROM\s+([A-Z][A-Z0-9_]*)\b/i.exec(code);
+  const table = from ? context.tablesWorkAreas.get(from[1].toUpperCase()) : undefined;
+  if (!table) return statement;
+  const nameAt = from.index + from[0].length - from[1].length;
+  const text = `${statement.text.slice(0, nameAt)}${table.toLowerCase()}${statement.text.slice(nameAt + from[1].length)}`;
+  const masked = maskedCode(text);
+  if (/\b(?:INTO|APPENDING)\b/i.test(masked)) return text === statement.text ? statement : { ...statement, text };
+  const after = nameAt + table.length;
+  const stop = /\s(?:WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|UP\s+TO|FOR\s+ALL\s+ENTRIES)\b/i.exec(masked.slice(after));
+  const at = stop ? after + stop.index : masked.replace(/\s*\.?\s*$/, "").length;
+  return { ...statement, text: `${text.slice(0, at)} INTO ${from[1].toLowerCase()}${text.slice(at)}` };
+}
+
 // The statement without the header lines of the tables in scope, see
 // header-lines.mjs. A local declaration of such a table declares the table and
 // its work area instead.
 function headerLineStatement(statement, context) {
   const headerLines = context.headerLines ?? {};
-  if (!Object.keys(headerLines).length || ["Comment", "Unknown", "Ranges"].includes(statement.kind)) return statement;
+  if (!Object.keys(headerLines).length || ["Comment", "Unknown", "Ranges", "SelectOption"].includes(statement.kind)) return statement;
   const raw = statement.text.trim();
   if (statement.scope === "local" && statement.kind === "Data") {
     const name = /^DATA\s*:?\s*([A-Z][A-Z0-9_]*)/i.exec(raw)?.[1]?.toUpperCase();
@@ -2031,7 +2068,6 @@ export function lowerStatements(statements, context) {
   const output = [];
   let pendingHidden = [];
   let lastWriteIndex = -1;
-  const rangeLoops = [];
   const screenLoops = [];
   const usedScreenNames = new Set();
   const freeChains = new Map();
@@ -2070,14 +2106,17 @@ export function lowerStatements(statements, context) {
     const statementContext = {
       ...context,
       freeChainControlKeys,
-      replacements: [...screenReplacements, ...rangeLoops, ...(context.replacements ?? []).filter(([name]) => !rangeLoops.some(([active]) => active === name))],
+      replacements: [...screenReplacements, ...(context.replacements ?? [])],
       screenStateSymbol,
     };
     statement = normalizeDynamicAlvStatement(statement, statementContext);
     statement = headerLineStatement(statement, statementContext);
+    statement = tablesWorkAreaSelect(statement, statementContext);
     const freeKey = freeChainKey(statement);
     const freeMembers = freeKey ? freeChains.get(freeKey) : undefined;
-    if (statement.kind === "Free" && freeMembers?.length > 1) {
+    // A chain that frees a control is lowered as one CLEAR: chain. FREE itself
+    // takes a single operand, so any other chain stays one FREE per element.
+    if (statement.kind === "Free" && freeMembers?.length > 1 && freeChainControlKeys.has(freeKey)) {
       if (freeMembers[0] !== statement) continue;
       const chainText = freeMembers
         .map((member) => member.text.trim()
@@ -2137,13 +2176,6 @@ export function lowerStatements(statements, context) {
       if (statement.kind === "EndLoop" && screenLoops.at(-1)?.guarded) item.text = `${item.text}\nENDIF.`;
       output.push(item);
       if (listWrite) lastWriteIndex = output.length - 1;
-      if (statement.kind === "Loop") {
-        const name = /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text.trim())?.[1]?.toUpperCase();
-        if (context.selections?.some((selection) => selection.name === name && selection.ranges)) {
-          rangeLoops.push([name, `ls_${name.toLowerCase()}_range`]);
-        }
-      }
-      if (statement.kind === "EndLoop") rangeLoops.pop();
       if (statement.kind === "LoopAtScreen") screenLoops.push({ kind: "screen", ...screenBinding, guarded: Boolean(screenStates(statementContext).guard) });
       if (statement.kind === "Loop") screenLoops.push({ kind: "other" });
       if (statement.kind === "EndLoop") screenLoops.pop();

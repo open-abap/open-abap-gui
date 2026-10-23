@@ -19,7 +19,7 @@ ENDCLASS.
 CLASS ltcl_gg_se38 IMPLEMENTATION.
 
   METHOD metadata.
-    DATA(ls_transaction) = NEW zcl_gg_se38( )->zif_gg_transaction_v1~get_transaction( ).
+    DATA(ls_transaction) = zcl_gg_se38=>zif_gg_transaction_v1~get_transaction( ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
                                         exp = 'SE38' ).
     cl_abap_unit_assert=>assert_equals(
