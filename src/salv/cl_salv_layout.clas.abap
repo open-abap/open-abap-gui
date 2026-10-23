@@ -8,7 +8,7 @@ CLASS cl_salv_layout DEFINITION PUBLIC.
 
     METHODS set_save_restriction
       IMPORTING
-        value TYPE any OPTIONAL.
+        value TYPE salv_de_layout_restriction OPTIONAL.
 
     METHODS set_default
       IMPORTING
@@ -40,7 +40,7 @@ CLASS cl_salv_layout DEFINITION PUBLIC.
 
   PRIVATE SECTION.
     DATA ms_key TYPE salv_s_layout_key.
-    DATA mv_save_restriction TYPE i.
+    DATA mv_save_restriction TYPE salv_de_layout_restriction.
     DATA mv_default TYPE abap_bool.
     DATA mv_initial_layout TYPE string.
     DATA ms_current_layout TYPE salv_s_layout.
