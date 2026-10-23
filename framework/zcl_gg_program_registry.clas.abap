@@ -74,11 +74,11 @@ CLASS zcl_gg_program_registry IMPLEMENTATION.
 * The metadata is static, so the catalog never instantiates a class. Discovery
 * found the class through the interface, so a failure here is an application
 * crash and keeps its original exception.
-      lo_class ?= cl_abap_typedescr=>describe_by_name( lv_class_name ).
-      IF NOT line_exists( lo_class->interfaces[ name = 'ZIF_GG_REPORT_V1' ] ).
-        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
-          iv_message = |Program class { lv_class_name } does not implement ZIF_GG_REPORT_V1|.
-      ENDIF.
+      " lo_class ?= cl_abap_typedescr=>describe_by_name( lv_class_name ).
+      " IF NOT line_exists( lo_class->interfaces[ name = 'ZIF_GG_REPORT_V1' ] ).
+      "   RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+      "     iv_message = |Program class { lv_class_name } does not implement ZIF_GG_REPORT_V1|.
+      " ENDIF.
 
       CALL METHOD (lv_class_name)=>('ZIF_GG_PROGRAM_V1~GET_PROGRAM')
         RECEIVING

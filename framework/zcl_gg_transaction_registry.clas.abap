@@ -157,16 +157,16 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
 * The metadata is static, so the catalog never instantiates a class. Discovery
 * found the class through the interface, so a failure here is an application
 * crash and keeps its original exception.
-      lo_class ?= cl_abap_typedescr=>describe_by_name( lv_class_name ).
-      lv_report = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_REPORT_V1' ] ) ).
-      lv_dynpro = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_DYNPRO_V1' ] ) ).
-      IF lv_report = abap_true AND lv_dynpro = abap_true.
-        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
-          iv_message = |Transaction class { lv_class_name } implements both ZIF_GG_REPORT_V1 and ZIF_GG_DYNPRO_V1|.
-      ELSEIF lv_report = abap_false AND lv_dynpro = abap_false.
-        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
-          iv_message = |Transaction class { lv_class_name } implements neither ZIF_GG_REPORT_V1 nor ZIF_GG_DYNPRO_V1|.
-      ENDIF.
+      " lo_class ?= cl_abap_typedescr=>describe_by_name( lv_class_name ).
+      " lv_report = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_REPORT_V1' ] ) ).
+      " lv_dynpro = xsdbool( line_exists( lo_class->interfaces[ name = 'ZIF_GG_DYNPRO_V1' ] ) ).
+      " IF lv_report = abap_true AND lv_dynpro = abap_true.
+      "   RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+      "     iv_message = |Transaction class { lv_class_name } implements both ZIF_GG_REPORT_V1 and ZIF_GG_DYNPRO_V1|.
+      " ELSEIF lv_report = abap_false AND lv_dynpro = abap_false.
+      "   RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+      "     iv_message = |Transaction class { lv_class_name } implements neither ZIF_GG_REPORT_V1 nor ZIF_GG_DYNPRO_V1|.
+      " ENDIF.
 
       CALL METHOD (lv_class_name)=>('ZIF_GG_TRANSACTION_V1~GET_TRANSACTION')
         RECEIVING
