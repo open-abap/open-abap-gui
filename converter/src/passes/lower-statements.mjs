@@ -1102,7 +1102,7 @@ function parseMessage(raw, context) {
   }
   // MESSAGE e017(zmsg), or MESSAGE e017 with the class from REPORT ... MESSAGE-ID.
   // Without parentheses or TYPE, the operand cannot be a text field.
-  const messageReference = /^([AEISWX])(\d{3})(?:\(([A-Z0-9_/]+)\))?(?=\s|$)/i.exec(body);
+  const messageReference = /^([AEISWX])(\d{3})(?:\(([A-Z0-9_/#]+)\))?(?=\s|$)/i.exec(body);
   if (messageReference && (messageReference[3] || !messageAdditionOperand(body, "TYPE"))) {
     const id = messageReference[3] ?? context.messageId;
     if (!id) return `* TODO GGCONV-E501: MESSAGE ${messageReference[0]} names no message class and the program declares no MESSAGE-ID.`;
