@@ -2,12 +2,6 @@ TYPE-POOL kkblo.
 
 TYPES kkblo_selfield TYPE slis_selfield.
 
-" kkblo_layout
-" kkblo_t_event_exit
-" kkblo_t_extab
-" kkblo_t_filter
-
-
 TYPES BEGIN OF kkblo_fieldcat.
         INCLUDE STRUCTURE alv_s_fcat.
         INCLUDE STRUCTURE kkb_s_fcat.
@@ -52,5 +46,43 @@ TYPES BEGIN OF kkblo_filter.
         INCLUDE STRUCTURE kkb_s_filt.
 INCLUDE TYPE slis_filter_alv1.
 TYPES END OF kkblo_filter.
-
 TYPES kkblo_t_filter TYPE kkblo_filter OCCURS 1.
+
+TYPES kkblo_extab TYPE slis_extab.
+TYPES kkblo_t_extab TYPE kkblo_extab OCCURS 1.
+
+TYPES kkblo_t_event_exit TYPE slis_t_event_exit.
+
+TYPES BEGIN OF kkblo_coltypes.
+INCLUDE TYPE slis_coltypes.
+TYPES END OF kkblo_coltypes.
+
+TYPES: BEGIN OF kkblo_incl_layout1,
+         no_selinfos        TYPE c LENGTH 1,
+         rowno_change       TYPE c LENGTH 1,
+         no_numc_sum        TYPE c LENGTH 1,
+         zebra_multi        TYPE c LENGTH 1,
+         no_static_subtot   TYPE c LENGTH 1,
+         colors             TYPE kkblo_coltypes,
+         suppress_dynpro    TYPE c LENGTH 1,
+         internet_prepare   TYPE c LENGTH 1,
+         interface_complete TYPE c LENGTH 1,
+         no_filter_confirm  TYPE c LENGTH 1,
+         detail_only        TYPE c LENGTH 1,
+         detail_exit        TYPE c LENGTH 1,
+         s_variant          LIKE disvariant,
+         weblook            TYPE c LENGTH 10,
+         webstyle           TYPE x LENGTH 4,
+         webrows            TYPE i,
+         webxwidth          TYPE i,
+         webxheight         TYPE i,
+       END OF kkblo_incl_layout1.
+
+TYPES BEGIN OF kkblo_layout.
+        INCLUDE STRUCTURE alv_s_layo.
+        INCLUDE STRUCTURE kkb_s_layo.
+        INCLUDE STRUCTURE alv_s_prnt.
+INCLUDE TYPE slis_layout_alv1.
+INCLUDE TYPE slis_print_alv1.
+INCLUDE TYPE kkblo_incl_layout1.
+TYPES END OF kkblo_layout.

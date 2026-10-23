@@ -72,7 +72,7 @@
     "cds_legacy_view": true,
     "expand_macros": true,
     "fully_type_itabs": {
-      "exclude": ["kkblo.type.abap"]
+      "exclude": ["kkblo.type.abap", "slis.type.abap"]
     },
     "cds_comment_style": true,
     "change_if_to_case": true,
@@ -211,7 +211,7 @@
     "allowed_object_types": false,
     "ambiguous_statement": true,
     "begin_single_include": {
-      "exclude": ["slis.type.abap"]
+      "exclude": ["slis.type.abap", "kkblo.type.abap"]
     },
     "call_transaction_authority_check": true,
     "7bit_ascii": true,
