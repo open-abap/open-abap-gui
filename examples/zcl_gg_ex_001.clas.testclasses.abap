@@ -21,14 +21,12 @@ CLASS ltcl_ex_01 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD is_a_registered_transaction.
-    DATA lo_metadata TYPE REF TO zif_gg_transaction_v1.
     DATA lo_report TYPE REF TO zif_gg_report_v1.
     DATA lo_example TYPE REF TO zcl_gg_ex_001.
 
     lo_example = NEW zcl_gg_ex_001( ).
-    lo_metadata ?= lo_example.
     lo_report ?= lo_example.
-    DATA(ls_transaction) = lo_metadata->get_transaction( ).
+    DATA(ls_transaction) = zcl_gg_ex_001=>zif_gg_transaction_v1~get_transaction( ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
                                         exp = 'ZGG_EX_001' ).
     cl_abap_unit_assert=>assert_bound( act = lo_report ).

@@ -33,6 +33,7 @@ async function convertExample(exampleRoot, targetFolder) {
     converterInputFolders: [input],
     libs: [],
     generatedFolder: targetFolder,
+    modulePools: true,
   };
   return convertConfiguredPrograms({ config, outputFolder: targetFolder, overrides: { mode: "partial" } });
 }

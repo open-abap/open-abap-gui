@@ -1,4 +1,5 @@
 import { ReferenceType } from "@abaplint/core/build/src/abap/5_syntax/_reference.js";
+import { isExternalPerform } from "./collect-routines.mjs";
 
 // A FORM may write a USING parameter passed by reference, and the caller sees
 // the change. A method cannot write an IMPORTING parameter, so a USING
@@ -94,7 +95,7 @@ export function analyzeRoutineWrites(ir, programScope) {
     if (statement.kind !== "Perform") continue;
     const name = /^\s*PERFORM\s+([A-Z_][A-Z0-9_]*)/i.exec(statement.text)?.[1]?.toUpperCase();
     const routine = (ir.routines ?? []).find((item) => item.name === name);
-    if (!routine || /\bIN\s+PROGRAM\b/i.test(statement.text)) continue;
+    if (!routine || isExternalPerform(statement.text)) continue;
     const using = [];
     let section;
     for (const token of performArguments(statement.text.replace(/^\s*PERFORM\s+\S+\s*/i, "").replace(/\.\s*$/, ""))) {

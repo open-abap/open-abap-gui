@@ -17,7 +17,9 @@ const result = await convertProgram({
 `result` contains `classSource`, optional `helperSources` for hoisted report-local
 classes, serializable `reportIR` and `scaffoldIR` values, a stable JSON-ready
 `manifest`, source maps, diagnostics, and the `supported`
-flag. Strict mode returns no class source when an error diagnostic exists.
+flag. Strict mode returns no class source when an error diagnostic exists,
+also one the generated source raises, as `GGCONV-E202` when it fails the
+converter's parser validation; batch conversion then writes no file for it.
 Partial mode emits compilable output with explicit `TODO GGCONV-*` comments for
 unsupported semantics. When `partialStrategy: "skeleton"` is requested, a
 safe-entry failure gets the diagnostic-only shell; optional feature gaps get a
@@ -38,6 +40,16 @@ node converter/bin/convert.mjs --program ZGG_EX_001 --class ZCL_REPORT --output 
 ```
 
 It takes no positional arguments; a single report is selected with `--program`.
+
+As in SAP, a program is its object: `zfoo.prog.abap` is program `ZFOO`, whatever
+name its REPORT statement gives (a copied report keeps its original's, and a
+program may have its REPORT statement in a TOP include). Executable programs
+(`SUBC` 1 in the `.prog.xml`) are converted, and module pools (`M`) when
+`converter.module_pools` is `true`; includes (`I`) and subroutine pools (`S`)
+never are. A program without a `.prog.xml`
+counts as an entry point when it has a REPORT or PROGRAM statement of its own.
+Two files for one program name are reported as `GGCONV-E115`.
+
 The keys it reads are:
 
 | key | converter use |
@@ -46,6 +58,7 @@ The keys it reads are:
 | `converter.exclude_filter` | optional case-insensitive regular expressions; programs whose path matches are not converted |
 | `converter.output_folder` | where the generated classes are written; owned by the converter |
 | `converter.language` | optional one-character language key, such as `D`, for the texts to take; see below |
+| `converter.module_pools` | optional boolean, default `false`; `true` also converts module pools (`SUBC` M) |
 | `input_folder` | searched for INCLUDEs after the converter input; must list `converter.output_folder` |
 | `libs` | dependencies searched for INCLUDEs; their programs are never converted |
 
@@ -114,14 +127,17 @@ programs map to the same class writes nothing at all and reports
 `GGCONV-E115`, rather than keeping one class and losing the other.
 
 A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`) unless
-`--class` names it. A program name may have 40 characters but a class name only
+`--class` names it; a customer module pool drops SAP's `SAPM` prefix
+(`SAPMZFOO` becomes `ZCL_FOO` too). A program name may have 40 characters but a class name only
 30, so a longer default name is cut to 25 characters and given a four-character
 hash of the program name (`ZRLX_SDFDDDDD_DATE_COND_PROMO` becomes
 `ZCL_RLX_SDFDDDDD_DATE_CON_3539`), reported as `GGCONV-W107`; the hash keeps
 reports that differ only in the cut-off tail apart. When that default name is already taken by a class or
 interface in `input_folder`, `converter.input_folder` or the libs, the report
 is generated as the next free name (`ZCL_FOO_1`, `ZCL_FOO_2`, …) and
-`GGCONV-W106` names the file that holds the original. The generated
+`GGCONV-W106` names the file that holds the original. A class handed to a
+program converted earlier in the same run is taken as well, so two programs
+that fall back from one name get different ones. The generated
 transaction or program metadata records the report's program name, so
 `SUBMIT zfoo` finds the renamed class through the transaction or program
 registry. A name given with `--class`
@@ -131,7 +147,12 @@ written for that report.
 No network or model call is used during conversion; the only network access is
 the CLI cloning a lib `url` before it starts. Includes are resolved from
 `converter.input_folder`, `input_folder` and the libs, by the optional `resolveInclude(name, parentFilename)` callback,
-or by deterministic filesystem candidates.
+or by deterministic filesystem candidates. The kernel's own includes have no
+source: `INCLUDE <icon>` and `INCLUDE <color>` need none, as open-abap-core's
+type pool ICON and the built-in list colors declare the same constants.
+`<symbol>`, `<line>` and `<list>` are skipped with `GGCONV-W109` when the
+generated class uses none of their constants, and are `GGCONV-E102` when it
+does; any other `INCLUDE <name>` is `GGCONV-E102`.
 
 Selection texts can be supplied as a `Map`, object, or simple text-pool string
 through `textPool`; unresolved `TEXT-*` keys remain deterministic and produce a
@@ -203,13 +224,21 @@ Every carried-over statement also gets the same value rewrites: system fields
 the session holds (`sy-lsind`, `sy-repid`, …), the `SCREEN` work area inside
 `LOOP AT SCREEN`, and the list color constants. A system field that becomes a
 method call is kept as written when the statement only takes data objects, as
-`CONCATENATE` does. Declarations and comments are not rewritten.
+`CONCATENATE` does. Comments are not rewritten, and declarations only where a
+class reads them differently: `LIKE` names a data object in a class, so `LIKE`
+a dictionary type or a `TABLES` work area (`LIKE mara-matnr`, `LIKE TABLE OF
+bapiret2`) becomes `TYPE`, and `LIKE` a parameter names its member; a start
+value read from a system field (`DATA lv_prog TYPE progname VALUE sy-repid`)
+is assigned after the declaration, in `load_of_program` for the program's own
+data. `TABLES *dbtab` declares a second work area `star_dbtab`, which
+`SELECT ... FROM *dbtab` reads `dbtab` into.
 Renames apply to references only: a component (`ls-value`, `get( )-value`),
 an attribute or method (`->value`, `=>value`), a field symbol, a table key or
 constructor component (`itab[ name = ... ]`, `VALUE #( name = ... )`), a formal
 parameter, a column, and a keyword spelled like the name keep their spelling.
 This includes function modules without a compatibility adapter, `FREE`,
-dynamic `CREATE DATA`, dynamic Open SQL, `PERFORM ... IN PROGRAM`, and
+dynamic `CREATE DATA`, dynamic Open SQL, `PERFORM ... IN PROGRAM` (the short
+form `PERFORM form(prog)`, which a class does not allow, is written so), and
 `WRITE ... TO` with any formatting addition, `UNIT` and `CURRENCY` included,
 which are all valid inside a method. A list `WRITE ... UNIT` hands the unit to
 the writer in `write_format-unit`.

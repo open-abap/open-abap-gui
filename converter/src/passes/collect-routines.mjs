@@ -78,6 +78,20 @@ function uniqueName(base, used) {
   return name;
 }
 
+const SHORT_EXTERNAL_PERFORM = /^(\s*PERFORM\s+[A-Z_][A-Z0-9_\/]*)\s*\(\s*([A-Z_][A-Z0-9_\/]*)\s*\)/i;
+
+// PERFORM form IN PROGRAM prog and PERFORM form(prog) call a FORM of another
+// program, which is not converted.
+export function isExternalPerform(text) {
+  return /\bIN\s+PROGRAM\b/i.test(text) || SHORT_EXTERNAL_PERFORM.test(text);
+}
+
+// The short form PERFORM form(prog) is not allowed in classes; it is written
+// PERFORM form IN PROGRAM prog.
+export function inProgramPerform(text) {
+  return text.replace(SHORT_EXTERNAL_PERFORM, "$1 IN PROGRAM $2");
+}
+
 export function collectRoutines(ir) {
   const usedMethodNames = new Set();
   const usedTypeNames = new Set((ir.statements ?? [])

@@ -5,7 +5,11 @@ import path from "node:path";
 export const CONVERTER_VERSION = createRequire(import.meta.url)("../package.json").version;
 export const MANIFEST_SCHEMA_VERSION = 1;
 
-const REPORT_NAME = /^(?<prefix>[ZY])(?<rest>[A-Z0-9_]+)$/i;
+// A customer report is named Z* or Y*, a customer module pool SAPMZ* or
+// SAPMY*. Both map to <prefix>CL_<rest>: ZFOO -> ZCL_FOO and SAPMZFOO ->
+// ZCL_FOO, so a module pool's class reads like its transaction rather than
+// like SAP's naming convention for the program behind it.
+const REPORT_NAME = /^(?:SAPM)?(?<prefix>[ZY])(?<rest>[A-Z0-9_]+)$/i;
 const SIMPLE_OBJECT = /^[A-Z][A-Z0-9_]{0,29}$/;
 const NAMESPACED_OBJECT = /^\/[A-Z0-9_$]{1,10}\/[A-Z][A-Z0-9_]{0,29}$/;
 
@@ -69,6 +73,9 @@ export function normalizeOptions(options = {}) {
   if (options.source !== undefined && typeof options.source !== "string") {
     throw new Error("source must be a string when supplied");
   }
+  if (options.programName !== undefined && (typeof options.programName !== "string" || !/^[A-Z0-9_/]{1,40}$/i.test(options.programName))) {
+    throw new Error(`programName must be an ABAP program name, got ${options.programName}`);
+  }
   if (options.language !== undefined && (typeof options.language !== "string" || !/^[A-Za-z0-9]$/.test(options.language))) {
     throw new Error(`language must be a one-character SAP language key, got ${options.language}`);
   }
@@ -76,6 +83,7 @@ export function normalizeOptions(options = {}) {
     ...options,
     filename,
     ...(options.language === undefined ? {} : { language: options.language.toUpperCase() }),
+    ...(options.programName === undefined ? {} : { programName: options.programName.toUpperCase() }),
     mode,
     partialStrategy,
     descriptionProvided: options.description !== undefined,

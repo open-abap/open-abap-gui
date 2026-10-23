@@ -3,6 +3,7 @@ import { eventName, normalizedText } from "./passes/classify-program.mjs";
 import { isLocalClassStructural } from "./passes/collect-local-classes.mjs";
 import { LOWERING_RULES, dynamicWriteOperand, isMethodSafeLoop, isStaticAssign, writeToTarget } from "./passes/lower-statements.mjs";
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.mjs";
+import { isExternalPerform } from "./passes/collect-routines.mjs";
 import { LOOP_BLOCKS } from "./passes/blocks.mjs";
 import { isSuspendingStatement } from "./passes/lower-continuations.mjs";
 import { headerLinesOf } from "./passes/header-lines.mjs";
@@ -39,12 +40,6 @@ function addStatementDiagnostic(diagnostics, statement, message, suggestion, cod
 
 function loopName(statement) {
   return /^LOOP\s+AT\s+([A-Z][A-Z0-9_]*)\b/i.exec(statement.text.trim())?.[1]?.toUpperCase();
-}
-
-function isSelectionRangeLoop(ir, statement) {
-  const name = loopName(statement);
-  return Boolean(name && ir.selections?.some((screen) => screen.elements?.some((item) =>
-    item.name === name && item.kind === "select-option")));
 }
 
 function hasDynamicWriteTargets(ir) {
@@ -98,12 +93,18 @@ export function scanCapabilities(ir, statements, { mode = "strict" } = {}) {
       continue;
     }
     // A header-line table's loop is given its work area, see header-lines.mjs.
-    if (statement.kind === "Loop" && !isMethodSafeLoop(statement) && !isSelectionRangeLoop(ir, statement)
+    if (statement.kind === "Loop" && !isMethodSafeLoop(statement)
       && !headerLinesOf(ir, statement)[loopName(statement)]) {
       addStatementDiagnostic(diagnostics, statement, "implicit-header-table LOOP cannot be lowered safely into a method", "Add an explicit INTO or ASSIGNING target, or provide a dedicated method-scope loop lowering rule.", "GGCONV-E501");
     }
     if (statement.kind === "Perform" && /\bPERFORM\s+\(/i.test(statement.text)) {
       addStatementDiagnostic(diagnostics, statement, "dynamic PERFORM names a FORM that became a method", "Call the generated method directly or provide a manual method mapping.", "GGCONV-E401");
+      continue;
+    }
+    const performed = statement.kind === "Perform" && !isExternalPerform(statement.text)
+      ? /^\s*PERFORM\s*:?\s*([A-Z_][A-Z0-9_\/]*)/i.exec(statement.text)?.[1]?.toUpperCase() : undefined;
+    if (performed && !(ir.routines ?? []).some((routine) => routine.name === performed)) {
+      addStatementDiagnostic(diagnostics, statement, `PERFORM ${performed.toLowerCase()} names a FORM the program does not define`, "Include the source that defines the FORM, or call the FORM of another program with IN PROGRAM.", ACTIONABLE_DIAGNOSTIC_CODES.unsupportedStatement);
       continue;
     }
     const writeTo = writeToTarget(statement);

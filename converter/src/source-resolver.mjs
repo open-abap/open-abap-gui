@@ -58,6 +58,51 @@ async function loadInclude(name, parentFilename, resolver, includePaths) {
   return undefined;
 }
 
+// The kernel's own includes, INCLUDE <name>, which no library ships as source.
+// Each only declares constants. <ICON> declares those of TYPE-POOL icon, which
+// open-abap-core provides, and <COLOR> the list colors abaplint and the
+// transpiler know as built-ins, so both are complete without the include. The
+// others are skipped and checked against the generated class: a constant of
+// theirs still referenced there is GGCONV-E102, otherwise GGCONV-W109 notes
+// the skip. WRITE ... AS SYMBOL needs no constant, it writes the symbol's name.
+// An include not listed here declares who knows what and stays GGCONV-E102.
+const LINE_ELEMENTS = [
+  "SPACE", "CROSS", "HORIZONTAL_LINE", "VERTICAL_LINE",
+  "TOP_LEFT_CORNER", "TOP_RIGHT_CORNER", "BOTTOM_LEFT_CORNER", "BOTTOM_RIGHT_CORNER",
+  "TOP_MIDDLE_CORNER", "BOTTOM_MIDDLE_CORNER", "LEFT_MIDDLE_CORNER", "RIGHT_MIDDLE_CORNER",
+].map((name) => `LINE_${name}\\b`);
+const SYMBOL_ELEMENTS = ["SYM_[A-Z0-9_]+"];
+const SYSTEM_INCLUDES = {
+  ICON: { provided: true },
+  COLOR: { provided: true },
+  SYMBOL: { patterns: SYMBOL_ELEMENTS },
+  LINE: { patterns: LINE_ELEMENTS },
+  // <LIST> is <SYMBOL>, <ICON>, <LINE> and <COLOR> together.
+  LIST: { patterns: [...SYMBOL_ELEMENTS, ...LINE_ELEMENTS] },
+};
+
+function stripLiteralsAndComments(line) {
+  if (/^\s*\*/.test(line)) return "";
+  return line
+    .replace(/'(?:''|[^'])*'|`(?:``|[^`])*`|\|(?:\\.|[^|\\])*\|/g, " ")
+    .split('"')[0];
+}
+
+// The constant of a skipped system include that generated source still
+// references, as an unqualified name: a component such as ls_x-sym_y, an
+// attribute behind -> or =>, or a name the program declares itself is not one.
+export function systemIncludeUse(include, sources, declared = new Set()) {
+  const pattern = new RegExp(`(?<![\\w\\-~>/])(?:${include.patterns.join("|")})`, "gi");
+  for (const source of sources) {
+    for (const line of String(source).split("\n")) {
+      for (const match of stripLiteralsAndComments(line).matchAll(pattern)) {
+        if (!declared.has(match[0].toUpperCase())) return match[0].toLowerCase();
+      }
+    }
+  }
+  return undefined;
+}
+
 function findIncludes(source) {
   const includes = [];
   // `[ \t]*` (not `\s*`) keeps the match anchored on the INCLUDE line: with the
@@ -74,6 +119,7 @@ export async function resolveSources({ source, filename, resolveInclude, include
   const searchPaths = (Array.isArray(includePaths) ? includePaths : []).filter((item) => typeof item === "string" && item);
   const diagnostics = [];
   const units = [];
+  const systemIncludes = [];
   const seen = new Set();
   const active = [];
 
@@ -107,6 +153,13 @@ export async function resolveSources({ source, filename, resolveInclude, include
     active.push(identity);
     units.push({ filename: unit.filename, source: normalized.source, newline: normalized.newline, ancestry, hashKey: unit.hashKey });
     for (const include of findIncludes(normalized.source)) {
+      const system = /^<([A-Z0-9_]+)>$/i.exec(include.name)?.[1]?.toUpperCase();
+      if (system && SYSTEM_INCLUDES[system]) {
+        if (!SYSTEM_INCLUDES[system].provided) {
+          systemIncludes.push({ name: system, patterns: SYSTEM_INCLUDES[system].patterns, filename: unit.filename, start: linePosition(normalized.source, include.offset) });
+        }
+        continue;
+      }
       const loaded = await loadInclude(include.name, unit.filename, resolveInclude, searchPaths);
       if (loaded === undefined) {
         // `INCLUDE name IF FOUND.` is optional: a missing include is not an
@@ -134,5 +187,5 @@ export async function resolveSources({ source, filename, resolveInclude, include
   // hashed by INCLUDE name; a path would differ per checkout and platform.
   const compilationInput = units.map((unit) => `${unit.hashKey}\0${unit.source}`).join("\0");
   const compilationHash = crypto.createHash("sha256").update(compilationInput, "utf8").digest("hex");
-  return { units, diagnostics, sourceHash: compilationHash, newline: normalizeSource(source).newline };
+  return { units, diagnostics, systemIncludes, sourceHash: compilationHash, newline: normalizeSource(source).newline };
 }

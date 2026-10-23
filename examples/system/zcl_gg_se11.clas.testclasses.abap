@@ -36,7 +36,7 @@ CLASS ltcl_gg_se11 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD metadata.
-    DATA(ls_transaction) = NEW zcl_gg_se11( )->zif_gg_transaction_v1~get_transaction( ).
+    DATA(ls_transaction) = zcl_gg_se11=>zif_gg_transaction_v1~get_transaction( ).
     cl_abap_unit_assert=>assert_equals( act = ls_transaction-tcode
                                         exp = 'SE11' ).
     cl_abap_unit_assert=>assert_equals(

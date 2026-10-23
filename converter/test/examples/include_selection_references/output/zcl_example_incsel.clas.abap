@@ -16,6 +16,7 @@ CLASS zcl_example_incsel DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_examp
     DATA gv_count TYPE i.
     DATA mv_p_factor TYPE i.
     DATA mv_s_date LIKE RANGE OF gv_date.
+    DATA s_date_header LIKE LINE OF mv_s_date.
     METHODS form_show_factor
       IMPORTING
         io_session TYPE REF TO zif_gg_session_v1.
@@ -49,6 +50,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
@@ -63,6 +65,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
@@ -77,6 +80,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     IF mv_p_factor > 10.
       io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_error text = 'Factor too large' ) ).
     ENDIF.
@@ -94,6 +98,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
@@ -108,6 +113,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
@@ -122,6 +128,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
@@ -136,6 +143,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
     DATA lt_ggconv_s_date LIKE mv_s_date.
     mv_p_factor = ct_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( ct_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     IF ct_values[ name = 'P_FACTOR' ]-value <> mv_p_factor.
       ct_values[ name = 'P_FACTOR' ]-value = |{ mv_p_factor }|.
     ENDIF.
@@ -157,12 +165,14 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_exit.
     mv_p_factor = it_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( it_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_INCSEL' ).
     mv_p_factor = it_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( it_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
     form_show_factor( io_session = io_session ).
     NEW zcl_example_incsel_h1( io_owner   = me
                                io_session = io_session )->count( ).
@@ -179,6 +189,7 @@ CLASS zcl_example_incsel IMPLEMENTATION.
   METHOD zif_gg_report_v1~end_of_selection.
     mv_p_factor = it_values[ name = 'P_FACTOR' ]-value.
     mv_s_date = CORRESPONDING #( it_values[ name = 'S_DATE' ]-ranges ).
+    s_date_header = VALUE #( mv_s_date[ 1 ] OPTIONAL ).
   ENDMETHOD.
 
   METHOD zif_gg_list_processing_v1~get_settings.
