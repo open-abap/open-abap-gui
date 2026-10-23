@@ -59,7 +59,7 @@ CLASS zcl_gg_program_registry IMPLEMENTATION.
 
   METHOD ensure_catalog.
     DATA lt_names TYPE string_table.
-    DATA lo_class TYPE REF TO cl_abap_classdescr.
+    DATA lt_reports TYPE string_table.
     DATA ls_metadata TYPE zif_gg_program_v1=>ty_program.
     DATA ls_program TYPE ty_program.
     DATA lv_class_name TYPE string.
@@ -69,16 +69,16 @@ CLASS zcl_gg_program_registry IMPLEMENTATION.
     ENDIF.
     CLEAR mt_programs.
     lt_names = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_PROGRAM_V1` ).
+    lt_reports = zcl_gg_class_discovery=>implementations_of( `ZIF_GG_REPORT_V1` ).
 
     LOOP AT lt_names INTO lv_class_name.
 * The metadata is static, so the catalog never instantiates a class. Discovery
 * found the class through the interface, so a failure here is an application
 * crash and keeps its original exception.
-      " lo_class ?= cl_abap_typedescr=>describe_by_name( lv_class_name ).
-      " IF NOT line_exists( lo_class->interfaces[ name = 'ZIF_GG_REPORT_V1' ] ).
-      "   RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
-      "     iv_message = |Program class { lv_class_name } does not implement ZIF_GG_REPORT_V1|.
-      " ENDIF.
+      IF NOT line_exists( lt_reports[ table_line = lv_class_name ] ).
+        RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
+          iv_message = |Program class { lv_class_name } does not implement ZIF_GG_REPORT_V1|.
+      ENDIF.
 
       CALL METHOD (lv_class_name)=>('ZIF_GG_PROGRAM_V1~GET_PROGRAM')
         RECEIVING
