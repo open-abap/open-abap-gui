@@ -3013,6 +3013,34 @@ test("hoists local classes into collision-free helper class sources", async () =
   assert.match(collision.classSource, /FRIENDS zcl_local_h1_1\./);
 });
 
+test("renames hoisted local classes in FORM parameter types", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zlocalparm.",
+      "CLASS lcl_events DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    METHODS on_toolbar FOR EVENT toolbar OF cl_gui_alv_grid IMPORTING e_object.",
+      "ENDCLASS.",
+      "CLASS lcl_events IMPLEMENTATION.",
+      "  METHOD on_toolbar.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "DATA go_events TYPE REF TO lcl_events.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "START-OF-SELECTION.",
+      "  PERFORM register USING go_events go_grid.",
+      "FORM register USING po_events TYPE REF TO lcl_events",
+      "                    po_grid TYPE REF TO cl_gui_alv_grid.",
+      "  SET HANDLER po_events->on_toolbar FOR po_grid.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zlocalparm.prog.abap",
+  });
+  assert.equal(result.supported, true);
+  assert.match(result.classSource, /po_events\s+TYPE REF TO zcl_localparm_h1/i);
+  assert.doesNotMatch(result.classSource, /lcl_events/i);
+});
+
 test("resolves dictionary-typed selection fields to their built-in types through abaplint", async () => {
   const input = path.join(repositoryRoot, "converter", "test", "examples", "ddic_parameter_types", "input");
   const source = await fs.readFile(path.join(input, "zexample_ddic.prog.abap"), "utf8");

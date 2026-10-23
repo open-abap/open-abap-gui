@@ -571,7 +571,7 @@ function dataMembers(ir) {
     const importing = parameters.filter((parameter) => parameter.direction === "IMPORTING");
     const declared = (parameter) => parameter.byValue ? `VALUE(${parameter.name})` : parameter.name;
     const width = Math.max("io_session".length, ...parameters.map((parameter) => declared(parameter).length));
-    const line = (parameter) => `    ${declared(parameter).padEnd(width, " ")} TYPE ${parameterType(parameter)}`;
+    const line = (parameter) => `    ${declared(parameter).padEnd(width, " ")} TYPE ${renameIdentifiers(parameterType(parameter), allRenames(ir))}`;
     lines.push("  IMPORTING", `    io_session${" ".repeat(width - "io_session".length)} TYPE REF TO zif_gg_session_v1`);
     lines.push(...importing.map(line));
     for (const direction of ["CHANGING"]) {
