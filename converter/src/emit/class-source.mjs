@@ -11,6 +11,7 @@ import { DEFAULT_SELECTION_SCREEN } from "../passes/collect-selection-screens.mj
 import { replaceIdentifiers } from "../passes/replace-identifiers.mjs";
 import { hasHeaderLine, headerLineDeclarations, headerLinesIn, withoutHeaderLines } from "../passes/header-lines.mjs";
 import { likeHeads, likeTyping, scopedMember } from "../passes/like-typing.mjs";
+import { isReportGlobal } from "../passes/lower-state.mjs";
 
 const REPORT_METHODS = [
   "load_of_program", "get_logical_database", "get_list_processing", "build_screen", "initialization",
@@ -1391,9 +1392,7 @@ function dynproStateComponents(ir) {
     components.push({ name: upper, member: ir.statePlan?.renames?.[upper] ?? name.toLowerCase() });
   };
   for (const declaration of ir.declarations ?? []) {
-    if (declaration.statement?.scope === "local"
-        || declaration.statement?.localClassName
-        || (declaration.statement?.span?.start?.column ?? 1) > 1
+    if (!isReportGlobal(ir, declaration)
         || !["data", "static"].includes(declaration.kind)
         || declaration.complex
         // A component of a BEGIN OF structure is no data object of its own.

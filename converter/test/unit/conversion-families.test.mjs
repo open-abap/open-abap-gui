@@ -384,6 +384,26 @@ test("LIKE a header-line table OCCURS n is a table of its work area", async () =
   assert.match(source, /DATA i_batch LIKE STANDARD TABLE OF bufline_header WITH DEFAULT KEY\.\n\s+DATA i_batch_header LIKE LINE OF i_batch\./);
 });
 
+// Indentation does not make a declaration local; SELECT-OPTIONS FOR an indented
+// global is LIKE RANGE OF its member, as for one in column 1.
+test("SELECT-OPTIONS FOR an indented global is a range of that global", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zreg_indented_global.",
+      "DATA gv_flat TYPE c LENGTH 4.",
+      "   DATA gv_indented TYPE c LENGTH 4.",
+      "SELECT-OPTIONS: s_flat FOR gv_flat,",
+      "                s_ind  FOR gv_indented.",
+      "START-OF-SELECTION.",
+      "  WRITE / 'hello'.",
+    ].join("\n"),
+    filename: "zreg_indented_global.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /DATA mv_s_flat LIKE RANGE OF gv_flat\./);
+  assert.match(result.classSource, /DATA mv_s_ind LIKE RANGE OF gv_indented\./);
+});
+
 test("header-line statements name the table or its work area as the statement means", () => {
   const cases = [
     ["LOOP AT itab FROM 2 WHERE id = 1.", "LOOP AT itab INTO itab_header FROM 2 WHERE id = 1."],
