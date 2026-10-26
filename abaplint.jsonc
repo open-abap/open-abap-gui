@@ -179,7 +179,9 @@
     "line_length": false,
     "names_no_dash": true,
     "modify_only_own_db_tables": true,
-    "start_at_tab": true,
+    "start_at_tab": {
+      "exclude": ["zgg_ex_189\\.prog\\.abap$"]
+    },
     "check_transformation_exists": true,
     "class_attribute_names": false,
     "description_empty": false,
@@ -233,7 +235,9 @@
     "tabl_enhancement_category": true,
     "check_ddic": true,
     "implement_methods": true,
-    "indentation": true,
+    "indentation": {
+      "exclude": ["zgg_ex_189\\.prog\\.abap$"]
+    },
     "keyword_case": {
       "style": "upper",
       "ignoreExceptions": false,
