@@ -1,0 +1,64 @@
+REPORT zcv_helper_owner.
+
+TYPES: BEGIN OF ty_params,
+         id TYPE i,
+       END OF ty_params.
+
+CONSTANTS gc_cmd_refresh TYPE sy-ucomm VALUE 'REFRESH'.
+CONSTANTS: BEGIN OF gc_mode,
+             edit TYPE c LENGTH 1 VALUE 'E',
+             show TYPE c LENGTH 1 VALUE 'S',
+           END OF gc_mode.
+
+DATA gv_mode TYPE c LENGTH 1.
+
+* The report's constants and types belong to the owner class; the helper's
+* own attribute show is no component of gc_mode.
+CLASS lcl_handler DEFINITION CREATE PRIVATE.
+  PUBLIC SECTION.
+    DATA show TYPE abap_bool READ-ONLY.
+    CLASS-METHODS create
+      IMPORTING is_params     TYPE ty_params
+      RETURNING VALUE(ro_obj) TYPE REF TO lcl_handler.
+    CLASS-METHODS create_classic
+      IMPORTING is_params     TYPE ty_params
+      RETURNING VALUE(ro_obj) TYPE REF TO lcl_handler.
+    METHODS constructor IMPORTING is_params TYPE ty_params.
+    METHODS clone RETURNING VALUE(ro_obj) TYPE REF TO lcl_handler.
+    METHODS on_command IMPORTING iv_ucomm TYPE sy-ucomm.
+  PRIVATE SECTION.
+    DATA ms_params TYPE ty_params.
+ENDCLASS.
+
+CLASS lcl_handler IMPLEMENTATION.
+  METHOD create.
+    ro_obj = NEW lcl_handler( is_params ).
+  ENDMETHOD.
+
+  METHOD create_classic.
+    CREATE OBJECT ro_obj EXPORTING is_params = is_params.
+  ENDMETHOD.
+
+  METHOD constructor.
+    ms_params = is_params.
+  ENDMETHOD.
+
+  METHOD clone.
+    ro_obj = NEW #( ms_params ).
+  ENDMETHOD.
+
+  METHOD on_command.
+    IF iv_ucomm = gc_cmd_refresh.
+      gv_mode = gc_mode-show.
+      show = abap_true.
+    ENDIF.
+    WRITE / ms_params-id.
+  ENDMETHOD.
+ENDCLASS.
+
+START-OF-SELECTION.
+  DATA(lo_handler) = lcl_handler=>create( VALUE #( id = 1 ) ).
+  lo_handler->on_command( gc_cmd_refresh ).
+  lo_handler = lcl_handler=>create_classic( VALUE #( id = 2 ) ).
+  lo_handler->clone( )->on_command( gc_cmd_refresh ).
+  WRITE / gv_mode.

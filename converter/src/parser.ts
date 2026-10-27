@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { Config, MemoryFile, Nodes, Registry, Version } from "@abaplint/core";
+import { Config, MemoryFile, Nodes, Registry, Version, VirtualPosition } from "@abaplint/core";
 import { ABAPParser } from "@abaplint/core/build/src/abap/abap_parser.js";
 import { diagnostic, parserIssueToDiagnostic } from "./diagnostics.js";
 import { rangeFromOffsets } from "./source-resolver.js";
@@ -20,6 +20,9 @@ export interface ParseResult {
 }
 
 function statementText(statement: Nodes.StatementNode): string {
+  // A macro expansion's tokens all sit at the call; only their virtual
+  // positions tell sy-dbcnt from sy - dbcnt.
+  if (statement.getFirstToken?.()?.getStart() instanceof VirtualPosition) return statement.concatTokensVirtual();
   return statement.concatTokens?.() ?? "";
 }
 

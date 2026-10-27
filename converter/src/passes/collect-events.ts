@@ -5,6 +5,9 @@ import { leadingComments } from "./collect-modules.js";
 import type { ReportIR, Routine, Statement } from "../types.js";
 
 const FORWARD_DECLARATION_KINDS = new Set(["ClassDeferred", "InterfaceDeferred", "ClassDefinitionLoad", "InterfaceLoad"]);
+// abaplint expands each macro call where it stands, so the definition is no
+// code of its own.
+export const MACRO_DEFINITION_KINDS = new Set(["Define", "MacroContent", "EndOfDefinition"]);
 
 const SINGLETON_EVENTS = new Set(["load_of_program", "initialization", "start_of_selection", "end_of_selection", "top_of_page", "end_of_page", "top_of_page_during_line_sel", "at_line_selection", "at_user_command"]);
 
@@ -28,6 +31,7 @@ export function collectEvents(ir: ReportIR, statements: Statement[]): ReportIR {
     // Forward declarations and the obsolete LOAD additions only steer the
     // compiler; local classes become global helper classes, which need neither.
     if (FORWARD_DECLARATION_KINDS.has(statement.kind)) continue;
+    if (MACRO_DEFINITION_KINDS.has(statement.kind)) continue;
     if (["ClassDefinition", "ClassImplementation"].includes(statement.kind)) {
       localClassDepth++;
       continue;

@@ -51,10 +51,19 @@ const SAFE_ENTRY_FAILURE_CODES = new Set([
 // for that structurally.
 export function undeclaredFieldSymbols(source: string): [string, number][] {
   const ast = lexedAst(source);
-  const declared = new Set<string>();
-  const used = new Map<string, number>();
+  const result: [string, number][] = [];
+  let declared = new Set<string>();
+  let used = new Map<string, number>();
+  const closeMethod = () => result.push(...[...used].filter(([name]) => !declared.has(name)));
   for (const statement of ast?.statements ?? []) {
     const text = ast!.source(statement);
+    // A declaration in one method does not reach another.
+    if (statement.get() instanceof Statements.MethodImplementation) {
+      closeMethod();
+      declared = new Set();
+      used = new Map();
+      continue;
+    }
     const names = fieldSymbolsIn(text);
     if (statement.get() instanceof Statements.FieldSymbol) {
       names.forEach((name) => declared.add(name));
@@ -66,7 +75,8 @@ export function undeclaredFieldSymbols(source: string): [string, number][] {
       if (!used.has(name)) used.set(name, entry.token.getStart().getRow());
     }
   }
-  return [...used].filter(([name]) => !declared.has(name));
+  closeMethod();
+  return result;
 }
 
 function undeclaredFieldSymbolDiagnostics(sources: SourceUnit[]): Diagnostic[] {

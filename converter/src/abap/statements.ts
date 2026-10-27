@@ -26,6 +26,16 @@ export function fieldSymbolsIn(text: string): string[] {
     .map((token) => token.slice(1, -1).toUpperCase());
 }
 
+/**
+ * The field symbols a FORM's or method's own FIELD-SYMBOLS statements among the
+ * statements declare; they hide a program global of the same name.
+ */
+export function declaredFieldSymbols(statements: Statement[]): string[] {
+  return statements
+    .filter((statement) => statement.kind === "FieldSymbol" && statement.scope === "local")
+    .flatMap((statement) => fieldSymbolsIn(statement.text).slice(0, 1));
+}
+
 /** The field symbols a text declares inline, FIELD-SYMBOL(<fs>). */
 export function inlineFieldSymbolsIn(text: string): string[] {
   const tokens = (lexedAst(text)?.tokens() ?? []).map((entry) => entry.token.getUpperStr());

@@ -4,12 +4,13 @@ import { textLiteral } from "../emit/abap-text.js";
 import { Expressions, Nodes, Statements, Tokens } from "@abaplint/core";
 import { isKeyword, lexedAst, parsesAsStatement, spliceText, statementAst, typeAst } from "../abap/ast.js";
 import type { StatementAst } from "../abap/ast.js";
-import { assignTarget, bindsStatically, fieldSymbolsIn, inlineFieldSymbolsIn, isStaticAssign } from "../abap/statements.js";
+import { assignTarget, bindsStatically, declaredFieldSymbols, fieldSymbolsIn, inlineFieldSymbolsIn, isStaticAssign } from "../abap/statements.js";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import { inProgramPerform, isExternalPerform, isGenericParameterType, methodParameterType } from "./collect-routines.js";
 import { isWritableArgument, performArguments, performedForm } from "../abap/statements.js";
+import { MACRO_DEFINITION_KINDS } from "./collect-events.js";
 import { isPopupStatement } from "./lower-continuations.js";
 import { replaceIdentifiers } from "./replace-identifiers.js";
 import { headerLineBegin, headerLineDeclarations, headerLineEnd, withoutHeaderLines } from "./header-lines.js";
@@ -54,6 +55,8 @@ export interface LoweringContext {
   localClassStaticMethods?: Record<string, Set<string>>;
   localClassStaticEventHandlers?: Record<string, Set<string>>;
   localClassStaticParameters?: Record<string, Record<string, string>>;
+  // The first IMPORTING parameter of each local class's constructor.
+  localClassConstructorParameters?: Record<string, string>;
   localClassRenames?: Record<string, string>;
   controlObjectTypes?: Record<string, string>;
   safeFieldSymbols?: string[];
@@ -68,6 +71,9 @@ export interface LoweringContext {
   contextMenu?: boolean;
   screenStates?: ScreenStates;
   screenStateSymbol?: string;
+  // The field symbol names taken in the generated method, shared by modules
+  // that are lowered into one, so each LOOP AT SCREEN declares its own.
+  screenStateNames?: Set<string>;
   freeChainControlKeys?: Set<string>;
 }
 
@@ -868,28 +874,29 @@ function catchesControlFlow(ast: StatementAst): boolean {
 // statement sets no screen flag.
 const SCREEN_FLAGS = new Set(["VISIBLE", "INTENSIFIED", "INPUT", "OUTPUT", "PASSWORD", "NO_DISPLAY", "OBLIGATORY", "REQUIRED"]);
 
-function screenFlagAssignment(converted: string): string | undefined {
+// symbol is the field symbol of the LOOP AT SCREEN the statement is in.
+function screenFlagAssignment(converted: string, symbol: string): string | undefined {
   const ast = statementAst(converted);
   const target = ast?.is(Statements.Move) ? ast.findDirect(Expressions.Target) : undefined;
   const source = ast?.findDirect(Expressions.Source);
-  const [symbol, dash, component] = target?.getChildren() ?? [];
-  if (!ast || !source || ast.source(symbol ?? target!).toLowerCase() !== "<ls_state>" || ast.source(dash ?? symbol).trim() !== "-"
-      || !SCREEN_FLAGS.has(ast.source(component ?? symbol).toUpperCase())) return undefined;
+  const [field, dash, component] = target?.getChildren() ?? [];
+  if (!ast || !source || ast.source(field ?? target!).toLowerCase() !== symbol.toLowerCase() || ast.source(dash ?? field).trim() !== "-"
+      || !SCREEN_FLAGS.has(ast.source(component ?? field).toUpperCase())) return undefined;
   const flag = ast.source(component);
   const value = ast.source(source);
   const one = /^['"]?[12]['"]?$/;
   const zero = /^['"]?0['"]?$/;
-  if (flag.toUpperCase() === "REQUIRED" && /^'?2'?$/.test(value)) return "<ls_state>-required = abap_false.\n<ls_state>-recommended = abap_true.";
+  if (flag.toUpperCase() === "REQUIRED" && /^'?2'?$/.test(value)) return `${symbol}-required = abap_false.\n${symbol}-recommended = abap_true.`;
   let assignment: string | undefined;
   const body = source.findDirectExpression(Expressions.CondBody);
   if (body && ast.skeleton(body) === "WHEN _ THEN _ ELSE _" && ast.source(source).toUpperCase().startsWith("COND #(")) {
     const [, condition, , then, , otherwise] = body.getChildren().map((child) => ast.source(child));
-    if (one.test(then) && zero.test(otherwise)) assignment = `<ls_state>-${flag} = xsdbool( ${condition} ).`;
-    else if (zero.test(then) && one.test(otherwise)) assignment = `<ls_state>-${flag} = xsdbool( NOT ( ${condition} ) ).`;
-  } else if (one.test(value)) assignment = `<ls_state>-${flag} = abap_true.`;
-  else if (zero.test(value)) assignment = `<ls_state>-${flag} = abap_false.`;
+    if (one.test(then) && zero.test(otherwise)) assignment = `${symbol}-${flag} = xsdbool( ${condition} ).`;
+    else if (zero.test(then) && one.test(otherwise)) assignment = `${symbol}-${flag} = xsdbool( NOT ( ${condition} ) ).`;
+  } else if (one.test(value)) assignment = `${symbol}-${flag} = abap_true.`;
+  else if (zero.test(value)) assignment = `${symbol}-${flag} = abap_false.`;
   const written = assignment ?? converted;
-  return flag.toUpperCase() === "REQUIRED" ? `${written}\n<ls_state>-recommended = abap_false.` : assignment;
+  return flag.toUpperCase() === "REQUIRED" ? `${written}\n${symbol}-recommended = abap_false.` : assignment;
 }
 
 function generatedLocalName(prefix: string, statement: Statement): string {
@@ -1277,7 +1284,8 @@ function bridgeLocalStaticCalls(statement: Statement, context: LoweringContext):
 
 // A local class becomes a helper class whose constructor takes the owner and
 // the session, so NEW lcl( ... ) passes them like CREATE OBJECT does. A single
-// unnamed constructor argument would need the parameter name and is left as is.
+// unnamed argument gets the name of the constructor's first IMPORTING
+// parameter, as it is no longer the only one.
 function bridgeLocalConstructors(statement: Statement, context: LoweringContext): Statement {
   const localClasses = new Set(Object.keys(context.localClassRenames ?? {}).map((name) => name.toUpperCase()));
   const ast = localClasses.size ? statementAst(statement.text) : undefined;
@@ -1285,26 +1293,31 @@ function bridgeLocalConstructors(statement: Statement, context: LoweringContext)
   const owner = context.localClassOwner ?? "me";
   const session = context.sessionVariable ?? "io_session";
   const edits: { start: number; end: number; text: string }[] = [];
-  // The arguments of NEW type( ... ): none, or named ones.
-  const bridgeable = (node: Nodes.ExpressionNode) => {
+  // The arguments of NEW type( ... ) of the class: none, named ones, or one
+  // unnamed for the constructor's parameter.
+  const bridgeable = (node: Nodes.ExpressionNode, className: string) => {
     const [, type, open, content] = node.getChildren();
     const unnamed = content instanceof Nodes.ExpressionNode && !(content.get() instanceof Expressions.ParameterListS);
-    return type && open?.getFirstToken().getStr() === "(" && !unnamed ? { type, next: content } : undefined;
+    const parameter = context.localClassConstructorParameters?.[className];
+    if (!type || open?.getFirstToken().getStr() !== "(" || (unnamed && !parameter)) return undefined;
+    return { type, next: content, bridge: `io_owner = ${owner} io_session = ${session} ${unnamed ? `${parameter!.toLowerCase()} = ` : ""}` };
   };
   for (const node of ast.findEvery(Expressions.NewObject)) {
-    const parts = bridgeable(node);
-    if (!parts || !localClasses.has(ast.source(parts.type).toUpperCase())) continue;
-    edits.push({ start: ast.start(node), end: ast.start(parts.next), text: `NEW ${ast.source(parts.type)}( io_owner = ${owner} io_session = ${session} ` });
+    const type = ast.source(node.getChildren()[1]).toUpperCase();
+    const parts = localClasses.has(type) ? bridgeable(node, type) : undefined;
+    if (!parts) continue;
+    edits.push({ start: ast.start(node), end: ast.start(parts.next), text: `NEW ${ast.source(parts.type)}( ${parts.bridge}` });
   }
   // variable = NEW #( ... ) for a variable typed with a local class.
   const target = ast.is(Statements.Move) ? ast.findDirect(Expressions.Target) : undefined;
   const created = ast.findDirect(Expressions.Source)?.getChildren();
   const inferred = created?.length === 1 && created[0].get() instanceof Expressions.MethodCallChain
     ? (created[0] as Nodes.ExpressionNode).findDirectExpression(Expressions.NewObject) : undefined;
-  const parts = inferred && (created![0] as Nodes.ExpressionNode).getChildren().length === 1 ? bridgeable(inferred) : undefined;
-  if (target && parts && ast.source(parts.type) === "#" && /^[A-Z][A-Z0-9_]*$/i.test(ast.source(target))
-      && context.controlObjectTypes?.[ast.source(target).toUpperCase()]?.startsWith("LOCAL:")) {
-    edits.push({ start: ast.start(parts.next), end: ast.start(parts.next), text: `io_owner = ${owner} io_session = ${session} ` });
+  const targetType = target && /^[A-Z][A-Z0-9_]*$/i.test(ast.source(target)) ? context.controlObjectTypes?.[ast.source(target).toUpperCase()] : undefined;
+  const parts = inferred && (created![0] as Nodes.ExpressionNode).getChildren().length === 1 && targetType?.startsWith("LOCAL:")
+    ? bridgeable(inferred, targetType.slice("LOCAL:".length)) : undefined;
+  if (parts && ast.source(parts.type) === "#") {
+    edits.push({ start: ast.start(parts.next), end: ast.start(parts.next), text: parts.bridge });
   }
   const text = spliceText(statement.text, edits);
   return text === statement.text ? statement : { ...statement, text };
@@ -1813,6 +1826,9 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
   }
   if (["Export", "Import", "FreeMemory"].includes(statement.kind)) return memoryCallLines(statement, context).join("\n");
   if (statement.kind === "Include") return "* INCLUDE expanded by converter.";
+  // The statements a macro call expands to follow it.
+  if (statement.kind === "MacroCall") return `* Macro expanded by converter: ${raw.replace(/\s+/g, " ")}`;
+  if (MACRO_DEFINITION_KINDS.has(statement.kind)) return "";
   if (statement.kind === "TypePools") return "";
   if (statement.kind === "Controls") return "* CONTROLS declaration represented by dynpro metadata.";
   if (statement.kind === "LoopAtScreen") {
@@ -1842,7 +1858,7 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
       return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n${assignment}\nENDIF.` : assignment;
     }
     if (tabField(target, ["PROG", "DYNNR"])) return "* Selection tab state is maintained by the host screen.";
-    const flagged = screenFlagAssignment(converted);
+    const flagged = screenFlagAssignment(converted, context.screenStateSymbol ?? "<ls_state>");
     if (flagged !== undefined) return flagged;
     const name = target !== undefined && /^[A-Z][A-Z0-9_]*$/i.test(target) ? target.toUpperCase() : undefined;
     if (name && context.dynamicCommentNames?.includes(name) && context.event !== "local_class" && converted.endsWith(".")) {
@@ -2097,7 +2113,8 @@ export function lowerStatements(statements: Statement[], context: LoweringContex
   let pendingHidden: string[] = [];
   let lastWriteIndex = -1;
   const screenLoops: { kind: "screen" | "other"; symbol?: string; replacement?: Replacement; guarded?: boolean }[] = [];
-  const usedScreenNames = new Set<string>();
+  const usedScreenNames = context.screenStateNames ?? new Set<string>();
+  for (const name of inlineFieldSymbols(statements)) usedScreenNames.add(name);
   const freeChains = new Map<string, Statement[]>();
   for (const statement of statements) {
     const key = freeChainKey(statement);
@@ -2114,8 +2131,10 @@ export function lowerStatements(statements: Statement[], context: LoweringContex
   const bound = Array.isArray(context.safeFieldSymbols)
     ? new Set([...context.safeFieldSymbols, ...inlineFieldSymbols(statements)])
     : undefined;
+  // A field symbol the FORM declares itself is not the global one kept.
+  const local = declaredFieldSymbols(statements);
   const kept = Object.keys(context.fieldSymbolReferences ?? {})
-    .filter((name) => statements.some((statement) => referencedFieldSymbols(statement.text).includes(name)));
+    .filter((name) => !local.includes(name) && statements.some((statement) => referencedFieldSymbols(statement.text).includes(name)));
   for (let index = 0; index < statements.length; index++) {
     let statement = statements[index];
     // HIDE stores its fields for the line written last. Before any WRITE of

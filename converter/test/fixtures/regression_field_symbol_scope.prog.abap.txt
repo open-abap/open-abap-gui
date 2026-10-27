@@ -1,0 +1,54 @@
+REPORT zcv_fs_scope.
+
+TYPES: BEGIN OF ty_upload,
+         id TYPE i,
+       END OF ty_upload.
+
+DATA gt_upload TYPE STANDARD TABLE OF ty_upload WITH DEFAULT KEY.
+DATA gt_ids TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+DATA gv_answer TYPE c LENGTH 1.
+
+FIELD-SYMBOLS <ls_upload> TYPE ty_upload.
+
+* Bound here, used in show: the class keeps the binding.
+FORM pick.
+  READ TABLE gt_upload INDEX 1 ASSIGNING <ls_upload>.
+ENDFORM.
+
+FORM show.
+  IF <ls_upload> IS ASSIGNED.
+    WRITE / <ls_upload>-id.
+  ENDIF.
+ENDFORM.
+
+* The FORM's own <ls_upload> hides the global one.
+FORM copy_data.
+  FIELD-SYMBOLS <ls_upload> LIKE LINE OF gt_upload.
+  LOOP AT gt_ids ASSIGNING FIELD-SYMBOL(<lv_id>).
+    APPEND INITIAL LINE TO gt_upload ASSIGNING <ls_upload>.
+    <ls_upload>-id = <lv_id>.
+  ENDLOOP.
+ENDFORM.
+
+* The rest of the FORM after the popup runs in the resume method.
+FORM confirm_copy.
+  FIELD-SYMBOLS <ls_row> LIKE LINE OF gt_upload.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'Copy?'
+    IMPORTING
+      answer        = gv_answer.
+  IF gv_answer = '1'.
+    READ TABLE gt_upload INDEX 1 ASSIGNING <ls_row>.
+    IF sy-subrc = 0.
+      <ls_row>-id = <ls_row>-id + 1.
+    ENDIF.
+  ENDIF.
+ENDFORM.
+
+START-OF-SELECTION.
+  APPEND 1 TO gt_ids.
+  PERFORM copy_data.
+  PERFORM pick.
+  PERFORM show.
+  PERFORM confirm_copy.

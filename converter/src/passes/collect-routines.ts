@@ -34,36 +34,21 @@ export function isGenericParameterType(type: string | undefined): boolean {
   return /^(?:any|data|simple|clike|csequence|xsequence|numeric|decfloat|c|n|x|p)$|\btable$/i.test(String(type ?? "").trim());
 }
 
-// The FORM parameters of a section, each with the node its typing ends with.
-// abaplint reads `p TYPE TABLE OF x` as `p TYPE TABLE` and two untyped
-// parameters, OF and x; those three are one parameter.
-function sectionParameters(ast: StatementAst, section: Nodes.ExpressionNode): { node: Nodes.ExpressionNode; end: Nodes.ExpressionNode; lineType?: Nodes.ExpressionNode }[] {
-  const nodes = section.findDirectExpressions(Expressions.FormParam);
-  const result: { node: Nodes.ExpressionNode; end: Nodes.ExpressionNode; lineType?: Nodes.ExpressionNode }[] = [];
-  const untyped = (node: Nodes.ExpressionNode | undefined) => node?.getChildren().length === 1 ? node : undefined;
-  for (let index = 0; index < nodes.length; index++) {
-    const node = nodes[index];
+// The FORM parameters of a section. A method parameter cannot be typed
+// STANDARD TABLE OF x, so such a parameter carries its line type.
+function sectionParameters(ast: StatementAst, section: Nodes.ExpressionNode): { node: Nodes.ExpressionNode; lineType?: Nodes.ExpressionNode }[] {
+  return section.findDirectExpressions(Expressions.FormParam).map((node) => {
     const type = node.findDirectExpression(Expressions.FormParamType);
-    const of = untyped(nodes[index + 1]);
-    const line = untyped(nodes[index + 2]);
-    if (type && ast.skeleton(type) === "TYPE _" && ast.source(type.getChildren()[1]).toUpperCase() === "TABLE"
-        && of && ast.source(of).toUpperCase() === "OF" && line) {
-      result.push({ node, end: line, lineType: line });
-      index += 2;
-      continue;
-    }
-    // A method parameter cannot be typed STANDARD TABLE OF x either.
     const tableOf = type && ast.skeleton(type) === "TYPE STANDARD TABLE OF _" ? type.getChildren().at(-1) as Nodes.ExpressionNode : undefined;
-    result.push({ node, end: node, ...(tableOf ? { lineType: tableOf } : {}) });
-  }
-  return result;
+    return { node, ...(tableOf ? { lineType: tableOf } : {}) };
+  });
 }
 
-function formParameter(ast: StatementAst, section: RoutineParameter["section"], { node, end, lineType }: ReturnType<typeof sectionParameters>[number]): RoutineParameter {
+function formParameter(ast: StatementAst, section: RoutineParameter["section"], { node, lineType }: ReturnType<typeof sectionParameters>[number]): RoutineParameter {
   const byValue = node.findDirectExpression(Expressions.PassByValue);
   const name = (byValue ?? node).findDirectExpression(Expressions.FormParamName)!;
   // Everything after the name: TYPE i, LIKE x, STRUCTURE s, TYPE REF TO c.
-  const typing = ast.text.slice(ast.end(byValue ?? name), ast.end(end)).trim();
+  const typing = ast.text.slice(ast.end(byValue ?? name), ast.end(node)).trim();
   // The table type of TABLE OF x gets a name of its own in collectRoutines.
   const structure = ast.has("STRUCTURE", node) ? ast.after("STRUCTURE", node) : undefined;
   return {
@@ -87,7 +72,8 @@ function parseParameters(header: string): RoutineParameter[] {
   });
 }
 
-function uniqueName(base: string, used: Set<string>): string {
+// base, or within the 30 characters of an ABAP name a variant of it not used yet.
+export function uniqueName(base: string, used: Set<string>): string {
   let name = base.slice(0, 30);
   for (let suffix = 2; used.has(name); suffix++) {
     const marker = `_${suffix}`;

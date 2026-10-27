@@ -1,0 +1,28 @@
+PROGRAM zcv_long_names.
+
+* Module data and FORM locals live across a suspension become members named
+* mv_ggconv_<name>, which must stay within 30 characters and unique.
+MODULE build INPUT.
+  DATA lt_fieldcatalog_shiptype TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+  DATA lt_fieldcatalog_shiptypf TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+  DATA lt_fieldcatalog_ship TYPE c LENGTH 4.
+  APPEND `A` TO lt_fieldcatalog_shiptype.
+  APPEND 1 TO lt_fieldcatalog_shiptypf.
+  lt_fieldcatalog_ship = 'SHIP'.
+ENDMODULE.
+
+FORM ask.
+  DATA lv_answer_from_the_long_popup TYPE c LENGTH 1.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'Go?'
+    IMPORTING
+      answer        = lv_answer_from_the_long_popup.
+  IF lv_answer_from_the_long_popup = '1'.
+    MESSAGE 'yes' TYPE 'S'.
+  ENDIF.
+ENDFORM.
+
+MODULE ask INPUT.
+  PERFORM ask.
+ENDMODULE.

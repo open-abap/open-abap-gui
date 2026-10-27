@@ -50,7 +50,8 @@ function typeSource(variable: TypedIdentifier, text: string, name: string): stri
   const type = variable.getType();
   if (type instanceof BasicTypes.VoidType) return constructorType(text, name);
   if (type instanceof BasicTypes.UnknownType || type instanceof BasicTypes.AnyType || type instanceof BasicTypes.GenericObjectReferenceType) return undefined;
-  const qualified = type.getQualifiedName?.();
+  // abaplint qualifies TYPE REF TO lcl by the class alone; toABAP keeps REF TO.
+  const qualified = type instanceof BasicTypes.ObjectReferenceType ? undefined : type.getQualifiedName?.();
   if (qualified && /^[A-Z_/][A-Z0-9_/=>-]*$/i.test(qualified)) return qualified.toLowerCase();
   const abap = type.toABAP?.();
   if (!abap || /todo/i.test(abap)) return undefined;
