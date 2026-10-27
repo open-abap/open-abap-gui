@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertProgram } from "../../src/api.mjs";
-import { parseSource, readConfig } from "../../src/parser.mjs";
+import { convertProgram } from "../../build/src/api.js";
+import { parseSource, readConfig } from "../../build/src/parser.js";
 import { repositoryRoot } from "../repository.mjs";
 
 test("the initial 58 report fixtures are classified deterministically", async () => {

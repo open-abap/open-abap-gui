@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { convertProgram } from "../../src/api.mjs";
+import { convertProgram } from "../../build/src/api.js";
 
 const methodBody = (source, name) => source.match(new RegExp(`METHOD ${name.replace(/~/g, "~")}\\.[\\s\\S]*?ENDMETHOD\\.`))?.[0] ?? "";
 const resumeBranch = (resume, id) => resume.match(new RegExp(`WHEN '${id}'\\.([\\s\\S]*?)(?=\\n\\s*WHEN '|\\n\\s*WHEN OTHERS\\.)`))?.[1] ?? "";

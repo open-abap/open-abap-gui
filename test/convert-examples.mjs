@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
-import { convertConfiguredPrograms } from "../converter/src/batch.mjs";
-import { discoverPrograms, loadTranspileConfig } from "../converter/src/config.mjs";
+import { convertConfiguredPrograms } from "../converter/build/src/batch.js";
+import { discoverPrograms, loadTranspileConfig } from "../converter/build/src/config.js";
 
 // npm start shows every example in the workbench. An example program with no
 // hand-written zcl_gg_ex_NNN counterpart is converted into build/, and a copy

@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { emitClassXml } from "../src/emit/class-xml.mjs";
+import { emitClassXml } from "../build/src/emit/class-xml.js";
 import { repositoryRoot } from "./repository.mjs";
 
 const repository = repositoryRoot;
@@ -9,7 +9,7 @@ const examples = path.join(repository, "examples");
 const RENAMED_CLASS = "ZCL_CV_RENAMED_1";
 
 export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
-  const {convertProgram} = await import("../src/api.mjs");
+  const {convertProgram} = await import("../build/src/api.js");
   const names = (await fs.readdir(examples))
     .filter((name) => name.endsWith(".prog.abap"))
     .sort();

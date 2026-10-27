@@ -1,38 +1,51 @@
 {
   "name": "@abaplint/open-abap-gui-converter",
-  "version": "0.1.48",
+  "version": "0.2.1",
   "description": "Deterministic, offline conversion of classic ABAP executable reports to the versioned scaffold interfaces.",
   "type": "module",
-  "main": "src/index.mjs",
-  "author": "abaplint",
-  "funding": "https://github.com/sponsors/larshp",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": {
+      "types": "./build/src/index.d.ts",
+      "default": "./build/src/index.js"
+    }
   },
   "bin": {
-    "open-abap-gui-convert": "bin/convert.mjs"
+    "open-abap-gui-convert": "build/bin/convert.js"
   },
+  "files": [
+    "build/src/",
+    "build/bin/"
+  ],
+  "author": "abaplint",
+  "funding": "https://github.com/sponsors/larshp",
   "scripts": {
+    "build": "tsc",
     "publish:dryrun": "npm run test && npm publish --dry-run --access public",
     "publish:patch": "npm --no-git-tag-version version patch && npm install && npm run test && npm publish --access public",
-    "test:unit": "node --test test/unit/*.test.mjs test/integration/*.test.mjs",
-    "test": "node test/verify.mjs",
-    "fixtures": "node test/run-fixtures.mjs",
-    "structural": "node test/structural-snapshots.mjs",
-    "examples": "node test/examples.mjs",
-    "examples:update": "node test/examples.mjs --update",
-    "warnings": "node test/warnings.mjs",
-    "hardening": "node test/hardening.mjs",
-    "coverage": "node test/coverage.mjs",
-    "transpile": "node test/transpile-generated.mjs",
-    "behavior": "node test/behavioral-generated.mjs",
-    "test:gg-gui": "node test/gg-gui.mjs"
+    "test:unit": "npm run build && node --test test/unit/*.test.mjs test/integration/*.test.mjs",
+    "test": "npm run build && node test/verify.mjs",
+    "fixtures": "npm run build && node test/run-fixtures.mjs",
+    "structural": "npm run build && node test/structural-snapshots.mjs",
+    "examples": "npm run build && node test/examples.mjs",
+    "examples:update": "npm run build && node test/examples.mjs --update",
+    "warnings": "npm run build && node test/warnings.mjs",
+    "hardening": "npm run build && node test/hardening.mjs",
+    "coverage": "npm run build && node test/coverage.mjs",
+    "transpile": "npm run build && node test/transpile-generated.mjs",
+    "behavior": "npm run build && node test/behavioral-generated.mjs",
+    "test:gg-gui": "npm run build && node test/gg-gui.mjs"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "dependencies": {
     "@abaplint/core": "^2.120.87"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
   },
   "license": ""
 }

@@ -88,14 +88,6 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
     DATA lt_ggconv_s_carr LIKE mv_s_carr.
     mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
     s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
-* once, after the multiple selection.
-    lt_ggconv_s_carr = mv_s_carr.
-    lt_ggconv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
-    IF lt_ggconv_s_carr <> mv_s_carr.
-      ct_values[ name = 'S_CARR' ]-ranges = CORRESPONDING #( mv_s_carr ).
-    ENDIF.
-    mv_s_carr = CORRESPONDING #( ct_values[ name = 'S_CARR' ]-ranges ).
-    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
     IF lines( mv_s_carr ) > 5.
       io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_error text = 'at most five entries' field = iv_name ) ).
     ENDIF.
@@ -142,6 +134,11 @@ CLASS zcl_gg_ex_032 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_list( )->set_title( 'Check a select-option at the end' ).
+    mv_s_carr = CORRESPONDING #( it_values[ name = 'S_CARR' ]-ranges ).
+    s_carr_header = VALUE #( mv_s_carr[ 1 ] OPTIONAL ).
+* AT SELECTION-SCREEN ON END OF checks all entries of the select-option at
+* once, after the multiple selection.
     io_session->get_list( )->set_title( 'Check a select-option at the end' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     mv_s_carr = CORRESPONDING #( it_values[ name = 'S_CARR' ]-ranges ).

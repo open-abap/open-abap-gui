@@ -6,9 +6,9 @@ import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { discoverPrograms, loadTranspileConfig } from "../../src/config.mjs";
-import { convertConfiguredPrograms } from "../../src/batch.mjs";
-import { loadLibraries } from "../../src/libs.mjs";
+import { discoverPrograms, loadTranspileConfig } from "../../build/src/config.js";
+import { convertConfiguredPrograms } from "../../build/src/batch.js";
+import { loadLibraries } from "../../build/src/libs.js";
 
 const MAIN = "REPORT zmain.\nINCLUDE zlib_inc.\nSTART-OF-SELECTION.\nWRITE 'hello'.\n";
 const LIB_FILES = {

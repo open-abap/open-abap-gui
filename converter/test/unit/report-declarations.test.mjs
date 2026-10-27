@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertProgram } from "../../src/api.mjs";
+import { convertProgram } from "../../build/src/api.js";
 import { repositoryRoot } from "../repository.mjs";
 
 // GGCONV-REG-024 to 035 in fixtures/REGRESSIONS.md: classic report

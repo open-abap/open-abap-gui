@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { convertProgram } from "../../src/api.mjs";
+import { convertProgram } from "../../build/src/api.js";
 
 const builderCall = (source, name) => source.match(new RegExp(`io_builder->add_\\w+\\( VALUE #\\( name = '${name}'[^\\n]*`))?.[0] ?? "";
 

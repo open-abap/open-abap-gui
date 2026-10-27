@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { convertProgram } from "../src/api.mjs";
+import { convertProgram } from "../build/src/api.js";
 
 const variants = [
   `REPORT z_fuzz.\nDATA gv_count TYPE i.\nSTART-OF-SELECTION.\n  WRITE: / 'a', gv_count.\n`,

@@ -3,9 +3,9 @@ import test from "node:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { convertProgram, generatedValidationDiagnostic } from "../../src/api.mjs";
-import { replaceIdentifiers } from "../../src/passes/replace-identifiers.mjs";
-import { withoutHeaderLines } from "../../src/passes/header-lines.mjs";
+import { convertProgram, generatedValidationDiagnostic } from "../../build/src/api.js";
+import { replaceIdentifiers } from "../../build/src/passes/replace-identifiers.js";
+import { withoutHeaderLines } from "../../build/src/passes/header-lines.js";
 import { repositoryRoot } from "../repository.mjs";
 
 // The three most frequent error families of a conversion run: GGCONV-E202

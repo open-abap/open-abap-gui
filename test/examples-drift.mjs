@@ -1,5 +1,5 @@
 // Every example class is the converter's output of its program. This converts
-// each examples/zgg_ex_NNN program as `converter/bin/convert.mjs --program
+// each examples/zgg_ex_NNN program as `converter/build/bin/convert.js --program
 // zgg_ex_NNN --class ZCL_GG_EX_NNN --tcode ZGG_EX_NNN --output ...` does and
 // fails when the committed class, its helper classes or its text pool differ.
 //
@@ -8,10 +8,10 @@
 //   node test/examples-drift.mjs 058 112    only these examples
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertConfiguredPrograms } from "../converter/src/batch.mjs";
-import { discoverPrograms, loadTranspileConfig } from "../converter/src/config.mjs";
-import { emitClassXml } from "../converter/src/emit/class-xml.mjs";
-import { loadLibraries } from "../converter/src/libs.mjs";
+import { convertConfiguredPrograms } from "../converter/build/src/batch.js";
+import { discoverPrograms, loadTranspileConfig } from "../converter/build/src/config.js";
+import { emitClassXml } from "../converter/build/src/emit/class-xml.js";
+import { loadLibraries } from "../converter/build/src/libs.js";
 
 const update = process.argv.includes("--update");
 const only = process.argv.slice(2).filter((item) => /^\d{3}$/.test(item));

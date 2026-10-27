@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertProgram } from "../../src/api.mjs";
-import { isMethodSafeLoop } from "../../src/passes/lower-statements.mjs";
+import { convertProgram } from "../../build/src/api.js";
+import { isMethodSafeLoop } from "../../build/src/passes/lower-statements.js";
 import { repositoryRoot } from "../repository.mjs";
 
 // GGCONV-REG-023: global field symbols typed generically (TYPE data, any,

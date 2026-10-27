@@ -15,7 +15,7 @@ const comparableFields = [
 ];
 
 export async function prepareBehaviorFixtures({inputFolder}) {
-  const {convertProgram} = await import("../src/api.mjs");
+  const {convertProgram} = await import("../build/src/api.js");
   const stateResult = await convertProgram({
     source: [
       "REPORT zstate_lifecycle.",
