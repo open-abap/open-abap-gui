@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {convertProgram} from "../../src/api.mjs";
-import {applyStyleFixes} from "../../src/emit/style-fixes.mjs";
+import {convertProgram} from "../../build/src/api.js";
+import {applyStyleFixes} from "../../build/src/emit/style-fixes.js";
 
 test("module DATA is stored in the program instance", async () => {
   const result = await convertProgram({source: `PROGRAM zfoo.

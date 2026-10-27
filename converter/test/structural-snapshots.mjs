@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { convertProgram } from "../src/api.mjs";
+import { convertProgram } from "../build/src/api.js";
 import { repositoryRoot } from "./repository.mjs";
 
 const examples = path.join(repositoryRoot, "examples");
@@ -36,12 +36,12 @@ const expected = {
   "024": "b98d28d286dd5ae60ed596d7d1c7fd889f4296a206b8eb9abfbbbb1fb0b72514",
   "025": "2926257309014783aa5efa33aa02dcc3091013a5a965e589848fdaefb3658ea6",
   "026": "9125f979362c2d071bc0bfe7e04260dc653706503fda29e70674be74df815c66",
-  "027": "631e95670f446184ba208d2e894d5fdeaad64e1f76f68a6a45ed003e42abe360",
+  "027": "6d76dbaf3ba47c500472f50c960c9dbe1ac220336ebdc95f9f7dbb84c8077102",
   "028": "160b1a6a54dac3bacd0ec28fbe6835a1be10c30101498a85acddc15e2207275f",
   "029": "8dcb24f3ec9b03e1f7aa9de0d17d53e085e4e64910e6fc9fd25904f49e60865c",
   "030": "41629d6b0ca29c0dce406f4e84dc4bc85cdde4248664798cb7079bc8093fe22f",
   "031": "f841b7fe7b78d8f8adac4b558bfc7cbc58f63c49f5e50c42d19ecfde0730a408",
-  "032": "dc285ff71e5fa7d8371ad618801dcae27e3c1afdd84190fa2546baeb4747bbea",
+  "032": "e4d85c59bffbb4e2cd833761626f17c63570ee6627decdff94681d847aec084e",
   "033": "62a8cbff460ab15b4372a5bc4ce512abc109527599a11bd0c3ba417b817ff4c5",
   "034": "43eec9a9eee02f9e7635cf3c011f97ef4c13aff91cdebd8ed1b4f87b5247cf17",
   "035": "061285493542f72ae5f58f486cef3bb309a7a79d81ddd861a19e6d270ca14c73",

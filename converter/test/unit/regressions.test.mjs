@@ -3,7 +3,7 @@ import test from "node:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { convertProgram, undeclaredFieldSymbols } from "../../src/api.mjs";
+import { convertProgram, undeclaredFieldSymbols } from "../../build/src/api.js";
 import { repositoryRoot } from "../repository.mjs";
 
 const fixture = (name) => fs.readFile(path.join(repositoryRoot, "converter", "test", "fixtures", name), "utf8");

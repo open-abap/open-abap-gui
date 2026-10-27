@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertProgram } from "../../src/api.mjs";
-import { defaultClassName } from "../../src/options.mjs";
-import { loadDynproMetadata } from "../../src/dynpro-metadata.mjs";
-import { COMPATIBILITY_FUNCTION_MODULES } from "../../src/function-modules.mjs";
-import { dynamicWriteOperand } from "../../src/passes/lower-statements.mjs";
-import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../src/capability.mjs";
+import { convertProgram } from "../../build/src/api.js";
+import { defaultClassName } from "../../build/src/options.js";
+import { loadDynproMetadata } from "../../build/src/dynpro-metadata.js";
+import { COMPATIBILITY_FUNCTION_MODULES } from "../../build/src/function-modules.js";
+import { dynamicWriteOperand } from "../../build/src/passes/lower-statements.js";
+import { ACTIONABLE_DIAGNOSTIC_CODES } from "../../build/src/capability.js";
 import { repositoryRoot } from "../repository.mjs";
-import { textLiteral } from "../../src/emit/abap-text.mjs";
-import { emitClassXml } from "../../src/emit/class-xml.mjs";
+import { textLiteral } from "../../build/src/emit/abap-text.js";
+import { emitClassXml } from "../../build/src/emit/class-xml.js";
 
 // Generated source breaks calls and definitions over several lines; a check
 // of the statement text reads it on one line.

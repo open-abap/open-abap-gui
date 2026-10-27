@@ -62,10 +62,6 @@ CLASS zcl_gg_ex_151_h1 IMPLEMENTATION.
             io_session = go_session ).
   ENDMETHOD.
 
-  METHOD add.
-    APPEND iv_html TO io_owner->gt_html.
-  ENDMETHOD.
-
   METHOD render.
     DATA lv_carrid TYPE c LENGTH 3.
     DATA lv_connid TYPE n LENGTH 4.
@@ -124,5 +120,9 @@ CLASS zcl_gg_ex_151_h1 IMPLEMENTATION.
       CHANGING
         data_table   = io_owner->gt_html ).
     io_owner->go_viewer->show_url( url = io_owner->gv_url ).
+  ENDMETHOD.
+
+  METHOD add.
+    APPEND iv_html TO io_owner->gt_html.
   ENDMETHOD.
 ENDCLASS.

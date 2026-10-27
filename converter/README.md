@@ -2,10 +2,12 @@
 
 The converter is a deterministic, offline source-to-source tool for migrating
 classic executable reports to the versioned scaffold interfaces in `framework/`.
-The library API is the primary entry point:
+It is written in TypeScript; `npm run build` compiles `src/` and `bin/` into
+`build/`, which is what the package exports and the tests run. The library API
+is the primary entry point:
 
 ```js
-import { convertProgram } from "./src/api.mjs";
+import { convertProgram } from "./build/src/api.js";
 
 const result = await convertProgram({
   source: "REPORT zdemo.\nSTART-OF-SELECTION.\nWRITE 'hello'.\n",
@@ -34,9 +36,9 @@ hands-on migration work.
 The CLI is driven by the same `abap_transpile.json` the transpiler reads:
 
 ```text
-node converter/bin/convert.mjs
-node converter/bin/convert.mjs --config abap_transpile.json --check --diagnostics json
-node converter/bin/convert.mjs --program ZGG_EX_001 --class ZCL_REPORT --output out/report.clas.abap
+node converter/build/bin/convert.js
+node converter/build/bin/convert.js --config abap_transpile.json --check --diagnostics json
+node converter/build/bin/convert.js --program ZGG_EX_001 --class ZCL_REPORT --output out/report.clas.abap
 ```
 
 It takes no positional arguments; a single report is selected with `--program`.
@@ -211,14 +213,23 @@ only those helpers friendship, so helper methods can use report state without
 promoting that state to public visibility.
 
 Classic function modules are lowered only through the explicit compatibility
-adapter registry in `src/function-modules.mjs`. Popup/dialog, classic ALV,
+adapter registry in `src/function-modules.ts`. Popup/dialog, classic ALV,
 dynamic-selection, F4, variant, list-memory, conversion, and frontend URL or
 binary families each have a named session operation. Unknown or custom
 function modules remain diagnostics, and the manifest records the exact
 adapter names used by a conversion.
 
+The converter reads ABAP through abaplint: the source is split into
+statements by abaplint's parser, and each pass recognizes a statement, and the
+operands it rewrites, from the statement's syntax tree (`src/abap/ast.ts`,
+`src/abap/statements.ts`) rather than from its text. Keywords, names and
+literals are told apart there, so a keyword inside a literal or a comment, or
+a name that is a component, is never mistaken for what it spells. A rewrite
+replaces the exact span a node covers and leaves the rest of the statement as
+written.
+
 Lowering is a fixed set of rules for the statements that need rewriting
-(`LOWERING_RULES` in `src/passes/lower-statements.mjs`). Every other statement
+(`LOWERING_RULES` in `src/passes/lower-statements.ts`). Every other statement
 is carried over as written, with the usual renames, and produces no diagnostic.
 Every carried-over statement also gets the same value rewrites: system fields
 the session holds (`sy-lsind`, `sy-repid`, …), the `SCREEN` work area inside
@@ -310,6 +321,7 @@ Development commands:
 
 ```text
 cd converter
+npm run build
 npm run test:unit
 npm run fixtures
 npm run structural
@@ -322,7 +334,7 @@ npm run test:gg-gui
 npm test
 ```
 
-Full verification runs fixtures, structural snapshots, example snapshots,
+Every command builds first. Full verification runs fixtures, structural snapshots, example snapshots,
 warnings, hardening, and coverage sequentially in one Node process. Unit tests
 keep the Node test runner's process isolation. Generated-class and behavioral
 validation share one lint/transpile build, then run their runtime probes in

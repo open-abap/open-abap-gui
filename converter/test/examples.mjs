@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { convertConfiguredPrograms } from "../src/batch.mjs";
+import { convertConfiguredPrograms } from "../build/src/batch.js";
 import { converterRoot, isMain } from "./repository.mjs";
 
 // Each folder under test/examples is one conversion case: input/ holds the

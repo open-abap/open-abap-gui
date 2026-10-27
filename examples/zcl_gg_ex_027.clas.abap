@@ -11,7 +11,6 @@ CLASS zcl_gg_ex_027 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     INTERFACES zif_gg_transaction_v1.
 
   PRIVATE SECTION.
-    DATA text TYPE string.
     DATA mv_p_b TYPE c LENGTH 1.
 
 ENDCLASS.

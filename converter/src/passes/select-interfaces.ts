@@ -1,0 +1,26 @@
+import type { ReportIR, Routine } from "../types.js";
+
+export function hasProgramMetadata(ir: ReportIR): boolean {
+  return !ir.transactionCode && ir.programKind === "report" && Boolean(ir.programName);
+}
+
+export function selectInterfaces(ir: ReportIR): string[] {
+  const interfaces = new Set(ir.interfaces);
+  if (ir.features.includes("list-processing")) interfaces.add("zif_gg_list_processing_v1");
+  if (ir.features.includes("continuation")) interfaces.add("zif_gg_resumable_v1");
+  if (ir.screenMetadata?.screens?.length && ir.programKind === "report") interfaces.add("zif_gg_screen_provider_v1");
+  if ((ir.routines ?? []).some((routine: Routine) => /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? "")))) interfaces.add("zif_gg_context_menu_v1");
+  if (ir.programKind === "module-pool") {
+    interfaces.delete("zif_gg_report_v1");
+    interfaces.delete("zif_gg_screen_provider_v1");
+    interfaces.add("zif_gg_dynpro_v1");
+  }
+  // GGCONV-W105: a class without a transaction code must not register an
+  // empty one with the transaction registry.
+  if (!ir.transactionCode) interfaces.delete("zif_gg_transaction_v1");
+  // A report no transaction starts declares its program instead, so the
+  // workbench lists it and SUBMIT finds it.
+  if (hasProgramMetadata(ir)) interfaces.add("zif_gg_program_v1");
+  ir.interfaces = [...interfaces].sort();
+  return ir.interfaces;
+}

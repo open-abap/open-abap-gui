@@ -6,9 +6,9 @@ import {spawn} from "node:child_process";
 import {once} from "node:events";
 import {createServer} from "node:net";
 import {chromium} from "playwright";
-import {convertConfiguredPrograms} from "../src/batch.mjs";
-import {discoverPrograms, loadTranspileConfig} from "../src/config.mjs";
-import {loadDynproMetadata} from "../src/dynpro-metadata.mjs";
+import {convertConfiguredPrograms} from "../build/src/batch.js";
+import {discoverPrograms, loadTranspileConfig} from "../build/src/config.js";
+import {loadDynproMetadata} from "../build/src/dynpro-metadata.js";
 import {repositoryRoot, repositoryTool} from "./repository.mjs";
 
 const repositoryUrl = "https://github.com/larshp/gg-gui";

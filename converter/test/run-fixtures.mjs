@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { convertProgram } from "../src/api.mjs";
+import { convertProgram } from "../build/src/api.js";
 import { repositoryRoot } from "./repository.mjs";
 
 const directory = path.join(repositoryRoot, "examples");

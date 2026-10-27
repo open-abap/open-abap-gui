@@ -4,8 +4,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { conversionPlan, discoverPrograms, discoverTransactions, loadTranspileConfig } from "../../src/config.mjs";
-import { convertConfiguredPrograms } from "../../src/batch.mjs";
+import { conversionPlan, discoverPrograms, discoverTransactions, loadTranspileConfig } from "../../build/src/config.js";
+import { convertConfiguredPrograms } from "../../build/src/batch.js";
 import { converterRoot } from "../repository.mjs";
 
 const REPORT = (name) => `REPORT ${name}.\nSTART-OF-SELECTION.\nWRITE 'hello'.\n`;
@@ -432,7 +432,7 @@ test("batch conversion names a helper class around those of programs converted e
 
 function runCli(args, cwd = converterRoot) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [path.join(converterRoot, "bin", "convert.mjs"), ...args], { cwd });
+    const child = spawn(process.execPath, [path.join(converterRoot, "build", "bin", "convert.js"), ...args], { cwd });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => { stdout += chunk; });
