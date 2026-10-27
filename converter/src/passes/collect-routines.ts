@@ -72,7 +72,8 @@ function parseParameters(header: string): RoutineParameter[] {
   });
 }
 
-function uniqueName(base: string, used: Set<string>): string {
+// base, or within the 30 characters of an ABAP name a variant of it not used yet.
+export function uniqueName(base: string, used: Set<string>): string {
   let name = base.slice(0, 30);
   for (let suffix = 2; used.has(name); suffix++) {
     const marker = `_${suffix}`;

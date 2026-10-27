@@ -6,13 +6,13 @@ import { hasProgramMetadata } from "../passes/select-interfaces.js";
 import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.js";
 import { isPopupStatement, isSuspendingStatement } from "../passes/lower-continuations.js";
 import { screenOkCode } from "../dynpro-metadata.js";
-import { methodParameterType } from "../passes/collect-routines.js";
+import { methodParameterType, uniqueName } from "../passes/collect-routines.js";
 import { DEFAULT_SELECTION_SCREEN, selectionOptions } from "../passes/collect-selection-screens.js";
 import type { SelectionOptions } from "../passes/collect-selection-screens.js";
 import { eventQualifier } from "../passes/classify-program.js";
 import { Expressions, Tokens } from "@abaplint/core";
 import { isKeyword, leadingWords, lexedAst, statementAst } from "../abap/ast.js";
-import { controlsDeclaration, declarationBody, declaredDataNames, declaredName, fieldSymbolsIn, mentions, methodDefinition } from "../abap/statements.js";
+import { controlsDeclaration, declarationBody, declaredDataNames, declaredFieldSymbols, declaredName, fieldSymbolsIn, inlineFieldSymbolsIn, mentions, methodDefinition, refToName } from "../abap/statements.js";
 import { replaceIdentifiers } from "../passes/replace-identifiers.js";
 import { hasHeaderLine, headerLineDeclarations, headerLinesIn, withoutHeaderLines } from "../passes/header-lines.js";
 import { likeHeads, likeTyping, scopedMember } from "../passes/like-typing.js";
@@ -122,6 +122,28 @@ function globalMemberNames(ir: ReportIR): Record<string, string> {
   return result;
 }
 
+// The report's constants, static members of the program class; a structure's
+// components are not, CONSTANTS: BEGIN OF s, c ..., END OF s. declares s.
+function globalConstantNames(ir: ReportIR): Record<string, string> {
+  const routineStatements = new Set((ir.routines ?? []).flatMap((routine) => routine.statements ?? []));
+  const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
+  const result: Record<string, string> = {};
+  let depth = 0;
+  for (const declaration of ir.declarations ?? []) {
+    if (declaration.kind === "constantend") depth = Math.max(0, depth - 1);
+    const outer = depth === 0;
+    if (declaration.kind === "constantbegin") depth++;
+    if (!outer || routineStatements.has(declaration.statement) || dynproModuleStatements.has(declaration.statement)
+      || declaration.statement?.scope === "local" || declaration.statement?.localClassName) continue;
+    const names = declaration.kind === "constantbegin" ? [beginName(declaration)]
+      : declaration.kind === "constant" ? declaration.names ?? [] : [];
+    for (const name of names) {
+      if (name) result[name.toUpperCase()] = ir.statePlan?.renames?.[name.toUpperCase()] ?? name.toLowerCase();
+    }
+  }
+  return result;
+}
+
 function continuationLocalNames(ir: ReportIR): Set<string> {
   const routineStatements = new Set((ir.routines ?? []).flatMap((routine) => routine.statements ?? []));
   const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
@@ -167,8 +189,21 @@ function continuationLocalNames(ir: ReportIR): Set<string> {
   );
 }
 
+// The members holding locals across a suspension. A name too long for the
+// prefix is shortened; the names that fit are taken first, so the shortened
+// ones cannot take theirs.
 function continuationRenames(ir: ReportIR): Record<string, string> {
-  return Object.fromEntries([...continuationLocalNames(ir)].sort().map((name) => [name, `mv_ggconv_${name.toLowerCase()}`]));
+  const names = [...continuationLocalNames(ir)].sort();
+  const used = new Set(Object.values(globalMemberNames(ir)).map((member) => member.toLowerCase()));
+  const renames: Record<string, string> = {};
+  for (const name of names) {
+    const member = `mv_ggconv_${name.toLowerCase()}`;
+    if (member.length > 30) continue;
+    renames[name] = member;
+    used.add(member);
+  }
+  for (const name of names) renames[name] ??= uniqueName(`mv_ggconv_${name.toLowerCase()}`, used);
+  return renames;
 }
 
 function prepareLocalClassNames(ir: ReportIR, options: ClassOptions = {}): Record<string, string> {
@@ -931,6 +966,11 @@ function methodContext(ir: ReportIR, event: string, {parameters = [], statements
         .filter((definition) => definition?.isStatic && !definition.isEventHandler && definition.importing.length)
         .map((definition) => [definition!.name.toUpperCase(), definition!.importing[0].toUpperCase()])),
     ])),
+    localClassConstructorParameters: Object.fromEntries((ir.localClasses ?? []).flatMap((localClass) => {
+      const constructor = (localClass.definition ?? []).map((statement) => methodDefinition(statement.text))
+        .find((definition) => !definition?.isStatic && definition?.name.toUpperCase() === "CONSTRUCTOR");
+      return constructor?.importing.length ? [[String(localClass.name ?? "").toUpperCase(), constructor.importing[0].toUpperCase()]] : [];
+    })),
     localClassRenames: Object.fromEntries(Object.entries(ir.localClassRenames ?? {})
       .map(([name, value]) => [String(name).toUpperCase(), String(value).toLowerCase()])),
     controlObjectTypes: controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
@@ -963,7 +1003,10 @@ function methodContext(ir: ReportIR, event: string, {parameters = [], statements
 // binding back from its data reference first, see fieldSymbolReferences.
 function globalFieldSymbolDeclarations(ir: ReportIR, statements: Statement[] | undefined, context: LoweringContext): string[] {
   const source = statements ?? [];
-  const uses = (name: string) => source.some((statement) => fieldSymbolsIn(statement.text).includes(name.toUpperCase()));
+  // A FORM declaring a field symbol of the same name never sees the global.
+  const local = declaredFieldSymbols(source);
+  const uses = (name: string) => !local.includes(name.toUpperCase())
+    && source.some((statement) => fieldSymbolsIn(statement.text).includes(name.toUpperCase()));
   const declarations = (ir.declarations ?? [])
     .filter((declaration) => declaration.kind === "field-symbol"
       && declaration.statement?.scope !== "local"
@@ -1380,11 +1423,21 @@ function resumeMethod(ir: ReportIR): GeneratedMethod {
       ?? ir.modules?.find((item) => item.statements?.includes(statement));
     const ownerIsModule = ir.modules?.includes(owner as never) === true;
     const ownerStatements = owner?.statements ?? [];
-    const tail = truncateTerminalPaths(resumeTail(ownerStatements, ownerStatements.indexOf(statement)));
+    let tail = truncateTerminalPaths(resumeTail(ownerStatements, ownerStatements.indexOf(statement)));
     if (isPopupStatement(statement)) tail.unshift(statement);
+    // The FORM's own field symbols are declared again here. A binding made
+    // before the suspension is gone, so only those the tail binds itself are
+    // usable; uses of the others are omitted as unbound.
+    const ownSymbols = declaredFieldSymbols(ownerStatements).filter((name) => tail.some((item) => fieldSymbolsIn(item.text).includes(name)));
+    const rebound = ownSymbols.filter((name) => tail.some((item) => bindsStatically(item.text, name)));
+    tail = [
+      ...ownerStatements.filter((item) => item.kind === "FieldSymbol" && rebound.includes(fieldSymbolsIn(item.text)[0])),
+      ...tail,
+    ];
     let lowered: string[];
     {
       const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
+      context.safeFieldSymbols = context.safeFieldSymbols?.filter((name) => !ownSymbols.includes(name) || rebound.includes(name));
       context.screenStates = ownerIsModule ? storedScreenStates("dynpro")
         : ir.routines?.includes(owner as Routine) ? routineScreenStates(ir, owner as Routine)
         : storedScreenStates(screenStatePlan(ir).defaultKind);
@@ -1785,6 +1838,12 @@ function keptOnUnwind(dispatchLines: string[], flushLines: string[]): string[] {
 // depend on where it stands: the DATA of the modules that share a method, or
 // of a statement lowered into several. A structure declared with BEGIN OF
 // keeps the body as it is.
+// The modules of a direction share one generated method, so the field symbols
+// they declare inline are taken there before a LOOP AT SCREEN names its own.
+function moduleFieldSymbolNames(modules: { statements: Statement[] }[]): Set<string> {
+  return new Set(modules.flatMap((module) => module.statements.flatMap((statement) => inlineFieldSymbolsIn(statement.text))));
+}
+
 function hoistDeclarations(body: string[]): string[] {
   const lines = body.flatMap((line) => String(line).split("\n"));
   if (lines.some((line) => /^\s*(?:DATA|TYPES|CONSTANTS)\b.*\b(?:BEGIN|END)\s+OF\b/i.test(line))) return body;
@@ -2147,10 +2206,12 @@ function dynproMethods(ir: ReportIR, metadata: Metadata | undefined = ir.dynproM
     // RETURN here would skip writing the values back.
     if (!modules.length) return [];
     const lines = ["CASE is_context-module."];
+    const screenStateNames = moduleFieldSymbolNames(modules);
     for (const module of modules) {
       const context: LoweringContext = {
         ...methodContext(ir, "dynpro"),
         ucomm: "is_context-ucomm",
+        screenStateNames,
         ...(direction === "OUTPUT" ? {} : { screenStates: storedScreenStates("dynpro", { row: "is_context-row" }) }),
       };
       const body = [
@@ -2228,10 +2289,12 @@ function dynproMethods(ir: ReportIR, metadata: Metadata | undefined = ir.dynproM
       ...tableContext,
       "CASE is_context-module.",
     );
+    const screenStateNames = moduleFieldSymbolNames(modules);
     for (const module of modules) {
       const context: LoweringContext = {
         ...methodContext(ir, "dynpro"),
         ucomm: "is_context-ucomm",
+        screenStateNames,
         screenStates: storedScreenStates("dynpro", { row: "is_context-row" }),
       };
       const body = [
@@ -2332,6 +2395,21 @@ function staticEventHandlerNames(localClass: LocalClass): Set<string> {
     .map((definition) => definition!.name.toUpperCase()));
 }
 
+// The method's parameters typed REF TO a local class, RETURNING VALUE(ro_obj)
+// TYPE REF TO lcl say: NEW #( ) and CREATE OBJECT pass those the owner too.
+function localClassParameterTypes(definition: string | undefined, localClasses: LocalClass[]): Record<string, string> {
+  const ast = statementAst(String(definition ?? "").trim());
+  const names = new Set(localClasses.map((item) => String(item.name ?? "").toUpperCase()));
+  const result: Record<string, string> = {};
+  for (const parameter of [...ast?.findAll(Expressions.MethodParam) ?? [], ...ast?.findAll(Expressions.MethodDefReturning) ?? []]) {
+    const name = parameter.findFirstExpression(Expressions.MethodParamName);
+    const typing = parameter.findDirectExpression(Expressions.TypeParam);
+    const type = typing ? refToName(ast!, typing) : undefined;
+    if (name && type && names.has(type)) result[ast!.source(name).toUpperCase()] = `LOCAL:${type}`;
+  }
+  return result;
+}
+
 function helperMethodContext(ir: ReportIR, localClass: LocalClass, localMethod: LocalClassMethod | undefined): LoweringContext {
   const isStaticMethod = (localClass.definition ?? []).some((statement) => {
     const definition = methodDefinition(statement.text);
@@ -2366,8 +2444,12 @@ function helperMethodContext(ir: ReportIR, localClass: LocalClass, localMethod: 
     .flatMap((declaration) => (declaration.names ?? [])
       .filter((name) => localTypeUses.has(name.toUpperCase()))
       .map((name): Replacement => [name, `${ir.targetClassName!.toLowerCase()}=>${name.toLowerCase()}`]));
+  // Constants are static: the helper, a friend, names them by the class.
+  const ownerConstantReplacements = Object.entries(globalConstantNames(ir))
+    .map(([name, member]): Replacement => [name, `${ir.targetClassName!.toLowerCase()}=>${member}`]);
   context.replacements = [
     ...Object.entries(ownerReplacements),
+    ...ownerConstantReplacements,
     ...ownerTypeReplacements,
     ...Object.entries(ir.statePlan?.renames ?? {}),
     ...(ir.selections ?? []).flatMap((screen) => (screen.elements ?? [])
@@ -2382,9 +2464,12 @@ function helperMethodContext(ir: ReportIR, localClass: LocalClass, localMethod: 
       })),
     ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]): Replacement => [name, String(value).toLowerCase()]),
   ];
-  context.controlObjectTypes = controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
-    statements: localMethod?.statements ?? [],
-  });
+  context.controlObjectTypes = {
+    ...controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
+      statements: localMethod?.statements ?? [],
+    }),
+    ...localClassParameterTypes(localMethod?.definition?.text, ir.localClasses ?? []),
+  };
   context.isStaticMethod = isStaticMethod;
   return context;
 }
@@ -2501,9 +2586,28 @@ function alignImporting(definition: string): string {
   return lines.join("\n");
 }
 
+// The report's types a definition of the local class names, which live in the
+// owner class: TYPE ty_row becomes TYPE zcl_owner=>ty_row. Types the local
+// class declares itself are its own.
+function ownerTypeQualifications(ir: ReportIR, localClass: LocalClass, text: string): string {
+  const ast = statementAst(text.trim());
+  if (!ast) return text;
+  const own = new Set((ir.declarations ?? [])
+    .filter((declaration) => declaration.statement?.localClassName?.toUpperCase() === String(localClass.name ?? "").toUpperCase())
+    .flatMap((declaration) => declaration.names ?? []).map((name) => name.toUpperCase()));
+  const used = new Set(ast.findEvery(Expressions.TypeName).map((name) => ast.source(name).split(/-|=>/)[0].toUpperCase()));
+  const owner = ir.targetClassName!.toLowerCase();
+  const replacements = (ir.declarations ?? [])
+    .filter((declaration) => ["type", "typebegin"].includes(declaration.kind) && isReportGlobal(ir, declaration))
+    .flatMap((declaration) => declaration.names ?? [])
+    .filter((name) => used.has(name.toUpperCase()) && !own.has(name.toUpperCase()))
+    .map((name): Replacement => [name, `${owner}=>${name.toLowerCase()}`]);
+  return replacements.length ? replaceIdentifiers(text, replacements) : text;
+}
+
 function helperSource(ir: ReportIR, options: ClassOptions, localClass: LocalClass): string {
   const generatedName = localClass.generatedName!;
-  const rename = (text: string) => renameIdentifiers(text, allRenames(ir));
+  const rename = (text: string) => ownerTypeQualifications(ir, localClass, renameIdentifiers(text, allRenames(ir)));
   // One parameter per line with aligned types, as the lint rules ask.
   const ownerSessionParameters = `io_owner   TYPE REF TO ${ir.targetClassName!.toLowerCase()}\n        io_session TYPE REF TO zif_gg_session_v1`;
   const originalConstructor = (localClass.methods ?? []).find((localMethod) => localMethod.name?.toUpperCase() === "CONSTRUCTOR");

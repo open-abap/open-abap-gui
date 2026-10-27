@@ -1,0 +1,41 @@
+PROGRAM zcv_screen_modules.
+
+DATA gt_rows TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+
+* The modules of a direction are lowered into one method; each LOOP AT SCREEN
+* still gets a field symbol of its own, none that a module declares itself.
+MODULE set_first OUTPUT.
+  LOOP AT SCREEN.
+    IF screen-group1 = 'G1'.
+      screen-input = 0.
+    ENDIF.
+    MODIFY SCREEN.
+  ENDLOOP.
+ENDMODULE.
+
+MODULE set_second OUTPUT.
+  LOOP AT SCREEN.
+    screen-intensified = 1.
+    MODIFY SCREEN.
+  ENDLOOP.
+ENDMODULE.
+
+MODULE fill_rows OUTPUT.
+  LOOP AT gt_rows ASSIGNING FIELD-SYMBOL(<ls_state>).
+    <ls_state> = 1.
+  ENDLOOP.
+ENDMODULE.
+
+MODULE check_first INPUT.
+  LOOP AT SCREEN.
+    screen-input = 1.
+    MODIFY SCREEN.
+  ENDLOOP.
+ENDMODULE.
+
+MODULE check_second INPUT.
+  LOOP AT SCREEN INTO DATA(ls_screen).
+    ls_screen-required = 1.
+    MODIFY SCREEN FROM ls_screen.
+  ENDLOOP.
+ENDMODULE.

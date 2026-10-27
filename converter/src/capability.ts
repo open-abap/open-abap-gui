@@ -5,7 +5,7 @@ import { LOWERING_RULES, classicWriteFormatSupported, dynamicWriteOperand, isMet
 import { isAmbiguousScreenRoutine } from "./passes/screen-states.js";
 import { Expressions } from "@abaplint/core";
 import { leadingWords, statementAst } from "./abap/ast.js";
-import { fieldSymbolsIn, performedForm } from "./abap/statements.js";
+import { bindsStatically, declaredFieldSymbols, fieldSymbolsIn, performedForm } from "./abap/statements.js";
 import type { Diagnostic, ReportIR, Statement } from "./types.js";
 import { LOOP_BLOCKS } from "./passes/blocks.js";
 import { isSuspendingStatement } from "./passes/lower-continuations.js";
@@ -76,6 +76,19 @@ export function scanCapabilities(ir: ReportIR, statements: Statement[], { mode =
   }
   for (const duplicate of ir.duplicateEvents ?? []) {
     addStatementDiagnostic(diagnostics, duplicate.statement, `duplicate singleton event ${duplicate.event} is ambiguous after conversion`, "Merge the event blocks into one ordered handler or provide an explicit event mapping.", "GGCONV-E203");
+  }
+  // The rest of a FORM after a suspension runs in the resume method, where the
+  // FORM's own field symbols are declared again, unbound.
+  for (const routine of ir.routines ?? []) {
+    const own = declaredFieldSymbols(routine.statements);
+    if (!own.length) continue;
+    routine.statements.forEach((statement, index) => {
+      if (!isSuspendingStatement(statement)) return;
+      const after = routine.statements.slice(index + 1);
+      const lost = own.filter((name) => after.some((item) => fieldSymbolsIn(item.text).includes(name))
+        && !after.some((item) => bindsStatically(item.text, name)));
+      if (lost.length) addStatementDiagnostic(diagnostics, statement, `the binding of ${lost.map((name) => `<${name.toLowerCase()}>`).join(" ")} in FORM ${routine.name} does not survive this suspension; the statements after it that use ${lost.length > 1 ? "them" : "it"} are omitted`, "Bind the field symbol again after the suspension, or keep the row in a variable.", ACTIONABLE_DIAGNOSTIC_CODES.dynamicType);
+    });
   }
   for (const routine of ir.routines ?? []) {
     if (!isAmbiguousScreenRoutine(ir, routine)) continue;

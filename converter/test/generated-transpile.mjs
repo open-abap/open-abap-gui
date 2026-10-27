@@ -213,6 +213,33 @@ export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
     await fs.writeFile(path.join(helperFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
   }
 
+  // Generated code a consuming application's syntax check rejected, see
+  // GGCONV-REG-036 to GGCONV-REG-040; parser validation accepted all of it.
+  const screen = (flow) => ({ initialScreen: "0100", screens: [{ number: "0100" }], flowLogic: [{ screen: "0100", ...flow }] });
+  const scopeFixtures = [
+    { file: "regression_macro_components.prog.abap.txt", className: "ZCL_CV_MACRO", transactionCode: "ZCVMACRO" },
+    { file: "regression_helper_owner.prog.abap.txt", className: "ZCL_CV_HELPER", transactionCode: "ZCVHELPER" },
+    { file: "regression_field_symbol_scope.prog.abap.txt", className: "ZCL_CV_FS_SCOPE", transactionCode: "ZCVFSSCOPE" },
+    { file: "regression_merged_screen_modules.prog.abap.txt", className: "ZCL_CV_SCREEN_MODULES", transactionCode: "ZCVSCRMOD",
+      dynproMetadata: screen({ pbo: [{ name: "SET_FIRST" }, { name: "SET_SECOND" }, { name: "FILL_ROWS" }], pai: [{ name: "CHECK_FIRST" }, { name: "CHECK_SECOND" }] }) },
+    { file: "regression_long_promoted_names.prog.abap.txt", className: "ZCL_CV_LONG_NAMES", transactionCode: "ZCVLONG",
+      dynproMetadata: screen({ pai: [{ name: "BUILD" }, { name: "ASK" }] }) },
+  ];
+  for (const { file, className, transactionCode, dynproMetadata } of scopeFixtures) {
+    const result = await convertProgram({
+      source: await fs.readFile(path.join(repository, "converter", "test", "fixtures", file), "utf8"),
+      filename: file.replace(/\.txt$/, ""),
+      className,
+      transactionCode,
+      dynproMetadata,
+    });
+    if (!result.classSource || !result.supported) throw new Error(`${file} was not converted`);
+    await fs.writeFile(path.join(inputFolder, `${className}.clas.abap`), result.classSource, "utf8");
+    for (const helper of result.helperSources ?? []) {
+      await fs.writeFile(path.join(helperFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
+    }
+  }
+
 }
 
 // SUBMIT resolves a program to its class by name first; a renamed class is only

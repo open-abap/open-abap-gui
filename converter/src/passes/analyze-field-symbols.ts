@@ -1,6 +1,6 @@
 import { Expressions } from "@abaplint/core";
 import { statementAst } from "../abap/ast.js";
-import { assignTarget, assigningTarget, bindsStatically, fieldSymbolsIn } from "../abap/statements.js";
+import { assignTarget, assigningTarget, bindsStatically, declaredFieldSymbols, fieldSymbolsIn } from "../abap/statements.js";
 import { rebindingCall } from "./lower-statements.js";
 import type { FieldSymbolReference, ReportIR, Statement } from "../types.js";
 
@@ -36,11 +36,20 @@ function bindsFirst(statements: Statement[], name: string): boolean {
   return Boolean(first && bindsStatically(first.text, name));
 }
 
+// A FORM or method declaring a field symbol of its own name never sees the
+// global one; an event block has no local declarations to hide it.
+function hides(statements: Statement[], name: string): boolean {
+  return declaredFieldSymbols(statements).includes(name);
+}
+
 function globalOwners(ir: ReportIR, name: string): Statement[][] {
-  const owners = [
-    ...(ir.eventBlocks ?? []).map((block) => block.statements ?? []),
+  const procedures = [
     ...(ir.routines ?? []).map((routine) => routine.statements ?? []),
     ...(ir.localClasses ?? []).flatMap((item) => (item.methods ?? []).map((method) => method.statements ?? [])),
+  ];
+  const owners = [
+    ...(ir.eventBlocks ?? []).map((block) => block.statements ?? []),
+    ...procedures.filter((statements) => !hides(statements, name)),
   ];
   return owners.filter((statements) => references(statements, name));
 }
@@ -108,11 +117,12 @@ function rebinds(statement: Statement, name: string): boolean {
 // The FORMs whose call may bind or unassign the field symbol, themselves or
 // through a FORM they perform, and whether a local-class method may.
 function rebinders(ir: ReportIR, name: string): Omit<FieldSymbolReference, "member"> {
+  const rebindsGlobal = (statements: Statement[]) => !hides(statements, name) && statements.some((statement) => rebinds(statement, name));
   const routines = new Set((ir.routines ?? [])
-    .filter((routine) => (routine.statements ?? []).some((statement) => rebinds(statement, name)))
+    .filter((routine) => rebindsGlobal(routine.statements ?? []))
     .map((routine) => routine.name.toUpperCase()));
   const methods = (ir.localClasses ?? []).flatMap((item) => item.methods ?? []);
-  let reference = { routines: [...routines], methods: methods.some((method) => (method.statements ?? []).some((statement) => rebinds(statement, name))) };
+  let reference = { routines: [...routines], methods: methods.some((method) => rebindsGlobal(method.statements ?? [])) };
   for (let grown = true; grown;) {
     grown = false;
     for (const routine of ir.routines ?? []) {

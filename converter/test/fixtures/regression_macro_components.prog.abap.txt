@@ -1,0 +1,14 @@
+REPORT zcv_macro.
+
+DEFINE delete_flights.
+  DELETE FROM zsflight WHERE carrid = &1.
+  IF sy-dbcnt > 0.
+    WRITE sy-dbcnt.
+  ENDIF.
+END-OF-DEFINITION.
+
+START-OF-SELECTION.
+* Each call expands to sy-dbcnt, a component access; the definition itself is
+* no code of the generated class.
+  delete_flights 'AA'.
+  delete_flights 'LH'.
