@@ -254,18 +254,39 @@ function moduleEntry(name, extras = {}) {
 // Each statement keeps the line it starts on.
 function flowStatements(source) {
   const statements = [];
-  let current;
-  for (const [index, line] of source.split(/\r?\n/).entries()) {
-    if (/^\*/.test(line)) continue;
-    const text = line.replace(/".*$/, "").trim();
-    if (text === "") continue;
-    current = current ? { line: current.line, text: `${current.text} ${text}` } : { line: index + 1, text };
-    if (text.endsWith(".")) {
-      statements.push(current);
-      current = undefined;
+  let buffer = "";
+  let quote = false;
+  let start = 1;
+  let prefix;
+  let prefixLine;
+  let firstChainMember;
+  const emit = (terminated = true) => {
+    const text = buffer.trim();
+    if (text) {
+      statements.push({ text: `${prefix ? `${prefix} ` : ""}${text}${terminated ? "." : ""}`, line: prefix && firstChainMember ? prefixLine : start });
+      firstChainMember = false;
     }
+    buffer = "";
+  };
+  for (const [index, line] of String(source ?? "").split(/\r?\n/).entries()) {
+    if (/^\s*\*/.test(line)) continue;
+    for (let at = 0; at < line.length; at++) {
+      const char = line[at];
+      if (!quote && char === '"') break;
+      if (!buffer.trim() && !/\s/.test(char)) start = index + 1;
+      if (char === "'") {
+        if (quote && line[at + 1] === "'") { buffer += "''"; at++; continue; }
+        quote = !quote;
+      }
+      if (!quote && char === ":") { prefix = buffer.trim(); prefixLine = start; firstChainMember = true; buffer = ""; continue; }
+      if (!quote && (char === "." || (char === "," && prefix))) {
+        emit();
+        if (char === ".") prefix = undefined;
+      } else buffer += char;
+    }
+    buffer += " ";
   }
-  if (current) statements.push(current);
+  emit(false);
   return statements;
 }
 
@@ -281,6 +302,7 @@ function parseFlowLogic(source, filename, number) {
     steps: [],
   };
   let phase;
+  let requestField;
   let chainDepth = 0;
   for (const { line: lineNumber, text: raw } of flowStatements(flow.source)) {
     const process = /^PROCESS\s+(?:BEFORE\s+OUTPUT|AFTER\s+INPUT|ON\s+VALUE-REQUEST|ON\s+HELP-REQUEST)\s*\.?$/i.exec(raw);
@@ -289,6 +311,7 @@ function parseFlowLogic(source, filename, number) {
       phase = processName === "BEFORE OUTPUT" ? "pbo"
         : processName === "AFTER INPUT" ? "pai"
           : processName === "ON VALUE-REQUEST" ? "pov" : "poh";
+      requestField = undefined;
       flow.steps.push({ kind: "process", phase, line: lineNumber, source: raw });
       continue;
     }
@@ -336,6 +359,10 @@ function parseFlowLogic(source, filename, number) {
     const fieldsOnly = /^FIELD\s*:?\s+([^.]+?)\s*\.?$/i.exec(raw);
     if (fieldsOnly && phase && !/\bMODULE\b/i.test(raw)) {
       for (const name of fieldsOnly[1].split(/[\s,]+/).filter(Boolean)) {
+        if (phase === "pov" || phase === "poh") {
+          requestField = name.toUpperCase();
+          flow[phase].field ??= requestField;
+        }
         flow.steps.push({ kind: "field", phase, field: name.toUpperCase(), chainDepth, line: lineNumber, source: raw });
       }
       continue;
@@ -346,11 +373,14 @@ function parseFlowLogic(source, filename, number) {
         field: field[1].toUpperCase(),
         chainDepth,
         onInput: /\bON\s+INPUT\b/i.test(field[3]),
+        onChainInput: /\bON\s+CHAIN-INPUT\b/i.test(field[3]),
+        onChainRequest: /\bON\s+CHAIN-REQUEST\b/i.test(field[3]),
         onRequest: /\bON\s+(?:CHAIN-)?REQUEST\b/i.test(field[3]),
         line: lineNumber,
         source: raw,
       });
       if (phase === "pov" || phase === "poh") {
+        requestField = entry.field;
         flow[phase].field ??= entry.field;
         flow[phase].modules.push(entry);
       } else {
@@ -362,14 +392,18 @@ function parseFlowLogic(source, filename, number) {
     const module = /^MODULE\s+([^\s.]+)(.*)$/i.exec(raw);
     if (module && phase) {
       const entry = moduleEntry(module[1], {
+        ...((phase === "pov" || phase === "poh") && requestField ? {field: requestField} : {}),
         atExitCommand: /\bAT\s+EXIT-COMMAND\b/i.test(module[2]),
         onInput: /\bON\s+INPUT\b/i.test(module[2]),
+        onChainInput: /\bON\s+CHAIN-INPUT\b/i.test(module[2]),
+        onChainRequest: /\bON\s+CHAIN-REQUEST\b/i.test(module[2]),
         onRequest: /\bON\s+(?:CHAIN-)?REQUEST\b/i.test(module[2]),
         chainDepth,
         line: lineNumber,
         source: raw,
       });
-      flow[phase].push(entry);
+      if (phase === "pov" || phase === "poh") flow[phase].modules.push(entry);
+      else flow[phase].push(entry);
       flow.steps.push({ kind: "module", phase, ...entry });
       continue;
     }
