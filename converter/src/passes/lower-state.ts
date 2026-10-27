@@ -1,10 +1,16 @@
 import type { Declaration, ReportIR, SelectionState, StatePlan } from "../types.js";
 
-export function buildStatePlan(ir: ReportIR): StatePlan {
-  const isGlobal = (item: Declaration) => item.statement?.scope !== "local"
+// A report global: not declared in a routine, a local class or a dialog module,
+// whose declarations the converter keeps with the module. Indentation does not
+// matter; DATA anywhere else belongs to the program.
+export function isReportGlobal(ir: ReportIR, item: Declaration): boolean {
+  return item.statement?.scope !== "local"
     && !item.statement?.localClassName
-    && (item.statement?.span?.start?.column ?? 1) <= 1;
-  const globals = ir.declarations.filter((item) => isGlobal(item) && ["data", "static", "tables", "ranges"].includes(item.kind)).flatMap((item) => item.names ?? []);
+    && !(ir.modules ?? []).some((module) => module.statements.includes(item.statement!));
+}
+
+export function buildStatePlan(ir: ReportIR): StatePlan {
+  const globals = ir.declarations.filter((item) => isReportGlobal(ir, item) && ["data", "static", "tables", "ranges"].includes(item.kind)).flatMap((item) => item.names ?? []);
   const selections: string[] = ir.selections
     .flatMap((screen) => screen.elements)
     .filter((item) => ["parameter", "select-option"].includes(item.kind) && item.name)
