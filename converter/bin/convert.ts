@@ -162,6 +162,14 @@ try {
 }
 config.libraryFolders = libraries.folders;
 
+// One line on stderr, rewritten per program. Only on a terminal: piped or
+// captured stderr (CI logs, tests) would get every frame as a separate line.
+const showProgress = process.stderr.isTTY === true;
+function progress(program: DiscoveredProgram, index: number, total: number) {
+  const line = `[${index + 1}/${total}] ${program.relativePath}`;
+  process.stderr.write(`\r${line.slice(0, (process.stderr.columns || 80) - 1)}\x1b[K`);
+}
+
 let summary;
 try {
   summary = await convertConfiguredPrograms({
@@ -180,8 +188,10 @@ try {
       transactionCode: options.tcode,
       description: options.description,
     },
+    onProgress: showProgress ? progress : undefined,
   });
 } finally {
+  if (showProgress) process.stderr.write("\r\x1b[K");
   libraries.cleanup();
 }
 

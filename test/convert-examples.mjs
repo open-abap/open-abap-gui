@@ -16,7 +16,15 @@ const loaded = await loadTranspileConfig(configPath);
 const examples = await fs.readdir("examples");
 const programs = (await discoverPrograms(loaded)).filter((program) =>
   !examples.includes(`${program.programName.toLowerCase().replace(/^zgg_/, "zcl_gg_")}.clas.abap`));
-const summary = await convertConfiguredPrograms({ config: loaded, programs });
+const showProgress = process.stderr.isTTY === true;
+const summary = await convertConfiguredPrograms({
+  config: loaded,
+  programs,
+  onProgress: showProgress
+    ? (program, index, total) => process.stderr.write(`\r[${index + 1}/${total}] ${program.relativePath}\x1b[K`)
+    : undefined,
+});
+if (showProgress) process.stderr.write("\r\x1b[K");
 for (const program of summary.programs) {
   console.log(`${program.supported ? "converted" : "skipped"} ${program.filename}`);
 }

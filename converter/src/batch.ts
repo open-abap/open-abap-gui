@@ -41,6 +41,8 @@ export interface BatchOptions {
   outputFolder?: string;
   outputFile?: string;
   onResult?: (converted: ConvertedProgram) => unknown;
+  // Called before each program is converted; index is zero-based.
+  onProgress?: (program: DiscoveredProgram, index: number, total: number) => unknown;
   converter?: (options: ConvertOptions) => Promise<ConversionResult>;
 }
 
@@ -129,6 +131,7 @@ export async function convertConfiguredPrograms({
   outputFolder,
   outputFile,
   onResult,
+  onProgress,
   converter = convertProgram,
 }: BatchOptions): Promise<BatchResult> {
   const discovered = programs ?? await discoverPrograms(config);
@@ -175,7 +178,8 @@ export async function convertConfiguredPrograms({
   // programs whose default name is taken do not both fall back to its _1.
   const takenClassNames = new Set(existingClassNames);
   const takenClassFiles: Record<string, string> = { ...existingClassFiles };
-  for (const program of discovered) {
+  for (const [index, program] of discovered.entries()) {
+    if (typeof onProgress === "function") await onProgress(program, index, discovered.length);
     const plan = conversionPlan(config, program, {
       ...overrides,
       transactions,
