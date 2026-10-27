@@ -41,7 +41,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@abaplint/core": "^2.120.87"
+    "@abaplint/core": "^2.120.88"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
