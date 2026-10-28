@@ -7,7 +7,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              terminal_state     TYPE abap_bool,
              messages           TYPE zcl_gg_host_session=>ty_messages,
              help_text          TYPE string,
-             help_name          TYPE zif_gg_dynpro_types_v1=>ty_name,
+             help_name          TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              help_values        TYPE zif_gg_dynpro_types_v1=>ty_values,
              status             TYPE zif_gg_session_types_v1=>ty_gui_status,
              title              TYPE string,
@@ -25,7 +25,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
              screens            TYPE zcl_gg_host_dynpro_builder=>ty_screens,
              controls           TYPE zcl_gg_host_dynpro_builder=>ty_controls,
              context_menu       TYPE REF TO cl_ctmenu,
-             context_field      TYPE zif_gg_dynpro_types_v1=>ty_name,
+             context_field      TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              flow               TYPE zcl_gg_host_dynpro_flow=>ty_steps,
              navigation         TYPE zif_gg_host_html_v1=>ty_navigation,
              submit             TYPE zif_gg_session_types_v1=>ty_submit,
@@ -58,12 +58,12 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_ucomm               TYPE zif_gg_dynpro_types_v1=>ty_ucomm DEFAULT 'BACK'
         iv_submitted           TYPE abap_bool DEFAULT abap_true
         it_values              TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
-        iv_field               TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_field               TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL
         iv_row                 TYPE i OPTIONAL
-        iv_cursor_field        TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_cursor_field        TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL
         iv_cursor_row          TYPE i OPTIONAL
-        iv_value_request       TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
-        iv_help_request        TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_value_request       TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL
+        iv_help_request        TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL
         iv_popup_action        TYPE string OPTIONAL
         it_popup_values        TYPE zif_gg_dynpro_types_v1=>ty_values OPTIONAL
         is_modal_position      TYPE zif_gg_session_types_v1=>ty_modal_position OPTIONAL
@@ -92,7 +92,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-DATA mt_static_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
 
     TYPES: BEGIN OF ty_active_subscreen,
-             area   TYPE zif_gg_dynpro_types_v1=>ty_name,
+             area   TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
            END OF ty_active_subscreen.
     TYPES ty_active_subscreens TYPE STANDARD TABLE OF ty_active_subscreen
@@ -173,12 +173,12 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_controls   TYPE zcl_gg_host_dynpro_builder=>ty_controls
       CHANGING
         co_menu       TYPE REF TO cl_ctmenu
-        cv_menu_field TYPE zif_gg_dynpro_types_v1=>ty_name.
+        cv_menu_field TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
     CLASS-METHODS restore_cursor
       IMPORTING
         io_session      TYPE REF TO zcl_gg_host_session
-        iv_cursor_field TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_cursor_field TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_cursor_row   TYPE i.
 
     CLASS-METHODS refresh_after_input
@@ -195,7 +195,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         ct_values     TYPE zif_gg_dynpro_types_v1=>ty_values
         ct_states     TYPE zif_gg_dynpro_types_v1=>ty_states
         co_menu       TYPE REF TO cl_ctmenu
-        cv_menu_field TYPE zif_gg_dynpro_types_v1=>ty_name.
+        cv_menu_field TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
     CLASS-METHODS add_page_actions
       IMPORTING
@@ -215,7 +215,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS apply_cfw_ok_code
       IMPORTING
-        iv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_field_name
       CHANGING
         ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
 
@@ -224,11 +224,11 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_screens      TYPE zcl_gg_host_dynpro_builder=>ty_screens
         iv_screen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number
       RETURNING
-        VALUE(rv_field) TYPE zif_gg_dynpro_types_v1=>ty_name.
+        VALUE(rv_field) TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
     CLASS-METHODS set_ok_code
       IMPORTING
-        iv_field  TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_field  TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_ucomm  TYPE csequence
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
@@ -308,8 +308,8 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_flow          TYPE REF TO zcl_gg_host_dynpro_flow
         io_session       TYPE REF TO zcl_gg_host_session
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
-        iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_field_name
         it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
       CHANGING
         cs_context       TYPE zif_gg_dynpro_types_v1=>ty_module_context
@@ -324,9 +324,9 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         iv_submitted     TYPE abap_bool
         iv_ucomm         TYPE zif_gg_dynpro_types_v1=>ty_ucomm
-        iv_ok_code       TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_ok_code       TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_value_request TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_help_request  TYPE zif_gg_dynpro_types_v1=>ty_field_name
         it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
         iv_next_screen   TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         iv_replay_pbo    TYPE abap_bool DEFAULT abap_true
@@ -338,7 +338,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         cv_help_text     TYPE string
         ct_help_values   TYPE zif_gg_dynpro_types_v1=>ty_values
         co_menu          TYPE REF TO cl_ctmenu
-        cv_menu_field    TYPE zif_gg_dynpro_types_v1=>ty_name.
+        cv_menu_field    TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
     CLASS-METHODS is_exit_command
       IMPORTING
@@ -373,21 +373,21 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS table_line_count
       IMPORTING
         it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
-        iv_container    TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_container    TYPE zif_gg_dynpro_types_v1=>ty_field_name
       RETURNING
         VALUE(rv_lines) TYPE i.
 
     CLASS-METHODS table_value_count
       IMPORTING
         it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
-        iv_container    TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_container    TYPE zif_gg_dynpro_types_v1=>ty_field_name
       RETURNING
         VALUE(rv_lines) TYPE i.
 
     CLASS-METHODS table_loop_bounds
       IMPORTING
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
-        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_field_name
         it_controls      TYPE zcl_gg_host_dynpro_builder=>ty_controls
         it_values        TYPE zif_gg_dynpro_types_v1=>ty_values
       EXPORTING
@@ -402,7 +402,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_session       TYPE REF TO zcl_gg_host_session
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         is_step          TYPE zcl_gg_host_dynpro_flow=>ty_step
-        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_table_start   TYPE i
         iv_table_end     TYPE i
         iv_table_lines   TYPE i
@@ -418,8 +418,8 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_screen        TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         is_step          TYPE zcl_gg_host_dynpro_flow=>ty_step
         iv_ucomm         TYPE zif_gg_dynpro_types_v1=>ty_ucomm
-        iv_ok_code       TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_ok_code       TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_table_control TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_table_start   TYPE i
         iv_table_end     TYPE i
         iv_table_lines   TYPE i
@@ -445,7 +445,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_session TYPE REF TO zcl_gg_host_session
         iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
         iv_ucomm   TYPE zif_gg_dynpro_types_v1=>ty_ucomm
-        iv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_field_name
       CHANGING
         cs_context TYPE zif_gg_dynpro_types_v1=>ty_module_context
         ct_values  TYPE zif_gg_dynpro_types_v1=>ty_values.
@@ -466,7 +466,7 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS process_frontend
       IMPORTING
-        iv_ok_code     TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_ok_code     TYPE zif_gg_dynpro_types_v1=>ty_field_name
       CHANGING
         cv_ucomm       TYPE zif_gg_dynpro_types_v1=>ty_ucomm
         cv_submitted   TYPE abap_bool
@@ -511,7 +511,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lt_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
     DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
     DATA lv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
-    DATA lv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_ok_code TYPE zif_gg_dynpro_types_v1=>ty_field_name.
     DATA lx_flow TYPE REF TO zcx_gg_control_flow.
     DATA ls_screen TYPE zif_gg_dynpro_types_v1=>ty_screen.
     DATA lv_session_id TYPE string.
@@ -526,7 +526,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA ls_state TYPE zif_gg_dynpro_types_v1=>ty_state.
     DATA lo_context_menu_provider TYPE REF TO zif_gg_context_menu_v1.
     DATA lo_context_menu TYPE REF TO cl_ctmenu.
-    DATA lv_context_menu_field TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_context_menu_field TYPE zif_gg_dynpro_types_v1=>ty_field_name.
     DATA lv_list_page TYPE abap_bool.
     DATA lv_controls_html TYPE string.
     DATA(lv_previous_status) = previous_status( it_values ).
@@ -752,7 +752,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lt_dynamic_lists = zcl_gg_host_compatibility=>get_selection_list_values( ).
     LOOP AT lt_dynamic_lists INTO DATA(ls_dynamic_list).
       READ TABLE lt_controls ASSIGNING <ls_control>
-        WITH KEY name = CONV zif_gg_dynpro_types_v1=>ty_name( ls_dynamic_list-id ).
+        WITH KEY name = CONV zif_gg_dynpro_types_v1=>ty_field_name( ls_dynamic_list-id ).
       IF sy-subrc <> 0.
         CONTINUE.
       ENDIF.
@@ -929,7 +929,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lt_steps TYPE zcl_gg_host_dynpro_flow=>ty_steps.
     DATA ls_step TYPE zcl_gg_host_dynpro_flow=>ty_step.
     DATA ls_module TYPE zcl_gg_host_dynpro_flow=>ty_module.
-    DATA lv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_table_control TYPE zif_gg_dynpro_types_v1=>ty_field_name.
     DATA lv_table_lines TYPE i.
     DATA lv_table_start TYPE i.
     DATA lv_table_end TYPE i.

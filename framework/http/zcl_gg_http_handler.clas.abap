@@ -976,8 +976,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_dynpro_value.
-    DATA lv_container TYPE zif_gg_dynpro_types_v1=>ty_name.
-    DATA lv_name      TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_container TYPE zif_gg_dynpro_types_v1=>ty_field_name.
+    DATA lv_name      TYPE zif_gg_dynpro_types_v1=>ty_field_name.
     FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
 
     lv_container = CONV #( iv_container ).

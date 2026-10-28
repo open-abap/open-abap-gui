@@ -29,28 +29,28 @@ CLASS zcl_gg_se38 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS put_value
       IMPORTING
-        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_value  TYPE string
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS value_of
       IMPORTING
         it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
-        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_field_name
       RETURNING
         VALUE(rv_value) TYPE string.
     METHODS add_flow
       IMPORTING
         io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
         iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
-        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL.
+        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL.
     METHODS load_program
       IMPORTING
         iv_program        TYPE string
       RETURNING
         VALUE(rs_program) TYPE zif_gg_system_types_v1=>ty_program.
     TYPES: BEGIN OF ty_subobject,
-             control TYPE zif_gg_dynpro_types_v1=>ty_name,
+             control TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              text    TYPE string,
              screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
            END OF ty_subobject.

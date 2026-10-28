@@ -16,7 +16,7 @@ CLASS zcl_gg_se01 DEFINITION PUBLIC FINAL CREATE PUBLIC.
              suffix         TYPE string,
              text           TYPE string,
              screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
-             request_field  TYPE zif_gg_dynpro_types_v1=>ty_name,
+             request_field  TYPE zif_gg_dynpro_types_v1=>ty_field_name,
            END OF ty_tab.
     TYPES ty_tabs TYPE STANDARD TABLE OF ty_tab WITH DEFAULT KEY.
 
@@ -43,21 +43,21 @@ CLASS zcl_gg_se01 DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_tab     TYPE ty_tab.
     METHODS put_value
       IMPORTING
-        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_value  TYPE string
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS value_of
       IMPORTING
         it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
-        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_field_name
       RETURNING
         VALUE(rv_value) TYPE string.
     METHODS add_flow
       IMPORTING
         io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
         iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
-        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL.
+        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL.
     METHODS display_request
       IMPORTING
         is_tab           TYPE ty_tab

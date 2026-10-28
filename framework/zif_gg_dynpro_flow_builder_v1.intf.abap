@@ -14,15 +14,15 @@ INTERFACE zif_gg_dynpro_flow_builder_v1 PUBLIC.
 
   METHODS begin_value_request
     IMPORTING
-      iv_field TYPE zif_gg_dynpro_types_v1=>ty_name.
+      iv_field TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
   METHODS begin_help_request
     IMPORTING
-      iv_field TYPE zif_gg_dynpro_types_v1=>ty_name.
+      iv_field TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
   METHODS add_field
     IMPORTING
-      iv_field TYPE zif_gg_dynpro_types_v1=>ty_name.
+      iv_field TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
   METHODS add_module
     IMPORTING

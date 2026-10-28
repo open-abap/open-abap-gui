@@ -1,5 +1,5 @@
 import { ABAPObject, ArtifactsRules, Config, Edits, Expressions, MemoryFile, Nodes, Registry } from "@abaplint/core";
-import type { Position, Token } from "@abaplint/core";
+import type { IEdit, Position, Token } from "@abaplint/core";
 import {textLiteral} from "./abap-text.js";
 import {parsesAsStatement} from "../abap/ast.js";
 
@@ -15,13 +15,38 @@ const DECLARATIONS = new Set([
 const RULES = ["line_break_multiple_parameters", "align_parameters", "unnecessary_chaining", "indentation"];
 const MAX_EDITS = 500;
 
+// Building every abaplint rule and the default config is costly; both are
+// reused, a rule being initialized for each registry it runs on.
+let rules: ReturnType<typeof ArtifactsRules.getRules> | undefined;
+let config: Config | undefined;
+
 function ruleInstances() {
-  return ArtifactsRules.getRules()
+  return rules ??= ArtifactsRules.getRules()
     .filter((rule) => RULES.includes(rule.getMetadata().key))
     .map((rule) => {
       rule.setConfig(rule.getConfig());
       return rule;
     });
+}
+
+// The fixes of the first rule with issues whose rows neither overlap nor touch,
+// so applying them together leaves each as it would be on its own. The others
+// are found again on the next pass.
+function nextFixes(registry: Registry): IEdit[] {
+  const object = registry.getFirstObject()!;
+  for (const rule of ruleInstances()) {
+    rule.initialize(registry);
+    const fixes = rule.run(object).map((issue) => issue.getDefaultFix()).filter((fix): fix is IEdit => Boolean(fix));
+    if (!fixes.length) continue;
+    const taken: [number, number][] = [];
+    return fixes.filter((fix) => {
+      const rows = Object.values(fix).flat().map((edit): [number, number] => [edit.range.start.getRow(), edit.range.end.getRow()]);
+      if (rows.some(([start, end]) => taken.some(([from, to]) => start <= to + 1 && from <= end + 1))) return false;
+      taken.push(...rows);
+      return true;
+    });
+  }
+  return [];
 }
 
 function breakRemainingExpressions(registry: Registry, filename: string, source: string): void {
@@ -67,6 +92,7 @@ function breakRemainingExpressions(registry: Registry, filename: string, source:
     }
     for (const token of tokens) if (token.getStr() === "&&") before(token, indent + 2);
   }
+  if (!inserts.size) return;
   for (const [position, value] of [...inserts].sort((a, b) => b[0] - a[0])) source = source.slice(0, position) + value + source.slice(position);
   registry.updateFile(new MemoryFile(filename, source));
 }
@@ -81,7 +107,7 @@ interface LiteralEdit {
 
 export function applyStyleFixes(source: string, className: string): string {
   const filename = `${className.toLowerCase()}.clas.abap`;
-  const registry = new Registry(Config.getDefault());
+  const registry = new Registry(config ??= Config.getDefault());
   registry.addFile(new MemoryFile(filename, source));
   registry.parse();
   // Template tokens contain only literal text; embedded expressions have
@@ -146,22 +172,16 @@ export function applyStyleFixes(source: string, className: string): string {
   for (const {start, literal, replacement} of edits.sort((a, b) => b.start - a.start)) {
     source = source.slice(0, start) + replacement + source.slice(start + literal.length);
   }
-  registry.updateFile(new MemoryFile(filename, source));
-  registry.parse();
+  if (edits.length) {
+    registry.updateFile(new MemoryFile(filename, source));
+    registry.parse();
+  }
   breakRemainingExpressions(registry, filename, source);
-  const rules = ruleInstances();
   for (let count = 0; count < MAX_EDITS; count++) {
     registry.parse();
-    const object = registry.getFirstObject();
-    const fix = rules
-      .flatMap((rule) => {
-        rule.initialize(registry);
-        return rule.run(object!);
-      })
-      .map((issue) => issue.getDefaultFix())
-      .find(Boolean);
-    if (!fix) break;
-    Edits.applyEditSingle(registry, fix);
+    const fixes = nextFixes(registry);
+    if (!fixes.length) break;
+    Edits.applyEditList(registry, fixes);
   }
   // The line-break fix leaves the blank before the new line behind.
   return (registry.getFileByName(filename)?.getRaw() ?? source).replace(/[ \t]+$/gm, "");
