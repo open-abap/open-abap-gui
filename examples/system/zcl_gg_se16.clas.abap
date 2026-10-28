@@ -18,20 +18,20 @@ CLASS zcl_gg_se16 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS put_value
       IMPORTING
-        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_value  TYPE string
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS value_of
       IMPORTING
         it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
-        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_field_name
       RETURNING
         VALUE(rv_value) TYPE string.
     METHODS put_cell
       IMPORTING
-        iv_container TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_container TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_row       TYPE i
         iv_value     TYPE string
       CHANGING
@@ -40,7 +40,7 @@ CLASS zcl_gg_se16 DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
         iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
-        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL.
+        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL.
     METHODS permitted_tables
       RETURNING
         VALUE(rt_names) TYPE string_table.
@@ -195,7 +195,7 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
 
   METHOD build_result_screen.
     DATA lv_position TYPE i.
-    DATA(lv_container) = CONV zif_gg_dynpro_types_v1=>ty_name( |P_T{ iv_index }_TC| ).
+    DATA(lv_container) = CONV zif_gg_dynpro_types_v1=>ty_field_name( |P_T{ iv_index }_TC| ).
 
     io_builder->begin_screen( VALUE #( number = result_screen( iv_index ) title = |Table Contents: { iv_table }| height = 440 ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |P_T{ iv_index }_RTAB| ) position = VALUE #( row = 16 column = 18 width = 90 ) ) text = 'Table' ) ).
@@ -475,7 +475,7 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
     LOOP AT lo_service->zif_gg_table_data_service_v1~get_fields( lv_table ) INTO DATA(ls_field).
       lv_position = ls_field-position.
       IF ls_field-search_help IS INITIAL
-          OR is_context-field <> CONV zif_gg_dynpro_types_v1=>ty_name( |P_T{ lv_index }_LOW{ lv_position }| ).
+          OR is_context-field <> CONV zif_gg_dynpro_types_v1=>ty_field_name( |P_T{ lv_index }_LOW{ lv_position }| ).
         CONTINUE.
       ENDIF.
       DATA(ls_element) = lo_dictionary->zif_gg_dictionary_service_v1~get_object(

@@ -3,7 +3,10 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 * Versioned vocabulary shared by a dialog program and its dynpro renderer.
 
   TYPES ty_screen_number TYPE n LENGTH 4.
+* ty_name is a dictionary object name. ty_field_name identifies a screen
+* element, RPY_DYFATC-NAME, which may be qualified STRUCTURE-COMPONENT.
   TYPES ty_name          TYPE c LENGTH 30.
+  TYPES ty_field_name    TYPE c LENGTH 132.
   TYPES ty_program       TYPE c LENGTH 40.
   TYPES ty_module_name   TYPE c LENGTH 30.
   TYPES ty_group         TYPE c LENGTH 4.
@@ -32,7 +35,7 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_position.
 
   TYPES: BEGIN OF ty_control,
-           name     TYPE ty_name,
+           name     TYPE ty_field_name,
            position TYPE ty_position,
            modif_id TYPE ty_modif_id,
          END OF ty_control.
@@ -46,7 +49,7 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            modal       TYPE abap_bool,
            width       TYPE i,
            height      TYPE i,
-           ok_code     TYPE ty_name,
+           ok_code     TYPE ty_field_name,
          END OF ty_screen.
 
 * Definitions consumed by the operation-specific builder methods.
@@ -107,7 +110,7 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
   TYPES: BEGIN OF ty_subscreen_area,
            control      TYPE ty_control,
            subscreen    TYPE ty_screen_number,
-           screen_field TYPE ty_name,
+           screen_field TYPE ty_field_name,
          END OF ty_subscreen_area.
 
 * The Screen Painter resizing attributes. A resizable control grows and shrinks
@@ -132,7 +135,7 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 
   TYPES: BEGIN OF ty_tab,
            control   TYPE ty_control,
-           tabstrip  TYPE ty_name,
+           tabstrip  TYPE ty_field_name,
            text      TYPE string,
            subscreen TYPE ty_screen_number,
            ucomm     TYPE ty_ucomm,
@@ -147,9 +150,9 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_table_control.
 
   TYPES: BEGIN OF ty_table_column,
-           table_control TYPE ty_name,
-           name          TYPE ty_name,
-           state_name    TYPE ty_name,
+           table_control TYPE ty_field_name,
+           name          TYPE ty_field_name,
+           state_name    TYPE ty_field_name,
            title         TYPE string,
            data_type     TYPE ty_data_type,
            width         TYPE i,
@@ -171,14 +174,14 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_flow_module.
 
   TYPES: BEGIN OF ty_table_loop,
-           table_control TYPE ty_name,
+           table_control TYPE ty_field_name,
          END OF ty_table_loop.
 
   TYPES: BEGIN OF ty_subscreen_call,
-           area         TYPE ty_name,
+           area         TYPE ty_field_name,
            program      TYPE ty_program,
            screen       TYPE ty_screen_number,
-           screen_field TYPE ty_name,
+           screen_field TYPE ty_field_name,
          END OF ty_subscreen_call.
 
 * Context supplied for each MODULE invocation. table_control and row are
@@ -186,15 +189,15 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
   TYPES: BEGIN OF ty_module_context,
            screen        TYPE ty_screen_number,
            module        TYPE ty_module_name,
-           field         TYPE ty_name,
-           table_control TYPE ty_name,
+           field         TYPE ty_field_name,
+           table_control TYPE ty_field_name,
            row           TYPE i,
            loop_index    TYPE i,
            loop_lines    TYPE i,
 * sy-loopc: the lines the table control shows, kept after the loop.
            loop_count    TYPE i,
            ucomm         TYPE ty_ucomm,
-           cursor_field  TYPE ty_name,
+           cursor_field  TYPE ty_field_name,
            cursor_row    TYPE i,
          END OF ty_module_context.
 
@@ -202,8 +205,8 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 * table-control rows; container identifies the table control when applicable.
 * text is what a value help shows for the value, when it shows more.
   TYPES: BEGIN OF ty_value,
-           container TYPE ty_name,
-           name      TYPE ty_name,
+           container TYPE ty_field_name,
+           name      TYPE ty_field_name,
            row       TYPE i,
            value     TYPE string,
            text      TYPE string,
@@ -223,8 +226,8 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
 
 * Mutable SCREEN-like state, seeded from the definition before every PBO.
   TYPES: BEGIN OF ty_state,
-           container         TYPE ty_name,
-           name              TYPE ty_name,
+           container         TYPE ty_field_name,
+           name              TYPE ty_field_name,
            row               TYPE i,
            text              TYPE string,
            fixed_values      TYPE ty_fixed_values,

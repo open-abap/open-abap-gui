@@ -210,7 +210,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
           CONTINUE.
         ENDIF.
         READ TABLE mt_popup_input INTO DATA(ls_popup_value)
-          WITH KEY name = CONV zif_gg_dynpro_types_v1=>ty_name( <lv_field_name> ).
+          WITH KEY name = CONV zif_gg_dynpro_types_v1=>ty_field_name( <lv_field_name> ).
         IF sy-subrc <> 0.
           READ TABLE mt_popup_input INTO ls_popup_value INDEX lv_index.
         ENDIF.
@@ -336,7 +336,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       ENDIF.
       IF lv_value IS NOT INITIAL.
         INSERT VALUE #(
-          name  = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-dynprofield )
+          name  = CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-dynprofield )
           row   = lv_row
           value = lv_value
           text  = COND #( WHEN lv_text <> lv_value THEN lv_text ) ) INTO TABLE mt_value_help_values.

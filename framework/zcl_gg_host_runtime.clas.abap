@@ -65,7 +65,7 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              resumable           TYPE REF TO zif_gg_resumable_v1,
              lifecycle           TYPE REF TO zif_gg_session_lifecycle_v1,
              pending_popup_ucomm TYPE zif_gg_dynpro_types_v1=>ty_ucomm,
-             pending_help        TYPE zif_gg_dynpro_types_v1=>ty_name,
+             pending_help        TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              next_page           TYPE i,
              pending_navigation  TYPE zif_gg_host_html_v1=>ty_navigation,
              screen_calls        TYPE ty_screen_calls,
@@ -423,7 +423,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA ls_pf_action TYPE zif_gg_session_types_v1=>ty_pf_action.
     DATA lv_page_id TYPE string.
     DATA lv_popup_action TYPE string.
-    DATA lv_help_request TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_help_request TYPE zif_gg_dynpro_types_v1=>ty_field_name.
     DATA lv_resume_continuation TYPE string.
     DATA lv_list_back TYPE abap_bool.
     DATA lv_action_receipt TYPE string.
@@ -458,7 +458,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         lv_ucomm = ls_session-pending_popup_ucomm.
       ENDIF.
     ELSEIF is_request-action = zif_gg_host_html_v1=>action_help.
-      ls_session-pending_help = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target ).
+      ls_session-pending_help = CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-target ).
       CLEAR ls_session-pending_popup_ucomm.
     ELSEIF is_request-action <> zif_gg_host_html_v1=>action_value_help.
       ls_session-pending_popup_ucomm = lv_ucomm.
@@ -502,19 +502,19 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
                                             AND is_request-target = 'INFORM'
                                             AND lv_help_request IS NOT INITIAL ) )
       it_values              = lt_dynpro_values
-      iv_field               = CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
+      iv_field               = CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-target )
       iv_row                 = is_request-row
       iv_cursor_field        = COND #( WHEN is_request-cursor_field IS INITIAL
                                       THEN ls_session-last_dynpro-cursor-field
-                                      ELSE CONV zif_gg_dynpro_types_v1=>ty_name( is_request-cursor_field ) )
+                                      ELSE CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-cursor_field ) )
       iv_cursor_row          = COND #( WHEN is_request-cursor_field IS INITIAL
                                       THEN ls_session-last_dynpro-cursor-row
                                       ELSE 0 )
-      iv_value_request       = CONV zif_gg_dynpro_types_v1=>ty_name(
+      iv_value_request       = CONV zif_gg_dynpro_types_v1=>ty_field_name(
                            COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_value_help
                                         THEN is_request-target ELSE `` ) )
       iv_help_request        = COND #( WHEN is_request-action = zif_gg_host_html_v1=>action_help
-                                 THEN CONV zif_gg_dynpro_types_v1=>ty_name( is_request-target )
+                                 THEN CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-target )
                                  ELSE lv_help_request )
       iv_popup_action        = lv_popup_action
       it_popup_values        = is_request-dynpro_values

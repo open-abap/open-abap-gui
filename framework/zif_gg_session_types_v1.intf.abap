@@ -50,7 +50,7 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            program      TYPE zif_gg_dynpro_types_v1=>ty_program,
            screen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
            ucomm        TYPE zif_gg_dynpro_types_v1=>ty_ucomm,
-           cursor_field TYPE zif_gg_dynpro_types_v1=>ty_name,
+           cursor_field TYPE zif_gg_dynpro_types_v1=>ty_field_name,
            cursor_row   TYPE i,
            loop_index   TYPE i,
            loop_lines   TYPE i,
@@ -143,7 +143,7 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            v4           TYPE ty_message_variable,
            text         TYPE string,
            display_like TYPE ty_message_type,
-           field        TYPE ty_name,
+           field        TYPE zif_gg_dynpro_types_v1=>ty_field_name,
            row          TYPE i,
          END OF ty_message.
 
@@ -212,7 +212,7 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
          END OF ty_gui_status.
 
   TYPES: BEGIN OF ty_dialog_cursor,
-           field TYPE ty_name,
+           field TYPE zif_gg_dynpro_types_v1=>ty_field_name,
            row   TYPE i,
          END OF ty_dialog_cursor.
 

@@ -9,8 +9,8 @@ CLASS zcl_gg_host_dynpro_builder DEFINITION PUBLIC FINAL CREATE PUBLIC.
     TYPES: BEGIN OF ty_control_record,
              screen          TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
              kind            TYPE string,
-             name            TYPE zif_gg_dynpro_types_v1=>ty_name,
-             parent          TYPE zif_gg_dynpro_types_v1=>ty_name,
+             name            TYPE zif_gg_dynpro_types_v1=>ty_field_name,
+             parent          TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              text            TYPE string,
              ucomm           TYPE zif_gg_dynpro_types_v1=>ty_ucomm,
              position        TYPE zif_gg_dynpro_types_v1=>ty_position,
@@ -29,9 +29,9 @@ CLASS zcl_gg_host_dynpro_builder DEFINITION PUBLIC FINAL CREATE PUBLIC.
              context_menu    TYPE abap_bool,
              group           TYPE zif_gg_dynpro_types_v1=>ty_group,
              subscreen       TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
-             subscreen_field TYPE zif_gg_dynpro_types_v1=>ty_name,
-             table_control   TYPE zif_gg_dynpro_types_v1=>ty_name,
-             state_name      TYPE zif_gg_dynpro_types_v1=>ty_name,
+             subscreen_field TYPE zif_gg_dynpro_types_v1=>ty_field_name,
+             table_control   TYPE zif_gg_dynpro_types_v1=>ty_field_name,
+             state_name      TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              visible_rows    TYPE i,
              selection_mode  TYPE string,
              with_hscroll    TYPE abap_bool,
@@ -55,7 +55,7 @@ CLASS zcl_gg_host_dynpro_builder DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_screens TYPE ty_screens.
     DATA mt_controls TYPE ty_controls.
     DATA mv_screen TYPE zif_gg_dynpro_types_v1=>ty_screen_number.
-    DATA mv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA mv_table_control TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
 ENDCLASS.
 

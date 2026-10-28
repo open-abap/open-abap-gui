@@ -23,20 +23,20 @@ CLASS zcl_gg_se11 DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS put_value
       IMPORTING
-        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_value  TYPE string
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS value_of
       IMPORTING
         it_values       TYPE zif_gg_dynpro_types_v1=>ty_values
-        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_field_name
       RETURNING
         VALUE(rv_value) TYPE string.
     METHODS put_cell
       IMPORTING
-        iv_container TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_container TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_row       TYPE i
         iv_value     TYPE string
       CHANGING
@@ -45,7 +45,7 @@ CLASS zcl_gg_se11 DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         io_builder TYPE REF TO zif_gg_dynpro_flow_builder_v1
         iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
-        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL.
+        iv_field   TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL.
     METHODS detail_screens
       RETURNING
         VALUE(rt_screens) TYPE zcl_gg_host_dynpro_builder=>ty_screens.
@@ -67,12 +67,12 @@ CLASS zcl_gg_se11 DEFINITION PUBLIC FINAL CREATE PUBLIC.
     METHODS add_field_table
       IMPORTING
         io_builder TYPE REF TO zif_gg_dynpro_builder_v1
-        iv_name    TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name    TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_row     TYPE i
         iv_rows    TYPE i.
     METHODS put_field_table
       IMPORTING
-        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_field_name
         it_fields TYPE zif_gg_system_types_v1=>ty_ddic_fields
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.

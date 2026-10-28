@@ -15,7 +15,7 @@ CLASS zcl_gg_host_dynpro_flow DEFINITION PUBLIC FINAL CREATE PUBLIC.
              screen      TYPE zif_gg_dynpro_types_v1=>ty_screen_number,
              phase       TYPE string,
              kind        TYPE string,
-             field       TYPE zif_gg_dynpro_types_v1=>ty_name,
+             field       TYPE zif_gg_dynpro_types_v1=>ty_field_name,
              module      TYPE zif_gg_dynpro_types_v1=>ty_flow_module,
              subscreen   TYPE zif_gg_dynpro_types_v1=>ty_subscreen_call,
              table_loop  TYPE zif_gg_dynpro_types_v1=>ty_table_loop,
@@ -37,12 +37,12 @@ CLASS zcl_gg_host_dynpro_flow DEFINITION PUBLIC FINAL CREATE PUBLIC.
     DATA mt_modules TYPE ty_modules.
     DATA mt_steps TYPE ty_steps.
     DATA mv_chain_depth TYPE i.
-    DATA mv_table_control TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA mv_table_control TYPE zif_gg_dynpro_types_v1=>ty_field_name.
 
     METHODS add_step
       IMPORTING
         iv_kind       TYPE string
-        iv_field      TYPE zif_gg_dynpro_types_v1=>ty_name OPTIONAL
+        iv_field      TYPE zif_gg_dynpro_types_v1=>ty_field_name OPTIONAL
         is_module     TYPE zif_gg_dynpro_types_v1=>ty_flow_module OPTIONAL
         is_subscreen  TYPE zif_gg_dynpro_types_v1=>ty_subscreen_call OPTIONAL
         is_table_loop TYPE zif_gg_dynpro_types_v1=>ty_table_loop OPTIONAL.

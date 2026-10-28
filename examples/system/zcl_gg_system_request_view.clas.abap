@@ -47,21 +47,21 @@ CLASS zcl_gg_system_request_view DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PRIVATE SECTION.
     CLASS-METHODS put_value
       IMPORTING
-        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_value  TYPE string
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     CLASS-METHODS put_cell
       IMPORTING
-        iv_container TYPE zif_gg_dynpro_types_v1=>ty_name
-        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_container TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_name      TYPE zif_gg_dynpro_types_v1=>ty_field_name
         iv_row       TYPE i
         iv_value     TYPE string
       CHANGING
         ct_values    TYPE zif_gg_dynpro_types_v1=>ty_values.
     CLASS-METHODS disable
       IMPORTING
-        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name   TYPE zif_gg_dynpro_types_v1=>ty_field_name
       CHANGING
         ct_states TYPE zif_gg_dynpro_types_v1=>ty_states.
 

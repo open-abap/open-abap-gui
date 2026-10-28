@@ -59,7 +59,7 @@ CLASS lcl_ok_code_program IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_input_module.
-    DATA lv_field TYPE zif_gg_dynpro_types_v1=>ty_name.
+    DATA lv_field TYPE zif_gg_dynpro_types_v1=>ty_field_name.
     DATA lv_seen TYPE string.
 
     IF popup_test = abap_true.
@@ -105,6 +105,162 @@ CLASS lcl_ok_code_program IMPLEMENTATION.
 
 ENDCLASS.
 
+* A dialog program with a 30-character and a 33-character qualified field.
+* PAI copies both into SEEN_*, POV records the field it was called for.
+CLASS lcl_long_field_program DEFINITION FINAL.
+  PUBLIC SECTION.
+    INTERFACES zif_gg_dynpro_v1.
+    DATA requested TYPE zif_gg_dynpro_types_v1=>ty_field_name.
+ENDCLASS.
+
+CLASS lcl_long_field_program IMPLEMENTATION.
+
+  METHOD zif_gg_dynpro_v1~get_initial_screen.
+    rv_screen = '0100'.
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~build_screens.
+    io_builder->begin_screen( VALUE #( number = '0100' next_screen = '0100' ) ).
+    io_builder->add_input_field( VALUE #( control-name = 'ZORDER_ITEM-DELIVERY_BLOCK_RSN' ) ).
+    io_builder->add_input_field( VALUE #( control-name = 'ZORDER_ITEM-DELIVERY_BLOCK_REASON' ) ).
+    io_builder->end_screen( ).
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~build_flow_logic.
+    io_builder->begin_screen( '0100' ).
+    io_builder->begin_pbo( ).
+    io_builder->add_module( VALUE #( name = 'STATUS' ) ).
+    io_builder->end_processing( ).
+    io_builder->begin_pai( ).
+    io_builder->add_field( 'ZORDER_ITEM-DELIVERY_BLOCK_RSN' ).
+    io_builder->add_field( 'ZORDER_ITEM-DELIVERY_BLOCK_REASON' ).
+    io_builder->add_module( VALUE #( name = 'USER_COMMAND' ) ).
+    io_builder->end_processing( ).
+    io_builder->begin_value_request( 'ZORDER_ITEM-DELIVERY_BLOCK_REASON' ).
+    io_builder->add_module( VALUE #( name = 'F4_REASON' ) ).
+    io_builder->end_processing( ).
+    io_builder->end_screen( ).
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~initialization.
+    RETURN.
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~process_output_module.
+    io_session->get_dialog( )->set_status( VALUE #(
+      status       = 'MAIN'
+      active_ucomm = VALUE #( ( 'SAVE' ) ) ) ).
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~process_input_module.
+    READ TABLE ct_values INTO DATA(ls_short)
+      WITH KEY container = `` name = 'ZORDER_ITEM-DELIVERY_BLOCK_RSN' row = 0.
+    IF sy-subrc = 0.
+      INSERT VALUE #( name = 'SEEN_SHORT' value = ls_short-value ) INTO TABLE ct_values.
+    ENDIF.
+    READ TABLE ct_values INTO DATA(ls_long)
+      WITH KEY container = `` name = 'ZORDER_ITEM-DELIVERY_BLOCK_REASON' row = 0.
+    IF sy-subrc = 0.
+      INSERT VALUE #( name = 'SEEN_LONG' value = ls_long-value ) INTO TABLE ct_values.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~process_on_value_request.
+    requested = is_context-field.
+  ENDMETHOD.
+
+  METHOD zif_gg_dynpro_v1~process_on_help_request.
+    RETURN.
+  ENDMETHOD.
+
+ENDCLASS.
+
+* Dynpro field names are RPY_DYFATC-NAME, up to 132 characters; a qualified
+* STRUCTURE-COMPONENT name passes 30 and must not be cut anywhere.
+CLASS ltcl_long_field_names DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
+
+  PRIVATE SECTION.
+    CONSTANTS c_short TYPE string VALUE `ZORDER_ITEM-DELIVERY_BLOCK_RSN`.
+    CONSTANTS c_long TYPE string VALUE `ZORDER_ITEM-DELIVERY_BLOCK_REASON`.
+
+    METHODS keeps_screen_definition FOR TESTING.
+    METHODS keeps_flow_logic FOR TESTING.
+    METHODS transports_values FOR TESTING.
+    METHODS value_request_field FOR TESTING.
+    METHODS keeps_cursor_field FOR TESTING.
+
+ENDCLASS.
+
+CLASS ltcl_long_field_names IMPLEMENTATION.
+
+  METHOD keeps_screen_definition.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run( NEW lcl_long_field_program( ) ).
+
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( line_exists( ls_result-controls[ kind = 'INPUT' name = c_short ] ) )
+      msg = '30-character field missing from the screen definition' ).
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( line_exists( ls_result-controls[ kind = 'INPUT' name = c_long ] ) )
+      msg = 'Long field truncated in the screen definition' ).
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( line_exists( ls_result-states[ container = `` name = c_long row = 0 ] ) )
+      msg = 'Long field truncated in the screen states' ).
+  ENDMETHOD.
+
+  METHOD keeps_flow_logic.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run( NEW lcl_long_field_program( ) ).
+
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( line_exists( ls_result-flow[ kind = 'FIELD' field = c_short ] ) )
+      msg = '30-character FIELD missing from the flow logic' ).
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( line_exists( ls_result-flow[ kind = 'FIELD' field = c_long ] ) )
+      msg = 'Long FIELD truncated in the flow logic' ).
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( line_exists( ls_result-flow[ kind = 'VALUE_REQUEST' field = c_long ] ) )
+      msg = 'Long FIELD truncated in PROCESS ON VALUE-REQUEST' ).
+  ENDMETHOD.
+
+  METHOD transports_values.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run(
+      io_program = NEW lcl_long_field_program( )
+      iv_ucomm   = 'SAVE'
+      it_values  = VALUE #( ( name = c_short value = 'S1' )
+                            ( name = c_long value = 'L1' ) ) ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-values[ name = 'SEEN_SHORT' ]-value
+      exp = `S1` ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-values[ name = 'SEEN_LONG' ]-value
+      exp = `L1` ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-values[ name = c_long ]-value
+      exp = `L1` ).
+  ENDMETHOD.
+
+  METHOD value_request_field.
+    DATA(lo_program) = NEW lcl_long_field_program( ).
+
+    zcl_gg_host_dynpro=>run( io_program       = lo_program
+                             iv_submitted     = abap_false
+                             iv_value_request = CONV #( c_long ) ).
+
+    cl_abap_unit_assert=>assert_equals( act = CONV string( lo_program->requested )
+                                        exp = c_long ).
+  ENDMETHOD.
+
+  METHOD keeps_cursor_field.
+    DATA(ls_result) = zcl_gg_host_dynpro=>run( io_program      = NEW lcl_long_field_program( )
+                                               iv_ucomm        = 'SAVE'
+                                               iv_cursor_field = CONV #( c_long ) ).
+
+    cl_abap_unit_assert=>assert_equals( act = CONV string( ls_result-cursor-field )
+                                        exp = c_long ).
+  ENDMETHOD.
+
+ENDCLASS.
+
 CLASS ltcl_gg_host_dynpro DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
 
 * The host fills the OK-code field the current screen declares with the
@@ -128,7 +284,7 @@ CLASS ltcl_gg_host_dynpro DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL
     METHODS value
       IMPORTING
         is_result       TYPE zcl_gg_host_dynpro=>ty_result
-        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_name
+        iv_name         TYPE zif_gg_dynpro_types_v1=>ty_field_name
       RETURNING
         VALUE(rv_value) TYPE string.
 
