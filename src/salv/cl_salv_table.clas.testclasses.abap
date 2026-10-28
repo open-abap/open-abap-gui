@@ -156,8 +156,9 @@ CLASS ltcl_salv_table_support IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = lines( lt_functions )
       exp = 1 ).
+    DATA(foo) = lt_functions[ 1 ]-r_function.
     cl_abap_unit_assert=>assert_equals(
-      act = lt_functions[ 1 ]-r_function->get_name( )
+      act = foo->get_name( )
       exp = 'LOCAL' ).
   ENDMETHOD.
 
