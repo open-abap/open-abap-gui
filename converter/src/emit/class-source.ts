@@ -12,7 +12,7 @@ import type { SelectionOptions } from "../passes/collect-selection-screens.js";
 import { eventQualifier } from "../passes/classify-program.js";
 import { Expressions, Tokens } from "@abaplint/core";
 import { isKeyword, leadingWords, lexedAst, statementAst } from "../abap/ast.js";
-import { controlsDeclaration, declarationBody, declaredDataNames, declaredFieldSymbols, declaredName, fieldSymbolsIn, inlineFieldSymbolsIn, mentions, methodDefinition, refToName } from "../abap/statements.js";
+import { controlsDeclaration, declarationBody, declaredDataNames, declaredFieldSymbols, declaredName, fieldSymbolsIn, inlineDataIn, inlineFieldSymbolsIn, mentions, methodDefinition, refToName } from "../abap/statements.js";
 import { replaceIdentifiers } from "../passes/replace-identifiers.js";
 import { hasHeaderLine, headerLineDeclarations, headerLinesIn, withoutHeaderLines } from "../passes/header-lines.js";
 import { likeHeads, likeTyping, scopedMember } from "../passes/like-typing.js";
@@ -1443,10 +1443,15 @@ function resumeMethod(ir: ReportIR): GeneratedMethod {
     let lowered: string[];
     {
       const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
-      if (routine) {
-        hideModuleData(ir, context, routine);
-        // A name an earlier continuation declared is taken in this method.
-        const names = declaredDataObjects(ir, tail).map((name) => name.toLowerCase());
+      if (routine) hideModuleData(ir, context, routine);
+      // A name an earlier continuation declared, with DATA or inline, is taken
+      // in this method. An event's inline DATA( ) is a member already, see
+      // liftInlineDeclarations, and a module's DATA too.
+      if (routine || ownerIsModule) {
+        const names = [...new Set([
+          ...(routine ? declaredDataObjects(ir, tail) : []),
+          ...tail.flatMap((item) => inlineDataIn(item.text)),
+        ].map((name) => name.toLowerCase()))];
         const renames = names.flatMap((name): Replacement[] => declared.has(name) ? [[name, uniqueName(name, used)]] : []);
         for (const name of [...names, ...renames.map(([, value]) => value)]) {
           declared.add(name);

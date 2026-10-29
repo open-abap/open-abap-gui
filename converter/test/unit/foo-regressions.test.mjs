@@ -365,3 +365,21 @@ test("FORM locals stay in the FORM, also around a suspension", async () => {
   assert.match(resume, /IF lv_answer = '1'\./);
   assert.match(resume, /IF lv_answer_2 = 1\./);
 });
+
+test("resumed tails declaring the same inline DATA take distinct names", async () => {
+  const result = await convertProgram({source: await fixture("regression_resume_inline_data.prog.abap.txt"),
+    filename: "zcv_resume_inline.prog.abap", className: "ZCL_CV_RESUME_INLINE", dynproMetadata: {
+      initialScreen: "0100", screens: [{number: "0100"}],
+      flowLogic: [{screen: "0100", pai: [{name: "FIRST"}, {name: "SECOND"}]}],
+    }});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const resume = methodOf(code(result.classSource), "zif_gg_resumable_v1~resume");
+  // Two FORMs and two modules declare lv_text after a popup, in one method.
+  assert.match(resume, /DATA\(lv_text\) = \|Module: \{ gv_answer \}\|\./);
+  assert.match(resume, /DATA\(lv_text_2\) = 1\.\s+gv_answer = lv_text_2\./);
+  assert.match(resume, /DATA\(lv_text_3\) = \|First: \{ lv_answer \}\|\./);
+  assert.match(resume, /DATA\(lv_text_4\) = strlen\( lv_answer_2 \)\./);
+  assert.equal(resume.match(/DATA\(lv_text\)/g).length, 1);
+  // The FORMs keep their own name.
+  assert.match(methodOf(result.classSource, "form_ask_second"), /DATA\(lv_text\) = strlen\( lv_answer \)\./);
+});
