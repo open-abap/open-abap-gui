@@ -8,7 +8,7 @@ import { assignTarget, bindsStatically, declaredFieldSymbols, fieldSymbolsIn, in
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import { inProgramPerform, isExternalPerform, isGenericParameterType, methodParameterType } from "./collect-routines.js";
+import { inProgramPerform, isExternalPerform, isGenericParameterType, methodParameterType, methodParameterTyping } from "./collect-routines.js";
 import { isWritableArgument, performArguments, performedForm } from "../abap/statements.js";
 import { MACRO_DEFINITION_KINDS } from "./collect-events.js";
 import { isPopupStatement } from "./lower-continuations.js";
@@ -249,6 +249,12 @@ export function controlObjectTypes(declarations: { entries?: { name: string; def
     }
   }
   for (const parameter of parameters ?? []) {
+    // LIKE go_grid takes the control type of the data object.
+    if (parameter.like) {
+      const type = result[String(parameter.type).toUpperCase()];
+      if (type) result[String(parameter.name ?? "").toUpperCase()] = type;
+      continue;
+    }
     const typing = typeAst(parameter.type ?? "");
     const type = typing ? refToName(typing, typing.node) : undefined;
     if (!type || (!CONVERTIBLE_CONTROL_CLASSES.has(type) && !localClassNames.has(type))) continue;
@@ -652,12 +658,11 @@ function performTemporary(parameter: RoutineParameter, value: string, raw: strin
   const counter = context.temporaries ?? { count: 0 };
   counter.count++;
   const name = `lv_perform_${counter.count}`;
-  const type = methodParameterType(parameter);
   return {
     name,
-    declaration: isGenericParameterType(type)
+    declaration: isGenericParameterType(methodParameterType(parameter))
       ? [`DATA(${name}) = ${value}.`]
-      : [`DATA ${name} TYPE ${type}.`, `${name} = ${value}.`],
+      : [`DATA ${name} ${methodParameterTyping(parameter)}.`, `${name} = ${value}.`],
   };
 }
 

@@ -149,10 +149,13 @@ export interface RoutineParameter {
   direction: "IMPORTING" | "CHANGING";
   byValue: boolean;
   type: string;
+  /** The method parameter is typed LIKE type, a data object of the class. */
+  like?: boolean;
   typing: string;
   /** The line type TABLES p STRUCTURE s names. */
   structure?: string;
-  lineType?: string;
+  /** TYPES statements of the named types the method signature uses. */
+  types?: string[];
   written?: boolean;
 }
 

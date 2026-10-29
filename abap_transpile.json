@@ -1,7 +1,7 @@
 {
   "input_folder": ["src", "framework", "examples"],
   "input_filter": [],
-  "exclude_filter": ["zgg_ex_187\\.prog\\.abap$"],
+  "exclude_filter": ["zgg_ex_187\\.prog\\.abap$", "zgg_ex_193\\.prog\\.abap$", "zgg_ex_193_top\\.prog\\.abap$", "zgg_ex_193_f01\\.prog\\.abap$", "zgg_ex_195\\.prog\\.abap$", "zgg_ex_202\\.prog\\.abap$", "zgg_ex_203\\.prog\\.abap$", "zgg_ex_205\\.prog\\.abap$"],
   "output_folder": "output",
   "write_unit_tests": true,
   "write_source_map": true,

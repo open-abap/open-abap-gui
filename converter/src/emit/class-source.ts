@@ -6,7 +6,7 @@ import { hasProgramMetadata } from "../passes/select-interfaces.js";
 import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.js";
 import { isPopupStatement, isSuspendingStatement } from "../passes/lower-continuations.js";
 import { screenOkCode } from "../dynpro-metadata.js";
-import { methodParameterType, uniqueName } from "../passes/collect-routines.js";
+import { methodParameterTyping, uniqueName } from "../passes/collect-routines.js";
 import { DEFAULT_SELECTION_SCREEN, selectionOptions } from "../passes/collect-selection-screens.js";
 import type { SelectionOptions } from "../passes/collect-selection-screens.js";
 import { eventQualifier } from "../passes/classify-program.js";
@@ -595,15 +595,12 @@ function dataMembers(ir: ReportIR): string[] {
   members.push(...deferredMembers);
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
-    const parameterType = methodParameterType;
-    for (const parameter of parameters.filter((item) => item.lineType)) {
-      members.push(renameIdentifiers(`TYPES ${parameter.type} TYPE STANDARD TABLE OF ${parameter.lineType} WITH DEFAULT KEY.`, allRenames(ir)));
-    }
+    members.push(...parameters.flatMap((parameter) => parameter.types ?? []).map((types) => renameIdentifiers(types, allRenames(ir))));
     const lines = [`METHODS ${routine.methodName}`];
     const importing = parameters.filter((parameter) => parameter.direction === "IMPORTING");
     const declared = (parameter: RoutineParameter) => parameter.byValue ? `VALUE(${parameter.name})` : parameter.name;
     const width = Math.max("io_session".length, ...parameters.map((parameter) => declared(parameter).length));
-    const line = (parameter: RoutineParameter) => `    ${declared(parameter).padEnd(width, " ")} TYPE ${renameIdentifiers(parameterType(parameter), allRenames(ir))}`;
+    const line = (parameter: RoutineParameter) => `    ${declared(parameter).padEnd(width, " ")} ${methodParameterTyping(parameter, (type) => renameIdentifiers(type, allRenames(ir)))}`;
     lines.push("  IMPORTING", `    io_session${" ".repeat(width - "io_session".length)} TYPE REF TO zif_gg_session_v1`);
     lines.push(...importing.map(line));
     for (const direction of ["CHANGING"]) {
