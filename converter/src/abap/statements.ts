@@ -44,6 +44,15 @@ export function inlineFieldSymbolsIn(text: string): string[] {
     .map((token) => token.slice(1, -1));
 }
 
+/** The data objects a statement declares inline, DATA(name), upper case. */
+export function inlineDataIn(text: string): string[] {
+  const ast = statementAst(text);
+  return (ast?.findAll(Expressions.InlineData) ?? [])
+    .map((node) => node.findDirectExpression(Expressions.TargetField))
+    .filter((field): field is Nodes.ExpressionNode => Boolean(field))
+    .map((field) => ast!.source(field).toUpperCase());
+}
+
 // A keyword of the statement, wherever it stands, outside its operands' names.
 function hasKeyword(ast: StatementAst, words: string[]): boolean {
   return ast.tokens().some((entry) => !(entry.node instanceof Nodes.TokenNodeRegex) && words.includes(entry.token.getUpperStr()));

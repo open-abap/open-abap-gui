@@ -1132,7 +1132,9 @@ test("types untyped FORM parameters generically", async () => {
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   assert.match(result.classSource, /METHODS form_get_path\s+IMPORTING\s+io_session TYPE REF TO zif_gg_session_v1\s+CHANGING\s+pv_action\s+TYPE any\./);
   // A typed parameter no longer hides the untyped ones in its section.
-  assert.match(result.classSource, /pv_a\s+TYPE c\s+VALUE\(pv_b\)\s+TYPE i\s+pv_c\s+TYPE any\s+CHANGING\s+pt_any\s+TYPE standard table\s+pt_mara\s+TYPE standard table\s+cv_rc\s+TYPE i\./);
+  // TABLES ... STRUCTURE keeps its line type in a named table type.
+  assert.match(result.classSource, /pv_a\s+TYPE c\s+VALUE\(pv_b\)\s+TYPE i\s+pv_c\s+TYPE any\s+CHANGING\s+pt_any\s+TYPE STANDARD TABLE\s+pt_mara\s+TYPE ty_pt_mara\s+cv_rc\s+TYPE i\./);
+  assert.match(result.classSource, /TYPES ty_pt_mara TYPE STANDARD TABLE OF mara WITH DEFAULT KEY\./);
   // TABLES and CHANGING arguments keep their own positions.
   assert.match(result.classSource, /CHANGING\s+pt_any\s+= gt_mara\s+pt_mara\s+= gt_mara\s+cv_rc\s+= gv_rc \)\./);
 });
@@ -1164,14 +1166,70 @@ test("keeps multi-word FORM parameter typings and VALUE parameters", async () =>
     filename: "zform_typing.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  for (const [name, type] of [["pt_any", "any table"], ["pt_std", "standard table"], ["pt_idx", "index table"],
-    ["pt_hsh", "hashed table"], ["pt_srt", "sorted table"], ["pr_data", "ref to data"], ["pt_of", "ty_pt_of_2"],
+  for (const [name, type] of [["pt_any", "ANY TABLE"], ["pt_std", "STANDARD TABLE"], ["pt_idx", "INDEX TABLE"],
+    ["pt_hsh", "HASHED TABLE"], ["pt_srt", "SORTED TABLE"], ["pr_data", "REF TO data"], ["pt_of", "ty_pt_of_2"],
     ["VALUE\\(pv_u\\)", "i"], ["VALUE\\(pt_c\\)", "ty_t"], ["VALUE\\(pv_c\\)", "i"]]) {
     assert.match(result.classSource, new RegExp(`^\\s+${name}\\s+TYPE ${type}\\.?$`, "m"), name);
   }
   // STANDARD TABLE OF x has no place in a method signature, so it gets a named
   // type, which avoids the program's own ty_pt_of.
   assert.match(result.classSource, /TYPES ty_pt_of_2 TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
+});
+
+test("keeps LIKE and resolves STRUCTURE in FORM parameter typings", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zform_like.",
+      "TYPES: BEGIN OF ty_s,",
+      "         a TYPE i,",
+      "       END OF ty_s.",
+      "DATA gs TYPE ty_s.",
+      "DATA gt TYPE STANDARD TABLE OF ty_s WITH DEFAULT KEY.",
+      "DATA gt_srt TYPE SORTED TABLE OF ty_s WITH UNIQUE KEY a.",
+      "DATA: BEGIN OF gt_old OCCURS 0,",
+      "        a TYPE i,",
+      "      END OF gt_old.",
+      "DATA gr TYPE REF TO ty_s.",
+      "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
+      "START-OF-SELECTION.",
+      "  PERFORM f TABLES gt gt_old gt USING gs gs gs gs gt gs-a gr gr go_grid gt_srt.",
+      "FORM f TABLES pt_s STRUCTURE gs",
+      "              pt_old STRUCTURE gt_old",
+      "              pt_ddic STRUCTURE mara",
+      "       USING ps_like LIKE gs",
+      "             ps_struc STRUCTURE gs",
+      "             ps_old STRUCTURE gt_old",
+      "             ps_line LIKE LINE OF gt",
+      "             pt_like LIKE gt",
+      "             pv_a LIKE gs-a",
+      "             pr_like LIKE gr",
+      "             pr_ref LIKE REF TO gs",
+      "             po_grid LIKE go_grid",
+      "             pt_srt TYPE SORTED TABLE OF ty_s.",
+      "  po_grid->refresh_table_display( ).",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zform_like.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  for (const [name, typing] of [["pt_s", "TYPE ty_pt_s"], ["pt_old", "TYPE ty_pt_old"], ["pt_ddic", "TYPE ty_pt_ddic"],
+    ["ps_like", "LIKE gs"], ["ps_struc", "LIKE gs"], ["ps_old", "LIKE LINE OF gt_old"], ["ps_line", "LIKE LINE OF gt"],
+    ["pt_like", "LIKE gt"], ["pv_a", "LIKE gs-a"], ["pr_like", "LIKE gr"], ["pr_ref", "TYPE ty_pr_ref"],
+    ["po_grid", "LIKE go_grid"], ["pt_srt", "TYPE ty_pt_srt"]]) {
+    assert.match(result.classSource, new RegExp(`^\\s+${name}\\s+${typing}\\.?$`, "m"), name);
+  }
+  // STRUCTURE names a line type, of a data object, a header-line table or the
+  // dictionary; a table of it, LIKE REF TO and SORTED TABLE OF get named types.
+  for (const types of [
+    "TYPES ty_pt_s LIKE STANDARD TABLE OF gs WITH DEFAULT KEY.",
+    "TYPES ty_pt_old_line LIKE LINE OF gt_old.",
+    "TYPES ty_pt_old TYPE STANDARD TABLE OF ty_pt_old_line WITH DEFAULT KEY.",
+    "TYPES ty_pt_ddic TYPE STANDARD TABLE OF mara WITH DEFAULT KEY.",
+    "TYPES ty_pr_ref LIKE REF TO gs.",
+    "TYPES ty_pt_srt TYPE SORTED TABLE OF ty_s.",
+  ]) {
+    assert.ok(result.classSource.includes(types), types);
+  }
 });
 
 test("rejects TYPE TABLE OF in a FORM signature", async () => {

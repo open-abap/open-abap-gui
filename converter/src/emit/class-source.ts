@@ -6,13 +6,13 @@ import { hasProgramMetadata } from "../passes/select-interfaces.js";
 import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.js";
 import { isPopupStatement, isSuspendingStatement } from "../passes/lower-continuations.js";
 import { screenOkCode } from "../dynpro-metadata.js";
-import { methodParameterType, uniqueName } from "../passes/collect-routines.js";
+import { methodParameterTyping, uniqueName } from "../passes/collect-routines.js";
 import { DEFAULT_SELECTION_SCREEN, selectionOptions } from "../passes/collect-selection-screens.js";
 import type { SelectionOptions } from "../passes/collect-selection-screens.js";
 import { eventQualifier } from "../passes/classify-program.js";
 import { Expressions, Tokens } from "@abaplint/core";
 import { isKeyword, leadingWords, lexedAst, statementAst } from "../abap/ast.js";
-import { controlsDeclaration, declarationBody, declaredDataNames, declaredFieldSymbols, declaredName, fieldSymbolsIn, inlineFieldSymbolsIn, mentions, methodDefinition, refToName } from "../abap/statements.js";
+import { controlsDeclaration, declarationBody, declaredDataNames, declaredFieldSymbols, declaredName, fieldSymbolsIn, inlineDataIn, inlineFieldSymbolsIn, mentions, methodDefinition, refToName } from "../abap/statements.js";
 import { replaceIdentifiers } from "../passes/replace-identifiers.js";
 import { hasHeaderLine, headerLineDeclarations, headerLinesIn, withoutHeaderLines } from "../passes/header-lines.js";
 import { likeHeads, likeTyping, scopedMember } from "../passes/like-typing.js";
@@ -97,7 +97,7 @@ function renameIdentifiers(text: string, renames: Record<string, string> = {}): 
 }
 
 function allRenames(ir: ReportIR): Record<string, string> {
-  return { ...(ir.statePlan?.renames ?? {}), ...(ir.localClassRenames ?? {}), ...continuationRenames(ir) };
+  return { ...(ir.statePlan?.renames ?? {}), ...(ir.localClassRenames ?? {}), ...moduleDataRenames(ir) };
 }
 
 function globalMemberNames(ir: ReportIR): Record<string, string> {
@@ -144,30 +144,10 @@ function globalConstantNames(ir: ReportIR): Record<string, string> {
   return result;
 }
 
-function continuationLocalNames(ir: ReportIR): Set<string> {
-  const routineStatements = new Set((ir.routines ?? []).flatMap((routine) => routine.statements ?? []));
+// MODULE data is program data, so it lives in the instance. A FORM's data is
+// the FORM's own and stays in its method, see resumeMethod.
+function moduleDataNames(ir: ReportIR): Set<string> {
   const dynproModuleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
-  const global = (item: Declaration) => !routineStatements.has(item.statement)
-    && !dynproModuleStatements.has(item.statement)
-    && item.statement?.scope !== 'local'
-    && !item.statement?.localClassName;
-  const localDeclarations = (ir.declarations ?? [])
-    .filter((item) => !global(item)
-      && !item.statement?.localClassName
-      && ['data', 'static'].includes(item.kind));
-  const declaredBefore = (declaration: Declaration, continuation: { filename: string; span: Statement["span"] }) => {
-    const declarationSpan = declaration.statement?.span;
-    const continuationSpan = continuation.span;
-    if (!declarationSpan?.start || !continuationSpan?.start
-      || declaration.statement?.filename !== continuation.filename) return true;
-    return declarationSpan.start.line < continuationSpan.start.line
-      || (declarationSpan.start.line === continuationSpan.start.line
-        && declarationSpan.start.column <= continuationSpan.start.column);
-  };
-  const localNames = new Set((ir.declarations ?? [])
-    .filter((item) => !global(item) && ['data', 'static'].includes(item.kind))
-    .flatMap((item) => item.names ?? [])
-    .map((name) => name.toUpperCase()));
   const moduleNames: (string | undefined)[] = [];
   let structureDepth = 0;
   for (const item of ir.declarations ?? []) {
@@ -178,22 +158,14 @@ function continuationLocalNames(ir: ReportIR): Set<string> {
     } else if (item.kind === 'dataend') structureDepth--;
     else if (structureDepth === 0 && ['data', 'static'].includes(item.kind)) moduleNames.push(...item.names ?? []);
   }
-  return new Set([...moduleNames, ...(ir.continuations ?? [])
-    .filter((continuation) => continuation.liveVariables?.length)
-    .flatMap((continuation) => (continuation.liveVariables ?? [])
-      .filter((name) => localNames.has(name.toUpperCase()))
-      .filter((name) => localDeclarations.some((declaration) =>
-        (declaration.names ?? []).some((declaredName) => declaredName.toUpperCase() === name.toUpperCase())
-          && declaredBefore(declaration, continuation))))
-    .map((name) => name.toUpperCase())].filter((name): name is string => Boolean(name))
-  );
+  return new Set(moduleNames.filter((name): name is string => Boolean(name)).map((name) => name.toUpperCase()));
 }
 
-// The members holding locals across a suspension. A name too long for the
-// prefix is shortened; the names that fit are taken first, so the shortened
-// ones cannot take theirs.
-function continuationRenames(ir: ReportIR): Record<string, string> {
-  const names = [...continuationLocalNames(ir)].sort();
+// The members holding MODULE data. A name too long for the prefix is
+// shortened; the names that fit are taken first, so the shortened ones cannot
+// take theirs.
+function moduleDataRenames(ir: ReportIR): Record<string, string> {
+  const names = [...moduleDataNames(ir)].sort();
   const used = new Set(Object.values(globalMemberNames(ir)).map((member) => member.toLowerCase()));
   const renames: Record<string, string> = {};
   for (const name of names) {
@@ -555,10 +527,12 @@ function dataMembers(ir: ReportIR): string[] {
     dataMembers.push(rename(declaration.raw.replace(/,\s*$/, ".")));
     emittedNames.add(name);
   }
-  for (const name of continuationLocalNames(ir)) {
+  const moduleStatements = new Set((ir.modules ?? []).flatMap((module) => module.statements ?? []));
+  for (const name of moduleDataNames(ir)) {
     const declaration = declarations.find((item) => ['data', 'static'].includes(item.kind)
+      && moduleStatements.has(item.statement)
       && (item.names ?? []).some((itemName) => itemName.toUpperCase() === name));
-    if (!declaration || declaration.complex || emittedNames.has((continuationRenames(ir)[name] ?? name).toUpperCase())) continue;
+    if (!declaration || declaration.complex || emittedNames.has((moduleDataRenames(ir)[name] ?? name).toUpperCase())) continue;
     const raw = declaration.kind === 'static'
       ? declaration.raw.replace(/^STATICS\b/i, 'DATA')
       : declaration.raw;
@@ -621,15 +595,12 @@ function dataMembers(ir: ReportIR): string[] {
   members.push(...deferredMembers);
   for (const routine of ir.routines) {
     const parameters = routine.parameters ?? [];
-    const parameterType = methodParameterType;
-    for (const parameter of parameters.filter((item) => item.lineType)) {
-      members.push(renameIdentifiers(`TYPES ${parameter.type} TYPE STANDARD TABLE OF ${parameter.lineType} WITH DEFAULT KEY.`, allRenames(ir)));
-    }
+    members.push(...parameters.flatMap((parameter) => parameter.types ?? []).map((types) => renameIdentifiers(types, allRenames(ir))));
     const lines = [`METHODS ${routine.methodName}`];
     const importing = parameters.filter((parameter) => parameter.direction === "IMPORTING");
     const declared = (parameter: RoutineParameter) => parameter.byValue ? `VALUE(${parameter.name})` : parameter.name;
     const width = Math.max("io_session".length, ...parameters.map((parameter) => declared(parameter).length));
-    const line = (parameter: RoutineParameter) => `    ${declared(parameter).padEnd(width, " ")} TYPE ${renameIdentifiers(parameterType(parameter), allRenames(ir))}`;
+    const line = (parameter: RoutineParameter) => `    ${declared(parameter).padEnd(width, " ")} ${methodParameterTyping(parameter, (type) => renameIdentifiers(type, allRenames(ir)))}`;
     lines.push("  IMPORTING", `    io_session${" ".repeat(width - "io_session".length)} TYPE REF TO zif_gg_session_v1`);
     lines.push(...importing.map(line));
     for (const direction of ["CHANGING"]) {
@@ -921,7 +892,7 @@ function methodContext(ir: ReportIR, event: string, {parameters = [], statements
     replacements: [
       ...Object.entries(ir.statePlan?.renames ?? {}),
       ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]): Replacement => [name, String(value).toLowerCase()]),
-      ...Object.entries(continuationRenames(ir)),
+      ...Object.entries(moduleDataRenames(ir)),
       ...valueReplacements,
       // A hidden global is restored from the selected line, see
       // hiddenRestore; any other hidden name reads the line directly.
@@ -936,7 +907,7 @@ function methodContext(ir: ReportIR, event: string, {parameters = [], statements
       capturedVariables: (continuation.liveVariables ?? []).map((name) =>
         ir.statePlan?.selectionState?.[name]?.member
         ?? ir.statePlan?.renames?.[name]
-        ?? continuationRenames(ir)[name]
+        ?? moduleDataRenames(ir)[name]
         ?? name.toLowerCase()),
     })),
     routines: ir.routines ?? [],
@@ -1117,7 +1088,7 @@ function nestedSelectionCaptures(ir: ReportIR): string[] {
 }
 
 function removePromotedDeclarations(ir: ReportIR, lines: string[]): string[] {
-  const promoted = new Set([...continuationLocalNames(ir)].map((name) => continuationRenames(ir)[name].toLowerCase()));
+  const promoted = new Set([...moduleDataNames(ir)].map((name) => moduleDataRenames(ir)[name].toLowerCase()));
   if (!promoted.size) return lines;
   return lines.flatMap((line) => String(line).split('\n'))
     .filter((line) => ![...promoted].some((name) => new RegExp(`^\\s*DATA\\s+${name}\\b`, 'i').test(line)));
@@ -1410,8 +1381,33 @@ function listMethods(ir: ReportIR): GeneratedMethod[] {
   return methods;
 }
 
+const FORM_DATA_KINDS = new Set(["Data", "DataBegin", "DataEnd", "Static", "StaticBegin", "StaticEnd", "Constant", "ConstantBegin", "ConstantEnd", "Type", "TypeBegin", "TypeEnd", "IncludeType", "Ranges"]);
+
+// A FORM's own data hides MODULE data of the same name, which is a member.
+function hideModuleData(ir: ReportIR, context: LoweringContext, routine: Routine): void {
+  const own = localDataObjects(ir, routine.parameters ?? [], routine.statements ?? []);
+  const members = moduleDataRenames(ir);
+  context.replacements = (context.replacements ?? [])
+    .filter(([name, value]) => !(own.has(name.toUpperCase()) && members[name.toUpperCase()] === value));
+}
+
+// The data objects the statements declare, not the components of a structure.
+function declaredDataObjects(ir: ReportIR, statements: Statement[]): string[] {
+  const own = new Set(statements);
+  return (ir.declarations ?? [])
+    .filter((declaration) => own.has(declaration.statement) && !declaration.component)
+    .flatMap((declaration) => ["databegin", "constantbegin"].includes(declaration.kind) ? [beginName(declaration)]
+      : ["data", "static", "constant", "ranges"].includes(declaration.kind) ? declaration.names ?? [] : [])
+    .filter((name): name is string => Boolean(name))
+    .map((name) => name.toUpperCase());
+}
+
 function resumeMethod(ir: ReportIR): GeneratedMethod {
   const cases: string[] = [];
+  // The names the continuations declared so far; they share one method. A
+  // renamed one takes none of these and no member's name either.
+  const declared = new Set<string>();
+  const used = new Set(Object.values(globalMemberNames(ir)).map((member) => member.toLowerCase()));
   for (const continuation of ir.continuations ?? []) {
     const statement = ir.statements.find((item) => item.filename === continuation.filename
       && item.span.start.line === continuation.span.start.line
@@ -1422,21 +1418,44 @@ function resumeMethod(ir: ReportIR): GeneratedMethod {
       ?? ir.routines?.find((item) => item.statements?.includes(statement))
       ?? ir.modules?.find((item) => item.statements?.includes(statement));
     const ownerIsModule = ir.modules?.includes(owner as never) === true;
+    const routine = ir.routines?.includes(owner as Routine) ? owner as Routine : undefined;
     const ownerStatements = owner?.statements ?? [];
     let tail = truncateTerminalPaths(resumeTail(ownerStatements, ownerStatements.indexOf(statement)));
     if (isPopupStatement(statement)) tail.unshift(statement);
+    // A FORM's data stays the FORM's own: the tail declares what the FORM
+    // declared before the suspension again, initial.
+    const ownData = routine
+      ? ownerStatements.slice(0, ownerStatements.indexOf(statement)).filter((item) => FORM_DATA_KINDS.has(item.kind))
+      : [];
     // The FORM's own field symbols are declared again here. A binding made
     // before the suspension is gone, so only those the tail binds itself are
     // usable; uses of the others are omitted as unbound.
     const ownSymbols = declaredFieldSymbols(ownerStatements).filter((name) => tail.some((item) => fieldSymbolsIn(item.text).includes(name)));
     const rebound = ownSymbols.filter((name) => tail.some((item) => bindsStatically(item.text, name)));
     tail = [
+      ...ownData,
       ...ownerStatements.filter((item) => item.kind === "FieldSymbol" && rebound.includes(fieldSymbolsIn(item.text)[0])),
       ...tail,
     ];
     let lowered: string[];
     {
       const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
+      if (routine) hideModuleData(ir, context, routine);
+      // A name an earlier continuation declared, with DATA or inline, is taken
+      // in this method. An event's inline DATA( ) is a member already, see
+      // liftInlineDeclarations, and a module's DATA too.
+      if (routine || ownerIsModule) {
+        const names = [...new Set([
+          ...(routine ? declaredDataObjects(ir, tail) : []),
+          ...tail.flatMap((item) => inlineDataIn(item.text)),
+        ].map((name) => name.toLowerCase()))];
+        const renames = names.flatMap((name): Replacement[] => declared.has(name) ? [[name, uniqueName(name, used)]] : []);
+        for (const name of [...names, ...renames.map(([, value]) => value)]) {
+          declared.add(name);
+          used.add(name);
+        }
+        context.replacements = [...renames, ...context.replacements ?? []];
+      }
       context.safeFieldSymbols = context.safeFieldSymbols?.filter((name) => !ownSymbols.includes(name) || rebound.includes(name));
       context.screenStates = ownerIsModule ? storedScreenStates("dynpro")
         : ir.routines?.includes(owner as Routine) ? routineScreenStates(ir, owner as Routine)
@@ -1574,6 +1593,7 @@ function routineBody(ir: ReportIR, routine: Routine): string[] {
     parameters: routine.parameters,
     statements: routine.statements ?? [],
   });
+  hideModuleData(ir, context, routine);
   context.screenStates = routineScreenStates(ir, routine);
   context.contextMenu = /^ON_CTMENU(?:_|$)/i.test(String(routine.name ?? ""));
   context.headerLines = headerLinesIn(ir, routine.name);

@@ -38,6 +38,16 @@ export function hasHeaderLine(declaration: Pick<Declaration, "kind" | "raw">): b
   return declaration.kind === "data" && Boolean(ast && table && ast.has("WITH HEADER LINE", table));
 }
 
+const DATA_KINDS = new Set(["data", "constant", "static", "tables", "databegin", "parameter", "select-option", "ranges"]);
+
+// The declaration of the program's global data object of the given name; a
+// name without one is a type, e.g. a dictionary structure.
+export function globalDataDeclaration(ir: ReportIR, name: string): Declaration | undefined {
+  const upper = name.toUpperCase();
+  return (ir.declarations ?? []).find((item) => DATA_KINDS.has(item.kind) && item.statement?.scope !== "local"
+    && (item.names ?? (item.name ? [item.name] : [beginName(item.raw)])).some((declared) => String(declared ?? "").toUpperCase() === upper));
+}
+
 // The work area a TABLES parameter's header line needs: the parameter's line
 // type, if the FORM names one.
 function parameterWorkArea(parameter: RoutineParameter, ir: ReportIR): string | undefined {
@@ -46,9 +56,7 @@ function parameterWorkArea(parameter: RoutineParameter, ir: ReportIR): string | 
     const base = structure.split("-")[0].toUpperCase();
     const table = (ir.headerLines?.global ?? {})[base];
     if (table) return `LIKE LINE OF ${structure.toLowerCase()}`;
-    const data = (ir.declarations ?? []).some((item) => ["data", "static", "tables", "databegin"].includes(item.kind)
-      && (item.names ?? [beginName(item.raw)]).some((name) => String(name ?? "").toUpperCase() === base));
-    return `${data ? "LIKE" : "TYPE"} ${structure.toLowerCase()}`;
+    return `${globalDataDeclaration(ir, base) ? "LIKE" : "TYPE"} ${structure.toLowerCase()}`;
   }
   // TYPE and LIKE name a table type or a table, whose line the work area is.
   if (["TYPE", "LIKE"].includes(String(parameter.typing ?? "").split(" ")[0].toUpperCase())) return `LIKE LINE OF ${parameter.name}`;
