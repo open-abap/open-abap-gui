@@ -337,9 +337,31 @@ test("members for promoted locals stay within 30 characters and unique", async (
     "mv_ggconv_lt_fieldcatalog_sh_3",
     // Short enough as it is, so no shortened name may take it.
     "mv_ggconv_lt_fieldcatalog_ship",
-    "mv_ggconv_lv_answer_from_the_l",
   ]);
+  assert.match(methodOf(result.classSource, "form_ask"), /DATA lv_answer_from_the_long_popup TYPE c LENGTH 1\./);
   assert.match(result.classSource, /DATA mv_ggconv_lt_fieldcatalog_sh_2 TYPE STANDARD TABLE OF string WITH DEFAULT KEY\./);
   assert.match(result.classSource, /DATA mv_ggconv_lt_fieldcatalog_sh_3 TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
   assert.equal((await convertProgram(input)).classSource, result.classSource);
+});
+
+test("FORM locals stay in the FORM, also around a suspension", async () => {
+  const result = await convertProgram({source: await fixture("regression_form_locals.prog.abap.txt"),
+    filename: "zcv_form_locals.prog.abap", className: "ZCL_CV_FORM_LOCALS", dynproMetadata: {
+      initialScreen: "0100", screens: [{number: "0100"}],
+      flowLogic: [{screen: "0100", pbo: [{name: "SHOW"}], pai: [{name: "ASK"}]}],
+    }});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const source = code(result.classSource);
+  // Only the MODULE's data is a member.
+  assert.deepEqual([...new Set(source.match(/\bmv_ggconv_\w+/g))], ["mv_ggconv_lv_value"]);
+  assert.match(source, /DATA mv_ggconv_lv_value TYPE string\./);
+  assert.match(methodOf(source, "form_show_text"), /DATA lv_value TYPE c LENGTH 10\.\s+lv_value = 'text'\./);
+  assert.match(methodOf(source, "form_show_number"), /DATA lv_value TYPE i\.\s+lv_value = lv_value \+ 1\./);
+  // Each suspended FORM declares its data again in the resumed tail; the
+  // second takes another name, the CASE being one method.
+  const resume = methodOf(source, "zif_gg_resumable_v1~resume");
+  assert.match(resume, /DATA lv_answer TYPE c LENGTH 1\./);
+  assert.match(resume, /DATA lv_answer_2 TYPE i\./);
+  assert.match(resume, /IF lv_answer = '1'\./);
+  assert.match(resume, /IF lv_answer_2 = 1\./);
 });
