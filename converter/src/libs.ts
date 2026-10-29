@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -47,14 +46,11 @@ function listFiles(directory: string, found: string[] = []): string[] {
   return found;
 }
 
-// A resolved include's path feeds the source hash in the generated class
-// header, so the clone lives at a path derived from the url rather than a
-// random mkdtemp one: otherwise every run would emit a different class.
+// Each run clones into a folder of its own, so runs at the same time, e.g. in
+// two checkouts, never remove each other's clones. The generated class does
+// not depend on the folder: the source hash keys an include by its name.
 function cloneLibrary(url: string): string {
-  const name = crypto.createHash("sha256").update(url, "utf8").digest("hex").slice(0, 16);
-  const directory = path.join(os.tmpdir(), "open-abap-gui-convert", name);
-  fs.rmSync(directory, { recursive: true, force: true, maxRetries: 3 });
-  fs.mkdirSync(directory, { recursive: true });
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "open-abap-gui-convert-"));
   try {
     // stdout goes to stderr too, so a --check summary on stdout stays JSON.
     execFileSync("git", ["clone", "--quiet", "--depth", "1", "--", url, "."], { cwd: directory, stdio: ["ignore", 2, 2] });

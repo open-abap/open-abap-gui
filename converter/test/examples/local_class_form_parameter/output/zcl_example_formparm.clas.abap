@@ -19,9 +19,9 @@ CLASS zcl_example_formparm DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_exa
     METHODS form_register_events
       IMPORTING
         io_session  TYPE REF TO zif_gg_session_v1
-        po_document TYPE ref to zcl_example_document
+        po_document TYPE REF TO zcl_example_document
       CHANGING
-        po_receiver TYPE ref to zcl_example_formparm_h1.
+        po_receiver TYPE REF TO zcl_example_formparm_h1.
 
 ENDCLASS.
 
