@@ -2459,11 +2459,7 @@ function helperMethodContext(ir: ReportIR, localClass: LocalClass, localMethod: 
     ...typeNames(localMethod?.definition?.text),
     ...(localMethod?.statements ?? []).flatMap((statement) => typeNames(statement.text)),
   ]);
-  const ownerTypeReplacements = (ir.declarations ?? [])
-    .filter((declaration) => ["type", "typebegin"].includes(declaration.kind))
-    .flatMap((declaration) => (declaration.names ?? [])
-      .filter((name) => localTypeUses.has(name.toUpperCase()))
-      .map((name): Replacement => [name, `${ir.targetClassName!.toLowerCase()}=>${name.toLowerCase()}`]));
+  const ownerTypeReplacements = ownerTypeReplacementsFor(ir, localClass, localTypeUses, localMethod);
   // Constants are static: the helper, a friend, names them by the class.
   const ownerConstantReplacements = Object.entries(globalConstantNames(ir))
     .map(([name, member]): Replacement => [name, `${ir.targetClassName!.toLowerCase()}=>${member}`]);
@@ -2612,17 +2608,27 @@ function alignImporting(definition: string): string {
 function ownerTypeQualifications(ir: ReportIR, localClass: LocalClass, text: string): string {
   const ast = statementAst(text.trim());
   if (!ast) return text;
-  const own = new Set((ir.declarations ?? [])
-    .filter((declaration) => declaration.statement?.localClassName?.toUpperCase() === String(localClass.name ?? "").toUpperCase())
-    .flatMap((declaration) => declaration.names ?? []).map((name) => name.toUpperCase()));
   const used = new Set(ast.findEvery(Expressions.TypeName).map((name) => ast.source(name).split(/-|=>/)[0].toUpperCase()));
-  const owner = ir.targetClassName!.toLowerCase();
-  const replacements = (ir.declarations ?? [])
-    .filter((declaration) => ["type", "typebegin"].includes(declaration.kind) && isReportGlobal(ir, declaration))
-    .flatMap((declaration) => declaration.names ?? [])
-    .filter((name) => used.has(name.toUpperCase()) && !own.has(name.toUpperCase()))
-    .map((name): Replacement => [name, `${owner}=>${name.toLowerCase()}`]);
+  const replacements = ownerTypeReplacementsFor(ir, localClass, used);
   return replacements.length ? replaceIdentifiers(text, replacements) : text;
+}
+
+// The report's types among the names a scope of the local class uses, each
+// qualified by the owner class once. A type the local class declares in its
+// definition, or the method declares itself, hides the report's type of that
+// name; another method's local type is not in scope.
+function ownerTypeReplacementsFor(ir: ReportIR, localClass: LocalClass, used: ReadonlySet<string>, localMethod?: LocalClassMethod): Replacement[] {
+  const isType = (declaration: Declaration) => ["type", "typebegin"].includes(declaration.kind);
+  const className = String(localClass.name ?? "").toUpperCase();
+  const methodStatements = new Set(localMethod?.statements ?? []);
+  const names = (declarations: Declaration[]) => declarations.flatMap((declaration) => declaration.names ?? []).map((name) => name.toUpperCase());
+  const own = new Set(names((ir.declarations ?? []).filter((declaration) => isType(declaration)
+    && (methodStatements.has(declaration.statement)
+      || (declaration.statement?.localClassName?.toUpperCase() === className && declaration.statement?.localClassPart === "definition-body")))));
+  const owner = ir.targetClassName!.toLowerCase();
+  return [...new Set(names((ir.declarations ?? []).filter((declaration) => isType(declaration) && isReportGlobal(ir, declaration))))]
+    .filter((name) => used.has(name) && !own.has(name))
+    .map((name): Replacement => [name, `${owner}=>${name.toLowerCase()}`]);
 }
 
 function helperSource(ir: ReportIR, options: ClassOptions, localClass: LocalClass): string {

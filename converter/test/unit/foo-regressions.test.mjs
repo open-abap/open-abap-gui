@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import {convertProgram, undeclaredFieldSymbols} from "../../build/src/api.js";
 import {applyStyleFixes} from "../../build/src/emit/style-fixes.js";
+import {replaceIdentifiers} from "../../build/src/passes/replace-identifiers.js";
 import {repositoryRoot} from "../repository.mjs";
 
 const fixture = (name) => fs.readFile(path.join(repositoryRoot, "converter", "test", "fixtures", name), "utf8");
@@ -382,4 +383,61 @@ test("resumed tails declaring the same inline DATA take distinct names", async (
   assert.equal(resume.match(/DATA\(lv_text\)/g).length, 1);
   // The FORMs keep their own name.
   assert.match(methodOf(result.classSource, "form_ask_second"), /DATA\(lv_text\) = strlen\( lv_answer \)\./);
+});
+
+test("method-local types of a helper stay in their method, unqualified", async () => {
+  // The local interface is copied as program code (a separate gap), so the
+  // owner class does not validate; the helper must.
+  const result = await convertProgram({source: await fixture("regression_method_local_types.prog.abap.txt"),
+    filename: "z_converter_repro.prog.abap", className: "ZCL_REPRO", mode: "partial"});
+  const helperErrors = result.diagnostics.filter((item) => item.code === "GGCONV-E202" && item.filename === "ZCL_REPRO_H1.clas.abap");
+  assert.deepEqual(helperErrors, []);
+  const helper = result.helperSources[0].source;
+  assert.doesNotMatch(helper, /zcl_repro=>ty_record/);
+  // Each method declares and uses its own ty_record.
+  const exported = methodOf(helper, "lif_repro~export");
+  assert.match(exported, /TYPES BEGIN OF ty_record\.\s+TYPES name TYPE c LENGTH 20\.\s+TYPES id   TYPE n LENGTH 4\.\s+TYPES END OF ty_record\.\s+DATA ls_record TYPE ty_record\./);
+  const validated = methodOf(helper, "lif_repro~validate");
+  assert.match(validated, /TYPES BEGIN OF ty_record\.\s+TYPES status TYPE c LENGTH 1\.\s+TYPES END OF ty_record\.\s+DATA ls_record TYPE ty_record\./);
+});
+
+test("a report type is qualified by the owner once, unless a method declares its own", async () => {
+  const result = await convertProgram({source: await fixture("regression_method_local_types_owner.prog.abap.txt"),
+    filename: "zcv_method_types_owner.prog.abap", className: "ZCL_CV_METHOD_TYPES"});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const helper = result.helperSources[0].source;
+  assert.doesNotMatch(helper, /=>\s*zcl_cv_method_types=>/);
+  // Another method's local ty_record does not hide the report's here.
+  assert.match(helper, /METHODS export IMPORTING is_record TYPE zcl_cv_method_types=>ty_record\./);
+  const exported = methodOf(helper, "export");
+  assert.match(exported, /DATA ls_record TYPE zcl_cv_method_types=>ty_record\./);
+  assert.match(exported, /DATA lt_records TYPE STANDARD TABLE OF zcl_cv_method_types=>ty_record WITH DEFAULT KEY\./);
+  const validated = methodOf(helper, "validate");
+  assert.match(validated, /TYPES BEGIN OF ty_record\.\s+TYPES status TYPE c LENGTH 1\.\s+TYPES END OF ty_record\.\s+DATA ls_record TYPE ty_record\./);
+});
+
+test("qualifying a type name by its class twice leaves it qualified once", () => {
+  const qualify = [["ty_record", "zcl_owner=>ty_record"]];
+  const once = replaceIdentifiers("DATA ls_record TYPE ty_record.", qualify);
+  assert.equal(once, "DATA ls_record TYPE zcl_owner=>ty_record.");
+  assert.equal(replaceIdentifiers(once, qualify), once);
+  // Neither is a component of the type renamed.
+  assert.equal(replaceIdentifiers("DATA lv_name TYPE ty_other-ty_record.", qualify), "DATA lv_name TYPE ty_other-ty_record.");
+});
+
+test("a structure a method declares has its component types aligned", async () => {
+  const result = await convertProgram({source: `REPORT zfoo.
+START-OF-SELECTION.
+  PERFORM show.
+FORM show.
+  TYPES: BEGIN OF ty_r,
+           name TYPE c LENGTH 10,
+           id TYPE n LENGTH 4,
+         END OF ty_r.
+  DATA ls_r TYPE ty_r.
+  ls_r-id = 1.
+  WRITE ls_r-id.
+ENDFORM.`, filename: "zfoo.prog.abap"});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(methodOf(result.classSource, "form_show"), /TYPES name TYPE c LENGTH 10\.\n\s+TYPES id   TYPE n LENGTH 4\./);
 });

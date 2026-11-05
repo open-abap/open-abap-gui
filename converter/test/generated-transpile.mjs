@@ -218,6 +218,7 @@ export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
   const scopeFixtures = [
     { file: "regression_macro_components.prog.abap.txt", className: "ZCL_CV_MACRO", transactionCode: "ZCVMACRO" },
     { file: "regression_helper_owner.prog.abap.txt", className: "ZCL_CV_HELPER", transactionCode: "ZCVHELPER" },
+    { file: "regression_method_local_types_owner.prog.abap.txt", className: "ZCL_CV_METHOD_TYPES", transactionCode: "ZCVMTYPES" },
     { file: "regression_field_symbol_scope.prog.abap.txt", className: "ZCL_CV_FS_SCOPE", transactionCode: "ZCVFSSCOPE" },
     { file: "regression_merged_screen_modules.prog.abap.txt", className: "ZCL_CV_SCREEN_MODULES", transactionCode: "ZCVSCRMOD",
       dynproMetadata: screen({ pbo: [{ name: "SET_FIRST" }, { name: "SET_SECOND" }, { name: "FILL_ROWS" }], pai: [{ name: "CHECK_FIRST" }, { name: "CHECK_SECOND" }] }) },

@@ -2172,7 +2172,7 @@ test("lowers the finite dynamic ALV field-catalog pattern to a typed table", asy
   assert.ok(result.reportIR.dynamicAlv);
   assert.deepEqual(result.reportIR.safeFieldSymbols, ["GT_OUTPUT"]);
   assert.match(result.classSource, /TYPES: BEGIN OF ty_dynamic_alv_row/);
-  assert.match(result.classSource, /active TYPE c LENGTH 1/);
+  assert.match(result.classSource, /active\s+TYPE c LENGTH 1/);
   assert.match(result.classSource, /DATA gt_output TYPE ty_dynamic_alv_rows/);
   assert.match(result.classSource, /GET REFERENCE OF gt_output INTO gr_table/);
   assert.doesNotMatch(result.classSource, /Dynamic ALV output unavailable|TODO GGCONV/);

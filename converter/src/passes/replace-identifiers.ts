@@ -38,13 +38,24 @@ function inComponentList(entry: TokenEntry): boolean {
   return COMPONENT_LISTS.has(siblings[index]?.getFirstToken().getUpperStr() ?? "");
 }
 
+// abaplint reads a type name, `zcl_owner=>ty_row-name`, as one expression of
+// plain names. Only its first name is looked up in scope; one after `=>`,
+// `->` or `-` is a type of that class or a component of that type, so
+// qualifying ty_row as zcl_owner=>ty_row twice does not nest it.
+function inTypeNameQualified(entry: TokenEntry): boolean {
+  if (!(entry.parent.get() instanceof Expressions.TypeName)) return false;
+  const siblings = entry.parent.getChildren();
+  const previous = siblings[siblings.indexOf(entry.node) - 1];
+  return previous !== undefined && ["=>", "->", "-"].includes(previous.getFirstToken().getStr());
+}
+
 // A name token that refers to a data object, class or type. A keyword spelled
 // like the name, VALUE in VALUE #( ), is none, and neither is a match inside a
 // literal, a template's text or a field symbol: no name starts there.
 export function isReference(entry: TokenEntry | undefined): boolean {
   if (!entry || !(entry.node instanceof Nodes.TokenNodeRegex)) return false;
   const parent = entry.parent.get();
-  return !NAMES.some((type) => parent instanceof type) && !inComponentList(entry);
+  return !NAMES.some((type) => parent instanceof type) && !inComponentList(entry) && !inTypeNameQualified(entry);
 }
 
 // Applies [pattern, replacement] pairs in order, each to the result of the

@@ -10,9 +10,10 @@ const DECLARATIONS = new Set([
 
 // Lowering writes each statement on one line. The quick fixes of these
 // abaplint rules give a call with several parameters one line per parameter,
-// aligned, and drop a chain colon that chains nothing, as the repository's
-// lint configuration asks.
-const RULES = ["line_break_multiple_parameters", "align_parameters", "unnecessary_chaining", "indentation"];
+// aligned, drop a chain colon that chains nothing, and align the TYPE of a
+// structure a method declares one component per statement, as the
+// repository's lint configuration asks.
+const RULES = ["line_break_multiple_parameters", "align_parameters", "unnecessary_chaining", "align_type_expressions", "indentation"];
 const MAX_EDITS = 500;
 
 // Building every abaplint rule and the default config is costly; both are

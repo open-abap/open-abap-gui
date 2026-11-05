@@ -1,0 +1,28 @@
+REPORT z_converter_repro.
+
+INTERFACE lif_repro.
+  METHODS export.
+  METHODS validate.
+ENDINTERFACE.
+
+CLASS lcl_repro DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES lif_repro.
+ENDCLASS.
+
+CLASS lcl_repro IMPLEMENTATION.
+  METHOD lif_repro~export.
+    TYPES: BEGIN OF ty_record,
+             name TYPE c LENGTH 20,
+             id   TYPE n LENGTH 4,
+           END OF ty_record.
+    DATA ls_record TYPE ty_record.
+  ENDMETHOD.
+
+  METHOD lif_repro~validate.
+    TYPES: BEGIN OF ty_record,
+             status TYPE c LENGTH 1,
+           END OF ty_record.
+    DATA ls_record TYPE ty_record.
+  ENDMETHOD.
+ENDCLASS.
