@@ -62,12 +62,34 @@ function hasKeyword(ast: StatementAst, words: string[]): boolean {
 // operand: a data object, a dereference, a table expression or a component of
 // one. Only a name resolved at runtime - `(name)`, `->(attr)`, `=>(attr)`,
 // TABLE FIELD - loses its meaning, because the program's data was renamed and
-// moved into the class. The additions here are obsolete forms classes reject.
+// moved into the class. The additions here are obsolete forms classes reject:
+// TYPE and DECIMALS without CASTING among them. CASTING itself, with a type
+// named statically, binds as determined as the plain ASSIGN; only
+// CASTING TYPE (name) and LIKE (name) name the type at runtime.
 export function isStaticAssign(text: string): boolean {
   const ast = statementAst(String(text ?? ""));
-  if (!ast?.is(Statements.Assign) || hasKeyword(ast, ["CASTING", "INCREMENTING", "DECIMALS", "RANGE", "ELSEWHERE"])
+  if (!ast?.is(Statements.Assign) || hasKeyword(ast, ["INCREMENTING", "RANGE", "ELSEWHERE"])
       || /^ASSIGN LOCAL COPY /.test(ast.words())) return false;
+  if (ast.hasPhrase("CASTING") ? ast.findDirect(Expressions.Dynamic) : ast.hasPhrase("TYPE") || ast.hasPhrase("DECIMALS")) return false;
   return !ast.findDirect(Expressions.AssignSource)?.findDirectExpression(Expressions.Dynamic);
+}
+
+/**
+ * A FIELD-SYMBOLS declaration as a method declares it. Classes reject the
+ * obsolete untyped form, `FIELD-SYMBOLS <fs>.`, which types the field symbol
+ * generically, as TYPE any does. The obsolete form also starts out assigned
+ * to SPACE, TYPE any unassigned, so only a read before the first ASSIGN
+ * differs. Undefined for the STRUCTURE form, which casts every assignment and
+ * has no such counterpart.
+ */
+export function methodFieldSymbolDeclaration(text: string): string | undefined {
+  const ast = statementAst(String(text ?? ""));
+  if (!ast?.is(Statements.FieldSymbol) || ast.hasPhrase("STRUCTURE")) return undefined;
+  if (ast.findDirect(Expressions.Type) ?? ast.findDirect(Expressions.TypeTable)) return text;
+  const name = ast.findDirect(Expressions.FieldSymbol);
+  if (!name) return undefined;
+  const end = ast.end(name);
+  return `${text.slice(0, end)} TYPE any${text.slice(end)}`;
 }
 
 // The field symbol an ASSIGN binds, declared inline or not.

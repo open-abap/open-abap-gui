@@ -2,7 +2,7 @@ import { diagnostic } from "./diagnostics.js";
 import { eventName, normalizedText } from "./passes/classify-program.js";
 import { isLocalClassStructural } from "./passes/collect-local-classes.js";
 import { LOWERING_RULES, classicWriteFormatSupported, dynamicWriteOperand, isMethodSafeLoop, isStaticAssign, writeToTarget } from "./passes/lower-statements.js";
-import { isAmbiguousScreenRoutine } from "./passes/screen-states.js";
+import { isAmbiguousScreenRoutine, unmappedScreenComponents } from "./passes/screen-states.js";
 import { Expressions } from "@abaplint/core";
 import { leadingWords, statementAst } from "./abap/ast.js";
 import { bindsStatically, declaredFieldSymbols, fieldSymbolsIn, performedForm } from "./abap/statements.js";
@@ -98,6 +98,11 @@ export function scanCapabilities(ir: ReportIR, statements: Statement[], { mode =
   }
   for (const statement of statements) {
     if (isLocalClassStructural(statement)) continue;
+    const unmapped = unmappedScreenComponents(statement.text);
+    if (unmapped.length) {
+      addStatementDiagnostic(diagnostics, statement, `${unmapped.map((component) => `SCREEN-${component}`).join(" and ")} ${unmapped.length > 1 ? "have" : "has"} no counterpart in the converted screen state`, "Remove the use, or convert the statement manually.");
+      continue;
+    }
     if (statement.kind === "FieldSymbol") {
       if (ir.safeFieldSymbols?.includes(fieldSymbolsIn(statement.text)[0])) continue;
       addStatementDiagnostic(diagnostics, statement, "field-symbol declarations require method-local binding analysis", "Move the field symbol into a generated method or provide an explicit field-symbol lowering rule.", "GGCONV-E501");

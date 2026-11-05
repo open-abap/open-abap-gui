@@ -99,7 +99,8 @@ export function renameStarWorkAreas(statements: Statement[]): void {
 // of its structure's declaration and has no name of its own in the program, so
 // two structures can share component names. Its names are kept as
 // componentNames, out of the names and entries every symbol consumer reads.
-// The parts of a COMMON PART are data objects in their own right.
+// The same holds for the components of CONSTANTS: BEGIN OF. The parts of a
+// COMMON PART are data objects in their own right.
 function isCommonPart(statement: Statement): boolean {
   return /^DATA (?:BEGIN|END) OF COMMON PART(?: |$)/.test(statementAst(statement.text)?.words() ?? "");
 }
@@ -108,9 +109,9 @@ export function collectDeclarations(statements: Statement[]): Declaration[] {
   let depth = 0;
   return statements.filter((statement) => DECLARATION_KINDS.has(statement.kind)).map((statement) => {
     const info = declarationInfo(statement);
-    if (statement.kind === "DataEnd" && !isCommonPart(statement)) depth = Math.max(0, depth - 1);
-    const component = depth > 0 && statement.kind === "Data";
-    if (statement.kind === "DataBegin" && !isCommonPart(statement)) depth++;
+    if ((statement.kind === "DataEnd" && !isCommonPart(statement)) || statement.kind === "ConstantEnd") depth = Math.max(0, depth - 1);
+    const component = depth > 0 && (statement.kind === "Data" || statement.kind === "Constant");
+    if ((statement.kind === "DataBegin" && !isCommonPart(statement)) || statement.kind === "ConstantBegin") depth++;
     if (!component) return { ...info, statement };
     const { names, entries, ...rest } = info;
     return { ...rest, names: [], entries: [], componentNames: names, component: true, statement };

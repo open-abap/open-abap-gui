@@ -1,6 +1,6 @@
 import { textLiteral } from "./abap-text.js";
 import { bindsStatically, controlObjectTypes, iconWrite, literalAssignment, lowerStatements, rebindingCall, restoreFieldSymbols, selectionExpression, selectionType, startValueAssignment, systemFieldStartValue } from "../passes/lower-statements.js";
-import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.js";
+import { dynproStatesSetter, routineScreenStates, screenStateMembers, screenStatePlan, screenWorkAreaKinds, selectionStatesSetter, storedScreenStates } from "../passes/screen-states.js";
 import { scaffoldIR } from "../ir/scaffold-ir.js";
 import { hasProgramMetadata } from "../passes/select-interfaces.js";
 import { BLOCK_BRANCHES, BLOCK_ENDS, BLOCK_OPENERS, closesBlock } from "../passes/blocks.js";
@@ -12,7 +12,7 @@ import type { SelectionOptions } from "../passes/collect-selection-screens.js";
 import { eventQualifier } from "../passes/classify-program.js";
 import { Expressions, Tokens } from "@abaplint/core";
 import { isKeyword, leadingWords, lexedAst, statementAst } from "../abap/ast.js";
-import { controlsDeclaration, declarationBody, declaredDataNames, declaredFieldSymbols, declaredName, fieldSymbolsIn, inlineDataIn, inlineFieldSymbolsIn, mentions, methodDefinition, refToName } from "../abap/statements.js";
+import { controlsDeclaration, declarationBody, declaredDataNames, declaredFieldSymbols, declaredName, fieldSymbolsIn, inlineDataIn, inlineFieldSymbolsIn, mentions, methodDefinition, methodFieldSymbolDeclaration, refToName } from "../abap/statements.js";
 import { replaceIdentifiers } from "../passes/replace-identifiers.js";
 import { hasHeaderLine, headerLineDeclarations, headerLinesIn, withoutHeaderLines } from "../passes/header-lines.js";
 import { likeHeads, likeTyping, scopedMember } from "../passes/like-typing.js";
@@ -965,6 +965,7 @@ function methodContext(ir: ReportIR, event: string, {parameters = [], statements
       })]))),
     sessionVariable: "io_session",
     ownerPrefix: "",
+    screenWorkAreas: screenWorkAreaKinds(ir),
     localClassOwner: "me",
   };
 }
@@ -987,7 +988,8 @@ function globalFieldSymbolDeclarations(ir: ReportIR, statements: Statement[] | u
     .map((declaration) => {
       // Typed like a report global, which may have been renamed or have had
       // a header line.
-      return replaceIdentifiers(withoutHeaderLines(declaration.raw.replace(/,\s*$/, "."), ir.headerLines?.global ?? {}), context?.replacements ?? []);
+      const raw = declaration.raw.replace(/,\s*$/, ".");
+      return replaceIdentifiers(withoutHeaderLines(methodFieldSymbolDeclaration(raw) ?? raw, ir.headerLines?.global ?? {}), context?.replacements ?? []);
     });
   const kept = Object.keys(ir.fieldSymbolReferences ?? {}).filter(uses);
   // Not where the method binds it before anything else uses it.
@@ -1408,6 +1410,8 @@ function resumeMethod(ir: ReportIR): GeneratedMethod {
   // renamed one takes none of these and no member's name either.
   const declared = new Set<string>();
   const used = new Set(Object.values(globalMemberNames(ir)).map((member) => member.toLowerCase()));
+  // So do their temporaries, lv_perform_1 and the like.
+  const temporaries = { count: 0 };
   for (const continuation of ir.continuations ?? []) {
     const statement = ir.statements.find((item) => item.filename === continuation.filename
       && item.span.start.line === continuation.span.start.line
@@ -1440,6 +1444,7 @@ function resumeMethod(ir: ReportIR): GeneratedMethod {
     let lowered: string[];
     {
       const context = methodContext(ir, ownerIsModule ? "dynpro" : "resume");
+      context.temporaries = temporaries;
       if (routine) hideModuleData(ir, context, routine);
       // A name an earlier continuation declared, with DATA or inline, is taken
       // in this method. An event's inline DATA( ) is a member already, see
@@ -1659,6 +1664,11 @@ function dynproControl(element: Metadata): string {
     ?? element.attributes?.modifid
     ?? element.attributes?.group1;
   if (modifId) fields.push("modif_id = '" + String(modifId).toUpperCase() + "'");
+  // Modification groups 2 to 4, SCREEN-GROUP2 to SCREEN-GROUP4.
+  for (const group of ["group2", "group3", "group4"]) {
+    const value = element.attributes?.[group];
+    if (value) fields.push(`${group} = '${String(value).toUpperCase()}'`);
+  }
   return "VALUE #( " + fields.join(" ") + " )";
 }
 
@@ -2227,11 +2237,14 @@ function dynproMethods(ir: ReportIR, metadata: Metadata | undefined = ir.dynproM
     if (!modules.length) return [];
     const lines = ["CASE is_context-module."];
     const screenStateNames = moduleFieldSymbolNames(modules);
+    // The modules are lowered into one method; their temporaries share it.
+    const temporaries = { count: 0 };
     for (const module of modules) {
       const context: LoweringContext = {
         ...methodContext(ir, "dynpro"),
         ucomm: "is_context-ucomm",
         screenStateNames,
+        temporaries,
         ...(direction === "OUTPUT" ? {} : { screenStates: storedScreenStates("dynpro", { row: "is_context-row" }) }),
       };
       const body = [
@@ -2310,11 +2323,14 @@ function dynproMethods(ir: ReportIR, metadata: Metadata | undefined = ir.dynproM
       "CASE is_context-module.",
     );
     const screenStateNames = moduleFieldSymbolNames(modules);
+    // The modules are lowered into one method; their temporaries share it.
+    const temporaries = { count: 0 };
     for (const module of modules) {
       const context: LoweringContext = {
         ...methodContext(ir, "dynpro"),
         ucomm: "is_context-ucomm",
         screenStateNames,
+        temporaries,
         screenStates: storedScreenStates("dynpro", { row: "is_context-row" }),
       };
       const body = [
@@ -2430,6 +2446,26 @@ function localClassParameterTypes(definition: string | undefined, localClasses: 
   return result;
 }
 
+// The data objects a local-class method declares, inline ones included, and
+// its parameters, upper case. Components of its own structures are not.
+function methodOwnNames(localMethod: LocalClassMethod | undefined): Set<string> {
+  const names = new Set<string>();
+  let depth = 0;
+  for (const statement of localMethod?.statements ?? []) {
+    if (["DataEnd", "StaticEnd", "ConstantEnd"].includes(statement.kind)) depth = Math.max(0, depth - 1);
+    else if (["DataBegin", "StaticBegin", "ConstantBegin"].includes(statement.kind)) {
+      if (depth++ === 0) names.add(String(declaredName(statement.text)).toUpperCase());
+    } else if (["Data", "Static", "Constant"].includes(statement.kind) && depth === 0) {
+      names.add(String(declaredName(statement.text)).toUpperCase());
+    }
+    for (const name of inlineDataIn(statement.text)) names.add(name);
+  }
+  const definition = statementAst(String(localMethod?.definition?.text ?? "").trim());
+  for (const parameter of definition?.findEvery(Expressions.MethodParamName) ?? []) names.add(definition!.source(parameter).toUpperCase());
+  names.delete("UNDEFINED");
+  return names;
+}
+
 function helperMethodContext(ir: ReportIR, localClass: LocalClass, localMethod: LocalClassMethod | undefined): LoweringContext {
   const isStaticMethod = (localClass.definition ?? []).some((statement) => {
     const definition = methodDefinition(statement.text);
@@ -2450,6 +2486,9 @@ function helperMethodContext(ir: ReportIR, localClass: LocalClass, localMethod: 
   context.localClassName = String(localClass.name ?? "").toUpperCase();
   const ownerReplacements = Object.fromEntries(Object.entries(globalMemberNames(ir))
     .map(([name, member]) => [name, `${context.ownerPrefix}${member}`]));
+  // A method's own data and parameters hide the report's of the same name,
+  // DATA(lv_count) included, so those are not the owner's members.
+  const ownNames = methodOwnNames(localMethod);
   // The types the method names, in its definition and its statements.
   const typeNames = (text: string | undefined) => {
     const ast = statementAst(String(text ?? "").trim());
@@ -2479,7 +2518,7 @@ function helperMethodContext(ir: ReportIR, localClass: LocalClass, localMethod: 
         return [...fields, [item.name!, reference] as Replacement];
       })),
     ...Object.entries(ir.localClassRenames ?? {}).map(([name, value]): Replacement => [name, String(value).toLowerCase()]),
-  ];
+  ].filter(([name]) => !ownNames.has(String(name).split("-")[0].toUpperCase()));
   context.controlObjectTypes = {
     ...controlObjectTypes(ir.declarations ?? [], ir.localClasses ?? [], {
       statements: localMethod?.statements ?? [],

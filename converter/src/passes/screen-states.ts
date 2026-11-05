@@ -4,6 +4,12 @@
 // AT SCREEN anywhere else runs over that attribute. The selection-screen and
 // dynpro states have different types, so each has its own attribute, and a
 // FORM loops over the one of the screens it is called for.
+//
+// The SCREEN work area is a program global too: a FORM performed inside LOOP AT
+// SCREEN reads and changes the row the loop is on through SCREEN-INPUT and the
+// like. Each LOOP AT SCREEN therefore keeps a reference to its current row in
+// an attribute, and SCREEN outside a LOOP AT SCREEN of its own goes through it.
+import { lexedAst } from "../abap/ast.js";
 import { performedForm } from "../abap/statements.js";
 import type { ReportIR, Routine, Statement } from "../types.js";
 
@@ -13,6 +19,9 @@ export interface ScreenStates {
   guard?: string;
   row?: string;
   todo?: string;
+  // The reference to the current row, which SCREEN outside a LOOP AT SCREEN
+  // of the same method reads.
+  workArea?: string;
 }
 
 interface ScreenStatePlan {
@@ -20,14 +29,63 @@ interface ScreenStatePlan {
   routines: Map<string, { kind: "selection" | "dynpro"; ambiguous: boolean }>;
   selection: boolean;
   dynpro: boolean;
+  workAreas: Set<"selection" | "dynpro">;
 }
 
 const SELECTION_STATES = "mr_selection_states";
 const DYNPRO_STATES = "mr_dynpro_states";
 const DYNPRO_ROW = "mv_dynpro_row";
+const SELECTION_SCREEN = "mr_selection_screen";
+const DYNPRO_SCREEN = "mr_dynpro_screen";
 
 function hasLoopAtScreen(statements: Statement[] | undefined): boolean {
   return (statements ?? []).some((statement) => statement.kind === "LoopAtScreen");
+}
+
+// The SCREEN components the selection-screen and dynpro states carry, under
+// these names or others, see dataValueRewrites in lower-statements.ts.
+const SCREEN_COMPONENTS = new Set([
+  "NAME", "GROUP1", "GROUP2", "GROUP3", "GROUP4", "INVISIBLE", "ACTIVE", "REQUIRED", "INTENSIFIED", "INPUT", "OUTPUT", "VALUE_HELP",
+]);
+
+/**
+ * The components of the SCREEN work area a statement names, upper case: INPUT
+ * for SCREEN-INPUT. Not a component of another structure, ls_x-screen-input,
+ * and not the type SCREEN in LIKE screen-input or TYPE screen-input.
+ */
+function screenComponents(text: string): string[] {
+  const tokens = lexedAst(text)?.tokens() ?? [];
+  return tokens.flatMap((entry, index) => entry.token.getUpperStr() === "SCREEN" && tokens[index + 1]?.token.getStr() === "-"
+    && tokens[index + 1].start === entry.end && tokens[index + 2]?.start === tokens[index + 1].end
+    && !["-", "=>", "->", "LIKE", "TYPE", "OF"].includes(tokens[index - 1]?.token.getUpperStr() ?? "") ? [tokens[index + 2].token.getUpperStr()] : []);
+}
+
+/** Whether a statement names a component of the SCREEN work area, SCREEN-INPUT say. */
+export function usesScreenWorkArea(text: string): boolean {
+  return screenComponents(text).length > 0;
+}
+
+/** The SCREEN components a statement names that no screen state has, SCREEN-LENGTH say. */
+export function unmappedScreenComponents(text: string): string[] {
+  return [...new Set(screenComponents(text).filter((component) => !SCREEN_COMPONENTS.has(component)))];
+}
+
+// SCREEN used where no LOOP AT SCREEN of the same statements runs: in a FORM
+// performed from inside the loop, or after it.
+function usesScreenOutsideLoop(statements: Statement[] | undefined): boolean {
+  const loops: boolean[] = [];
+  for (const statement of statements ?? []) {
+    if (statement.kind === "LoopAtScreen") loops.push(true);
+    else if (statement.kind === "Loop") loops.push(false);
+    else if (statement.kind === "EndLoop") loops.pop();
+    else if (!loops.includes(true) && usesScreenWorkArea(statement.text)) return true;
+  }
+  return false;
+}
+
+/** The attribute holding the row the last LOOP AT SCREEN of a kind is on. */
+export function screenWorkArea(kind: "selection" | "dynpro", owner = ""): string {
+  return `${owner}${kind === "dynpro" ? DYNPRO_SCREEN : SELECTION_SCREEN}`;
 }
 
 function performedRoutines(ir: ReportIR, statementLists: Statement[][]): Set<string> {
@@ -63,8 +121,10 @@ export function screenStatePlan(ir: ReportIR): ScreenStatePlan {
   const dynproAny = performedRoutines(ir, modules.map((module) => module.statements));
   const needed = new Set<"selection" | "dynpro">();
   const routines: ScreenStatePlan["routines"] = new Map();
+  const workAreas = new Set<"selection" | "dynpro">();
   for (const routine of ir.routines ?? []) {
-    if (!hasLoopAtScreen(routine.statements)) continue;
+    const outside = usesScreenOutsideLoop(routine.statements);
+    if (!hasLoopAtScreen(routine.statements) && !outside) continue;
     const callers = (selection: Set<string>, dynpro: Set<string>): ("selection" | "dynpro")[] => [
       ...(selection.has(routine.name) ? ["selection" as const] : []),
       ...(dynpro.has(routine.name) ? ["dynpro" as const] : []),
@@ -73,8 +133,12 @@ export function screenStatePlan(ir: ReportIR): ScreenStatePlan {
     if (!kinds.length) kinds = callers(selectionAny, dynproAny);
     const kind = kinds.length === 1 ? kinds[0] : defaultKind;
     routines.set(routine.name, { kind, ambiguous: kinds.length > 1 });
-    needed.add(kind);
+    if (hasLoopAtScreen(routine.statements)) needed.add(kind);
+    if (outside) workAreas.add(kind);
   }
+  if (blocks.some((block) => usesScreenOutsideLoop(block.statements))) workAreas.add(defaultKind);
+  if (modules.some((module) => usesScreenOutsideLoop(module.statements))) workAreas.add("dynpro");
+  if ((ir.localClasses ?? []).some((localClass) => (localClass.methods ?? []).some((localMethod) => usesScreenOutsideLoop(localMethod.statements)))) workAreas.add(defaultKind);
   if (blocks.some((block) => block.event !== "at_selection_screen_output" && hasLoopAtScreen(block.statements))) needed.add(defaultKind);
   if (modules.some((module) => module.direction !== "OUTPUT" && hasLoopAtScreen(module.statements))) needed.add("dynpro");
   if ((ir.localClasses ?? []).some((localClass) => (localClass.methods ?? []).some((localMethod) => hasLoopAtScreen(localMethod.statements)))) needed.add(defaultKind);
@@ -83,7 +147,7 @@ export function screenStatePlan(ir: ReportIR): ScreenStatePlan {
     if (blocks.some((block) => block.event === "at_selection_screen_output" && hasLoopAtScreen(block.statements))) needed.add("selection");
     if (modules.some((module) => module.direction === "OUTPUT" && hasLoopAtScreen(module.statements))) needed.add("dynpro");
   }
-  const plan = { defaultKind, routines, selection: needed.has("selection"), dynpro: needed.has("dynpro") };
+  const plan = { defaultKind, routines, selection: needed.has("selection"), dynpro: needed.has("dynpro"), workAreas };
   plans.set(ir, plan);
   return plan;
 }
@@ -97,7 +161,14 @@ export function screenStateMembers(ir: ReportIR): string[] {
   return [
     ...(plan.selection ? [`DATA ${SELECTION_STATES} TYPE REF TO zif_gg_selection_screen_types=>ty_states.`] : []),
     ...(plan.dynpro ? [`DATA ${DYNPRO_STATES} TYPE REF TO zif_gg_dynpro_types_v1=>ty_states.`, `DATA ${DYNPRO_ROW} TYPE i.`] : []),
+    ...(plan.workAreas.has("selection") ? [`DATA ${SELECTION_SCREEN} TYPE REF TO zif_gg_selection_screen_types=>ty_state.`] : []),
+    ...(plan.workAreas.has("dynpro") ? [`DATA ${DYNPRO_SCREEN} TYPE REF TO zif_gg_dynpro_types_v1=>ty_state.`] : []),
   ];
+}
+
+/** The kinds of screen whose LOOP AT SCREEN keeps its current row, see screenWorkArea. */
+export function screenWorkAreaKinds(ir: ReportIR): ("selection" | "dynpro")[] {
+  return [...screenStatePlan(ir).workAreas].sort();
 }
 
 export function selectionStatesSetter(ir: ReportIR): string[] {
@@ -113,7 +184,7 @@ export function dynproStatesSetter(ir: ReportIR): string[] {
 // row a dynpro module runs for.
 export function storedScreenStates(kind: "selection" | "dynpro", {owner = "", row = `${owner}${DYNPRO_ROW}`, todo}: { owner?: string; row?: string; todo?: string } = {}): ScreenStates {
   const attribute = `${owner}${kind === "dynpro" ? DYNPRO_STATES : SELECTION_STATES}`;
-  return { kind, table: `${attribute}->*`, guard: attribute, ...(kind === "dynpro" ? { row } : {}), ...(todo ? { todo } : {}) };
+  return { kind, table: `${attribute}->*`, guard: attribute, workArea: screenWorkArea(kind, owner), ...(kind === "dynpro" ? { row } : {}), ...(todo ? { todo } : {}) };
 }
 
 export function routineScreenStates(ir: ReportIR, routine: Routine | undefined): ScreenStates {

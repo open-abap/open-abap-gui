@@ -65,6 +65,10 @@ export function isReference(entry: TokenEntry | undefined): boolean {
 export function replaceIdentifiers(text: string | undefined, replacements: readonly Replacement[] | undefined): string {
   let output = String(text ?? "");
   for (const [name, replacement] of replacements ?? []) {
+    // A data object reached through a reference, a table row or a call is no
+    // type: a TABLES work area moved to the owner class, mo_owner->sflight, is
+    // still typed TYPE sflight, its dictionary structure.
+    const dataOnly = /->|\[|\(/.test(replacement);
     const pattern = new RegExp(`\\b(?:${name})\\b`, "gi");
     if (!pattern.test(output)) continue;
     const ast = fragmentAst(output);
@@ -75,7 +79,8 @@ export function replaceIdentifiers(text: string | undefined, replacements: reado
     let result = "";
     let last = 0;
     for (const match of output.matchAll(pattern)) {
-      if (!isReference(ast.tokenAt(match.index))) continue;
+      const entry = ast.tokenAt(match.index);
+      if (!isReference(entry) || (dataOnly && entry!.parent.get() instanceof Expressions.TypeName)) continue;
       result += output.slice(last, match.index) + match[0].replace(whole, replacement);
       last = match.index + match[0].length;
     }

@@ -37,7 +37,9 @@
     "xml_bom": false,
     "no_prefixes": false,
     "clear_exporting_parameters": true,
-    "no_macros": true,
+    "no_macros": {
+      "exclude": ["zgg_ex_208\\.prog\\.abap$", "zgg_ex_208_f01\\.prog\\.abap$", "zgg_ex_214\\.prog\\.abap$", "zgg_ex_214_f01\\.prog\\.abap$"]
+    },
     "no_mandt_in_database_operations": {
       "exclude": ["zgg_ex_183\\.prog\\.abap$", "zcl_gg_ex_183\\.clas\\.abap$"]
     },
@@ -54,7 +56,9 @@
     "empty_event": true,
     "fm_global_parameters_obsolete": true,
     "identical_move": true,
-    "macro_naming": true,
+    "macro_naming": {
+      "exclude": ["zgg_ex_208\\.prog\\.abap$", "zgg_ex_208_f01\\.prog\\.abap$", "zgg_ex_214\\.prog\\.abap$", "zgg_ex_214_f01\\.prog\\.abap$"]
+    },
     "no_comments_between_methods": true,
     "reduce_procedural_code": true,
     "select_single_full_key": false,
@@ -64,13 +68,17 @@
     "strict_sql": true,
     "tables_declared_locally": true,
     "unnecessary_return": false,
-    "unused_macros": true,
+    "unused_macros": {
+      "exclude": ["zgg_ex_208\\.prog\\.abap$", "zgg_ex_208_f01\\.prog\\.abap$", "zgg_ex_214\\.prog\\.abap$", "zgg_ex_214_f01\\.prog\\.abap$"]
+    },
     "aff_and_xml": true,
     "implicit_start_of_selection": true,
     "parser_bad_exceptions": true,
     "index_completely_contained": true,
     "cds_legacy_view": true,
-    "expand_macros": true,
+    "expand_macros": {
+      "exclude": ["zgg_ex_208\\.prog\\.abap$", "zgg_ex_208_f01\\.prog\\.abap$", "zgg_ex_214\\.prog\\.abap$", "zgg_ex_214_f01\\.prog\\.abap$"]
+    },
     "fully_type_itabs": {
       "exclude": ["kkblo.type.abap", "slis.type.abap", "zcl_gg_ex_205\\.clas\\.abap$"]
     },
@@ -255,6 +263,7 @@
     "when_others_last": true,
     "newline_between_methods": true,
     "avoid_use": {
+      "exclude": ["zgg_ex_208\\.prog\\.abap$", "zgg_ex_208_f01\\.prog\\.abap$", "zgg_ex_214\\.prog\\.abap$", "zgg_ex_214_f01\\.prog\\.abap$"],
       "define": true,
       "describeLines": true,
       "testSeams": true,
