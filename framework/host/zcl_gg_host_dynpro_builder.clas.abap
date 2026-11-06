@@ -16,6 +16,9 @@ CLASS zcl_gg_host_dynpro_builder DEFINITION PUBLIC FINAL CREATE PUBLIC.
              position        TYPE zif_gg_dynpro_types_v1=>ty_position,
              data_type       TYPE zif_gg_dynpro_types_v1=>ty_data_type,
              modif_id        TYPE zif_gg_dynpro_types_v1=>ty_modif_id,
+             group2          TYPE zif_gg_dynpro_types_v1=>ty_modif_id,
+             group3          TYPE zif_gg_dynpro_types_v1=>ty_modif_id,
+             group4          TYPE zif_gg_dynpro_types_v1=>ty_modif_id,
              search_help     TYPE zif_gg_dynpro_types_v1=>ty_name,
              value_help      TYPE abap_bool,
              uppercase       TYPE abap_bool,
@@ -81,6 +84,9 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
                     position     = is_input_field-control-position
                     data_type    = is_input_field-data_type
                     modif_id     = is_input_field-control-modif_id
+                    group2       = is_input_field-control-group2
+                    group3       = is_input_field-control-group3
+                    group4       = is_input_field-control-group4
                     search_help  = is_input_field-search_help
                     value_help   = is_input_field-value_help
                     uppercase    = is_input_field-uppercase
@@ -99,6 +105,9 @@ CLASS zcl_gg_host_dynpro_builder IMPLEMENTATION.
                     position  = is_output_field-control-position
                     data_type = is_output_field-data_type
                     modif_id  = is_output_field-control-modif_id
+                    group2    = is_output_field-control-group2
+                    group3    = is_output_field-control-group3
+                    group4    = is_output_field-control-group4
                     enabled   = abap_false
                     visible   = abap_true
                     input     = abap_false ) TO mt_controls.

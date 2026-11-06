@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { convertProgram } from "../build/src/api.js";
-import { repositoryRoot } from "./repository.mjs";
+import { examplePrograms, examplesFolder as directory } from "./repository.mjs";
 
-const directory = path.join(repositoryRoot, "examples");
-const names = (await fs.readdir(directory)).filter((name) => name.endsWith(".prog.abap")).sort();
+const names = await examplePrograms();
 const byKind = new Map();
 let statementCount = 0;
 
@@ -13,6 +12,7 @@ for (const name of names) {
   const result = await convertProgram({
     source: await fs.readFile(path.join(directory, name), "utf8"),
     filename: name,
+    includePaths: [directory],
     mode: "partial",
   });
   const capabilities = result.reportIR?.capabilities ?? [];

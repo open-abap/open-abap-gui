@@ -1,7 +1,7 @@
 PROGRAM zcv_long_names.
 
-* Module data and FORM locals live across a suspension become members named
-* mv_ggconv_<name>, which must stay within 30 characters and unique.
+* Module data becomes members named mv_ggconv_<name>, which must stay within
+* 30 characters and unique. The FORM's local stays in its method.
 MODULE build INPUT.
   DATA lt_fieldcatalog_shiptype TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
   DATA lt_fieldcatalog_shiptypf TYPE STANDARD TABLE OF i WITH DEFAULT KEY.

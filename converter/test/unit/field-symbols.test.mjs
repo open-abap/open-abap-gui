@@ -169,14 +169,15 @@ test("a LOOP is method-safe when it names a target, whatever its table operand",
 });
 
 test("field symbols and loops with no class equivalent are still reported", async () => {
-  // An untyped or STRUCTURE-typed field symbol cannot be declared in a class.
-  for (const declaration of ["FIELD-SYMBOLS <ls_row>.", "FIELD-SYMBOLS <ls_row> STRUCTURE gs_row DEFAULT gs_row."]) {
+  // A STRUCTURE-typed field symbol has no class counterpart. An untyped one is
+  // TYPE any, see GGCONV-REG-046.
+  for (const [declaration, rejected] of [["FIELD-SYMBOLS <ls_row>.", false], ["FIELD-SYMBOLS <ls_row> STRUCTURE gs_row DEFAULT gs_row.", true]]) {
     const result = await convertProgram({
       source: `REPORT zfs_untyped.\nDATA gs_row TYPE i.\n${declaration}\nSTART-OF-SELECTION.\n  ASSIGN gs_row TO <ls_row>.\n  WRITE <ls_row>.`,
       filename: "zfs_untyped.prog.abap",
       mode: "partial",
     });
-    assert.ok(errors(result, "GGCONV-E515").some((item) => item.message === "field-symbol declarations require method-local binding analysis"), declaration);
+    assert.equal(errors(result, "GGCONV-E515").some((item) => item.message === "field-symbol declarations require method-local binding analysis"), rejected, declaration);
   }
   // A global bound in a FORM through a dynamic ASSIGN only, which is omitted.
   const dynamic = await convertProgram({

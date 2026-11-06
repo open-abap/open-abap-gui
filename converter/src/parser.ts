@@ -79,10 +79,13 @@ export function parseUnits(units: SourceUnit[], config: Config = Config.getDefau
   const parser = configuredParser(config);
   const diagnostics: Diagnostic[] = [];
   const parsedUnits: ParsedUnit[] = [];
-  for (const unit of units) {
-    const result = parser.parse([new MemoryFile(unit.filename, unit.source)]);
-    diagnostics.push(...result.issues.map((issue) => parserIssueToDiagnostic(issue, unit.filename)));
-    const file = result.output[0];
+  // The units are one program, its includes and the main source together: a
+  // macro the main program defines is called in its includes, so they are
+  // parsed in one go, as abaplint parses the files of one object.
+  const result = parser.parse(units.map((unit) => new MemoryFile(unit.filename, unit.source)));
+  diagnostics.push(...result.issues.map((issue) => parserIssueToDiagnostic(issue, issue.getFilename())));
+  for (const [unitIndex, unit] of units.entries()) {
+    const file = result.output[unitIndex];
     const statements: ParsedStatement[] = [];
     for (const statement of file?.getStatements() ?? []) {
       const span = sourceSpan(unit.source, statement);

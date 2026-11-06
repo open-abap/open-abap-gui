@@ -4,11 +4,11 @@ import { textLiteral } from "../emit/abap-text.js";
 import { Expressions, Nodes, Statements, Tokens } from "@abaplint/core";
 import { isKeyword, lexedAst, parsesAsStatement, spliceText, statementAst, typeAst } from "../abap/ast.js";
 import type { StatementAst } from "../abap/ast.js";
-import { assignTarget, bindsStatically, declaredFieldSymbols, fieldSymbolsIn, inlineFieldSymbolsIn, isStaticAssign } from "../abap/statements.js";
+import { assignTarget, bindsStatically, declaredFieldSymbols, fieldSymbolsIn, inlineFieldSymbolsIn, isStaticAssign, methodFieldSymbolDeclaration } from "../abap/statements.js";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import { inProgramPerform, isExternalPerform, isGenericParameterType, methodParameterType } from "./collect-routines.js";
+import { inProgramPerform, isExternalPerform, isGenericParameterType, methodParameterType, methodParameterTyping } from "./collect-routines.js";
 import { isWritableArgument, performArguments, performedForm } from "../abap/statements.js";
 import { MACRO_DEFINITION_KINDS } from "./collect-events.js";
 import { isPopupStatement } from "./lower-continuations.js";
@@ -16,6 +16,7 @@ import { replaceIdentifiers } from "./replace-identifiers.js";
 import { headerLineBegin, headerLineDeclarations, headerLineEnd, withoutHeaderLines } from "./header-lines.js";
 import { likeTyping } from "./like-typing.js";
 import type { ScreenStates } from "./screen-states.js";
+import { screenWorkArea, unmappedScreenComponents } from "./screen-states.js";
 import type { SelectionOptions } from "./collect-selection-screens.js";
 import type { Continuation, DynamicAlv, FieldSymbolReference, LocalClass, Metadata, Routine, RoutineParameter, SelectionState, Statement } from "../types.js";
 
@@ -71,6 +72,9 @@ export interface LoweringContext {
   contextMenu?: boolean;
   screenStates?: ScreenStates;
   screenStateSymbol?: string;
+  // The kinds of screen whose LOOP AT SCREEN keeps a reference to its current
+  // row for SCREEN used elsewhere, see screen-states.ts.
+  screenWorkAreas?: ("selection" | "dynpro")[];
   // The field symbol names taken in the generated method, shared by modules
   // that are lowered into one, so each LOOP AT SCREEN declares its own.
   screenStateNames?: Set<string>;
@@ -249,6 +253,12 @@ export function controlObjectTypes(declarations: { entries?: { name: string; def
     }
   }
   for (const parameter of parameters ?? []) {
+    // LIKE go_grid takes the control type of the data object.
+    if (parameter.like) {
+      const type = result[String(parameter.type).toUpperCase()];
+      if (type) result[String(parameter.name ?? "").toUpperCase()] = type;
+      continue;
+    }
     const typing = typeAst(parameter.type ?? "");
     const type = typing ? refToName(typing, typing.node) : undefined;
     if (!type || (!CONVERTIBLE_CONTROL_CLASSES.has(type) && !localClassNames.has(type))) continue;
@@ -652,12 +662,11 @@ function performTemporary(parameter: RoutineParameter, value: string, raw: strin
   const counter = context.temporaries ?? { count: 0 };
   counter.count++;
   const name = `lv_perform_${counter.count}`;
-  const type = methodParameterType(parameter);
   return {
     name,
-    declaration: isGenericParameterType(type)
+    declaration: isGenericParameterType(methodParameterType(parameter))
       ? [`DATA(${name}) = ${value}.`]
-      : [`DATA ${name} TYPE ${type}.`, `${name} = ${value}.`],
+      : [`DATA ${name} ${methodParameterTyping(parameter)}.`, `${name} = ${value}.`],
   };
 }
 
@@ -725,7 +734,7 @@ function selectionScreenNumber(context: LoweringContext): string {
 // written get these rewrites, outside string literals; declarations and
 // comments do not, since `TYPE sy-repid` must keep naming the field's type.
 function dataValueRewrites(context: LoweringContext): Replacement[] {
-  const screen = context.screenStateSymbol ?? "<ls_state>";
+  const screen = screenPrefix(context);
   const dynproScreen = screenStates(context).kind === "dynpro";
   return [
     ...(context.replacements ?? []),
@@ -737,15 +746,27 @@ function dataValueRewrites(context: LoweringContext): Replacement[] {
     ["sy-dynnr", selectionScreenNumber(context)],
     // The lines a table control shows, which a dynpro module gets from the host.
     ...(context.event === "dynpro" ? [["sy-loopc", "is_context-loop_count"] as Replacement] : []),
-    ["screen-name", `${screen}-name`],
-    ["screen-group1", `${screen}-modif_id`],
-    ["screen-group([2-4])", `${screen}-group$1`],
-    ["screen-invisible", `${screen}-password`],
-    ["screen-active", `${screen}-visible`],
-    ["screen-required", dynproScreen ? `${screen}-required` : `${screen}-obligatory`],
-    ["screen-intensified", `${screen}-intensified`],
-    ["screen-(input|output)", `${screen}-$1`],
+    ["screen-name", `${screen}name`],
+    ["screen-group1", `${screen}modif_id`],
+    ["screen-group([2-4])", `${screen}group$1`],
+    ["screen-invisible", `${screen}password`],
+    ["screen-active", `${screen}visible`],
+    ["screen-required", dynproScreen ? `${screen}required` : `${screen}obligatory`],
+    ["screen-intensified", `${screen}intensified`],
+    ["screen-(input|output)", `${screen}$1`],
+    ["screen-value_help", `${screen}value_help`],
   ];
+}
+
+// What SCREEN-<component> becomes: the row of the LOOP AT SCREEN the statement
+// is in, or outside one, the row the last LOOP AT SCREEN was on.
+function screenPrefix(context: LoweringContext): string {
+  return context.screenStateSymbol ? `${context.screenStateSymbol}-` : `${screenWorkAreaOf(context)}->`;
+}
+
+function screenWorkAreaOf(context: LoweringContext): string {
+  const states = screenStates(context);
+  return states.workArea ?? screenWorkArea(states.kind, context.ownerPrefix ?? "");
 }
 
 // The session holds these, so they become method call chains, which only an
@@ -872,31 +893,32 @@ function catchesControlFlow(ast: StatementAst): boolean {
 // ELSE 0 ) values; the state flags they map to are booleans. Required 2 draws
 // the marker but leaves validation to the program. Undefined if the
 // statement sets no screen flag.
-const SCREEN_FLAGS = new Set(["VISIBLE", "INTENSIFIED", "INPUT", "OUTPUT", "PASSWORD", "NO_DISPLAY", "OBLIGATORY", "REQUIRED"]);
+const SCREEN_FLAGS = new Set(["VISIBLE", "INTENSIFIED", "INPUT", "OUTPUT", "PASSWORD", "NO_DISPLAY", "OBLIGATORY", "REQUIRED", "VALUE_HELP"]);
 
-// symbol is the field symbol of the LOOP AT SCREEN the statement is in.
-function screenFlagAssignment(converted: string, symbol: string): string | undefined {
+// prefix is what SCREEN- became: the field symbol of the LOOP AT SCREEN the
+// statement is in and a dash, or the reference to the current row and ->.
+function screenFlagAssignment(converted: string, prefix: string): string | undefined {
   const ast = statementAst(converted);
   const target = ast?.is(Statements.Move) ? ast.findDirect(Expressions.Target) : undefined;
   const source = ast?.findDirect(Expressions.Source);
-  const [field, dash, component] = target?.getChildren() ?? [];
-  if (!ast || !source || ast.source(field ?? target!).toLowerCase() !== symbol.toLowerCase() || ast.source(dash ?? field).trim() !== "-"
-      || !SCREEN_FLAGS.has(ast.source(component ?? field).toUpperCase())) return undefined;
-  const flag = ast.source(component);
+  const written = target && ast ? ast.source(target) : "";
+  if (!ast || !source || !written.toLowerCase().startsWith(prefix.toLowerCase())
+      || !SCREEN_FLAGS.has(written.slice(prefix.length).toUpperCase())) return undefined;
+  const flag = written.slice(prefix.length);
   const value = ast.source(source);
   const one = /^['"]?[12]['"]?$/;
   const zero = /^['"]?0['"]?$/;
-  if (flag.toUpperCase() === "REQUIRED" && /^'?2'?$/.test(value)) return `${symbol}-required = abap_false.\n${symbol}-recommended = abap_true.`;
+  if (flag.toUpperCase() === "REQUIRED" && /^'?2'?$/.test(value)) return `${prefix}required = abap_false.\n${prefix}recommended = abap_true.`;
   let assignment: string | undefined;
   const body = source.findDirectExpression(Expressions.CondBody);
   if (body && ast.skeleton(body) === "WHEN _ THEN _ ELSE _" && ast.source(source).toUpperCase().startsWith("COND #(")) {
     const [, condition, , then, , otherwise] = body.getChildren().map((child) => ast.source(child));
-    if (one.test(then) && zero.test(otherwise)) assignment = `${symbol}-${flag} = xsdbool( ${condition} ).`;
-    else if (zero.test(then) && one.test(otherwise)) assignment = `${symbol}-${flag} = xsdbool( NOT ( ${condition} ) ).`;
-  } else if (one.test(value)) assignment = `${symbol}-${flag} = abap_true.`;
-  else if (zero.test(value)) assignment = `${symbol}-${flag} = abap_false.`;
-  const written = assignment ?? converted;
-  return flag.toUpperCase() === "REQUIRED" ? `${written}\n${symbol}-recommended = abap_false.` : assignment;
+    if (one.test(then) && zero.test(otherwise)) assignment = `${prefix}${flag} = xsdbool( ${condition} ).`;
+    else if (zero.test(then) && one.test(otherwise)) assignment = `${prefix}${flag} = xsdbool( NOT ( ${condition} ) ).`;
+  } else if (one.test(value)) assignment = `${prefix}${flag} = abap_true.`;
+  else if (zero.test(value)) assignment = `${prefix}${flag} = abap_false.`;
+  const result = assignment ?? converted;
+  return flag.toUpperCase() === "REQUIRED" ? `${result}\n${prefix}recommended = abap_false.` : assignment;
 }
 
 function generatedLocalName(prefix: string, statement: Statement): string {
@@ -1325,6 +1347,8 @@ function bridgeLocalConstructors(statement: Statement, context: LoweringContext)
 
 export function lowerStatement(original: Statement, context: LoweringContext): string | undefined {
   const statement = bridgeLocalStaticCalls(bridgeLocalConstructors(original, context), context);
+  // SCREEN-LENGTH and the like have no counterpart in the screen states.
+  if (unmappedScreenComponents(statement.text).length) return undefined;
   const lowered = lowerSingleStatement(statement, context);
   if (statement.kind !== "SetHandler" || typeof lowered !== "string") return lowered;
   const bindings = staticHandlerBindings(statement.text.trim(), context);
@@ -1476,7 +1500,8 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
   if (statement.kind === "FieldSymbol") {
     const name = fieldSymbolsIn(raw)[0];
     // Like DATA, a chain arrives one element per statement with its comma.
-    return name && context.safeFieldSymbols?.includes(name) ? replaceOutsideStrings(raw.replace(/,\s*$/, "."), context.replacements) : undefined;
+    const declaration = name && context.safeFieldSymbols?.includes(name) ? methodFieldSymbolDeclaration(raw.replace(/,\s*$/, ".")) : undefined;
+    return declaration === undefined ? undefined : replaceOutsideStrings(declaration, context.replacements);
   }
   if (statement.kind === "Ranges") {
     const declared = ast?.hasPhrase("FOR") ? ast.sourceOf(Expressions.DefinitionName) : undefined;
@@ -1837,6 +1862,7 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
       ...(states.todo ? [`* TODO GGCONV-E501: ${states.todo}`] : []),
       ...(states.guard ? [`IF ${states.guard} IS BOUND.`] : []),
       `LOOP AT ${states.table} ASSIGNING FIELD-SYMBOL(${context.screenStateSymbol ?? "<ls_state>"})${states.row ? ` WHERE row = ${states.row}` : ""}.`,
+      ...(context.screenWorkAreas?.includes(states.kind) ? [`${screenWorkAreaOf(context)} = REF #( ${context.screenStateSymbol ?? "<ls_state>"} ).`] : []),
     ].join("\n");
   }
   if (statement.kind === "ModifyScreen") return "* SCREEN state is already changed through <ls_state>.";
@@ -1858,7 +1884,7 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
       return context.event === "initialization" ? `IF mv_active_tab IS INITIAL.\n${assignment}\nENDIF.` : assignment;
     }
     if (tabField(target, ["PROG", "DYNNR"])) return "* Selection tab state is maintained by the host screen.";
-    const flagged = screenFlagAssignment(converted, context.screenStateSymbol ?? "<ls_state>");
+    const flagged = screenFlagAssignment(converted, screenPrefix(context));
     if (flagged !== undefined) return flagged;
     const name = target !== undefined && /^[A-Z][A-Z0-9_]*$/i.test(target) ? target.toUpperCase() : undefined;
     if (name && context.dynamicCommentNames?.includes(name) && context.event !== "local_class" && converted.endsWith(".")) {
@@ -2230,6 +2256,11 @@ export function lowerStatements(statements: Statement[], context: LoweringContex
     supported: false,
   });
   for (const item of output) item.text = mergeAdjacentTemplates(item.text);
+  // SCREEN read before any LOOP AT SCREEN ran is the initial work area.
+  const workArea = screenWorkAreaOf(context);
+  if (context.screenWorkAreas?.includes(screenStates(context).kind) && output.some((item) => item.text.toLowerCase().includes(`${workArea}->`))) {
+    output.unshift({ text: [`IF ${workArea} IS NOT BOUND.`, `${workArea} = NEW #( ).`, "ENDIF."].join("\n"), statement: statements[0], supported: true });
+  }
   return output;
 }
 

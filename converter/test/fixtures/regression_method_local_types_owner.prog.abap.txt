@@ -1,0 +1,35 @@
+REPORT zcv_method_types_owner.
+
+TYPES: BEGIN OF ty_record,
+         name TYPE c LENGTH 20,
+       END OF ty_record.
+
+CLASS lcl_repro DEFINITION.
+  PUBLIC SECTION.
+    METHODS export IMPORTING is_record TYPE ty_record.
+    METHODS validate.
+ENDCLASS.
+
+CLASS lcl_repro IMPLEMENTATION.
+  METHOD export.
+    DATA ls_record TYPE ty_record.
+    DATA lt_records TYPE STANDARD TABLE OF ty_record WITH DEFAULT KEY.
+    ls_record = is_record.
+    APPEND ls_record TO lt_records.
+  ENDMETHOD.
+
+  METHOD validate.
+    TYPES: BEGIN OF ty_record,
+             status TYPE c LENGTH 1,
+           END OF ty_record.
+    DATA ls_record TYPE ty_record.
+    ls_record-status = 'X'.
+  ENDMETHOD.
+ENDCLASS.
+
+START-OF-SELECTION.
+  DATA go_repro TYPE REF TO lcl_repro.
+  DATA gs_record TYPE ty_record.
+  go_repro = NEW #( ).
+  go_repro->export( gs_record ).
+  go_repro->validate( ).

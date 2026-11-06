@@ -38,13 +38,24 @@ function inComponentList(entry: TokenEntry): boolean {
   return COMPONENT_LISTS.has(siblings[index]?.getFirstToken().getUpperStr() ?? "");
 }
 
+// abaplint reads a type name, `zcl_owner=>ty_row-name`, as one expression of
+// plain names. Only its first name is looked up in scope; one after `=>`,
+// `->` or `-` is a type of that class or a component of that type, so
+// qualifying ty_row as zcl_owner=>ty_row twice does not nest it.
+function inTypeNameQualified(entry: TokenEntry): boolean {
+  if (!(entry.parent.get() instanceof Expressions.TypeName)) return false;
+  const siblings = entry.parent.getChildren();
+  const previous = siblings[siblings.indexOf(entry.node) - 1];
+  return previous !== undefined && ["=>", "->", "-"].includes(previous.getFirstToken().getStr());
+}
+
 // A name token that refers to a data object, class or type. A keyword spelled
 // like the name, VALUE in VALUE #( ), is none, and neither is a match inside a
 // literal, a template's text or a field symbol: no name starts there.
 export function isReference(entry: TokenEntry | undefined): boolean {
   if (!entry || !(entry.node instanceof Nodes.TokenNodeRegex)) return false;
   const parent = entry.parent.get();
-  return !NAMES.some((type) => parent instanceof type) && !inComponentList(entry);
+  return !NAMES.some((type) => parent instanceof type) && !inComponentList(entry) && !inTypeNameQualified(entry);
 }
 
 // Applies [pattern, replacement] pairs in order, each to the result of the
@@ -54,6 +65,10 @@ export function isReference(entry: TokenEntry | undefined): boolean {
 export function replaceIdentifiers(text: string | undefined, replacements: readonly Replacement[] | undefined): string {
   let output = String(text ?? "");
   for (const [name, replacement] of replacements ?? []) {
+    // A data object reached through a reference, a table row or a call is no
+    // type: a TABLES work area moved to the owner class, mo_owner->sflight, is
+    // still typed TYPE sflight, its dictionary structure.
+    const dataOnly = /->|\[|\(/.test(replacement);
     const pattern = new RegExp(`\\b(?:${name})\\b`, "gi");
     if (!pattern.test(output)) continue;
     const ast = fragmentAst(output);
@@ -64,7 +79,8 @@ export function replaceIdentifiers(text: string | undefined, replacements: reado
     let result = "";
     let last = 0;
     for (const match of output.matchAll(pattern)) {
-      if (!isReference(ast.tokenAt(match.index))) continue;
+      const entry = ast.tokenAt(match.index);
+      if (!isReference(entry) || (dataOnly && entry!.parent.get() instanceof Expressions.TypeName)) continue;
       result += output.slice(last, match.index) + match[0].replace(whole, replacement);
       last = match.index + match[0].length;
     }

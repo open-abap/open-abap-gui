@@ -1,0 +1,50 @@
+PROGRAM zcv_form_locals.
+
+* A FORM's local data is its own, also next to a FORM that suspends and next
+* to MODULE data of the same name, which is a member.
+MODULE show OUTPUT.
+  DATA lv_value TYPE string.
+  lv_value = 'module'.
+  PERFORM show_text.
+  PERFORM confirm.
+  PERFORM ask_number.
+  PERFORM show_number.
+ENDMODULE.
+
+MODULE ask INPUT.
+  PERFORM confirm.
+ENDMODULE.
+
+FORM show_text.
+  DATA lv_value TYPE c LENGTH 10.
+  lv_value = 'text'.
+ENDFORM.
+
+FORM confirm.
+  DATA lv_answer TYPE c LENGTH 1.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'Go?'
+    IMPORTING
+      answer        = lv_answer.
+  IF lv_answer = '1'.
+    MESSAGE 'yes' TYPE 'S'.
+  ENDIF.
+ENDFORM.
+
+FORM ask_number.
+  DATA lv_answer TYPE i.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'Number?'
+    IMPORTING
+      answer        = lv_answer.
+  IF lv_answer = 1.
+    MESSAGE 'one' TYPE 'S'.
+  ENDIF.
+ENDFORM.
+
+FORM show_number.
+  DATA lv_value TYPE i.
+  lv_value = lv_value + 1.
+ENDFORM.

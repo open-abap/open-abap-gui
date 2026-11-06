@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import {convertProgram, undeclaredFieldSymbols} from "../../build/src/api.js";
 import {applyStyleFixes} from "../../build/src/emit/style-fixes.js";
+import {replaceIdentifiers} from "../../build/src/passes/replace-identifiers.js";
 import {repositoryRoot} from "../repository.mjs";
 
 const fixture = (name) => fs.readFile(path.join(repositoryRoot, "converter", "test", "fixtures", name), "utf8");
@@ -337,9 +338,106 @@ test("members for promoted locals stay within 30 characters and unique", async (
     "mv_ggconv_lt_fieldcatalog_sh_3",
     // Short enough as it is, so no shortened name may take it.
     "mv_ggconv_lt_fieldcatalog_ship",
-    "mv_ggconv_lv_answer_from_the_l",
   ]);
+  assert.match(methodOf(result.classSource, "form_ask"), /DATA lv_answer_from_the_long_popup TYPE c LENGTH 1\./);
   assert.match(result.classSource, /DATA mv_ggconv_lt_fieldcatalog_sh_2 TYPE STANDARD TABLE OF string WITH DEFAULT KEY\./);
   assert.match(result.classSource, /DATA mv_ggconv_lt_fieldcatalog_sh_3 TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
   assert.equal((await convertProgram(input)).classSource, result.classSource);
+});
+
+test("FORM locals stay in the FORM, also around a suspension", async () => {
+  const result = await convertProgram({source: await fixture("regression_form_locals.prog.abap.txt"),
+    filename: "zcv_form_locals.prog.abap", className: "ZCL_CV_FORM_LOCALS", dynproMetadata: {
+      initialScreen: "0100", screens: [{number: "0100"}],
+      flowLogic: [{screen: "0100", pbo: [{name: "SHOW"}], pai: [{name: "ASK"}]}],
+    }});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const source = code(result.classSource);
+  // Only the MODULE's data is a member.
+  assert.deepEqual([...new Set(source.match(/\bmv_ggconv_\w+/g))], ["mv_ggconv_lv_value"]);
+  assert.match(source, /DATA mv_ggconv_lv_value TYPE string\./);
+  assert.match(methodOf(source, "form_show_text"), /DATA lv_value TYPE c LENGTH 10\.\s+lv_value = 'text'\./);
+  assert.match(methodOf(source, "form_show_number"), /DATA lv_value TYPE i\.\s+lv_value = lv_value \+ 1\./);
+  // Each suspended FORM declares its data again in the resumed tail; the
+  // second takes another name, the CASE being one method.
+  const resume = methodOf(source, "zif_gg_resumable_v1~resume");
+  assert.match(resume, /DATA lv_answer TYPE c LENGTH 1\./);
+  assert.match(resume, /DATA lv_answer_2 TYPE i\./);
+  assert.match(resume, /IF lv_answer = '1'\./);
+  assert.match(resume, /IF lv_answer_2 = 1\./);
+});
+
+test("resumed tails declaring the same inline DATA take distinct names", async () => {
+  const result = await convertProgram({source: await fixture("regression_resume_inline_data.prog.abap.txt"),
+    filename: "zcv_resume_inline.prog.abap", className: "ZCL_CV_RESUME_INLINE", dynproMetadata: {
+      initialScreen: "0100", screens: [{number: "0100"}],
+      flowLogic: [{screen: "0100", pai: [{name: "FIRST"}, {name: "SECOND"}]}],
+    }});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const resume = methodOf(code(result.classSource), "zif_gg_resumable_v1~resume");
+  // Two FORMs and two modules declare lv_text after a popup, in one method.
+  assert.match(resume, /DATA\(lv_text\) = \|Module: \{ gv_answer \}\|\./);
+  assert.match(resume, /DATA\(lv_text_2\) = 1\.\s+gv_answer = lv_text_2\./);
+  assert.match(resume, /DATA\(lv_text_3\) = \|First: \{ lv_answer \}\|\./);
+  assert.match(resume, /DATA\(lv_text_4\) = strlen\( lv_answer_2 \)\./);
+  assert.equal(resume.match(/DATA\(lv_text\)/g).length, 1);
+  // The FORMs keep their own name.
+  assert.match(methodOf(result.classSource, "form_ask_second"), /DATA\(lv_text\) = strlen\( lv_answer \)\./);
+});
+
+test("method-local types of a helper stay in their method, unqualified", async () => {
+  // The local interface is copied as program code (a separate gap), so the
+  // owner class does not validate; the helper must.
+  const result = await convertProgram({source: await fixture("regression_method_local_types.prog.abap.txt"),
+    filename: "z_converter_repro.prog.abap", className: "ZCL_REPRO", mode: "partial"});
+  const helperErrors = result.diagnostics.filter((item) => item.code === "GGCONV-E202" && item.filename === "ZCL_REPRO_H1.clas.abap");
+  assert.deepEqual(helperErrors, []);
+  const helper = result.helperSources[0].source;
+  assert.doesNotMatch(helper, /zcl_repro=>ty_record/);
+  // Each method declares and uses its own ty_record.
+  const exported = methodOf(helper, "lif_repro~export");
+  assert.match(exported, /TYPES BEGIN OF ty_record\.\s+TYPES name TYPE c LENGTH 20\.\s+TYPES id   TYPE n LENGTH 4\.\s+TYPES END OF ty_record\.\s+DATA ls_record TYPE ty_record\./);
+  const validated = methodOf(helper, "lif_repro~validate");
+  assert.match(validated, /TYPES BEGIN OF ty_record\.\s+TYPES status TYPE c LENGTH 1\.\s+TYPES END OF ty_record\.\s+DATA ls_record TYPE ty_record\./);
+});
+
+test("a report type is qualified by the owner once, unless a method declares its own", async () => {
+  const result = await convertProgram({source: await fixture("regression_method_local_types_owner.prog.abap.txt"),
+    filename: "zcv_method_types_owner.prog.abap", className: "ZCL_CV_METHOD_TYPES"});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const helper = result.helperSources[0].source;
+  assert.doesNotMatch(helper, /=>\s*zcl_cv_method_types=>/);
+  // Another method's local ty_record does not hide the report's here.
+  assert.match(helper, /METHODS export IMPORTING is_record TYPE zcl_cv_method_types=>ty_record\./);
+  const exported = methodOf(helper, "export");
+  assert.match(exported, /DATA ls_record TYPE zcl_cv_method_types=>ty_record\./);
+  assert.match(exported, /DATA lt_records TYPE STANDARD TABLE OF zcl_cv_method_types=>ty_record WITH DEFAULT KEY\./);
+  const validated = methodOf(helper, "validate");
+  assert.match(validated, /TYPES BEGIN OF ty_record\.\s+TYPES status TYPE c LENGTH 1\.\s+TYPES END OF ty_record\.\s+DATA ls_record TYPE ty_record\./);
+});
+
+test("qualifying a type name by its class twice leaves it qualified once", () => {
+  const qualify = [["ty_record", "zcl_owner=>ty_record"]];
+  const once = replaceIdentifiers("DATA ls_record TYPE ty_record.", qualify);
+  assert.equal(once, "DATA ls_record TYPE zcl_owner=>ty_record.");
+  assert.equal(replaceIdentifiers(once, qualify), once);
+  // Neither is a component of the type renamed.
+  assert.equal(replaceIdentifiers("DATA lv_name TYPE ty_other-ty_record.", qualify), "DATA lv_name TYPE ty_other-ty_record.");
+});
+
+test("a structure a method declares has its component types aligned", async () => {
+  const result = await convertProgram({source: `REPORT zfoo.
+START-OF-SELECTION.
+  PERFORM show.
+FORM show.
+  TYPES: BEGIN OF ty_r,
+           name TYPE c LENGTH 10,
+           id TYPE n LENGTH 4,
+         END OF ty_r.
+  DATA ls_r TYPE ty_r.
+  ls_r-id = 1.
+  WRITE ls_r-id.
+ENDFORM.`, filename: "zfoo.prog.abap"});
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(methodOf(result.classSource, "form_show"), /TYPES name TYPE c LENGTH 10\.\n\s+TYPES id   TYPE n LENGTH 4\./);
 });

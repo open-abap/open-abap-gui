@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { emitClassXml } from "../build/src/emit/class-xml.js";
-import { repositoryRoot } from "./repository.mjs";
+import { examplePrograms, repositoryRoot } from "./repository.mjs";
 
 const repository = repositoryRoot;
 const examples = path.join(repository, "examples");
@@ -10,9 +10,7 @@ const RENAMED_CLASS = "ZCL_CV_RENAMED_1";
 
 export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
   const {convertProgram} = await import("../build/src/api.js");
-  const names = (await fs.readdir(examples))
-    .filter((name) => name.endsWith(".prog.abap"))
-    .sort();
+  const names = await examplePrograms();
   for (const [index, name] of names.entries()) {
     const source = await fs.readFile(path.join(examples, name), "utf8");
     // Numbered like the example, so its lint excludes carry over, see
@@ -22,6 +20,7 @@ export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
     const input = {
       source,
       filename: path.join(examples, name),
+      includePaths: [examples],
       className,
       transactionCode: `ZCV${number}`,
       mode: "partial",
@@ -219,6 +218,7 @@ export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
   const scopeFixtures = [
     { file: "regression_macro_components.prog.abap.txt", className: "ZCL_CV_MACRO", transactionCode: "ZCVMACRO" },
     { file: "regression_helper_owner.prog.abap.txt", className: "ZCL_CV_HELPER", transactionCode: "ZCVHELPER" },
+    { file: "regression_method_local_types_owner.prog.abap.txt", className: "ZCL_CV_METHOD_TYPES", transactionCode: "ZCVMTYPES" },
     { file: "regression_field_symbol_scope.prog.abap.txt", className: "ZCL_CV_FS_SCOPE", transactionCode: "ZCVFSSCOPE" },
     { file: "regression_merged_screen_modules.prog.abap.txt", className: "ZCL_CV_SCREEN_MODULES", transactionCode: "ZCVSCRMOD",
       dynproMetadata: screen({ pbo: [{ name: "SET_FIRST" }, { name: "SET_SECOND" }, { name: "FILL_ROWS" }], pai: [{ name: "CHECK_FIRST" }, { name: "CHECK_SECOND" }] }) },

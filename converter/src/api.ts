@@ -242,8 +242,9 @@ function buildReportIR(parsed: ParseResult, resolved: ResolvedSources, options: 
   ir.guiStatusMetadata = options.guiStatusMetadata ?? options.guiStatuses ?? {};
   collectLocalClasses(ir, allStatements);
   collectEvents(ir, allStatements);
-  collectRoutines(ir);
+  // A FORM's STRUCTURE s is typed LIKE s when s is a data object.
   ir.declarations = collectDeclarations(allStatements);
+  collectRoutines(ir);
   collectHeaderLines(ir);
   ir.dynamicAlv = detectDynamicAlv(ir);
   ir.selections = collectSelectionScreens(ir.declarations);
