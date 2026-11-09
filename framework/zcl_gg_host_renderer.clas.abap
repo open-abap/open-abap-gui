@@ -418,6 +418,15 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+    CLASS-METHODS dynpro_frame
+      IMPORTING
+        is_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen
+        is_modal_position TYPE zif_gg_session_types_v1=>ty_modal_position
+        iv_render_height  TYPE i
+        iv_controls_html  TYPE string
+      EXPORTING
+        ev_style          TYPE string
+        ev_page_class     TYPE string.
     CLASS-METHODS dynpro_geometry
       IMPORTING
         iv_height        TYPE i
@@ -1167,6 +1176,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
   METHOD render_dynpro.
     DATA lv_body TYPE string.
     DATA lv_work_area_class TYPE string.
+    DATA lv_page_class TYPE string.
     DATA lv_height TYPE i.
     DATA lv_header_height TYPE i.
     DATA lv_render_height TYPE i.
@@ -1221,23 +1231,18 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         it_controls      = it_controls
       CHANGING
         cv_render_height = lv_render_height ).
-    IF is_screen-modal = abap_true.
-      lv_modal_style = |min-height:{ lv_render_height }px;width:{ is_screen-width }px;|.
-      IF is_modal_position-start_column > 0.
-        lv_modal_style = lv_modal_style && |margin-left:{ is_modal_position-start_column * 10 }px;|.
-      ENDIF.
-      IF is_modal_position-start_row > 0.
-        lv_modal_style = lv_modal_style && |margin-top:{ is_modal_position-start_row * 26 }px;|.
-      ENDIF.
-    ELSE.
-      lv_modal_style = |min-height:{ lv_render_height }px;|.
-    ENDIF.
-    lv_body = |<section class="gg-page gg-page--dynpro" aria-label="Dynpro page">|.
+    dynpro_frame(
+      EXPORTING
+        is_screen         = is_screen
+        is_modal_position = is_modal_position
+        iv_render_height  = lv_render_height
+        iv_controls_html  = iv_controls_html
+      IMPORTING
+        ev_style          = lv_modal_style
+        ev_page_class     = lv_page_class ).
+    lv_body = |<section class="gg-page gg-page--dynpro{ lv_page_class }" aria-label="Dynpro page">|.
     IF iv_help_text IS NOT INITIAL.
       lv_body = lv_body && |<section class="gg-instruction-region" aria-label="Instructions"><aside class="gg-message gg-info" role="status">{ zcl_gg_host_html=>escape_text( iv_help_text ) }</aside></section>|.
-    ENDIF.
-    IF is_screen-modal = abap_true AND is_screen-width <= 0.
-      lv_modal_style = lv_modal_style && |width:640px;|.
     ENDIF.
     IF iv_controls_html CS `data-control-kind="DOCKING_CONTAINER"`.
       lv_work_area_class = ` gg-work-area--docking`.
@@ -1696,6 +1701,28 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       `var x=axis("data-resize-horizontal","left","width","top","height","data-min-width",extraX);place(y,x);};` &&
       `if(window.ResizeObserver){new ResizeObserver(function(){layout();}).observe(main);}else{window.addEventListener("resize",layout);}` &&
       `if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",layout);}else{layout();}}());</script>`.
+  ENDMETHOD.
+
+  METHOD dynpro_frame.
+    CLEAR: ev_style, ev_page_class.
+    IF is_screen-modal = abap_true.
+      ev_style = |min-height:{ iv_render_height }px;width:{ is_screen-width }px;|.
+      IF is_modal_position-start_column > 0.
+        ev_style = ev_style && |margin-left:{ is_modal_position-start_column * 10 }px;|.
+      ENDIF.
+      IF is_modal_position-start_row > 0.
+        ev_style = ev_style && |margin-top:{ is_modal_position-start_row * 26 }px;|.
+      ENDIF.
+      IF is_screen-width <= 0.
+        ev_style = ev_style && |width:640px;|.
+      ENDIF.
+    ELSEIF iv_controls_html CS `gg-controls-screen`.
+* A control on the default screen takes the space the window leaves, not the
+* size the screen was designed with; see .gg-page--screen.
+      ev_page_class = ` gg-page--screen`.
+    ELSE.
+      ev_style = |min-height:{ iv_render_height }px;|.
+    ENDIF.
   ENDMETHOD.
 
   METHOD dynpro_geometry.

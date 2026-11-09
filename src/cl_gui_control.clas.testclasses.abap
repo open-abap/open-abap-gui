@@ -115,6 +115,29 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-control-kind="ALV_GRID"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '>LH<' ) ).
+* The screen lays the grid out: it covers the whole section the screen sizes.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="gg-controls gg-controls-standalone gg-controls-screen"' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'left:0;top:0;width:100%;height:100%;" id="GUI-' ) ).
+
+    lo_grid = NEW cl_gui_alv_grid( i_parent = cl_gui_container=>screen0 ).
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    zcl_gg_gui_runtime=>clear( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'gg-controls-screen' ) ).
+
+* A grid in a custom container is sized by that container, not the screen.
+    lo_grid = NEW cl_gui_alv_grid( i_parent = NEW cl_gui_custom_container( container_name = 'CC' ) ).
+    lo_grid->set_table_for_first_display(
+      CHANGING
+        it_outtab       = lt_rows
+        it_fieldcatalog = lt_fcat ).
+    lv_html = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
+    zcl_gg_gui_runtime=>clear( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'data-control-kind="ALV_GRID"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-controls-screen' ) ).
   ENDMETHOD.
 
   METHOD salv_filter_options.

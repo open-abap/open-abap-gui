@@ -260,6 +260,13 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro\{margin-left:260px;\}|.
     rv_html = rv_html && |.gg-work-area--docking>.gg-dynpro>form>.gg-controls-standalone\{position:relative;left:-260px;width:calc(100% + 260px);height:100%;min-height:0;\}|.
     rv_html = rv_html && |.gg-instruction-region,.gg-work-area,.gg-action-row\{min-width:0;box-sizing:border-box;\}|.
+* Controls on the default screen cover the dynpro, and a dynpro holding them
+* fills the scrolling main region, so they follow the window as it is resized.
+    rv_html = rv_html && |.gg-page--screen\{height:100%;min-height:0;box-sizing:border-box;\}|.
+    rv_html = rv_html && |.gg-page--screen>.gg-work-area\{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;\}|.
+    rv_html = rv_html && |.gg-page--screen>.gg-work-area>.gg-dynpro\{flex:1 1 auto;\}|.
+    rv_html = rv_html && |.gg-controls-screen\{position:relative;min-height:240px;\}|.
+    rv_html = rv_html && |.gg-work-area:not(.gg-work-area--docking)>.gg-dynpro>form>.gg-controls-screen\{position:absolute;inset:0;min-height:0;\}|.
     rv_html = rv_html && |.gg-controls-standalone\{display:flow-root;pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control\{pointer-events:none;\}|.
     rv_html = rv_html && |.gg-controls-standalone>.gg-control[title="HTML viewer"]\{pointer-events:auto;\}|.
