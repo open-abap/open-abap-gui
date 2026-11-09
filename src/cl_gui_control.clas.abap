@@ -351,6 +351,7 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
              picture_border         TYPE i,
              picture_state          TYPE string,
              picture_alt_text       TYPE string,
+             fill_screen            TYPE abap_bool,
             END OF ty_snapshot.
     TYPES ty_snapshots TYPE STANDARD TABLE OF ty_snapshot WITH DEFAULT KEY.
     TYPES: BEGIN OF ty_object,
@@ -497,6 +498,12 @@ CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_
         iv_track_count TYPE i
       RETURNING
         VALUE(result)  TYPE string.
+    CLASS-METHODS top_level_style
+      IMPORTING
+        is_snapshot       TYPE ty_snapshot
+        iv_container_name TYPE string
+      RETURNING
+        VALUE(result)     TYPE string.
     CLASS-METHODS docking_style
       IMPORTING
         is_snapshot   TYPE ty_snapshot
@@ -539,6 +546,10 @@ CLASS cl_gui_control IMPLEMENTATION.
     ls_snapshot-control_id = control->control_id.
     IF parent IS BOUND.
       ls_snapshot-parent_id = parent->control_id.
+* A control on DEFAULT_SCREEN or SCREEN0 is laid out by the screen: it covers
+* the whole dynpro area and follows it when the window is resized.
+      ls_snapshot-fill_screen = xsdbool( parent = cl_gui_container=>default_screen
+                                         OR parent = cl_gui_container=>screen0 ).
     ENDIF.
     ls_snapshot-kind = kind.
     ls_snapshot-width = control->mv_width.
@@ -847,6 +858,9 @@ CLASS cl_gui_control IMPLEMENTATION.
       result = |<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GUI controls</title><style>.gg-control\{position:absolute;box-sizing:border-box\}.gg-controls\{position:relative;min-height:240px\}.gg-control[hidden]\{display:none\}.gg-textedit-shell\{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid #6b8298;background:#edf5fb\}.gg-textedit-shell textarea\{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:auto!important;flex:1;min-height:0\}.gg-textedit-toolbar\{display:flex;align-items:center;min-height:22px;padding:0 6px;background:#d9e8f5;border:1px solid #a6bdd0;font:12px system-ui,sans-serif\}.gg-textedit-statusbar\{padding:2px 6px;border-top:1px solid #a6bdd0;color:#40566b;font:11px system-ui,sans-serif\}textarea[data-fixed-font="1"]\{font-family:ui-monospace,SFMono-Regular,Consolas,monospace\}.gg-toolbar-menu\{margin:4px 0 0;padding:4px;min-width:160px;list-style:none;border:1px solid #6b8298;background:#fff;box-shadow:0 2px 5px #0003\}.gg-toolbar-menu li\{margin:0;padding:0\}.gg-toolbar-menu button\{width:100%;padding:3px 8px;border:0;background:transparent;text-align:left\}.gg-toolbar-menu button:hover,.gg-toolbar-menu button:focus-visible\{background:#d9e8f5\}.gg-toolbar-menu-separator\{height:1px;margin:4px 0;background:#a6bdd0\}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible\{outline:2px solid #2668a3;outline-offset:2px\}</style></head><body><main class="gg-controls" aria-label="GUI controls">|.
     ELSEIF iv_container_name IS NOT INITIAL.
       result = |<section class="gg-controls gg-control-host" aria-label="GUI controls" data-control-host="{ escape( iv_container_name ) }" style="position:relative;width:100%;height:100%;min-height:0;box-sizing:border-box;overflow:auto">|.
+    ELSEIF line_exists( mt_snapshots[ fill_screen = abap_true visible = abap_true ] ).
+* The screen sizes this section, see .gg-controls-screen in ZCL_GG_HOST_HTML.
+      result = |<section class="gg-controls gg-controls-standalone gg-controls-screen" aria-label="GUI controls">|.
     ELSE.
       result = |<section class="gg-controls gg-controls-standalone" aria-label="GUI controls" style="display:flow-root;position:relative;min-height:{ lv_standalone_height }px">|.
     ENDIF.
@@ -872,27 +886,11 @@ CLASS cl_gui_control IMPLEMENTATION.
           CONTINUE.
         ENDIF.
       ENDIF.
-      DATA(lv_style) = |position:absolute;box-sizing:border-box;left:{ ls_snapshot-left }px;top:{ ls_snapshot-top }px;|.
-      IF ls_snapshot-kind = 'TEXTEDIT'.
-        lv_style = lv_style && `box-sizing:border-box;`.
-      ENDIF.
-      IF ls_snapshot-width > 0.
-        lv_style = lv_style && |width:{ ls_snapshot-width }px;|.
-      ELSEIF iv_container_name IS NOT INITIAL.
-        lv_style = lv_style && `width:100%;`.
-      ELSEIF ls_snapshot-kind = 'TEXTEDIT'.
-        lv_style = lv_style && `width:160px;`.
-      ENDIF.
-      IF ls_snapshot-height > 0.
-        lv_style = lv_style && |height:{ ls_snapshot-height }px;|.
-      ELSEIF iv_container_name IS NOT INITIAL.
-        lv_style = lv_style && `height:100%;`.
-      ELSEIF ls_snapshot-kind = 'TEXTEDIT'.
-        lv_style = lv_style && `height:42px;`.
-      ENDIF.
-      lv_style = docking_style(
+      DATA(lv_style) = docking_style(
         is_snapshot = ls_snapshot
-        iv_style    = lv_style ).
+        iv_style    = top_level_style(
+          is_snapshot       = ls_snapshot
+          iv_container_name = iv_container_name ) ).
       DATA(lv_hidden) = COND string( WHEN ls_snapshot-visible = abap_false THEN ' hidden' ELSE '' ).
       DATA(lv_disabled) = COND string( WHEN ls_snapshot-enabled = abap_false THEN ' disabled' ELSE '' ).
       lv_state_class = state_class(
@@ -915,6 +913,30 @@ CLASS cl_gui_control IMPLEMENTATION.
       result = result && |</main></body></html>|.
     ELSE.
       result = result && |</section>|.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD top_level_style.
+* A control on the screen containers covers the area the screen gives it, so
+* its own position and size do not apply.
+    IF is_snapshot-fill_screen = abap_true.
+      result = `position:absolute;box-sizing:border-box;left:0;top:0;width:100%;height:100%;`.
+      RETURN.
+    ENDIF.
+    result = |position:absolute;box-sizing:border-box;left:{ is_snapshot-left }px;top:{ is_snapshot-top }px;|.
+    IF is_snapshot-width > 0.
+      result = result && |width:{ is_snapshot-width }px;|.
+    ELSEIF iv_container_name IS NOT INITIAL.
+      result = result && `width:100%;`.
+    ELSEIF is_snapshot-kind = 'TEXTEDIT'.
+      result = result && `width:160px;`.
+    ENDIF.
+    IF is_snapshot-height > 0.
+      result = result && |height:{ is_snapshot-height }px;|.
+    ELSEIF iv_container_name IS NOT INITIAL.
+      result = result && `height:100%;`.
+    ELSEIF is_snapshot-kind = 'TEXTEDIT'.
+      result = result && `height:42px;`.
     ENDIF.
   ENDMETHOD.
 

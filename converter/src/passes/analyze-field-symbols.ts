@@ -1,6 +1,4 @@
-import { Expressions } from "@abaplint/core";
-import { statementAst } from "../abap/ast.js";
-import { assignTarget, assigningTarget, bindsStatically, declaredFieldSymbols, fieldSymbolsIn } from "../abap/statements.js";
+import { assignTarget, assigningTarget, bindsStatically, declaredFieldSymbols, fieldSymbolsIn, methodFieldSymbolDeclaration } from "../abap/statements.js";
 import { rebindingCall } from "./lower-statements.js";
 import type { FieldSymbolReference, ReportIR, Statement } from "../types.js";
 
@@ -56,11 +54,11 @@ function globalOwners(ir: ReportIR, name: string): Statement[][] {
 
 // A field-symbol declaration is emitted into each generated method that uses
 // it, so any type the original accepted is still valid there, generic ones
-// such as `TYPE any`, `TYPE data` and `TYPE STANDARD TABLE` included. Only the
-// obsolete untyped and STRUCTURE forms, which classes reject, are not.
+// such as `TYPE any`, `TYPE data` and `TYPE STANDARD TABLE` included, and the
+// obsolete untyped form as TYPE any. Only the STRUCTURE form, which classes
+// reject, is not.
 function methodType(raw: string): boolean {
-  const ast = statementAst(raw);
-  return Boolean(ast && (ast.findDirect(Expressions.Type) ?? ast.findDirect(Expressions.TypeTable)) && !ast.hasPhrase("STRUCTURE"));
+  return methodFieldSymbolDeclaration(raw) !== undefined;
 }
 
 function classify(ir: ReportIR): { safe: Set<string>; persistent: Set<string> } {

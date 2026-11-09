@@ -34,10 +34,15 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            height TYPE i,
          END OF ty_position.
 
+* modif_id is the field's modification group 1, SCREEN-GROUP1; group2 to
+* group4 are its groups 2 to 4, SCREEN-GROUP2 to SCREEN-GROUP4.
   TYPES: BEGIN OF ty_control,
            name     TYPE ty_field_name,
            position TYPE ty_position,
            modif_id TYPE ty_modif_id,
+           group2   TYPE ty_modif_id,
+           group3   TYPE ty_modif_id,
+           group4   TYPE ty_modif_id,
          END OF ty_control.
 
 * ok_code names the screen's OK-code field, the one the host fills with the
@@ -225,6 +230,8 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
          END OF ty_tabstrip_runtime.
 
 * Mutable SCREEN-like state, seeded from the definition before every PBO.
+* modif_id is SCREEN-GROUP1 and group2 to group4 are SCREEN-GROUP2 to
+* SCREEN-GROUP4, the modification groups; group1 is the radio group.
   TYPES: BEGIN OF ty_state,
            container         TYPE ty_field_name,
            name              TYPE ty_field_name,
@@ -233,6 +240,9 @@ INTERFACE zif_gg_dynpro_types_v1 PUBLIC.
            fixed_values      TYPE ty_fixed_values,
            modif_id          TYPE ty_modif_id,
            group1            TYPE ty_group,
+           group2            TYPE ty_modif_id,
+           group3            TYPE ty_modif_id,
+           group4            TYPE ty_modif_id,
            visible           TYPE abap_bool,
            enabled           TYPE abap_bool,
            input             TYPE abap_bool,

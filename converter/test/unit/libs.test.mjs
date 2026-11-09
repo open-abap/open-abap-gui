@@ -112,24 +112,23 @@ test("clones a lib url, resolves its includes, and removes the clone afterwards"
   const libraries = loadLibraries(config, { log: (message) => messages.push(message) });
   config.libraryFolders = libraries.folders;
   const clone = path.dirname(libraries.folders[0]);
+  let classSource;
   try {
     assert.match(messages[0], /^Clone: file:/);
     assert.ok(existsSync(path.join(clone, "src", "sub", "zlib_inc.prog.abap")));
     const summary = await convertConfiguredPrograms({ config, write: false });
     assert.ok(!summary.programs[0].diagnostics.some((item) => item.code === "GGCONV-E102"));
+    classSource = summary.results[0].result.classSource;
   } finally {
     libraries.cleanup();
   }
   assert.ok(!existsSync(clone), "the clone is removed by cleanup()");
 
-  // The same url clones to the same place, so the include paths - and with
-  // them the generated class - are the same on every run.
-  const again = loadLibraries(config);
-  try {
-    assert.deepEqual(again.folders, libraries.folders);
-  } finally {
-    again.cleanup();
-  }
+  // Every run clones to a folder of its own, so runs at the same time never
+  // remove each other's clone; the generated class is the same regardless.
+  const again = await convertWithLibraries(config);
+  assert.notDeepEqual(again.libraries.folders, libraries.folders);
+  assert.equal(again.summary.results[0].result.classSource, classSource);
 });
 
 test("discovery ignores lib folders", async () => {

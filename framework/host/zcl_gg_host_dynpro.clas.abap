@@ -559,6 +559,9 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         fixed_values = ls_control-fixed_values
         modif_id     = ls_control-modif_id
         group1       = ls_control-group
+        group2       = ls_control-group2
+        group3       = ls_control-group3
+        group4       = ls_control-group4
         visible      = ls_control-visible
         enabled      = ls_control-enabled
         input        = ls_control-input

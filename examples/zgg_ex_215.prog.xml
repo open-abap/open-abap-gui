@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_PROG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <PROGDIR>
+    <NAME>ZGG_EX_215</NAME>
+    <SUBC>1</SUBC>
+    <RLOAD>E</RLOAD>
+    <FIXPT>X</FIXPT>
+    <UCCHECK>X</UCCHECK>
+   </PROGDIR>
+   <DYNPROS>
+    <item>
+     <HEADER>
+      <PROGRAM>ZGG_EX_215</PROGRAM>
+      <SCREEN>2000</SCREEN>
+      <LANGUAGE>E</LANGUAGE>
+      <DESCRIPT>Full-screen ALV</DESCRIPT>
+      <TYPE>N</TYPE>
+      <NEXTSCREEN>2000</NEXTSCREEN>
+      <LINES>024</LINES>
+      <COLUMNS>080</COLUMNS>
+     </HEADER>
+     <CONTAINERS>
+      <RPY_DYCATT>
+       <TYPE>SCREEN</TYPE>
+       <NAME>SCREEN</NAME>
+      </RPY_DYCATT>
+     </CONTAINERS>
+    </item>
+   </DYNPROS>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>Full-screen ALV on default screen</ENTRY>
+     <LENGTH>33</LENGTH>
+    </item>
+   </TPOOL>
+  </asx:values>
+ </asx:abap>
+</abapGit>

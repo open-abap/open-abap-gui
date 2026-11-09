@@ -1,0 +1,49 @@
+PROGRAM zcv_resume_inline.
+
+* Every resumed tail lands in one resume method, so the same inline DATA
+* after a popup in two FORMs or two modules must take distinct names there.
+DATA gv_answer TYPE c LENGTH 1.
+
+MODULE first INPUT.
+  PERFORM ask_first.
+  PERFORM ask_second.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'Module?'
+    IMPORTING
+      answer        = gv_answer.
+  DATA(lv_text) = |Module: { gv_answer }|.
+  MESSAGE lv_text TYPE 'S'.
+ENDMODULE.
+
+MODULE second INPUT.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'Again?'
+    IMPORTING
+      answer        = gv_answer.
+  DATA(lv_text) = 1.
+  gv_answer = lv_text.
+ENDMODULE.
+
+FORM ask_first.
+  DATA lv_answer TYPE c LENGTH 1.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'First?'
+    IMPORTING
+      answer        = lv_answer.
+  DATA(lv_text) = |First: { lv_answer }|.
+  MESSAGE lv_text TYPE 'S'.
+ENDFORM.
+
+FORM ask_second.
+  DATA lv_answer TYPE c LENGTH 1.
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      text_question = 'Second?'
+    IMPORTING
+      answer        = lv_answer.
+  DATA(lv_text) = strlen( lv_answer ).
+  MESSAGE |{ lv_text }| TYPE 'S'.
+ENDFORM.
