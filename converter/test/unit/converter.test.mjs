@@ -3126,7 +3126,7 @@ test("resolves dictionary-typed selection fields to their built-in types through
   assert.deepEqual(field("S_DATE"), { typ: "D", length: 8, rollname: "ZEXAMPLE_DATE" });
   // The class state keeps the dictionary type; only the screen needs the built-in one.
   assert.match(resolved.classSource, /DATA mv_p_count TYPE zexample_count\./);
-  assert.match(resolved.classSource, /name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #\( rollname = 'ZEXAMPLE_COUNT' typ = 'I' \)/);
+  assert.match(resolved.classSource, /name = 'P_COUNT' text = 'Number of runs' data_type = VALUE #\( rollname = 'ZEXAMPLE_COUNT' typ = 'I' \)/);
 
   // Sources may be passed in memory, and a domain is found through its data element.
   const inMemory = await convertProgram({
