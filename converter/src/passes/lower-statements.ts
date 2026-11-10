@@ -1110,11 +1110,20 @@ function parseFormat(raw: string, context: LoweringContext): string {
   const constant = LIST_COLOR_CONSTANTS[colorText as keyof typeof LIST_COLOR_CONSTANTS];
   if (constant) fields.push(`color = zif_gg_list_processing_types_v1=>${constant}`);
   if (colorText === "=" && operand) fields.push(`color = ${valueExpression(ast.source(operand).toUpperCase(), context)}`);
+  // COLOR OFF: no color (the background)
+  if (colorText === "OFF") fields.push("color = zif_gg_list_processing_types_v1=>color_background");
+  // INTENSIFIED [ON|OFF|= flag]: the keyword alone switches it on
+  const tokens = ast.tokens().map((token) => token.token.getStr().toUpperCase());
   for (const [keyword, field] of [["INTENSIFIED", "intensified"], ["INVERSE", "inverse"], ["HOTSPOT", "hotspot"], ["INPUT", "input"]]) {
-    const value = ast.after(keyword, ast.node);
-    const word = value ? ast.source(value).toUpperCase() : "";
-    if (word === "ON" || word === "OFF") fields.push(`${field} = abap_${word === "ON" ? "true" : "false"}`);
+    const at = tokens.indexOf(keyword);
+    if (at < 0) continue;
+    const word = tokens[at + 1] ?? "";
+    if (word === "OFF") fields.push(`${field} = abap_false`);
+    else if (word === "=" && tokens[at + 2]) fields.push(`${field} = xsdbool( ${valueExpression(ast.tokens()[at + 2].token.getStr(), context)} IS NOT INITIAL )`);
+    else fields.push(`${field} = abap_true`);
   }
+  // a FORMAT that changes nothing the list writer keeps (FRAMES, RESET of single options) leaves the format as it is
+  if (!fields.length) return "lo_writer->set_format( lo_writer->get_format( ) ).";
   return `lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) ${fields.join(" ")} ) ).`;
 }
 

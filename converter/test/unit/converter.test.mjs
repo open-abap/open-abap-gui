@@ -3458,3 +3458,13 @@ test("sets a screen's GUI status before its first PBO module only, so later modu
   assert.match(converted.classSource, /IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'\./);
   assert.doesNotMatch(converted.classSource, /IF is_context-screen = '0100'\.\s*io_session->get_dialog\( \)->set_status/);
 });
+
+test("lowers FORMAT COLOR OFF, INTENSIFIED without ON/OFF and INTENSIFIED = flag", async () => {
+  const converted = await convertProgram({ source: "REPORT zfmt.\nDATA gv_x TYPE c LENGTH 1.\nSTART-OF-SELECTION.\n  FORMAT COLOR OFF.\n  FORMAT INTENSIFIED INVERSE OFF.\n  FORMAT HOTSPOT = gv_x.\n  FORMAT FRAMES OFF.\n  WRITE / 'x'.\n", filename: "zfmt.prog.abap" });
+  assert.equal(converted.supported, true);
+  const source = flat(converted.classSource);
+  assert.match(source, /color = zif_gg_list_processing_types_v1=>color_background/);
+  assert.match(source, /intensified = abap_true inverse = abap_false/);
+  assert.match(source, /hotspot = xsdbool\( \w+ IS NOT INITIAL \)/);
+  assert.match(source, /lo_writer->set_format\( lo_writer->get_format\( \) \)/);
+});
