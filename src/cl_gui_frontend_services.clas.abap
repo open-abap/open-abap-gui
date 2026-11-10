@@ -227,7 +227,17 @@ CLASS cl_gui_frontend_services DEFINITION PUBLIC.
           maximized         TYPE string OPTIONAL
           minimized         TYPE string OPTIONAL
           synchronous       TYPE string OPTIONAL
-          operation         TYPE string DEFAULT 'OPEN'.
+          operation         TYPE string DEFAULT 'OPEN'
+        EXCEPTIONS
+          cntl_error
+          error_no_gui
+          bad_parameter
+          file_not_found
+          path_not_found
+          file_extension_unknown
+          error_execute_failed
+          synchronous_failed
+          not_supported_by_gui.
 
     CLASS-METHODS
       get_file_separator
@@ -534,7 +544,41 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute.
-    RETURN.
+* A browser opens a web document in a new tab, after the screen is sent. It
+* cannot start an application, pass it parameters, reach the local file system,
+* run another operation than OPEN or wait until the document is closed.
+    DATA lv_scheme TYPE string.
+    DATA lv_rest TYPE string.
+
+    DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
+    IF lo_host IS NOT BOUND.
+      RAISE error_no_gui.
+    ENDIF.
+    DATA(lv_document) = shift_left( shift_right( document ) ).
+    IF lv_document IS INITIAL AND application IS INITIAL.
+      RAISE bad_parameter.
+    ENDIF.
+    IF application IS NOT INITIAL
+        OR parameter IS NOT INITIAL
+        OR synchronous = abap_true
+        OR ( operation IS NOT INITIAL AND to_upper( operation ) <> 'OPEN' ).
+      RAISE not_supported_by_gui.
+    ENDIF.
+* A path, a drive letter or file: is a local file; any other scheme than http
+* and https, javascript: and data: among them, is nothing a tab should open.
+    SPLIT lv_document AT ':' INTO lv_scheme lv_rest.
+    lv_scheme = to_lower( lv_scheme ).
+    IF lv_scheme <> 'https' AND lv_scheme <> 'http'.
+      RAISE not_supported_by_gui.
+    ENDIF.
+* An address with a host, and no blanks, control characters, backslashes or
+* credentials, which browsers would repair or show in a misleading way. The
+* runtime's matches( ) takes no POSIX classes, \s and \xhh are what it knows.
+    IF NOT matches( val   = lv_document
+                    regex = `[A-Za-z]+://[A-Za-z0-9\[][^/?#@\\\s\x00-\x1F\x7F]*([/?#][^\\\s\x00-\x1F\x7F]*)?` ).
+      RAISE bad_parameter.
+    ENDIF.
+    lo_host->add_url( lv_document ).
   ENDMETHOD.
 
   METHOD directory_browse.

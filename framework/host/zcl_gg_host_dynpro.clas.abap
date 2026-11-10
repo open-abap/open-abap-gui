@@ -530,6 +530,9 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     DATA lv_list_page TYPE abap_bool.
     DATA lv_controls_html TYPE string.
     DATA(lv_previous_status) = previous_status( it_values ).
+* The frontend services reach the browser only through the page this run
+* renders, so its layer is current only while it runs.
+    DATA(lo_previous_compatibility) = zcl_gg_host_compatibility=>current( ).
 
     lo_builder = NEW zcl_gg_host_dynpro_builder( ).
     lo_flow = NEW zcl_gg_host_dynpro_flow( ).
@@ -864,17 +867,21 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       WHEN lv_list_page = abap_true AND lo_list->get_title( ) IS NOT INITIAL
       THEN lo_list->get_title( )
       ELSE rs_result-title ).
+* What the frontend services handed to the browser goes with either page.
+    DATA(lt_frontend_actions) = CAST zcl_gg_host_compatibility(
+      lo_session->zif_gg_session_v1~get_compatibility( ) )->get_downloads( ).
     rs_result-html = COND string(
       WHEN lv_list_page = abap_true
       THEN zcl_gg_host_renderer=>render_list(
-        iv_session_id = lv_session_id
-        iv_page_id    = lv_page_id
-        iv_title      = COND string( WHEN rs_result-title IS INITIAL THEN 'ABAP list' ELSE rs_result-title )
-        it_lines      = rs_result-render_lines
-        is_context    = VALUE #( processor = zif_gg_session_types_v1=>processor_list )
-        is_status     = rs_result-status
-        it_actions    = VALUE #( ( kind = zif_gg_host_html_v1=>action_back ) )
-        it_messages   = rs_result-messages )
+        iv_session_id   = lv_session_id
+        iv_page_id      = lv_page_id
+        iv_title        = COND string( WHEN rs_result-title IS INITIAL THEN 'ABAP list' ELSE rs_result-title )
+        it_lines        = rs_result-render_lines
+        is_context      = VALUE #( processor = zif_gg_session_types_v1=>processor_list )
+        is_status       = rs_result-status
+        it_actions      = VALUE #( ( kind = zif_gg_host_html_v1=>action_back ) )
+        it_messages     = rs_result-messages
+        is_list_outcome = VALUE #( downloads = lt_frontend_actions ) )
       ELSE zcl_gg_host_renderer=>render_dynpro(
         iv_session_id     = lv_session_id
         iv_page_id        = lv_page_id
@@ -898,8 +905,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
           zcl_gg_host_renderer=>sapevent_transport(
             iv_session_id = lv_session_id
             iv_page_id    = lv_page_id ) )
-        it_downloads      = CAST zcl_gg_host_compatibility(
-          lo_session->zif_gg_session_v1~get_compatibility( ) )->get_downloads( ) ) ).
+        it_downloads      = lt_frontend_actions ) ).
     render_terminal_page(
       EXPORTING
         iv_session_id = lv_session_id
@@ -924,6 +930,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         iv_terminal = rs_result-terminal_state
       CHANGING
         ct_actions  = rs_result-page-actions ).
+    zcl_gg_host_compatibility=>set_current( lo_previous_compatibility ).
   ENDMETHOD.
 
   METHOD process_modules.

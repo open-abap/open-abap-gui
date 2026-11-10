@@ -20,6 +20,7 @@ DATA gv_length TYPE i.
 DATA gv_ok_code TYPE sy-ucomm.
 DATA gv_state TYPE c LENGTH 60.
 DATA gv_first_line TYPE c LENGTH 60.
+DATA gv_document TYPE c LENGTH 132.
 
 START-OF-SELECTION.
   gt_flights = VALUE #(
@@ -96,6 +97,31 @@ MODULE user_command_0100 INPUT.
           gv_state = 'Upload failed'.
         ENDIF.
       ENDIF.
+    WHEN 'OPEN'.
+      cl_gui_frontend_services=>execute(
+        EXPORTING
+          document               = CONV string( gv_document )
+        EXCEPTIONS
+          cntl_error             = 1
+          error_no_gui           = 2
+          bad_parameter          = 3
+          file_not_found         = 4
+          path_not_found         = 5
+          file_extension_unknown = 6
+          error_execute_failed   = 7
+          synchronous_failed     = 8
+          not_supported_by_gui   = 9
+          OTHERS                 = 10 ).
+      CASE sy-subrc.
+        WHEN 0.
+          gv_state = 'Document handed to the browser'.
+        WHEN 3.
+          gv_state = 'Open failed: bad parameter'.
+        WHEN 9.
+          gv_state = 'Open failed: not supported by the GUI'.
+        WHEN OTHERS.
+          gv_state = |Open failed: { sy-subrc }|.
+      ENDCASE.
   ENDCASE.
   CLEAR gv_ok_code.
 ENDMODULE.

@@ -1991,6 +1991,27 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 * The bytes travel in an attribute and become a blob, so the page links to no
 * data URL.
     LOOP AT it_downloads INTO DATA(ls_download).
+      DATA(lv_index) = sy-tabix.
+      IF ls_download-url IS NOT INITIAL.
+* A document EXECUTE opens. The page loads after the click that ran the
+* program, so most browsers block a tab the page opens by itself. The page
+* tries; when no tab opens it shows the document as a link, and the user's
+* click on it is one the browser lets open a tab. The URL travels only as an
+* escaped attribute, and only an absolute http or https URL is followed.
+        IF ls_download-url CP 'http://*' OR ls_download-url CP 'https://*'.
+          rv_html = rv_html && |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-execute-title-{ lv_index }" data-gg-execute hidden>|
+            && |<div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 id="gg-execute-title-{ lv_index }">Open document</h2></header>|
+            && |<div class="gg-popup-body"><p>The browser did not open a new tab. Follow the link to open the document:</p>|
+            && |<p><a class="gg-execute-link" href="{ zcl_gg_host_html=>escape_attribute( ls_download-url ) }" target="_blank" rel="noopener noreferrer" data-gg-execute-link>{ zcl_gg_host_html=>escape_text( ls_download-url ) }</a></p></div>|
+            && |<footer class="gg-popup-actions"><button type="button" data-gg-execute-close>Close</button></footer></div></div>|
+            && |<script>(function()\{var d=document.currentScript.previousElementSibling,a=d.querySelector("[data-gg-execute-link]"),u,w=null;|
+            && |try\{u=new URL(a.getAttribute("href"));\}catch(e)\{d.remove();return;\}if(u.protocol!=="https:"&&u.protocol!=="http:")\{d.remove();return;\}|
+            && |try\{w=window.open("","_blank");\}catch(e)\{w=null;\}|
+            && |if(w)\{try\{w.opener=null;w.location.replace(u.href);d.remove();return;\}catch(e)\{try\{w.close();\}catch(f)\{\}\}\}|
+            && |var hide=function()\{d.hidden=true;\};a.addEventListener("click",hide);d.querySelector("[data-gg-execute-close]").addEventListener("click",hide);d.hidden=false;a.focus();\})();</script>|.
+        ENDIF.
+        CONTINUE.
+      ENDIF.
       IF ls_download-clipboard = abap_true.
         rv_html = rv_html && |<button type="button" data-gg-clipboard="{ cl_http_utility=>encode_x_base64( ls_download-content ) }">Copy to clipboard</button>|.
         CONTINUE.

@@ -2,6 +2,7 @@ CLASS ltcl_gg_compatibility_popup DEFINITION FINAL FOR TESTING
   DURATION SHORT RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
+    METHODS teardown.
     METHODS table_popup_returns_choice FOR TESTING.
     METHODS classic_alv_renders_rows FOR TESTING.
     METHODS classic_alv_metadata_events FOR TESTING.
@@ -13,6 +14,11 @@ CLASS ltcl_gg_compatibility_popup DEFINITION FINAL FOR TESTING
 ENDCLASS.
 
 CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
+
+  METHOD teardown.
+* A popup request makes the layer current; no other test should find it.
+    zcl_gg_host_compatibility=>set_current( ).
+  ENDMETHOD.
 
   METHOD table_popup_returns_choice.
     DATA lt_values TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
@@ -186,6 +192,178 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
                                         exp = `Ada` ).
     cl_abap_unit_assert=>assert_equals( act = lt_values[ name = 'S_CARR' ]-ranges[ 1 ]-low
                                         exp = `LH` ).
+  ENDMETHOD.
+
+ENDCLASS.
+
+* cl_gui_frontend_services on a screen: what it hands to the browser goes
+* through this layer.
+CLASS ltcl_frontend_services DEFINITION FINAL FOR TESTING
+  DURATION SHORT RISK LEVEL HARMLESS.
+
+  PRIVATE SECTION.
+    METHODS teardown.
+    METHODS clipboard_roundtrip FOR TESTING.
+    METHODS execute_opens_web_document FOR TESTING.
+    METHODS execute_refuses_unsupported FOR TESTING.
+    METHODS execute_refuses_bad_document FOR TESTING.
+
+    "! sy-subrc of EXECUTE: 3 is BAD_PARAMETER and 9 NOT_SUPPORTED_BY_GUI.
+    METHODS execute_subrc
+      IMPORTING
+        iv_document     TYPE string
+        iv_application  TYPE string OPTIONAL
+        iv_parameter    TYPE string OPTIONAL
+        iv_synchronous  TYPE string OPTIONAL
+        iv_operation    TYPE string DEFAULT 'OPEN'
+      RETURNING
+        VALUE(rv_subrc) TYPE i.
+
+    "! The compatibility layer of a screen being processed.
+    METHODS screen_host
+      RETURNING
+        VALUE(ro_host) TYPE REF TO zcl_gg_host_compatibility.
+
+ENDCLASS.
+
+CLASS ltcl_frontend_services IMPLEMENTATION.
+
+  METHOD teardown.
+    zcl_gg_host_compatibility=>set_current( ).
+  ENDMETHOD.
+
+  METHOD screen_host.
+    ro_host = NEW zcl_gg_host_compatibility( ).
+    ro_host->zif_gg_compatibility_v1~set_popup_request( iv_action = ''
+                                                        it_values = VALUE #( ) ).
+  ENDMETHOD.
+
+  METHOD execute_subrc.
+    cl_gui_frontend_services=>execute(
+      EXPORTING
+        document               = iv_document
+        application            = iv_application
+        parameter              = iv_parameter
+        synchronous            = iv_synchronous
+        operation              = iv_operation
+      EXCEPTIONS
+        cntl_error             = 1
+        error_no_gui           = 2
+        bad_parameter          = 3
+        file_not_found         = 4
+        path_not_found         = 5
+        file_extension_unknown = 6
+        error_execute_failed   = 7
+        synchronous_failed     = 8
+        not_supported_by_gui   = 9
+        OTHERS                 = 10 ).
+    rv_subrc = sy-subrc.
+  ENDMETHOD.
+
+  METHOD clipboard_roundtrip.
+    DATA(lo_host) = NEW zcl_gg_host_compatibility( ).
+    DATA lv_rc TYPE i.
+    DATA lt_text TYPE string_table.
+    lo_host->zif_gg_compatibility_v1~set_popup_request( iv_action = 'CLIPBOARD:OK'
+      it_values                                                   = VALUE #( ( name = 'CONTENT' value = |first\r\nsecond  | ) ) ).
+    cl_gui_frontend_services=>clipboard_import( IMPORTING data = lt_text length = DATA(lv_lines) ).
+    cl_abap_unit_assert=>assert_equals( act = lv_lines
+                                        exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = lt_text[ 2 ]
+                                        exp = `second  ` ).
+    cl_gui_frontend_services=>clipboard_export( IMPORTING data = lt_text CHANGING rc = lv_rc ).
+    cl_abap_unit_assert=>assert_equals( act = lv_rc
+                                        exp = 0 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_text )
+                                        exp = 2 ).
+    DATA(lt_actions) = lo_host->get_downloads( ).
+    cl_abap_unit_assert=>assert_true( lt_actions[ 1 ]-clipboard ).
+    cl_abap_unit_assert=>assert_equals( act = cl_abap_codepage=>convert_from( lt_actions[ 1 ]-content )
+      exp                                   = |first\r\nsecond  | ).
+  ENDMETHOD.
+
+  METHOD execute_opens_web_document.
+    DATA(lo_host) = screen_host( ).
+
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( ` https://example.com/docs/guide.html?lang=en#intro ` )
+                                        exp = 0 ).
+* Neither the operation nor the scheme is case sensitive.
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( iv_document  = `HTTP://example.org:8080/a`
+                                                             iv_operation = `open` )
+                                        exp = 0 ).
+
+    DATA(lt_actions) = lo_host->get_downloads( ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_actions )
+                                        exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = lt_actions[ 1 ]-url
+                                        exp = `https://example.com/docs/guide.html?lang=en#intro` ).
+    cl_abap_unit_assert=>assert_initial( lt_actions[ 1 ]-content ).
+    cl_abap_unit_assert=>assert_initial( lt_actions[ 1 ]-filename ).
+    cl_abap_unit_assert=>assert_equals( act = lt_actions[ 2 ]-url
+                                        exp = `HTTP://example.org:8080/a` ).
+  ENDMETHOD.
+
+  METHOD execute_refuses_unsupported.
+    DATA(lo_host) = screen_host( ).
+
+* Local files and programs are out of a browser's reach.
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `C:\temp\report.txt` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `\\server\share\report.txt` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `/tmp/report.txt` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `file:///tmp/report.txt` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `www.example.com` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( iv_document    = ``
+                                                             iv_application = `notepad.exe` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( iv_document  = `https://example.com/`
+                                                             iv_parameter = `-new-window` )
+                                        exp = 9 ).
+* Other schemes, script ones among them, are never opened.
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `javascript:alert(1)` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `data:text/html,<p>x</p>` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `mailto:someone@example.com` )
+                                        exp = 9 ).
+* Only OPEN, and nothing waits for the tab to close.
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( iv_document  = `https://example.com/report.pdf`
+                                                             iv_operation = `PRINT` )
+                                        exp = 9 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( iv_document    = `https://example.com/`
+                                                             iv_synchronous = `X` )
+                                        exp = 9 ).
+
+    cl_abap_unit_assert=>assert_initial( lo_host->get_downloads( ) ).
+  ENDMETHOD.
+
+  METHOD execute_refuses_bad_document.
+    DATA(lo_host) = screen_host( ).
+
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `` )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `   ` )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `https://` )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `https:///no-host` )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `https:example.com` )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `https://user:secret@example.com/` )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `https://example.com/a b` )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( |https://example.com/\r\nx| )
+                                        exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = execute_subrc( `https://example.com\@other.example/` )
+                                        exp = 3 ).
+
+    cl_abap_unit_assert=>assert_initial( lo_host->get_downloads( ) ).
   ENDMETHOD.
 
 ENDCLASS.
