@@ -40,6 +40,8 @@ CLASS zcl_gg_ex_116 DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         it_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS table_values_out
+      IMPORTING
+        iv_input  TYPE abap_bool DEFAULT abap_false
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
 
@@ -251,6 +253,15 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
     IF is_context-table_control = 'TC_FLIGHTS' AND is_context-row > 0.
       tc_flights-current_line = is_context-row.
       READ TABLE gt_shown INTO gs_flight INDEX is_context-row.
+      IF sy-subrc <> 0.
+        CLEAR gs_flight.
+      ENDIF.
+      IF line_exists( ct_values[ container = 'TC_FLIGHTS' name = 'CITYFROM' row = is_context-row ] ).
+        gs_flight-cityfrom = CONV #( ct_values[ container = 'TC_FLIGHTS' name = 'CITYFROM' row = is_context-row ]-value ).
+      ENDIF.
+      IF line_exists( ct_values[ container = 'TC_FLIGHTS' name = 'CITYTO' row = is_context-row ] ).
+        gs_flight-cityto = CONV #( ct_values[ container = 'TC_FLIGHTS' name = 'CITYTO' row = is_context-row ]-value ).
+      ENDIF.
     ELSEIF is_context-row = 0.
       CLEAR gs_flight.
     ENDIF.
@@ -273,7 +284,11 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
     ELSE.
       INSERT VALUE #( name = 'GV_CARRID' value = CONV string( gv_carrid ) ) INTO TABLE ct_values.
     ENDIF.
-    table_values_out( CHANGING ct_values = ct_values ).
+    table_values_out(
+      EXPORTING
+        iv_input  = abap_true
+      CHANGING
+        ct_values = ct_values ).
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
     ENDIF.
@@ -436,7 +451,11 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD table_values_out.
-    DELETE ct_values WHERE container = 'TC_FLIGHTS'.
+    IF iv_input = abap_true.
+      DELETE ct_values WHERE container = 'TC_FLIGHTS' AND row <= lines( gt_shown ).
+    ELSE.
+      DELETE ct_values WHERE container = 'TC_FLIGHTS'.
+    ENDIF.
     LOOP AT gt_shown ASSIGNING FIELD-SYMBOL(<ls_table1_flush_row>).
       DATA(lv_table1_flush_row) = sy-tabix.
       INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CONNID' row = lv_table1_flush_row value = CONV string( <ls_table1_flush_row>-connid ) ) INTO TABLE ct_values.

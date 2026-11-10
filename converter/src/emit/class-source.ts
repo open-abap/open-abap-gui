@@ -1938,15 +1938,27 @@ function dynproTableHydrate(bindings: Metadata[]): string[] {
 
 // The table line a module works on: its row of the table control inside the
 // loop, none outside it.
-function dynproTableCurrentRow(bindings: Metadata[]): string[] {
-  return bindings.flatMap((table) => [
-    `IF is_context-table_control = '${table.name}' AND is_context-row > 0.`,
-    `  ${table.name.toLowerCase()}-current_line = is_context-row.`,
-    `  READ TABLE ${table.tableVariable} INTO ${table.rowPrefix.toLowerCase()} INDEX is_context-row.`,
-    "ELSEIF is_context-row = 0.",
-    `  CLEAR ${table.rowPrefix.toLowerCase()}.`,
-    "ENDIF.",
-  ]);
+// In PAI the work area is the screen row as the user left it: the table line (if there is one) with the values of
+// the row's input fields on top, so a row typed below the table's lines reaches the module (which APPENDs it) and an
+// empty row is empty, not the previous row.
+function dynproTableCurrentRow(bindings: Metadata[], input = false): string[] {
+  return bindings.flatMap((table) => {
+    const wa = table.rowPrefix.toLowerCase();
+    const fromScreen = input ? table.columns.filter((column: Metadata) => column.input).flatMap((column: Metadata) => [
+      `  IF line_exists( ct_values[ container = '${table.name}' name = '${column.name}' row = is_context-row ] ).`,
+      `    ${wa}-${column.name.toLowerCase()} = CONV #( ct_values[ container = '${table.name}' name = '${column.name}' row = is_context-row ]-value ).`,
+      "  ENDIF.",
+    ]) : [];
+    return [
+      `IF is_context-table_control = '${table.name}' AND is_context-row > 0.`,
+      `  ${table.name.toLowerCase()}-current_line = is_context-row.`,
+      `  READ TABLE ${table.tableVariable} INTO ${wa} INDEX is_context-row.`,
+      ...(input ? ["  IF sy-subrc <> 0.", `    CLEAR ${wa}.`, "  ENDIF.", ...fromScreen] : []),
+      "ELSEIF is_context-row = 0.",
+      `  CLEAR ${wa}.`,
+      "ENDIF.",
+    ];
+  });
 }
 
 // Table controls and their TABLEVIEW structures exchange values with the
@@ -1955,7 +1967,7 @@ function dynproExchangeDefinitions(ir: ReportIR, metadata: Metadata | undefined)
   if (!metadata || !(dynproTableBindings(metadata).length || tableViews(ir).length)) return [];
   return [
     "METHODS table_values_in\n  IMPORTING\n    it_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
-    "METHODS table_values_out\n  CHANGING\n    ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
+    "METHODS table_values_out\n  IMPORTING\n    iv_input TYPE abap_bool DEFAULT abap_false\n  CHANGING\n    ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.",
   ];
 }
 
@@ -2003,7 +2015,13 @@ function dynproTableFlush(bindings: Metadata[]): string[] {
   for (const [tableIndex, table] of bindings.entries()) {
     const rowSymbol = `<ls_table${tableIndex + 1}_flush_row>`;
     const rowIndex = `lv_table${tableIndex + 1}_flush_row`;
-    lines.push(`DELETE ct_values WHERE container = '${table.name}'.`);
+    // In PAI the rows below the table's lines keep what the user typed: the module for such a row (later in the
+    // LOOP) appends it
+    lines.push("IF iv_input = abap_true.");
+    lines.push(`  DELETE ct_values WHERE container = '${table.name}' AND row <= lines( ${table.tableVariable} ).`);
+    lines.push("ELSE.");
+    lines.push(`  DELETE ct_values WHERE container = '${table.name}'.`);
+    lines.push("ENDIF.");
     lines.push(`LOOP AT ${table.tableVariable} ASSIGNING FIELD-SYMBOL(${rowSymbol}).`);
     lines.push(`  DATA(${rowIndex}) = sy-tabix.`);
     for (const column of table.columns) {
@@ -2393,8 +2411,8 @@ function dynproMethods(ir: ReportIR, metadata: Metadata | undefined = ir.dynproM
       : [], [...stateFlush, ...tableFlush])])),
     // A screen without PAI modules has nothing to read or write back.
     method(interfaceMethod("process_input_module"), inputModules.length
-      ? hoistDeclarations([...dynproStateHydrate(ir, "ct_values", screenInputField(metadata)), ...tableHydrate, ...tableContext, ...keptOnUnwind(
-        [moduleCall("input_modules", false)], [...stateFlush, ...tableFlush])])
+      ? hoistDeclarations([...dynproStateHydrate(ir, "ct_values", screenInputField(metadata)), ...tableHydrate, ...dynproTableCurrentRow(tableBindings, true), ...keptOnUnwind(
+        [moduleCall("input_modules", false)], [...stateFlush, ...(exchange ? ["table_values_out( EXPORTING iv_input = abap_true CHANGING ct_values = ct_values )."] : [])])])
       : ["RETURN."]),
     method(interfaceMethod("process_on_value_request"), hoistDeclarations(valueRequest)),
     method(interfaceMethod("process_on_help_request"), hoistDeclarations(helpRequest)),
