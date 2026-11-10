@@ -27,6 +27,7 @@ START-OF-SELECTION.
     ( carrid = 'LH' connid = '0400' cityfrom = 'Frankfurt' cityto = 'New York' )
     ( carrid = 'UA' connid = '0941' cityfrom = 'Frankfurt' cityto = 'San Francisco' )
     ( carrid = 'AF' connid = '0010' cityfrom = 'Paris' cityto = 'New York' ) ).
+  gv_document = 'https://example.com/'.
   CALL SCREEN 100.
 
 MODULE user_command_0100 INPUT.

@@ -13,13 +13,26 @@ async function serveDocuments(page) {
 }
 
 // Each press is a new page; waiting for it keeps a check off the old one.
+// Without a document the field keeps what the program put there.
 async function openDocument(page, document) {
-  await documentField(page).fill(document);
+  if (document !== undefined) await documentField(page).fill(document);
   await Promise.all([
     page.waitForEvent("load"),
     page.getByRole("button", {name: "Open document"}).click(),
   ]);
 }
+
+test("ZCL_GG_EX_154 — the document defaults to a URL that opens as it is", async ({page, host}) => {
+  await serveDocuments(page);
+  await openExample(page, host, 154);
+  await expect(documentField(page)).toHaveValue("https://example.com/");
+  const popup = page.waitForEvent("popup");
+  await openDocument(page);
+  const tab = await popup;
+  await tab.waitForURL("https://example.com/");
+  await expect(state(page)).toHaveText("Document handed to the browser");
+  await tab.close();
+});
 
 test("ZCL_GG_EX_154 — execute opens an HTTPS document in a new tab", async ({page, host}) => {
   await serveDocuments(page);
