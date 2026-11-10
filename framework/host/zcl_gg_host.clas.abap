@@ -55,6 +55,9 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              pages               TYPE zif_gg_host_html_v1=>ty_pages,
 * What the list processor did with a function of its own (Find, Save).
              list_outcome        TYPE zcl_gg_host_list_processor=>ty_outcome,
+* The files the program handed to the browser (cl_gui_frontend_services=>gui_download,
+* clipboard_export), saved by the page it gets next: selection screen, message or list.
+             downloads           TYPE zcl_gg_host_compatibility=>ty_downloads,
 * The events that led to the list shown, and its level (sy-lsind).
              list_path           TYPE ty_list_steps,
              live_list           TYPE REF TO zcl_gg_host_list,
@@ -609,6 +612,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lt_elements TYPE zcl_gg_host_screen=>ty_elements.
     DATA lv_stop_before_start TYPE abap_bool.
 
+* The frontend services of the report (gui_download, clipboard_export) work on the session
+* that runs it, also on the selection screen, in START-OF-SELECTION and in list events.
+    DATA(lo_previous_compatibility) = zcl_gg_host_compatibility=>current( ).
     lv_session_id = COND #( WHEN iv_session_id IS INITIAL
       THEN next_run_id( ) ELSE iv_session_id ).
     lv_page_id = COND #( WHEN iv_page_id IS INITIAL
@@ -627,6 +633,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
                                            iv_program        = iv_program
                                            iv_batch          = iv_batch
                                            it_request_values = it_input ).
+      zcl_gg_host_compatibility=>set_current( CAST #( lo_session->zif_gg_session_v1~get_compatibility( ) ) ).
       lo_list_session = lo_session->zif_gg_session_v1~get_list( ).
       lo_handler = io_report->get_list_processing( lo_session ).
       lo_list->set_handler( io_session = lo_session
@@ -645,6 +652,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         iv_program        = iv_program
         iv_batch          = iv_batch
         it_request_values = it_input ).
+      zcl_gg_host_compatibility=>set_current( CAST #( lo_session->zif_gg_session_v1~get_compatibility( ) ) ).
       lo_list_session = lo_session->zif_gg_session_v1~get_list( ).
 
       TRY.
@@ -910,6 +918,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
     rs_result-selection_active = lv_selection_screen_active.
     rs_result-session_id = lv_session_id.
     rs_result-page_id = lv_page_id.
+    rs_result-downloads = CAST zcl_gg_host_compatibility(
+      lo_session->zif_gg_session_v1~get_compatibility( ) )->get_downloads( ).
     render_result(
       EXPORTING
         iv_session_id          = lv_session_id
@@ -923,6 +933,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         io_list                = lo_list
       CHANGING
         cs_result              = rs_result ).
+    zcl_gg_host_compatibility=>set_current( lo_previous_compatibility ).
   ENDMETHOD.
 
   METHOD next_run_id.
@@ -972,6 +983,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA ls_context TYPE zif_gg_host_html_v1=>ty_renderer_context.
     DATA lt_actions TYPE zif_gg_host_html_v1=>ty_actions.
     DATA lv_controls_html TYPE string.
+    DATA ls_list_outcome TYPE zcl_gg_host_list_processor=>ty_outcome.
 
     ls_context-program = iv_program.
     ls_context-locale = 'en'.
@@ -1012,7 +1024,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
         is_status            = cs_result-status
         it_messages          = cs_result-messages
         iv_help_text         = cs_result-help_text
-        iv_help_name         = cs_result-help_name ).
+        iv_help_name         = cs_result-help_name
+        it_downloads         = cs_result-downloads ).
     ELSEIF iv_pause_at_navigation = abap_true AND iv_navigation-kind IS NOT INITIAL.
       lv_page_kind = zif_gg_host_html_v1=>page_navigation.
       ls_context-processor = zif_gg_session_types_v1=>processor_report.
@@ -1034,7 +1047,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
         iv_page_id    = iv_page_id
         iv_title      = lv_title
         is_context    = ls_context
-        it_messages   = cs_result-messages ).
+        it_messages   = cs_result-messages
+        it_downloads  = cs_result-downloads ).
     ELSE.
       lv_page_kind = zif_gg_host_html_v1=>page_list.
       ls_context-processor = zif_gg_session_types_v1=>processor_list.
@@ -1051,6 +1065,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
             iv_session_id = iv_session_id
             iv_page_id    = iv_page_id ) ).
       ENDIF.
+      ls_list_outcome = cs_result-list_outcome.
+      APPEND LINES OF cs_result-downloads TO ls_list_outcome-downloads.
       cs_result-html = zcl_gg_host_renderer=>render_list(
         iv_cursor        = cs_result-list_cursor
         iv_session_id    = iv_session_id
@@ -1063,7 +1079,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
         is_context       = ls_context
         it_messages      = cs_result-messages
         iv_controls_html = lv_controls_html
-        is_list_outcome  = cs_result-list_outcome ).
+        is_list_outcome  = ls_list_outcome ).
     ENDIF.
     IF lv_page_kind <> zif_gg_host_html_v1=>page_navigation.
       cs_result-html = zcl_gg_host_renderer=>with_navigation(

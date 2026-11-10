@@ -45,6 +45,7 @@ CLASS lcl_report IMPLEMENTATION.
     DATA lt_gui_fcat TYPE lvc_t_fcat.
     DATA lo_gui_viewer TYPE REF TO cl_gui_html_viewer.
     DATA lt_gui_html TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lt_download TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
     IF mv_mode = 'LIVE'.
       APPEND 'START' TO events.
@@ -87,6 +88,17 @@ CLASS lcl_report IMPLEMENTATION.
 
       WHEN 'DEFAULT'.
         lo_writer->write_field( VALUE #( text = it_values[ name = 'P_CARR' ]-value ) ).
+
+      WHEN 'DOWNLOAD'.
+        lt_download = VALUE #( ( `LH;0400` ) ).
+        cl_gui_frontend_services=>gui_download(
+          EXPORTING
+            filename = `C:\temp\flights.txt`
+          CHANGING
+            data_tab = lt_download
+          EXCEPTIONS
+            OTHERS   = 1 ).
+        lo_writer->write_field( VALUE #( text = COND #( WHEN sy-subrc = 0 THEN `downloaded` ELSE `failed` ) ) ).
 
       WHEN 'MESSAGE'.
         io_session->message( VALUE #(
@@ -329,6 +341,7 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS selection_other_screen_events FOR TESTING.
     METHODS html_gui_fixture FOR TESTING.
     METHODS replaces_a_host_session FOR TESTING.
+    METHODS download_in_start_of_selection FOR TESTING.
 
 ENDCLASS.
 
@@ -490,6 +503,19 @@ CLASS ltcl_host IMPLEMENTATION.
       act = ls_result-messages[ 1 ]-text
       exp = 'bad input' ).
     cl_abap_unit_assert=>assert_initial( ls_result-lines ).
+  ENDMETHOD.
+
+  METHOD download_in_start_of_selection.
+* cl_gui_frontend_services=>gui_download in START-OF-SELECTION: the list page saves the file.
+    DATA(lo_before) = zcl_gg_host_compatibility=>current( ).
+    DATA(ls_result) = zcl_gg_host=>run( NEW lcl_report( 'DOWNLOAD' ) ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'downloaded' ) ).
+    cl_abap_unit_assert=>assert_equals( act = lines( ls_result-downloads )
+                                        exp = 1 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'download="flights.txt"' ) ).
+* The host leaves the report's session behind: the current one is the one before.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( zcl_gg_host_compatibility=>current( ) = lo_before ) ).
   ENDMETHOD.
 
   METHOD html_list.
