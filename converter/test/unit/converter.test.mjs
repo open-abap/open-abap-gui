@@ -3432,3 +3432,14 @@ test("exchanges screen fields that are components of a global structure or a TAB
   assert.match(source, /sflight-carrid = CONV #\( ct_values\[ name = 'SFLIGHT-CARRID' \]-value \)/);
   assert.doesNotMatch(source, /gs_item-lifnr = CONV/);
 });
+
+test("passes a screen field's data element (ROLLNAME) to the builder: its domain's fixed values are its value help", async () => {
+  const element = { kind: "input-output", type: "TEMPLATE", name: "GV_STAT", line: 1, column: 1, length: 1, height: 1,
+    position: { line: 1, column: 1, width: 1, height: 1 }, input: true, output: true, attributes: { format: "CHAR", rollname: "ZPO_STAT", contType: "SCREEN" } };
+  const converted = await convertProgram({
+    source: "PROGRAM zroll.\nDATA gv_stat TYPE c LENGTH 1.\nMODULE status_0100 OUTPUT.\nENDMODULE.\n",
+    filename: "zroll.prog.abap",
+    dynproMetadata: { initialScreen: "0100", screens: [{ number: "0100", title: "R", elements: [element], containers: [] }], flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [] }] },
+  });
+  assert.match(flat(converted.classSource), /name = 'GV_STAT' [^)]*\) \) data_type = VALUE #\( typ = 'C' length = 1 rollname = 'ZPO_STAT' \)/);
+});

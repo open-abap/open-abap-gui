@@ -1660,6 +1660,9 @@ function dynproDataType(element: Metadata): string {
   ];
   const decimals = ({ QUAN: 3, CURR: 2 } as Record<string, number>)[format];
   if (decimals !== undefined) fields.push("decimals = " + decimals);
+  // the data element of a field with a dictionary reference: its domain's fixed values are the field's value help
+  const rollname = String(attributes.rollname ?? "").trim().toUpperCase();
+  if (/^[A-Z_][\w/]*$/.test(rollname)) fields.push("rollname = '" + rollname + "'");
   return "VALUE #( " + fields.join(" ") + " )";
 }
 
