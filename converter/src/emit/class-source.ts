@@ -1490,6 +1490,16 @@ function elementaryType(raw: string | undefined): string | undefined {
   return ast && name?.get() instanceof Expressions.TypeName ? ast.source(name).toUpperCase() : undefined;
 }
 
+// The elementary type of a declaration through the report's own TYPES aliases (TYPES ty_amount TYPE p LENGTH 6
+// DECIMALS 2. DATA gv_salary TYPE ty_amount.), so such a field is a screen field like one typed directly.
+function resolvedElementaryType(ir: ReportIR, raw: string | undefined, depth = 0): string | undefined {
+  const type = elementaryType(raw);
+  if (!type || STATE_TYPES.has(type) || depth > 8) return type;
+  const alias = (ir.declarations ?? []).find((item) => item.kind === "type" && !item.complex && !item.component
+    && declaredName(item.raw)?.toUpperCase() === type);
+  return alias ? resolvedElementaryType(ir, alias.raw, depth + 1) : type;
+}
+
 function dynproStateComponents(ir: ReportIR): { name: string; member: string }[] {
   const components: { name: string; member: string }[] = [];
   const seen = new Set<string>();
@@ -1507,7 +1517,22 @@ function dynproStateComponents(ir: ReportIR): { name: string; member: string }[]
         || declaration.component) continue;
     // A screen field holds an elementary value.
     const name = declaredName(declaration.raw);
-    if (name && STATE_TYPES.has(elementaryType(declaration.raw) ?? "")) add(name);
+    if (name && STATE_TYPES.has(resolvedElementaryType(ir, declaration.raw) ?? "")) add(name);
+  }
+  // A screen field that is a component of a global structure or a TABLES work area (GS_HEAD-EBELN,
+  // ZPO_HEAD-LIFNR): the screen exchanges the component. Fields of table controls go through their rows.
+  for (const screen of ir.dynproMetadata?.screens ?? []) {
+    for (const element of screen.elements ?? []) {
+      const full = String(element?.name ?? "").trim().toUpperCase();
+      if (!/^[A-Z_][\w/]*(-[A-Z_0-9][\w/]*)+$/.test(full) || seen.has(full)) continue;
+      if (["text", "frame", "pushbutton", "subscreen", "okcode"].includes(String(element.kind ?? ""))) continue;
+      if (String(element.attributes?.contType ?? "SCREEN").toUpperCase() !== "SCREEN") continue;
+      const [base, ...path] = full.split("-");
+      const member = reportMember(ir, base);
+      if (!member) continue;
+      seen.add(full);
+      components.push({ name: full, member: [member, ...path.map((part) => part.toLowerCase())].join("-") });
+    }
   }
   for (const statement of ir.statements ?? []) {
     if (statement.kind !== "Controls") continue;
@@ -1546,7 +1571,7 @@ function screenInputField(metadata: Metadata | undefined): (name: string) => boo
 // A string field goes into the screen value as it is.
 function stringDeclared(ir: ReportIR, name: string): boolean {
   return (ir.declarations ?? []).some((item) => (item.names ?? []).some((declared) => declared.toUpperCase() === name)
-    && elementaryType(item.raw) === "STRING");
+    && resolvedElementaryType(ir, item.raw) === "STRING");
 }
 
 function dynproStateFlush(ir: ReportIR, valuesName = "ct_values"): string[] {

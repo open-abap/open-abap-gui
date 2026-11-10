@@ -3396,3 +3396,39 @@ test("skips the kernel's system includes unless the generated class uses their c
   const unknown = await convert(["INCLUDE <cntain>.", "START-OF-SELECTION."]);
   assert.deepEqual(codesOf(unknown), ["GGCONV-E102"]);
 });
+
+test("exchanges a screen field typed through a TYPES alias of the program like one typed directly", async () => {
+  const element = { kind: "input-output", type: "TEMPLATE", name: "GV_SALARY", elementOf: "SCREEN", line: 1, column: 1, length: 13, height: 1,
+    position: { line: 1, column: 1, width: 13, height: 1 }, input: true, output: true, attributes: { format: "DEC" } };
+  const converted = await convertProgram({
+    source: "PROGRAM zalias.\nTYPES ty_amount TYPE p LENGTH 6 DECIMALS 2.\nTYPES ty_salary TYPE ty_amount.\nDATA gv_salary TYPE ty_salary.\nMODULE status_0100 OUTPUT.\nENDMODULE.\n",
+    filename: "zalias.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Alias", elements: [element], containers: [] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [] }],
+    },
+  });
+  assert.match(flat(converted.classSource), /gv_salary = CONV #\( ct_values\[ name = 'GV_SALARY' \]-value \)/);
+  assert.match(flat(converted.classSource), /ct_values\[ name = 'GV_SALARY' \]-value = CONV string\( gv_salary \)/);
+});
+
+test("exchanges screen fields that are components of a global structure or a TABLES work area, not table control columns", async () => {
+  const field = (name, extra = {}) => ({ kind: "input-output", type: "TEMPLATE", name, line: 1, column: 1, length: 10, height: 1,
+    position: { line: 1, column: 1, width: 10, height: 1 }, input: true, output: true, attributes: { contType: "SCREEN", contName: "SCREEN", format: "CHAR" }, ...extra });
+  const converted = await convertProgram({
+    source: "PROGRAM zstruct.\nTABLES sflight.\nTYPES: BEGIN OF ty_head, ebeln TYPE c LENGTH 10, lifnr TYPE c LENGTH 10, END OF ty_head.\nDATA gs_head TYPE ty_head.\nDATA gs_item TYPE ty_head.\nDATA gt_items TYPE STANDARD TABLE OF ty_head WITH DEFAULT KEY.\nMODULE status_0100 OUTPUT.\nENDMODULE.\nMODULE user_command_0100 INPUT.\nENDMODULE.\n",
+    filename: "zstruct.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Struct", elements: [field("GS_HEAD-EBELN"), field("GS_HEAD-LIFNR", { kind: "output", input: false }), field("SFLIGHT-CARRID"),
+        field("GS_ITEM-LIFNR", { attributes: { contType: "TABLE_CTRL", contName: "TC_ITEMS" } })], containers: [] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [{ name: "USER_COMMAND_0100" }] }],
+    },
+  });
+  const source = flat(converted.classSource);
+  assert.match(source, /gs_head-ebeln = CONV #\( ct_values\[ name = 'GS_HEAD-EBELN' \]-value \)/);
+  assert.match(source, /ct_values\[ name = 'GS_HEAD-LIFNR' \]-value = CONV string\( gs_head-lifnr \)/);
+  assert.match(source, /sflight-carrid = CONV #\( ct_values\[ name = 'SFLIGHT-CARRID' \]-value \)/);
+  assert.doesNotMatch(source, /gs_item-lifnr = CONV/);
+});
