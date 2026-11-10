@@ -3468,3 +3468,13 @@ test("lowers FORMAT COLOR OFF, INTENSIFIED without ON/OFF and INTENSIFIED = flag
   assert.match(source, /hotspot = xsdbool\( \w+ IS NOT INITIAL \)/);
   assert.match(source, /lo_writer->set_format\( lo_writer->get_format\( \) \)/);
 });
+
+test("GGCONV_SOURCE_LINES=1 marks the code of each executable statement with its source line", async () => {
+  process.env.GGCONV_SOURCE_LINES = "1";
+  try {
+    const converted = await convertProgram({ source: "REPORT zsrc.\nDATA gv_x TYPE i.\nSTART-OF-SELECTION.\n  gv_x = 1.\n  WRITE: / 'a', gv_x.\n", filename: "zsrc.prog.abap" });
+    assert.match(converted.classSource, /\*@src zsrc\.prog\.abap:4\n\s*gv_x = 1\.\n\*@src -/);
+    assert.equal((converted.classSource.match(/\*@src zsrc\.prog\.abap:5\n/g) || []).length, 2);
+    assert.doesNotMatch(converted.classSource, /\*@src zsrc\.prog\.abap:2\n/);
+  } finally { delete process.env.GGCONV_SOURCE_LINES; }
+});

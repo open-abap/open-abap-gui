@@ -2265,6 +2265,16 @@ export function lowerStatements(statements: Statement[], context: LoweringContex
     supported: false,
   });
   for (const item of output) item.text = mergeAdjacentTemplates(item.text);
+  // GGCONV_SOURCE_LINES=1: each executable statement's lowered code between comment lines naming its source line
+  // (*@src file:line ... *@src -), so a debugger can put a breakpoint of the program on the generated statements
+  if (process.env.GGCONV_SOURCE_LINES === "1") {
+    for (const item of output) {
+      const line = item.statement?.span?.start?.line;
+      if (!line || isCommentOnly(item.text) || SOURCE_LINE_PASSIVE.test(item.statement.kind ?? "")) continue;
+      const file = String(item.statement.filename ?? "").split(/[\\/]/).pop();
+      item.text = `*@src ${file}:${line}\n${item.text}\n*@src -`;
+    }
+  }
   // SCREEN read before any LOOP AT SCREEN ran is the initial work area.
   const workArea = screenWorkAreaOf(context);
   if (context.screenWorkAreas?.includes(screenStates(context).kind) && output.some((item) => item.text.toLowerCase().includes(`${workArea}->`))) {
@@ -2272,6 +2282,7 @@ export function lowerStatements(statements: Statement[], context: LoweringContex
   }
   return output;
 }
+const SOURCE_LINE_PASSIVE = /^(Data|DataBegin|DataEnd|Type|TypeBegin|TypeEnd|Constant|ConstantBegin|ConstantEnd|FieldSymbol|Static|StaticBegin|StaticEnd|Tables|Ranges|Parameter|SelectOption|SelectionScreen|Controls|Define|EndOfDefinition)$/;
 
 // |a| && |b| written over two lines comes out as one line; one template says
 // the same.
