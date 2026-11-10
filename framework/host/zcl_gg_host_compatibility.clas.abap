@@ -29,10 +29,12 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * The file dialogs and transfers of cl_gui_frontend_services, as a browser
 * offers them: a dialog is a popup of the screen, an upload carries the bytes
 * the user picked in it, and a download is handed to the browser with the page.
+* An entry with a URL is a web document EXECUTE opens in a new browser tab.
     TYPES: BEGIN OF ty_download,
              filename  TYPE string,
              content   TYPE xstring,
              clipboard TYPE abap_bool,
+             url       TYPE string,
            END OF ty_download.
     TYPES ty_downloads TYPE STANDARD TABLE OF ty_download WITH DEFAULT KEY.
 
@@ -40,6 +42,12 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     "! of dialog processing.
     CLASS-METHODS current
       RETURNING VALUE(ro_current) TYPE REF TO zcl_gg_host_compatibility.
+
+    "! Ends dialog processing: the screen that ran hands back the layer that
+    "! was current before it, unbound at the top level. A frontend service
+    "! called after that has no page to reach the browser with.
+    CLASS-METHODS set_current
+      IMPORTING io_current TYPE REF TO zcl_gg_host_compatibility OPTIONAL.
 
     "! A FILE_OPEN or FILE_SAVE dialog; the chosen file name, empty on cancel.
     METHODS file_dialog
@@ -56,6 +64,11 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING iv_filename  TYPE string
                 iv_content   TYPE xstring
                 iv_clipboard TYPE abap_bool DEFAULT abap_false.
+
+    "! A web document the page opens in a new browser tab; the caller has
+    "! checked that it is an http or https URL.
+    METHODS add_url
+      IMPORTING iv_url TYPE string.
 
     METHODS clipboard_input RETURNING VALUE(rv_text) TYPE string.
 
@@ -356,6 +369,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ro_current = go_current.
   ENDMETHOD.
 
+  METHOD set_current.
+    go_current = io_current.
+  ENDMETHOD.
+
   METHOD file_dialog.
     DATA lv_action TYPE string.
     DATA lv_disposition TYPE string.
@@ -395,6 +412,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
   METHOD add_download.
     APPEND VALUE #( filename = iv_filename content = iv_content clipboard = iv_clipboard ) TO mt_downloads.
+  ENDMETHOD.
+
+  METHOD add_url.
+    APPEND VALUE #( url = iv_url ) TO mt_downloads.
   ENDMETHOD.
 
   METHOD clipboard_input.

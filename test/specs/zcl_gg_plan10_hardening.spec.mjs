@@ -49,12 +49,13 @@ test("PLAN10 - keeps URL and upload metadata browser-owned", async ({page, host}
   await openExample(page, host, 154);
   await page.getByRole("button", {name: "Upload file"}).click();
   await page.waitForLoadState("load");
-  await page.getByRole("dialog", {name: "Upload text file"}).getByLabel("File").setInputFiles({
+  const dialog = page.getByRole("dialog", {name: "Upload text file"});
+  await dialog.getByLabel("File").setInputFiles({
     name: "../../outside.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("browser-owned fixture"),
   });
-  await page.getByRole("button", {name: "Open"}).click();
+  await dialog.getByRole("button", {name: "Open"}).click();
   await page.waitForLoadState("load");
   await expect(page.locator("#gg-dynpro-control-n-GV_FIRST_LINE")).toHaveText("browser-owned fixture");
 

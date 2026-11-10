@@ -552,7 +552,9 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
     rv_html = rv_html && |.gg-value-help-modal\{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(19,45,72,.48);backdrop-filter:blur(2px);animation:gg-value-help-in .12s ease-out;\}|.
     rv_html = rv_html && |.gg-value-help-modal[hidden]\{display:none;\}|.
     rv_html = rv_html && |.gg-popup-modal\{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(19,45,72,.48);backdrop-filter:blur(2px);animation:gg-value-help-in .12s ease-out;\}|.
+    rv_html = rv_html && |.gg-popup-modal[hidden]\{display:none;\}|.
     rv_html = rv_html && |.gg-popup-panel\{width:min(520px,100%);\}|.
+    rv_html = rv_html && |.gg-execute-link\{overflow-wrap:anywhere;\}|.
     rv_html = rv_html && |.gg-popup-body\{display:grid;gap:10px;padding:16px;background:#f8fbfe;color:#1d2d3e;\}|.
     rv_html = rv_html && |.gg-popup-body p\{margin:0;line-height:1.4;\}|.
     rv_html = rv_html && |.gg-popup-field\{display:grid;grid-template-columns:minmax(8rem,auto) minmax(0,1fr);gap:10px;align-items:center;\}|.
