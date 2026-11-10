@@ -212,7 +212,7 @@ CLASS zcl_gg_ex_099 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_LIST' ] ).
       gv_list = CONV #( ct_values[ name = 'GV_LIST' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )

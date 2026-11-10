@@ -199,7 +199,7 @@ CLASS zcl_gg_ex_106 IMPLEMENTATION.
     ELSEIF is_context-row = 0.
       CLEAR gs_flight.
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )

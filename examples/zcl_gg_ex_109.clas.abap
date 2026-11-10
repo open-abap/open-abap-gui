@@ -233,7 +233,7 @@ CLASS zcl_gg_ex_109 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ] ).
       ts_flight-activetab = CONV #( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )

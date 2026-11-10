@@ -3443,3 +3443,18 @@ test("passes a screen field's data element (ROLLNAME) to the builder: its domain
   });
   assert.match(flat(converted.classSource), /name = 'GV_STAT' [^)]*\) \) data_type = VALUE #\( typ = 'C' length = 1 rollname = 'ZPO_STAT' \)/);
 });
+
+test("sets a screen's GUI status before its first PBO module only, so later modules keep the status a module set", async () => {
+  const converted = await convertProgram({
+    source: "PROGRAM zstatusorder.\nDATA gv_dept TYPE c LENGTH 4.\nMODULE status_0100 OUTPUT.\n  SET PF-STATUS 'MAIN'.\nENDMODULE.\nMODULE fill_list OUTPUT.\n  CLEAR gv_dept.\nENDMODULE.\n",
+    filename: "zstatusorder.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Order", elements: [], containers: [] }],
+      statuses: { "0100": { status: "MAIN", activeUcomm: ["SAVE"] } },
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }, { name: "FILL_LIST" }], pai: [] }],
+    },
+  });
+  assert.match(converted.classSource, /IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'\./);
+  assert.doesNotMatch(converted.classSource, /IF is_context-screen = '0100'\.\s*io_session->get_dialog\( \)->set_status/);
+});

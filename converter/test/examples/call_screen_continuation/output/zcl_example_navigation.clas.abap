@@ -183,7 +183,7 @@ CLASS zcl_example_navigation IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_STEP' ] ).
       gv_step = CONV #( ct_values[ name = 'GV_STEP' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'SCREEN' ) ).
     ENDIF.
     TRY.

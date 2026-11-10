@@ -2331,7 +2331,10 @@ function dynproMethods(ir: ReportIR, metadata: Metadata | undefined = ir.dynproM
         menu.items ?? []
       ).map((item: Metadata) => `( ucomm = '${String(item.ucomm ?? "").toUpperCase()}' text = ${literal(String(item.text ?? ""))}${item.separator ? " separator = abap_true" : ""} )`).join(" ")} ) )`).join(" ")} )`);
     }
-    statusLines.push(`IF is_context-screen = '${screenNumber(screen)}'.`);
+    // The screen's status as the program sets it, before its first PBO module only: a status set by a module
+    // (SET PF-STATUS) stays in force for the modules after it, as on SAP.
+    const firstModule = String(flowLogic.find((flow) => screenNumber(flow.screen) === screenNumber(screen))?.pbo?.[0]?.name ?? "").toUpperCase();
+    statusLines.push(`IF is_context-screen = '${screenNumber(screen)}'${firstModule ? ` AND is_context-module = '${firstModule}'` : ""}.`);
     statusLines.push(`io_session->get_dialog( )->set_status( VALUE #( ${fields.join(" ")} ) ).`);
     statusLines.push("ENDIF.");
   }
