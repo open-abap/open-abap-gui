@@ -107,10 +107,10 @@ CLASS zcl_example_okcode IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_LAST' ] ).
       gv_last = CONV #( ct_values[ name = 'GV_LAST' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' ) ).
     ENDIF.
-    IF is_context-screen = '0200'.
+    IF is_context-screen = '0200' AND is_context-module = 'STATUS_0200'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' ) ).
     ENDIF.
     TRY.

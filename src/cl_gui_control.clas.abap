@@ -732,7 +732,10 @@ CLASS cl_gui_control IMPLEMENTATION.
     result = iv_value.
     CASE to_upper( iv_type ).
       WHEN 'D'.
-        IF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
+* An initial date is a blank cell.
+        IF iv_value = '00000000'.
+          result = ``.
+        ELSEIF strlen( iv_value ) = 8 AND iv_value CO '0123456789'.
           lv_first = substring(
             val = iv_value
             off = 6

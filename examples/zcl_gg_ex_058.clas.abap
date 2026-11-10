@@ -80,14 +80,14 @@ CLASS zcl_gg_ex_058 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
       gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_pf_keys = VALUE #(
         ( 3 )
         ( 13 ) ) pf_actions = VALUE #(
         ( number = 3 ucomm = 'BACK' )
         ( number = 13 ucomm = 'NEXT' ) ) icon_bar = VALUE #( ( ucomm = 'NEXT' label = 'Details' icon = 'ICON_DISPLAY' ) ) ) ).
     ENDIF.
-    IF is_context-screen = '0200'.
+    IF is_context-screen = '0200' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'FLOW' active_pf_keys = VALUE #(
         ( 3 )
         ( 13 ) ) pf_actions = VALUE #(

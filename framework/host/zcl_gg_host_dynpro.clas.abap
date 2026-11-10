@@ -90,6 +90,9 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * them, and LOOP AT SCREEN changes them from there.
     CLASS-DATA mt_static_states TYPE zif_gg_dynpro_types_v1=>ty_states.
     CLASS-DATA mt_static_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
+* The screen fields the user changed in this dialog step: a module ON REQUEST runs only when one of its
+* fields (or of its CHAIN) is among them.
+    CLASS-DATA mt_changed TYPE string_table.
 
     TYPES: BEGIN OF ty_active_subscreen,
              area   TYPE zif_gg_dynpro_types_v1=>ty_field_name,
@@ -293,6 +296,22 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
         is_step          TYPE zcl_gg_host_dynpro_flow=>ty_step
       RETURNING
         VALUE(rt_fields) TYPE string_table.
+
+* The screen fields whose value the user changed in this dialog step.
+    CLASS-METHODS changed_fields
+      IMPORTING
+        it_before         TYPE zif_gg_dynpro_types_v1=>ty_values
+        it_input          TYPE zif_gg_dynpro_types_v1=>ty_values
+      RETURNING
+        VALUE(rt_changed) TYPE string_table.
+
+* A module ON REQUEST runs only when one of its fields (or of its CHAIN) changed.
+    CLASS-METHODS module_requested
+      IMPORTING
+        it_steps            TYPE zcl_gg_host_dynpro_flow=>ty_steps
+        is_step             TYPE zcl_gg_host_dynpro_flow=>ty_step
+      RETURNING
+        VALUE(rv_requested) TYPE abap_bool.
 
 * After an error or warning in PAI only the fields of its FIELD statement or
 * CHAIN stay ready for input.
@@ -584,6 +603,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       CHANGING
         ct_values  = lt_values ).
 
+    mt_changed = changed_fields( it_before = lt_values
+                                 it_input  = it_values ).
     LOOP AT it_values INTO ls_input_value.
       READ TABLE lt_values ASSIGNING <ls_value>
         WITH KEY container = ls_input_value-container
@@ -1139,7 +1160,10 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
                     ct_values  = ct_values ).
               ENDIF.
             WHEN 'MODULE'.
-              IF ls_step-module-at_exit_command = abap_true AND lv_exit_command = abap_false.
+              IF ( ls_step-module-at_exit_command = abap_true AND lv_exit_command = abap_false )
+                  OR ( ls_step-module-on_request = abap_true AND lv_table_control IS INITIAL
+                    AND module_requested( it_steps = lt_steps
+                                          is_step  = ls_step ) = abap_false ).
                 CONTINUE.
               ENDIF.
               io_session->set_field_context( field_context( it_steps = lt_steps
@@ -1500,6 +1524,32 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     LOOP AT ct_states ASSIGNING FIELD-SYMBOL(<ls_state>) WHERE input = abap_true.
       IF NOT line_exists( lt_open[ table_line = CONV string( <ls_state>-name ) ] ).
         <ls_state>-input = abap_false.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD changed_fields.
+    DATA ls_before TYPE LINE OF zif_gg_dynpro_types_v1=>ty_values.
+    DATA ls_input TYPE LINE OF zif_gg_dynpro_types_v1=>ty_values.
+    LOOP AT it_input INTO ls_input.
+      READ TABLE it_before INTO ls_before
+        WITH KEY container = ls_input-container
+                 name = ls_input-name
+                 row = ls_input-row.
+      IF ( sy-subrc = 0 AND ls_before-value <> ls_input-value )
+          OR ( sy-subrc <> 0 AND ls_input-value IS NOT INITIAL ).
+        APPEND to_upper( ls_input-name ) TO rt_changed.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD module_requested.
+    DATA lv_field TYPE string.
+    LOOP AT field_context( it_steps = it_steps
+                           is_step  = is_step ) INTO lv_field.
+      IF line_exists( mt_changed[ table_line = to_upper( lv_field ) ] ).
+        rv_requested = abap_true.
+        RETURN.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
