@@ -794,6 +794,11 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         ENDCASE.
       ENDIF.
     ENDLOOP.
+    " an empty select-option line is not a condition (as in SAP GUI)
+    LOOP AT rt_values ASSIGNING <ls_value>.
+      DELETE <ls_value>-ranges WHERE low IS INITIAL AND high IS INITIAL
+        AND ( option = zif_gg_selection_screen_types=>option_eq OR option = 'BT' OR option IS INITIAL ).
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD dynamic_values_from_fields.
