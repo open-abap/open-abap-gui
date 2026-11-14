@@ -211,6 +211,7 @@ CLASS cl_gui_splitter_container IMPLEMENTATION.
     DATA lv_column TYPE i.
     DATA ls_cell TYPE ty_cell.
 
+    super->constructor( ).
     zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent

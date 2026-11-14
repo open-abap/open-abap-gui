@@ -32,6 +32,7 @@ ENDCLASS.
 CLASS cl_gui_list_tree IMPLEMENTATION.
 
   METHOD constructor.
+    super->constructor( ).
     zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent

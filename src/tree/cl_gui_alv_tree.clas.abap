@@ -287,6 +287,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    super->constructor( ).
     m_node_selection_mode = node_selection_mode.
     m_item_selection = item_selection.
     m_no_toolbar = no_toolbar.

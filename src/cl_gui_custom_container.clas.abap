@@ -19,6 +19,7 @@ ENDCLASS.
 CLASS cl_gui_custom_container IMPLEMENTATION.
 
   METHOD constructor.
+    super->constructor( ).
     mv_container_name = CONV string( container_name ).
     mv_repid = repid.
     mv_dynnr = dynnr.

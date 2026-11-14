@@ -106,6 +106,7 @@ ENDCLASS.
 CLASS cl_salv_tree IMPLEMENTATION.
 
   METHOD constructor.
+    super->constructor( ).
     mo_nodes = NEW cl_salv_nodes( ).
     mo_columns = NEW cl_salv_columns_tree( ).
     mo_functions = NEW cl_salv_functions_tree( ).

@@ -1063,6 +1063,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    super->constructor( ).
     mv_toolbar_visible = abap_true.
     mv_appl_events = xsdbool( i_appl_events = abap_true ).
 * Without a parent the grid is not a control on any screen; cl_salv_table

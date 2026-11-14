@@ -311,6 +311,7 @@ CLASS cl_gui_textedit IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    super->constructor( ).
     mv_wordwrap_mode = wordwrap_mode.
     mv_wordwrap_position = wordwrap_position.
     mv_wordwrap_to_linebreak = wordwrap_to_linebreak_mode.

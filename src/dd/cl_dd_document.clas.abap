@@ -57,6 +57,7 @@ ENDCLASS.
 
 CLASS cl_dd_document IMPLEMENTATION.
   METHOD constructor.
+    super->constructor( ).
     initialize_document( background_color = background_color ).
   ENDMETHOD.
 
