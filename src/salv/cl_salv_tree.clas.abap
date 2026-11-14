@@ -222,7 +222,7 @@ CLASS cl_salv_tree IMPLEMENTATION.
       TRY.
           DATA(lo_parent) = lo_node->get_parent( ).
           IF lo_parent IS BOUND.
-            lv_parent_key = CONV string( lo_parent->get_key( ) ).
+            lv_parent_key = lo_parent->get_key( ).
           ENDIF.
           DO 32 TIMES.
             IF lo_parent IS NOT BOUND.
@@ -281,7 +281,7 @@ CLASS cl_salv_tree IMPLEMENTATION.
     FIELD-SYMBOLS <component> TYPE any.
 
     IF columnname = '&Hierarchy'.
-      value = CONV string( node->get_text( ) ).
+      value = node->get_text( ).
       RETURN.
     ENDIF.
     lr_row = node->get_data_row( ).
