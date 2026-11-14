@@ -95,6 +95,7 @@ ENDCLASS.
 CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
 
   METHOD constructor.
+    super->constructor( ).
     zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent

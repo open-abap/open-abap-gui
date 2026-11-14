@@ -19,6 +19,7 @@ ENDCLASS.
 
 CLASS cl_dd_link_element IMPLEMENTATION.
   METHOD constructor.
+    super->constructor( ).
     mo_bridge = NEW lcl_link_bridge( me ).
   ENDMETHOD.
 

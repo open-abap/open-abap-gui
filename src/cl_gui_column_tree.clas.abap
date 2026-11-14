@@ -175,6 +175,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    super->constructor( ).
     zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent

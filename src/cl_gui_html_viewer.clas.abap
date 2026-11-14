@@ -397,6 +397,7 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD constructor.
+    super->constructor( ).
     zcl_gg_gui_runtime=>initialize(
       control = me
       parent  = parent
