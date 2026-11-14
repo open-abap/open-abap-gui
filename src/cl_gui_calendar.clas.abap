@@ -296,14 +296,14 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     IF strlen( lv_focus_text ) < 8.
       RETURN.
     ENDIF.
-    lv_focus_year = CONV i( substring(
+    lv_focus_year = substring(
       val = lv_focus_text
       off = 0
-      len = 4 ) ).
-    lv_focus_month = CONV i( substring(
+      len = 4 ).
+    lv_focus_month = substring(
       val = lv_focus_text
       off = 4
-      len = 2 ) ).
+      len = 2 ).
     lv_start_year = lv_focus_year.
     lv_start_month = lv_focus_month - 4.
     IF lv_start_month <= 0.
@@ -349,14 +349,14 @@ CLASS cl_gui_calendar IMPLEMENTATION.
       lv_week_index = sy-index - 1.
       lv_week_date = lv_week_start + ( lv_week_index * 7 ).
       lv_thursday = lv_week_date + 3.
-      lv_year = CONV i( substring(
+      lv_year = substring(
         val = CONV string( lv_thursday )
         off = 0
-        len = 4 ) ).
-      lv_month = CONV i( substring(
+        len = 4 ).
+      lv_month = substring(
         val = CONV string( lv_thursday )
         off = 4
-        len = 2 ) ).
+        len = 2 ).
       lv_month_label = |{ lv_year }/{ lv_month }|.
       IF lv_month_label <> lv_previous_month_label.
         IF lv_month_span > 0.
@@ -402,10 +402,10 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     DATA lv_offset TYPE i.
 
     lv_thursday = iv_week_start + 3.
-    lv_week_year = CONV i( substring(
+    lv_week_year = substring(
       val = CONV string( lv_thursday )
       off = 0
-      len = 4 ) ).
+      len = 4 ).
     lv_week_year_text = |{ lv_week_year WIDTH = 4 PAD = '0' }|.
     lv_january_fourth = CONV d( |{ lv_week_year_text }0104| ).
     lv_delta = lv_january_fourth - CONV d( '20240101' ).
@@ -427,10 +427,10 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     DATA lv_selected TYPE abap_bool.
 
     lv_date_text = CONV string( iv_date ).
-    lv_day = CONV i( substring(
+    lv_day = substring(
       val = lv_date_text
       off = 6
-      len = 2 ) ).
+      len = 2 ).
     lv_day_text = |{ lv_day }|.
 * Only the selection is selected; the focus date only decides what is shown.
     IF mv_date_begin IS NOT INITIAL AND iv_date >= mv_date_begin
