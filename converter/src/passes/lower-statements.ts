@@ -1110,11 +1110,20 @@ function parseFormat(raw: string, context: LoweringContext): string {
   const constant = LIST_COLOR_CONSTANTS[colorText as keyof typeof LIST_COLOR_CONSTANTS];
   if (constant) fields.push(`color = zif_gg_list_processing_types_v1=>${constant}`);
   if (colorText === "=" && operand) fields.push(`color = ${valueExpression(ast.source(operand).toUpperCase(), context)}`);
+  // COLOR OFF: no color (the background)
+  if (colorText === "OFF") fields.push("color = zif_gg_list_processing_types_v1=>color_background");
+  // INTENSIFIED [ON|OFF|= flag]: the keyword alone switches it on
+  const tokens = ast.tokens().map((token) => token.token.getStr().toUpperCase());
   for (const [keyword, field] of [["INTENSIFIED", "intensified"], ["INVERSE", "inverse"], ["HOTSPOT", "hotspot"], ["INPUT", "input"]]) {
-    const value = ast.after(keyword, ast.node);
-    const word = value ? ast.source(value).toUpperCase() : "";
-    if (word === "ON" || word === "OFF") fields.push(`${field} = abap_${word === "ON" ? "true" : "false"}`);
+    const at = tokens.indexOf(keyword);
+    if (at < 0) continue;
+    const word = tokens[at + 1] ?? "";
+    if (word === "OFF") fields.push(`${field} = abap_false`);
+    else if (word === "=" && tokens[at + 2]) fields.push(`${field} = xsdbool( ${valueExpression(ast.tokens()[at + 2].token.getStr(), context)} IS NOT INITIAL )`);
+    else fields.push(`${field} = abap_true`);
   }
+  // a FORMAT that changes nothing the list writer keeps (FRAMES, RESET of single options) leaves the format as it is
+  if (!fields.length) return "lo_writer->set_format( lo_writer->get_format( ) ).";
   return `lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) ${fields.join(" ")} ) ).`;
 }
 
@@ -2256,6 +2265,16 @@ export function lowerStatements(statements: Statement[], context: LoweringContex
     supported: false,
   });
   for (const item of output) item.text = mergeAdjacentTemplates(item.text);
+  // GGCONV_SOURCE_LINES=1: each executable statement's lowered code between comment lines naming its source line
+  // (*@src file:line ... *@src -), so a debugger can put a breakpoint of the program on the generated statements
+  if (process.env.GGCONV_SOURCE_LINES === "1") {
+    for (const item of output) {
+      const line = item.statement?.span?.start?.line;
+      if (!line || isCommentOnly(item.text) || SOURCE_LINE_PASSIVE.test(item.statement.kind ?? "")) continue;
+      const file = String(item.statement.filename ?? "").split(/[\\/]/).pop();
+      item.text = `*@src ${file}:${line}\n${item.text}\n*@src -`;
+    }
+  }
   // SCREEN read before any LOOP AT SCREEN ran is the initial work area.
   const workArea = screenWorkAreaOf(context);
   if (context.screenWorkAreas?.includes(screenStates(context).kind) && output.some((item) => item.text.toLowerCase().includes(`${workArea}->`))) {
@@ -2263,6 +2282,7 @@ export function lowerStatements(statements: Statement[], context: LoweringContex
   }
   return output;
 }
+const SOURCE_LINE_PASSIVE = /^(Data|DataBegin|DataEnd|Type|TypeBegin|TypeEnd|Constant|ConstantBegin|ConstantEnd|FieldSymbol|Static|StaticBegin|StaticEnd|Tables|Ranges|Parameter|SelectOption|SelectionScreen|Controls|Define|EndOfDefinition)$/;
 
 // |a| && |b| written over two lines comes out as one line; one template says
 // the same.

@@ -36,6 +36,8 @@ CLASS zcl_gg_ex_105 DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         it_values TYPE zif_gg_dynpro_types_v1=>ty_values.
     METHODS table_values_out
+      IMPORTING
+        iv_input  TYPE abap_bool DEFAULT abap_false
       CHANGING
         ct_values TYPE zif_gg_dynpro_types_v1=>ty_values.
 
@@ -179,7 +181,7 @@ CLASS zcl_gg_ex_105 IMPLEMENTATION.
     ELSEIF is_context-row = 0.
       CLEAR gs_flight.
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )
@@ -218,6 +220,9 @@ CLASS zcl_gg_ex_105 IMPLEMENTATION.
     IF is_context-table_control = 'TC_FLIGHTS' AND is_context-row > 0.
       tc_flights-current_line = is_context-row.
       READ TABLE gt_flights INTO gs_flight INDEX is_context-row.
+      IF sy-subrc <> 0.
+        CLEAR gs_flight.
+      ENDIF.
     ELSEIF is_context-row = 0.
       CLEAR gs_flight.
     ENDIF.
@@ -235,7 +240,11 @@ CLASS zcl_gg_ex_105 IMPLEMENTATION.
     ELSE.
       INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
     ENDIF.
-    table_values_out( CHANGING ct_values = ct_values ).
+    table_values_out(
+      EXPORTING
+        iv_input  = abap_true
+      CHANGING
+        ct_values = ct_values ).
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
     ENDIF.
@@ -312,7 +321,11 @@ CLASS zcl_gg_ex_105 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD table_values_out.
-    DELETE ct_values WHERE container = 'TC_FLIGHTS'.
+    IF iv_input = abap_true.
+      DELETE ct_values WHERE container = 'TC_FLIGHTS' AND row <= lines( gt_flights ).
+    ELSE.
+      DELETE ct_values WHERE container = 'TC_FLIGHTS'.
+    ENDIF.
     LOOP AT gt_flights ASSIGNING FIELD-SYMBOL(<ls_table1_flush_row>).
       DATA(lv_table1_flush_row) = sy-tabix.
       INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CARRID' row = lv_table1_flush_row value = CONV string( <ls_table1_flush_row>-carrid ) ) INTO TABLE ct_values.

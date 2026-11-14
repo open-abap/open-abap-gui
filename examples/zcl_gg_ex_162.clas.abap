@@ -152,7 +152,7 @@ CLASS zcl_gg_ex_162 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'OK_CODE' ] ).
       ok_code = CONV #( ct_values[ name = 'OK_CODE' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'STATUS162' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )

@@ -871,6 +871,12 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
         DATA(lv_day) = substring( val = lv_date
                                   off = 6
                                   len = 2 ).
+* An initial date is a blank field in the list, as in the ALV grid and on screens.
+        IF lv_date CO '0 '.
+          rv_text = repeat( val = ` `
+                            occ = 10 ).
+          RETURN.
+        ENDIF.
         CASE iv_date_mask.
           WHEN 'USER'.
             rv_text = |{ CONV d( iv_value ) DATE = USER }|.

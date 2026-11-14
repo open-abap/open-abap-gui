@@ -602,9 +602,14 @@ CLASS cl_salv_table IMPLEMENTATION.
       IF ls_fieldcat-scrtext_s IS INITIAL.
         ls_fieldcat-scrtext_s = ls_ddic-scrtext_s.
       ENDIF.
+* The heading: a text the program set (long, medium, short), else the data element's medium label, then its
+* long and short one; without any the column name stays.
       ls_fieldcat-coltext = COND #(
-        WHEN ls_fieldcat-scrtext_l IS NOT INITIAL THEN ls_fieldcat-scrtext_l
+        WHEN ls_column-r_column->get_long_text( ) IS NOT INITIAL THEN ls_column-r_column->get_long_text( )
+        WHEN ls_column-r_column->get_medium_text( ) IS NOT INITIAL THEN ls_column-r_column->get_medium_text( )
+        WHEN ls_column-r_column->get_short_text( ) IS NOT INITIAL THEN ls_column-r_column->get_short_text( )
         WHEN ls_fieldcat-scrtext_m IS NOT INITIAL THEN ls_fieldcat-scrtext_m
+        WHEN ls_fieldcat-scrtext_l IS NOT INITIAL THEN ls_fieldcat-scrtext_l
         ELSE ls_fieldcat-scrtext_s ).
       ls_fieldcat-tooltip = ls_column-r_column->get_tooltip( ).
       ls_fieldcat-outputlen = ls_column-r_column->get_output_length( ).

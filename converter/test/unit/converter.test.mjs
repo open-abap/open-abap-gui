@@ -3126,7 +3126,7 @@ test("resolves dictionary-typed selection fields to their built-in types through
   assert.deepEqual(field("S_DATE"), { typ: "D", length: 8, rollname: "ZEXAMPLE_DATE" });
   // The class state keeps the dictionary type; only the screen needs the built-in one.
   assert.match(resolved.classSource, /DATA mv_p_count TYPE zexample_count\./);
-  assert.match(resolved.classSource, /name = 'P_COUNT' text = 'P_COUNT' data_type = VALUE #\( rollname = 'ZEXAMPLE_COUNT' typ = 'I' \)/);
+  assert.match(resolved.classSource, /name = 'P_COUNT' text = 'Number of runs' data_type = VALUE #\( rollname = 'ZEXAMPLE_COUNT' typ = 'I' \)/);
 
   // Sources may be passed in memory, and a domain is found through its data element.
   const inMemory = await convertProgram({
@@ -3395,4 +3395,86 @@ test("skips the kernel's system includes unless the generated class uses their c
 
   const unknown = await convert(["INCLUDE <cntain>.", "START-OF-SELECTION."]);
   assert.deepEqual(codesOf(unknown), ["GGCONV-E102"]);
+});
+
+test("exchanges a screen field typed through a TYPES alias of the program like one typed directly", async () => {
+  const element = { kind: "input-output", type: "TEMPLATE", name: "GV_SALARY", elementOf: "SCREEN", line: 1, column: 1, length: 13, height: 1,
+    position: { line: 1, column: 1, width: 13, height: 1 }, input: true, output: true, attributes: { format: "DEC" } };
+  const converted = await convertProgram({
+    source: "PROGRAM zalias.\nTYPES ty_amount TYPE p LENGTH 6 DECIMALS 2.\nTYPES ty_salary TYPE ty_amount.\nDATA gv_salary TYPE ty_salary.\nMODULE status_0100 OUTPUT.\nENDMODULE.\n",
+    filename: "zalias.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Alias", elements: [element], containers: [] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [] }],
+    },
+  });
+  assert.match(flat(converted.classSource), /gv_salary = CONV #\( ct_values\[ name = 'GV_SALARY' \]-value \)/);
+  assert.match(flat(converted.classSource), /ct_values\[ name = 'GV_SALARY' \]-value = CONV string\( gv_salary \)/);
+});
+
+test("exchanges screen fields that are components of a global structure or a TABLES work area, not table control columns", async () => {
+  const field = (name, extra = {}) => ({ kind: "input-output", type: "TEMPLATE", name, line: 1, column: 1, length: 10, height: 1,
+    position: { line: 1, column: 1, width: 10, height: 1 }, input: true, output: true, attributes: { contType: "SCREEN", contName: "SCREEN", format: "CHAR" }, ...extra });
+  const converted = await convertProgram({
+    source: "PROGRAM zstruct.\nTABLES sflight.\nTYPES: BEGIN OF ty_head, ebeln TYPE c LENGTH 10, lifnr TYPE c LENGTH 10, END OF ty_head.\nDATA gs_head TYPE ty_head.\nDATA gs_item TYPE ty_head.\nDATA gt_items TYPE STANDARD TABLE OF ty_head WITH DEFAULT KEY.\nMODULE status_0100 OUTPUT.\nENDMODULE.\nMODULE user_command_0100 INPUT.\nENDMODULE.\n",
+    filename: "zstruct.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Struct", elements: [field("GS_HEAD-EBELN"), field("GS_HEAD-LIFNR", { kind: "output", input: false }), field("SFLIGHT-CARRID"),
+        field("GS_ITEM-LIFNR", { attributes: { contType: "TABLE_CTRL", contName: "TC_ITEMS" } })], containers: [] }],
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [{ name: "USER_COMMAND_0100" }] }],
+    },
+  });
+  const source = flat(converted.classSource);
+  assert.match(source, /gs_head-ebeln = CONV #\( ct_values\[ name = 'GS_HEAD-EBELN' \]-value \)/);
+  assert.match(source, /ct_values\[ name = 'GS_HEAD-LIFNR' \]-value = CONV string\( gs_head-lifnr \)/);
+  assert.match(source, /sflight-carrid = CONV #\( ct_values\[ name = 'SFLIGHT-CARRID' \]-value \)/);
+  assert.doesNotMatch(source, /gs_item-lifnr = CONV/);
+});
+
+test("passes a screen field's data element (ROLLNAME) to the builder: its domain's fixed values are its value help", async () => {
+  const element = { kind: "input-output", type: "TEMPLATE", name: "GV_STAT", line: 1, column: 1, length: 1, height: 1,
+    position: { line: 1, column: 1, width: 1, height: 1 }, input: true, output: true, attributes: { format: "CHAR", rollname: "ZPO_STAT", contType: "SCREEN" } };
+  const converted = await convertProgram({
+    source: "PROGRAM zroll.\nDATA gv_stat TYPE c LENGTH 1.\nMODULE status_0100 OUTPUT.\nENDMODULE.\n",
+    filename: "zroll.prog.abap",
+    dynproMetadata: { initialScreen: "0100", screens: [{ number: "0100", title: "R", elements: [element], containers: [] }], flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [] }] },
+  });
+  assert.match(flat(converted.classSource), /name = 'GV_STAT' [^)]*\) \) data_type = VALUE #\( typ = 'C' length = 1 rollname = 'ZPO_STAT' \)/);
+});
+
+test("sets a screen's GUI status before its first PBO module only, so later modules keep the status a module set", async () => {
+  const converted = await convertProgram({
+    source: "PROGRAM zstatusorder.\nDATA gv_dept TYPE c LENGTH 4.\nMODULE status_0100 OUTPUT.\n  SET PF-STATUS 'MAIN'.\nENDMODULE.\nMODULE fill_list OUTPUT.\n  CLEAR gv_dept.\nENDMODULE.\n",
+    filename: "zstatusorder.prog.abap",
+    dynproMetadata: {
+      initialScreen: "0100",
+      screens: [{ number: "0100", title: "Order", elements: [], containers: [] }],
+      statuses: { "0100": { status: "MAIN", activeUcomm: ["SAVE"] } },
+      flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }, { name: "FILL_LIST" }], pai: [] }],
+    },
+  });
+  assert.match(converted.classSource, /IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'\./);
+  assert.doesNotMatch(converted.classSource, /IF is_context-screen = '0100'\.\s*io_session->get_dialog\( \)->set_status/);
+});
+
+test("lowers FORMAT COLOR OFF, INTENSIFIED without ON/OFF and INTENSIFIED = flag", async () => {
+  const converted = await convertProgram({ source: "REPORT zfmt.\nDATA gv_x TYPE c LENGTH 1.\nSTART-OF-SELECTION.\n  FORMAT COLOR OFF.\n  FORMAT INTENSIFIED INVERSE OFF.\n  FORMAT HOTSPOT = gv_x.\n  FORMAT FRAMES OFF.\n  WRITE / 'x'.\n", filename: "zfmt.prog.abap" });
+  assert.equal(converted.supported, true);
+  const source = flat(converted.classSource);
+  assert.match(source, /color = zif_gg_list_processing_types_v1=>color_background/);
+  assert.match(source, /intensified = abap_true inverse = abap_false/);
+  assert.match(source, /hotspot = xsdbool\( \w+ IS NOT INITIAL \)/);
+  assert.match(source, /lo_writer->set_format\( lo_writer->get_format\( \) \)/);
+});
+
+test("GGCONV_SOURCE_LINES=1 marks the code of each executable statement with its source line", async () => {
+  process.env.GGCONV_SOURCE_LINES = "1";
+  try {
+    const converted = await convertProgram({ source: "REPORT zsrc.\nDATA gv_x TYPE i.\nSTART-OF-SELECTION.\n  gv_x = 1.\n  WRITE: / 'a', gv_x.\n", filename: "zsrc.prog.abap" });
+    assert.match(converted.classSource, /\*@src zsrc\.prog\.abap:4\n\s*gv_x = 1\.\n\*@src -/);
+    assert.equal((converted.classSource.match(/\*@src zsrc\.prog\.abap:5\n/g) || []).length, 2);
+    assert.doesNotMatch(converted.classSource, /\*@src zsrc\.prog\.abap:2\n/);
+  } finally { delete process.env.GGCONV_SOURCE_LINES; }
 });

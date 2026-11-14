@@ -171,7 +171,7 @@ CLASS zcl_gg_ex_103 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_ADDRESS' ] ).
       gv_address = CONV #( ct_values[ name = 'GV_ADDRESS' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )

@@ -169,7 +169,7 @@ CLASS zcl_gg_ex_112 IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_AFTER' ] ).
       gv_after = CONV #( ct_values[ name = 'GV_AFTER' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )
@@ -178,7 +178,7 @@ CLASS zcl_gg_ex_112 IMPLEMENTATION.
         ( number = 15 ucomm = 'EXIT' )
         ( number = 12 ucomm = 'CANCEL' ) ) ) ).
     ENDIF.
-    IF is_context-screen = '0200'.
+    IF is_context-screen = '0200' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
         ( 3 )
         ( 15 )

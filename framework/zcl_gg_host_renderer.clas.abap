@@ -307,6 +307,15 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+* The fixed values of the domain of a field's data element as a list the input
+* offers (the browser's suggestion list stands for F4 on such a field).
+    CLASS-METHODS fixed_values_list
+      IMPORTING
+        iv_id          TYPE string
+        iv_rollname    TYPE csequence
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
 * Renders the search help affordance for one input: a magnifier button that the
 * stylesheet reveals only while the surrounding field has focus, and that the
 * shell's F4 key presses for the focused field.
@@ -800,10 +809,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             lv_focus_attrs = ` autofocus`.
             lv_initial_focus = abap_true.
           ENDIF.
+          DATA(lv_values_html) = fixed_values_list( iv_id       = lv_element_id
+                                                    iv_rollname = ls_element-data_type-rollname ).
+          IF lv_values_html IS NOT INITIAL.
+            lv_state_attrs = lv_state_attrs && | list="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }-values"|.
+          ENDIF.
           lv_body = lv_body && |<div class="gg-field gg-parameter { lv_state_class }"{ lv_field_root_attrs }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="{ COND string( WHEN ls_state-password = abap_true THEN `password` ELSE `text` ) }" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_focus_attrs }{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ lv_state_attrs }{ lv_message_attrs }>|.
-          lv_body = lv_body && value_help_button( iv_name       = CONV string( ls_element-name )
-                                                  iv_label      = ls_element-text
-                                                  iv_value_help = xsdbool( ls_element-value_help = abap_true OR ls_state-value_help = abap_true ) ).
+          lv_body = lv_body && lv_values_html && value_help_button( iv_name       = CONV string( ls_element-name )
+                                                                    iv_label      = ls_element-text
+                                                                    iv_value_help = xsdbool( ls_element-value_help = abap_true OR ls_state-value_help = abap_true ) ).
           lv_body = lv_body && |</div>|.
           IF ls_value-ranges IS NOT INITIAL.
             lv_body = lv_body && render_selection_value_help(
@@ -1534,6 +1548,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           iv_type  = is_control-data_type-typ ).
         lv_field_attrs = field_message_attrs( it_messages = it_messages
                                               iv_name     = CONV string( is_control-name ) ).
+        DATA(lv_input_values) = fixed_values_list( iv_id       = iv_id
+                                                   iv_rollname = is_control-data_type-rollname ).
+        IF lv_input_values IS NOT INITIAL.
+          lv_field_attrs = lv_field_attrs && | list="{ zcl_gg_host_html=>escape_attribute( iv_id ) }-values"|.
+          lv_help_html = lv_help_html && lv_input_values.
+        ENDIF.
         rv_html = |<span class="gg-dynpro-control gg-dynpro-field { iv_state_class }" style="{ iv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( COND string( WHEN is_control-text IS INITIAL THEN CONV string( is_control-name ) ELSE is_control-text ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_control-context_menu = abap_true THEN ` data-context-menu="true"` ELSE `` ) } value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ COND string( WHEN is_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_type_attrs }{ lv_external_attrs }{ iv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
       WHEN 'OUTPUT'.
         lv_output_class = data_type_class(
@@ -1886,6 +1906,22 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF iv_help_text IS NOT INITIAL.
       rv_html = |<section class="gg-instruction-region" aria-label="Instructions"><aside id="gg-help-text" class="gg-message gg-info" role="status">{ zcl_gg_host_html=>escape_text( iv_help_text ) }</aside></section>|.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD fixed_values_list.
+    DATA lt_values TYPE zif_gg_selection_screen_types=>ty_fixed_values.
+    IF iv_rollname IS INITIAL.
+      RETURN.
+    ENDIF.
+    lt_values = zcl_gg_host_compatibility=>domain_fixed_values( iv_rollname ).
+    IF lt_values IS INITIAL.
+      RETURN.
+    ENDIF.
+    rv_html = |<datalist id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }-values">|.
+    LOOP AT lt_values INTO DATA(ls_value).
+      rv_html = rv_html && |<option value="{ zcl_gg_host_html=>escape_attribute( ls_value-key ) }">{ zcl_gg_host_html=>escape_text( ls_value-text ) }</option>|.
+    ENDLOOP.
+    rv_html = rv_html && |</datalist>|.
   ENDMETHOD.
 
   METHOD value_help_button.

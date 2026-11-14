@@ -81,7 +81,7 @@ CLASS zcl_example_dialog IMPLEMENTATION.
     IF line_exists( ct_values[ name = 'GV_GREETING' ] ).
       gv_greeting = CONV #( ct_values[ name = 'GV_GREETING' ]-value ).
     ENDIF.
-    IF is_context-screen = '0100'.
+    IF is_context-screen = '0100' AND is_context-module = 'STATUS_0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' ) ).
     ENDIF.
     IF is_context-screen = '0100'.

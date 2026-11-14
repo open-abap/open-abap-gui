@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { normalizeOptions, defaultClassName, fullClassName, defaultTransactionCode,normalizeObjectName, normalizeTransactionCode } from "./options.js";
 import { diagnostic, sortDiagnostics } from "./diagnostics.js";
 import { resolveSources, systemIncludeUse } from "./source-resolver.js";
@@ -354,6 +355,37 @@ function textPoolLookup(textPool: unknown): (key: unknown) => string | undefined
   return () => undefined;
 }
 
+// The dictionary label of a selection element without a selection text, as SAP's "Dictionary reference":
+// PARAMETERS p TYPE zdtel, PARAMETERS p LIKE ztab-field, SELECT-OPTIONS s FOR ztab-field.
+function dictionaryLabel(raw: unknown, files: ConvertOptions["dictionaryFiles"]): string | undefined {
+  const text = String(raw ?? "");
+  const m = /\bFOR\s+([\w/]+)-([\w/]+)/i.exec(text) ?? /\b(?:TYPE|LIKE)\s+([\w/]+)(?:-([\w/]+))?/i.exec(text);
+  if (!m || !files?.length) return undefined;
+  const read = (name: string, suffix: string): string | undefined => {
+    const want = `${name.toLowerCase().replaceAll("/", "#")}${suffix}`;
+    for (const file of files) {
+      const filename = typeof file === "string" ? file : file.filename;
+      if (filename.split(/[\\/]/).pop()?.toLowerCase() !== want) continue;
+      try { return typeof file === "string" ? readFileSync(file, "utf8") : file.source ?? readFileSync(file.filename, "utf8"); } catch { return undefined; }
+    }
+    return undefined;
+  };
+  const tag = (xml: string | undefined, name: string) => xml ? new RegExp(`<${name}>([^<]*)</${name}>`).exec(xml)?.[1]?.trim() : undefined;
+  const element = (name: string) => {
+    const xml = read(name, ".dtel.xml");
+    return tag(xml, "SCRTEXT_M") || tag(xml, "SCRTEXT_L") || tag(xml, "DDTEXT") || undefined;
+  };
+  if (!m[2]) return element(m[1]);
+  const table = read(m[1], ".tabl.xml");
+  const field = table ? [...table.matchAll(/<DD03P>([\s\S]*?)<\/DD03P>/g)].map((x) => x[1])
+    .find((x) => tag(x, "FIELDNAME")?.toUpperCase() === m[2].toUpperCase()) : undefined;
+  if (!field) return undefined;
+  const rollname = tag(field, "ROLLNAME");
+  const label = rollname ? element(rollname) : undefined;
+  const own = tag(field, "DDTEXT");
+  return label || (own && own.toUpperCase() !== m[2].toUpperCase() ? own : undefined);
+}
+
 function applyTextPool(ir: ReportIR, options: NormalizedOptions): void {
   const lookup = textPoolLookup(metadataTextPool(ir, options));
   const apply = (items: Metadata[] | undefined) => {
@@ -371,6 +403,11 @@ function applyTextPool(ir: ReportIR, options: NormalizedOptions): void {
   };
   for (const screen of ir.selections) {
     apply(screen.elements);
+    for (const item of screen.elements ?? []) {
+      if ((item.kind !== "parameter" && item.kind !== "select-option") || item.text !== item.name) continue;
+      const label = dictionaryLabel(item.raw, options.dictionaryFiles);
+      if (label) item.text = label;
+    }
   }
   for (const screen of [...(ir.screenMetadata?.screens ?? []), ...(ir.dynproMetadata?.screens ?? [])]) {
     if (typeof screen.title === "string") screen.title = lookup(screen.title) ?? screen.title;
