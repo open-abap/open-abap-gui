@@ -279,8 +279,8 @@ test("regression fixture emits dynpro state helpers", async () => {
   });
   assert.equal(result.supported, true);
   assert.match(result.classSource, /METHOD zif_gg_dynpro_v1~process_output_module\./);
-  assert.match(result.classSource, /gv_counter = CONV #\(/);
-  assert.match(result.classSource, /value = CONV string\( gv_counter \)/);
+  assert.match(result.classSource, /gv_counter = ct_values\[ name = 'GV_COUNTER' \]-value\./);
+  assert.match(result.classSource, /value = gv_counter \)/);
   assert.doesNotMatch(result.classSource, /TODO GGCONV/);
 });
 

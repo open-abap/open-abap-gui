@@ -139,105 +139,105 @@ CLASS zcl_gg_ex_155 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LEFT' ] ).
-      ct_values[ name = 'GV_LEFT' ]-value = CONV string( gv_left ).
+      ct_values[ name = 'GV_LEFT' ]-value = gv_left.
     ELSE.
-      INSERT VALUE #( name = 'GV_LEFT' value = CONV string( gv_left ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LEFT' value = gv_left ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP' ] ).
-      ct_values[ name = 'GV_TOP' ]-value = CONV string( gv_top ).
+      ct_values[ name = 'GV_TOP' ]-value = gv_top.
     ELSE.
-      INSERT VALUE #( name = 'GV_TOP' value = CONV string( gv_top ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TOP' value = gv_top ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WIDTH' ] ).
-      ct_values[ name = 'GV_WIDTH' ]-value = CONV string( gv_width ).
+      ct_values[ name = 'GV_WIDTH' ]-value = gv_width.
     ELSE.
-      INSERT VALUE #( name = 'GV_WIDTH' value = CONV string( gv_width ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WIDTH' value = gv_width ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_HEIGHT' ] ).
-      ct_values[ name = 'GV_HEIGHT' ]-value = CONV string( gv_height ).
+      ct_values[ name = 'GV_HEIGHT' ]-value = gv_height.
     ELSE.
-      INSERT VALUE #( name = 'GV_HEIGHT' value = CONV string( gv_height ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_HEIGHT' value = gv_height ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_COUNT' ] ).
-      ct_values[ name = 'GV_COUNT' ]-value = CONV string( gv_count ).
+      ct_values[ name = 'GV_COUNT' ]-value = gv_count.
     ELSE.
-      INSERT VALUE #( name = 'GV_COUNT' value = CONV string( gv_count ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_COUNT' value = gv_count ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LEFT' ] ).
-      gv_left = CONV #( ct_values[ name = 'GV_LEFT' ]-value ).
+      gv_left = ct_values[ name = 'GV_LEFT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP' ] ).
-      gv_top = CONV #( ct_values[ name = 'GV_TOP' ]-value ).
+      gv_top = ct_values[ name = 'GV_TOP' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WIDTH' ] ).
-      gv_width = CONV #( ct_values[ name = 'GV_WIDTH' ]-value ).
+      gv_width = ct_values[ name = 'GV_WIDTH' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_HEIGHT' ] ).
-      gv_height = CONV #( ct_values[ name = 'GV_HEIGHT' ]-value ).
+      gv_height = ct_values[ name = 'GV_HEIGHT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_COUNT' ] ).
-      gv_count = CONV #( ct_values[ name = 'GV_COUNT' ]-value ).
+      gv_count = ct_values[ name = 'GV_COUNT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
+      gv_state = ct_values[ name = 'GV_STATE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LEFT' ] ).
-      ct_values[ name = 'GV_LEFT' ]-value = CONV string( gv_left ).
+      ct_values[ name = 'GV_LEFT' ]-value = gv_left.
     ELSE.
-      INSERT VALUE #( name = 'GV_LEFT' value = CONV string( gv_left ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LEFT' value = gv_left ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP' ] ).
-      ct_values[ name = 'GV_TOP' ]-value = CONV string( gv_top ).
+      ct_values[ name = 'GV_TOP' ]-value = gv_top.
     ELSE.
-      INSERT VALUE #( name = 'GV_TOP' value = CONV string( gv_top ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TOP' value = gv_top ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WIDTH' ] ).
-      ct_values[ name = 'GV_WIDTH' ]-value = CONV string( gv_width ).
+      ct_values[ name = 'GV_WIDTH' ]-value = gv_width.
     ELSE.
-      INSERT VALUE #( name = 'GV_WIDTH' value = CONV string( gv_width ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WIDTH' value = gv_width ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_HEIGHT' ] ).
-      ct_values[ name = 'GV_HEIGHT' ]-value = CONV string( gv_height ).
+      ct_values[ name = 'GV_HEIGHT' ]-value = gv_height.
     ELSE.
-      INSERT VALUE #( name = 'GV_HEIGHT' value = CONV string( gv_height ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_HEIGHT' value = gv_height ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_COUNT' ] ).
-      ct_values[ name = 'GV_COUNT' ]-value = CONV string( gv_count ).
+      ct_values[ name = 'GV_COUNT' ]-value = gv_count.
     ELSE.
-      INSERT VALUE #( name = 'GV_COUNT' value = CONV string( gv_count ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_COUNT' value = gv_count ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -249,39 +249,39 @@ CLASS zcl_gg_ex_155 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LEFT' ] ).
-      ct_values[ name = 'GV_LEFT' ]-value = CONV string( gv_left ).
+      ct_values[ name = 'GV_LEFT' ]-value = gv_left.
     ELSE.
-      INSERT VALUE #( name = 'GV_LEFT' value = CONV string( gv_left ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LEFT' value = gv_left ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP' ] ).
-      ct_values[ name = 'GV_TOP' ]-value = CONV string( gv_top ).
+      ct_values[ name = 'GV_TOP' ]-value = gv_top.
     ELSE.
-      INSERT VALUE #( name = 'GV_TOP' value = CONV string( gv_top ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TOP' value = gv_top ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WIDTH' ] ).
-      ct_values[ name = 'GV_WIDTH' ]-value = CONV string( gv_width ).
+      ct_values[ name = 'GV_WIDTH' ]-value = gv_width.
     ELSE.
-      INSERT VALUE #( name = 'GV_WIDTH' value = CONV string( gv_width ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WIDTH' value = gv_width ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_HEIGHT' ] ).
-      ct_values[ name = 'GV_HEIGHT' ]-value = CONV string( gv_height ).
+      ct_values[ name = 'GV_HEIGHT' ]-value = gv_height.
     ELSE.
-      INSERT VALUE #( name = 'GV_HEIGHT' value = CONV string( gv_height ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_HEIGHT' value = gv_height ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_COUNT' ] ).
-      ct_values[ name = 'GV_COUNT' ]-value = CONV string( gv_count ).
+      ct_values[ name = 'GV_COUNT' ]-value = gv_count.
     ELSE.
-      INSERT VALUE #( name = 'GV_COUNT' value = CONV string( gv_count ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_COUNT' value = gv_count ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

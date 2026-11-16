@@ -362,7 +362,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       IF ls_tab-subscreen IS NOT INITIAL
           AND ls_tab-subscreen <> iv_selection_screen
           AND line_exists( it_elements[ name = ls_tab-name screen = iv_selection_screen ] ).
-        APPEND CONV #( ls_tab-subscreen ) TO lt_event_screens.
+        APPEND ls_tab-subscreen TO lt_event_screens.
       ENDIF.
     ENDLOOP.
     APPEND iv_selection_screen TO lt_event_screens.
@@ -573,8 +573,8 @@ CLASS zcl_gg_host IMPLEMENTATION.
       CLEAR <ls_state>-fixed_values.
       LOOP AT ls_list-values INTO DATA(ls_value).
         APPEND VALUE #(
-          key  = CONV string( ls_value-key )
-          text = CONV string( ls_value-text ) )
+          key  = ls_value-key
+          text = ls_value-text )
           TO <ls_state>-fixed_values.
       ENDLOOP.
     ENDLOOP.
@@ -756,7 +756,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       lv_display_screen = COND #(
         WHEN lv_paused = abap_true
         AND rs_result-navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
-        THEN CONV #( rs_result-navigation-target )
+        THEN rs_result-navigation-target
         ELSE lv_display_screen ).
       IF lv_paused = abap_false.
         lv_selection_screen_active = retry_selection(
@@ -996,7 +996,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
       ls_context-screen = iv_selection_screen.
       lv_title = COND string(
         WHEN cs_result-title IS NOT INITIAL THEN cs_result-title
-        WHEN iv_program CS 'ZCL_CV_' THEN |Selection: { CONV string( iv_program ) }|
+        WHEN iv_program CS 'ZCL_CV_' THEN |Selection: { iv_program }|
         ELSE 'Selection' ).
       cs_result-html = zcl_gg_host_renderer=>render_selection(
         iv_session_id        = iv_session_id

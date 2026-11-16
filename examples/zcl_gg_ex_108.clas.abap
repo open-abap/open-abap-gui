@@ -172,64 +172,64 @@ CLASS zcl_gg_ex_108 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      ct_values[ name = 'GV_DYNNR' ]-value = CONV string( gv_dynnr ).
+      ct_values[ name = 'GV_DYNNR' ]-value = gv_dynnr.
     ELSE.
-      INSERT VALUE #( name = 'GV_DYNNR' value = CONV string( gv_dynnr ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DYNNR' value = gv_dynnr ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
+      ct_values[ name = 'GV_NAME' ]-value = gv_name.
     ELSE.
-      INSERT VALUE #( name = 'GV_NAME' value = CONV string( gv_name ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NAME' value = gv_name ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STREET' ] ).
-      ct_values[ name = 'GV_STREET' ]-value = CONV string( gv_street ).
+      ct_values[ name = 'GV_STREET' ]-value = gv_street.
     ELSE.
-      INSERT VALUE #( name = 'GV_STREET' value = CONV string( gv_street ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STREET' value = gv_street ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CITY' ] ).
-      ct_values[ name = 'GV_CITY' ]-value = CONV string( gv_city ).
+      ct_values[ name = 'GV_CITY' ]-value = gv_city.
     ELSE.
-      INSERT VALUE #( name = 'GV_CITY' value = CONV string( gv_city ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_CITY' value = gv_city ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PHONE' ] ).
-      ct_values[ name = 'GV_PHONE' ]-value = CONV string( gv_phone ).
+      ct_values[ name = 'GV_PHONE' ]-value = gv_phone.
     ELSE.
-      INSERT VALUE #( name = 'GV_PHONE' value = CONV string( gv_phone ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_PHONE' value = gv_phone ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_SUMMARY' ] ).
-      ct_values[ name = 'GV_SUMMARY' ]-value = CONV string( gv_summary ).
+      ct_values[ name = 'GV_SUMMARY' ]-value = gv_summary.
     ELSE.
-      INSERT VALUE #( name = 'GV_SUMMARY' value = CONV string( gv_summary ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_SUMMARY' value = gv_summary ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      gv_dynnr = CONV #( ct_values[ name = 'GV_DYNNR' ]-value ).
+      gv_dynnr = ct_values[ name = 'GV_DYNNR' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      gv_name = CONV #( ct_values[ name = 'GV_NAME' ]-value ).
+      gv_name = ct_values[ name = 'GV_NAME' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STREET' ] ).
-      gv_street = CONV #( ct_values[ name = 'GV_STREET' ]-value ).
+      gv_street = ct_values[ name = 'GV_STREET' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CITY' ] ).
-      gv_city = CONV #( ct_values[ name = 'GV_CITY' ]-value ).
+      gv_city = ct_values[ name = 'GV_CITY' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PHONE' ] ).
-      gv_phone = CONV #( ct_values[ name = 'GV_PHONE' ]-value ).
+      gv_phone = ct_values[ name = 'GV_PHONE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_SUMMARY' ] ).
-      gv_summary = CONV #( ct_values[ name = 'GV_SUMMARY' ]-value ).
+      gv_summary = ct_values[ name = 'GV_SUMMARY' ]-value.
     ENDIF.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
@@ -269,39 +269,39 @@ CLASS zcl_gg_ex_108 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      ct_values[ name = 'GV_DYNNR' ]-value = CONV string( gv_dynnr ).
+      ct_values[ name = 'GV_DYNNR' ]-value = gv_dynnr.
     ELSE.
-      INSERT VALUE #( name = 'GV_DYNNR' value = CONV string( gv_dynnr ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DYNNR' value = gv_dynnr ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
+      ct_values[ name = 'GV_NAME' ]-value = gv_name.
     ELSE.
-      INSERT VALUE #( name = 'GV_NAME' value = CONV string( gv_name ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NAME' value = gv_name ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STREET' ] ).
-      ct_values[ name = 'GV_STREET' ]-value = CONV string( gv_street ).
+      ct_values[ name = 'GV_STREET' ]-value = gv_street.
     ELSE.
-      INSERT VALUE #( name = 'GV_STREET' value = CONV string( gv_street ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STREET' value = gv_street ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CITY' ] ).
-      ct_values[ name = 'GV_CITY' ]-value = CONV string( gv_city ).
+      ct_values[ name = 'GV_CITY' ]-value = gv_city.
     ELSE.
-      INSERT VALUE #( name = 'GV_CITY' value = CONV string( gv_city ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_CITY' value = gv_city ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PHONE' ] ).
-      ct_values[ name = 'GV_PHONE' ]-value = CONV string( gv_phone ).
+      ct_values[ name = 'GV_PHONE' ]-value = gv_phone.
     ELSE.
-      INSERT VALUE #( name = 'GV_PHONE' value = CONV string( gv_phone ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_PHONE' value = gv_phone ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_SUMMARY' ] ).
-      ct_values[ name = 'GV_SUMMARY' ]-value = CONV string( gv_summary ).
+      ct_values[ name = 'GV_SUMMARY' ]-value = gv_summary.
     ELSE.
-      INSERT VALUE #( name = 'GV_SUMMARY' value = CONV string( gv_summary ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_SUMMARY' value = gv_summary ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -311,19 +311,19 @@ CLASS zcl_gg_ex_108 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      gv_name = CONV #( ct_values[ name = 'GV_NAME' ]-value ).
+      gv_name = ct_values[ name = 'GV_NAME' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STREET' ] ).
-      gv_street = CONV #( ct_values[ name = 'GV_STREET' ]-value ).
+      gv_street = ct_values[ name = 'GV_STREET' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CITY' ] ).
-      gv_city = CONV #( ct_values[ name = 'GV_CITY' ]-value ).
+      gv_city = ct_values[ name = 'GV_CITY' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PHONE' ] ).
-      gv_phone = CONV #( ct_values[ name = 'GV_PHONE' ]-value ).
+      gv_phone = ct_values[ name = 'GV_PHONE' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -335,39 +335,39 @@ CLASS zcl_gg_ex_108 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      ct_values[ name = 'GV_DYNNR' ]-value = CONV string( gv_dynnr ).
+      ct_values[ name = 'GV_DYNNR' ]-value = gv_dynnr.
     ELSE.
-      INSERT VALUE #( name = 'GV_DYNNR' value = CONV string( gv_dynnr ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DYNNR' value = gv_dynnr ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
+      ct_values[ name = 'GV_NAME' ]-value = gv_name.
     ELSE.
-      INSERT VALUE #( name = 'GV_NAME' value = CONV string( gv_name ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NAME' value = gv_name ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STREET' ] ).
-      ct_values[ name = 'GV_STREET' ]-value = CONV string( gv_street ).
+      ct_values[ name = 'GV_STREET' ]-value = gv_street.
     ELSE.
-      INSERT VALUE #( name = 'GV_STREET' value = CONV string( gv_street ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STREET' value = gv_street ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CITY' ] ).
-      ct_values[ name = 'GV_CITY' ]-value = CONV string( gv_city ).
+      ct_values[ name = 'GV_CITY' ]-value = gv_city.
     ELSE.
-      INSERT VALUE #( name = 'GV_CITY' value = CONV string( gv_city ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_CITY' value = gv_city ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PHONE' ] ).
-      ct_values[ name = 'GV_PHONE' ]-value = CONV string( gv_phone ).
+      ct_values[ name = 'GV_PHONE' ]-value = gv_phone.
     ELSE.
-      INSERT VALUE #( name = 'GV_PHONE' value = CONV string( gv_phone ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_PHONE' value = gv_phone ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_SUMMARY' ] ).
-      ct_values[ name = 'GV_SUMMARY' ]-value = CONV string( gv_summary ).
+      ct_values[ name = 'GV_SUMMARY' ]-value = gv_summary.
     ELSE.
-      INSERT VALUE #( name = 'GV_SUMMARY' value = CONV string( gv_summary ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_SUMMARY' value = gv_summary ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

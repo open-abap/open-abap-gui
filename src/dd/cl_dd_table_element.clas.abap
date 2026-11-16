@@ -56,7 +56,7 @@ ENDCLASS.
 
 CLASS cl_dd_table_element IMPLEMENTATION.
   METHOD set_row_style.
-    html_content = html_content && |<tr data-row="{ row_no }" class="{ CONV string( sap_style ) }">|.
+    html_content = html_content && |<tr data-row="{ row_no }" class="{ sap_style }">|.
   ENDMETHOD.
 
   METHOD new_row.

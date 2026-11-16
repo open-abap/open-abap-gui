@@ -240,7 +240,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD get_request_value.
     READ TABLE mt_request_values INTO DATA(ls_value)
-      WITH KEY name = CONV zif_gg_selection_screen_types=>ty_name( iv_name ).
+      WITH KEY name = iv_name.
     IF sy-subrc = 0.
       rv_value = ls_value-value.
     ENDIF.
@@ -352,7 +352,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
       mt_error_fields = mt_field_context.
 * A message that names its field checks that field, like FIELD does.
       IF mt_error_fields IS INITIAL AND ls_message-field IS NOT INITIAL.
-        APPEND CONV string( ls_message-field ) TO mt_error_fields.
+        APPEND ls_message-field TO mt_error_fields.
       ENDIF.
       IF ls_message-field IS INITIAL.
         ls_message-field = VALUE #( mt_field_context[ 1 ] OPTIONAL ).

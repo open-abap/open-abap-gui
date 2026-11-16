@@ -245,7 +245,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     DATA lv_info_html TYPE string.
 
     LOOP AT mt_day_info INTO DATA(ls_day_info).
-      lv_info_html = lv_info_html && |<span class="gg-calendar-day-info" data-date="{ CONV string( ls_day_info-date ) }" data-color="{ ls_day_info-color }">{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_day_info-text ) ) }</span>|.
+      lv_info_html = lv_info_html && |<span class="gg-calendar-day-info" data-date="{ ls_day_info-date }" data-color="{ ls_day_info-color }">{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_day_info-text ) ) }</span>|.
     ENDLOOP.
     cl_gui_control=>set_html(
       control = me
@@ -254,7 +254,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
       control = me
       payload = COND string(
         WHEN mv_date_begin IS INITIAL AND mv_date_end IS INITIAL THEN ``
-        ELSE |{ CONV string( mv_date_begin ) }/{ CONV string( mv_date_end ) }| ) ).
+        ELSE |{ mv_date_begin }/{ mv_date_end }| ) ).
   ENDMETHOD.
 
   METHOD render_week_navigator.
@@ -292,7 +292,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     DATA lv_day_row TYPE string.
     DATA lt_day_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
-    lv_focus_text = CONV string( mv_focus_date ).
+    lv_focus_text = mv_focus_date.
     IF strlen( lv_focus_text ) < 8.
       RETURN.
     ENDIF.
@@ -318,11 +318,11 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     ENDIF.
     lv_year_text = |{ lv_start_year WIDTH = 4 PAD = '0' }|.
     lv_month_text = |{ lv_start_month WIDTH = 2 ALIGN = RIGHT PAD = '0' }|.
-    lv_first_date = CONV d( |{ lv_year_text }{ lv_month_text }01| ).
+    lv_first_date = |{ lv_year_text }{ lv_month_text }01|.
     IF lv_end_month = 12.
-      lv_next_first = CONV d( |{ lv_end_year + 1 WIDTH = 4 PAD = '0' }0101| ).
+      lv_next_first = |{ lv_end_year + 1 WIDTH = 4 PAD = '0' }0101|.
     ELSE.
-      lv_next_first = CONV d( |{ lv_end_year WIDTH = 4 PAD = '0' }{ lv_end_month + 1 WIDTH = 2 ALIGN = RIGHT PAD = '0' }01| ).
+      lv_next_first = |{ lv_end_year WIDTH = 4 PAD = '0' }{ lv_end_month + 1 WIDTH = 2 ALIGN = RIGHT PAD = '0' }01|.
     ENDIF.
     lv_last_date = lv_next_first - 1.
     lv_delta = lv_first_date - CONV d( '20240101' ).
@@ -407,7 +407,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
       off = 0
       len = 4 ).
     lv_week_year_text = |{ lv_week_year WIDTH = 4 PAD = '0' }|.
-    lv_january_fourth = CONV d( |{ lv_week_year_text }0104| ).
+    lv_january_fourth = |{ lv_week_year_text }0104|.
     lv_delta = lv_january_fourth - CONV d( '20240101' ).
     lv_offset = lv_delta MOD 7.
     IF lv_offset < 0.
@@ -426,7 +426,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     DATA lv_day_class TYPE string.
     DATA lv_selected TYPE abap_bool.
 
-    lv_date_text = CONV string( iv_date ).
+    lv_date_text = iv_date.
     lv_day = substring(
       val = lv_date_text
       off = 6
@@ -440,7 +440,7 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     READ TABLE mt_day_info INTO DATA(ls_day_info)
       WITH KEY date = iv_date.
     IF sy-subrc = 0.
-      lv_day_title = CONV string( ls_day_info-text ).
+      lv_day_title = ls_day_info-text.
     ENDIF.
     lv_day_class = COND string(
       WHEN lv_selected = abap_true THEN 'gg-calendar-date gg-calendar-selected'

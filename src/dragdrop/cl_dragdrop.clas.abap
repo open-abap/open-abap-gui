@@ -85,7 +85,7 @@ CLASS cl_dragdrop IMPLEMENTATION.
     LOOP AT mt_flavors INTO DATA(ls_flavor).
       IF ( drag_source = abap_true AND ls_flavor-is_drag_source = abap_true )
           OR ( drag_source = abap_false AND ls_flavor-is_drop_target = abap_true ).
-        APPEND condense( CONV string( ls_flavor-flavor ) ) TO result.
+        APPEND condense( ls_flavor-flavor ) TO result.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.

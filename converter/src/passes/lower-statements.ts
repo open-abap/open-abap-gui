@@ -1642,7 +1642,7 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
     // host cannot replay; the call is reported rather than run without it.
     if (ast.hasPhrase("USING")) return "* TODO GGCONV-E516: CALL TRANSACTION ... USING batch-input data requires manual lowering.";
     const tcode = literalText(transaction);
-    const target = tcode === undefined ? `CONV #( ${valueExpression(transaction!, context)} )` : `'${tcode.toUpperCase()}'`;
+    const target = tcode === undefined ? valueExpression(transaction!, context) : `'${tcode.toUpperCase()}'`;
     return continuationCall("io_session->get_navigation( )->call_transaction", "is_call", `VALUE #( tcode = ${target}${ast.hasPhrase("SKIP FIRST SCREEN") ? " skip_first_screen = abap_true" : ""} )`, id);
   }
   if (statement.kind === "SuppressDialog") {
@@ -1658,7 +1658,7 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
     const id = literalText(operand("ID"));
     const field = operand("FIELD");
     if (!id || field === undefined) return undefined;
-    return `${replaceOutsideStrings(field, context.replacements)} = CONV #( io_session->get_compatibility( )->get_parameter( iv_id = ${quote(id.toUpperCase())} ) ).`;
+    return `${replaceOutsideStrings(field, context.replacements)} = io_session->get_compatibility( )->get_parameter( iv_id = ${quote(id.toUpperCase())} ).`;
   }
   if (statement.kind === "AuthorityCheck" && ast) {
     // Each ID ... FIELD is checked; ID ... DUMMY checks nothing.
@@ -1734,7 +1734,7 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
       ? `CONV string( ${valueExpression(fieldOperand, context)} )`
       : `'${field.toUpperCase()}'`;
     const line = operand("LINE");
-    const row = line ? ` row = CONV i( ${valueExpression(line, context)} )` : "";
+    const row = line ? ` row = ${valueExpression(line, context)}` : "";
     return `io_session->get_dialog( )->set_cursor( VALUE #( field = ${fieldValue}${row} ) ).`;
   }
   if (statement.kind === "LeaveScreen") return "io_session->get_dialog( )->leave_screen( ).";
@@ -2295,6 +2295,6 @@ export function selectionType(options: SelectionOptions): string {
 export function selectionExpression(value: string | undefined): string | undefined {
   if (!value) return undefined;
   if (/^'(?:''|[^'])*'$|^\|[^|]*\|$/s.test(value)) return value;
-  // CONV string( 3 ) is '3 ', the blank reserved for the sign.
-  return /^\d+$/.test(value) ? `'${value}'` : `CONV string( ${value} )`;
+  // An integer moved to a string is '3 ', the blank reserved for the sign.
+  return /^\d+$/.test(value) ? `'${value}'` : value;
 }

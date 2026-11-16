@@ -760,13 +760,13 @@ ENDCLASS.
 CLASS cl_gui_alv_grid IMPLEMENTATION.
   METHOD drag.
     RAISE EVENT ondrag EXPORTING e_row         = VALUE lvc_s_row( index = CONV i( key ) )
-      es_row_no                                = VALUE lvc_s_roid( row_id = CONV i( key ) )
+      es_row_no                                = VALUE lvc_s_roid( row_id = key )
                                  e_dragdropobj = object.
   ENDMETHOD.
 
   METHOD drop_complete.
     RAISE EVENT ondropcomplete EXPORTING e_row         = VALUE lvc_s_row( index = CONV i( key ) )
-      es_row_no                                        = VALUE lvc_s_roid( row_id = CONV i( key ) )
+      es_row_no                                        = VALUE lvc_s_roid( row_id = key )
                                          e_dragdropobj = object.
   ENDMETHOD.
 
@@ -1126,7 +1126,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       IF lines( lt_parts ) < 2.
         CONTINUE.
       ENDIF.
-      lv_row = CONV i( lt_parts[ 2 ] ).
+      lv_row = lt_parts[ 2 ].
       IF lt_parts[ 1 ] = 'row' AND ls_value-value IS NOT INITIAL.
         APPEND VALUE #( index = lv_row ) TO lt_rows.
       ELSEIF lt_parts[ 1 ] = 'cell' AND lines( lt_parts ) >= 3.
@@ -1200,7 +1200,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         CLEAR mt_menu_fcodes.
         mv_menu_html = '<ul class="gg-alv-context-menu" role="menu">'.
         LOOP AT zcl_gg_context_menu_state=>get_items( lo_menu ) INTO DATA(ls_menuitem) WHERE hidden = abap_false.
-          APPEND CONV #( ls_menuitem-fcode ) TO mt_menu_fcodes.
+          APPEND ls_menuitem-fcode TO mt_menu_fcodes.
           mv_menu_html = mv_menu_html && |<li><button type="submit" role="menuitem" { function_attributes( ls_menuitem-fcode ) }{ COND string( WHEN ls_menuitem-disabled = abap_true THEN ` disabled` ) }>{ zcl_gg_gui_runtime=>escape_html( ls_menuitem-text ) }</button></li>|.
         ENDLOOP.
         mv_menu_html = mv_menu_html && '</ul>'.
@@ -1441,13 +1441,13 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         LOOP AT mt_fieldcatalog ASSIGNING FIELD-SYMBOL(<ls_position>) WHERE tech IS INITIAL.
           DATA(lv_pos) = layout_input( |layout_pos:{ <ls_position>-fieldname }| ).
           IF lv_pos IS NOT INITIAL AND lv_pos CO '0123456789'.
-            <ls_position>-col_pos = CONV i( lv_pos ).
+            <ls_position>-col_pos = lv_pos.
           ENDIF.
         ENDLOOP.
         SORT mt_fieldcatalog STABLE BY col_pos.
         LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat) WHERE tech IS INITIAL.
           IF layout_input( |layout_col:{ ls_fieldcat-fieldname }| ) IS NOT INITIAL.
-            APPEND CONV string( ls_fieldcat-fieldname ) TO ls_layout-fields.
+            APPEND ls_fieldcat-fieldname TO ls_layout-fields.
           ENDIF.
         ENDLOOP.
         ls_layout-sort = mt_sort.
@@ -1654,7 +1654,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       symbol          = xsdbool( is_fieldcat-symbol = 'X' )
       exception_light = xsdbool( ms_layout-excp_fname IS NOT INITIAL
                                 AND ms_layout-excp_fname = is_fieldcat-fieldname )
-      emphasize       = CONV string( is_fieldcat-emphasize )
+      emphasize       = is_fieldcat-emphasize
       f4              = xsdbool( is_fieldcat-f4availabl = 'X' )
       dropdown        = is_fieldcat-drdn_hndl
       total           = xsdbool( is_fieldcat-do_sum = 'X' )
@@ -1679,7 +1679,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     IF ms_layout-info_fname IS NOT INITIAL.
       ASSIGN COMPONENT ms_layout-info_fname OF STRUCTURE is_source_row TO <value>.
       IF sy-subrc = 0.
-        cs_row-color_code = CONV string( <value> ).
+        cs_row-color_code = <value>.
         cs_row-color_style = color_code_style( cs_row-color_code ).
       ENDIF.
     ENDIF.
@@ -2130,7 +2130,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         IF ls_fieldcat-qfieldname IS NOT INITIAL.
           lv_total_decimals = 0.
         ELSEIF ls_fieldcat-decimals_o IS NOT INITIAL.
-          lv_total_decimals = CONV i( ls_fieldcat-decimals_o ).
+          lv_total_decimals = ls_fieldcat-decimals_o.
         ELSE.
           lv_total_decimals = -1.
         ENDIF.
@@ -2198,8 +2198,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         CONTINUE.
       ENDIF.
       DATA(lv_label) = COND string( WHEN ls_button-text IS INITIAL
-                                    THEN CONV string( ls_button-quickinfo )
-                                    ELSE CONV string( ls_button-text ) ).
+                                    THEN ls_button-quickinfo
+                                    ELSE ls_button-text ).
       DATA(lv_button_attrs) = COND string( WHEN ls_button-butn_type = 1 OR ls_button-butn_type = 2
         THEN submit_attributes( iv_event  = 'MENU'
                                 iv_param1 = CONV string( ls_button-function ) )

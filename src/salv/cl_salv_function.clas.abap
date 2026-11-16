@@ -59,11 +59,11 @@ CLASS cl_salv_function IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_name.
-    mv_name = CONV string( value ).
+    mv_name = value.
   ENDMETHOD.
 
   METHOD set_icon.
-    mv_icon = CONV string( value ).
+    mv_icon = value.
   ENDMETHOD.
 
   METHOD get_icon.
@@ -71,7 +71,7 @@ CLASS cl_salv_function IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_text.
-    mv_text = CONV string( value ).
+    mv_text = value.
   ENDMETHOD.
 
   METHOD get_text.
@@ -79,7 +79,7 @@ CLASS cl_salv_function IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_tooltip.
-    mv_tooltip = CONV string( value ).
+    mv_tooltip = value.
   ENDMETHOD.
 
   METHOD get_tooltip.

@@ -1322,7 +1322,7 @@ test("converts function module actuals for string-typed compatibility parameters
   assert.match(result.classSource, /iv_id\s+= \|P_RMODE\|/);
   assert.match(result.classSource, /iv_id\s+= ''\s+it_values/);
   assert.match(result.classSource, /io_session->get_compatibility\( \)->refresh_selection_list_values\( \)\./);
-  assert.match(result.classSource, /gv_url = io_session->get_compatibility\( \)->publish_url\(\s+iv_object\s+= CONV string\( gv_objid \)\s+iv_lifetime = CONV string\( 'T' \) \)\./);
+  assert.match(result.classSource, /gv_url = io_session->get_compatibility\( \)->publish_url\(\s+iv_object\s+= CONV string\( gv_objid \)\s+iv_lifetime = 'T' \)\./);
 });
 
 test("renames inside string template expressions only, never in template text", async () => {
@@ -1823,7 +1823,7 @@ test("discovers each screen's OK-code field in the screen XML and binds it in th
   assert.match(converted.classSource, /begin_screen\( VALUE #\( number = '0100' [^)]*ok_code = 'OK_CODE' /);
   assert.match(converted.classSource, /begin_screen\( VALUE #\( number = '0200' [^)]*ok_code = 'GV_DETAIL_OK' /);
   // The PAI module reads the field the host fills, not a fixed name.
-  assert.match(converted.classSource, /ok_code = CONV #\( ct_values\[ name = 'OK_CODE' \]-value \)/);
+  assert.match(converted.classSource, /ok_code = ct_values\[ name = 'OK_CODE' \]-value\./);
 
   const withoutOkCode = await loadDynproMetadata({
     filename: path.join(repositoryRoot, "converter", "test", "fixtures", "dynpro_metadata.prog.abap"),
@@ -2148,7 +2148,7 @@ test("lowers dynamic SET CURSOR field and line operands", async () => {
     mode: "partial",
   });
   assert.doesNotMatch(result.classSource, /TODO GGCONV-E516: dynamic SET CURSOR/);
-  assert.match(result.classSource, /set_cursor\( VALUE #\( field = CONV string\( gv_cursor_field \) row = CONV i\( gv_cursor_line \) \) \)/);
+  assert.match(result.classSource, /set_cursor\( VALUE #\( field = CONV string\( gv_cursor_field \) row = gv_cursor_line \) \)/);
 });
 
 test("lowers the finite dynamic ALV field-catalog pattern to a typed table", async () => {
@@ -3151,7 +3151,7 @@ test("emits a select-option default that is not a literal as an expression", asy
     filename: "zsodef.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.match(result.classSource, /default = VALUE #\( sign = 'I' option = 'EQ' low = CONV string\( sy-datum \) \)/);
+  assert.match(result.classSource, /default = VALUE #\( sign = 'I' option = 'EQ' low = sy-datum \)/);
   assert.match(result.classSource, /default = VALUE #\( sign = 'I' option = 'BT' low = 'A' high = 'B' \)/);
 });
 

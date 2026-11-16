@@ -125,15 +125,15 @@ CLASS zcl_gg_se01 IMPLEMENTATION.
     DATA(lo_service) = NEW zcl_gg_system_transport( ).
     DATA(lv_category) = lo_service->zif_gg_transport_service_v1~get_number_category( is_tab-transport_type ).
 
-    io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |T_{ is_tab-suffix }_REQUEST| ) position = VALUE #( row = 122 column = 18 width = 170 ) ) text = 'Request / task' ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = |T_{ is_tab-suffix }_REQUEST| position = VALUE #( row = 122 column = 18 width = 170 ) ) text = 'Request / task' ) ).
     io_builder->add_input_field( VALUE #( control = VALUE #( name = is_tab-request_field position = VALUE #( row = 116 column = 200 width = 210 ) ) data_type = VALUE #( typ = 'C' length = 20 ) value_help = abap_true required = abap_true uppercase = abap_true ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |T_{ is_tab-suffix }_RULE| ) position = VALUE #( row = 158 column = 18 width = 620 ) ) text = COND string( WHEN lv_category IS INITIAL
+    io_builder->add_text( VALUE #( control = VALUE #( name = |T_{ is_tab-suffix }_RULE| position = VALUE #( row = 158 column = 18 width = 620 ) ) text = COND string( WHEN lv_category IS INITIAL
                                                                                                                                                                             THEN 'Individual display accepts every request number convention this system knows.'
                                                                                                                                                                             ELSE |Request numbers on this tab follow the <SID>{ lv_category }nnnnn convention.| ) ) ).
     IF is_tab-transport_type = zif_gg_system_types_v1=>transport_standard
         OR is_tab-transport_type = zif_gg_system_types_v1=>transport_piece.
-      io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |T_{ is_tab-suffix }_OWNER| ) position = VALUE #( row = 198 column = 18 width = 170 ) ) text = 'Owner' ) ).
-      io_builder->add_input_field( VALUE #( control = VALUE #( name = CONV #( |P_{ is_tab-suffix }_OWNER| ) position = VALUE #( row = 192 column = 200 width = 210 ) ) data_type = VALUE #( typ = 'C' length = 12 ) uppercase = abap_true ) ).
+      io_builder->add_text( VALUE #( control = VALUE #( name = |T_{ is_tab-suffix }_OWNER| position = VALUE #( row = 198 column = 18 width = 170 ) ) text = 'Owner' ) ).
+      io_builder->add_input_field( VALUE #( control = VALUE #( name = |P_{ is_tab-suffix }_OWNER| position = VALUE #( row = 192 column = 200 width = 210 ) ) data_type = VALUE #( typ = 'C' length = 12 ) uppercase = abap_true ) ).
     ENDIF.
     IF is_tab-transport_type = zif_gg_system_types_v1=>transport_standard.
       io_builder->add_text( VALUE #( control = VALUE #( name = 'T_STD_STATUS' position = VALUE #( row = 238 column = 18 width = 170 ) ) text = 'Request status' ) ).
@@ -141,8 +141,8 @@ CLASS zcl_gg_se01 IMPLEMENTATION.
     ENDIF.
     IF is_tab-transport_type = zif_gg_system_types_v1=>transport_client
         OR is_tab-transport_type = zif_gg_system_types_v1=>transport_delivery.
-      io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |T_{ is_tab-suffix }_TARGET| ) position = VALUE #( row = 198 column = 18 width = 170 ) ) text = 'Target system' ) ).
-      io_builder->add_input_field( VALUE #( control = VALUE #( name = CONV #( |P_{ is_tab-suffix }_TARGET| ) position = VALUE #( row = 192 column = 200 width = 210 ) ) data_type = VALUE #( typ = 'C' length = 10 ) uppercase = abap_true ) ).
+      io_builder->add_text( VALUE #( control = VALUE #( name = |T_{ is_tab-suffix }_TARGET| position = VALUE #( row = 198 column = 18 width = 170 ) ) text = 'Target system' ) ).
+      io_builder->add_input_field( VALUE #( control = VALUE #( name = |P_{ is_tab-suffix }_TARGET| position = VALUE #( row = 192 column = 200 width = 210 ) ) data_type = VALUE #( typ = 'C' length = 10 ) uppercase = abap_true ) ).
     ENDIF.
   ENDMETHOD.
 
@@ -150,16 +150,16 @@ CLASS zcl_gg_se01 IMPLEMENTATION.
     DATA lv_column TYPE i.
 
     io_builder->begin_screen( VALUE #( number = is_tab-screen title = |Transport Organizer (Extended View): { is_tab-text }| height = 380 ) ).
-    io_builder->add_tabstrip( VALUE #( control = VALUE #( name = CONV #( |TABS_{ is_tab-suffix }| ) position = VALUE #( row = 4 column = 4 width = 560 height = 32 ) ) ) ).
+    io_builder->add_tabstrip( VALUE #( control = VALUE #( name = |TABS_{ is_tab-suffix }| position = VALUE #( row = 4 column = 4 width = 560 height = 32 ) ) ) ).
     lv_column = 4.
     LOOP AT tabs( ) INTO DATA(ls_tab).
-      io_builder->add_tab( VALUE #( control = VALUE #( name = CONV #( |TAB_{ ls_tab-suffix }_{ is_tab-suffix }| ) position = VALUE #( row = 4 column = lv_column width = 105 ) ) tabstrip = CONV #( |TABS_{ is_tab-suffix }| ) text = ls_tab-text subscreen = ls_tab-screen ucomm = CONV #( ls_tab-transport_type ) ) ).
+      io_builder->add_tab( VALUE #( control = VALUE #( name = |TAB_{ ls_tab-suffix }_{ is_tab-suffix }| position = VALUE #( row = 4 column = lv_column width = 105 ) ) tabstrip = |TABS_{ is_tab-suffix }| text = ls_tab-text subscreen = ls_tab-screen ucomm = ls_tab-transport_type ) ).
       lv_column = lv_column + 109.
     ENDLOOP.
     add_criteria( io_builder = io_builder
                   is_tab     = is_tab ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = CONV #( |O_{ is_tab-suffix }_CAPABILITY| ) position = VALUE #( row = 278 column = 18 width = 620 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
-    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = CONV #( |PB_{ is_tab-suffix }_DISPLAY| ) position = VALUE #( row = 322 column = 18 width = 120 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = |O_{ is_tab-suffix }_CAPABILITY| position = VALUE #( row = 278 column = 18 width = 620 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
+    io_builder->add_pushbutton( VALUE #( control = VALUE #( name = |PB_{ is_tab-suffix }_DISPLAY| position = VALUE #( row = 322 column = 18 width = 120 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
     IF is_tab-transport_type = zif_gg_system_types_v1=>transport_individual.
       io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_LOGS' position = VALUE #( row = 322 column = 152 width = 100 ) ) text = 'Logs' ucomm = 'LOGS' ) ).
       io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_ACTION_LOG' position = VALUE #( row = 322 column = 262 width = 120 ) ) text = 'Action Log' ucomm = 'ACTION_LOG' ) ).

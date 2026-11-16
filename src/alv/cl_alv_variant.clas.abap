@@ -157,7 +157,7 @@ CLASS cl_alv_variant IMPLEMENTATION.
     SORT lt_fieldcat STABLE BY col_pos.
     LOOP AT lt_fieldcat INTO DATA(ls_fieldcat)
         WHERE tech IS INITIAL AND no_out IS INITIAL.
-      APPEND CONV string( ls_fieldcat-fieldname ) TO result-fields.
+      APPEND ls_fieldcat-fieldname TO result-fields.
     ENDLOOP.
     result-sort = it_sort.
   ENDMETHOD.
@@ -168,7 +168,7 @@ CLASS cl_alv_variant IMPLEMENTATION.
     lv_hidden_pos = lines( is_layout-fields ).
     LOOP AT ct_fieldcat ASSIGNING FIELD-SYMBOL(<ls_fieldcat>) WHERE tech IS INITIAL.
       READ TABLE is_layout-fields TRANSPORTING NO FIELDS
-        WITH KEY table_line = CONV string( <ls_fieldcat>-fieldname ).
+        WITH KEY table_line = <ls_fieldcat>-fieldname.
       IF sy-subrc = 0.
         <ls_fieldcat>-no_out = space.
         <ls_fieldcat>-col_pos = sy-tabix.

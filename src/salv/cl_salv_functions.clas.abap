@@ -81,7 +81,7 @@ CLASS cl_salv_functions IMPLEMENTATION.
 
   METHOD add_function.
     DATA lv_name TYPE salv_de_function.
-    lv_name = CONV salv_de_function( name ).
+    lv_name = name.
     IF line_exists( mt_functions[ name = lv_name ] ).
       RETURN.
     ENDIF.

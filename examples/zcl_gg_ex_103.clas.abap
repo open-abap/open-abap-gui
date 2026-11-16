@@ -142,19 +142,19 @@ CLASS zcl_gg_ex_103 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DELIVERY' ] ).
-      ct_values[ name = 'GV_DELIVERY' ]-value = CONV string( gv_delivery ).
+      ct_values[ name = 'GV_DELIVERY' ]-value = gv_delivery.
     ELSE.
-      INSERT VALUE #( name = 'GV_DELIVERY' value = CONV string( gv_delivery ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DELIVERY' value = gv_delivery ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ADDRESS' ] ).
-      ct_values[ name = 'GV_ADDRESS' ]-value = CONV string( gv_address ).
+      ct_values[ name = 'GV_ADDRESS' ]-value = gv_address.
     ELSE.
-      INSERT VALUE #( name = 'GV_ADDRESS' value = CONV string( gv_address ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ADDRESS' value = gv_address ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
@@ -163,13 +163,13 @@ CLASS zcl_gg_ex_103 IMPLEMENTATION.
     mr_dynpro_states = REF #( ct_states ).
     mv_dynpro_row = is_context-row.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DELIVERY' ] ).
-      gv_delivery = CONV #( ct_values[ name = 'GV_DELIVERY' ]-value ).
+      gv_delivery = ct_values[ name = 'GV_DELIVERY' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ADDRESS' ] ).
-      gv_address = CONV #( ct_values[ name = 'GV_ADDRESS' ]-value ).
+      gv_address = ct_values[ name = 'GV_ADDRESS' ]-value.
     ENDIF.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
@@ -191,19 +191,19 @@ CLASS zcl_gg_ex_103 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DELIVERY' ] ).
-      ct_values[ name = 'GV_DELIVERY' ]-value = CONV string( gv_delivery ).
+      ct_values[ name = 'GV_DELIVERY' ]-value = gv_delivery.
     ELSE.
-      INSERT VALUE #( name = 'GV_DELIVERY' value = CONV string( gv_delivery ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DELIVERY' value = gv_delivery ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ADDRESS' ] ).
-      ct_values[ name = 'GV_ADDRESS' ]-value = CONV string( gv_address ).
+      ct_values[ name = 'GV_ADDRESS' ]-value = gv_address.
     ELSE.
-      INSERT VALUE #( name = 'GV_ADDRESS' value = CONV string( gv_address ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ADDRESS' value = gv_address ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -213,13 +213,13 @@ CLASS zcl_gg_ex_103 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DELIVERY' ] ).
-      gv_delivery = CONV #( ct_values[ name = 'GV_DELIVERY' ]-value ).
+      gv_delivery = ct_values[ name = 'GV_DELIVERY' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ADDRESS' ] ).
-      gv_address = CONV #( ct_values[ name = 'GV_ADDRESS' ]-value ).
+      gv_address = ct_values[ name = 'GV_ADDRESS' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -231,19 +231,19 @@ CLASS zcl_gg_ex_103 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DELIVERY' ] ).
-      ct_values[ name = 'GV_DELIVERY' ]-value = CONV string( gv_delivery ).
+      ct_values[ name = 'GV_DELIVERY' ]-value = gv_delivery.
     ELSE.
-      INSERT VALUE #( name = 'GV_DELIVERY' value = CONV string( gv_delivery ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DELIVERY' value = gv_delivery ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ADDRESS' ] ).
-      ct_values[ name = 'GV_ADDRESS' ]-value = CONV string( gv_address ).
+      ct_values[ name = 'GV_ADDRESS' ]-value = gv_address.
     ELSE.
-      INSERT VALUE #( name = 'GV_ADDRESS' value = CONV string( gv_address ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ADDRESS' value = gv_address ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

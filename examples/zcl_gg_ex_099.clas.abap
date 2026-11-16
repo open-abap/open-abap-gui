@@ -153,64 +153,64 @@ CLASS zcl_gg_ex_099 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_INPUT' ] ).
-      ct_values[ name = 'GV_INPUT' ]-value = CONV string( gv_input ).
+      ct_values[ name = 'GV_INPUT' ]-value = gv_input.
     ELSE.
-      INSERT VALUE #( name = 'GV_INPUT' value = CONV string( gv_input ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_INPUT' value = gv_input ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OUTPUT' ] ).
-      ct_values[ name = 'GV_OUTPUT' ]-value = CONV string( gv_output ).
+      ct_values[ name = 'GV_OUTPUT' ]-value = gv_output.
     ELSE.
-      INSERT VALUE #( name = 'GV_OUTPUT' value = CONV string( gv_output ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OUTPUT' value = gv_output ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CHECK' ] ).
-      ct_values[ name = 'GV_CHECK' ]-value = CONV string( gv_check ).
+      ct_values[ name = 'GV_CHECK' ]-value = gv_check.
     ELSE.
-      INSERT VALUE #( name = 'GV_CHECK' value = CONV string( gv_check ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_CHECK' value = gv_check ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ALPHA' ] ).
-      ct_values[ name = 'GV_ALPHA' ]-value = CONV string( gv_alpha ).
+      ct_values[ name = 'GV_ALPHA' ]-value = gv_alpha.
     ELSE.
-      INSERT VALUE #( name = 'GV_ALPHA' value = CONV string( gv_alpha ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ALPHA' value = gv_alpha ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_BETA' ] ).
-      ct_values[ name = 'GV_BETA' ]-value = CONV string( gv_beta ).
+      ct_values[ name = 'GV_BETA' ]-value = gv_beta.
     ELSE.
-      INSERT VALUE #( name = 'GV_BETA' value = CONV string( gv_beta ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_BETA' value = gv_beta ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LIST' ] ).
-      ct_values[ name = 'GV_LIST' ]-value = CONV string( gv_list ).
+      ct_values[ name = 'GV_LIST' ]-value = gv_list.
     ELSE.
-      INSERT VALUE #( name = 'GV_LIST' value = CONV string( gv_list ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LIST' value = gv_list ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_INPUT' ] ).
-      gv_input = CONV #( ct_values[ name = 'GV_INPUT' ]-value ).
+      gv_input = ct_values[ name = 'GV_INPUT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OUTPUT' ] ).
-      gv_output = CONV #( ct_values[ name = 'GV_OUTPUT' ]-value ).
+      gv_output = ct_values[ name = 'GV_OUTPUT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CHECK' ] ).
-      gv_check = CONV #( ct_values[ name = 'GV_CHECK' ]-value ).
+      gv_check = ct_values[ name = 'GV_CHECK' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ALPHA' ] ).
-      gv_alpha = CONV #( ct_values[ name = 'GV_ALPHA' ]-value ).
+      gv_alpha = ct_values[ name = 'GV_ALPHA' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_BETA' ] ).
-      gv_beta = CONV #( ct_values[ name = 'GV_BETA' ]-value ).
+      gv_beta = ct_values[ name = 'GV_BETA' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LIST' ] ).
-      gv_list = CONV #( ct_values[ name = 'GV_LIST' ]-value ).
+      gv_list = ct_values[ name = 'GV_LIST' ]-value.
     ENDIF.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
@@ -232,39 +232,39 @@ CLASS zcl_gg_ex_099 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_INPUT' ] ).
-      ct_values[ name = 'GV_INPUT' ]-value = CONV string( gv_input ).
+      ct_values[ name = 'GV_INPUT' ]-value = gv_input.
     ELSE.
-      INSERT VALUE #( name = 'GV_INPUT' value = CONV string( gv_input ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_INPUT' value = gv_input ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OUTPUT' ] ).
-      ct_values[ name = 'GV_OUTPUT' ]-value = CONV string( gv_output ).
+      ct_values[ name = 'GV_OUTPUT' ]-value = gv_output.
     ELSE.
-      INSERT VALUE #( name = 'GV_OUTPUT' value = CONV string( gv_output ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OUTPUT' value = gv_output ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CHECK' ] ).
-      ct_values[ name = 'GV_CHECK' ]-value = CONV string( gv_check ).
+      ct_values[ name = 'GV_CHECK' ]-value = gv_check.
     ELSE.
-      INSERT VALUE #( name = 'GV_CHECK' value = CONV string( gv_check ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_CHECK' value = gv_check ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ALPHA' ] ).
-      ct_values[ name = 'GV_ALPHA' ]-value = CONV string( gv_alpha ).
+      ct_values[ name = 'GV_ALPHA' ]-value = gv_alpha.
     ELSE.
-      INSERT VALUE #( name = 'GV_ALPHA' value = CONV string( gv_alpha ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ALPHA' value = gv_alpha ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_BETA' ] ).
-      ct_values[ name = 'GV_BETA' ]-value = CONV string( gv_beta ).
+      ct_values[ name = 'GV_BETA' ]-value = gv_beta.
     ELSE.
-      INSERT VALUE #( name = 'GV_BETA' value = CONV string( gv_beta ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_BETA' value = gv_beta ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LIST' ] ).
-      ct_values[ name = 'GV_LIST' ]-value = CONV string( gv_list ).
+      ct_values[ name = 'GV_LIST' ]-value = gv_list.
     ELSE.
-      INSERT VALUE #( name = 'GV_LIST' value = CONV string( gv_list ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LIST' value = gv_list ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -274,22 +274,22 @@ CLASS zcl_gg_ex_099 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_INPUT' ] ).
-      gv_input = CONV #( ct_values[ name = 'GV_INPUT' ]-value ).
+      gv_input = ct_values[ name = 'GV_INPUT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CHECK' ] ).
-      gv_check = CONV #( ct_values[ name = 'GV_CHECK' ]-value ).
+      gv_check = ct_values[ name = 'GV_CHECK' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ALPHA' ] ).
-      gv_alpha = CONV #( ct_values[ name = 'GV_ALPHA' ]-value ).
+      gv_alpha = ct_values[ name = 'GV_ALPHA' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_BETA' ] ).
-      gv_beta = CONV #( ct_values[ name = 'GV_BETA' ]-value ).
+      gv_beta = ct_values[ name = 'GV_BETA' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LIST' ] ).
-      gv_list = CONV #( ct_values[ name = 'GV_LIST' ]-value ).
+      gv_list = ct_values[ name = 'GV_LIST' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -301,39 +301,39 @@ CLASS zcl_gg_ex_099 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_INPUT' ] ).
-      ct_values[ name = 'GV_INPUT' ]-value = CONV string( gv_input ).
+      ct_values[ name = 'GV_INPUT' ]-value = gv_input.
     ELSE.
-      INSERT VALUE #( name = 'GV_INPUT' value = CONV string( gv_input ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_INPUT' value = gv_input ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OUTPUT' ] ).
-      ct_values[ name = 'GV_OUTPUT' ]-value = CONV string( gv_output ).
+      ct_values[ name = 'GV_OUTPUT' ]-value = gv_output.
     ELSE.
-      INSERT VALUE #( name = 'GV_OUTPUT' value = CONV string( gv_output ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OUTPUT' value = gv_output ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_CHECK' ] ).
-      ct_values[ name = 'GV_CHECK' ]-value = CONV string( gv_check ).
+      ct_values[ name = 'GV_CHECK' ]-value = gv_check.
     ELSE.
-      INSERT VALUE #( name = 'GV_CHECK' value = CONV string( gv_check ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_CHECK' value = gv_check ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ALPHA' ] ).
-      ct_values[ name = 'GV_ALPHA' ]-value = CONV string( gv_alpha ).
+      ct_values[ name = 'GV_ALPHA' ]-value = gv_alpha.
     ELSE.
-      INSERT VALUE #( name = 'GV_ALPHA' value = CONV string( gv_alpha ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ALPHA' value = gv_alpha ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_BETA' ] ).
-      ct_values[ name = 'GV_BETA' ]-value = CONV string( gv_beta ).
+      ct_values[ name = 'GV_BETA' ]-value = gv_beta.
     ELSE.
-      INSERT VALUE #( name = 'GV_BETA' value = CONV string( gv_beta ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_BETA' value = gv_beta ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LIST' ] ).
-      ct_values[ name = 'GV_LIST' ]-value = CONV string( gv_list ).
+      ct_values[ name = 'GV_LIST' ]-value = gv_list.
     ELSE.
-      INSERT VALUE #( name = 'GV_LIST' value = CONV string( gv_list ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LIST' value = gv_list ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -371,7 +371,7 @@ CLASS zcl_gg_ex_099 IMPLEMENTATION.
           ( key = 'A' text = 'Alpha' )
           ( key = 'B' text = 'Beta' ) ).
         io_session->get_compatibility( )->set_selection_list_values(
-          iv_id     = CONV string( 'GV_LIST' )
+          iv_id     = 'GV_LIST'
           it_values = gt_values ).
       WHEN OTHERS.
         RETURN.

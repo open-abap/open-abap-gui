@@ -1111,7 +1111,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           ls_state-visible = abap_true.
           ls_state-input = xsdbool( ls_column-input = abap_true AND lv_row <= lv_lines ).
         ENDIF.
-        lv_cell_name = |gg-cell-{ CONV string( is_control-name ) }-{ CONV string( ls_column-name ) }-{ lv_row }|.
+        lv_cell_name = |gg-cell-{ is_control-name }-{ ls_column-name }-{ lv_row }|.
         lv_state_class = zcl_gg_host_html=>state_class(
           iv_disabled = xsdbool( ls_state-enabled = abap_false
                                  OR ( ls_column-input = abap_true
@@ -1151,12 +1151,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           iv_value = lv_cell_value
           iv_type  = ls_column-data_type-typ ).
         IF ls_column-checkbox = abap_true.
-          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" value=""><input type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN CONV string( ls_column-name ) ELSE ls_column-column_title ) ) } row { lv_row }" value="X"{ COND string( WHEN lv_cell_value = 'X' OR lv_cell_value = '1' THEN ` checked` ELSE `` ) }{ lv_cell_input_attrs }></td>|.
+          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" value=""><input type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN ls_column-name ELSE ls_column-column_title ) ) } row { lv_row }" value="X"{ COND string( WHEN lv_cell_value = 'X' OR lv_cell_value = '1' THEN ` checked` ELSE `` ) }{ lv_cell_input_attrs }></td>|.
         ELSEIF ls_column-input = abap_true.
           lv_type_attrs = dynpro_type_attrs(
             is_data_type   = ls_column-data_type
             iv_extra_class = lv_state_class ).
-          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN CONV string( ls_column-name ) ELSE ls_column-column_title ) ) } row { lv_row }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_cell_input_attrs }{ lv_cursor_attrs }></td>|.
+          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN ls_column-name ELSE ls_column-column_title ) ) } row { lv_row }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_cell_input_attrs }{ lv_cursor_attrs }></td>|.
         ELSE.
           lv_output_class = data_type_class(
             iv_type        = ls_column-data_type-typ
@@ -1392,7 +1392,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         READ TABLE it_values INTO ls_active_value
           WITH KEY container = `` name = 'GV_SUBSCREEN' row = 0.
         IF sy-subrc = 0.
-          lv_active_subscreen = CONV #( ls_active_value-value ).
+          lv_active_subscreen = ls_active_value-value.
         ENDIF.
       ENDIF.
     ENDIF.
@@ -1534,7 +1534,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           iv_type  = is_control-data_type-typ ).
         lv_field_attrs = field_message_attrs( it_messages = it_messages
                                               iv_name     = CONV string( is_control-name ) ).
-        rv_html = |<span class="gg-dynpro-control gg-dynpro-field { iv_state_class }" style="{ iv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( COND string( WHEN is_control-text IS INITIAL THEN CONV string( is_control-name ) ELSE is_control-text ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_control-context_menu = abap_true THEN ` data-context-menu="true"` ELSE `` ) } value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ COND string( WHEN is_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_type_attrs }{ lv_external_attrs }{ iv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
+        rv_html = |<span class="gg-dynpro-control gg-dynpro-field { iv_state_class }" style="{ iv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( COND string( WHEN is_control-text IS INITIAL THEN is_control-name ELSE is_control-text ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_control-context_menu = abap_true THEN ` data-context-menu="true"` ELSE `` ) } value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ COND string( WHEN is_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_type_attrs }{ lv_external_attrs }{ iv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
       WHEN 'OUTPUT'.
         lv_output_class = data_type_class(
           iv_type        = is_control-data_type-typ
@@ -1643,7 +1643,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
                  name = is_area-subscreen_field
                  row = 0.
       IF sy-subrc = 0.
-        rv_screen = CONV #( ls_value-value ).
+        rv_screen = ls_value-value.
       ENDIF.
     ENDIF.
   ENDMETHOD.
@@ -1949,7 +1949,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     READ TABLE it_values INTO DATA(ls_value)
       WITH KEY container = `` name = |{ iv_table }-{ iv_field }| row = 0.
     IF sy-subrc = 0 AND ls_value-value CO ' 0123456789' AND ls_value-value IS NOT INITIAL.
-      rv_value = CONV i( ls_value-value ).
+      rv_value = ls_value-value.
     ENDIF.
     IF iv_field = 'LINES' AND rv_value <= 0.
       LOOP AT it_values INTO ls_value WHERE container = iv_table.

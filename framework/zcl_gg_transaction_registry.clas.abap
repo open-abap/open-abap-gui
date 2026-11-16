@@ -123,7 +123,7 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
     TRANSLATE lv_tcode TO UPPER CASE.
     lv_error = validate_tcode( iv_tcode = lv_tcode ).
     IF lv_error IS INITIAL.
-      rv_tcode = CONV #( lv_tcode ).
+      rv_tcode = lv_tcode.
     ENDIF.
   ENDMETHOD.
 
@@ -218,7 +218,7 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
       ENDIF.
 
       CLEAR ls_transaction.
-      ls_transaction-tcode = CONV #( lv_tcode ).
+      ls_transaction-tcode = lv_tcode.
       ls_transaction-description = lv_description.
       ls_transaction-class_name = lv_class_name.
       ls_transaction-kind = COND #( WHEN lv_report = abap_true THEN kind_report ELSE kind_dynpro ).

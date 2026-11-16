@@ -143,24 +143,24 @@ CLASS zcl_gg_ex_191 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_TEXT' ] ).
-      ct_values[ name = 'GV_TEXT' ]-value = CONV string( gv_text ).
+      ct_values[ name = 'GV_TEXT' ]-value = gv_text.
     ELSE.
-      INSERT VALUE #( name = 'GV_TEXT' value = CONV string( gv_text ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TEXT' value = gv_text ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NUMBER' ] ).
-      ct_values[ name = 'GV_NUMBER' ]-value = CONV string( gv_number ).
+      ct_values[ name = 'GV_NUMBER' ]-value = gv_number.
     ELSE.
-      INSERT VALUE #( name = 'GV_NUMBER' value = CONV string( gv_number ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NUMBER' value = gv_number ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_TEXT' ] ).
-      gv_text = CONV #( ct_values[ name = 'GV_TEXT' ]-value ).
+      gv_text = ct_values[ name = 'GV_TEXT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NUMBER' ] ).
-      gv_number = CONV #( ct_values[ name = 'GV_NUMBER' ]-value ).
+      gv_number = ct_values[ name = 'GV_NUMBER' ]-value.
     ENDIF.
     TRY.
         output_modules(
@@ -173,14 +173,14 @@ CLASS zcl_gg_ex_191 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_TEXT' ] ).
-      ct_values[ name = 'GV_TEXT' ]-value = CONV string( gv_text ).
+      ct_values[ name = 'GV_TEXT' ]-value = gv_text.
     ELSE.
-      INSERT VALUE #( name = 'GV_TEXT' value = CONV string( gv_text ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TEXT' value = gv_text ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NUMBER' ] ).
-      ct_values[ name = 'GV_NUMBER' ]-value = CONV string( gv_number ).
+      ct_values[ name = 'GV_NUMBER' ]-value = gv_number.
     ELSE.
-      INSERT VALUE #( name = 'GV_NUMBER' value = CONV string( gv_number ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NUMBER' value = gv_number ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -199,14 +199,14 @@ CLASS zcl_gg_ex_191 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_TEXT' ] ).
-      ct_values[ name = 'GV_TEXT' ]-value = CONV string( gv_text ).
+      ct_values[ name = 'GV_TEXT' ]-value = gv_text.
     ELSE.
-      INSERT VALUE #( name = 'GV_TEXT' value = CONV string( gv_text ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TEXT' value = gv_text ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_NUMBER' ] ).
-      ct_values[ name = 'GV_NUMBER' ]-value = CONV string( gv_number ).
+      ct_values[ name = 'GV_NUMBER' ]-value = gv_number.
     ELSE.
-      INSERT VALUE #( name = 'GV_NUMBER' value = CONV string( gv_number ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NUMBER' value = gv_number ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

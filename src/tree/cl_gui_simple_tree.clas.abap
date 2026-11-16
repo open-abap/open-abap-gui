@@ -84,7 +84,7 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
 
       ASSIGN COMPONENT 'NODE_KEY' OF STRUCTURE <node_row> TO <component>.
       IF sy-subrc = 0 AND <component> IS NOT INITIAL.
-        lv_node_key = CONV string( <component> ).
+        lv_node_key = <component>.
       ENDIF.
 
       UNASSIGN <component>.
@@ -94,15 +94,15 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
         ASSIGN COMPONENT 'PARENT_KEY' OF STRUCTURE <node_row> TO <component>.
       ENDIF.
       IF sy-subrc = 0.
-        lv_parent_key = CONV string( <component> ).
+        lv_parent_key = <component>.
       ENDIF.
 
       UNASSIGN <component>.
       ASSIGN COMPONENT 'TEXT' OF STRUCTURE <node_row> TO <component>.
       IF sy-subrc = 0.
-        lv_text = CONV string( <component> ).
+        lv_text = <component>.
       ELSE.
-        lv_text = CONV string( <node_row> ).
+        lv_text = <node_row>.
       ENDIF.
       IF lv_text IS INITIAL.
         lv_text = lv_node_key.
@@ -130,12 +130,12 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
       UNASSIGN <component>.
       ASSIGN COMPONENT 'N_IMAGE' OF STRUCTURE <node_row> TO <component>.
       IF sy-subrc = 0.
-        <ls_html_node>-node_image = CONV string( <component> ).
+        <ls_html_node>-node_image = <component>.
       ENDIF.
       UNASSIGN <component>.
       ASSIGN COMPONENT 'EXP_IMAGE' OF STRUCTURE <node_row> TO <component>.
       IF sy-subrc = 0.
-        <ls_html_node>-open_image = CONV string( <component> ).
+        <ls_html_node>-open_image = <component>.
       ENDIF.
     ENDLOOP.
     refresh_tree_html( ).
@@ -157,9 +157,9 @@ CLASS cl_gui_simple_tree IMPLEMENTATION.
 
   METHOD node_set_text.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
-      WITH KEY node_key = CONV string( node_key ).
+      WITH KEY node_key = node_key.
     IF sy-subrc = 0.
-      ls_node-text = CONV string( text ).
+      ls_node-text = text.
       MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
       refresh_tree_html( ).
     ENDIF.

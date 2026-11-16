@@ -173,12 +173,12 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_header.
-    io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |T_{ iv_prefix }_TYPE| ) position = VALUE #( row = 16 column = 18 width = 120 ) ) text = 'Object type' ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = CONV #( |O_{ iv_prefix }_TYPE| ) position = VALUE #( row = 12 column = 150 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 20 ) ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |T_{ iv_prefix }_NAME| ) position = VALUE #( row = 50 column = 18 width = 120 ) ) text = 'Name' ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = CONV #( |O_{ iv_prefix }_NAME| ) position = VALUE #( row = 46 column = 150 width = 220 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = CONV #( |T_{ iv_prefix }_DESC| ) position = VALUE #( row = 84 column = 18 width = 120 ) ) text = 'Short description' ) ).
-    io_builder->add_output_field( VALUE #( control = VALUE #( name = CONV #( |O_{ iv_prefix }_DESC| ) position = VALUE #( row = 80 column = 150 width = 380 ) ) data_type = VALUE #( typ = 'C' length = 80 ) ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = |T_{ iv_prefix }_TYPE| position = VALUE #( row = 16 column = 18 width = 120 ) ) text = 'Object type' ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = |O_{ iv_prefix }_TYPE| position = VALUE #( row = 12 column = 150 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 20 ) ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = |T_{ iv_prefix }_NAME| position = VALUE #( row = 50 column = 18 width = 120 ) ) text = 'Name' ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = |O_{ iv_prefix }_NAME| position = VALUE #( row = 46 column = 150 width = 220 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = |T_{ iv_prefix }_DESC| position = VALUE #( row = 84 column = 18 width = 120 ) ) text = 'Short description' ) ).
+    io_builder->add_output_field( VALUE #( control = VALUE #( name = |O_{ iv_prefix }_DESC| position = VALUE #( row = 80 column = 150 width = 380 ) ) data_type = VALUE #( typ = 'C' length = 80 ) ) ).
   ENDMETHOD.
 
   METHOD put_header.
@@ -364,7 +364,7 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TYP_SOURCE' position = VALUE #( row = 122 column = 18 width = 300 ) ) text = 'Type group source' ) ).
     lv_column = 1.
     WHILE lv_column <= 5.
-      io_builder->add_output_field( VALUE #( control = VALUE #( name = CONV #( |O_TYP_LINE_{ lv_column }| ) position = VALUE #( row = 122 + lv_column * 32 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
+      io_builder->add_output_field( VALUE #( control = VALUE #( name = |O_TYP_LINE_{ lv_column }| position = VALUE #( row = 122 + lv_column * 32 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
       lv_column = lv_column + 1.
     ENDWHILE.
     io_builder->end_screen( ).

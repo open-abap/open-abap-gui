@@ -60,16 +60,16 @@ CLASS cl_column_tree_model IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_column.
-    IF NOT line_exists( mt_column_names[ table_line = CONV string( name ) ] ).
-      APPEND CONV string( name ) TO mt_column_names.
+    IF NOT line_exists( mt_column_names[ table_line = name ] ).
+      APPEND name TO mt_column_names.
     ENDIF.
   ENDMETHOD.
 
   METHOD add_nodes.
     LOOP AT node_table INTO DATA(ls_node).
-      store_node( VALUE #( node_key   = CONV string( ls_node-node_key )
-                           parent_key = CONV string( ls_node-relatkey )
-                           text       = CONV string( ls_node-text )
+      store_node( VALUE #( node_key   = ls_node-node_key
+                           parent_key = ls_node-relatkey
+                           text       = ls_node-text
                            expanded   = xsdbool( ls_node-expander IS NOT INITIAL )
                            hidden     = xsdbool( ls_node-hidden IS NOT INITIAL ) ) ).
     ENDLOOP.
@@ -77,11 +77,11 @@ CLASS cl_column_tree_model IMPLEMENTATION.
 
   METHOD add_items.
     LOOP AT item_table INTO DATA(ls_item).
-      DELETE mt_model_items WHERE node_key = CONV string( ls_item-node_key )
-                              AND item_name = CONV string( ls_item-item_name ).
-      APPEND VALUE #( node_key  = CONV string( ls_item-node_key )
-                      item_name = CONV string( ls_item-item_name )
-                      text      = CONV string( ls_item-text )
+      DELETE mt_model_items WHERE node_key = ls_item-node_key
+                              AND item_name = ls_item-item_name.
+      APPEND VALUE #( node_key  = ls_item-node_key
+                      item_name = ls_item-item_name
+                      text      = ls_item-text
                       class     = ls_item-class
                       chosen    = xsdbool( ls_item-chosen IS NOT INITIAL )
                       style     = ls_item-style

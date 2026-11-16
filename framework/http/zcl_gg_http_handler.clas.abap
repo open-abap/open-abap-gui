@@ -518,10 +518,10 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
                                     iv_name   = 'target' ).
     ls_payload-value = form_value( it_fields = lt_fields
                                    iv_name   = 'value' ).
-    ls_payload-row = CONV i( form_value( it_fields = lt_fields
-                                         iv_name   = 'row' ) ).
-    ls_payload-pf_key = CONV i( form_value( it_fields = lt_fields
-                                            iv_name   = 'pf_key' ) ).
+    ls_payload-row = form_value( it_fields = lt_fields
+                                 iv_name   = 'row' ).
+    ls_payload-pf_key = form_value( it_fields = lt_fields
+                                    iv_name   = 'pf_key' ).
     ls_payload-token = form_value( it_fields = lt_fields
                                    iv_name   = 'token' ).
     ls_payload-gg_token = form_value( it_fields = lt_fields
@@ -609,7 +609,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       lv_remainder = substring( val = lv_action_value
                                 off = 5 ).
       SPLIT lv_remainder AT '|' INTO lv_first lv_second.
-      rs_request-row = CONV i( lv_first ).
+      rs_request-row = lv_first.
       IF lv_second IS NOT INITIAL.
         rs_request-target = lv_second.
       ENDIF.
@@ -704,7 +704,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           val = ls_field-name
           off = 13 ).
         INSERT VALUE #(
-          name   = CONV zif_gg_selection_screen_types=>ty_name( lv_name )
+          name   = lv_name
           value  = ``
           ranges = VALUE #( ) ) INTO TABLE rt_values.
         CONTINUE.
@@ -712,7 +712,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       IF ls_field-name CP 'gg-radio-*'.
         lv_name = ls_field-value.
         INSERT VALUE #(
-          name   = CONV zif_gg_selection_screen_types=>ty_name( lv_name )
+          name   = lv_name
           value  = 'X'
           ranges = VALUE #( ) ) INTO TABLE rt_values.
         CONTINUE.
@@ -745,7 +745,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       IF lines( lt_name_parts ) = 3
           AND lt_name_parts[ 2 ] CO '0123456789'.
         lv_name = lt_name_parts[ 1 ].
-        lv_range_index = CONV i( lt_name_parts[ 2 ] ).
+        lv_range_index = lt_name_parts[ 2 ].
         lv_suffix = lt_name_parts[ 3 ].
       ELSEIF ls_field-name CP '*-LOW'.
         REPLACE FIRST OCCURRENCE OF '-LOW' IN lv_name WITH ''.
@@ -761,7 +761,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         lv_suffix = 'OPTION'.
       ENDIF.
 
-      lv_typed_name = CONV zif_gg_selection_screen_types=>ty_name( lv_name ).
+      lv_typed_name = lv_name.
       READ TABLE rt_values ASSIGNING <ls_value> WITH KEY name = lv_typed_name.
       IF sy-subrc <> 0.
         INSERT VALUE #(
@@ -824,7 +824,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       ENDIF.
       READ TABLE lt_parts INTO lv_field_name INDEX 1.
       READ TABLE lt_parts INTO lv_suffix INDEX 2.
-      lv_typed_name = CONV zif_gg_selection_screen_types=>ty_name( lv_field_name ).
+      lv_typed_name = lv_field_name.
       READ TABLE rt_values ASSIGNING <ls_value> WITH KEY name = lv_typed_name.
       IF sy-subrc <> 0.
         INSERT VALUE #( name = lv_typed_name value = `` ranges = VALUE #( ) ) INTO TABLE rt_values.
@@ -908,7 +908,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         IF lv_last >= 2.
           READ TABLE lt_parts INDEX lv_last INTO lv_row_text.
           READ TABLE lt_parts INDEX lv_last - 1 INTO lv_name.
-          lv_row = CONV i( lv_row_text ).
+          lv_row = lv_row_text.
           CLEAR lv_container.
           LOOP AT lt_parts INTO lv_part.
             IF sy-tabix = lv_last OR sy-tabix = lv_last - 1.
@@ -980,8 +980,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lv_name      TYPE zif_gg_dynpro_types_v1=>ty_field_name.
     FIELD-SYMBOLS <ls_value> TYPE zif_gg_dynpro_types_v1=>ty_value.
 
-    lv_container = CONV #( iv_container ).
-    lv_name = CONV #( iv_name ).
+    lv_container = iv_container.
+    lv_name = iv_name.
     READ TABLE ct_values ASSIGNING <ls_value>
       WITH KEY container = lv_container name = lv_name row = iv_row.
     IF sy-subrc <> 0.

@@ -47,7 +47,7 @@ CLASS cl_salv_columns_table IMPLEMENTATION.
 
   METHOD set_exception_column.
 * The exception column stays on screen; the grid shows its values as lights.
-    mv_exception_column = CONV lvc_fname( value ).
+    mv_exception_column = value.
   ENDMETHOD.
 
   METHOD set_cell_type_column.
@@ -59,7 +59,7 @@ CLASS cl_salv_columns_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_color_column.
-    mv_color_column = CONV lvc_fname( value ).
+    mv_color_column = value.
     TRY.
         get_column( CONV lvc_fname( value ) )->set_technical( abap_true ).
       CATCH cx_root.

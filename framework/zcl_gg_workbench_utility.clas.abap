@@ -384,7 +384,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       IF ls_icon-separator = abap_true.
         lv_buttons = lv_buttons && '<span class="wb-toolbar-separator" aria-hidden="true"></span>'.
       ENDIF.
-      lv_label = COND #( WHEN ls_icon-label IS INITIAL THEN CONV string( ls_icon-ucomm ) ELSE ls_icon-label ).
+      lv_label = COND #( WHEN ls_icon-label IS INITIAL THEN ls_icon-ucomm ELSE ls_icon-label ).
       lv_enabled = abap_true.
       IF iv_runtime = abap_true AND ls_icon-ucomm IS NOT INITIAL.
         lv_enabled = is_command_enabled(
@@ -595,7 +595,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 * its type.
     IF is_message-id IS NOT INITIAL.
       lv_rows = lv_rows &&
-        |<dt>Message class</dt><dd>{ zcl_gg_host_html=>escape_text( condense( CONV string( is_message-id ) ) ) }</dd>| &&
+        |<dt>Message class</dt><dd>{ zcl_gg_host_html=>escape_text( condense( is_message-id ) ) }</dd>| &&
         |<dt>Message number</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-number ) ) }</dd>| &&
         |<dt>Variable 1</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-v1 ) ) }</dd>| &&
         |<dt>Variable 2</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-v2 ) ) }</dd>| &&
@@ -603,7 +603,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
         |<dt>Variable 4</dt><dd>{ zcl_gg_host_html=>escape_text( CONV string( is_message-v4 ) ) }</dd>|.
     ENDIF.
     IF is_message-field IS NOT INITIAL.
-      lv_rows = lv_rows && |<dt>Field</dt><dd>{ zcl_gg_host_html=>escape_text( condense( CONV string( is_message-field ) ) ) }</dd>|.
+      lv_rows = lv_rows && |<dt>Field</dt><dd>{ zcl_gg_host_html=>escape_text( condense( is_message-field ) ) }</dd>|.
     ENDIF.
     rv_html = |<div id="{ message_details_id }" class="wb-dialog" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>| &&
       |<div class="wb-dialog-panel"><header class="wb-dialog-header"><h2 id="wb-message-details-title">Technical information</h2>| &&

@@ -224,7 +224,7 @@ CLASS cl_gui_cfw IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_new_ok_code.
-    mv_ok_code = CONV string( new_code ).
+    mv_ok_code = new_code.
     rc = 0.
   ENDMETHOD.
 

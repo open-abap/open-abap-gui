@@ -622,8 +622,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
       LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat)
           WHERE tech IS INITIAL AND no_out IS INITIAL.
         DATA(lv_heading) = COND string(
-          WHEN ls_fieldcat-coltext IS NOT INITIAL THEN CONV string( ls_fieldcat-coltext )
-          ELSE CONV string( ls_fieldcat-fieldname ) ).
+          WHEN ls_fieldcat-coltext IS NOT INITIAL THEN ls_fieldcat-coltext
+          ELSE ls_fieldcat-fieldname ).
         lv_body = lv_body && |<option value="{ escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ escape_html( lv_heading ) }</option>|.
       ENDLOOP.
       lv_body = lv_body && |</select></label><label>Comparison <select name="{ frontend_field_name( 'option' ) }"><option>EQ</option><option>NE</option><option>CP</option><option>GE</option><option>LE</option></select></label>|.
@@ -839,11 +839,11 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
     IF i_relat_node_key IS NOT INITIAL.
       READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
-        WITH KEY node_key = CONV string( i_relat_node_key ).
+        WITH KEY node_key = i_relat_node_key.
       IF sy-subrc <> 0 AND i_relat_node_key <> c_virtual_root_node.
         RAISE relat_node_not_found.
       ENDIF.
-      lv_parent_key = CONV string( i_relat_node_key ).
+      lv_parent_key = i_relat_node_key.
     ENDIF.
 
     lv_new_key = |MODEL-{ lines( mt_html_nodes ) + 1 }|.
@@ -854,10 +854,10 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
       node_key   = lv_new_key
       parent_key = lv_parent_key
       text       = COND #( WHEN i_node_text IS SUPPLIED AND i_node_text IS NOT INITIAL
-                            THEN CONV string( i_node_text )
+                            THEN i_node_text
                             ELSE lv_new_key ) ).
     APPEND VALUE #( ) TO mt_index_outtab.
-    e_new_node_key = CONV lvc_nkey( lv_new_key ).
+    e_new_node_key = lv_new_key.
   ENDMETHOD.
 
   METHOD vroot_children_to_queue.
@@ -873,7 +873,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     DATA lv_pending TYPE string.
     DATA lv_has_child TYPE abap_bool.
     CLEAR i_leafcount.
-    APPEND CONV string( i_node_key ) TO lt_pending.
+    APPEND i_node_key TO lt_pending.
     WHILE lt_pending IS NOT INITIAL.
       READ TABLE lt_pending INTO lv_pending INDEX 1.
       DELETE lt_pending INDEX 1.
@@ -945,11 +945,11 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   METHOD add_children_to_control.
     CLEAR e_change.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
-      WITH KEY node_key = CONV string( i_node ).
+      WITH KEY node_key = i_node.
     IF sy-subrc <> 0.
       RETURN.
     ENDIF.
-    e_change = xsdbool( line_exists( mt_html_nodes[ parent_key = CONV string( i_node ) ] ) ).
+    e_change = xsdbool( line_exists( mt_html_nodes[ parent_key = i_node ] ) ).
     IF e_change = 'X'.
       add_subtree_to_control( i_node_key = i_node ).
     ENDIF.
@@ -957,7 +957,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD set_children_at_front.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc <> 0.
       RAISE node_not_found.
     ENDIF.
@@ -982,7 +982,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD ensure_node_in_control_int.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc <> 0.
       RAISE node_not_found.
     ENDIF.
@@ -991,19 +991,19 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   METHOD tree_node_has_children.
     CLEAR e_has_children.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc <> 0.
       RAISE node_key_not_found.
     ENDIF.
     e_has_children = xsdbool(
-      line_exists( mt_html_nodes[ parent_key = CONV string( i_node_key ) ] ) ).
+      line_exists( mt_html_nodes[ parent_key = i_node_key ] ) ).
   ENDMETHOD.
 
   METHOD tree_get_first_leafe.
     DATA lt_pending TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
     DATA lv_pending TYPE string.
     DATA lv_has_child TYPE abap_bool.
-    APPEND CONV string( i_node_key ) TO lt_pending.
+    APPEND i_node_key TO lt_pending.
     WHILE lt_pending IS NOT INITIAL.
       READ TABLE lt_pending INTO lv_pending INDEX 1.
       DELETE lt_pending INDEX 1.
@@ -1019,7 +1019,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
         APPEND ls_child-node_key TO lt_pending.
       ENDLOOP.
       IF lv_has_child = abap_false.
-        e_node_key = CONV lvc_nkey( lv_pending ).
+        e_node_key = lv_pending.
         RETURN.
       ENDIF.
     ENDWHILE.
@@ -1027,22 +1027,22 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD tree_get_parent.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc = 0.
-      e_parent_node_key = CONV lvc_nkey( ls_node-parent_key ).
+      e_parent_node_key = ls_node-parent_key.
     ENDIF.
   ENDMETHOD.
 
   METHOD tree_get_children.
     LOOP AT mt_html_nodes INTO DATA(ls_node)
-        WHERE parent_key = CONV string( i_node_key ).
-      APPEND CONV lvc_nkey( ls_node-node_key ) TO et_children.
+        WHERE parent_key = i_node_key.
+      APPEND ls_node-node_key TO et_children.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD get_index_from_node_key.
     READ TABLE mt_html_nodes TRANSPORTING NO FIELDS
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc = 0.
       e_index = sy-tabix.
     ENDIF.
@@ -1058,12 +1058,12 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
 
   METHOD change_line.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc <> 0.
       RETURN.
     ENDIF.
     IF i_node_text IS SUPPLIED.
-      ls_node-text = CONV string( i_node_text ).
+      ls_node-text = i_node_text.
     ENDIF.
     MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
     refresh_tree_html( ).
@@ -1072,7 +1072,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   METHOD get_node_key_from_index.
     READ TABLE mt_html_nodes INTO DATA(ls_node) INDEX i_index.
     IF sy-subrc = 0.
-      e_node_key = CONV lvc_nkey( ls_node-node_key ).
+      e_node_key = ls_node-node_key.
     ENDIF.
   ENDMETHOD.
 
@@ -1245,8 +1245,8 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
       ENDIF.
       DATA(lv_width_heading) = COND string(
         WHEN ls_width_fieldcat-coltext IS INITIAL
-          THEN CONV string( ls_width_fieldcat-fieldname )
-        ELSE CONV string( ls_width_fieldcat-coltext ) ).
+          THEN ls_width_fieldcat-fieldname
+        ELSE ls_width_fieldcat-coltext ).
       DATA(lv_max_chars) = strlen( lv_width_heading ).
       LOOP AT mt_html_nodes INTO DATA(ls_width_node).
         IF ls_width_node-data_row IS NOT BOUND.
@@ -1270,7 +1270,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
       IF lv_column_width < 48.
         lv_column_width = 48.
       ENDIF.
-      APPEND VALUE #( fieldname = CONV string( ls_width_fieldcat-fieldname )
+      APPEND VALUE #( fieldname = ls_width_fieldcat-fieldname
                       width     = lv_column_width ) TO result.
     ENDLOOP.
   ENDMETHOD.
@@ -1310,7 +1310,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
     LOOP AT mt_fieldcatalog INTO DATA(ls_col_fieldcat).
       IF ls_col_fieldcat-no_out IS INITIAL AND ls_col_fieldcat-tech IS INITIAL.
         READ TABLE lt_html_column_width INTO DATA(ls_col_width)
-          WITH KEY fieldname = CONV string( ls_col_fieldcat-fieldname ).
+          WITH KEY fieldname = ls_col_fieldcat-fieldname.
         IF sy-subrc = 0.
           result = result && |<col style="width:{ ls_col_width-width }px;min-width:{ ls_col_width-width }px"/>|.
         ELSE.

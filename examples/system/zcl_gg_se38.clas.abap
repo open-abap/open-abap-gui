@@ -336,7 +336,7 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     ENDIF.
     io_session->get_navigation( )->submit_and_return(
       is_submit       = VALUE #(
-        program              = CONV #( ls_program-program )
+        program              = ls_program-program
         via_selection_screen = abap_true )
       is_continuation = VALUE #( id = 'SE38_EXECUTION' state = ls_program-program ) ).
   ENDMETHOD.

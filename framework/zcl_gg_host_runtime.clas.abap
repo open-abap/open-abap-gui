@@ -437,7 +437,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     IF lt_dynpro_values IS INITIAL.
       lt_dynpro_values = ls_session-last_dynpro-values.
     ENDIF.
-    lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-ucomm ).
+    lv_ucomm = is_request-ucomm.
     IF is_request-action = zif_gg_host_html_v1=>action_pf.
       READ TABLE ls_session-last_dynpro-status-pf_actions INTO ls_pf_action
         WITH KEY number = is_request-pf_key.
@@ -448,7 +448,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     IF is_request-action = zif_gg_host_html_v1=>action_popup.
 * The answer replays the PAI that called the popup, with that PAI's function
 * code; the popup kind is no function code of the program.
-      lv_ucomm = CONV zif_gg_dynpro_types_v1=>ty_ucomm( is_request-target ).
+      lv_ucomm = is_request-target.
       lv_popup_action = |{ is_request-target }:{ is_request-value }|.
       IF is_request-target = 'INFORM'.
         lv_help_request = ls_session-pending_help.
@@ -458,7 +458,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         lv_ucomm = ls_session-pending_popup_ucomm.
       ENDIF.
     ELSEIF is_request-action = zif_gg_host_html_v1=>action_help.
-      ls_session-pending_help = CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-target ).
+      ls_session-pending_help = is_request-target.
       CLEAR ls_session-pending_popup_ucomm.
     ELSEIF is_request-action <> zif_gg_host_html_v1=>action_value_help.
       ls_session-pending_popup_ucomm = lv_ucomm.
@@ -506,7 +506,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       iv_row                 = is_request-row
       iv_cursor_field        = COND #( WHEN is_request-cursor_field IS INITIAL
                                       THEN ls_session-last_dynpro-cursor-field
-                                      ELSE CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-cursor_field ) )
+                                      ELSE is_request-cursor_field )
       iv_cursor_row          = COND #( WHEN is_request-cursor_field IS INITIAL
                                       THEN ls_session-last_dynpro-cursor-row
                                       ELSE 0 )
@@ -514,7 +514,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
                            COND string( WHEN is_request-action = zif_gg_host_html_v1=>action_value_help
                                         THEN is_request-target ELSE `` ) )
       iv_help_request        = COND #( WHEN is_request-action = zif_gg_host_html_v1=>action_help
-                                 THEN CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-target )
+                                 THEN is_request-target
                                  ELSE lv_help_request )
       iv_popup_action        = lv_popup_action
       it_popup_values        = is_request-dynpro_values
@@ -814,7 +814,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         INSERT VALUE #( name = ls_sibling-name value = '' ) INTO TABLE lt_input.
       ENDLOOP.
     ENDLOOP.
-    lv_ucomm = CONV zif_gg_session_types_v1=>ty_ucomm( is_request-ucomm ).
+    lv_ucomm = is_request-ucomm.
     IF is_request-dynamic_action IS NOT INITIAL.
       lv_ucomm = COND #( WHEN is_request-dynamic_action = 'RESET' THEN 'RESET' ELSE 'DLGWIN' ).
     ENDIF.
@@ -995,10 +995,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_ucomm               = lv_ucomm
           iv_user_command        = COND #(
           WHEN is_request-ucomm IS NOT INITIAL
-          THEN CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm ) )
+          THEN is_request-ucomm )
           iv_selection_screen    = COND #(
           WHEN ls_session-pending_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
-          THEN CONV #( ls_session-pending_navigation-target )
+          THEN ls_session-pending_navigation-target
           ELSE '1000' )
           iv_selection_tab       = lv_selection_tab
           is_resume_navigation   = ls_session-pending_navigation
@@ -1363,7 +1363,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDIF.
 
     IF is_request-action = zif_gg_host_html_v1=>action_command.
-      lv_ucomm = CONV #( is_request-ucomm ).
+      lv_ucomm = is_request-ucomm.
       lv_control_action = xsdbool(
         is_page-html CS |value="COMMAND:{ zcl_gg_host_html=>escape_attribute( CONV string( lv_ucomm ) ) }"| ).
       IF lv_ucomm IS INITIAL
@@ -1378,7 +1378,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     IF is_page-kind = zif_gg_host_html_v1=>page_list
         AND is_request-action = zif_gg_host_html_v1=>action_submit
         AND is_request-ucomm IS NOT INITIAL.
-      lv_ucomm = CONV #( is_request-ucomm ).
+      lv_ucomm = is_request-ucomm.
       IF NOT line_exists( is_page-status-active_ucomm[ table_line = lv_ucomm ] )
           OR line_exists( is_page-status-excluded_ucomm[ table_line = lv_ucomm ] ).
         rv_error = 'Command is not active for the current host page'.

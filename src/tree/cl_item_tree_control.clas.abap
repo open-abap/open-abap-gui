@@ -350,7 +350,7 @@ CLASS cl_item_tree_control IMPLEMENTATION.
         DATA(lv_parent_key) = ``.
         ASSIGN COMPONENT 'RELATKEY' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<parent_key>).
         IF sy-subrc = 0.
-          lv_parent_key = CONV string( <parent_key> ).
+          lv_parent_key = <parent_key>.
         ENDIF.
         DATA(lv_folder) = abap_false.
         DATA(lv_expander) = abap_false.
@@ -371,11 +371,11 @@ CLASS cl_item_tree_control IMPLEMENTATION.
         ENDIF.
         ASSIGN COMPONENT 'N_IMAGE' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<node_image>).
         IF sy-subrc = 0.
-          lv_node_image = CONV string( <node_image> ).
+          lv_node_image = <node_image>.
         ENDIF.
         ASSIGN COMPONENT 'EXP_IMAGE' OF STRUCTURE <node_row> TO FIELD-SYMBOL(<open_image>).
         IF sy-subrc = 0.
-          lv_open_image = CONV string( <open_image> ).
+          lv_open_image = <open_image>.
         ENDIF.
         APPEND VALUE #( node_key   = lv_node_key
                         parent_key = lv_parent_key
@@ -402,23 +402,23 @@ CLASS cl_item_tree_control IMPLEMENTATION.
                                                item_class = item_class_text ).
       ASSIGN COMPONENT 'TEXT' OF STRUCTURE <item_row> TO FIELD-SYMBOL(<item_text>).
       IF sy-subrc = 0.
-        ls_html_item-text = CONV string( <item_text> ).
+        ls_html_item-text = <item_text>.
       ENDIF.
       ASSIGN COMPONENT 'CLASS' OF STRUCTURE <item_row> TO FIELD-SYMBOL(<item_class>).
       IF sy-subrc = 0.
-        ls_html_item-item_class = CONV i( <item_class> ).
+        ls_html_item-item_class = <item_class>.
       ENDIF.
       ASSIGN COMPONENT 'CHOSEN' OF STRUCTURE <item_row> TO FIELD-SYMBOL(<item_chosen>).
       IF sy-subrc = 0.
-        ls_html_item-chosen = CONV abap_bool( <item_chosen> ).
+        ls_html_item-chosen = <item_chosen>.
       ENDIF.
       ASSIGN COMPONENT 'EDITABLE' OF STRUCTURE <item_row> TO FIELD-SYMBOL(<item_editable>).
       IF sy-subrc = 0.
-        ls_html_item-editable = CONV abap_bool( <item_editable> ).
+        ls_html_item-editable = <item_editable>.
       ENDIF.
       ASSIGN COMPONENT 'T_IMAGE' OF STRUCTURE <item_row> TO FIELD-SYMBOL(<item_image>).
       IF sy-subrc = 0.
-        ls_html_item-image = CONV string( <item_image> ).
+        ls_html_item-image = <item_image>.
       ENDIF.
       APPEND ls_html_item TO mt_html_items.
 

@@ -127,11 +127,11 @@ CLASS cl_list_tree_model IMPLEMENTATION.
 
   METHOD add_items.
     LOOP AT item_table INTO DATA(ls_item).
-      DELETE mt_model_items WHERE node_key = CONV string( ls_item-node_key )
-                              AND item_name = CONV string( ls_item-item_name ).
-      APPEND VALUE #( node_key  = CONV string( ls_item-node_key )
-                      item_name = CONV string( ls_item-item_name )
-                      text      = CONV string( ls_item-text )
+      DELETE mt_model_items WHERE node_key = ls_item-node_key
+                              AND item_name = ls_item-item_name.
+      APPEND VALUE #( node_key  = ls_item-node_key
+                      item_name = ls_item-item_name
+                      text      = ls_item-text
                       class     = ls_item-class
                       chosen    = xsdbool( ls_item-chosen IS NOT INITIAL )
                       style     = ls_item-style
@@ -147,7 +147,7 @@ CLASS cl_list_tree_model IMPLEMENTATION.
       WITH KEY node_key  = node_key
                item_name = item_name.
     IF sy-subrc = 0.
-      item-item_name = CONV tv_itmname( ls_item-item_name ).
+      item-item_name = ls_item-item_name.
       item-class = ls_item-class.
       item-chosen = xsdbool( ls_item-chosen = abap_true ).
       item-style = ls_item-style.

@@ -174,64 +174,64 @@ CLASS zcl_gg_ex_109 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      ct_values[ name = 'GV_DYNNR' ]-value = CONV string( gv_dynnr ).
+      ct_values[ name = 'GV_DYNNR' ]-value = gv_dynnr.
     ELSE.
-      INSERT VALUE #( name = 'GV_DYNNR' value = CONV string( gv_dynnr ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DYNNR' value = gv_dynnr ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTIVE' ] ).
-      ct_values[ name = 'GV_ACTIVE' ]-value = CONV string( gv_active ).
+      ct_values[ name = 'GV_ACTIVE' ]-value = gv_active.
     ELSE.
-      INSERT VALUE #( name = 'GV_ACTIVE' value = CONV string( gv_active ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ACTIVE' value = gv_active ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FROM' ] ).
-      ct_values[ name = 'GV_FROM' ]-value = CONV string( gv_from ).
+      ct_values[ name = 'GV_FROM' ]-value = gv_from.
     ELSE.
-      INSERT VALUE #( name = 'GV_FROM' value = CONV string( gv_from ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_FROM' value = gv_from ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TO' ] ).
-      ct_values[ name = 'GV_TO' ]-value = CONV string( gv_to ).
+      ct_values[ name = 'GV_TO' ]-value = gv_to.
     ELSE.
-      INSERT VALUE #( name = 'GV_TO' value = CONV string( gv_to ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TO' value = gv_to ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PLANE' ] ).
-      ct_values[ name = 'GV_PLANE' ]-value = CONV string( gv_plane ).
+      ct_values[ name = 'GV_PLANE' ]-value = gv_plane.
     ELSE.
-      INSERT VALUE #( name = 'GV_PLANE' value = CONV string( gv_plane ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_PLANE' value = gv_plane ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ] ).
-      ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value = CONV string( ts_flight-activetab ).
+      ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value = ts_flight-activetab.
     ELSE.
-      INSERT VALUE #( name = 'TS_FLIGHT-ACTIVETAB' value = CONV string( ts_flight-activetab ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'TS_FLIGHT-ACTIVETAB' value = ts_flight-activetab ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      gv_dynnr = CONV #( ct_values[ name = 'GV_DYNNR' ]-value ).
+      gv_dynnr = ct_values[ name = 'GV_DYNNR' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTIVE' ] ).
-      gv_active = CONV #( ct_values[ name = 'GV_ACTIVE' ]-value ).
+      gv_active = ct_values[ name = 'GV_ACTIVE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FROM' ] ).
-      gv_from = CONV #( ct_values[ name = 'GV_FROM' ]-value ).
+      gv_from = ct_values[ name = 'GV_FROM' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TO' ] ).
-      gv_to = CONV #( ct_values[ name = 'GV_TO' ]-value ).
+      gv_to = ct_values[ name = 'GV_TO' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PLANE' ] ).
-      gv_plane = CONV #( ct_values[ name = 'GV_PLANE' ]-value ).
+      gv_plane = ct_values[ name = 'GV_PLANE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ] ).
-      ts_flight-activetab = CONV #( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value ).
+      ts_flight-activetab = ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value.
     ENDIF.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' active_pf_keys = VALUE #(
@@ -271,39 +271,39 @@ CLASS zcl_gg_ex_109 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      ct_values[ name = 'GV_DYNNR' ]-value = CONV string( gv_dynnr ).
+      ct_values[ name = 'GV_DYNNR' ]-value = gv_dynnr.
     ELSE.
-      INSERT VALUE #( name = 'GV_DYNNR' value = CONV string( gv_dynnr ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DYNNR' value = gv_dynnr ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTIVE' ] ).
-      ct_values[ name = 'GV_ACTIVE' ]-value = CONV string( gv_active ).
+      ct_values[ name = 'GV_ACTIVE' ]-value = gv_active.
     ELSE.
-      INSERT VALUE #( name = 'GV_ACTIVE' value = CONV string( gv_active ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ACTIVE' value = gv_active ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FROM' ] ).
-      ct_values[ name = 'GV_FROM' ]-value = CONV string( gv_from ).
+      ct_values[ name = 'GV_FROM' ]-value = gv_from.
     ELSE.
-      INSERT VALUE #( name = 'GV_FROM' value = CONV string( gv_from ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_FROM' value = gv_from ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TO' ] ).
-      ct_values[ name = 'GV_TO' ]-value = CONV string( gv_to ).
+      ct_values[ name = 'GV_TO' ]-value = gv_to.
     ELSE.
-      INSERT VALUE #( name = 'GV_TO' value = CONV string( gv_to ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TO' value = gv_to ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PLANE' ] ).
-      ct_values[ name = 'GV_PLANE' ]-value = CONV string( gv_plane ).
+      ct_values[ name = 'GV_PLANE' ]-value = gv_plane.
     ELSE.
-      INSERT VALUE #( name = 'GV_PLANE' value = CONV string( gv_plane ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_PLANE' value = gv_plane ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ] ).
-      ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value = CONV string( ts_flight-activetab ).
+      ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value = ts_flight-activetab.
     ELSE.
-      INSERT VALUE #( name = 'TS_FLIGHT-ACTIVETAB' value = CONV string( ts_flight-activetab ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'TS_FLIGHT-ACTIVETAB' value = ts_flight-activetab ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -313,19 +313,19 @@ CLASS zcl_gg_ex_109 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FROM' ] ).
-      gv_from = CONV #( ct_values[ name = 'GV_FROM' ]-value ).
+      gv_from = ct_values[ name = 'GV_FROM' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TO' ] ).
-      gv_to = CONV #( ct_values[ name = 'GV_TO' ]-value ).
+      gv_to = ct_values[ name = 'GV_TO' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PLANE' ] ).
-      gv_plane = CONV #( ct_values[ name = 'GV_PLANE' ]-value ).
+      gv_plane = ct_values[ name = 'GV_PLANE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ] ).
-      ts_flight-activetab = CONV #( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value ).
+      ts_flight-activetab = ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -337,39 +337,39 @@ CLASS zcl_gg_ex_109 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DYNNR' ] ).
-      ct_values[ name = 'GV_DYNNR' ]-value = CONV string( gv_dynnr ).
+      ct_values[ name = 'GV_DYNNR' ]-value = gv_dynnr.
     ELSE.
-      INSERT VALUE #( name = 'GV_DYNNR' value = CONV string( gv_dynnr ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DYNNR' value = gv_dynnr ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTIVE' ] ).
-      ct_values[ name = 'GV_ACTIVE' ]-value = CONV string( gv_active ).
+      ct_values[ name = 'GV_ACTIVE' ]-value = gv_active.
     ELSE.
-      INSERT VALUE #( name = 'GV_ACTIVE' value = CONV string( gv_active ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ACTIVE' value = gv_active ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FROM' ] ).
-      ct_values[ name = 'GV_FROM' ]-value = CONV string( gv_from ).
+      ct_values[ name = 'GV_FROM' ]-value = gv_from.
     ELSE.
-      INSERT VALUE #( name = 'GV_FROM' value = CONV string( gv_from ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_FROM' value = gv_from ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TO' ] ).
-      ct_values[ name = 'GV_TO' ]-value = CONV string( gv_to ).
+      ct_values[ name = 'GV_TO' ]-value = gv_to.
     ELSE.
-      INSERT VALUE #( name = 'GV_TO' value = CONV string( gv_to ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TO' value = gv_to ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PLANE' ] ).
-      ct_values[ name = 'GV_PLANE' ]-value = CONV string( gv_plane ).
+      ct_values[ name = 'GV_PLANE' ]-value = gv_plane.
     ELSE.
-      INSERT VALUE #( name = 'GV_PLANE' value = CONV string( gv_plane ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_PLANE' value = gv_plane ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ] ).
-      ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value = CONV string( ts_flight-activetab ).
+      ct_values[ name = 'TS_FLIGHT-ACTIVETAB' ]-value = ts_flight-activetab.
     ELSE.
-      INSERT VALUE #( name = 'TS_FLIGHT-ACTIVETAB' value = CONV string( ts_flight-activetab ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'TS_FLIGHT-ACTIVETAB' value = ts_flight-activetab ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

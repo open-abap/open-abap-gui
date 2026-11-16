@@ -126,7 +126,7 @@ CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_contextmenuitem.
-    APPEND CONV string( str ) TO mt_context_items.
+    APPEND str TO mt_context_items.
     cl_gui_control=>set_payload( control = me
                                  payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-items={ lines( mt_context_items ) }| ).
   ENDMETHOD.

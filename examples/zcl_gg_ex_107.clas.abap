@@ -163,14 +163,14 @@ CLASS zcl_gg_ex_107 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP_LINE' ] ).
-      ct_values[ name = 'GV_TOP_LINE' ]-value = CONV string( gv_top_line ).
+      ct_values[ name = 'GV_TOP_LINE' ]-value = gv_top_line.
     ELSE.
-      INSERT VALUE #( name = 'GV_TOP_LINE' value = CONV string( gv_top_line ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TOP_LINE' value = gv_top_line ) INTO TABLE ct_values.
     ENDIF.
     table_values_out( CHANGING ct_values = ct_values ).
   ENDMETHOD.
@@ -178,10 +178,10 @@ CLASS zcl_gg_ex_107 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP_LINE' ] ).
-      gv_top_line = CONV #( ct_values[ name = 'GV_TOP_LINE' ]-value ).
+      gv_top_line = ct_values[ name = 'GV_TOP_LINE' ]-value.
     ENDIF.
     table_values_in( ct_values ).
     IF is_context-table_control = 'TC_FLIGHTS' AND is_context-row > 0.
@@ -218,14 +218,14 @@ CLASS zcl_gg_ex_107 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP_LINE' ] ).
-      ct_values[ name = 'GV_TOP_LINE' ]-value = CONV string( gv_top_line ).
+      ct_values[ name = 'GV_TOP_LINE' ]-value = gv_top_line.
     ELSE.
-      INSERT VALUE #( name = 'GV_TOP_LINE' value = CONV string( gv_top_line ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TOP_LINE' value = gv_top_line ) INTO TABLE ct_values.
     ENDIF.
     table_values_out( CHANGING ct_values = ct_values ).
     IF lx_unwind IS BOUND.
@@ -236,7 +236,7 @@ CLASS zcl_gg_ex_107 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     table_values_in( ct_values ).
     IF is_context-table_control = 'TC_FLIGHTS' AND is_context-row > 0.
@@ -255,14 +255,14 @@ CLASS zcl_gg_ex_107 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_TOP_LINE' ] ).
-      ct_values[ name = 'GV_TOP_LINE' ]-value = CONV string( gv_top_line ).
+      ct_values[ name = 'GV_TOP_LINE' ]-value = gv_top_line.
     ELSE.
-      INSERT VALUE #( name = 'GV_TOP_LINE' value = CONV string( gv_top_line ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_TOP_LINE' value = gv_top_line ) INTO TABLE ct_values.
     ENDIF.
     table_values_out( CHANGING ct_values = ct_values ).
     IF lx_unwind IS BOUND.
@@ -345,23 +345,23 @@ CLASS zcl_gg_ex_107 IMPLEMENTATION.
     LOOP AT gt_flights ASSIGNING FIELD-SYMBOL(<ls_table1_hydrate_row>).
       DATA(lv_table1_hydrate_row) = sy-tabix.
       IF line_exists( it_values[ container = 'TC_FLIGHTS' name = 'CARRID' row = lv_table1_hydrate_row ] ).
-        <ls_table1_hydrate_row>-carrid = CONV #( it_values[ container = 'TC_FLIGHTS' name = 'CARRID' row = lv_table1_hydrate_row ]-value ).
+        <ls_table1_hydrate_row>-carrid = it_values[ container = 'TC_FLIGHTS' name = 'CARRID' row = lv_table1_hydrate_row ]-value.
       ENDIF.
       IF line_exists( it_values[ container = 'TC_FLIGHTS' name = 'CONNID' row = lv_table1_hydrate_row ] ).
-        <ls_table1_hydrate_row>-connid = CONV #( it_values[ container = 'TC_FLIGHTS' name = 'CONNID' row = lv_table1_hydrate_row ]-value ).
+        <ls_table1_hydrate_row>-connid = it_values[ container = 'TC_FLIGHTS' name = 'CONNID' row = lv_table1_hydrate_row ]-value.
       ENDIF.
       IF line_exists( it_values[ container = 'TC_FLIGHTS' name = 'CITYFROM' row = lv_table1_hydrate_row ] ).
-        <ls_table1_hydrate_row>-cityfrom = CONV #( it_values[ container = 'TC_FLIGHTS' name = 'CITYFROM' row = lv_table1_hydrate_row ]-value ).
+        <ls_table1_hydrate_row>-cityfrom = it_values[ container = 'TC_FLIGHTS' name = 'CITYFROM' row = lv_table1_hydrate_row ]-value.
       ENDIF.
       IF line_exists( it_values[ container = 'TC_FLIGHTS' name = 'CITYTO' row = lv_table1_hydrate_row ] ).
-        <ls_table1_hydrate_row>-cityto = CONV #( it_values[ container = 'TC_FLIGHTS' name = 'CITYTO' row = lv_table1_hydrate_row ]-value ).
+        <ls_table1_hydrate_row>-cityto = it_values[ container = 'TC_FLIGHTS' name = 'CITYTO' row = lv_table1_hydrate_row ]-value.
       ENDIF.
     ENDLOOP.
     IF line_exists( it_values[ name = 'TC_FLIGHTS-TOP_LINE' ] ).
-      tc_flights-top_line = CONV #( it_values[ name = 'TC_FLIGHTS-TOP_LINE' ]-value ).
+      tc_flights-top_line = it_values[ name = 'TC_FLIGHTS-TOP_LINE' ]-value.
     ENDIF.
     IF line_exists( it_values[ name = 'TC_FLIGHTS-LINES' ] ).
-      tc_flights-lines = CONV #( it_values[ name = 'TC_FLIGHTS-LINES' ]-value ).
+      tc_flights-lines = it_values[ name = 'TC_FLIGHTS-LINES' ]-value.
     ENDIF.
     IF tc_flights-top_line = 0.
       tc_flights-top_line = 1.
@@ -372,20 +372,20 @@ CLASS zcl_gg_ex_107 IMPLEMENTATION.
     DELETE ct_values WHERE container = 'TC_FLIGHTS'.
     LOOP AT gt_flights ASSIGNING FIELD-SYMBOL(<ls_table1_flush_row>).
       DATA(lv_table1_flush_row) = sy-tabix.
-      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CARRID' row = lv_table1_flush_row value = CONV string( <ls_table1_flush_row>-carrid ) ) INTO TABLE ct_values.
-      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CONNID' row = lv_table1_flush_row value = CONV string( <ls_table1_flush_row>-connid ) ) INTO TABLE ct_values.
-      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CITYFROM' row = lv_table1_flush_row value = CONV string( <ls_table1_flush_row>-cityfrom ) ) INTO TABLE ct_values.
-      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CITYTO' row = lv_table1_flush_row value = CONV string( <ls_table1_flush_row>-cityto ) ) INTO TABLE ct_values.
+      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CARRID' row = lv_table1_flush_row value = <ls_table1_flush_row>-carrid ) INTO TABLE ct_values.
+      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CONNID' row = lv_table1_flush_row value = <ls_table1_flush_row>-connid ) INTO TABLE ct_values.
+      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CITYFROM' row = lv_table1_flush_row value = <ls_table1_flush_row>-cityfrom ) INTO TABLE ct_values.
+      INSERT VALUE #( container = 'TC_FLIGHTS' name = 'CITYTO' row = lv_table1_flush_row value = <ls_table1_flush_row>-cityto ) INTO TABLE ct_values.
     ENDLOOP.
     IF line_exists( ct_values[ name = 'TC_FLIGHTS-TOP_LINE' ] ).
-      ct_values[ name = 'TC_FLIGHTS-TOP_LINE' ]-value = CONV string( tc_flights-top_line ).
+      ct_values[ name = 'TC_FLIGHTS-TOP_LINE' ]-value = tc_flights-top_line.
     ELSE.
-      INSERT VALUE #( name = 'TC_FLIGHTS-TOP_LINE' value = CONV string( tc_flights-top_line ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'TC_FLIGHTS-TOP_LINE' value = tc_flights-top_line ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'TC_FLIGHTS-LINES' ] ).
-      ct_values[ name = 'TC_FLIGHTS-LINES' ]-value = CONV string( tc_flights-lines ).
+      ct_values[ name = 'TC_FLIGHTS-LINES' ]-value = tc_flights-lines.
     ELSE.
-      INSERT VALUE #( name = 'TC_FLIGHTS-LINES' value = CONV string( tc_flights-lines ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'TC_FLIGHTS-LINES' value = tc_flights-lines ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 

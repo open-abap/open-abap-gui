@@ -179,7 +179,7 @@ CLASS cl_gui_textedit IMPLEMENTATION.
     ENDIF.
     SPLIT mv_text AT cl_abap_char_utilities=>newline INTO TABLE lt_lines.
     LOOP AT lt_lines ASSIGNING FIELD-SYMBOL(<line>).
-      APPEND CONV string( <line> ) TO table.
+      APPEND <line> TO table.
     ENDLOOP.
     is_modified = mv_modified.
   ENDMETHOD.

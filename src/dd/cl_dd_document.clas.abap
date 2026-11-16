@@ -77,11 +77,11 @@ CLASS cl_dd_document IMPLEMENTATION.
     ENDIF.
     right_area = mv_right_area.
     IF split_width IS SUPPLIED.
-      lv_percent_text = CONV string( split_width ).
+      lv_percent_text = split_width.
       REPLACE ALL OCCURRENCES OF '%' IN lv_percent_text WITH ``.
       CONDENSE lv_percent_text NO-GAPS.
       IF lv_percent_text IS NOT INITIAL AND lv_percent_text CO '0123456789'.
-        lv_percent = CONV i( lv_percent_text ).
+        lv_percent = lv_percent_text.
       ENDIF.
     ENDIF.
     IF lv_percent < 30 OR lv_percent > 90.
