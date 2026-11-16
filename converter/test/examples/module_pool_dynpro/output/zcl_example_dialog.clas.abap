@@ -62,24 +62,24 @@ CLASS zcl_example_dialog IMPLEMENTATION.
 
   METHOD zif_gg_dynpro_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
+      ct_values[ name = 'GV_NAME' ]-value = gv_name.
     ELSE.
-      INSERT VALUE #( name = 'GV_NAME' value = CONV string( gv_name ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NAME' value = gv_name ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_GREETING' ] ).
-      ct_values[ name = 'GV_GREETING' ]-value = CONV string( gv_greeting ).
+      ct_values[ name = 'GV_GREETING' ]-value = gv_greeting.
     ELSE.
-      INSERT VALUE #( name = 'GV_GREETING' value = CONV string( gv_greeting ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_GREETING' value = gv_greeting ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_dynpro_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      gv_name = CONV #( ct_values[ name = 'GV_NAME' ]-value ).
+      gv_name = ct_values[ name = 'GV_NAME' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_GREETING' ] ).
-      gv_greeting = CONV #( ct_values[ name = 'GV_GREETING' ]-value ).
+      gv_greeting = ct_values[ name = 'GV_GREETING' ]-value.
     ENDIF.
     IF is_context-screen = '0100'.
       io_session->get_dialog( )->set_status( VALUE #( status = 'MAIN' ) ).
@@ -98,14 +98,14 @@ CLASS zcl_example_dialog IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
+      ct_values[ name = 'GV_NAME' ]-value = gv_name.
     ELSE.
-      INSERT VALUE #( name = 'GV_NAME' value = CONV string( gv_name ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NAME' value = gv_name ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_GREETING' ] ).
-      ct_values[ name = 'GV_GREETING' ]-value = CONV string( gv_greeting ).
+      ct_values[ name = 'GV_GREETING' ]-value = gv_greeting.
     ELSE.
-      INSERT VALUE #( name = 'GV_GREETING' value = CONV string( gv_greeting ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_GREETING' value = gv_greeting ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -115,7 +115,7 @@ CLASS zcl_example_dialog IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      gv_name = CONV #( ct_values[ name = 'GV_NAME' ]-value ).
+      gv_name = ct_values[ name = 'GV_NAME' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -127,14 +127,14 @@ CLASS zcl_example_dialog IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_NAME' ] ).
-      ct_values[ name = 'GV_NAME' ]-value = CONV string( gv_name ).
+      ct_values[ name = 'GV_NAME' ]-value = gv_name.
     ELSE.
-      INSERT VALUE #( name = 'GV_NAME' value = CONV string( gv_name ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_NAME' value = gv_name ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_GREETING' ] ).
-      ct_values[ name = 'GV_GREETING' ]-value = CONV string( gv_greeting ).
+      ct_values[ name = 'GV_GREETING' ]-value = gv_greeting.
     ELSE.
-      INSERT VALUE #( name = 'GV_GREETING' value = CONV string( gv_greeting ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_GREETING' value = gv_greeting ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

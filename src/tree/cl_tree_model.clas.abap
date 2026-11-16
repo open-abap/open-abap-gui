@@ -245,7 +245,7 @@ CLASS cl_tree_model IMPLEMENTATION.
       table_structure_name = 'TREE_MODEL_NODE'
       node_table           = lt_control_nodes ).
     LOOP AT mt_model_nodes INTO ls_node WHERE expanded = abap_true.
-      APPEND CONV tv_nodekey( ls_node-node_key ) TO lt_expanded_nodes.
+      APPEND ls_node-node_key TO lt_expanded_nodes.
     ENDLOOP.
     mr_tree_control->expand_nodes( lt_expanded_nodes ).
   ENDMETHOD.

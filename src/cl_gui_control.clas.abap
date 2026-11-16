@@ -1167,7 +1167,7 @@ CLASS cl_gui_control IMPLEMENTATION.
       result = iv_default_value.
       RETURN.
     ENDIF.
-    result = CONV i( lv_value ).
+    result = lv_value.
   ENDMETHOD.
 
   METHOD splitter_track_template.
@@ -1298,8 +1298,8 @@ CLASS cl_gui_control IMPLEMENTATION.
         CONTINUE.
       ENDIF.
       lv_button_label = COND #( WHEN ls_button-text IS INITIAL
-                                THEN CONV string( ls_button-quickinfo )
-                                ELSE CONV string( ls_button-text ) ).
+                                THEN ls_button-quickinfo
+                                ELSE ls_button-text ).
       lv_button_icon = COND string(
         WHEN ls_button-icon IS INITIAL THEN ``
         ELSE zcl_gg_host_icons=>icon( iv_name = CONV string( ls_button-icon ) ) ).

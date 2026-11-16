@@ -35,7 +35,7 @@ test("keeps every CASE branch around a suspending CALL TRANSACTION", async () =>
   const start = methodBody(result.classSource, "zif_gg_report_v1~start_of_selection");
   assert.match(start, /WHEN 'CFG'\.\s+io_session->get_navigation\( \)->call_transaction\([\s\S]*tcode = 'ZCFG' skip_first_screen = abap_true[\s\S]*\)\.\s+WHEN 'LOG'\./);
   assert.match(start, /WHEN 'LOG'\.[\s\S]*log inline/);
-  assert.match(start, /WHEN 'QUEUE'\.\s+io_session->get_navigation\( \)->call_transaction\([\s\S]*tcode = CONV #\( gv_tcode \)[\s\S]*\)\.\s+WHEN OTHERS\./);
+  assert.match(start, /WHEN 'QUEUE'\.\s+io_session->get_navigation\( \)->call_transaction\([\s\S]*tcode = gv_tcode[\s\S]*\)\.\s+WHEN OTHERS\./);
   assert.match(start, /WHEN OTHERS\.[\s\S]*unknown action[\s\S]*ENDCASE\.[\s\S]*after case/);
   // The call does not return, so what follows it in its branch runs only
   // from the continuation.

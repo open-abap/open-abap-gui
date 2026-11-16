@@ -628,9 +628,9 @@ function selectionDefault(item: SelectionElement): string | undefined {
   const value = item.default;
   if (!value) return undefined;
   if (/^'(?:''|[^'])*'$|^\|[^|]*\|$/s.test(value)) return value;
-  // CONV string( 3 ) is '3 ', the blank reserved for the sign.
+  // An integer moved to a string is '3 ', the blank reserved for the sign.
   if (/^\d+$/.test(value)) return `'${value}'`;
-  return `CONV string( ${value} )`;
+  return value;
 }
 
 function decodeAbapLiteral(value: string): string {
@@ -1527,7 +1527,7 @@ function dynproStateComponents(ir: ReportIR): { name: string; member: string }[]
 function dynproStateHydrate(ir: ReportIR, valuesName = "ct_values", keep: (name: string) => boolean = () => true): string[] {
   return dynproStateComponents(ir).filter(({ name }) => keep(name)).flatMap(({ name, member }) => [
     `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
-    `${member} = CONV #( ${valuesName}[ name = '${name}' ]-value ).`,
+    `${member} = ${valuesName}[ name = '${name}' ]-value.`,
     "ENDIF.",
   ]);
 }
@@ -1543,23 +1543,14 @@ function screenInputField(metadata: Metadata | undefined): (name: string) => boo
   return (name) => changeable.has(name) || name.endsWith("-ACTIVETAB");
 }
 
-// A string field goes into the screen value as it is.
-function stringDeclared(ir: ReportIR, name: string): boolean {
-  return (ir.declarations ?? []).some((item) => (item.names ?? []).some((declared) => declared.toUpperCase() === name)
-    && elementaryType(item.raw) === "STRING");
-}
-
 function dynproStateFlush(ir: ReportIR, valuesName = "ct_values"): string[] {
-  return dynproStateComponents(ir).flatMap(({ name, member }) => {
-    const value = stringDeclared(ir, name) ? member : `CONV string( ${member} )`;
-    return [
-      `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
-      `${valuesName}[ name = '${name}' ]-value = ${value}.`,
-      "ELSE.",
-      `INSERT VALUE #( name = '${name}' value = ${value} ) INTO TABLE ${valuesName}.`,
-      "ENDIF.",
-    ];
-  });
+  return dynproStateComponents(ir).flatMap(({ name, member }) => [
+    `IF line_exists( ${valuesName}[ name = '${name}' ] ).`,
+    `${valuesName}[ name = '${name}' ]-value = ${member}.`,
+    "ELSE.",
+    `INSERT VALUE #( name = '${name}' value = ${member} ) INTO TABLE ${valuesName}.`,
+    "ENDIF.",
+  ]);
 }
 
 function unsupportedDynamicTableAction(ir: ReportIR, routine: Routine): string[] | undefined {
@@ -1829,7 +1820,7 @@ function tableViewHydrate(views: string[]): string[] {
   return views.flatMap((view) => [
     ...["TOP_LINE", "LINES"].flatMap((field) => [
       `IF line_exists( it_values[ name = '${view}-${field}' ] ).`,
-      `  ${view.toLowerCase()}-${field.toLowerCase()} = CONV #( it_values[ name = '${view}-${field}' ]-value ).`,
+      `  ${view.toLowerCase()}-${field.toLowerCase()} = it_values[ name = '${view}-${field}' ]-value.`,
       "ENDIF.",
     ]),
     // The runtime shows a table control from its first line.
@@ -1842,9 +1833,9 @@ function tableViewHydrate(views: string[]): string[] {
 function tableViewFlush(views: string[]): string[] {
   return views.flatMap((view) => ["TOP_LINE", "LINES"].flatMap((field) => [
     `IF line_exists( ct_values[ name = '${view}-${field}' ] ).`,
-    `  ct_values[ name = '${view}-${field}' ]-value = CONV string( ${view.toLowerCase()}-${field.toLowerCase()} ).`,
+    `  ct_values[ name = '${view}-${field}' ]-value = ${view.toLowerCase()}-${field.toLowerCase()}.`,
     "ELSE.",
-    `  INSERT VALUE #( name = '${view}-${field}' value = CONV string( ${view.toLowerCase()}-${field.toLowerCase()} ) ) INTO TABLE ct_values.`,
+    `  INSERT VALUE #( name = '${view}-${field}' value = ${view.toLowerCase()}-${field.toLowerCase()} ) INTO TABLE ct_values.`,
     "ENDIF.",
   ]));
 }
@@ -1900,7 +1891,7 @@ function dynproTableHydrate(bindings: Metadata[]): string[] {
     lines.push(`  DATA(${rowIndex}) = sy-tabix.`);
     for (const column of table.columns) {
       lines.push(`  IF line_exists( it_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ] ).`);
-      lines.push(`    ${rowSymbol}-${column.name.toLowerCase()} = CONV #( it_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ]-value ).`);
+      lines.push(`    ${rowSymbol}-${column.name.toLowerCase()} = it_values[ container = '${table.name}' name = '${column.name}' row = ${rowIndex} ]-value.`);
       lines.push("  ENDIF.");
     }
     lines.push("ENDLOOP.");
@@ -1979,7 +1970,7 @@ function dynproTableFlush(bindings: Metadata[]): string[] {
     lines.push(`LOOP AT ${table.tableVariable} ASSIGNING FIELD-SYMBOL(${rowSymbol}).`);
     lines.push(`  DATA(${rowIndex}) = sy-tabix.`);
     for (const column of table.columns) {
-      lines.push(`  INSERT VALUE #( container = '${table.name}' name = '${column.name}' row = ${rowIndex} value = CONV string( ${rowSymbol}-${column.name.toLowerCase()} ) ) INTO TABLE ct_values.`);
+      lines.push(`  INSERT VALUE #( container = '${table.name}' name = '${column.name}' row = ${rowIndex} value = ${rowSymbol}-${column.name.toLowerCase()} ) INTO TABLE ct_values.`);
     }
     lines.push("ENDLOOP.");
   }

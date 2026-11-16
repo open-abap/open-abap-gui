@@ -35,7 +35,7 @@ CLASS zcl_gg_ex_168 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_select_option( VALUE #( name = 'S_DATA' text = 'Date' data_type = VALUE #( typ = 'D' length = 8 ) default = VALUE #( sign = 'I' option = 'EQ' low = CONV string( sy-datum ) ) ) ).
+    io_builder->add_select_option( VALUE #( name = 'S_DATA' text = 'Date' data_type = VALUE #( typ = 'D' length = 8 ) default = VALUE #( sign = 'I' option = 'EQ' low = sy-datum ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.

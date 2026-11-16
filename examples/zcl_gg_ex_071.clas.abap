@@ -61,7 +61,7 @@ CLASS zcl_gg_ex_071 IMPLEMENTATION.
       ( key = 'AA' text = 'Alpha Air' )
       ( key = 'LH' text = 'Lufthansa' ) ).
     io_session->get_compatibility( )->set_selection_list_values(
-      iv_id     = CONV string( 'P_CAR' )
+      iv_id     = 'P_CAR'
       it_values = gt_values ).
     IF mv_p_car = 'LH'.
       gt_values = VALUE #(
@@ -73,7 +73,7 @@ CLASS zcl_gg_ex_071 IMPLEMENTATION.
         ( key = 'AA-2' text = 'AA-2' ) ).
     ENDIF.
     io_session->get_compatibility( )->set_selection_list_values(
-      iv_id     = CONV string( 'P_CON' )
+      iv_id     = 'P_CON'
       it_values = gt_values ).
     IF ct_values[ name = 'P_CAR' ]-value <> mv_p_car.
       ct_values[ name = 'P_CAR' ]-value = |{ mv_p_car }|.

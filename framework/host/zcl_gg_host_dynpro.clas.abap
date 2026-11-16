@@ -758,15 +758,15 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lt_dynamic_lists = zcl_gg_host_compatibility=>get_selection_list_values( ).
     LOOP AT lt_dynamic_lists INTO DATA(ls_dynamic_list).
       READ TABLE lt_controls ASSIGNING <ls_control>
-        WITH KEY name = CONV zif_gg_dynpro_types_v1=>ty_field_name( ls_dynamic_list-id ).
+        WITH KEY name = ls_dynamic_list-id.
       IF sy-subrc <> 0.
         CONTINUE.
       ENDIF.
       CLEAR <ls_control>-fixed_values.
       LOOP AT ls_dynamic_list-values INTO DATA(ls_dynamic_value).
         APPEND VALUE #(
-          key  = CONV string( ls_dynamic_value-key )
-          text = CONV string( ls_dynamic_value-text ) )
+          key  = ls_dynamic_value-key
+          text = ls_dynamic_value-text )
           TO <ls_control>-fixed_values.
       ENDLOOP.
     ENDLOOP.
@@ -1418,13 +1418,13 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     READ TABLE it_values INTO DATA(ls_lines)
       WITH KEY container = `` name = |{ iv_table_control }-LINES| row = 0.
     IF sy-subrc = 0 AND ls_lines-value CO ' 0123456789' AND CONV i( ls_lines-value ) > 0.
-      ev_lines = CONV i( ls_lines-value ).
+      ev_lines = ls_lines-value.
     ENDIF.
     ev_start = 1.
     READ TABLE it_values INTO DATA(ls_top_line)
       WITH KEY container = `` name = |{ iv_table_control }-TOP_LINE| row = 0.
     IF sy-subrc = 0 AND ls_top_line-value CO ' 0123456789' AND ls_top_line-value IS NOT INITIAL.
-      ev_start = CONV i( ls_top_line-value ).
+      ev_start = ls_top_line-value.
     ENDIF.
     IF ev_start <= 0.
       ev_start = 1.
@@ -1498,7 +1498,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       io_session->zif_gg_dialog_session_v1~set_cursor( VALUE #( field = lt_open[ 1 ] ) ).
     ENDIF.
     LOOP AT ct_states ASSIGNING FIELD-SYMBOL(<ls_state>) WHERE input = abap_true.
-      IF NOT line_exists( lt_open[ table_line = CONV string( <ls_state>-name ) ] ).
+      IF NOT line_exists( lt_open[ table_line = <ls_state>-name ] ).
         <ls_state>-input = abap_false.
       ENDIF.
     ENDLOOP.
@@ -1511,7 +1511,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     IF is_step-chain_depth = 0.
       READ TABLE it_steps INTO DATA(ls_previous) INDEX lv_index.
       IF sy-subrc = 0 AND ls_previous-kind = 'FIELD' AND ls_previous-chain_depth = 0.
-        APPEND CONV string( ls_previous-field ) TO rt_fields.
+        APPEND ls_previous-field TO rt_fields.
       ENDIF.
       RETURN.
     ENDIF.
@@ -1527,7 +1527,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         WHEN 'END_CHAIN'.
           EXIT.
         WHEN 'FIELD'.
-          APPEND CONV string( ls_step-field ) TO rt_fields.
+          APPEND ls_step-field TO rt_fields.
       ENDCASE.
     ENDLOOP.
   ENDMETHOD.
@@ -1629,7 +1629,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
                  name = is_call-screen_field
                  row = 0.
       IF sy-subrc = 0.
-        rv_screen = CONV #( ls_subscreen_value-value ).
+        rv_screen = ls_subscreen_value-value.
       ENDIF.
     ENDIF.
   ENDMETHOD.
@@ -2096,7 +2096,7 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         ls_screen_call = io_session->get_screen_call( ).
         cs_result-navigation = VALUE #(
           kind         = ix_flow->mv_kind
-          target       = CONV string( ls_screen_call-screen )
+          target       = ls_screen_call-screen
           continuation = ls_continuation-id
           modal        = abap_true ).
       WHEN zcx_gg_control_flow=>kind_call_transaction
@@ -2104,14 +2104,14 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
         ls_transaction_call = io_session->get_transaction_call( ).
         cs_result-navigation = VALUE #(
           kind              = ix_flow->mv_kind
-          target            = CONV string( ls_transaction_call-tcode )
+          target            = ls_transaction_call-tcode
           continuation      = ls_continuation-id
           skip_first_screen = ls_transaction_call-skip_first_screen ).
       WHEN zcx_gg_control_flow=>kind_submit_return.
         ls_submit_call = io_session->get_submit_call( ).
         cs_result-navigation = VALUE #(
           kind         = ix_flow->mv_kind
-          target       = CONV string( ls_submit_call-program )
+          target       = ls_submit_call-program
           continuation = ls_continuation-id ).
         cs_result-submit = ls_submit_call.
     ENDCASE.

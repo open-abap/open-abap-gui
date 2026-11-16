@@ -44,7 +44,7 @@ FORM show_document.
   DATA(lv_escaped) = escape( val    = gv_text
                              format = cl_abap_format=>e_html_text ).
   gt_html = VALUE #( ( '<h2>Document viewer</h2>' )
-                     ( CONV ty_html_line( |<p>{ lv_escaped }</p>| ) ) ).
+                     ( |<p>{ lv_escaped }</p>| ) ).
   go_viewer->load_data( IMPORTING assigned_url = gv_url
                         CHANGING  data_table   = gt_html ).
   go_viewer->show_url( url = gv_url ).

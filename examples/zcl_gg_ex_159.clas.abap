@@ -146,32 +146,32 @@ CLASS zcl_gg_ex_159 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_BEGIN' ] ).
-      ct_values[ name = 'GV_WEEK_BEGIN' ]-value = CONV string( gv_week_begin ).
+      ct_values[ name = 'GV_WEEK_BEGIN' ]-value = gv_week_begin.
     ELSE.
-      INSERT VALUE #( name = 'GV_WEEK_BEGIN' value = CONV string( gv_week_begin ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WEEK_BEGIN' value = gv_week_begin ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_END' ] ).
-      ct_values[ name = 'GV_WEEK_END' ]-value = CONV string( gv_week_end ).
+      ct_values[ name = 'GV_WEEK_END' ]-value = gv_week_end.
     ELSE.
-      INSERT VALUE #( name = 'GV_WEEK_END' value = CONV string( gv_week_end ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WEEK_END' value = gv_week_end ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_BEGIN' ] ).
-      gv_week_begin = CONV #( ct_values[ name = 'GV_WEEK_BEGIN' ]-value ).
+      gv_week_begin = ct_values[ name = 'GV_WEEK_BEGIN' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_END' ] ).
-      gv_week_end = CONV #( ct_values[ name = 'GV_WEEK_END' ]-value ).
+      gv_week_end = ct_values[ name = 'GV_WEEK_END' ]-value.
     ENDIF.
     TRY.
         output_modules(
@@ -184,19 +184,19 @@ CLASS zcl_gg_ex_159 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_BEGIN' ] ).
-      ct_values[ name = 'GV_WEEK_BEGIN' ]-value = CONV string( gv_week_begin ).
+      ct_values[ name = 'GV_WEEK_BEGIN' ]-value = gv_week_begin.
     ELSE.
-      INSERT VALUE #( name = 'GV_WEEK_BEGIN' value = CONV string( gv_week_begin ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WEEK_BEGIN' value = gv_week_begin ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_END' ] ).
-      ct_values[ name = 'GV_WEEK_END' ]-value = CONV string( gv_week_end ).
+      ct_values[ name = 'GV_WEEK_END' ]-value = gv_week_end.
     ELSE.
-      INSERT VALUE #( name = 'GV_WEEK_END' value = CONV string( gv_week_end ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WEEK_END' value = gv_week_end ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -206,7 +206,7 @@ CLASS zcl_gg_ex_159 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -218,19 +218,19 @@ CLASS zcl_gg_ex_159 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_BEGIN' ] ).
-      ct_values[ name = 'GV_WEEK_BEGIN' ]-value = CONV string( gv_week_begin ).
+      ct_values[ name = 'GV_WEEK_BEGIN' ]-value = gv_week_begin.
     ELSE.
-      INSERT VALUE #( name = 'GV_WEEK_BEGIN' value = CONV string( gv_week_begin ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WEEK_BEGIN' value = gv_week_begin ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_WEEK_END' ] ).
-      ct_values[ name = 'GV_WEEK_END' ]-value = CONV string( gv_week_end ).
+      ct_values[ name = 'GV_WEEK_END' ]-value = gv_week_end.
     ELSE.
-      INSERT VALUE #( name = 'GV_WEEK_END' value = CONV string( gv_week_end ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_WEEK_END' value = gv_week_end ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

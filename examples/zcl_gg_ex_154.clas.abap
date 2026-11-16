@@ -153,14 +153,14 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_RC' ] ).
-      ct_values[ name = 'GV_RC' ]-value = CONV string( gv_rc ).
+      ct_values[ name = 'GV_RC' ]-value = gv_rc.
     ELSE.
-      INSERT VALUE #( name = 'GV_RC' value = CONV string( gv_rc ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RC' value = gv_rc ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTION' ] ).
-      ct_values[ name = 'GV_ACTION' ]-value = CONV string( gv_action ).
+      ct_values[ name = 'GV_ACTION' ]-value = gv_action.
     ELSE.
-      INSERT VALUE #( name = 'GV_ACTION' value = CONV string( gv_action ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ACTION' value = gv_action ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FILENAME' ] ).
       ct_values[ name = 'GV_FILENAME' ]-value = gv_filename.
@@ -178,72 +178,72 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
       INSERT VALUE #( name = 'GV_FULLPATH' value = gv_fullpath ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LENGTH' ] ).
-      ct_values[ name = 'GV_LENGTH' ]-value = CONV string( gv_length ).
+      ct_values[ name = 'GV_LENGTH' ]-value = gv_length.
     ELSE.
-      INSERT VALUE #( name = 'GV_LENGTH' value = CONV string( gv_length ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LENGTH' value = gv_length ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FIRST_LINE' ] ).
-      ct_values[ name = 'GV_FIRST_LINE' ]-value = CONV string( gv_first_line ).
+      ct_values[ name = 'GV_FIRST_LINE' ]-value = gv_first_line.
     ELSE.
-      INSERT VALUE #( name = 'GV_FIRST_LINE' value = CONV string( gv_first_line ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_FIRST_LINE' value = gv_first_line ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DOCUMENT' ] ).
-      ct_values[ name = 'GV_DOCUMENT' ]-value = CONV string( gv_document ).
+      ct_values[ name = 'GV_DOCUMENT' ]-value = gv_document.
     ELSE.
-      INSERT VALUE #( name = 'GV_DOCUMENT' value = CONV string( gv_document ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DOCUMENT' value = gv_document ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     IF line_exists( ct_values[ name = 'GV_RC' ] ).
-      gv_rc = CONV #( ct_values[ name = 'GV_RC' ]-value ).
+      gv_rc = ct_values[ name = 'GV_RC' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTION' ] ).
-      gv_action = CONV #( ct_values[ name = 'GV_ACTION' ]-value ).
+      gv_action = ct_values[ name = 'GV_ACTION' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FILENAME' ] ).
-      gv_filename = CONV #( ct_values[ name = 'GV_FILENAME' ]-value ).
+      gv_filename = ct_values[ name = 'GV_FILENAME' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_PATH' ] ).
-      gv_path = CONV #( ct_values[ name = 'GV_PATH' ]-value ).
+      gv_path = ct_values[ name = 'GV_PATH' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FULLPATH' ] ).
-      gv_fullpath = CONV #( ct_values[ name = 'GV_FULLPATH' ]-value ).
+      gv_fullpath = ct_values[ name = 'GV_FULLPATH' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LENGTH' ] ).
-      gv_length = CONV #( ct_values[ name = 'GV_LENGTH' ]-value ).
+      gv_length = ct_values[ name = 'GV_LENGTH' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
+      gv_state = ct_values[ name = 'GV_STATE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FIRST_LINE' ] ).
-      gv_first_line = CONV #( ct_values[ name = 'GV_FIRST_LINE' ]-value ).
+      gv_first_line = ct_values[ name = 'GV_FIRST_LINE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DOCUMENT' ] ).
-      gv_document = CONV #( ct_values[ name = 'GV_DOCUMENT' ]-value ).
+      gv_document = ct_values[ name = 'GV_DOCUMENT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RC' ] ).
-      ct_values[ name = 'GV_RC' ]-value = CONV string( gv_rc ).
+      ct_values[ name = 'GV_RC' ]-value = gv_rc.
     ELSE.
-      INSERT VALUE #( name = 'GV_RC' value = CONV string( gv_rc ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RC' value = gv_rc ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTION' ] ).
-      ct_values[ name = 'GV_ACTION' ]-value = CONV string( gv_action ).
+      ct_values[ name = 'GV_ACTION' ]-value = gv_action.
     ELSE.
-      INSERT VALUE #( name = 'GV_ACTION' value = CONV string( gv_action ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ACTION' value = gv_action ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FILENAME' ] ).
       ct_values[ name = 'GV_FILENAME' ]-value = gv_filename.
@@ -261,39 +261,39 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
       INSERT VALUE #( name = 'GV_FULLPATH' value = gv_fullpath ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LENGTH' ] ).
-      ct_values[ name = 'GV_LENGTH' ]-value = CONV string( gv_length ).
+      ct_values[ name = 'GV_LENGTH' ]-value = gv_length.
     ELSE.
-      INSERT VALUE #( name = 'GV_LENGTH' value = CONV string( gv_length ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LENGTH' value = gv_length ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FIRST_LINE' ] ).
-      ct_values[ name = 'GV_FIRST_LINE' ]-value = CONV string( gv_first_line ).
+      ct_values[ name = 'GV_FIRST_LINE' ]-value = gv_first_line.
     ELSE.
-      INSERT VALUE #( name = 'GV_FIRST_LINE' value = CONV string( gv_first_line ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_FIRST_LINE' value = gv_first_line ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DOCUMENT' ] ).
-      ct_values[ name = 'GV_DOCUMENT' ]-value = CONV string( gv_document ).
+      ct_values[ name = 'GV_DOCUMENT' ]-value = gv_document.
     ELSE.
-      INSERT VALUE #( name = 'GV_DOCUMENT' value = CONV string( gv_document ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DOCUMENT' value = gv_document ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DOCUMENT' ] ).
-      gv_document = CONV #( ct_values[ name = 'GV_DOCUMENT' ]-value ).
+      gv_document = ct_values[ name = 'GV_DOCUMENT' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -305,14 +305,14 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_RC' ] ).
-      ct_values[ name = 'GV_RC' ]-value = CONV string( gv_rc ).
+      ct_values[ name = 'GV_RC' ]-value = gv_rc.
     ELSE.
-      INSERT VALUE #( name = 'GV_RC' value = CONV string( gv_rc ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RC' value = gv_rc ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ACTION' ] ).
-      ct_values[ name = 'GV_ACTION' ]-value = CONV string( gv_action ).
+      ct_values[ name = 'GV_ACTION' ]-value = gv_action.
     ELSE.
-      INSERT VALUE #( name = 'GV_ACTION' value = CONV string( gv_action ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ACTION' value = gv_action ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FILENAME' ] ).
       ct_values[ name = 'GV_FILENAME' ]-value = gv_filename.
@@ -330,29 +330,29 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
       INSERT VALUE #( name = 'GV_FULLPATH' value = gv_fullpath ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_LENGTH' ] ).
-      ct_values[ name = 'GV_LENGTH' ]-value = CONV string( gv_length ).
+      ct_values[ name = 'GV_LENGTH' ]-value = gv_length.
     ELSE.
-      INSERT VALUE #( name = 'GV_LENGTH' value = CONV string( gv_length ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_LENGTH' value = gv_length ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_FIRST_LINE' ] ).
-      ct_values[ name = 'GV_FIRST_LINE' ]-value = CONV string( gv_first_line ).
+      ct_values[ name = 'GV_FIRST_LINE' ]-value = gv_first_line.
     ELSE.
-      INSERT VALUE #( name = 'GV_FIRST_LINE' value = CONV string( gv_first_line ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_FIRST_LINE' value = gv_first_line ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_DOCUMENT' ] ).
-      ct_values[ name = 'GV_DOCUMENT' ]-value = CONV string( gv_document ).
+      ct_values[ name = 'GV_DOCUMENT' ]-value = gv_document.
     ELSE.
-      INSERT VALUE #( name = 'GV_DOCUMENT' value = CONV string( gv_document ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_DOCUMENT' value = gv_document ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

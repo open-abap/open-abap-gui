@@ -125,7 +125,7 @@ ENDCLASS.
 
 CLASS cl_salv_column IMPLEMENTATION.
   METHOD set_edit_mask.
-    mv_edit_mask = CONV string( value ).
+    mv_edit_mask = value.
   ENDMETHOD.
 
   METHOD set_ddic_reference.
@@ -190,15 +190,15 @@ CLASS cl_salv_column IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_currency.
-    mv_currency_column = CONV lvc_fname( value ).
+    mv_currency_column = value.
   ENDMETHOD.
 
   METHOD set_quantity_column.
-    mv_quantity_column = CONV lvc_fname( value ).
+    mv_quantity_column = value.
   ENDMETHOD.
 
   METHOD set_quantity.
-    mv_quantity_column = CONV lvc_fname( value ).
+    mv_quantity_column = value.
   ENDMETHOD.
 
   METHOD set_tooltip.
@@ -206,7 +206,7 @@ CLASS cl_salv_column IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_currency_column.
-    mv_currency_column = CONV lvc_fname( value ).
+    mv_currency_column = value.
   ENDMETHOD.
 
   METHOD set_zero.
@@ -230,15 +230,15 @@ CLASS cl_salv_column IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_short_text.
-    mv_short_text = CONV string( value ).
+    mv_short_text = value.
   ENDMETHOD.
 
   METHOD set_medium_text.
-    mv_medium_text = CONV string( value ).
+    mv_medium_text = value.
   ENDMETHOD.
 
   METHOD set_long_text.
-    mv_long_text = CONV string( value ).
+    mv_long_text = value.
   ENDMETHOD.
 
   METHOD set_output_length.

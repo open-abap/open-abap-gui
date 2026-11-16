@@ -88,7 +88,7 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
       kind    = 'DOCKING_CONTAINER' ).
     mv_side = side.
     mv_extension = COND #( WHEN extension > 0 THEN extension ELSE 1 ).
-    mv_caption = CONV string( caption ).
+    mv_caption = caption.
     cl_gui_control=>set_payload(
       control = me
       payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }; floating={ mv_floating }| ).
@@ -116,7 +116,7 @@ CLASS cl_gui_docking_container IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_caption.
-    mv_caption = CONV string( caption ).
+    mv_caption = caption.
     cl_gui_control=>set_payload( control = me
                                  payload = |side={ mv_side }; extension={ mv_extension }; caption={ mv_caption }| ).
   ENDMETHOD.

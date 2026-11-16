@@ -116,10 +116,10 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD hierarchy_header_set_tooltip.
-    ms_hierarchy_header-tooltip = CONV #( tooltip ).
+    ms_hierarchy_header-tooltip = tooltip.
     READ TABLE mt_columns ASSIGNING FIELD-SYMBOL(<column>) INDEX 1.
     IF sy-subrc = 0.
-      <column>-tooltip = CONV string( tooltip ).
+      <column>-tooltip = tooltip.
     ENDIF.
     refresh_column_html( ).
   ENDMETHOD.
@@ -128,14 +128,14 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
     ms_hierarchy_header-heading = text.
     READ TABLE mt_columns ASSIGNING FIELD-SYMBOL(<column>) INDEX 1.
     IF sy-subrc = 0.
-      <column>-header_text = CONV string( text ).
+      <column>-header_text = text.
     ENDIF.
     refresh_column_html( ).
   ENDMETHOD.
 
   METHOD column_set_hidden.
     READ TABLE mt_columns ASSIGNING FIELD-SYMBOL(<column>)
-      WITH KEY name = CONV string( column_name ).
+      WITH KEY name = column_name.
     IF sy-subrc = 0.
       <column>-hidden = hidden.
       refresh_column_html( ).
@@ -164,7 +164,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
 
   METHOD column_get_width.
     READ TABLE mt_columns INTO DATA(ls_column)
-      WITH KEY name = CONV string( column_name ).
+      WITH KEY name = column_name.
     IF sy-subrc = 0.
       width = ls_column-width.
     ENDIF.
@@ -182,7 +182,7 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
       kind    = 'COLUMN_TREE' ).
     ms_hierarchy_header = hierarchy_header.
     mv_hierarchy_item = hierarchy_column_name.
-    APPEND VALUE #( name         = CONV string( hierarchy_column_name )
+    APPEND VALUE #( name         = hierarchy_column_name
                     width        = hierarchy_header-width
                     width_pix    = xsdbool( hierarchy_header-width_pix = abap_true )
                     header_image = hierarchy_header-t_image
@@ -197,19 +197,19 @@ CLASS cl_gui_column_tree IMPLEMENTATION.
 
   METHOD add_column.
     READ TABLE mt_columns TRANSPORTING NO FIELDS
-      WITH KEY name = CONV string( name ).
+      WITH KEY name = name.
     IF sy-subrc = 0.
       RETURN.
     ENDIF.
-    APPEND VALUE #( name         = CONV string( name )
+    APPEND VALUE #( name         = name
                     hidden       = hidden
                     disabled     = disabled
                     alignment    = alignment
                     width        = width
                     width_pix    = width_pix
-                    header_image = CONV string( header_image )
-                    header_text  = CONV string( header_text )
-                    tooltip      = CONV string( header_tooltip ) ) TO mt_columns.
+                    header_image = header_image
+                    header_text  = header_text
+                    tooltip      = header_tooltip ) TO mt_columns.
     refresh_column_html( ).
   ENDMETHOD.
 

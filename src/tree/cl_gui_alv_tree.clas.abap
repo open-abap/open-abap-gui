@@ -235,9 +235,9 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD change_item.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc = 0 AND i_fieldname = c_hierarchy_column_name.
-      ls_node-text = CONV string( i_data ).
+      ls_node-text = i_data.
       MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
       refresh_tree_html( ).
     ENDIF.
@@ -259,11 +259,11 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD get_subtree.
     DATA lt_pending TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
-    APPEND CONV string( i_node_key ) TO lt_pending.
+    APPEND i_node_key TO lt_pending.
     WHILE lt_pending IS NOT INITIAL.
       READ TABLE lt_pending INTO DATA(lv_pending) INDEX 1.
       DELETE lt_pending INDEX 1.
-      APPEND CONV lvc_nkey( lv_pending ) TO et_subtree_nodes.
+      APPEND lv_pending TO et_subtree_nodes.
       LOOP AT mt_html_nodes INTO DATA(ls_child)
           WHERE parent_key = lv_pending.
         APPEND ls_child-node_key TO lt_pending.
@@ -278,12 +278,12 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
 
   METHOD get_expanded_nodes.
     LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE expanded = abap_true.
-      APPEND CONV lvc_nkey( ls_node-node_key ) TO ct_expanded_nodes.
+      APPEND ls_node-node_key TO ct_expanded_nodes.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD get_top_node.
-    e_node_key = CONV lvc_nkey( mv_html_top_node ).
+    e_node_key = mv_html_top_node.
   ENDMETHOD.
 
   METHOD constructor.
@@ -378,13 +378,13 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_top_node.
-    mv_html_top_node = CONV string( i_node_key ).
+    mv_html_top_node = i_node_key.
   ENDMETHOD.
 
   METHOD get_children.
     LOOP AT mt_html_nodes INTO DATA(ls_node)
-        WHERE parent_key = CONV string( i_node_key ).
-      APPEND CONV lvc_nkey( ls_node-node_key ) TO et_children.
+        WHERE parent_key = i_node_key.
+      APPEND ls_node-node_key TO et_children.
     ENDLOOP.
   ENDMETHOD.
 
@@ -403,7 +403,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     IF sy-subrc = 0.
       LOOP AT <selected_nodes> ASSIGNING <selected_node>.
         READ TABLE mt_html_nodes INTO ls_node
-          WITH KEY node_key = CONV string( <selected_node> ).
+          WITH KEY node_key = <selected_node>.
         IF sy-subrc = 0.
           ls_node-selected = abap_true.
           MODIFY mt_html_nodes FROM ls_node INDEX sy-tabix.
@@ -448,7 +448,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
            END OF ty_pending_node.
     DATA lt_pending TYPE STANDARD TABLE OF ty_pending_node WITH DEFAULT KEY.
 
-    APPEND VALUE #( node_key = CONV string( i_node_key ) level = 1 ) TO lt_pending.
+    APPEND VALUE #( node_key = i_node_key level = 1 ) TO lt_pending.
     WHILE lt_pending IS NOT INITIAL.
       READ TABLE lt_pending INTO DATA(ls_pending) INDEX 1.
       DELETE lt_pending INDEX 1.
@@ -527,7 +527,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
       IMPORTING
         et_subtree_nodes = lt_subtree ).
     LOOP AT lt_subtree INTO DATA(lv_node_key).
-      DELETE mt_html_nodes WHERE node_key = CONV string( lv_node_key ).
+      DELETE mt_html_nodes WHERE node_key = lv_node_key.
     ENDLOOP.
     refresh_tree_html( ).
   ENDMETHOD.
@@ -563,7 +563,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     ENDIF.
     DATA(lv_index) = 0.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
-      WITH KEY node_key = CONV string( i_node_key ).
+      WITH KEY node_key = i_node_key.
     IF sy-subrc = 0.
       e_node_text = ls_node-text.
       IF ls_node-data_row IS BOUND.
@@ -575,7 +575,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
       ENDIF.
       DATA(lv_key) = CONV string( i_node_key ).
       REPLACE FIRST OCCURRENCE OF 'TREE-' IN lv_key WITH ``.
-      lv_index = CONV i( lv_key ).
+      lv_index = lv_key.
     ENDIF.
     READ TABLE <outtab> ASSIGNING <outtab_line> INDEX lv_index.
     IF sy-subrc = 0.

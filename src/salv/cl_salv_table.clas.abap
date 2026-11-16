@@ -262,7 +262,7 @@ CLASS cl_salv_table IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_list_header.
-    mv_header = CONV string( val ).
+    mv_header = val.
   ENDMETHOD.
 
   METHOD factory.

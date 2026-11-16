@@ -148,40 +148,40 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
+      ct_values[ name = 'GV_URL' ]-value = gv_url.
     ELSE.
-      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_URL' value = gv_url ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
+      ct_values[ name = 'GV_RESULT' ]-value = gv_result.
     ELSE.
-      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RESULT' value = gv_result ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      gv_url = CONV #( ct_values[ name = 'GV_URL' ]-value ).
+      gv_url = ct_values[ name = 'GV_URL' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      gv_result = CONV #( ct_values[ name = 'GV_RESULT' ]-value ).
+      gv_result = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      gv_state = CONV #( ct_values[ name = 'GV_STATE' ]-value ).
+      gv_state = ct_values[ name = 'GV_STATE' ]-value.
     ENDIF.
     TRY.
         output_modules(
@@ -194,24 +194,24 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
+      ct_values[ name = 'GV_URL' ]-value = gv_url.
     ELSE.
-      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_URL' value = gv_url ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
+      ct_values[ name = 'GV_RESULT' ]-value = gv_result.
     ELSE.
-      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RESULT' value = gv_result ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.
@@ -221,7 +221,7 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -233,24 +233,24 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
+      ct_values[ name = 'GV_URL' ]-value = gv_url.
     ELSE.
-      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_URL' value = gv_url ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
+      ct_values[ name = 'GV_RESULT' ]-value = gv_result.
     ELSE.
-      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RESULT' value = gv_result ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_STATE' ] ).
-      ct_values[ name = 'GV_STATE' ]-value = CONV string( gv_state ).
+      ct_values[ name = 'GV_STATE' ]-value = gv_state.
     ELSE.
-      INSERT VALUE #( name = 'GV_STATE' value = CONV string( gv_state ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_STATE' value = gv_state ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

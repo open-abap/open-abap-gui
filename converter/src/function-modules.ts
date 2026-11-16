@@ -59,7 +59,7 @@ function functionParameter(raw: string, name: string): string | undefined {
 // string template or string literal is a string already.
 function stringArgument(value: string | undefined): string {
   if (value === undefined) return "''";
-  if (/^\|[\s\S]*\|$|^`(?:``|[^`])*`$/.test(value)) return value;
+  if (/^\|[\s\S]*\|$|^`(?:``|[^`])*`$|^'(?:''|[^'])*'$/.test(value)) return value;
   return `CONV string( ${value} )`;
 }
 

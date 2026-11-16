@@ -56,7 +56,7 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
     DATA(lv_html) = lo_salv->get_html( ).
     LOOP AT lt_rows INTO DATA(ls_row).
       IF lv_html CS |>{ ls_row-carrier }<|.
-        result = result && CONV string( ls_row-carrier ).
+        result = result && ls_row-carrier.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
@@ -87,7 +87,7 @@ CLASS ltcl_control_helpers IMPLEMENTATION.
     DATA(lv_html) = zcl_gg_gui_runtime=>render_html( iv_document = abap_false ).
     LOOP AT lt_rows INTO DATA(ls_row).
       IF lv_html CS |>{ ls_row-carrier }<|.
-        result = result && CONV string( ls_row-carrier ).
+        result = result && ls_row-carrier.
       ENDIF.
     ENDLOOP.
     zcl_gg_gui_runtime=>clear( ).

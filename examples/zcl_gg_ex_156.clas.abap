@@ -144,66 +144,66 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ANSWER' ] ).
-      ct_values[ name = 'GV_ANSWER' ]-value = CONV string( gv_answer ).
+      ct_values[ name = 'GV_ANSWER' ]-value = gv_answer.
     ELSE.
-      INSERT VALUE #( name = 'GV_ANSWER' value = CONV string( gv_answer ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ANSWER' value = gv_answer ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RETURNCODE' ] ).
-      ct_values[ name = 'GV_RETURNCODE' ]-value = CONV string( gv_returncode ).
+      ct_values[ name = 'GV_RETURNCODE' ]-value = gv_returncode.
     ELSE.
-      INSERT VALUE #( name = 'GV_RETURNCODE' value = CONV string( gv_returncode ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RETURNCODE' value = gv_returncode ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
+      ct_values[ name = 'GV_RESULT' ]-value = gv_result.
     ELSE.
-      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RESULT' value = gv_result ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ANSWER' ] ).
-      gv_answer = CONV #( ct_values[ name = 'GV_ANSWER' ]-value ).
+      gv_answer = ct_values[ name = 'GV_ANSWER' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RETURNCODE' ] ).
-      gv_returncode = CONV #( ct_values[ name = 'GV_RETURNCODE' ]-value ).
+      gv_returncode = ct_values[ name = 'GV_RETURNCODE' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      gv_result = CONV #( ct_values[ name = 'GV_RESULT' ]-value ).
+      gv_result = ct_values[ name = 'GV_RESULT' ]-value.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ANSWER' ] ).
-      ct_values[ name = 'GV_ANSWER' ]-value = CONV string( gv_answer ).
+      ct_values[ name = 'GV_ANSWER' ]-value = gv_answer.
     ELSE.
-      INSERT VALUE #( name = 'GV_ANSWER' value = CONV string( gv_answer ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ANSWER' value = gv_answer ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RETURNCODE' ] ).
-      ct_values[ name = 'GV_RETURNCODE' ]-value = CONV string( gv_returncode ).
+      ct_values[ name = 'GV_RETURNCODE' ]-value = gv_returncode.
     ELSE.
-      INSERT VALUE #( name = 'GV_RETURNCODE' value = CONV string( gv_returncode ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RETURNCODE' value = gv_returncode ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
+      ct_values[ name = 'GV_RESULT' ]-value = gv_result.
     ELSE.
-      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RESULT' value = gv_result ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_input_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      gv_ok_code = CONV #( ct_values[ name = 'GV_OK_CODE' ]-value ).
+      gv_ok_code = ct_values[ name = 'GV_OK_CODE' ]-value.
     ENDIF.
     TRY.
         input_modules(
@@ -215,24 +215,24 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_OK_CODE' ] ).
-      ct_values[ name = 'GV_OK_CODE' ]-value = CONV string( gv_ok_code ).
+      ct_values[ name = 'GV_OK_CODE' ]-value = gv_ok_code.
     ELSE.
-      INSERT VALUE #( name = 'GV_OK_CODE' value = CONV string( gv_ok_code ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_OK_CODE' value = gv_ok_code ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_ANSWER' ] ).
-      ct_values[ name = 'GV_ANSWER' ]-value = CONV string( gv_answer ).
+      ct_values[ name = 'GV_ANSWER' ]-value = gv_answer.
     ELSE.
-      INSERT VALUE #( name = 'GV_ANSWER' value = CONV string( gv_answer ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_ANSWER' value = gv_answer ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RETURNCODE' ] ).
-      ct_values[ name = 'GV_RETURNCODE' ]-value = CONV string( gv_returncode ).
+      ct_values[ name = 'GV_RETURNCODE' ]-value = gv_returncode.
     ELSE.
-      INSERT VALUE #( name = 'GV_RETURNCODE' value = CONV string( gv_returncode ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RETURNCODE' value = gv_returncode ) INTO TABLE ct_values.
     ENDIF.
     IF line_exists( ct_values[ name = 'GV_RESULT' ] ).
-      ct_values[ name = 'GV_RESULT' ]-value = CONV string( gv_result ).
+      ct_values[ name = 'GV_RESULT' ]-value = gv_result.
     ELSE.
-      INSERT VALUE #( name = 'GV_RESULT' value = CONV string( gv_result ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_RESULT' value = gv_result ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

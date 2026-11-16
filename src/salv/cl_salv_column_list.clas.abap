@@ -62,7 +62,7 @@ CLASS cl_salv_column_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_cell_type.
-    mv_cell_type = CONV i( value ).
+    mv_cell_type = value.
   ENDMETHOD.
 
   METHOD set_icon.

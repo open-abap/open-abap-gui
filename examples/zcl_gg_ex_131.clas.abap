@@ -132,16 +132,16 @@ CLASS zcl_gg_ex_131 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~initialization.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
+      ct_values[ name = 'GV_URL' ]-value = gv_url.
     ELSE.
-      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_URL' value = gv_url ) INTO TABLE ct_values.
     ENDIF.
   ENDMETHOD.
 
   METHOD zif_gg_screen_provider_v1~process_output_module.
     DATA lx_unwind TYPE REF TO zcx_gg_control_flow.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      gv_url = CONV #( ct_values[ name = 'GV_URL' ]-value ).
+      gv_url = ct_values[ name = 'GV_URL' ]-value.
     ENDIF.
     TRY.
         output_modules(
@@ -154,9 +154,9 @@ CLASS zcl_gg_ex_131 IMPLEMENTATION.
       CATCH zcx_gg_control_flow INTO lx_unwind.
     ENDTRY.
     IF line_exists( ct_values[ name = 'GV_URL' ] ).
-      ct_values[ name = 'GV_URL' ]-value = CONV string( gv_url ).
+      ct_values[ name = 'GV_URL' ]-value = gv_url.
     ELSE.
-      INSERT VALUE #( name = 'GV_URL' value = CONV string( gv_url ) ) INTO TABLE ct_values.
+      INSERT VALUE #( name = 'GV_URL' value = gv_url ) INTO TABLE ct_values.
     ENDIF.
     IF lx_unwind IS BOUND.
       RAISE EXCEPTION lx_unwind.

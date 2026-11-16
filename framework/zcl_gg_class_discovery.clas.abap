@@ -91,7 +91,7 @@ CLASS zcl_gg_class_discovery IMPLEMENTATION.
               lv_source = ls_source-data.
               TRANSLATE lv_source TO UPPER CASE.
               IF lv_source CS |INTERFACES { lv_interface }|.
-                lv_class_name = CONV string( ls_source-progname ).
+                lv_class_name = ls_source-progname.
                 SHIFT lv_class_name RIGHT DELETING TRAILING space.
                 INSERT lv_class_name INTO TABLE rt_names.
               ENDIF.

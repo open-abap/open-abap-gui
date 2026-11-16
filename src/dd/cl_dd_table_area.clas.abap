@@ -54,11 +54,11 @@ CLASS cl_dd_table_area IMPLEMENTATION.
     ENDIF.
     mv_row_open = abap_false.
     mv_header_open = abap_false.
-    mv_next_row_style = CONV string( sap_style ).
-    mv_next_row_color = CONV string( sap_color ).
-    mv_next_row_fontsize = CONV string( sap_fontsize ).
-    mv_next_row_fontstyle = CONV string( sap_fontstyle ).
-    mv_next_row_emphasis = CONV string( sap_emphasis ).
+    mv_next_row_style = sap_style.
+    mv_next_row_color = sap_color.
+    mv_next_row_fontsize = sap_fontsize.
+    mv_next_row_fontstyle = sap_fontstyle.
+    mv_next_row_emphasis = sap_emphasis.
     CONDENSE mv_next_row_style NO-GAPS.
     CONDENSE mv_next_row_color NO-GAPS.
     CONDENSE mv_next_row_fontsize NO-GAPS.

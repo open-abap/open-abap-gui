@@ -160,7 +160,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_answer.
     IF lv_action = 'CONFIRM'.
-      rv_answer = CONV #( lv_answer ).
+      rv_answer = lv_answer.
       sy-subrc = 0.
       RETURN.
     ENDIF.
@@ -223,7 +223,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
           CONTINUE.
         ENDIF.
         READ TABLE mt_popup_input INTO DATA(ls_popup_value)
-          WITH KEY name = CONV zif_gg_dynpro_types_v1=>ty_field_name( <lv_field_name> ).
+          WITH KEY name = <lv_field_name>.
         IF sy-subrc <> 0.
           READ TABLE mt_popup_input INTO ls_popup_value INDEX lv_index.
         ENDIF.
@@ -264,7 +264,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
         CLEAR rv_choice.
         sy-subrc = 1.
       ELSE.
-        rv_choice = CONV i( lv_choice ).
+        rv_choice = lv_choice.
         sy-subrc = 0.
       ENDIF.
       RETURN.
@@ -277,7 +277,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       start_row    = is_request-start_row ).
 * A line is chosen by clicking it; the popup itself only offers Cancel.
     LOOP AT ct_values ASSIGNING FIELD-SYMBOL(<lv_value>).
-      APPEND CONV string( <lv_value> ) TO ms_popup-table_values.
+      APPEND <lv_value> TO ms_popup-table_values.
     ENDLOOP.
     APPEND VALUE #( value = '0' text = 'Cancel' ) TO ms_popup-buttons.
     RAISE EXCEPTION TYPE zcx_gg_control_flow EXPORTING
@@ -345,11 +345,11 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
           lv_text = condense( |{ lv_text } { condense( CONV string( <lv_component> ) ) }| ).
         ENDDO.
       ELSE.
-        lv_value = CONV string( <lv_value> ).
+        lv_value = <lv_value>.
       ENDIF.
       IF lv_value IS NOT INITIAL.
         INSERT VALUE #(
-          name  = CONV zif_gg_dynpro_types_v1=>ty_field_name( is_request-dynprofield )
+          name  = is_request-dynprofield
           row   = lv_row
           value = lv_value
           text  = COND #( WHEN lv_text <> lv_value THEN lv_text ) ) INTO TABLE mt_value_help_values.
@@ -498,7 +498,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     lo_element ?= lo_type.
     LOOP AT lo_element->get_ddic_fixed_values( ) INTO DATA(ls_fixed).
       APPEND VALUE #( key  = condense( CONV string( ls_fixed-low ) )
-                      text = CONV string( ls_fixed-ddtext ) ) TO rt_values.
+                      text = ls_fixed-ddtext ) TO rt_values.
     ENDLOOP.
   ENDMETHOD.
 
@@ -671,7 +671,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     IF cv_selection_id IS INITIAL.
       cv_selection_id = 'GGSEL'.
     ENDIF.
-    ms_dynamic_selection-selection_id = CONV string( cv_selection_id ).
+    ms_dynamic_selection-selection_id = cv_selection_id.
     capture_dynamic_fields( ct_fields ).
   ENDMETHOD.
 
@@ -694,7 +694,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     IF mv_dynamic_action = 'APPLY'.
       LOOP AT ms_dynamic_selection-fields ASSIGNING FIELD-SYMBOL(<ls_field>).
         READ TABLE mt_dynamic_input INTO DATA(ls_input)
-          WITH KEY name = CONV zif_gg_selection_screen_types=>ty_name( <ls_field>-name ).
+          WITH KEY name = <ls_field>-name.
         <ls_field>-active = xsdbool(
           sy-subrc = 0 AND ( ls_input-value = 'X' OR ls_input-value = '1'
             OR ls_input-ranges IS NOT INITIAL ) ).
@@ -743,11 +743,11 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       DATA(lv_field_name) = ``.
       ASSIGN COMPONENT 'TABLENAME' OF STRUCTURE <ls_input_field> TO FIELD-SYMBOL(<lv_table_name>).
       IF sy-subrc = 0.
-        lv_table_name = CONV string( <lv_table_name> ).
+        lv_table_name = <lv_table_name>.
       ENDIF.
       ASSIGN COMPONENT 'FIELDNAME' OF STRUCTURE <ls_input_field> TO FIELD-SYMBOL(<lv_field_name>).
       IF sy-subrc = 0.
-        lv_field_name = CONV string( <lv_field_name> ).
+        lv_field_name = <lv_field_name>.
       ENDIF.
       IF lv_field_name IS INITIAL.
         CONTINUE.
@@ -774,15 +774,15 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       DATA(lv_value) = ``.
       ASSIGN COMPONENT 'FIELDNAME' OF STRUCTURE <ls_field> TO FIELD-SYMBOL(<lv_name>).
       IF sy-subrc = 0.
-        lv_name = CONV string( <lv_name> ).
+        lv_name = <lv_name>.
       ENDIF.
       ASSIGN COMPONENT 'FIELDTEXT' OF STRUCTURE <ls_field> TO FIELD-SYMBOL(<lv_text>).
       IF sy-subrc = 0.
-        lv_text = CONV string( <lv_text> ).
+        lv_text = <lv_text>.
       ENDIF.
       ASSIGN COMPONENT 'VALUE' OF STRUCTURE <ls_field> TO FIELD-SYMBOL(<lv_value>).
       IF sy-subrc = 0.
-        lv_value = CONV string( <lv_value> ).
+        lv_value = <lv_value>.
       ENDIF.
       APPEND VALUE #( name = lv_name text = lv_text value = lv_value ) TO ms_popup-fields.
     ENDLOOP.
@@ -810,7 +810,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       DATA(lv_table_name) = ``.
       ASSIGN COMPONENT 'TABLENAME' OF STRUCTURE <ls_range_group> TO <lv_table_name>.
       IF sy-subrc = 0.
-        lv_table_name = CONV string( <lv_table_name> ).
+        lv_table_name = <lv_table_name>.
       ENDIF.
       ASSIGN COMPONENT 'FRANGE_T' OF STRUCTURE <ls_range_group> TO <lt_field_ranges>.
       IF sy-subrc <> 0.
@@ -820,7 +820,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
         DATA(lv_field_name) = ``.
         ASSIGN COMPONENT 'FIELDNAME' OF STRUCTURE <ls_field_range> TO <lv_field_name>.
         IF sy-subrc = 0.
-          lv_field_name = CONV string( <lv_field_name> ).
+          lv_field_name = <lv_field_name>.
         ENDIF.
         ASSIGN COMPONENT 'SELOPT_T' OF STRUCTURE <ls_field_range> TO <lt_selopts>.
         IF sy-subrc <> 0.
@@ -844,19 +844,19 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
         <ls_field>-active = abap_true.
         ASSIGN COMPONENT 'SIGN' OF STRUCTURE <ls_selopt> TO <lv_sign>.
         IF sy-subrc = 0.
-          <ls_field>-sign = CONV string( <lv_sign> ).
+          <ls_field>-sign = <lv_sign>.
         ENDIF.
         ASSIGN COMPONENT 'OPTION' OF STRUCTURE <ls_selopt> TO <lv_option>.
         IF sy-subrc = 0.
-          <ls_field>-option = CONV string( <lv_option> ).
+          <ls_field>-option = <lv_option>.
         ENDIF.
         ASSIGN COMPONENT 'LOW' OF STRUCTURE <ls_selopt> TO <lv_low>.
         IF sy-subrc = 0.
-          <ls_field>-low = CONV string( <lv_low> ).
+          <ls_field>-low = <lv_low>.
         ENDIF.
         ASSIGN COMPONENT 'HIGH' OF STRUCTURE <ls_selopt> TO <lv_high>.
         IF sy-subrc = 0.
-          <ls_field>-high = CONV string( <lv_high> ).
+          <ls_field>-high = <lv_high>.
         ENDIF.
       ENDLOOP.
     ENDLOOP.
@@ -1115,7 +1115,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     CLEAR ct_table.
     LOOP AT it_values INTO DATA(ls_value).
       IF ls_value-ranges IS INITIAL.
-        APPEND VALUE #( selname = CONV string( ls_value-name )
+        APPEND VALUE #( selname = ls_value-name
                         kind    = 'P'
                         sign    = 'I'
                         option  = 'EQ'
@@ -1123,10 +1123,10 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
                         high    = '' ) TO ct_table.
       ELSE.
         LOOP AT ls_value-ranges INTO DATA(ls_range).
-          APPEND VALUE #( selname = CONV string( ls_value-name )
+          APPEND VALUE #( selname = ls_value-name
                           kind    = 'S'
-                          sign    = CONV string( ls_range-sign )
-                          option  = CONV string( ls_range-option )
+                          sign    = ls_range-sign
+                          option  = ls_range-option
                           low     = ls_range-low
                           high    = ls_range-high ) TO ct_table.
         ENDLOOP.
@@ -1144,28 +1144,28 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
     LOOP AT it_table INTO DATA(ls_row).
       CLEAR: lv_name, lv_kind, lv_sign, lv_option, lv_low, lv_high.
-      lv_name = CONV string( ls_row-selname ).
+      lv_name = ls_row-selname.
       IF lv_name IS INITIAL.
         CONTINUE.
       ENDIF.
-      lv_kind = to_upper( CONV string( ls_row-kind ) ).
-      lv_sign = CONV string( ls_row-sign ).
-      lv_option = CONV string( ls_row-option ).
-      lv_low = CONV string( ls_row-low ).
-      lv_high = CONV string( ls_row-high ).
+      lv_kind = to_upper( ls_row-kind ).
+      lv_sign = ls_row-sign.
+      lv_option = ls_row-option.
+      lv_low = ls_row-low.
+      lv_high = ls_row-high.
 
       READ TABLE rt_values ASSIGNING FIELD-SYMBOL(<ls_value>)
-        WITH KEY name = CONV zif_gg_selection_screen_types=>ty_name( lv_name ).
+        WITH KEY name = lv_name.
       IF sy-subrc <> 0.
-        INSERT VALUE #( name = CONV zif_gg_selection_screen_types=>ty_name( lv_name ) )
+        INSERT VALUE #( name = lv_name )
           INTO TABLE rt_values.
         READ TABLE rt_values ASSIGNING <ls_value>
-          WITH KEY name = CONV zif_gg_selection_screen_types=>ty_name( lv_name ).
+          WITH KEY name = lv_name.
       ENDIF.
       IF lv_kind = 'S'.
         APPEND VALUE #(
-          sign   = CONV zif_gg_selection_screen_types=>ty_sign( lv_sign )
-          option = CONV zif_gg_selection_screen_types=>ty_option( lv_option )
+          sign   = lv_sign
+          option = lv_option
           low    = lv_low
           high   = lv_high ) TO <ls_value>-ranges.
       ELSE.

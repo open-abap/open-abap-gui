@@ -283,9 +283,9 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
     IF sy-subrc = 0.
       CLEAR mt_context_items.
       LOOP AT <table> INTO DATA(ls_button).
-        APPEND VALUE #( fcode    = CONV string( ls_button-function )
-                        text     = CONV string( ls_button-text )
-                        icon     = CONV string( ls_button-icon )
+        APPEND VALUE #( fcode    = ls_button-function
+                        text     = ls_button-text
+                        icon     = ls_button-icon
                         disabled = xsdbool( ls_button-disabled IS NOT INITIAL )
                         hidden   = abap_false ) TO mt_context_items.
       ENDLOOP.
@@ -309,7 +309,7 @@ CLASS cl_gui_toolbar IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF icon IS SUPPLIED.
-      <button>-icon = CONV #( icon ).
+      <button>-icon = icon.
     ENDIF.
     IF text IS SUPPLIED.
       <button>-text = text.

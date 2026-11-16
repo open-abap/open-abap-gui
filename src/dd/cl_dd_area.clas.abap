@@ -300,11 +300,11 @@ CLASS cl_dd_area IMPLEMENTATION.
     ELSE.
       lv_text = escape_html( CONV string( text ) ).
     ENDIF.
-    lv_style = CONV string( sap_style ).
-    lv_color = CONV string( sap_color ).
-    lv_fontsize = CONV string( sap_fontsize ).
-    lv_fontstyle = CONV string( sap_fontstyle ).
-    lv_emphasis = CONV string( sap_emphasis ).
+    lv_style = sap_style.
+    lv_color = sap_color.
+    lv_fontsize = sap_fontsize.
+    lv_fontstyle = sap_fontstyle.
+    lv_emphasis = sap_emphasis.
     CONDENSE lv_style NO-GAPS.
     CONDENSE lv_color NO-GAPS.
     CONDENSE lv_fontsize NO-GAPS.
