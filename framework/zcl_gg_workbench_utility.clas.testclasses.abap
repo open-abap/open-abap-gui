@@ -18,7 +18,7 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     DATA(lv_html) = zcl_gg_workbench_utility=>render_styles( ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-menubar' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-status-menu-items{min-height:32px' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '.wb-status-menu-items' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-statusbar' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '.wb-runtime-content' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '--gg-work-area:#d5e6f3' ) ).
@@ -131,9 +131,16 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'id="wb-page-title"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="shell-menu"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS 'data-toolbar-scope="standard-command"' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '<nav class="wb-menu-items wb-status-menu-items" role="menubar" aria-label="Application menu"><details' ) ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Sample</summary>' ) ).
+* The menus of the status sit in the main menu, in front of System; the title
+* bar carries no menu.
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS
+      '<span class="wb-brand">open-abap</span><div class="wb-menu-items"><details class="wb-menu-dropdown" data-menu-code="SAMPLE">' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Sample</summary><div class="wb-menu-popup" role="menu"><ul role="none"></ul></div></details>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '>Options</summary>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS 'Options</summary><div class="wb-menu-popup" role="menu"><ul role="none"></ul></div></details><script>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_menu_html CS '}());</script><div class="wb-menu-dropdown"><button class="wb-menu"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_menu_html CS 'Application menu' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<details class="wb-menu-dropdown"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1>' ) ).
 * The app bar shows the title only; the CUA status name shows in System > Status.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '>Dynpro</h1></header>' ) ).
