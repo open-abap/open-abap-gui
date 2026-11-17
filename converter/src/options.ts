@@ -11,7 +11,8 @@ export const MANIFEST_SCHEMA_VERSION = 1;
 // A customer report is named Z* or Y*, a customer module pool SAPMZ* or
 // SAPMY*. Both map to <prefix>CL_<rest>: ZFOO -> ZCL_FOO and SAPMZFOO ->
 // ZCL_FOO, so a module pool's class reads like its transaction rather than
-// like SAP's naming convention for the program behind it.
+// like SAP's naming convention for the program behind it. Underscores right
+// after the prefix are dropped, so Z_FOO becomes ZCL_FOO and not ZCL__FOO.
 const REPORT_NAME = /^(?:SAPM)?(?<prefix>[ZY])(?<rest>[A-Z0-9_]+)$/i;
 const SIMPLE_OBJECT = /^[A-Z][A-Z0-9_]{0,29}$/;
 const NAMESPACED_OBJECT = /^\/[A-Z0-9_$]{1,10}\/[A-Z][A-Z0-9_]{0,29}$/;
@@ -35,7 +36,8 @@ export function fullClassName(programName: string): string | undefined {
   if (match === null || normalized.includes("/")) {
     return undefined;
   }
-  return `${match.groups!.prefix}CL_${match.groups!.rest}`;
+  const rest = match.groups!.rest.replace(/^_+/, "");
+  return rest === "" ? undefined : `${match.groups!.prefix}CL_${rest}`;
 }
 
 // A program name may have 40 characters and a class name only 30, so a long
