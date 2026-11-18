@@ -6,15 +6,15 @@ CLASS cl_salv_events DEFINITION PUBLIC CREATE PROTECTED FRIENDS cl_salv_table.
 
     EVENTS added_function
       EXPORTING
-        e_salv_function TYPE salv_de_function.
+        VALUE(e_salv_function) TYPE salv_de_function.
 
     EVENTS before_salv_function
       EXPORTING
-        e_salv_function TYPE salv_de_function.
+        VALUE(e_salv_function) TYPE salv_de_function.
 
     EVENTS after_salv_function
       EXPORTING
-        e_salv_function TYPE salv_de_function.
+        VALUE(e_salv_function) TYPE salv_de_function.
 
     EVENTS end_of_page
       EXPORTING
