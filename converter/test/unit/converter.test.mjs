@@ -3368,6 +3368,16 @@ test("names the class of a customer module pool SAPMZ*/SAPMY* after the rest of 
   assert.ok(!result.diagnostics.some((item) => item.code === "GGCONV-E101"), JSON.stringify(result.diagnostics));
 });
 
+test("drops the underscores after the Z/Y prefix when naming the class", async () => {
+  assert.equal(defaultClassName("Z_FOOBAR"), "ZCL_FOOBAR");
+  assert.equal(defaultClassName("Y__TOOL"), "YCL_TOOL");
+  assert.equal(defaultClassName("SAPMZ_DIALOG"), "ZCL_DIALOG");
+  assert.equal(defaultClassName("ZFOO_BAR"), "ZCL_FOO_BAR", "underscores inside the name stay");
+  assert.equal(defaultClassName("Z_"), undefined, "nothing is left to name the class after");
+  const result = await convertProgram({ source: "REPORT z_foobar.\n", filename: "z_foobar.prog.abap" });
+  assert.equal(result.reportIR.targetClassName, "ZCL_FOOBAR");
+});
+
 test("takes the program name from the caller over the REPORT statement", async () => {
   const result = await convertProgram({ source: "REPORT zoriginal.\nWRITE 'x'.\n", filename: "zcopy.prog.abap", programName: "zcopy" });
   assert.equal(result.reportIR.programName, "ZCOPY");

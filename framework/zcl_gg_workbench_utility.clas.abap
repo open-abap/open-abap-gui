@@ -162,7 +162,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       '.wb-menubar{height:32px;display:flex;align-items:center;gap:8px;padding:0 14px;background:linear-gradient(#fff,#e7eef7);border-bottom:1px solid var(--gg-border-dark);box-sizing:border-box}' &&
       '.wb-brand{font-weight:700;font-size:14px;color:#174a80;margin-right:12px;letter-spacing:-.2px}' &&
       '.wb-menu-items{display:flex;align-self:stretch;align-items:center;gap:2px}' &&
-      '.wb-status-menu-items{min-height:32px;padding:0 14px;background:linear-gradient(#fff,#e7eef7);border-bottom:1px solid var(--gg-border-dark);box-sizing:border-box}' &&
       '.wb-menu{border:0;border-radius:3px;background:transparent;height:30px;padding:0 10px;color:#163e6b;font:inherit;cursor:pointer;text-decoration:none;display:flex;align-items:center}' &&
       '.wb-menu:hover,.wb-menu:focus{background:#d7e5f4;color:#092f5b;outline:0}' &&
       '.wb-menu-dropdown{position:relative;display:flex;align-items:center;align-self:stretch}' &&
@@ -266,9 +265,15 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
 
     lv_title = COND #( WHEN iv_title IS INITIAL THEN `Workbench` ELSE iv_title ).
     lv_content_form = COND #( WHEN iv_content_form IS INITIAL THEN form_dispatch ELSE iv_content_form ).
-* The main menu holds what the shell itself can do: System shows the status
-* of the session, Help opens the open-abap documentation in a new tab.
+* The main menu holds the menus of the CUA status, as List and Edit of the
+* standard list status, followed by what the shell itself can do: System
+* shows the status of the session, Help opens the open-abap documentation in
+* a new tab.
     rv_html = '<nav class="wb-menubar" role="menubar" aria-label="Main menu" data-toolbar-scope="shell-menu"><span class="wb-brand">open-abap</span><div class="wb-menu-items">' &&
+      render_application_menus(
+        iv_runtime      = iv_runtime
+        iv_content_form = lv_content_form
+        is_status       = is_status ) &&
       '<div class="wb-menu-dropdown"><button class="wb-menu" type="button" role="menuitem" aria-haspopup="menu" aria-expanded="false" aria-controls="wb-system-menu" data-system-menu>System</button>' &&
       '<div class="wb-menu-popup" id="wb-system-menu" role="menu" aria-label="System" hidden>' &&
       |<button class="wb-menu-action" type="button" role="menuitem" aria-haspopup="dialog" aria-controls="{ system_status_id }" data-system-status-open>Status...</button></div></div>| &&
@@ -284,14 +289,6 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = rv_html && |<header class="wb-appbar"><h1 id="wb-page-title" class="wb-app-title">| &&
       zcl_gg_host_html=>escape_text( lv_title ) &&
       |</h1></header>| &&
-      COND string(
-        WHEN is_status-menus IS INITIAL THEN ``
-        ELSE |<nav class="wb-menu-items wb-status-menu-items" role="menubar" aria-label="Application menu">| &&
-          render_application_menus(
-            iv_runtime      = iv_runtime
-            iv_content_form = lv_content_form
-            is_status       = is_status ) &&
-          `</nav>` ) &&
       render_iconbar(
         iv_runtime      = iv_runtime
         iv_content_form = lv_content_form
@@ -332,8 +329,21 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
           |<li role="none"><button class="wb-menu-action" type="submit"{ lv_command } aria-label="{ zcl_gg_host_html=>escape_attribute( ls_item-text ) }"{ lv_state }>{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.
       ENDLOOP.
       rv_html = rv_html &&
-        |<details class="wb-menu-dropdown" data-menu-code="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_menu-code ) ) }"><summary class="wb-menu" role="menuitem">{ zcl_gg_host_html=>escape_text( ls_menu-text ) }</summary><div class="wb-menu-popup" role="menu">{ lv_items }</div></details>|.
+        |<details class="wb-menu-dropdown" data-menu-code="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_menu-code ) ) }"><summary class="wb-menu" role="menuitem">{ zcl_gg_host_html=>escape_text( ls_menu-text ) }</summary><div class="wb-menu-popup" role="menu"><ul role="none">{ lv_items }</ul></div></details>|.
     ENDLOOP.
+    IF is_status-menus IS INITIAL.
+      RETURN.
+    ENDIF.
+* One menu is open at a time: opening one closes the others, and while one is
+* open, pointing at another opens that one instead. A click elsewhere or
+* Escape closes it; Escape does not reach the shell as Cancel.
+    rv_html = rv_html && '<script>(function(){var menus=Array.prototype.slice.call(document.querySelectorAll("details.wb-menu-dropdown"));' &&
+      'var opened=function(){return menus.filter(function(m){return m.open;})[0];};' &&
+      'menus.forEach(function(m){m.addEventListener("toggle",function(){if(m.open){menus.forEach(function(o){if(o!==m){o.open=false;}});}});' &&
+      'm.querySelector("summary").addEventListener("mouseenter",function(){var o=opened();if(o&&o!==m){m.open=true;}});});' &&
+      'document.addEventListener("click",function(event){var o=opened();if(o&&!o.contains(event.target)){o.open=false;}});' &&
+      'window.addEventListener("keydown",function(event){var o=opened();if(!o||event.key!=="Escape"){return;}' &&
+      'event.preventDefault();event.stopPropagation();o.open=false;o.querySelector("summary").focus();},true);}());</script>'.
   ENDMETHOD.
 
   METHOD render_pf_keys.

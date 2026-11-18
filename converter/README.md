@@ -128,8 +128,9 @@ an `--output-folder` run, because that folder may be shared. A run in which two
 programs map to the same class writes nothing at all and reports
 `GGCONV-E115`, rather than keeping one class and losing the other.
 
-A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`) unless
-`--class` names it; a customer module pool drops SAP's `SAPM` prefix
+A report's class is named from the report (`ZFOO` becomes `ZCL_FOO`, and
+`Z_FOO` becomes `ZCL_FOO` as well, since underscores right after the `Z`/`Y` are
+dropped) unless `--class` names it; a customer module pool drops SAP's `SAPM` prefix
 (`SAPMZFOO` becomes `ZCL_FOO` too). A program name may have 40 characters but a class name only
 30, so a longer default name is cut to 25 characters and given a four-character
 hash of the program name (`ZRLX_SDFDDDDD_DATE_COND_PROMO` becomes
