@@ -68,6 +68,7 @@ CLASS zcl_gg_ex_077 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    sscrfields-ucomm = iv_ucomm.
     mv_p_act = ct_values[ name = 'P_ACT' ]-value.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     CASE iv_ucomm.

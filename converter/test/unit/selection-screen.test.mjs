@@ -62,6 +62,46 @@ test("applies a radio group's USER-COMMAND to every button of the group", async 
   for (const name of ["P_A", "P_B"]) assert.doesNotMatch(builderCall(result.classSource, name), /ucomm/);
 });
 
+test("fills SSCRFIELDS-UCOMM for FORMs and local classes called from AT SELECTION-SCREEN", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zradio_form.",
+      "TABLES sscrfields.",
+      "PARAMETERS: p_disp RADIOBUTTON GROUP mode DEFAULT 'X' USER-COMMAND mode,",
+      "            p_rfc  RADIOBUTTON GROUP mode.",
+      "CLASS lcl_app DEFINITION.",
+      "  PUBLIC SECTION.",
+      "    CLASS-METHODS check.",
+      "ENDCLASS.",
+      "CLASS lcl_app IMPLEMENTATION.",
+      "  METHOD check.",
+      "    IF sscrfields-ucomm = 'MODE'.",
+      "      MESSAGE 'class' TYPE 'S'.",
+      "    ENDIF.",
+      "  ENDMETHOD.",
+      "ENDCLASS.",
+      "AT SELECTION-SCREEN ON BLOCK b1.",
+      "  PERFORM check.",
+      "AT SELECTION-SCREEN.",
+      "  lcl_app=>check( ).",
+      "  PERFORM check.",
+      "FORM check.",
+      "  IF sscrfields-ucomm = 'MODE'.",
+      "    MESSAGE 'form' TYPE 'S'.",
+      "  ENDIF.",
+      "ENDFORM.",
+    ].join("\n"),
+    filename: "zradio_form.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  const methodBody = (name) => result.classSource.match(new RegExp(`METHOD zif_gg_report_v1~${name}\\.\\n([\\s\\S]*?)ENDMETHOD`))?.[1] ?? "";
+  assert.match(methodBody("at_selection_screen"), /^\s*sscrfields-ucomm = iv_ucomm\./);
+  assert.match(methodBody("at_selection_screen_on_block"), /^\s*sscrfields-ucomm = io_session->get_context\( \)-selection-ucomm\./);
+  // An event the program does not write stays empty.
+  assert.doesNotMatch(methodBody("at_selection_screen_on_field"), /sscrfields/);
+  assert.match(result.classSource, /METHOD form_check\.\s+IF sscrfields-ucomm = 'MODE'\./);
+});
+
 test("keeps MODIF ID on select-options, radio buttons and listboxes", async () => {
   const result = await convertProgram({
     source: [

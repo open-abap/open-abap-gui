@@ -66,6 +66,7 @@ CLASS zcl_gg_ex_076 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    sscrfields-ucomm = iv_ucomm.
     mv_p_der = ct_values[ name = 'P_DER' ]-value.
     mv_p_req = ct_values[ name = 'P_REQ' ]-value.
     IF iv_ucomm = 'DERIVE'.

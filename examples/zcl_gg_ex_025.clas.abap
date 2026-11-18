@@ -47,7 +47,7 @@ CLASS zcl_gg_ex_025 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
-    RETURN.
+    sscrfields-ucomm = iv_ucomm.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
