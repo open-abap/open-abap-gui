@@ -1326,6 +1326,24 @@ function activeTabCapture(ir: ReportIR): string[] {
   return ucomms.length ? [`IF ${ucomms.join(" OR ")}.`, "mv_active_tab = iv_ucomm.", "ENDIF."] : [];
 }
 
+// The selection screen fills the TABLES SSCRFIELDS work area at PAI. A read in
+// the event block itself becomes iv_ucomm, but a FORM or local class method
+// the event calls reads the work area, so each PAI event fills it first.
+const SELECTION_PAI_EVENTS = ["at_selection_screen", "at_selection_screen_on_exit", "at_selection_screen_on_field",
+  "at_selection_screen_on_block", "at_selection_screen_on_radio", "at_selection_screen_on_end_of"];
+
+function sscrfieldsCapture(ir: ReportIR, event: string): string[] {
+  if (!SELECTION_PAI_EVENTS.includes(event)) return [];
+  // AT SELECTION-SCREEN fills it even without a block, as later events read it too.
+  const written = Boolean(ir.events?.[event]?.length) || Boolean(ir.eventBlocks?.some((block) => block.event === event));
+  if (!written && event !== "at_selection_screen") return [];
+  const member = reportMember(ir, "SSCRFIELDS");
+  if (!member) return [];
+  const ucomm = ["at_selection_screen", "at_selection_screen_on_exit"].includes(event)
+    ? "iv_ucomm" : "io_session->get_context( )-selection-ucomm";
+  return [`${member}-ucomm = ${ucomm}.`];
+}
+
 function reportMethods(ir: ReportIR): GeneratedMethod[] {
   const methods: GeneratedMethod[] = [];
   const bodiesFor = (event: string) => {
@@ -1353,6 +1371,7 @@ function reportMethods(ir: ReportIR): GeneratedMethod[] {
       if (event === "at_selection_screen") body.unshift(...activeTabCapture(ir));
       if (event === "at_selection_screen" && ir.continuations?.length) body.push(...nestedSelectionCaptures(ir));
       if (event === "at_selection_screen_output") body.unshift(...selectionStatesSetter(ir));
+      body.unshift(...sscrfieldsCapture(ir, event));
       methods.push(method(`zif_gg_report_v1~${event}`, body));
     }
   }

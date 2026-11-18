@@ -58,6 +58,7 @@ CLASS zcl_gg_ex_038 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~at_selection_screen.
+    sscrfields-ucomm = iv_ucomm.
     mv_p_a = ct_values[ name = 'P_A' ]-value.
     IF ct_values[ name = 'P_A' ]-value <> mv_p_a.
       ct_values[ name = 'P_A' ]-value = |{ mv_p_a }|.
