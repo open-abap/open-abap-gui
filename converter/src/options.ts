@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ConvertOptions, NormalizedOptions } from "./types.js";
 
+
 // build/src/options.js, two folders below the package root.
 const PACKAGE_JSON = new URL("../../package.json", import.meta.url);
 export const CONVERTER_VERSION: string = JSON.parse(fs.readFileSync(PACKAGE_JSON, "utf8")).version;
