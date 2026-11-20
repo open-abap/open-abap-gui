@@ -36,8 +36,8 @@ CLASS ltcl_gg_se01 IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Transports</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Piece Lists</button>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS '>Deliveries</button>' ) ).
-    cl_abap_unit_assert=>assert_true( act = line_exists( ls_result-controls[ screen = '0110' name = 'P_STD_REQUEST' ] ) ).
-    cl_abap_unit_assert=>assert_true( act = line_exists( ls_result-controls[ screen = '0130' name = 'P_CLI_TARGET' ] ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-controls[ screen = '0110' name = 'P_STD_REQUEST' ] ) ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-controls[ screen = '0130' name = 'P_CLI_TARGET' ] ) ) ).
   ENDMETHOD.
 
   METHOD keeps_mutation_disabled.

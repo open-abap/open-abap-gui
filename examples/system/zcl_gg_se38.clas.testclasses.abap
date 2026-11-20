@@ -60,7 +60,7 @@ CLASS ltcl_gg_se38 IMPLEMENTATION.
   METHOD offers_no_variant_subobject.
     DATA(ls_result) = zcl_gg_host_dynpro=>run( io_program   = NEW zcl_gg_se38( )
                                                iv_submitted = abap_false ).
-    cl_abap_unit_assert=>assert_false( act = line_exists( ls_result-controls[ name = 'R_VARIANTS' ] ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( line_exists( ls_result-controls[ name = 'R_VARIANTS' ] ) ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_result-html CS 'Variant' ) ).
   ENDMETHOD.
 
@@ -145,7 +145,7 @@ CLASS ltcl_gg_se38 IMPLEMENTATION.
       iv_value_request = 'P_PROGRAM' ).
     cl_abap_unit_assert=>assert_equals( act = lines( ls_result-help_values )
                                         exp = 3 ).
-    cl_abap_unit_assert=>assert_false( act = line_exists( ls_result-help_values[ value = 'ZGG_LOCKED' ] ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( line_exists( ls_result-help_values[ value = 'ZGG_LOCKED' ] ) ) ).
   ENDMETHOD.
 
   METHOD executes_report_runtime.
