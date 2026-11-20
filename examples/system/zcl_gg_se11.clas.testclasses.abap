@@ -67,7 +67,7 @@ CLASS ltcl_gg_se11 IMPLEMENTATION.
                                         exp = '0210' ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-values[ container = 'TC_STR_FIELDS' name = 'FIELD_NAME' row = 3 ]-value
                                         exp = 'FLDATE' ).
-    cl_abap_unit_assert=>assert_false( act = line_exists( ls_result-values[ name = 'O_TAB_DELIVERY' ] ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( line_exists( ls_result-values[ name = 'O_TAB_DELIVERY' ] ) ) ).
   ENDMETHOD.
 
   METHOD displays_data_element.
