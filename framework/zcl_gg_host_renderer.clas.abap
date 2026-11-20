@@ -62,6 +62,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_messages          TYPE zcl_gg_host_session=>ty_messages OPTIONAL
         iv_help_text         TYPE string OPTIONAL
         iv_help_name         TYPE string OPTIONAL
+        it_downloads         TYPE zcl_gg_host_compatibility=>ty_downloads OPTIONAL
       RETURNING
         VALUE(rv_html)       TYPE string.
 
@@ -100,6 +101,7 @@ CLASS zcl_gg_host_renderer DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_title       TYPE string
         is_context     TYPE zif_gg_host_html_v1=>ty_renderer_context OPTIONAL
         it_messages    TYPE zcl_gg_host_session=>ty_messages OPTIONAL
+        it_downloads   TYPE zcl_gg_host_compatibility=>ty_downloads OPTIONAL
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -1006,7 +1008,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       it_messages   = it_messages
 * The workbench shell already carries the page title in wb-app-title.
 * A second heading inside the screen would duplicate it and give the page two h1 elements.
-      iv_body       = lv_body ).
+      iv_body       = lv_body && render_downloads( it_downloads ) ).
   ENDMETHOD.
 
   METHOD render_dynamic_selection.
@@ -1746,7 +1748,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
       it_messages   = it_messages
-      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>| ).
+      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header>|
+                      && render_downloads( it_downloads ) ).
   ENDMETHOD.
 
   METHOD render_terminal.
