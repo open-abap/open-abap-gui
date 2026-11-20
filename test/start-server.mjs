@@ -62,10 +62,16 @@ export function createAbapHtmlHostServer() {
   app.disable("x-powered-by");
   app.set("etag", false);
   app.use(express.raw({type: "*/*", limit: MAX_BODY_BYTES}));
+  // Express 5 leaves the body undefined when the request has none; the ICF
+  // shim reads it as a Buffer.
+  app.use((request, response, next) => {
+    request.body ??= Buffer.alloc(0);
+    next();
+  });
 
   // Every request is handed to the fixed ABAP IF_HTTP_EXTENSION handler,
   // which owns the application behavior for the deployed GUI.
-  app.all("*", async (request, response) => {
+  app.use(async (request, response) => {
     try {
       await cl_express_icf_shim.run({
         req: request,
