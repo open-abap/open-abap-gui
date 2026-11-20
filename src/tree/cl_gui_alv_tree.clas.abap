@@ -559,7 +559,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     FIELD-SYMBOLS <outtab_line> TYPE any.
     ASSIGN mt_outtab->* TO <outtab>.
     IF sy-subrc <> 0.
-      RAISE EXCEPTION TYPE cx_sy_ref_is_initial.
+      RAISE node_not_found.
     ENDIF.
     DATA(lv_index) = 0.
     READ TABLE mt_html_nodes INTO DATA(ls_node)
@@ -581,7 +581,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
     IF sy-subrc = 0.
       e_outtab_line = <outtab_line>.
     ELSE.
-      RAISE EXCEPTION TYPE cx_sy_itab_line_not_found.
+      RAISE node_not_found.
     ENDIF.
   ENDMETHOD.
 
