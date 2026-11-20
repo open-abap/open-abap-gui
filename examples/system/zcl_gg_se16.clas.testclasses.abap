@@ -163,7 +163,9 @@ CLASS ltcl_gg_se16 IMPLEMENTATION.
       it_values        = VALUE #( ( name = 'P_TABLE' value = 'ZSFLIGHT' ) ) ).
     cl_abap_unit_assert=>assert_equals( act = lines( ls_result-help_values )
                                         exp = 3 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-help_values[ name = 'P_T1_LOW1' value = 'AA' ] ) ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-help_values[ name = 'P_T1_LOW1' value = 'LH' ] ) ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( ls_result-help_values[ name = 'P_T1_LOW1' value = 'SQ' ] ) ) ).
   ENDMETHOD.
 
   METHOD returns_to_same_criteria.

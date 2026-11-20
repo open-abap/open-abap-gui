@@ -345,7 +345,7 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     DATA(lo_service) = NEW zcl_gg_system_repository( ).
     IF is_context-field = 'P_PROGRAM'.
       LOOP AT lo_service->zif_gg_program_repository_v1~get_program_names( ) INTO DATA(lv_program).
-        APPEND VALUE #( name = 'P_PROGRAM' value = lv_program ) TO rt_values.
+        APPEND VALUE #( name = 'P_PROGRAM' row = lines( rt_values ) + 1 value = lv_program ) TO rt_values.
       ENDLOOP.
     ENDIF.
   ENDMETHOD.

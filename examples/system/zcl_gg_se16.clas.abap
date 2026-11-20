@@ -462,7 +462,7 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
 
     IF is_context-field = 'P_TABLE'.
       LOOP AT permitted_tables( ) INTO lv_table.
-        APPEND VALUE #( name = 'P_TABLE' value = lv_table ) TO rt_values.
+        APPEND VALUE #( name = 'P_TABLE' row = lines( rt_values ) + 1 value = lv_table ) TO rt_values.
       ENDLOOP.
       RETURN.
     ENDIF.
@@ -485,7 +485,7 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
         iv_object_type = zif_gg_system_types_v1=>ddic_domain
         iv_name        = ls_element-data_element-domain ).
       LOOP AT ls_help-domain-fixed_values INTO DATA(ls_fixed).
-        APPEND VALUE #( name = is_context-field value = ls_fixed-value ) TO rt_values.
+        APPEND VALUE #( name = is_context-field row = lines( rt_values ) + 1 value = ls_fixed-value ) TO rt_values.
       ENDLOOP.
     ENDLOOP.
   ENDMETHOD.

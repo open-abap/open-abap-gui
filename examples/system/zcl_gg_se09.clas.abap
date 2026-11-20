@@ -167,7 +167,7 @@ CLASS zcl_gg_se09 IMPLEMENTATION.
     DATA(lo_service) = NEW zcl_gg_system_transport( ).
     IF is_context-field = 'P_REQUEST'.
       LOOP AT lo_service->zif_gg_transport_service_v1~get_request_ids( ) INTO DATA(lv_request_id).
-        APPEND VALUE #( name = 'P_REQUEST' value = lv_request_id ) TO rt_values.
+        APPEND VALUE #( name = 'P_REQUEST' row = lines( rt_values ) + 1 value = lv_request_id ) TO rt_values.
       ENDLOOP.
     ENDIF.
   ENDMETHOD.

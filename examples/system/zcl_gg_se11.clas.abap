@@ -757,7 +757,7 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     ENDIF.
     IF is_context-field = 'P_OBJECT_NAME'.
       LOOP AT lo_service->zif_gg_dictionary_service_v1~get_names( lv_type ) INTO DATA(lv_name).
-        APPEND VALUE #( name = 'P_OBJECT_NAME' value = lv_name ) TO rt_values.
+        APPEND VALUE #( name = 'P_OBJECT_NAME' row = lines( rt_values ) + 1 value = lv_name ) TO rt_values.
       ENDLOOP.
     ENDIF.
   ENDMETHOD.
