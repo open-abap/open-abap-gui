@@ -329,7 +329,7 @@ CLASS zcl_gg_se01 IMPLEMENTATION.
       RETURN.
     ENDIF.
     LOOP AT lo_service->zif_gg_transport_service_v1~get_request_ids( ls_tab-transport_type ) INTO DATA(lv_request_id).
-      APPEND VALUE #( name = is_context-field value = lv_request_id ) TO rt_values.
+      APPEND VALUE #( name = is_context-field row = lines( rt_values ) + 1 value = lv_request_id ) TO rt_values.
     ENDLOOP.
   ENDMETHOD.
 
