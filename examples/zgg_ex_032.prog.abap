@@ -7,9 +7,9 @@ TABLES zsflight.
 SELECT-OPTIONS s_carr FOR zsflight-carrid.
 
 AT SELECTION-SCREEN ON END OF s_carr.
-  IF lines( s_carr ) > 5.
+  IF lines( s_carr[] ) > 5.
     MESSAGE 'at most five entries' TYPE 'E'.
   ENDIF.
 
 START-OF-SELECTION.
-  WRITE / |{ lines( s_carr ) } airline entries chosen|.
+  WRITE / |{ lines( s_carr[] ) } airline entries chosen|.

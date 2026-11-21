@@ -16,7 +16,7 @@ FORM show.
   gs_line-text = gt_return-message.
   APPEND gs_line TO gt_lines.
   gv_text = gs_line-text.
-  WRITE / |{ ls_client-mandt } { gv_text } { lines( gt_return ) } { lines( gt_lines ) }|.
+  WRITE / |{ ls_client-mandt } { gv_text } { lines( gt_return[] ) } { lines( gt_lines ) }|.
 ENDFORM.
 
 START-OF-SELECTION.
