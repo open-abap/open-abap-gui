@@ -14,4 +14,4 @@ START-OF-SELECTION.
   gv_dir = p_dir.
   gt_hist-p_dir = gv_dir.
   APPEND gt_hist.
-  WRITE: / gv_dir, lines( gt_hist ).
+  WRITE: / gv_dir, lines( gt_hist[] ).
