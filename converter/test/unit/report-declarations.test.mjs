@@ -228,3 +228,51 @@ test("strict mode returns no class whose generated source fails validation", asy
   assert.equal(strict.classSource, undefined);
   assert.equal(strict.helperSources, undefined);
 });
+
+// GGCONV-REG-052: DATA lv_count(10) TYPE i was copied into the class as
+// written; a report ignores a length on a type whose length is fixed, a class
+// rejects it ("Lengths specified in combination with type "I" are ignored").
+// examples/zgg_ex_216 is the program whose converted class npm test lints.
+test("a length on a fixed-length built-in type is dropped, c, n, x and p keep theirs", async () => {
+  const result = await example(216);
+  assert.match(result.classSource, /^ {4}DATA gv_count TYPE i\.$/m);
+  assert.match(result.classSource, /^ {4}DATA gv_name\(10\) TYPE c\.$/m);
+  assert.match(result.classSource, /^ {4}DATA gv_amount\(8\) TYPE p DECIMALS 2\.$/m);
+  assert.match(result.classSource, /^ {4}CONSTANTS gc_start TYPE d VALUE '20240101'\.$/m);
+  assert.match(result.classSource, /^ {4}TYPES ty_time TYPE t\.$/m);
+  assert.match(result.classSource, /DATA: BEGIN OF gs_line, id TYPE i, text\(20\) TYPE c, END OF gs_line\./);
+  assert.match(method(result.classSource, "form_show"), /DATA lv_calls TYPE i\./);
+  assert.doesNotMatch(result.classSource, /\(\d+\) TYPE (?:i|d|t)\b/i);
+});
+
+test("every fixed-length built-in type loses its length, whatever declares it", async () => {
+  const fixed = ["i", "int8", "b", "s", "f", "d", "t", "decfloat16", "decfloat34", "string", "xstring", "utclong"];
+  const result = await convert([
+    "REPORT zreg_decl.",
+    ...fixed.map((type, index) => `DATA gv_${index}(4) TYPE ${type.toUpperCase()}.`),
+    "DATA gv_n(4) TYPE n.",
+    "DATA gv_x(4) TYPE x.",
+    "DATA gv_ref TYPE REF TO i.",
+    "TYPES ty_count(10) TYPE i.",
+    "CONSTANTS gc_count(10) TYPE i VALUE 1.",
+    "FORM run.",
+    "  STATICS sv_count(10) TYPE i.",
+    "  DATA lv_text(10) TYPE string.",
+    "  sv_count = gc_count.",
+    "  lv_text = 'A'.",
+    "  WRITE: / sv_count, lv_text, gv_n, gv_x.",
+    "ENDFORM.",
+    "START-OF-SELECTION.",
+    "  PERFORM run.",
+  ]);
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  fixed.forEach((type, index) => assert.match(result.classSource, new RegExp(`DATA gv_${index} TYPE ${type}\.`, "i")));
+  assert.match(result.classSource, /DATA gv_n\(4\) TYPE n\./);
+  assert.match(result.classSource, /DATA gv_x\(4\) TYPE x\./);
+  assert.match(result.classSource, /DATA gv_ref TYPE REF TO i\./);
+  assert.match(result.classSource, /TYPES ty_count TYPE i\./);
+  assert.match(result.classSource, /CONSTANTS gc_count TYPE i VALUE 1\./);
+  const form = method(result.classSource, "form_run");
+  assert.match(form, /DATA sv_count TYPE i\./);
+  assert.match(form, /DATA lv_text TYPE string\./);
+});

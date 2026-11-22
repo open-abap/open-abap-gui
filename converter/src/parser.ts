@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { Config, MemoryFile, Nodes, Registry, Version, VirtualPosition } from "@abaplint/core";
+import { Config, Expressions, MemoryFile, Nodes, Registry, Version, VirtualPosition } from "@abaplint/core";
 import { ABAPParser } from "@abaplint/core/build/src/abap/abap_parser.js";
 import { diagnostic, parserIssueToDiagnostic } from "./diagnostics.js";
 import { rangeFromOffsets } from "./source-resolver.js";
@@ -22,8 +22,30 @@ export interface ParseResult {
 function statementText(statement: Nodes.StatementNode): string {
   // A macro expansion's tokens all sit at the call; only their virtual
   // positions tell sy-dbcnt from sy - dbcnt.
-  if (statement.getFirstToken?.()?.getStart() instanceof VirtualPosition) return statement.concatTokensVirtual();
-  return statement.concatTokens?.() ?? "";
+  if (statement.getFirstToken?.()?.getStart() instanceof VirtualPosition) return withoutIgnoredLength(statement, statement.concatTokensVirtual());
+  return withoutIgnoredLength(statement, statement.concatTokens?.() ?? "");
+}
+
+// Built-in types whose length is fixed: a report may still write
+// DATA lv_count(10) TYPE i, the length being ignored, but in a class the
+// syntax check rejects it ("Lengths specified in combination with type I are
+// ignored"). c, n, x and p keep theirs.
+const FIXED_LENGTH_TYPES = new Set(["i", "int8", "b", "s", "f", "d", "t", "decfloat16", "decfloat34", "string", "xstring", "utclong"]);
+const LENGTH_DECLARATIONS = new Set(["Data", "Static", "Constant", "Type", "ClassData"]);
+
+function withoutIgnoredLength(statement: Nodes.StatementNode, text: string): string {
+  if (!LENGTH_DECLARATIONS.has(statement.get?.()?.constructor?.name)) return text;
+  const definition = statement.findDirectExpression(Expressions.DataDefinition) ?? statement;
+  const length = definition.findDirectExpression(Expressions.ConstantFieldLength);
+  const type = definition.findDirectExpression(Expressions.Type);
+  // Only TYPE <name>: TYPE REF TO, TYPE LINE OF and the like have no length.
+  if (!length || type?.getChildren().length !== 2) return text;
+  const typeName = type.findDirectExpression(Expressions.TypeName)?.concatTokens().toLowerCase();
+  if (!typeName || !FIXED_LENGTH_TYPES.has(typeName)) return text;
+  const name = (definition.findDirectExpression(Expressions.DefinitionName)
+    ?? definition.findDirectExpression(Expressions.NamespaceSimpleName))?.concatTokens();
+  if (!name) return text;
+  return text.replace(`${name}${length.concatTokens()}`, name);
 }
 
 function offsetForPosition(source: string, position: { row: number; col: number }): number {
