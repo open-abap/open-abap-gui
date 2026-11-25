@@ -319,13 +319,11 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD handle_post.
     DATA lv_path TYPE string.
     DATA lv_content_type TYPE string.
-    DATA lv_cdata TYPE string.
     DATA lv_command TYPE string.
     DATA lv_session_id TYPE string.
     DATA lv_page_id TYPE string.
     DATA lv_close_error TYPE string.
     DATA lt_fields TYPE tihttpnvp.
-    DATA lt_body_fields TYPE tihttpnvp.
     DATA ls_command TYPE zcl_gg_transaction_command=>ty_result.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
     DATA lo_transaction TYPE REF TO object.
@@ -343,11 +341,6 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         RETURN.
       ENDIF.
       server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
-      IF lv_content_type CS 'application/x-www-form-urlencoded'.
-        lv_cdata = server->request->get_cdata( ).
-        lt_body_fields = cl_http_utility=>string_to_fields( lv_cdata ).
-        APPEND LINES OF lt_body_fields TO lt_fields.
-      ENDIF.
       lv_command = form_value( it_fields = lt_fields
                                iv_name   = 'command' ).
       lv_session_id = form_value( it_fields = lt_fields
@@ -489,19 +482,11 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD request_from_form.
-    DATA lv_content_type TYPE string.
-    DATA lv_cdata        TYPE string.
     DATA lt_fields       TYPE tihttpnvp.
-    DATA lt_body_fields  TYPE tihttpnvp.
     DATA ls_payload      TYPE ty_payload.
 
+* The form fields already hold the urlencoded body next to the query string.
     server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
-    lv_content_type = server->request->get_header_field( 'content-type' ).
-    IF lv_content_type CS 'application/x-www-form-urlencoded'.
-      lv_cdata = server->request->get_cdata( ).
-      lt_body_fields = cl_http_utility=>string_to_fields( lv_cdata ).
-      APPEND LINES OF lt_body_fields TO lt_fields.
-    ENDIF.
     ls_payload-session_id = form_value( it_fields = lt_fields
                                         iv_name   = 'session_id' ).
     ls_payload-page_id = form_value( it_fields = lt_fields
