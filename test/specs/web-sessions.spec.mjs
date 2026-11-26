@@ -138,6 +138,37 @@ for (const host of hosts) {
       await expect(page.locator("#gg-frames iframe")).toHaveCount(1);
     });
 
+    test("back to the workbench, the rail shows no transaction", async ({page}) => {
+      await open(page, "ZGG_EX_003");
+      await onScreen(page).getByRole("button", {name: "Back"}).click();
+      await expect(onScreen(page).locator("#wb-app-panel")).toBeVisible();
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("Workbench");
+      await expect(railEntries(page).first().locator(".gg-rail-title")).toHaveText("");
+    });
+
+    test("a command error keeps the running transaction in the rail", async ({page}) => {
+      await open(page, "ZGG_EX_003");
+      await command(page, "/xyz");
+      await expect(statusMessage(onScreen(page))).not.toHaveText("");
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("ZGG_EX_003");
+    });
+
+    test("SUBMIT lists the submitted program in the rail", async ({page}) => {
+      await open(page);
+      await command(page, "/nZGG_EX_053");
+      await expect(onScreen(page).locator(".gg-list")).toContainText("hello world");
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("ZGG_EX_001");
+    });
+
+    // The return to the caller is in zcl_gg_host_runtime's unit tests: SE38's
+    // status has no Back of its own, so its button leaves for the workbench.
+    test("CALL TRANSACTION lists the called transaction in the rail", async ({page}) => {
+      await open(page);
+      await command(page, "/nZGG_EX_056");
+      await expect(onScreen(page).locator('[name="P_PROGRAM"]')).toBeVisible();
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("SE38");
+    });
+
     test("value help works in a second session", async ({page}) => {
       await open(page);
       await command(page, "/ose16");

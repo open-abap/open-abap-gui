@@ -15,6 +15,9 @@ CLASS zcl_gg_shell DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * The rail lists the sessions in the order they opened, with the transaction
 * code and screen title of each, and ends one from its button; the last
 * session stays open. It collapses to the start of each transaction code.
+* The host names the transaction on screen in the x-gg-transaction response
+* header, see zcl_gg_host_runtime=>transaction_of; the shell never guesses it
+* from the URL, since a program ends or calls another without one.
 * Its look is "Midnight Glass": a navy gradient, the active session a frosted
 * pane with a gold marker.
 
@@ -73,8 +76,9 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'border-color: rgba(255, 255, 255, .16); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 6px 16px rgba(2, 8, 20, .35); }' && ` ` &&
       '.gg-rail-item--active::before { content: ""; position: absolute; left: -5px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px;' && ` ` &&
       'background: linear-gradient(#ffd766, #f0a400); box-shadow: 0 0 8px rgba(255, 200, 60, .6); }' && ` ` &&
+      '/* Every entry is as tall as one with a title line, the code centred in one without. */' && ` ` &&
       '.gg-rail-select { all: unset; box-sizing: border-box; cursor: pointer; flex: 1; min-width: 0; display: flex; flex-direction: column;' && ` ` &&
-      'padding: 6px 10px; border-radius: 9px; }' && ` ` &&
+      'justify-content: center; min-height: calc(13px * 1.3 + 11px * 1.3 + 12px); padding: 6px 10px; border-radius: 9px; }' && ` ` &&
       '.gg-rail-code { font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }' && ` ` &&
       '.gg-rail-title { font-size: 11px; color: #a3b9d3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }' && ` ` &&
       '.gg-rail-title:empty { display: none; }' && ` ` &&
@@ -87,9 +91,18 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'border-radius: 7px; white-space: nowrap; overflow: hidden; color: #b9cbe0; }' && ` ` &&
       '.gg-rail-foot button:hover, .gg-rail-foot button:focus-visible { background: rgba(255, 255, 255, .07); color: #fff; }' && ` ` &&
       '.gg-rail-select:focus-visible, .gg-rail-end:focus-visible, .gg-rail-foot button:focus-visible { outline: 2px solid #f0b400; outline-offset: -2px; }' && ` ` &&
-      '.gg-rail-glyph { width: 18px; text-align: center; flex: none; }' && ` ` &&
-      '#gg-rail-new .gg-rail-glyph { height: 18px; line-height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(255, 215, 102, .7); color: #ffd766; }' && ` ` &&
-      '@media (prefers-reduced-motion: reduce) { .gg-rail-item { transition: none; } }' && ` ` &&
+      '/* The glyphs are SVG, centred by the grid: a text glyph sits on its font''s baseline, off the middle of a circle. */' && ` ` &&
+      '.gg-rail-glyph { width: 20px; height: 20px; flex: none; display: grid; place-items: center; }' && ` ` &&
+      '.gg-rail-glyph svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }' && ` ` &&
+      '#gg-rail-new .gg-rail-glyph { border-radius: 50%; color: #ffd766;' && ` ` &&
+      'background: linear-gradient(180deg, rgba(255, 215, 102, .22), rgba(240, 164, 0, .1));' && ` ` &&
+      'box-shadow: inset 0 0 0 1px rgba(255, 215, 102, .5), 0 0 10px rgba(255, 200, 60, .15);' && ` ` &&
+      'transition: background .15s, color .15s, box-shadow .15s; }' && ` ` &&
+      '#gg-rail-new .gg-rail-glyph svg { width: 12px; height: 12px; stroke-width: 2.4; }' && ` ` &&
+      '#gg-rail-new:hover .gg-rail-glyph, #gg-rail-new:focus-visible .gg-rail-glyph { color: #172c4a;' && ` ` &&
+      'background: linear-gradient(#ffd766, #f0a400); box-shadow: 0 0 12px rgba(255, 200, 60, .45); }' && ` ` &&
+      '.gg-rail-collapse-glyph { transition: transform .2s; }' && ` ` &&
+      '@media (prefers-reduced-motion: reduce) { .gg-rail-item, .gg-rail-glyph, .gg-rail-collapse-glyph { transition: none; } }' && ` ` &&
       '/* Collapsed, the rail shows the start of each transaction code. */' && ` ` &&
       '.gg-shell--collapsed #gg-rail { padding: 8px 4px; }' && ` ` &&
       '.gg-shell--collapsed .gg-rail-title, .gg-shell--collapsed .gg-rail-end, .gg-shell--collapsed .gg-rail-label { display: none; }' && ` ` &&
@@ -104,8 +117,10 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '<nav id="gg-rail" aria-label="Sessions">' && ` ` &&
       '<ol id="gg-rail-list"></ol>' && ` ` &&
       '<div class="gg-rail-foot">' && ` ` &&
-      '<button id="gg-rail-new" type="button" title="Create Session (/o)"><span class="gg-rail-glyph" aria-hidden="true">+</span><span class="gg-rail-label">New session</span></button>' && ` ` &&
-      '<button id="gg-rail-collapse" type="button" title="Collapse the session list" aria-controls="gg-rail-list"><span class="gg-rail-glyph gg-rail-collapse-glyph" aria-hidden="true">&laquo;</span><span class="gg-rail-label">Collapse</span></button>' && ` ` &&
+      '<button id="gg-rail-new" type="button" title="Create Session (/o)"><span class="gg-rail-glyph" aria-hidden="true">' &&
+      '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="gg-rail-label">New session</span></button>' && ` ` &&
+      '<button id="gg-rail-collapse" type="button" title="Collapse the session list" aria-controls="gg-rail-list"><span class="gg-rail-glyph gg-rail-collapse-glyph" aria-hidden="true">' &&
+      '<svg viewBox="0 0 24 24"><path d="M11 7l-5 5 5 5M18 7l-5 5 5 5"/></svg></span><span class="gg-rail-label">Collapse</span></button>' && ` ` &&
       '</div>' && ` ` &&
       '</nav>' && ` ` &&
       '<div id="gg-frames"></div>' && ` ` &&
@@ -147,7 +162,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'frame.hidden = true;' && ` ` &&
       'frames.appendChild(frame);' && ` ` &&
       'lastKey += 1;' && ` ` &&
-      'var session = {window: windowId, key: String(lastKey), frame: frame, tcode: "", title: "", command: null, handlers: null, nativeSubmit: null};' && ` ` &&
+      'var session = {window: windowId, key: String(lastKey), frame: frame, tcode: "", title: "", handlers: null, nativeSubmit: null};' && ` ` &&
       'sessions.push(session);' && ` ` &&
       'return session;' && ` ` &&
       '}' && ` ` &&
@@ -186,40 +201,9 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '}' && ` ` &&
       '}' && ` ` &&
       '}' && ` ` &&
-      '/* What the rail shows: the transaction or program a route names. */' && ` ` &&
-      'function rememberRoute(session, value) {' && ` ` &&
-      'var url = new URL(value, location.href);' && ` ` &&
-      'var path = route(url).split("?")[0];' && ` ` &&
-      'if (path === "/transaction") {' && ` ` &&
-      'session.tcode = (url.searchParams.get("tcode") || "").toUpperCase();' && ` ` &&
-      '} else if (path === "/program") {' && ` ` &&
-      'session.tcode = (url.searchParams.get("name") || "").toUpperCase();' && ` ` &&
-      '} else if (path === "/") {' && ` ` &&
-      'session.tcode = "";' && ` ` &&
-      '}' && ` ` &&
-      '}' && ` ` &&
-      '/* The transaction a command names, for the rail; the host decides what runs. */' && ` ` &&
-      'function noteCommand(session, path, body) {' && ` ` &&
-      'session.command = null;' && ` ` &&
-      'if (path !== "/transaction" || !(body instanceof URLSearchParams)) {' && ` ` &&
-      'return;' && ` ` &&
-      '}' && ` ` &&
-      'var action = body.get("session");' && ` ` &&
-      'var command = action === "open" ? "/o" : action === "end" ? "/i" : (body.get("command") || "").trim();' && ` ` &&
-      'var match = /^\/([no])(\S*)$/i.exec(command);' && ` ` &&
-      'if (match) {' && ` ` &&
-      'session.command = {kind: match[1].toLowerCase(), tcode: match[2].toUpperCase()};' && ` ` &&
-      '}' && ` ` &&
-      '}' && ` ` &&
       'function request(session, value, init) {' && ` ` &&
       'init = init || {};' && ` ` &&
       'var method = String(init.method || "GET").toUpperCase();' && ` ` &&
-      'if (method === "GET") {' && ` ` &&
-      'rememberRoute(session, value);' && ` ` &&
-      'session.command = null;' && ` ` &&
-      '} else {' && ` ` &&
-      'noteCommand(session, value.split("?")[0], init.body);' && ` ` &&
-      '}' && ` ` &&
       'return fetch(value, {method: method, body: init.body, headers: {"x-gg-window": session.window}})' && ` ` &&
       '.then(function (response) {' && ` ` &&
       'if (session.window === NEW_WINDOW) {' && ` ` &&
@@ -233,15 +217,12 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '}' && ` ` &&
       'function handleResponse(session, response) {' && ` ` &&
       'var kind = response.headers.get("x-gg-session");' && ` ` &&
-      'var command = session.command;' && ` ` &&
-      'session.command = null;' && ` ` &&
       'if (kind === "end") {' && ` ` &&
       'removeSession(session);' && ` ` &&
       'return undefined;' && ` ` &&
       '}' && ` ` &&
       'if (kind === "new") {' && ` ` &&
       'var created = createSession(response.headers.get("x-gg-window"));' && ` ` &&
-      'created.tcode = command && command.kind === "o" ? command.tcode : "";' && ` ` &&
       'return write(created, response).then(function () {' && ` ` &&
       '/* The command stays in the session it was typed in; clear it there. */' && ` ` &&
       'var form = session.frame.contentDocument && session.frame.contentDocument.getElementById(COMMAND_FORM);' && ` ` &&
@@ -251,13 +232,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'activate(created);' && ` ` &&
       '});' && ` ` &&
       '}' && ` ` &&
-      'return write(session, response).then(function () {' && ` ` &&
-      'var doc = session.frame.contentDocument;' && ` ` &&
-      'if (command && command.kind === "n" && !doc.querySelector(".wb-status-error[role=alert]")) {' && ` ` &&
-      'session.tcode = command.tcode;' && ` ` &&
-      'renderRail();' && ` ` &&
-      '}' && ` ` &&
-      '});' && ` ` &&
+      'return write(session, response);' && ` ` &&
       '}' && ` ` &&
       'function write(session, response) {' && ` ` &&
       'return response.text().then(function (html) {' && ` ` &&
@@ -271,6 +246,15 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'install(session);' && ` ` &&
       'var title = doc.getElementById("wb-page-title");' && ` ` &&
       'session.title = (title && title.textContent.trim()) || doc.title || "";' && ` ` &&
+      '/* The host names the program on screen, which CALL TRANSACTION and SUBMIT change;' && ` ` &&
+      'the workbench with no program running has none. Any other page, such as an' && ` ` &&
+      'error while a program runs, keeps the one before. */' && ` ` &&
+      'var tcode = response.headers.get("x-gg-transaction");' && ` ` &&
+      'if (tcode !== null) {' && ` ` &&
+      'session.tcode = tcode;' && ` ` &&
+      '} else if (doc.querySelector("[data-gg-menu]")) {' && ` ` &&
+      'session.tcode = "";' && ` ` &&
+      '}' && ` ` &&
       'session.frame.title = session.title || "Session";' && ` ` &&
       'renderRail();' && ` ` &&
       '});' && ` ` &&

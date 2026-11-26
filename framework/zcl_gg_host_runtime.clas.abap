@@ -24,6 +24,9 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * CALL TRANSACTION ... AND SKIP FIRST SCREEN: the first screen is processed
 * with Enter as soon as its PBO has filled it.
         iv_skip_first_screen     TYPE abap_bool DEFAULT abap_false
+* The transaction code the program was started with, or the program name of
+* one started without a transaction, as SUBMIT does; see transaction_of.
+        iv_tcode                 TYPE string OPTIONAL
       RETURNING
         VALUE(rs_response)       TYPE zif_gg_host_html_v1=>ty_response.
 
@@ -51,6 +54,17 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS close_window
       IMPORTING
         iv_window TYPE string.
+
+* What a running program is listed as in the session shell: the transaction
+* it was started with, or its program name when SUBMIT or the workbench
+* started it without one. A program started by CALL TRANSACTION or SUBMIT is
+* listed while it runs, and its caller again once it returns. Initial for a
+* program not running.
+    CLASS-METHODS transaction_of
+      IMPORTING
+        iv_session_id   TYPE string
+      RETURNING
+        VALUE(rv_tcode) TYPE string.
 
 * The GUI session a running program belongs to; initial for one not running.
     CLASS-METHODS window_of
@@ -84,6 +98,8 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * The GUI session of the preview shell the program runs in.
              window              TYPE string,
              program             TYPE zif_gg_session_types_v1=>ty_program,
+* See transaction_of.
+             tcode               TYPE string,
              batch               TYPE abap_bool,
              report              TYPE REF TO zif_gg_report_v1,
              submit_report       TYPE REF TO zif_gg_report_v1,
@@ -326,6 +342,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ls_session-session_id = lv_session_id.
     ls_session-window = zcl_gg_host_windows=>current( ).
     ls_session-program = iv_program.
+    ls_session-tcode = to_upper( iv_tcode ).
     ls_session-batch = iv_batch.
     ls_session-report = io_report.
     ls_session-submit_report = io_submit_report.
@@ -691,21 +708,25 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         io_dynpro_program    = lo_dynpro
         iv_program           = CONV #( ls_transaction-class_name )
         iv_caller            = lv_caller
-        iv_skip_first_screen = is_navigation-skip_first_screen ).
+        iv_skip_first_screen = is_navigation-skip_first_screen
+        iv_tcode             = CONV #( ls_transaction-tcode ) ).
     ELSEIF is_navigation-kind = zcx_gg_control_flow=>kind_submit_return
         OR is_navigation-kind = zcx_gg_control_flow=>kind_submit.
+* SUBMIT names a program, not a transaction.
       rs_response = start(
         io_report                = lo_report
         it_input                 = is_submit-values
         iv_interactive           = abap_false
         iv_selection_screen_only = is_submit-via_selection_screen
-        iv_caller                = lv_caller ).
+        iv_caller                = lv_caller
+        iv_tcode                 = is_navigation-target ).
     ELSE.
       rs_response = start(
         io_report            = lo_report
         iv_program           = CONV #( ls_transaction-class_name )
         iv_caller            = lv_caller
-        iv_skip_first_screen = is_navigation-skip_first_screen ).
+        iv_skip_first_screen = is_navigation-skip_first_screen
+        iv_tcode             = CONV #( ls_transaction-tcode ) ).
     ENDIF.
   ENDMETHOD.
 
@@ -1343,6 +1364,16 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     zcl_gg_gui_runtime=>restore_state( <ls_state>-controls ).
     cl_alv_tree_base=>restore_instances( <ls_state>-trees ).
     zcl_gg_host_dynpro=>restore_state( <ls_state>-dynpro ).
+  ENDMETHOD.
+
+  METHOD transaction_of.
+    IF iv_session_id IS INITIAL.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_sessions INTO DATA(ls_session) WITH KEY session_id = iv_session_id.
+    IF sy-subrc = 0.
+      rv_tcode = ls_session-tcode.
+    ENDIF.
   ENDMETHOD.
 
   METHOD window_of.

@@ -115,6 +115,7 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_report          TYPE REF TO zif_gg_report_v1 OPTIONAL
         io_dynpro          TYPE REF TO zif_gg_dynpro_v1 OPTIONAL
         iv_program         TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
+        iv_tcode           TYPE string
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 
@@ -335,7 +336,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       lo_report ?= lo_program.
       ls_response = start_program(
         io_report  = lo_report
-        iv_program = CONV #( ls_program-class_name ) ).
+        iv_program = CONV #( ls_program-class_name )
+        iv_tcode   = CONV #( ls_program-program ) ).
       IF ls_response-valid = abap_false.
         send_workbench_error(
           server    = server
@@ -1091,11 +1093,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     IF io_dynpro IS BOUND.
       rs_response = zcl_gg_host_runtime=>start(
         io_dynpro_program = io_dynpro
-        iv_program        = iv_program ).
+        iv_program        = iv_program
+        iv_tcode          = iv_tcode ).
     ELSEIF io_report IS BOUND.
       rs_response = zcl_gg_host_runtime=>start(
         io_report  = io_report
-        iv_program = iv_program ).
+        iv_program = iv_program
+        iv_tcode   = iv_tcode ).
     ELSE.
       rs_response-valid = abap_false.
       rs_response-error = 'A report or dynpro program is required'.
@@ -1137,12 +1141,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         lo_report ?= lo_object.
         rs_response = start_program(
           io_report  = lo_report
-          iv_program = CONV #( is_transaction-class_name ) ).
+          iv_program = CONV #( is_transaction-class_name )
+          iv_tcode   = CONV #( is_transaction-tcode ) ).
       WHEN zcl_gg_transaction_registry=>kind_dynpro.
         lo_dynpro ?= lo_object.
         rs_response = start_program(
           io_dynpro  = lo_dynpro
-          iv_program = CONV #( is_transaction-class_name ) ).
+          iv_program = CONV #( is_transaction-class_name )
+          iv_tcode   = CONV #( is_transaction-tcode ) ).
       WHEN OTHERS.
         RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
           iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind|.
@@ -1172,6 +1178,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
                     iv_message = ls_message-text
                     iv_type    = ls_message-type ) ).
     ELSEIF is_response-valid = abap_true.
+* The session shell lists the GUI session under the program on screen, which
+* changes with CALL TRANSACTION, SUBMIT and the return from them.
+      DATA(lv_tcode) = zcl_gg_host_runtime=>transaction_of( is_response-session_id ).
+      IF lv_tcode IS NOT INITIAL.
+        server->response->set_header_field(
+          name  = 'x-gg-transaction'
+          value = lv_tcode ).
+      ENDIF.
       send_html(
         server  = server
         iv_html = is_response-html ).

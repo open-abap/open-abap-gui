@@ -129,7 +129,11 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '.wb-logo-mark{display:block;width:min(42vw,280px);max-width:72%;max-height:64%;height:auto;filter:drop-shadow(0 8px 8px rgba(23,74,128,.18))}' &&
       '.wb-wordmark{position:relative;z-index:1;padding:8px 12px;color:#174a80;font:bold clamp(24px,4vw,48px) Arial;text-shadow:0 1px 1px #fff;border-bottom:clamp(3px,.4vw,6px) solid #4d82b6}' &&
       '@media(max-width:760px){.wb-workspace{margin-left:10px;margin-right:10px}}' &&
-      '</style></head><body><div class="wb-shell">' &&
+      '</style></head><body>' &&
+* data-gg-menu: no program runs in this GUI session any more, so the session
+* shell lists it without a transaction. An error shown while a program runs
+* keeps its session id, and Back returns to that program.
+      COND string( WHEN iv_session_id IS INITIAL THEN '<div class="wb-shell" data-gg-menu>' ELSE '<div class="wb-shell">' ) &&
       zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
       iv_session_id = iv_session_id
