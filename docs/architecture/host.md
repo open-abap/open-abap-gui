@@ -31,7 +31,8 @@ everything else through the session object it gets in every callback
 ## Around the programs
 
 - `zcl_gg_workbench`: the start page, listing transactions and reports.
-- `zcl_gg_shell`: the page at `/`, a rail of GUI sessions, each in an iframe.
+- `zcl_gg_shell`: the page at `/`, a rail of GUI sessions, each in an iframe;
+  a route in the hash (`/#/transaction?tcode=SE16`) opens in its session.
 - `zcl_gg_transaction_registry`, `zcl_gg_program_registry`: catalogs built by
   `zcl_gg_class_discovery`.
 - `zif_gg_host_environment_v1`: setup and teardown hooks, such as database

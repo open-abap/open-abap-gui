@@ -9,7 +9,7 @@
 | [converter/](../../converter/) | TypeScript PROG-to-CLAS converter, published as its own npm package |
 | [examples/](../../examples/) | example programs and the classes generated from them, plus integration classes and DDIC objects |
 | [test/](../../test/) | test scripts and Playwright specs |
-| [web/](../../web/) | the page the browser preview bundle is built into |
+| [web/](../../web/) | the browser preview: `web.mjs`, its transport (the handler answers `fetch( )` in the tab), and the HTML template webpack builds it into |
 
 Consumers take `src/` and `framework/` as an abap_transpile lib; see the
 [README](../../README.md).

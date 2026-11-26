@@ -169,6 +169,24 @@ for (const host of hosts) {
       await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("SE38");
     });
 
+    test("a route in the hash opens in the session, and a new hash replaces it", async ({page}) => {
+      await page.goto(`${running.base}#/transaction?tcode=SE16`, {waitUntil: "load"});
+      await expect(railEntries(page)).toHaveCount(1);
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("SE16");
+      await expect(onScreen(page).getByRole("button", {name: "Table Contents", exact: true})).toBeVisible();
+
+      await page.evaluate(() => { window.location.hash = "/transaction?tcode=SE11"; });
+      await expect(railEntries(page)).toHaveCount(1);
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("SE11");
+      await expect(onScreen(page).locator("#wb-page-title")).toContainText("Dictionary");
+    });
+
+    test("a hash that is not a path of the host opens the workbench", async ({page}) => {
+      await page.goto(`${running.base}#//example.com/transaction?tcode=SE16`, {waitUntil: "load"});
+      await expect(onScreen(page).locator("#wb-app-panel")).toBeVisible({timeout: 30000});
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("Workbench");
+    });
+
     test("value help works in a second session", async ({page}) => {
       await open(page);
       await command(page, "/ose16");

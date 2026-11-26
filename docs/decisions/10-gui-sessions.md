@@ -11,6 +11,9 @@ before the request runs, like the roll area in SAP.
   field; a request that names none belongs to the first session. A shell's
   first request asks for a new session, so browser tabs never share one.
 - Programs started in a session end with it; the last session stays open.
+- The rail lists each session under the transaction on screen, which the host
+  names in the `x-gg-transaction` header; the shell never guesses it from the
+  URL, since CALL TRANSACTION, SUBMIT and Back change it without one.
 
 Code: [framework/zcl_gg_host_windows.clas.abap](../../framework/zcl_gg_host_windows.clas.abap),
 [framework/zcl_gg_shell.clas.abap](../../framework/zcl_gg_shell.clas.abap)

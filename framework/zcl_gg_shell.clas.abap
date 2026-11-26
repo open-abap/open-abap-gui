@@ -9,8 +9,9 @@ CLASS zcl_gg_shell DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * zcl_gg_host_windows), so the shells of several browser tabs never share a
 * session. The host says when a session opens or ends with the x-gg-session
 * response header, after /o, /i or System > Create Session and End Session.
-* In the browser preview fetch( ) is the ABAP runtime in the tab, on the npm
-* start server it is the network; the shell is the same in both.
+* In the browser preview fetch( ) is the ABAP runtime in the tab (web/web.mjs),
+* on the npm start server it is the network; the shell is the same in both.
+* A route in the hash (/#/transaction?tcode=SE16) opens in the active session.
 *
 * The rail lists the sessions in the order they opened, with the transaction
 * code and screen title of each, and ends one from its button; the last
@@ -442,9 +443,19 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '}' && ` ` &&
       '});' && ` ` &&
       'setCollapsed(collapsed());' && ` ` &&
+      '/* A route in the address bar''s hash, as #/transaction?tcode=SE16, opens in the' && ` ` &&
+      'active session, at the start and whenever the hash changes; without one the' && ` ` &&
+      'session shows the workbench. Only a path of this host is taken. */' && ` ` &&
+      'function hashRoute() {' && ` ` &&
+      'var value = location.hash.slice(1);' && ` ` &&
+      'return /^\/(?!\/)/.test(value) ? value : "/";' && ` ` &&
+      '}' && ` ` &&
+      'window.addEventListener("hashchange", function () {' && ` ` &&
+      'request(active, hashRoute());' && ` ` &&
+      '});' && ` ` &&
       'var first = createSession(NEW_WINDOW);' && ` ` &&
       'activate(first);' && ` ` &&
-      'request(first, "/");' && ` ` &&
+      'request(first, hashRoute());' && ` ` &&
       '}());'.
   ENDMETHOD.
 

@@ -15,6 +15,17 @@ A request names its GUI session in the `x-gg-window` header or the
 `gg_window` field; one that names none belongs to the first session. The
 `<id>` in `/session/<id>` is a running program, not a GUI session.
 
+The shell at `/` opens a route given in the hash in its session, so
+`/#/transaction?tcode=SE16` starts SE16 inside the shell.
+
+## Headers for the shell
+
+| response header | meaning |
+| --- | --- |
+| `x-gg-window` | the GUI session the host opened for a shell's first request |
+| `x-gg-session` | `new` or `end`: a GUI session opened (`/o`) or ended (`/i`) |
+| `x-gg-transaction` | the transaction, or program, on screen; the rail lists the session under it |
+
 ## One user action
 
 ```text
@@ -39,5 +50,8 @@ last message in the status bar.
 ## Two hosts, one flow
 
 On the express server, `fetch( )` from the shell goes over the network to the
-handler. In the browser preview the same handler runs inside the tab, so
-`fetch( )` never leaves the page.
+handler. In the browser preview, [web/web.mjs](../../web/web.mjs) replaces
+`fetch( )` and hands each request to the same handler inside the tab, so it
+never leaves the page. Apart from writing the shell into the page at start,
+that is all `web.mjs` does: the shell, the pages and their scripts all come
+from the ABAP host, in both hosts.
