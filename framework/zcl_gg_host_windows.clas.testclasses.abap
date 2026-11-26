@@ -9,6 +9,8 @@ CLASS ltcl_windows DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLE
     METHODS normalizes_window_names FOR TESTING.
     METHODS keeps_last_window_per_shell FOR TESTING.
     METHODS script_names_the_window FOR TESTING.
+    METHODS shell_ids_are_not_reused FOR TESTING.
+    METHODS ends_the_whole_shell FOR TESTING.
 
 ENDCLASS.
 
@@ -88,6 +90,44 @@ CLASS ltcl_windows IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = zcl_gg_host_windows=>end( lv_second_tab_more )
       exp = 'The last session cannot be ended.' ).
+  ENDMETHOD.
+
+* A tab that enters a window name again after it ended starts a shell of its
+* own; it does not join the windows the ended one opened.
+  METHOD shell_ids_are_not_reused.
+    zcl_gg_host_windows=>enter( `W0` ).
+    DATA(lv_second) = zcl_gg_host_windows=>open( ).
+    zcl_gg_host_windows=>enter( `W0` ).
+    cl_abap_unit_assert=>assert_initial( act = zcl_gg_host_windows=>end( `W0` ) ).
+
+    zcl_gg_host_windows=>enter( `W0` ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_windows=>count( )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_windows=>end( `W0` )
+      exp = 'The last session cannot be ended.' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_windows=>end( lv_second )
+      exp = 'The last session cannot be ended.' ).
+  ENDMETHOD.
+
+* A shell closed or reloaded takes all its windows along, and no other's.
+  METHOD ends_the_whole_shell.
+    DATA(lv_first_tab) = zcl_gg_host_windows=>open( iv_own_shell = abap_true ).
+    DATA(lv_second_tab) = zcl_gg_host_windows=>open( iv_own_shell = abap_true ).
+    zcl_gg_host_windows=>open( ).
+    zcl_gg_gui_runtime=>set_external_html( `<p>second tab</p>` ).
+    zcl_gg_host_windows=>end_shell( lv_second_tab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_windows=>total( )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_initial( act = zcl_gg_host_windows=>current( ) ).
+    cl_abap_unit_assert=>assert_false( act = zcl_gg_gui_runtime=>has_content( ) ).
+    zcl_gg_host_windows=>enter( lv_first_tab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_host_windows=>count( )
+      exp = 1 ).
   ENDMETHOD.
 
 * The name a request sends goes into the page script, so only a plain name is

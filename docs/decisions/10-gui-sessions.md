@@ -9,8 +9,12 @@ before the request runs, like the roll area in SAP.
   iframe, so pages keep their own styles, ids and scripts.
 - Requests name their session in the `x-gg-window` header or the `gg_window`
   field; a request that names none belongs to the first session. A shell's
-  first request asks for a new session, so browser tabs never share one.
-- Programs started in a session end with it; the last session stays open.
+  first request asks for a new session, so browser tabs never share one; its
+  other requests wait for the session's name.
+- Each shell, or browser tab, has an id the host never uses again, and the
+  last session of a shell stays open. A reload or a closed tab ends all the
+  sessions of its shell.
+- Programs started in a session end with it.
 - The rail lists each session under the transaction on screen, which the host
   names in the `x-gg-transaction` header; the shell never guesses it from the
   URL, since CALL TRANSACTION, SUBMIT and Back change it without one.

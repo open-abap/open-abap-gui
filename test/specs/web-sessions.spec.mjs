@@ -187,6 +187,23 @@ for (const host of hosts) {
       await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("Workbench");
     });
 
+    // A URL reads a backslash as a slash, so /\example.com/ names another host.
+    test("a hash that names another host through a backslash opens the workbench", async ({page}) => {
+      const requests = [];
+      page.on("request", (request) => requests.push(request.url()));
+      await page.goto(`${running.base}#/\\example.com/transaction?tcode=SE16`, {waitUntil: "load"});
+      await expect(onScreen(page).locator("#wb-app-panel")).toBeVisible({timeout: 30000});
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("Workbench");
+      expect(requests.filter((url) => url.includes("example.com"))).toEqual([]);
+    });
+
+    test("an unknown transaction in the hash keeps the running one in the rail", async ({page}) => {
+      await open(page, "SE16");
+      await page.evaluate(() => { window.location.hash = "/transaction?tcode=NOPE"; });
+      await expect(statusMessage(onScreen(page))).toContainText("Unknown transaction code: NOPE");
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("SE16");
+    });
+
     test("value help works in a second session", async ({page}) => {
       await open(page);
       await command(page, "/ose16");

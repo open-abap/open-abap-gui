@@ -7,13 +7,18 @@
 | GET | `/` | the shell, or the workbench when a shell session asks |
 | GET | `/transaction?tcode=…` | start a transaction |
 | GET | `/program?name=…` | start a report without a transaction |
-| POST | `/transaction` | a command from the command field: `/n…`, `/o…` (new session) or `/i` (end session) |
+| POST | `/transaction` | a command from the command field: `/n…`, `/o…` (new session) or `/i` (end session); `session=close` ends all sessions of a shell whose page went |
 | POST | `/dispatch` | a user action on the current page |
 | DELETE | `/session/<id>` | close a running program |
 
 A request names its GUI session in the `x-gg-window` header or the
-`gg_window` field; one that names none belongs to the first session. The
-`<id>` in `/session/<id>` is a running program, not a GUI session.
+`gg_window` field; one that names neither belongs to the session of the
+running program it is for (its `session_id`, in a form, a JSON body or
+`/session/<id>`), or else to the first session. The `<id>` in
+`/session/<id>` is a running program, not a GUI session.
+
+The sessions share the host's static GUI state, so both hosts run one
+request at a time.
 
 The shell at `/` opens a route given in the hash in its session, so
 `/#/transaction?tcode=SE16` starts SE16 inside the shell.
@@ -23,7 +28,7 @@ The shell at `/` opens a route given in the hash in its session, so
 | response header | meaning |
 | --- | --- |
 | `x-gg-window` | the GUI session the host opened for a shell's first request |
-| `x-gg-session` | `new` or `end`: a GUI session opened (`/o`) or ended (`/i`) |
+| `x-gg-session` | `new` or `end`: a GUI session opened (`/o`) or ended (`/i`); `/o` for a transaction that does not start opens none |
 | `x-gg-transaction` | the transaction, or program, on screen; the rail lists the session under it |
 
 ## One user action

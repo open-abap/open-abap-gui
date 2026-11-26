@@ -321,6 +321,19 @@ test("the splitter resizes the application list by pointer and keyboard", async 
   expect((await panel.boundingBox()).width).toBeCloseTo(160, 0);
 });
 
+test("the splitter reports the list's real width in a narrow workspace", async ({page, host}) => {
+  await page.setViewportSize({width: 900, height: 720});
+  await page.goto(workbenchUrl(host));
+  await page.evaluate(() => localStorage.removeItem("gg-workbench-panel-width"));
+  await page.reload();
+
+  const panel = page.locator(".wb-app-panel");
+  const splitter = page.getByRole("separator", {name: "Resize application list"});
+  const width = Math.round((await panel.boundingBox()).width);
+  expect(width).toBeLessThan(480);
+  await expect(splitter).toHaveAttribute("aria-valuenow", String(width));
+});
+
 test("index keeps the workbench chrome visible in a short viewport", async ({page, host}) => {
   await page.setViewportSize({width: 900, height: 360});
   await page.goto(workbenchUrl(host));

@@ -73,6 +73,14 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_window) TYPE string.
 
+* Whether a program runs in the GUI session; with no sessions in use, whether
+* any runs.
+    CLASS-METHODS runs_in_window
+      IMPORTING
+        iv_window      TYPE string
+      RETURNING
+        VALUE(rv_runs) TYPE abap_bool.
+
 * The GUI state the running program left behind: its controls, ALV trees and
 * screen attributes. A GUI session of the shell keeps its own copy.
     CLASS-METHODS save_gui_state
@@ -1384,6 +1392,10 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     IF sy-subrc = 0.
       rv_window = ls_session-window.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD runs_in_window.
+    rv_runs = xsdbool( line_exists( mt_sessions[ window = iv_window ] ) ).
   ENDMETHOD.
 
   METHOD close_window.

@@ -7,7 +7,10 @@ CLASS zcl_gg_shell DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * The shell's script fetches the pages with fetch( ), naming its session in the
 * x-gg-window header; its first request asks for a new one (see
 * zcl_gg_host_windows), so the shells of several browser tabs never share a
-* session. The host says when a session opens or ends with the x-gg-session
+* session, and the requests sent before the host named it wait for the name.
+* When the page goes, by a reload or a closed tab, the host ends the shell's
+* sessions. A session's frame carries the status of its last page in
+* data-gg-status; the host's error pages show in the frame like any other. The host says when a session opens or ends with the x-gg-session
 * response header, after /o, /i or System > Create Session and End Session.
 * In the browser preview fetch( ) is the ABAP runtime in the tab (web/web.mjs),
 * on the npm start server it is the network; the shell is the same in both.
@@ -151,7 +154,8 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'if (url.protocol === "file:" && /^\/[A-Za-z]:(\/|$)/.test(path)) {' && ` ` &&
       'path = path.slice(3) || "/";' && ` ` &&
       '}' && ` ` &&
-      'return path + url.search;' && ` ` &&
+      '/* One leading slash: //other.example/ would be a URL of another host. */' && ` ` &&
+      'return path.replace(/^\/+/, "/") + url.search;' && ` ` &&
       '}' && ` ` &&
       'function sameSite(url) {' && ` ` &&
       'return url.origin === location.origin || url.protocol === "file:";' && ` ` &&
@@ -163,7 +167,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'frame.hidden = true;' && ` ` &&
       'frames.appendChild(frame);' && ` ` &&
       'lastKey += 1;' && ` ` &&
-      'var session = {window: windowId, key: String(lastKey), frame: frame, tcode: "", title: "", handlers: null, nativeSubmit: null};' && ` ` &&
+      'var session = {window: windowId, key: String(lastKey), frame: frame, tcode: "", title: "", handlers: null, nativeSubmit: null, opening: null};' && ` ` &&
       'sessions.push(session);' && ` ` &&
       'return session;' && ` ` &&
       '}' && ` ` &&
@@ -203,13 +207,26 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '}' && ` ` &&
       '}' && ` ` &&
       'function request(session, value, init) {' && ` ` &&
+      '/* The first request of a session opens its window on the host; the ones sent' && ` ` &&
+      'before the host named it wait, or each would open another. */' && ` ` &&
+      'if (session.window === NEW_WINDOW && session.opening) {' && ` ` &&
+      'return session.opening.then(function () {' && ` ` &&
+      'return request(session, value, init);' && ` ` &&
+      '});' && ` ` &&
+      '}' && ` ` &&
       'init = init || {};' && ` ` &&
       'var method = String(init.method || "GET").toUpperCase();' && ` ` &&
-      'return fetch(value, {method: method, body: init.body, headers: {"x-gg-window": session.window}})' && ` ` &&
-      '.then(function (response) {' && ` ` &&
+      'var sent = fetch(value, {method: method, body: init.body, headers: {"x-gg-window": session.window}});' && ` ` &&
       'if (session.window === NEW_WINDOW) {' && ` ` &&
+      'session.opening = sent.then(function (response) {' && ` ` &&
       'session.window = response.headers.get("x-gg-window") || NEW_WINDOW;' && ` ` &&
+      '}, function () {' && ` ` &&
+      'return undefined;' && ` ` &&
+      '}).then(function () {' && ` ` &&
+      'session.opening = null;' && ` ` &&
+      '});' && ` ` &&
       '}' && ` ` &&
+      'return sent.then(function (response) {' && ` ` &&
       'return handleResponse(session, response);' && ` ` &&
       '})' && ` ` &&
       '.catch(function (error) {' && ` ` &&
@@ -231,15 +248,20 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'form.reset();' && ` ` &&
       '}' && ` ` &&
       'activate(created);' && ` ` &&
+      '}, function (error) {' && ` ` &&
+      'removeSession(created);' && ` ` &&
+      'throw error;' && ` ` &&
       '});' && ` ` &&
       '}' && ` ` &&
       'return write(session, response);' && ` ` &&
       '}' && ` ` &&
       'function write(session, response) {' && ` ` &&
       'return response.text().then(function (html) {' && ` ` &&
-      'if (!response.ok) {' && ` ` &&
+      '/* An error page of the host is a page of the session as well; anything else is no page. */' && ` ` &&
+      'if (!response.ok && !/^text\/html/i.test(response.headers.get("content-type") || "")) {' && ` ` &&
       'throw new Error("The host answered " + response.status + ": " + html);' && ` ` &&
       '}' && ` ` &&
+      'session.frame.setAttribute("data-gg-status", String(response.status));' && ` ` &&
       'var doc = session.frame.contentDocument;' && ` ` &&
       'doc.open();' && ` ` &&
       'doc.write(html);' && ` ` &&
@@ -283,6 +305,9 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'session.nativeSubmit.call(this);' && ` ` &&
       '}' && ` ` &&
       '};' && ` ` &&
+      '/* The next page in the frame keeps this wrapper; the mark keeps its script from' && ` ` &&
+      'wrapping it again, see zcl_gg_host_windows=>script. */' && ` ` &&
+      'proto.submit.ggWindow = true;' && ` ` &&
       '}' && ` ` &&
       '}' && ` ` &&
       'function formBody(form, submitter) {' && ` ` &&
@@ -416,6 +441,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'doc.write("<!doctype html><main style=\"font:16px system-ui;padding:2rem\"><h1>Preview failed</h1><pre style=\"white-space:pre-wrap\"></pre></main>");' && ` ` &&
       'doc.close();' && ` ` &&
       'doc.querySelector("main pre").textContent = String(error && error.message || error);' && ` ` &&
+      'session.frame.removeAttribute("data-gg-status");' && ` ` &&
       '}' && ` ` &&
       'document.getElementById("gg-rail").addEventListener("click", function (event) {' && ` ` &&
       'if (!isElement(event.target)) {' && ` ` &&
@@ -445,13 +471,45 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'setCollapsed(collapsed());' && ` ` &&
       '/* A route in the address bar''s hash, as #/transaction?tcode=SE16, opens in the' && ` ` &&
       'active session, at the start and whenever the hash changes; without one the' && ` ` &&
-      'session shows the workbench. Only a path of this host is taken. */' && ` ` &&
+      'session shows the workbench. Only a path of this host is taken: a URL reads a' && ` ` &&
+      'backslash as /, so /\other.example/ names another host. */' && ` ` &&
       'function hashRoute() {' && ` ` &&
       'var value = location.hash.slice(1);' && ` ` &&
-      'return /^\/(?!\/)/.test(value) ? value : "/";' && ` ` &&
+      'if (value.charAt(0) !== "/") {' && ` ` &&
+      'return "/";' && ` ` &&
+      '}' && ` ` &&
+      'try {' && ` ` &&
+      'var url = new URL(value, location.href);' && ` ` &&
+      'return sameSite(url) && url.host === location.host ? route(url) : "/";' && ` ` &&
+      '} catch (error) {' && ` ` &&
+      'return "/";' && ` ` &&
+      '}' && ` ` &&
       '}' && ` ` &&
       'window.addEventListener("hashchange", function () {' && ` ` &&
       'request(active, hashRoute());' && ` ` &&
+      '});' && ` ` &&
+      '/* A reload or a closed tab ends the sessions of the page on the host; a page' && ` ` &&
+      'the browser kept and shows again has none any more, so it starts afresh. */' && ` ` &&
+      'window.addEventListener("pagehide", function () {' && ` ` &&
+      'var named = sessions.filter(function (session) {' && ` ` &&
+      'return session.window !== NEW_WINDOW;' && ` ` &&
+      '})[0];' && ` ` &&
+      'if (!named) {' && ` ` &&
+      'return;' && ` ` &&
+      '}' && ` ` &&
+      'try {' && ` ` &&
+      'fetch("/transaction", {method: "POST", keepalive: true, headers: {"x-gg-window": named.window},' && ` ` &&
+      'body: new URLSearchParams({session: "close"})}).catch(function () {' && ` ` &&
+      'return undefined;' && ` ` &&
+      '});' && ` ` &&
+      '} catch (error) {' && ` ` &&
+      'return;' && ` ` &&
+      '}' && ` ` &&
+      '});' && ` ` &&
+      'window.addEventListener("pageshow", function (event) {' && ` ` &&
+      'if (event.persisted) {' && ` ` &&
+      'location.reload();' && ` ` &&
+      '}' && ` ` &&
       '});' && ` ` &&
       'var first = createSession(NEW_WINDOW);' && ` ` &&
       'activate(first);' && ` ` &&

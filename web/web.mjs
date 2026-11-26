@@ -88,7 +88,18 @@ function responseBody(value) {
   return new TextEncoder().encode(String(value ?? ""));
 }
 
-async function browserFetch(input, init = {}) {
+// The GUI sessions share the host's static GUI state, which each request puts
+// in place for its own session (zcl_gg_host_windows), and the transpiled ABAP
+// yields at every await; so the requests run one after the other.
+let pending = Promise.resolve();
+
+function browserFetch(input, init = {}) {
+  const run = pending.then(() => handleFetch(input, init));
+  pending = run.catch(() => undefined);
+  return run;
+}
+
+async function handleFetch(input, init) {
   const url = routeUrl(input);
   const pathname = pathnameForUrl(url);
   const method = String(init.method || (typeof input === "object" ? input.method : "GET") || "GET").toUpperCase();

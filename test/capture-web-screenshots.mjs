@@ -128,6 +128,12 @@ async function openRoute(route) {
   if (await screen.getByText("Preview failed").count() > 0) {
     throw new Error(`Preview failed: ${await screen.locator("main pre").textContent()}`);
   }
+  // The host's error pages show in the session like any page; the shell keeps
+  // their status on the frame.
+  const status = Number(await page.locator("#gg-frames iframe:not([hidden])").getAttribute("data-gg-status"));
+  if (status >= 400) {
+    throw new Error(`Preview failed: HTTP ${status}: ${await screen.locator("body").innerText()}`);
+  }
 }
 
 async function capture(name) {

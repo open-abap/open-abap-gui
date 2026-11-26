@@ -35,6 +35,8 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_type        TYPE zif_gg_session_types_v1=>ty_message_type DEFAULT zif_gg_session_types_v1=>message_type_error
         iv_session_id  TYPE string OPTIONAL
         iv_page_id     TYPE string OPTIONAL
+* No program runs in this GUI session any more.
+        iv_menu        TYPE abap_bool
       RETURNING
         VALUE(rv_html) TYPE string.
 
@@ -44,7 +46,8 @@ CLASS zcl_gg_workbench DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
 * The separator between the application list and the content area. Dragging
 * it, or the arrow, Home and End keys while it has focus, resizes the list;
-* the width is kept in the browser for the next visit.
+* the width is kept in the browser for the next visit. Its script sets the
+* current and largest width as soon as it runs, from the list's real width.
     CLASS-METHODS render_splitter
       RETURNING
         VALUE(rv_html) TYPE string.
@@ -53,14 +56,17 @@ ENDCLASS.
 CLASS zcl_gg_workbench IMPLEMENTATION.
 
   METHOD zif_gg_raw_html_v1~get_html.
-    rv_html = render_workbench( ).
+    rv_html = render_workbench( iv_menu = abap_true ).
   ENDMETHOD.
 
   METHOD render_error.
+* An error leaves the programs of the GUI session as they were: it is shown
+* while one runs, or at the workbench with none.
     rv_html = render_workbench(
       iv_error      = iv_error
       iv_session_id = iv_session_id
-      iv_page_id    = iv_page_id ).
+      iv_page_id    = iv_page_id
+      iv_menu       = xsdbool( zcl_gg_host_runtime=>runs_in_window( zcl_gg_host_windows=>current( ) ) = abap_false ) ).
   ENDMETHOD.
 
   METHOD render_exception.
@@ -76,7 +82,8 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
   METHOD render_message.
     rv_html = render_workbench(
       iv_error = iv_message
-      iv_type  = iv_type ).
+      iv_type  = iv_type
+      iv_menu  = abap_true ).
   ENDMETHOD.
 
   METHOD render_workbench.
@@ -132,8 +139,8 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '</style></head><body>' &&
 * data-gg-menu: no program runs in this GUI session any more, so the session
 * shell lists it without a transaction. An error shown while a program runs
-* keeps its session id, and Back returns to that program.
-      COND string( WHEN iv_session_id IS INITIAL THEN '<div class="wb-shell" data-gg-menu>' ELSE '<div class="wb-shell">' ) &&
+* keeps the transaction the shell lists.
+      COND string( WHEN iv_menu = abap_true THEN '<div class="wb-shell" data-gg-menu>' ELSE '<div class="wb-shell">' ) &&
       zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
       iv_session_id = iv_session_id
@@ -173,7 +180,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_splitter.
-    rv_html = '<div class="wb-splitter" role="separator" aria-orientation="vertical" aria-label="Resize application list" aria-controls="wb-app-panel" aria-valuemin="160" aria-valuemax="480" aria-valuenow="480" tabindex="0"></div>' &&
+    rv_html = '<div class="wb-splitter" role="separator" aria-orientation="vertical" aria-label="Resize application list" aria-controls="wb-app-panel" aria-valuemin="160" tabindex="0"></div>' &&
       '<script>(function(){var panel=document.getElementById("wb-app-panel");var splitter=panel&&panel.nextElementSibling;if(!splitter){return;}var key="gg-workbench-panel-width";var min=160;' &&
       'var max=function(){return Math.max(min,panel.parentElement.clientWidth-240);};' &&
       'var apply=function(width){width=Math.round(Math.min(max(),Math.max(min,width)));panel.style.width=width+"px";panel.style.flexBasis=width+"px";splitter.setAttribute("aria-valuemax",String(max()));splitter.setAttribute("aria-valuenow",String(width));return width;};' &&

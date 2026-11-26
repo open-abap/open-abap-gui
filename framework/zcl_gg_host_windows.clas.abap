@@ -58,6 +58,12 @@ CLASS zcl_gg_host_windows DEFINITION PUBLIC FINAL CREATE PRIVATE.
       RETURNING
         VALUE(rv_error) TYPE string.
 
+* Ends every window of the window's shell and the host programs running in
+* them, the last one included: the shell's page was closed or reloaded.
+    CLASS-METHODS end_shell
+      IMPORTING
+        iv_window TYPE string.
+
     CLASS-METHODS current
       RETURNING
         VALUE(rv_window) TYPE string.
@@ -82,7 +88,8 @@ CLASS zcl_gg_host_windows DEFINITION PUBLIC FINAL CREATE PRIVATE.
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_window,
              window TYPE string,
-* The first window of the shell or browser the window shows in.
+* The shell or browser tab the window shows in; a shell's id is never used
+* again, so a window opened later never joins the group of an ended one.
              shell  TYPE string,
              state  TYPE REF TO data,
            END OF ty_window.
@@ -91,8 +98,13 @@ CLASS zcl_gg_host_windows DEFINITION PUBLIC FINAL CREATE PRIVATE.
     CLASS-DATA mt_windows TYPE ty_windows.
     CLASS-DATA mv_current TYPE string.
     CLASS-DATA mv_next TYPE i.
+    CLASS-DATA mv_next_shell TYPE i.
 
     CLASS-METHODS save.
+
+    CLASS-METHODS new_shell
+      RETURNING
+        VALUE(rv_shell) TYPE string.
 
     CLASS-METHODS reset.
 
@@ -113,7 +125,7 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
     READ TABLE mt_windows INTO DATA(ls_window) WITH KEY window = iv_window.
     IF sy-subrc <> 0.
       reset( ).
-      APPEND VALUE #( window = iv_window shell = iv_window ) TO mt_windows.
+      APPEND VALUE #( window = iv_window shell = new_shell( ) ) TO mt_windows.
       RETURN.
     ENDIF.
     zcl_gg_host_runtime=>restore_gui_state( ls_window-state ).
@@ -135,7 +147,7 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
     ENDDO.
     reset( ).
     IF lv_shell IS INITIAL.
-      lv_shell = rv_window.
+      lv_shell = new_shell( ).
     ENDIF.
     APPEND VALUE #( window = rv_window shell = lv_shell ) TO mt_windows.
     mv_current = rv_window.
@@ -161,6 +173,26 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD end_shell.
+    DATA lt_windows TYPE string_table.
+
+    READ TABLE mt_windows INTO DATA(ls_window) WITH KEY window = iv_window.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    LOOP AT mt_windows INTO DATA(ls_member) WHERE shell = ls_window-shell.
+      APPEND ls_member-window TO lt_windows.
+    ENDLOOP.
+    LOOP AT lt_windows INTO DATA(lv_window).
+      zcl_gg_host_runtime=>close_window( lv_window ).
+      DELETE mt_windows WHERE window = lv_window.
+      IF mv_current = lv_window.
+        reset( ).
+        CLEAR mv_current.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD normalize.
     rv_window = iv_window.
     IF rv_window IS INITIAL
@@ -178,8 +210,8 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
 * send nothing extra; the pages of other windows name theirs in every form
 * and same-site link. form.submit() skips the submit event, so the forms are
 * stamped on load and submit() stamps as well; the guard keeps a second page
-* in the same window object, as in the preview's frames, from wrapping it
-* again.
+* in the same window object, as in the shell's frames, from wrapping it
+* again; the shell marks its own wrapper the same way.
     rv_html = |<meta name="gg-window" content="{ mv_current }">| &&
       '<script>(function(){var id="' && mv_current && '";var name="' && c_parameter && '";var named=id!=="' && c_first_window && '";' &&
       'var stamp=function(form){if(!named){return;}var field=form.querySelector("input[name=" + name + "]");if(!field){field=document["cr"+"eateElement"]("input");field.type="hidden";field.name=name;form.appendChild(field);}field.value=id;};' &&
@@ -217,7 +249,12 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD clear.
-    CLEAR: mt_windows, mv_current, mv_next.
+    CLEAR: mt_windows, mv_current, mv_next, mv_next_shell.
+  ENDMETHOD.
+
+  METHOD new_shell.
+    mv_next_shell = mv_next_shell + 1.
+    rv_shell = |S{ mv_next_shell }|.
   ENDMETHOD.
 
   METHOD save.
