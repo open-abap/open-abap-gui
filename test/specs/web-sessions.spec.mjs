@@ -61,6 +61,10 @@ for (const host of hosts) {
       await expect(railEntries(page)).toHaveCount(1);
       await expect(railEntries(page).first()).toHaveClass(/gg-rail-item--active/);
       await expect(page.locator("#gg-rail .gg-rail-end")).toHaveCount(0);
+      // The rail casts no shadow onto the session beside it.
+      const shadows = await page.locator("#gg-rail").evaluate((rail) =>
+        getComputedStyle(rail).boxShadow.split(/,(?![^(]*\))/));
+      expect(shadows.filter((shadow) => shadow !== "none" && !shadow.includes("inset"))).toEqual([]);
     });
 
     test("/o opens a second session and the first keeps its program", async ({page}) => {

@@ -68,7 +68,8 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '#gg-rail { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; padding: 8px;' && ` ` &&
       'box-sizing: border-box; color: #eef4fb; font: 13px/1.3 "Segoe UI", system-ui, sans-serif;' && ` ` &&
       'background: linear-gradient(180deg, #24406a 0%, #172c4a 48%, #0f1d33 100%);' && ` ` &&
-      'box-shadow: inset -1px 0 0 rgba(255, 255, 255, .07), 6px 0 18px rgba(4, 12, 24, .28); }' && ` ` &&
+      '/* The rail ends at its own edge; no shadow falls on the session beside it. */' && ` ` &&
+      'box-shadow: inset -1px 0 0 rgba(255, 255, 255, .07); }' && ` ` &&
       '#gg-rail::before { content: ""; position: absolute; inset: 0 0 auto; height: 120px; pointer-events: none;' && ` ` &&
       'background: radial-gradient(120% 100% at 0% 0%, rgba(120, 170, 255, .22), transparent 70%); }' && ` ` &&
       '#gg-rail-list { position: relative; list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 3px;' && ` ` &&
