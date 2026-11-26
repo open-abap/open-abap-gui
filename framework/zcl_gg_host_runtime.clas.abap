@@ -46,6 +46,30 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS clear.
 
+* Ends every program running in a GUI session of the preview shell, see
+* zcl_gg_host_windows.
+    CLASS-METHODS close_window
+      IMPORTING
+        iv_window TYPE string.
+
+* The GUI session a running program belongs to; initial for one not running.
+    CLASS-METHODS window_of
+      IMPORTING
+        iv_session_id    TYPE string
+      RETURNING
+        VALUE(rv_window) TYPE string.
+
+* The GUI state the running program left behind: its controls, ALV trees and
+* screen attributes. A GUI session of the shell keeps its own copy.
+    CLASS-METHODS save_gui_state
+      RETURNING
+        VALUE(rr_state) TYPE REF TO data.
+
+* Puts a saved GUI state back; without one, the GUI starts empty.
+    CLASS-METHODS restore_gui_state
+      IMPORTING
+        ir_state TYPE REF TO data OPTIONAL.
+
   PRIVATE SECTION.
 * One CALL SCREEN of the running program: the screen that called, and where
 * its PAI continues when the called sequence ends.
@@ -57,6 +81,8 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     TYPES: BEGIN OF ty_session,
              session_id          TYPE string,
+* The GUI session of the preview shell the program runs in.
+             window              TYPE string,
              program             TYPE zif_gg_session_types_v1=>ty_program,
              batch               TYPE abap_bool,
              report              TYPE REF TO zif_gg_report_v1,
@@ -84,6 +110,12 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              selection_start     TYPE abap_bool,
            END OF ty_session.
     TYPES ty_sessions TYPE STANDARD TABLE OF ty_session WITH DEFAULT KEY.
+
+    TYPES: BEGIN OF ty_gui_state,
+             controls TYPE REF TO data,
+             trees    TYPE cl_alv_tree_base=>ty_instances,
+             dynpro   TYPE REF TO data,
+           END OF ty_gui_state.
 
 * A return from a called sequence ends its CALL SCREEN; a new CALL SCREEN
 * starts one, called from the screen that was current.
@@ -292,6 +324,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       RETURN.
     ENDIF.
     ls_session-session_id = lv_session_id.
+    ls_session-window = zcl_gg_host_windows=>current( ).
     ls_session-program = iv_program.
     ls_session-batch = iv_batch.
     ls_session-report = io_report.
@@ -1284,6 +1317,56 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     CLEAR mt_sessions.
     CLEAR mv_session_id.
     zcl_gg_host_compatibility=>clear_parameters( ).
+  ENDMETHOD.
+
+  METHOD save_gui_state.
+    DATA lr_state TYPE REF TO ty_gui_state.
+
+    CREATE DATA lr_state.
+    lr_state->controls = zcl_gg_gui_runtime=>save_state( ).
+    lr_state->trees = cl_alv_tree_base=>save_instances( ).
+    lr_state->dynpro = zcl_gg_host_dynpro=>save_state( ).
+    rr_state = lr_state.
+  ENDMETHOD.
+
+  METHOD restore_gui_state.
+    DATA lr_none TYPE REF TO data.
+    FIELD-SYMBOLS <ls_state> TYPE ty_gui_state.
+
+    IF ir_state IS NOT BOUND.
+      zcl_gg_gui_runtime=>clear( ).
+      cl_alv_tree_base=>clear_instances( ).
+      zcl_gg_host_dynpro=>restore_state( lr_none ).
+      RETURN.
+    ENDIF.
+    ASSIGN ir_state->* TO <ls_state>.
+    zcl_gg_gui_runtime=>restore_state( <ls_state>-controls ).
+    cl_alv_tree_base=>restore_instances( <ls_state>-trees ).
+    zcl_gg_host_dynpro=>restore_state( <ls_state>-dynpro ).
+  ENDMETHOD.
+
+  METHOD window_of.
+    IF iv_session_id IS INITIAL.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_sessions INTO DATA(ls_session) WITH KEY session_id = iv_session_id.
+    IF sy-subrc = 0.
+      rv_window = ls_session-window.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD close_window.
+    DATA lt_ids TYPE string_table.
+
+    IF iv_window IS INITIAL.
+      RETURN.
+    ENDIF.
+    LOOP AT mt_sessions INTO DATA(ls_session) WHERE window = iv_window.
+      APPEND ls_session-session_id TO lt_ids.
+    ENDLOOP.
+    LOOP AT lt_ids INTO DATA(lv_id).
+      close( lv_id ).
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD next_session_id.

@@ -1,4 +1,4 @@
-import {test, expect, openExample, submit} from "../fixtures.mjs";
+import {test, expect, openExample, submit, workbenchUrl} from "../fixtures.mjs";
 
 // A served page carries exactly the sprite symbols it refers to: every
 // <use href="#wb-icon-…"> finds its symbol, and no symbol goes unused.
@@ -14,7 +14,7 @@ async function expectSpriteMatchesReferences(page) {
 }
 
 test("the workbench carries only the icons it shows", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
   await expectSpriteMatchesReferences(page);
 });
 

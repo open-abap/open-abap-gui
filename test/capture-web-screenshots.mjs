@@ -115,10 +115,13 @@ async function waitForPreview() {
 }
 
 try {
+  // The preview opens on the session shell, with the workbench in its first
+  // session; a route in the hash opens that page by itself, as captured below.
   await page.goto(previewUrl, {waitUntil: "load"});
-  await waitForPreview();
+  const workbench = page.frameLocator("#gg-frames iframe").first();
+  await workbench.locator(".wb-appbar").waitFor({state: "visible", timeout: 30000});
 
-  const transactions = await page.locator('a[href^="/transaction?tcode="]').evaluateAll((links) => {
+  const transactions = await workbench.locator('a[href^="/transaction?tcode="]').evaluateAll((links) => {
     const entries = links.map((link) => {
       const href = link.getAttribute("href") || "";
       const tcode = new URL(href, "https://open-abap-gui.invalid").searchParams.get("tcode");
@@ -136,7 +139,7 @@ try {
   }
 
   const examplePrograms = await converterExamplePrograms();
-  const programs = (await page.locator('a[href^="/program?name="]').evaluateAll((links) => links.map((link) => {
+  const programs = (await workbench.locator('a[href^="/program?name="]').evaluateAll((links) => links.map((link) => {
     const href = link.getAttribute("href") || "";
     const program = new URL(href, "https://open-abap-gui.invalid").searchParams.get("name");
     const description = link.querySelector(".wb-app-description")?.textContent?.trim() || "";

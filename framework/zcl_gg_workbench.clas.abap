@@ -111,7 +111,9 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>open-abap GUI</title><style>' &&
       zcl_gg_workbench_utility=>render_styles( ) &&
       '.wb-workspace{display:flex;flex:1 1 auto;min-height:0;margin:16px 28px 0;border:1px solid #aebfd2;border-radius:5px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(34,67,102,.12)}' &&
-      '.wb-app-panel{width:305px;flex:0 0 305px;min-height:0;background:#f4f8fc;overflow:auto}' &&
+* The list takes a good part of the width, so the descriptions can be read;
+* the splitter sets it from there.
+      '.wb-app-panel{width:min(480px,45%);flex:0 0 min(480px,45%);min-height:0;background:#f4f8fc;overflow:auto}' &&
       '.wb-splitter{flex:0 0 5px;border-right:1px solid #aebfd2;background:#e1ebf6;cursor:col-resize;touch-action:none}' &&
       '.wb-splitter:hover,.wb-splitter:focus-visible,.wb-splitter--active{background:#9fbcd8;outline:0}' &&
       '.wb-app-heading{padding:11px 14px;color:#164b80;font-weight:700;background:#e1ebf6;border-bottom:1px solid #b8c9dc}' &&
@@ -126,7 +128,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '.wb-welcome-art{flex:1 1 auto;width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;position:relative;overflow:hidden;border-radius:0;background:linear-gradient(135deg,#f6f9fc 0%,#e1ebf6 58%,#c6d8e9 100%);border:0}' &&
       '.wb-logo-mark{display:block;width:min(42vw,280px);max-width:72%;max-height:64%;height:auto;filter:drop-shadow(0 8px 8px rgba(23,74,128,.18))}' &&
       '.wb-wordmark{position:relative;z-index:1;padding:8px 12px;color:#174a80;font:bold clamp(24px,4vw,48px) Arial;text-shadow:0 1px 1px #fff;border-bottom:clamp(3px,.4vw,6px) solid #4d82b6}' &&
-      '@media(max-width:760px){.wb-app-panel{width:220px;flex-basis:220px}.wb-workspace{margin-left:10px;margin-right:10px}}' &&
+      '@media(max-width:760px){.wb-workspace{margin-left:10px;margin-right:10px}}' &&
       '</style></head><body><div class="wb-shell">' &&
       zcl_gg_host_icons=>sprite( ).
     rv_html = rv_html && zcl_gg_workbench_utility=>render_top(
@@ -167,7 +169,7 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_splitter.
-    rv_html = '<div class="wb-splitter" role="separator" aria-orientation="vertical" aria-label="Resize application list" aria-controls="wb-app-panel" aria-valuemin="160" aria-valuemax="305" aria-valuenow="305" tabindex="0"></div>' &&
+    rv_html = '<div class="wb-splitter" role="separator" aria-orientation="vertical" aria-label="Resize application list" aria-controls="wb-app-panel" aria-valuemin="160" aria-valuemax="480" aria-valuenow="480" tabindex="0"></div>' &&
       '<script>(function(){var panel=document.getElementById("wb-app-panel");var splitter=panel&&panel.nextElementSibling;if(!splitter){return;}var key="gg-workbench-panel-width";var min=160;' &&
       'var max=function(){return Math.max(min,panel.parentElement.clientWidth-240);};' &&
       'var apply=function(width){width=Math.round(Math.min(max(),Math.max(min,width)));panel.style.width=width+"px";panel.style.flexBasis=width+"px";splitter.setAttribute("aria-valuemax",String(max()));splitter.setAttribute("aria-valuenow",String(width));return width;};' &&

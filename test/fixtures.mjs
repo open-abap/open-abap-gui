@@ -75,6 +75,13 @@ export const test = base.extend({
 
 export {expect};
 
+// The workbench page itself. The address bar's / opens the session shell,
+// with the rail and a frame per session; the workbench's own form back to it
+// asks for /? , and so do tests of the page.
+export function workbenchUrl(host) {
+  return `${host.baseUrl}/?`;
+}
+
 export async function openExample(page, host, number) {
   const id = String(number).padStart(3, "0");
   const response = await page.goto(`${host.baseUrl}/ZCL_GG_EX_${id}`);

@@ -4,6 +4,7 @@ CLASS ltcl_gg_workbench_utility DEFINITION FINAL FOR TESTING DURATION SHORT RISK
     METHODS renders_styles FOR TESTING.
     METHODS renders_top FOR TESTING.
     METHODS renders_main_menu FOR TESTING.
+    METHODS renders_session_actions FOR TESTING.
     METHODS renders_status_owned_icon_bar FOR TESTING.
     METHODS routes_back_when_active FOR TESTING.
     METHODS renders_bottom FOR TESTING.
@@ -147,6 +148,27 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_dynpro_html CS '<dt>GUI status</dt><dd>STATUS</dd>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<dt>GUI status</dt>' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_dynpro_html CS 'wb-appbar--dynpro' ) ).
+  ENDMETHOD.
+
+* System > Create Session and End Session show only in a host that shows
+* several GUI sessions; End Session needs a second one.
+  METHOD renders_session_actions.
+    zcl_gg_host_windows=>clear( ).
+    DATA(lv_plain) = zcl_gg_workbench_utility=>render_top( ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_plain CS 'Create Session' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_plain CS 'End Session' ) ).
+
+    zcl_gg_host_windows=>enter( `W0` ).
+    DATA(lv_one) = zcl_gg_workbench_utility=>render_top( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_one CS
+      'form="wb-command-transaction" name="session" value="open" formnovalidate formtarget="_blank" data-session-action>Create Session</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_one CS 'value="end" formnovalidate data-session-action disabled>End Session</button>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_one CS 'End Session</button><span class="wb-menu-separator" role="separator"></span><button' ) ).
+
+    zcl_gg_host_windows=>open( ).
+    DATA(lv_two) = zcl_gg_workbench_utility=>render_top( ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_two CS 'value="end" formnovalidate data-session-action>End Session</button>' ) ).
+    zcl_gg_host_windows=>clear( ).
   ENDMETHOD.
 
   METHOD renders_main_menu.

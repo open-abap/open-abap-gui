@@ -85,11 +85,26 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_result)       TYPE ty_result.
 
+* The screen attributes of the running dynpro program, kept per GUI session
+* by zcl_gg_host_windows.
+    CLASS-METHODS save_state
+      RETURNING
+        VALUE(rr_state) TYPE REF TO data.
+
+    CLASS-METHODS restore_state
+      IMPORTING
+        ir_state TYPE REF TO data.
+
   PRIVATE SECTION.
 * The field attributes the screens are defined with. Each PBO starts from
 * them, and LOOP AT SCREEN changes them from there.
     CLASS-DATA mt_static_states TYPE zif_gg_dynpro_types_v1=>ty_states.
     CLASS-DATA mt_static_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
+
+    TYPES: BEGIN OF ty_static_state,
+             states   TYPE zif_gg_dynpro_types_v1=>ty_states,
+             controls TYPE zcl_gg_host_dynpro_builder=>ty_controls,
+           END OF ty_static_state.
 
     TYPES: BEGIN OF ty_active_subscreen,
              area   TYPE zif_gg_dynpro_types_v1=>ty_field_name,
@@ -499,6 +514,27 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 ENDCLASS.
 
 CLASS zcl_gg_host_dynpro IMPLEMENTATION.
+
+  METHOD save_state.
+    DATA lr_state TYPE REF TO ty_static_state.
+
+    CREATE DATA lr_state.
+    lr_state->states = mt_static_states.
+    lr_state->controls = mt_static_controls.
+    rr_state = lr_state.
+  ENDMETHOD.
+
+  METHOD restore_state.
+    FIELD-SYMBOLS <ls_state> TYPE ty_static_state.
+
+    CLEAR: mt_static_states, mt_static_controls.
+    IF ir_state IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ASSIGN ir_state->* TO <ls_state>.
+    mt_static_states = <ls_state>-states.
+    mt_static_controls = <ls_state>-controls.
+  ENDMETHOD.
 
   METHOD run.
     DATA lo_builder TYPE REF TO zcl_gg_host_dynpro_builder.
