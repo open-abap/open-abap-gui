@@ -18,10 +18,20 @@
   "rename": {
     "output": "sap-build",
     "patterns": [
-      { "type": "CLAS", "oldName": "^cl_(.*)$", "newName": "zc_$1" },
-      { "type": "CLAS", "oldName": "^cx_(.*)$", "newName": "zx_$1" },
-      { "type": "INTF", "oldName": "^if_(.*)$", "newName": "zi_$1" },
-      { "type": "TABL|TTYP|DTEL", "oldName": "^([^z].*)$", "newName": "z$1" }
+      { "type": "CLAS", "oldName": "^cl_gui_easy_splitter_container$", "newName": "zcl_gg_gui_easy_splitter_cont" },
+      { "type": "CLAS", "oldName": "^cl_salv_form_layout_data_grid$", "newName": "zcl_gg_salv_form_lay_data_grid" },
+      { "type": "CLAS", "oldName": "^cl_salv_form_uie_layout_grid$", "newName": "zcl_gg_salv_form_uie_lay_grid" },
+      { "type": "CLAS", "oldName": "^cl_alv_changed_data_protocol$", "newName": "zcl_gg_alv_changed_data_prot" },
+      { "type": "CLAS", "oldName": "^cl_salv_functional_settings$", "newName": "zcl_gg_salv_func_settings" },
+      { "type": "CLAS", "oldName": "^cl_gui_ilidragndrop_control$", "newName": "zcl_gg_gui_ilidragndrop_ctrl" },
+      { "type": "CLAS", "oldName": "^cx_salv_method_not_supported$", "newName": "zcx_gg_salv_meth_not_supported" },
+      { "type": "INTF", "oldName": "^if_salv_events_actions_table$", "newName": "zif_gg_salv_events_actions_tab" },
+      { "type": "INTF", "oldName": "^if_salv_c_function_position$", "newName": "zif_gg_salv_c_function_pos" },
+      { "type": "DTEL", "oldName": "^salv_de_layout_restriction$", "newName": "z_gg_salv_de_layout_restrict" },
+      { "type": "CLAS", "oldName": "^cl_(.*)$", "newName": "zcl_gg_$1" },
+      { "type": "CLAS", "oldName": "^cx_(.*)$", "newName": "zcx_gg_$1" },
+      { "type": "INTF", "oldName": "^if_(.*)$", "newName": "zif_gg_$1" },
+      { "type": "TABL|TTYP|DTEL", "oldName": "^([^z].*)$", "newName": "z_gg_$1" }
     ]
   },
   "dependencies": [

@@ -8,13 +8,18 @@ import {fileURLToPath} from "node:url";
 // system's own, so abaplint renames them (the "rename" patterns in
 // abaplint.jsonc) together with every reference to them. The type pools and
 // the function group stay SAP's: they are dropped from the copy. The output
-// folder is an abapGit repository: push it to a branch and pull it into a
-// local package.
+// folder is an abapGit repository with everything under src/, framework/ as
+// src/framework/, and a package per folder: push it to a branch and pull it
+// into a local package.
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const config = JSON.parse(fs.readFileSync(path.join(repository, "abaplint.jsonc"), "utf8"));
 const output = path.join(repository, config.rename.output);
-const folders = ["src", "framework"];
+// Repository folder -> folder in the copy.
+const layout = [
+  {from: "src", to: "src"},
+  {from: "framework", to: "src/framework"},
+];
 
 // SAP already ships these under the same names, and nothing in them refers to
 // a renamed object.
@@ -22,6 +27,13 @@ const sapOwned = [
   "src/ddic/pools",
   "src/dd/sdydo.type.abap",
   "src/fugr",
+];
+
+// Not ABAP objects. They stay in the repository but outside abapGit's starting
+// folder, so they create no package: the icon notices must travel with the
+// icons that zcl_gg_host_icons embeds.
+const outsideSrc = [
+  {from: "src/framework/assets", to: "assets"},
 ];
 
 const configPath = path.join(output, ".abaplint-sap.json");
@@ -64,7 +76,7 @@ function renamedName(type, name) {
 // Old name -> new name, upper case, for every object the patterns rename.
 function renamedObjects() {
   const renamed = new Map();
-  for (const file of folders.flatMap(folder => walk(path.join(repository, folder)))) {
+  for (const file of layout.flatMap(folder => walk(path.join(repository, folder.from)))) {
     const match = /^([a-z0-9_]+)\.(clas|intf|tabl|ttyp|dtel)\.(abap|xml)$/.exec(path.basename(file));
     const newName = match && renamedName(match[2].toUpperCase(), match[1]);
     if (newName) {
@@ -121,6 +133,31 @@ function staleReferences(renamed) {
   return hits;
 }
 
+function folders(folder) {
+  return [folder, ...fs.readdirSync(folder, {withFileTypes: true})
+    .filter(entry => entry.isDirectory())
+    .flatMap(entry => folders(path.join(folder, entry.name)))];
+}
+
+// abapGit creates a package for every folder; with PREFIX folder logic its name
+// is the parent's plus the folder name, so only the description is needed.
+function writePackages() {
+  for (const folder of folders(path.join(output, "src"))) {
+    const relative = path.relative(output, folder).split(path.sep).join("/");
+    fs.writeFileSync(path.join(folder, "package.devc.xml"), `<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_DEVC" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <DEVC>
+    <CTEXT>open-abap-gui ${relative}</CTEXT>
+   </DEVC>
+  </asx:values>
+ </asx:abap>
+</abapGit>
+`, "utf8");
+  }
+}
+
 function tooLongNames() {
   return walk(output)
     .map(file => path.basename(file).replace(/\..*$/, ""))
@@ -131,10 +168,10 @@ function tooLongNames() {
 // when the drive letter's case differs, and inline mode must not touch the
 // repository. abaplint takes its base folder from the config's location.
 fs.rmSync(output, {recursive: true, force: true});
-for (const folder of folders) {
-  fs.cpSync(path.join(repository, folder), path.join(output, folder), {recursive: true});
+for (const folder of layout) {
+  fs.cpSync(path.join(repository, folder.from), path.join(output, folder.to), {recursive: true});
 }
-config.global.files = folders.map(folder => `/${folder}/**/*.*`);
+config.global.files = ["/src/**/*.*"];
 config.rename.output = "";
 config.rules = {
   parser_error: true,
@@ -175,6 +212,10 @@ if (status === 0) {
   for (const relative of sapOwned) {
     fs.rmSync(path.join(output, relative), {recursive: true, force: true});
   }
+  for (const folder of outsideSrc) {
+    fs.renameSync(path.join(output, folder.from), path.join(output, folder.to));
+  }
+  writePackages();
 
   // PREFIX keeps the subpackages under the root package's name, so folder
   // names such as salv or tree never collide with SAP's own packages.
@@ -183,7 +224,7 @@ if (status === 0) {
  <asx:values>
   <DATA>
    <MASTER_LANGUAGE>E</MASTER_LANGUAGE>
-   <STARTING_FOLDER>/</STARTING_FOLDER>
+   <STARTING_FOLDER>/src/</STARTING_FOLDER>
    <FOLDER_LOGIC>PREFIX</FOLDER_LOGIC>
    <IGNORE>
     <item>/.gitignore</item>

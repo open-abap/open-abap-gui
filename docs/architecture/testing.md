@@ -21,15 +21,20 @@ give the SAP-named objects customer names, together with every reference:
 
 | in the repository | in the copy |
 | --- | --- |
-| `cl_gui_alv_grid`, `cx_salv_not_found`, `if_salv_c_bool_sap` | `zc_gui_alv_grid`, `zx_salv_not_found`, `zi_salv_c_bool_sap` |
-| DDIC such as `lvc_s_fcat` | `zlvc_s_fcat` |
+| `cl_gui_alv_grid`, `cx_salv_not_found`, `if_salv_c_bool_sap` | `zcl_gg_gui_alv_grid`, `zcx_gg_salv_not_found`, `zif_gg_salv_c_bool_sap` |
+| DDIC such as `lvc_s_fcat` | `z_gg_lvc_s_fcat` |
 
+Ten names would pass SAP's 30 characters with the `_gg_` prefix; the patterns
+give them shortened names of their own, such as `zcl_gg_gui_easy_splitter_cont`.
 The type pools and the function group are left out; the copy uses SAP's own.
 The build fails if the renamed copy does not compile, if a reference still
 names an old object, or if a name is longer than 30 characters.
 
-`sap-build/` is an abapGit repository with `PREFIX` folder logic: push it to a
-branch, pull it into a local package such as `$GG_TEST`, and run ABAP Unit on
-the package.
+`sap-build/` is an abapGit repository with everything under `src/`: `framework/`
+becomes `src/framework/`, and every folder has a `package.devc.xml`. Folder
+logic is `PREFIX`, so the subpackages are named after the root package and
+never collide with SAP's own. Push it to a branch, pull it into a local package
+such as `$GG_TEST`, and run ABAP Unit on the package. The icon notices sit in
+`assets/`, outside abapGit's starting folder.
 
 Code: [test/build-sap.mjs](../../test/build-sap.mjs)
