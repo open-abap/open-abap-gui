@@ -710,7 +710,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
               && |value="SUBMIT">|.
 
     lv_active_tab_screen = active_selection_screen(
-      iv_default = is_context-screen
+      iv_default = CONV string( is_context-screen )
       it_tabs    = lt_tabs ).
 * The tab strip and the active tab's subscreen sit where the tabbed block is
 * declared, the subscreen framed like a block. Without a tabbed block element
@@ -720,7 +720,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       READ TABLE lt_tabs INTO ls_active_tab INDEX 1.
     ENDIF.
     lv_screen = active_selection_screen(
-      iv_default = is_context-screen
+      iv_default = CONV string( is_context-screen )
       it_tabs    = VALUE #( ) ).
     lv_tab_panel = xsdbool( lt_tabs IS NOT INITIAL
       AND lv_active_tab_screen <> lv_screen
