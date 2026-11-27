@@ -64,7 +64,7 @@ INTERFACE zif_gg_session_types_v1 PUBLIC.
            page          TYPE i,
            line          TYPE i,
            column        TYPE i,
-           ucomm         TYPE zif_gg_list_processing_types_v1=>ty_ucomm,
+           ucomm         TYPE zif_gg_list_proc_types_v1=>ty_ucomm,
            list_index    TYPE i,
            selected_line TYPE i,
          END OF ty_list_context.

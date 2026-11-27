@@ -38,7 +38,7 @@ INTERFACE zif_gg_report_v1 PUBLIC.
   "! Describe the selection screens once, in rendering order.
   METHODS build_screen
     IMPORTING
-      io_builder TYPE REF TO zif_gg_selection_screen_builder_v1.
+      io_builder TYPE REF TO zif_gg_sel_screen_builder_v1.
 
   "! Corresponds to INITIALIZATION. ct_values already holds the defaults
   "! declared in the screen definition.

@@ -82,14 +82,14 @@ CLASS zcl_gg_ex_086 IMPLEMENTATION.
     io_session->get_list( )->set_title( 'Multiple MODIFY LINE operations' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
     gv_row = 1.
-    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_heading intensified = abap_true ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_proc_types_v1=>color_heading intensified = abap_true ) ).
     lo_writer->write_field( VALUE #( text = 'Row one' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_key intensified = abap_false ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_proc_types_v1=>color_key intensified = abap_false ) ).
     lo_writer->write_field( VALUE #( text = 'fragment A' placement = VALUE #( position = 16 ) hide = VALUE #( ( name = 'GV_ROW' value = |{ gv_row }| ) ) ) ).
     gv_row = 2.
     lo_writer->reset_format( ).
     lo_writer->write_field( VALUE #( text = 'Row two' placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_positive ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_proc_types_v1=>color_positive ) ).
     lo_writer->write_field( VALUE #( text = 'fragment B' placement = VALUE #( position = 16 ) hide = VALUE #( ( name = 'GV_ROW' value = |{ gv_row }| ) ) ) ).
     lo_writer->reset_format( ).
   ENDMETHOD.
@@ -128,11 +128,11 @@ CLASS zcl_gg_ex_086 IMPLEMENTATION.
     ENDIF.
     DATA(ls_modify_line_1) = io_session->get_list( )->read_line( iv_index = 1 ).
     ls_modify_line_1-format-intensified = abap_true.
-    ls_modify_line_1-format-color = zif_gg_list_processing_types_v1=>color_positive.
+    ls_modify_line_1-format-color = zif_gg_list_proc_types_v1=>color_positive.
     io_session->get_list( )->modify_line( ls_modify_line_1 ).
     DATA(ls_modify_line_2) = io_session->get_list( )->read_line( iv_index = 2 ).
     ls_modify_line_2-format-inverse = abap_true.
-    ls_modify_line_2-format-color = zif_gg_list_processing_types_v1=>color_negative.
+    ls_modify_line_2-format-color = zif_gg_list_proc_types_v1=>color_negative.
     io_session->get_list( )->modify_line( ls_modify_line_2 ).
   ENDMETHOD.
 

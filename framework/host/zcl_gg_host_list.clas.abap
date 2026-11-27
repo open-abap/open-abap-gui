@@ -23,17 +23,17 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
     INTERFACES zif_gg_list_writer_v1.
 
     TYPES ty_text_lines TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
-    TYPES ty_line_formats TYPE STANDARD TABLE OF zif_gg_list_processing_types_v1=>ty_format
+    TYPES ty_line_formats TYPE STANDARD TABLE OF zif_gg_list_proc_types_v1=>ty_format
       WITH DEFAULT KEY.
-    TYPES ty_hidden_lines TYPE STANDARD TABLE OF zif_gg_list_processing_types_v1=>ty_hidden_fields
+    TYPES ty_hidden_lines TYPE STANDARD TABLE OF zif_gg_list_proc_types_v1=>ty_hidden_fields
       WITH DEFAULT KEY.
     TYPES: BEGIN OF ty_fragment,
              kind     TYPE string,
              text     TYPE string,
              position TYPE i,
              length   TYPE i,
-             format   TYPE zif_gg_list_processing_types_v1=>ty_format,
-             hidden   TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields,
+             format   TYPE zif_gg_list_proc_types_v1=>ty_format,
+             hidden   TYPE zif_gg_list_proc_types_v1=>ty_hidden_fields,
            END OF ty_fragment.
     TYPES ty_fragments TYPE STANDARD TABLE OF ty_fragment WITH DEFAULT KEY.
     TYPES: BEGIN OF ty_render_line,
@@ -42,8 +42,8 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
              index     TYPE i,
              token     TYPE string,
              text      TYPE string,
-             format    TYPE zif_gg_list_processing_types_v1=>ty_format,
-             fields    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields,
+             format    TYPE zif_gg_list_proc_types_v1=>ty_format,
+             fields    TYPE zif_gg_list_proc_types_v1=>ty_hidden_fields,
              fragments TYPE ty_fragments,
              selected  TYPE abap_bool,
              changed   TYPE abap_bool,
@@ -70,7 +70,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS apply_settings
       IMPORTING
-        is_settings TYPE zif_gg_list_processing_types_v1=>ty_settings.
+        is_settings TYPE zif_gg_list_proc_types_v1=>ty_settings.
 
     METHODS activate_level
       IMPORTING
@@ -86,7 +86,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS get_format
       RETURNING
-        VALUE(rs_format) TYPE zif_gg_list_processing_types_v1=>ty_format.
+        VALUE(rs_format) TYPE zif_gg_list_proc_types_v1=>ty_format.
 
     METHODS get_title
       RETURNING
@@ -98,7 +98,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS get_settings
       RETURNING
-        VALUE(rs_settings) TYPE zif_gg_list_processing_types_v1=>ty_settings.
+        VALUE(rs_settings) TYPE zif_gg_list_proc_types_v1=>ty_settings.
 
     METHODS get_line_formats
       RETURNING
@@ -144,7 +144,7 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
              lines             TYPE ty_text_lines,
              line_formats      TYPE ty_line_formats,
              hidden_lines      TYPE ty_hidden_lines,
-             current_hidden    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields,
+             current_hidden    TYPE zif_gg_list_proc_types_v1=>ty_hidden_fields,
              render_lines      TYPE ty_render_lines,
              current_fragments TYPE ty_fragments,
              visible_page      TYPE i,
@@ -180,13 +180,13 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     DATA mo_session   TYPE REF TO zif_gg_session_v1.
     DATA mo_handler   TYPE REF TO zif_gg_list_processing_v1.
-    DATA ms_settings  TYPE zif_gg_list_processing_types_v1=>ty_settings.
-    DATA ms_format    TYPE zif_gg_list_processing_types_v1=>ty_format.
+    DATA ms_settings  TYPE zif_gg_list_proc_types_v1=>ty_settings.
+    DATA ms_format    TYPE zif_gg_list_proc_types_v1=>ty_format.
     DATA ms_status    TYPE zif_gg_session_types_v1=>ty_gui_status.
     DATA mt_lines     TYPE ty_text_lines.
     DATA mt_line_formats TYPE ty_line_formats.
     DATA mt_hidden_lines TYPE ty_hidden_lines.
-    DATA mt_current_hidden TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields.
+    DATA mt_current_hidden TYPE zif_gg_list_proc_types_v1=>ty_hidden_fields.
     DATA mt_render_lines TYPE ty_render_lines.
     DATA mt_model_events TYPE ty_model_events.
     DATA mt_current_fragments TYPE ty_fragments.
@@ -225,10 +225,10 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS write_at
       IMPORTING
-        is_placement TYPE zif_gg_list_processing_types_v1=>ty_placement
+        is_placement TYPE zif_gg_list_proc_types_v1=>ty_placement
         iv_text      TYPE string
         iv_kind      TYPE string DEFAULT 'TEXT'
-        it_hidden    TYPE zif_gg_list_processing_types_v1=>ty_hidden_fields OPTIONAL.
+        it_hidden    TYPE zif_gg_list_proc_types_v1=>ty_hidden_fields OPTIONAL.
 
     METHODS set_quickinfo
       IMPORTING
@@ -238,14 +238,14 @@ CLASS zcl_gg_host_list DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         iv_text          TYPE string
         iv_length        TYPE i
-        iv_justification TYPE zif_gg_list_processing_types_v1=>ty_justification OPTIONAL
+        iv_justification TYPE zif_gg_list_proc_types_v1=>ty_justification OPTIONAL
       RETURNING
         VALUE(rv_text)   TYPE string.
 
     METHODS format_write
       IMPORTING
         iv_text        TYPE string
-        is_format      TYPE zif_gg_list_processing_types_v1=>ty_write_format
+        is_format      TYPE zif_gg_list_proc_types_v1=>ty_write_format
       RETURNING
         VALUE(rv_text) TYPE string.
 
@@ -600,9 +600,9 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
 
     lv_pad = iv_length - strlen( rv_text ).
     CASE iv_justification.
-      WHEN zif_gg_list_processing_types_v1=>justify_right.
+      WHEN zif_gg_list_proc_types_v1=>justify_right.
         rv_text = spaces( lv_pad ) && rv_text.
-      WHEN zif_gg_list_processing_types_v1=>justify_center.
+      WHEN zif_gg_list_proc_types_v1=>justify_center.
         rv_text = spaces( lv_pad DIV 2 ) && rv_text && spaces( lv_pad - lv_pad DIV 2 ).
       WHEN OTHERS.
         rv_text = rv_text && spaces( lv_pad ).
@@ -676,12 +676,12 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_list_writer_v1~write_field.
-    DATA ls_format TYPE zif_gg_list_processing_types_v1=>ty_format.
+    DATA ls_format TYPE zif_gg_list_proc_types_v1=>ty_format.
     DATA lv_text TYPE string.
-    DATA lv_justification TYPE zif_gg_list_processing_types_v1=>ty_justification.
+    DATA lv_justification TYPE zif_gg_list_proc_types_v1=>ty_justification.
 
     ls_format = ms_format.
-    IF is_field-format-color <> zif_gg_list_processing_types_v1=>color_background.
+    IF is_field-format-color <> zif_gg_list_proc_types_v1=>color_background.
       ls_format-color = is_field-format-color.
     ENDIF.
     IF is_field-format-intensified = abap_true.
@@ -701,7 +701,7 @@ CLASS zcl_gg_host_list IMPLEMENTATION.
                 is_format = is_field-write_format ).
     lv_justification = is_field-write_format-justification.
     IF lv_justification IS INITIAL AND lv_text CO '0123456789.-+'.
-      lv_justification = zif_gg_list_processing_types_v1=>justify_right.
+      lv_justification = zif_gg_list_proc_types_v1=>justify_right.
     ENDIF.
     write_at(
       is_placement = is_field-placement

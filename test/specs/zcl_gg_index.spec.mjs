@@ -1,8 +1,8 @@
-import {test, expect} from "../fixtures.mjs";
+import {test, expect, workbenchUrl} from "../fixtures.mjs";
 import {readdir} from "node:fs/promises";
 
 test("main menu holds System and Help; System > Status shows the session", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
 
   const menubar = page.getByRole("menubar", {name: "Main menu"});
   await expect(menubar.getByRole("menuitem")).toHaveText(["System", "Help"]);
@@ -15,7 +15,15 @@ test("main menu holds System and Help; System > Status shows the session", async
   await expect(statusItem).toBeHidden();
   await system.click();
   await expect(system).toHaveAttribute("aria-expanded", "true");
-  await expect(statusItem).toBeFocused();
+  // The menu focuses its first entry; opened by the pointer, no entry looks
+  // hovered until the pointer is on it.
+  const createItem = page.getByRole("menuitem", {name: "Create Session"});
+  await expect(createItem).toBeFocused();
+  await expect(createItem).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(statusItem).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await statusItem.hover();
+  await expect(statusItem).toHaveCSS("background-color", "rgb(217, 232, 247)");
+  await expect(createItem).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   // A click elsewhere closes the menu.
   await page.locator(".wb-appbar").click();
   await expect(statusItem).toBeHidden();
@@ -36,11 +44,11 @@ test("main menu holds System and Help; System > Status shows the session", async
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(system).toBeFocused();
-  await expect(page).toHaveURL(`${host.baseUrl}/`);
+  await expect(page).toHaveURL(workbenchUrl(host));
 });
 
 test("index renders the open-abap workbench shell", async ({page, host}) => {
-  const response = await page.goto(`${host.baseUrl}/`);
+  const response = await page.goto(workbenchUrl(host));
 
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("menubar", {name: "Main menu"})).toBeVisible();
@@ -262,7 +270,7 @@ test("index renders the open-abap workbench shell", async ({page, host}) => {
 });
 
 test("starts a report without a transaction from the Reports section", async ({page, host}) => {
-  await page.goto(host.baseUrl);
+  await page.goto(workbenchUrl(host));
   await page.getByRole("navigation", {name: "Reports"}).getByRole("link", {name: "ZGG_INT_PROGRAM"}).click();
   await page.waitForLoadState("load");
 
@@ -276,14 +284,15 @@ test("starts a report without a transaction from the Reports section", async ({p
 
 test("the splitter resizes the application list by pointer and keyboard", async ({page, host}) => {
   await page.setViewportSize({width: 1280, height: 720});
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
 
   const panel = page.locator(".wb-app-panel");
   const splitter = page.getByRole("separator", {name: "Resize application list"});
   await expect(splitter).toHaveAttribute("aria-orientation", "vertical");
-  await expect(splitter).toHaveAttribute("aria-valuenow", "305");
+  // The list starts at 45% of the workspace, at most 480px.
+  await expect(splitter).toHaveAttribute("aria-valuenow", "480");
   const initial = (await panel.boundingBox()).width;
-  expect(initial).toBeCloseTo(305, 0);
+  expect(initial).toBeCloseTo(480, 0);
 
   const box = await splitter.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -312,9 +321,22 @@ test("the splitter resizes the application list by pointer and keyboard", async 
   expect((await panel.boundingBox()).width).toBeCloseTo(160, 0);
 });
 
+test("the splitter reports the list's real width in a narrow workspace", async ({page, host}) => {
+  await page.setViewportSize({width: 900, height: 720});
+  await page.goto(workbenchUrl(host));
+  await page.evaluate(() => localStorage.removeItem("gg-workbench-panel-width"));
+  await page.reload();
+
+  const panel = page.locator(".wb-app-panel");
+  const splitter = page.getByRole("separator", {name: "Resize application list"});
+  const width = Math.round((await panel.boundingBox()).width);
+  expect(width).toBeLessThan(480);
+  await expect(splitter).toHaveAttribute("aria-valuenow", String(width));
+});
+
 test("index keeps the workbench chrome visible in a short viewport", async ({page, host}) => {
   await page.setViewportSize({width: 900, height: 360});
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
 
   const viewport = await page.evaluate(() => ({height: window.innerHeight, scrollHeight: document.documentElement.scrollHeight}));
   const topBox = await page.locator(".wb-menubar").boundingBox();

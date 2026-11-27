@@ -78,13 +78,13 @@ CLASS zcl_example_format IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'ZCL_EXAMPLE_FORMAT' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_processing_types_v1=>color_heading intensified = abap_true ) ).
+    lo_writer->set_format( VALUE #( BASE lo_writer->get_format( ) color = zif_gg_list_proc_types_v1=>color_heading intensified = abap_true ) ).
     lo_writer->write_field( VALUE #( text = 'Heading' placement = VALUE #( new_line = abap_true ) ) ).
     lo_writer->reset_format( ).
     lo_writer->uline( VALUE #( position = 1 length = 40 ) ).
     lo_writer->skip( 2 ).
-    lo_writer->write_field( VALUE #( text = 'Positive' format = VALUE #( color = zif_gg_list_processing_types_v1=>color_positive ) placement = VALUE #( new_line = abap_true ) ) ).
-    lo_writer->write_field( VALUE #( text = 'Negative' format = VALUE #( color = zif_gg_list_processing_types_v1=>color_negative ) placement = VALUE #( position = 30 ) ) ).
+    lo_writer->write_field( VALUE #( text = 'Positive' format = VALUE #( color = zif_gg_list_proc_types_v1=>color_positive ) placement = VALUE #( new_line = abap_true ) ) ).
+    lo_writer->write_field( VALUE #( text = 'Negative' format = VALUE #( color = zif_gg_list_proc_types_v1=>color_negative ) placement = VALUE #( position = 30 ) ) ).
     lo_writer->write_icon( VALUE #( name = 'ICON_OKAY' placement = VALUE #( position = 5 new_line = abap_true ) ) ).
     lo_writer->write_field( VALUE #( text = 'Done' ) ).
     lo_writer->new_line( ).

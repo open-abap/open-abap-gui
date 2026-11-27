@@ -998,7 +998,7 @@ CLASS ltcl_test IMPLEMENTATION.
 * The document reaches the browser through srcdoc, so the whole rewritten
 * document is escaped once more on the way out.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
-      'sandbox="allow-forms allow-top-navigation-by-user-activation"' ) ).
+      'sandbox="allow-forms allow-same-origin allow-top-navigation-by-user-activation"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
       '&lt;form class=&quot;gg-sapevent&quot; method=&quot;post&quot; action=&quot;/dispatch&quot; target=&quot;_top&quot;&gt;' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS

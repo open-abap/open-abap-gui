@@ -58,7 +58,7 @@ INTERFACE zif_gg_host_html_v1 PUBLIC.
 
   TYPES: BEGIN OF ty_compatibility,
            lines        TYPE STANDARD TABLE OF string WITH DEFAULT KEY,
-           line_formats TYPE STANDARD TABLE OF zif_gg_list_processing_types_v1=>ty_format WITH DEFAULT KEY,
+           line_formats TYPE STANDARD TABLE OF zif_gg_list_proc_types_v1=>ty_format WITH DEFAULT KEY,
            messages     TYPE ty_messages,
            values       TYPE zif_gg_selection_screen_types=>ty_values,
            states       TYPE zif_gg_selection_screen_types=>ty_states,

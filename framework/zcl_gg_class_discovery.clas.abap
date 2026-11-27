@@ -45,7 +45,7 @@ CLASS zcl_gg_class_discovery IMPLEMENTATION.
     FIELD-SYMBOLS <class_name> TYPE string.
 
     lv_interface = iv_interface.
-    TRANSLATE lv_interface TO UPPER CASE.
+    lv_interface = to_upper( lv_interface ).
 
     TRY.
         CALL METHOD ('XCO_CP_ABAP')=>interface
@@ -89,7 +89,7 @@ CLASS zcl_gg_class_discovery IMPLEMENTATION.
               ORDER BY progname.
             LOOP AT lt_sources INTO ls_source.
               lv_source = ls_source-data.
-              TRANSLATE lv_source TO UPPER CASE.
+              lv_source = to_upper( lv_source ).
               IF lv_source CS |INTERFACES { lv_interface }|.
                 lv_class_name = ls_source-progname.
                 SHIFT lv_class_name RIGHT DELETING TRAILING space.
@@ -100,7 +100,7 @@ CLASS zcl_gg_class_discovery IMPLEMENTATION.
     ENDTRY.
 
     LOOP AT rt_names ASSIGNING <class_name>.
-      TRANSLATE <class_name> TO UPPER CASE.
+      <class_name> = to_upper( <class_name> ).
       SHIFT <class_name> RIGHT DELETING TRAILING space.
     ENDLOOP.
     SORT rt_names.

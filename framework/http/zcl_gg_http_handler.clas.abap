@@ -5,6 +5,8 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CLASS-METHODS shutdown.
 
   PRIVATE SECTION.
+    CONSTANTS c_refresh_svg_path TYPE string VALUE '/assets/icons/refresh.svg'.
+
     TYPES: BEGIN OF ty_payload,
              session_id      TYPE string,
              page_id         TYPE string,
@@ -113,6 +115,7 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         io_report          TYPE REF TO zif_gg_report_v1 OPTIONAL
         io_dynpro          TYPE REF TO zif_gg_dynpro_v1 OPTIONAL
         iv_program         TYPE zif_gg_session_types_v1=>ty_program OPTIONAL
+        iv_tcode           TYPE string
       RETURNING
         VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
 
@@ -134,11 +137,48 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         server      TYPE REF TO if_http_server
         is_response TYPE zif_gg_host_html_v1=>ty_response.
 
-    CLASS-METHODS send_html
+* Opens a GUI session; the response shows in it.
+    CLASS-METHODS open_window
+      IMPORTING
+        server TYPE REF TO if_http_server.
+
+* Tells the shell the response shows in the new GUI session.
+    CLASS-METHODS announce_window
       IMPORTING
         server    TYPE REF TO if_http_server
-        iv_html   TYPE string
-        iv_status TYPE i DEFAULT 200.
+        iv_window TYPE string.
+
+* Ends a GUI session /o opened for a transaction that did not start, and
+* goes back to the one the command was typed in.
+    CLASS-METHODS abandon_window
+      IMPORTING
+        iv_opened   TYPE string
+        iv_previous TYPE string.
+
+* The address bar's /: the session shell, which is no GUI session itself.
+    CLASS-METHODS is_shell_request
+      IMPORTING
+        server             TYPE REF TO if_http_server
+      RETURNING
+        VALUE(rv_is_shell) TYPE abap_bool.
+
+* The GUI session a request comes from: the preview shell's header, the
+* gg_window field a browser tab's page sends, the session of the program the
+* request is for, or else the first session.
+    CLASS-METHODS window_of_request
+      IMPORTING
+        server           TYPE REF TO if_http_server
+      RETURNING
+        VALUE(rv_window) TYPE string.
+
+    CLASS-METHODS send_html
+      IMPORTING
+        server         TYPE REF TO if_http_server
+        iv_html        TYPE string
+        iv_status      TYPE i DEFAULT 200
+* A page of a GUI session names its session in what it sends; the shell
+* itself is no session.
+        iv_page_script TYPE abap_bool DEFAULT abap_true.
 
     CLASS-METHODS send_refresh_svg
       IMPORTING
@@ -186,8 +226,21 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 * is one no program handled, and the request is answered with its
 * explanation, so the server keeps serving.
     TRY.
+* The GUI session each request comes from; its state goes in place before the
+* request runs. A shell's first request asks for a new one; the shell's own
+* page belongs to none.
+        IF is_shell_request( server ) = abap_false.
+          DATA(lv_window) = window_of_request( server ).
+          IF lv_window = zcl_gg_host_windows=>c_new_window.
+            server->response->set_header_field(
+              name  = 'x-gg-window'
+              value = zcl_gg_host_windows=>open( iv_own_shell = abap_true ) ).
+          ELSE.
+            zcl_gg_host_windows=>enter( lv_window ).
+          ENDIF.
+        ENDIF.
         lv_method = server->request->get_method( ).
-        TRANSLATE lv_method TO UPPER CASE.
+        lv_method = to_upper( lv_method ).
         CASE lv_method.
           WHEN 'GET'.
             handle_get( server ).
@@ -231,12 +284,27 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
     lv_path = server->request->get_header_field( '~path' ).
     REPLACE FIRST OCCURRENCE OF '?' IN lv_path WITH ''.
-    IF lv_path = '/assets/icons/refresh.svg'.
+    IF lv_path = c_refresh_svg_path.
       send_refresh_svg( server ).
       RETURN.
     ENDIF.
+* The address bar's / opens the session shell, which shows the workbench in
+* its first session. The shell's requests name their session; a page's own
+* form back to the workbench asks for /? , so it gets the workbench itself.
+    IF is_shell_request( server ) = abap_true.
+      send_html( server         = server
+                 iv_html        = zcl_gg_shell=>render( )
+                 iv_page_script = abap_false ).
+      RETURN.
+    ENDIF.
     IF lv_path = '/'.
-      zcl_gg_host_runtime=>clear( ).
+* Back at the workbench, the programs of this GUI session have ended; the
+* other sessions of the shell keep theirs.
+      IF zcl_gg_host_windows=>total( ) > 1.
+        zcl_gg_host_runtime=>close_window( zcl_gg_host_windows=>current( ) ).
+      ELSE.
+        zcl_gg_host_runtime=>clear( ).
+      ENDIF.
       lo_workbench = NEW zcl_gg_workbench( ).
       send_html( server  = server
                  iv_html = lo_workbench->get_html( ) ).
@@ -289,7 +357,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       lo_report ?= lo_program.
       ls_response = start_program(
         io_report  = lo_report
-        iv_program = CONV #( ls_program-class_name ) ).
+        iv_program = CONV #( ls_program-class_name )
+        iv_tcode   = CONV #( ls_program-program ) ).
       IF ls_response-valid = abap_false.
         send_workbench_error(
           server    = server
@@ -303,7 +372,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDIF.
     lv_class_name = substring( val = lv_path
                                off = 1 ).
-    TRANSLATE lv_class_name TO UPPER CASE.
+    lv_class_name = to_upper( lv_class_name ).
     lt_transactions = zcl_gg_transaction_registry=>get_all( ).
     READ TABLE lt_transactions INTO ls_transaction
       WITH KEY class_name = lv_class_name.
@@ -323,6 +392,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lv_session_id TYPE string.
     DATA lv_page_id TYPE string.
     DATA lv_close_error TYPE string.
+    DATA lv_previous TYPE string.
+    DATA lv_opened TYPE string.
     DATA lt_fields TYPE tihttpnvp.
     DATA ls_command TYPE zcl_gg_transaction_command=>ty_result.
     DATA ls_transaction TYPE zcl_gg_transaction_registry=>ty_transaction.
@@ -347,6 +418,20 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
                                   iv_name   = 'session_id' ).
       lv_page_id = form_value( it_fields = lt_fields
                                iv_name   = 'page_id' ).
+* System > Create Session and End Session send the commands they stand for.
+* A shell closed or reloaded ends all its sessions.
+      CASE form_value( it_fields = lt_fields
+                       iv_name   = 'session' ).
+        WHEN 'open'.
+          lv_command = '/o'.
+        WHEN 'end'.
+          lv_command = '/i'.
+        WHEN 'close'.
+          zcl_gg_host_windows=>end_shell( zcl_gg_host_windows=>current( ) ).
+          send_empty( server    = server
+                      iv_status = 204 ).
+          RETURN.
+      ENDCASE.
       ls_command = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
       IF ls_command-valid = abap_false.
         send_workbench_error(
@@ -356,8 +441,36 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_error      = ls_command-error ).
         RETURN.
       ENDIF.
+      IF ls_command-end_session = abap_true.
+        lv_close_error = zcl_gg_host_windows=>end( zcl_gg_host_windows=>current( ) ).
+        IF lv_close_error IS NOT INITIAL.
+          send_workbench_error(
+            server        = server
+            iv_session_id = lv_session_id
+            iv_page_id    = lv_page_id
+            iv_error      = lv_close_error ).
+          RETURN.
+        ENDIF.
+        server->response->set_header_field(
+          name  = 'x-gg-session'
+          value = 'end' ).
+* The preview's shell removes the session's frame; a browser tab is told the
+* session ended, and closes when the browser lets a page close its tab.
+        IF server->request->get_header_field( 'x-gg-window' ) IS NOT INITIAL.
+          send_empty( server    = server
+                      iv_status = 204 ).
+        ELSE.
+          send_html( server  = server
+                     iv_html = |<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Session ended</title></head>| &&
+                               |<body style="font:14px system-ui,sans-serif;padding:2rem"><p>This session has ended. You can close this tab.</p>| &&
+                               |<script>window.close();</script></body></html>| ).
+        ENDIF.
+        RETURN.
+      ENDIF.
       IF ls_command-menu = abap_true.
-        IF lv_session_id IS NOT INITIAL.
+        IF ls_command-open_session = abap_true.
+          open_window( server ).
+        ELSEIF lv_session_id IS NOT INITIAL.
           zcl_gg_host_runtime=>close( lv_session_id ).
         ENDIF.
         lo_workbench = NEW zcl_gg_workbench( ).
@@ -385,7 +498,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
             iv_status     = 500 ).
           RETURN.
       ENDTRY.
-      IF lv_session_id IS INITIAL AND lv_page_id IS INITIAL.
+* /o leaves the current session as it is and starts the transaction in a new
+* one, which the shell is told of once the transaction runs.
+      IF ls_command-open_session = abap_true.
+        lv_previous = zcl_gg_host_windows=>current( ).
+        lv_opened = zcl_gg_host_windows=>open( ).
+        CLEAR lv_close_error.
+      ELSEIF lv_session_id IS INITIAL AND lv_page_id IS INITIAL.
         CLEAR lv_close_error.
       ELSEIF lv_session_id IS INITIAL OR lv_page_id IS INITIAL.
         lv_close_error = 'Both the current host session and page are required.'.
@@ -408,6 +527,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
             is_transaction = ls_transaction
             io_object      = lo_transaction ).
         CATCH zcx_gg_transaction_error INTO DATA(lx_launch_error).
+          abandon_window( iv_opened   = lv_opened
+                          iv_previous = lv_previous ).
           send_workbench_error(
             server        = server
             iv_session_id = lv_session_id
@@ -417,6 +538,8 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           RETURN.
       ENDTRY.
       IF ls_response-valid = abap_false.
+        abandon_window( iv_opened   = lv_opened
+                        iv_previous = lv_previous ).
         send_workbench_error(
           server        = server
           iv_session_id = lv_session_id
@@ -424,6 +547,10 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           iv_error      = ls_response-error
           iv_status     = 500 ).
         RETURN.
+      ENDIF.
+      IF lv_opened IS NOT INITIAL.
+        announce_window( server    = server
+                         iv_window = lv_opened ).
       ENDIF.
       send_runtime_response( server      = server
                              is_response = ls_response ).
@@ -793,7 +920,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
     LOOP AT it_fields INTO DATA(ls_field).
       lv_name = ls_field-name.
-      TRANSLATE lv_name TO LOWER CASE.
+      lv_name = to_lower( lv_name ).
       IF lv_name NP 'gg-free-*'.
         CONTINUE.
       ENDIF.
@@ -1004,11 +1131,13 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     IF io_dynpro IS BOUND.
       rs_response = zcl_gg_host_runtime=>start(
         io_dynpro_program = io_dynpro
-        iv_program        = iv_program ).
+        iv_program        = iv_program
+        iv_tcode          = iv_tcode ).
     ELSEIF io_report IS BOUND.
       rs_response = zcl_gg_host_runtime=>start(
         io_report  = io_report
-        iv_program = iv_program ).
+        iv_program = iv_program
+        iv_tcode   = iv_tcode ).
     ELSE.
       rs_response-valid = abap_false.
       rs_response-error = 'A report or dynpro program is required'.
@@ -1050,12 +1179,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         lo_report ?= lo_object.
         rs_response = start_program(
           io_report  = lo_report
-          iv_program = CONV #( is_transaction-class_name ) ).
+          iv_program = CONV #( is_transaction-class_name )
+          iv_tcode   = CONV #( is_transaction-tcode ) ).
       WHEN zcl_gg_transaction_registry=>kind_dynpro.
         lo_dynpro ?= lo_object.
         rs_response = start_program(
           io_dynpro  = lo_dynpro
-          iv_program = CONV #( is_transaction-class_name ) ).
+          iv_program = CONV #( is_transaction-class_name )
+          iv_tcode   = CONV #( is_transaction-tcode ) ).
       WHEN OTHERS.
         RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING
           iv_message = |Transaction { is_transaction-tcode } has an unsupported executable kind|.
@@ -1085,6 +1216,14 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
                     iv_message = ls_message-text
                     iv_type    = ls_message-type ) ).
     ELSEIF is_response-valid = abap_true.
+* The session shell lists the GUI session under the program on screen, which
+* changes with CALL TRANSACTION, SUBMIT and the return from them.
+      DATA(lv_tcode) = zcl_gg_host_runtime=>transaction_of( is_response-session_id ).
+      IF lv_tcode IS NOT INITIAL.
+        server->response->set_header_field(
+          name  = 'x-gg-transaction'
+          value = lv_tcode ).
+      ENDIF.
       send_html(
         server  = server
         iv_html = is_response-html ).
@@ -1108,6 +1247,76 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD window_of_request.
+    DATA lt_fields TYPE tihttpnvp.
+    DATA ls_payload TYPE ty_payload.
+    DATA lv_path TYPE string.
+
+    rv_window = server->request->get_header_field( 'x-gg-window' ).
+    IF rv_window = zcl_gg_host_windows=>c_new_window.
+      RETURN.
+    ENDIF.
+    IF rv_window IS INITIAL.
+      lv_path = server->request->get_header_field( '~path' ).
+      IF server->request->get_header_field( 'content-type' ) CS 'application/json'.
+* A script's JSON names the program it is for in its body.
+        /ui2/cl_json=>deserialize(
+          EXPORTING
+            json = server->request->get_cdata( )
+          CHANGING
+            data = ls_payload ).
+        rv_window = zcl_gg_host_runtime=>window_of( ls_payload-session_id ).
+      ELSEIF lv_path CP '/session/*'.
+* DELETE /session/{id} names it in the path.
+        rv_window = zcl_gg_host_runtime=>window_of( cl_http_utility=>unescape_url(
+          substring( val = lv_path
+                     off = 9 ) ) ).
+      ELSE.
+        server->request->get_form_fields_cs( CHANGING fields = lt_fields ).
+        rv_window = form_value( it_fields = lt_fields
+                                iv_name   = zcl_gg_host_windows=>c_parameter ).
+        IF rv_window IS INITIAL.
+          rv_window = zcl_gg_host_runtime=>window_of( form_value( it_fields = lt_fields
+                                                                  iv_name   = 'session_id' ) ).
+        ENDIF.
+      ENDIF.
+    ENDIF.
+    rv_window = zcl_gg_host_windows=>normalize( rv_window ).
+  ENDMETHOD.
+
+  METHOD open_window.
+    announce_window( server    = server
+                     iv_window = zcl_gg_host_windows=>open( ) ).
+  ENDMETHOD.
+
+  METHOD announce_window.
+    server->response->set_header_field(
+      name  = 'x-gg-session'
+      value = 'new' ).
+    server->response->set_header_field(
+      name  = 'x-gg-window'
+      value = iv_window ).
+  ENDMETHOD.
+
+  METHOD abandon_window.
+    IF iv_opened IS INITIAL.
+      RETURN.
+    ENDIF.
+    zcl_gg_host_windows=>end( iv_opened ).
+    zcl_gg_host_windows=>enter( iv_previous ).
+  ENDMETHOD.
+
+  METHOD is_shell_request.
+    DATA lv_method TYPE string.
+
+    lv_method = server->request->get_method( ).
+    lv_method = to_upper( lv_method ).
+    rv_is_shell = xsdbool( lv_method = 'GET'
+      AND server->request->get_header_field( '~path' ) = '/'
+      AND server->request->get_header_field( 'x-gg-window' ) IS INITIAL
+      AND server->request->get_header_field( '~request_uri' ) = '/' ).
+  ENDMETHOD.
+
   METHOD send_workbench_error.
     send_html(
       server    = server
@@ -1123,8 +1332,26 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       name  = 'cache-control'
       value = 'no-store' ).
     server->response->set_content_type( 'text/html; charset=utf-8' ).
+* A page names its GUI session in what it sends next.
+    DATA(lv_html) = iv_html.
+    DATA(lv_script) = COND string( WHEN iv_page_script = abap_true THEN zcl_gg_host_windows=>script( ) ).
+    FIND FIRST OCCURRENCE OF '</head>' IN lv_html IGNORING CASE MATCH OFFSET DATA(lv_head).
+    IF sy-subrc = 0.
+      lv_html = substring( val = lv_html
+                           len = lv_head ) && lv_script && substring( val = lv_html
+                                                                      off = lv_head ).
+    ELSE.
+      lv_html = lv_html && lv_script.
+    ENDIF.
+* The host's own asset goes into the page, so a page shows it in a host that
+* serves no files, as the browser preview, and in a frame of the shell. Only
+* an image source is the asset: the same text in a field's value is data.
+    IF lv_html CS c_refresh_svg_path.
+      REPLACE ALL OCCURRENCES OF | src="{ c_refresh_svg_path }"| IN lv_html
+        WITH | src="data:image/svg+xml;base64,{ cl_http_utility=>encode_base64( zcl_gg_host_icons=>refresh_svg( ) ) }"|.
+    ENDIF.
 * A page carries the icons it shows, not the whole icon set.
-    server->response->set_cdata( zcl_gg_host_icons=>prune_sprite( iv_html ) ).
+    server->response->set_cdata( zcl_gg_host_icons=>prune_sprite( lv_html ) ).
     server->response->set_status(
       code   = iv_status
       reason = COND string( WHEN iv_status = 200 THEN 'OK' ELSE 'Error' ) ).

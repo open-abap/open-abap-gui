@@ -181,6 +181,22 @@ CLASS lcl_calling_report IMPLEMENTATION.
 
 ENDCLASS.
 
+* A report whose START-OF-SELECTION submits ZGG_EX_001, which takes its place.
+CLASS lcl_submitting_report DEFINITION INHERITING FROM lcl_called_screen FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS zif_gg_report_v1~start_of_selection REDEFINITION.
+
+ENDCLASS.
+
+CLASS lcl_submitting_report IMPLEMENTATION.
+
+  METHOD zif_gg_report_v1~start_of_selection.
+    io_session->get_navigation( )->submit( VALUE #( program = 'ZGG_EX_001' ) ).
+  ENDMETHOD.
+
+ENDCLASS.
+
 * A dialog transaction whose GO calls ZGG_EX_058 and counts the returns, as a
 * cockpit dispatching to its tools does. Back leaves the program.
 CLASS lcl_cockpit DEFINITION FINAL CREATE PUBLIC.
@@ -285,6 +301,8 @@ CLASS ltcl_runtime DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLE
     METHODS report_resumes_after_call FOR TESTING.
     METHODS unknown_transaction_is_named FOR TESTING.
     METHODS back_leaves_first_list FOR TESTING.
+    METHODS window_end_closes_its_programs FOR TESTING.
+    METHODS submit_names_the_program FOR TESTING.
 
     METHODS back
       IMPORTING
@@ -305,6 +323,28 @@ CLASS ltcl_runtime IMPLEMENTATION.
 
   METHOD teardown.
     zcl_gg_host_runtime=>clear( ).
+    zcl_gg_host_windows=>clear( ).
+  ENDMETHOD.
+
+* Ending a GUI session of the shell ends the programs that run in it; the
+* other session's program carries on, on its own screen.
+  METHOD window_end_closes_its_programs.
+    zcl_gg_host_windows=>enter( `W0` ).
+    DATA(ls_first) = zcl_gg_host_runtime=>start( io_report = NEW lcl_called_screen( abap_true ) ).
+    DATA(lv_second) = zcl_gg_host_windows=>open( ).
+    DATA(ls_second) = zcl_gg_host_runtime=>start( io_report = NEW lcl_called_screen( abap_true ) ).
+
+    zcl_gg_host_windows=>enter( `W0` ).
+    cl_abap_unit_assert=>assert_initial( act = zcl_gg_host_windows=>end( lv_second ) ).
+
+    DATA(ls_gone) = back( ls_second ).
+    cl_abap_unit_assert=>assert_false( act = ls_gone-valid ).
+    cl_abap_unit_assert=>assert_equals( act = ls_gone-error
+                                        exp = 'Unknown host session' ).
+    DATA(ls_back) = back( ls_first ).
+    cl_abap_unit_assert=>assert_true( act = ls_back-valid ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool(
+      line_exists( ls_back-compatibility-lines[ table_line = 'after 2000' ] ) ) ).
   ENDMETHOD.
 
   METHOD back.
@@ -394,10 +434,27 @@ CLASS ltcl_runtime IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( ls_leave-ended ).
   ENDMETHOD.
 
+* SUBMIT names a program, which the session shell then lists instead of the
+* transaction the submitting program was started with.
+  METHOD submit_names_the_program.
+    DATA(ls_start) = zcl_gg_host_runtime=>start(
+      io_report      = NEW lcl_submitting_report( abap_true )
+      iv_interactive = abap_false
+      iv_tcode       = 'zsubmitter' ).
+
+    cl_abap_unit_assert=>assert_true( ls_start-valid ).
+    cl_abap_unit_assert=>assert_equals( act = zcl_gg_host_runtime=>transaction_of( ls_start-session_id )
+                                        exp = 'ZGG_EX_001' ).
+    cl_abap_unit_assert=>assert_initial( zcl_gg_host_runtime=>transaction_of( `HOST-UNKNOWN` ) ).
+  ENDMETHOD.
+
   METHOD called_transaction_returns.
-    DATA(ls_start) = zcl_gg_host_runtime=>start( io_dynpro_program = NEW lcl_cockpit( ) ).
+    DATA(ls_start) = zcl_gg_host_runtime=>start( io_dynpro_program = NEW lcl_cockpit( )
+                                                 iv_tcode          = 'ZCOCKPIT' ).
     cl_abap_unit_assert=>assert_equals( act = ls_start-current_page-title
                                         exp = 'Cockpit, 0 returns' ).
+    cl_abap_unit_assert=>assert_equals( act = zcl_gg_host_runtime=>transaction_of( ls_start-session_id )
+                                        exp = 'ZCOCKPIT' ).
 
     DATA(ls_called) = command( is_page  = ls_start
                                iv_ucomm = 'GO' ).
@@ -406,6 +463,8 @@ CLASS ltcl_runtime IMPLEMENTATION.
                                          exp = ls_start-session_id ).
     cl_abap_unit_assert=>assert_equals( act = ls_called-current_page-title
                                         exp = 'Order 4711' ).
+    cl_abap_unit_assert=>assert_equals( act = zcl_gg_host_runtime=>transaction_of( ls_called-session_id )
+                                        exp = 'ZGG_EX_058' ).
 
 * The called transaction leaves to screen 0, which ends it: the cockpit
 * resumes after its CALL TRANSACTION and shows its screen again.
@@ -416,6 +475,8 @@ CLASS ltcl_runtime IMPLEMENTATION.
                                         exp = ls_start-session_id ).
     cl_abap_unit_assert=>assert_equals( act = ls_returned-current_page-title
                                         exp = 'Cockpit, 1 returns' ).
+    cl_abap_unit_assert=>assert_equals( act = zcl_gg_host_runtime=>transaction_of( ls_returned-session_id )
+                                        exp = 'ZCOCKPIT' ).
 * Its grid, created before the call, is still on the screen.
     cl_abap_unit_assert=>assert_true( act = xsdbool( ls_start-html CS 'ZCOCKPIT_TOOL' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( ls_called-html CS 'ZCOCKPIT_TOOL' ) ).

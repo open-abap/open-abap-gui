@@ -17,7 +17,7 @@ CLASS zcl_gg_integration_interactive IMPLEMENTATION.
       ORDER BY carrid, connid, fldate.
 
     lo_writer->set_format( VALUE #(
-      color       = zif_gg_list_processing_types_v1=>color_positive
+      color       = zif_gg_list_proc_types_v1=>color_positive
       intensified = abap_true ) ).
 
     LOOP AT lt_flights INTO DATA(ls_flight).

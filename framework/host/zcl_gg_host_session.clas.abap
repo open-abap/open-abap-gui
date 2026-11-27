@@ -258,6 +258,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
 
   METHOD zif_gg_session_v1~import_memory.
     FIELD-SYMBOLS <lv_value> TYPE any.
+    CLEAR ev_found.
     READ TABLE mt_memory REFERENCE INTO DATA(lr_entry)
       WITH KEY id = iv_id name = iv_name.
     IF sy-subrc <> 0.
@@ -266,7 +267,7 @@ CLASS zcl_gg_host_session IMPLEMENTATION.
     ASSIGN lr_entry->value->* TO <lv_value>.
     IF sy-subrc = 0.
       cv_value = <lv_value>.
-      rv_found = abap_true.
+      ev_found = abap_true.
     ENDIF.
   ENDMETHOD.
 

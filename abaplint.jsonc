@@ -1,7 +1,6 @@
 {
   "global": {
     "files": ["/src/**/*.*", "/framework/**/*.*", "/examples/**/*.*"],
-    "exclude": ["\\.prog\\.screen_\\d+\\.abap$"],
     "skipGeneratedGatewayClasses": true,
     "skipGeneratedPersistentClasses": true,
     "skipGeneratedFunctionGroups": true,
@@ -14,6 +13,24 @@
       "language": "Normal"
     },
     "errorNamespace": "."
+  },
+  "rename": {
+    "output": "sap-build",
+    "patterns": [
+      { "type": "CLAS", "oldName": "^cl_gui_easy_splitter_container$", "newName": "zcl_gg_gui_easy_splitter_cont" },
+      { "type": "CLAS", "oldName": "^cl_salv_form_layout_data_grid$", "newName": "zcl_gg_salv_form_lay_data_grid" },
+      { "type": "CLAS", "oldName": "^cl_salv_form_uie_layout_grid$", "newName": "zcl_gg_salv_form_uie_lay_grid" },
+      { "type": "CLAS", "oldName": "^cl_alv_changed_data_protocol$", "newName": "zcl_gg_alv_changed_data_prot" },
+      { "type": "CLAS", "oldName": "^cl_salv_functional_settings$", "newName": "zcl_gg_salv_func_settings" },
+      { "type": "CLAS", "oldName": "^cl_gui_ilidragndrop_control$", "newName": "zcl_gg_gui_ilidragndrop_ctrl" },
+      { "type": "CLAS", "oldName": "^cx_salv_method_not_supported$", "newName": "zcx_gg_salv_meth_not_supported" },
+      { "type": "INTF", "oldName": "^if_salv_events_actions_table$", "newName": "zif_gg_salv_events_actions_tab" },
+      { "type": "INTF", "oldName": "^if_salv_c_function_position$", "newName": "zif_gg_salv_c_function_pos" },
+      { "type": "CLAS", "oldName": "^cl_(.*)$", "newName": "zcl_gg_$1" },
+      { "type": "CLAS", "oldName": "^cx_(.*)$", "newName": "zcx_gg_$1" },
+      { "type": "INTF", "oldName": "^if_(.*)$", "newName": "zif_gg_$1" },
+      { "type": "TABL|TTYP|DTEL", "oldName": "^(?!(sscrfields|varid|varit)$)([^z].*)$", "newName": "zgg_$2" }
+    ]
   },
   "dependencies": [
     {
@@ -34,7 +51,8 @@
     "align_pseudo_comments": true,
     "invalid_table_index": true,
     "cds_check_syntax": true,
-    "xml_bom": false,
+    "xml_bom": true,
+    "final_newline": true,
     "no_prefixes": false,
     "clear_exporting_parameters": true,
     "no_macros": {
@@ -108,7 +126,7 @@
     "max_one_method_parameter_per_line": true,
     "method_length": false,
     "method_parameter_names": false,
-    "mix_returning": false,
+    "mix_returning": true,
     "use_new": true,
     "use_class_based_exceptions": false,
     "use_bool_expression": true,
@@ -207,7 +225,20 @@
     "in_statement_indentation": true,
     "downport": false,
     "empty_line_in_statement": false,
-    "empty_structure": true,
+    "empty_structure": {
+      "exclude": ["\\.prog\\.screen_\\d+\\.abap$"],
+      "loop": true,
+      "loopAllowIfSubrc": true,
+      "if": true,
+      "while": true,
+      "case": true,
+      "select": true,
+      "do": true,
+      "at": true,
+      "try": true,
+      "when": true,
+      "catch": false
+    },
     "exit_or_check": true,
     "forbidden_pseudo_and_pragma": true,
     "forbidden_void_type": true,
@@ -221,7 +252,7 @@
     "dangerous_statement": true,
     "db_operation_in_loop": true,
     "abapdoc": false,
-    "allowed_object_naming": false,
+    "allowed_object_naming": true,
     "allowed_object_types": false,
     "ambiguous_statement": true,
     "begin_single_include": {
@@ -229,7 +260,20 @@
     },
     "call_transaction_authority_check": true,
     "7bit_ascii": true,
-    "chain_mainly_declarations": true,
+    "chain_mainly_declarations": {
+      "exclude": ["\\.prog\\.screen_\\d+\\.abap$"],
+      "definitions": true,
+      "write": true,
+      "move": true,
+      "refresh": true,
+      "unassign": true,
+      "clear": true,
+      "hide": true,
+      "free": true,
+      "include": true,
+      "check": true,
+      "sort": true
+    },
     "check_comments": false,
     "definitions_top": true,
     "begin_end_names": true,
@@ -248,7 +292,7 @@
     "check_ddic": true,
     "implement_methods": true,
     "indentation": {
-      "exclude": ["zgg_ex_189\\.prog\\.abap$"]
+      "exclude": ["zgg_ex_189\\.prog\\.abap$", "\\.prog\\.screen_\\d+\\.abap$"]
     },
     "keyword_case": {
       "style": "upper",
@@ -289,6 +333,7 @@
       "sortByFS": true,
       "callTransformation": true,
       "pack": true,
+      "translate": true,
       "selectWithoutInto": true,
       "clientSpecified": false,
       "commonPart": true,

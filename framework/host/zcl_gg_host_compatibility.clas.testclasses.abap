@@ -4,6 +4,7 @@ CLASS ltcl_gg_compatibility_popup DEFINITION FINAL FOR TESTING
   PRIVATE SECTION.
     METHODS teardown.
     METHODS table_popup_returns_choice FOR TESTING.
+    METHODS popup_results_convert FOR TESTING.
     METHODS classic_alv_renders_rows FOR TESTING.
     METHODS classic_alv_metadata_events FOR TESTING.
     METHODS classic_alv_blocks_are_grouped FOR TESTING.
@@ -33,9 +34,11 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
       iv_action = ''
       it_values = VALUE #( ) ).
     TRY.
-        lv_choice = lo_compatibility->popup_with_table_display(
+        lo_compatibility->popup_with_table_display(
           EXPORTING
             is_request = VALUE #( title = 'Choose a row' )
+          IMPORTING
+            ev_choice  = lv_choice
           CHANGING
             ct_values  = lt_values ).
         cl_abap_unit_assert=>fail( 'The table popup must suspend on first display' ).
@@ -53,13 +56,54 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
     lo_compatibility->set_popup_request(
       iv_action = 'TABLE:2'
       it_values = VALUE #( ) ).
-    lv_choice = lo_compatibility->popup_with_table_display(
+    lo_compatibility->popup_with_table_display(
       EXPORTING
         is_request = VALUE #( title = 'Choose a row' )
+      IMPORTING
+        ev_choice  = lv_choice
       CHANGING
         ct_values  = lt_values ).
     cl_abap_unit_assert=>assert_equals( act = lv_choice
                                         exp = 2 ).
+  ENDMETHOD.
+
+  METHOD popup_results_convert.
+* A program's variable of another type takes the result, as it does from the
+* function module.
+    DATA lt_values TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    DATA lt_fields TYPE STANDARD TABLE OF sval WITH DEFAULT KEY.
+    DATA lv_choice TYPE n LENGTH 3.
+    DATA lv_returncode TYPE string.
+    DATA lo_compatibility TYPE REF TO zif_gg_compatibility_v1.
+    lo_compatibility ?= NEW zcl_gg_host_compatibility( ).
+
+    APPEND 'First row' TO lt_values.
+    APPEND 'Second row' TO lt_values.
+    lo_compatibility->set_popup_request(
+      iv_action = 'TABLE:2'
+      it_values = VALUE #( ) ).
+    lo_compatibility->popup_with_table_display(
+      EXPORTING
+        is_request = VALUE #( title = 'Choose a row' )
+      IMPORTING
+        ev_choice  = lv_choice
+      CHANGING
+        ct_values  = lt_values ).
+    cl_abap_unit_assert=>assert_equals( act = lv_choice
+                                        exp = '002' ).
+
+    lo_compatibility->set_popup_request(
+      iv_action = 'VALUE:CANCEL'
+      it_values = VALUE #( ) ).
+    lo_compatibility->popup_get_values(
+      EXPORTING
+        is_request    = VALUE #( title = 'Values' )
+      IMPORTING
+        ev_returncode = lv_returncode
+      CHANGING
+        ct_fields     = lt_fields ).
+    cl_abap_unit_assert=>assert_equals( act = lv_returncode
+                                        exp = `A` ).
   ENDMETHOD.
 
   METHOD classic_alv_renders_rows.

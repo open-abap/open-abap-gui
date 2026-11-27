@@ -3,4 +3,4 @@ REPORT zgg_ex_031.
 PARAMETERS p_carr TYPE c LENGTH 3.
 
 AT SELECTION-SCREEN ON p_carr.
-  TRANSLATE p_carr TO UPPER CASE.
+  p_carr = to_upper( p_carr ).

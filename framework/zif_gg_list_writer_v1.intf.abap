@@ -5,7 +5,7 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
 
   METHODS write_field
     IMPORTING
-      is_field TYPE zif_gg_list_processing_types_v1=>ty_write_field.
+      is_field TYPE zif_gg_list_proc_types_v1=>ty_write_field.
 
   METHODS format_value
     IMPORTING
@@ -16,15 +16,15 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
 
   METHODS write_checkbox
     IMPORTING
-      is_checkbox TYPE zif_gg_list_processing_types_v1=>ty_write_checkbox.
+      is_checkbox TYPE zif_gg_list_proc_types_v1=>ty_write_checkbox.
 
   METHODS write_icon
     IMPORTING
-      is_icon TYPE zif_gg_list_processing_types_v1=>ty_write_icon.
+      is_icon TYPE zif_gg_list_proc_types_v1=>ty_write_icon.
 
   METHODS write_symbol
     IMPORTING
-      is_symbol TYPE zif_gg_list_processing_types_v1=>ty_write_symbol.
+      is_symbol TYPE zif_gg_list_proc_types_v1=>ty_write_symbol.
 
   METHODS new_line.
 
@@ -34,7 +34,7 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
 
   METHODS uline
     IMPORTING
-      is_uline TYPE zif_gg_list_processing_types_v1=>ty_uline.
+      is_uline TYPE zif_gg_list_proc_types_v1=>ty_uline.
 
   METHODS set_position
     IMPORTING
@@ -50,7 +50,7 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
 
   METHODS new_page
     IMPORTING
-      is_new_page TYPE zif_gg_list_processing_types_v1=>ty_new_page.
+      is_new_page TYPE zif_gg_list_proc_types_v1=>ty_new_page.
 
   METHODS scroll_to_first_page.
 
@@ -58,12 +58,12 @@ INTERFACE zif_gg_list_writer_v1 PUBLIC.
 
   METHODS set_format
     IMPORTING
-      is_format TYPE zif_gg_list_processing_types_v1=>ty_format.
+      is_format TYPE zif_gg_list_proc_types_v1=>ty_format.
 
   METHODS reset_format.
 
   METHODS get_format
     RETURNING
-      VALUE(rs_format) TYPE zif_gg_list_processing_types_v1=>ty_format.
+      VALUE(rs_format) TYPE zif_gg_list_proc_types_v1=>ty_format.
 
 ENDINTERFACE.

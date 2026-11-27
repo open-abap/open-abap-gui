@@ -828,7 +828,7 @@ CLASS zcl_gg_host_icons IMPLEMENTATION.
     SPLIT lv_value AT '\Q' INTO lv_value lv_tooltip.
     REPLACE ALL OCCURRENCES OF '@' IN lv_value WITH ``.
     REPLACE ALL OCCURRENCES OF '@' IN lv_tooltip WITH ``.
-    TRANSLATE lv_value TO LOWER CASE.
+    lv_value = to_lower( lv_value ).
     IF lv_value CP 'icon_*'.
       lv_value = substring( val = lv_value
                             off = 5 ).

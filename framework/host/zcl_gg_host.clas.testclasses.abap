@@ -600,21 +600,21 @@ CLASS ltcl_host IMPLEMENTATION.
 
   METHOD selection_renderer_controls.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_checkbox( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_checkbox( VALUE #(
       name = 'P_CHECK' text = 'Check' default = abap_true ucomm = 'CHECK' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_radiobutton( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_radiobutton( VALUE #(
       name = 'P_ONE' text = 'One' default = abap_true radio_group = 'GRP' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_radiobutton( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_radiobutton( VALUE #(
       name = 'P_TWO' text = 'Two' radio_group = 'GRP' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_listbox( VALUE #(
       name = 'P_LIST' text = 'List' default = 'A'
       fixed_values = VALUE #( ( key = 'A' text = '<A>' ) ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_pushbutton( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_pushbutton( VALUE #(
       name = 'PB' text = 'Go' ucomm = 'GO' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_tabbed_block( VALUE #( name = 'TABS' lines = 2 ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_tab( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_tabbed_block( VALUE #( name = 'TABS' lines = 2 ) ).
+    lo_screen->zif_gg_sel_screen_builder_v1~add_tab( VALUE #(
       name = 'TAB_A' text = 'A' ucomm = 'TAB_A' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_tabbed_block( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~end_tabbed_block( ).
     DATA(lv_html) = zcl_gg_host_renderer=>render_selection(
       iv_session_id = 'S'
       iv_page_id    = 'P'
@@ -638,16 +638,16 @@ CLASS ltcl_host IMPLEMENTATION.
 * Entries come from the domain of the rollname, a VRM list replaces them, and
 * the current value stays selected even when no entry has it.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_listbox( VALUE #(
       name = 'P_BOOL' text = 'Boolean' default = 'X'
       data_type = VALUE #( rollname = 'ABAP_BOOLEAN' typ = 'C' length = 1 ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_listbox( VALUE #(
       name = 'P_OTHER' text = 'Other' default = 'Z'
       fixed_values = VALUE #( ( key = 'A' text = 'Add' ) ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_listbox( VALUE #(
       name = 'P_EMPTY' text = 'Empty'
       fixed_values = VALUE #( ( key = 'A' text = 'Add' ) ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_listbox( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_listbox( VALUE #(
       name = 'P_VRM' text = 'VRM' default = 'V'
       data_type = VALUE #( rollname = 'ABAP_BOOLEAN' typ = 'C' length = 1 ) ) ).
     DATA(lt_states) = lo_screen->get_states( ).
@@ -675,16 +675,16 @@ CLASS ltcl_host IMPLEMENTATION.
 
   METHOD selection_sibling_blocks.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_block( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_block( VALUE #(
       name = 'BLOCK1' title = 'First' with_frame = abap_true ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_parameter( VALUE #(
       name = 'P_MAXRUN' text = 'Max' data_type = VALUE #( typ = 'I' ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_block( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_block( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~end_block( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_block( VALUE #(
       name = 'BLOCK2' title = 'Second' with_frame = abap_true ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_parameter( VALUE #(
       name = 'P_BKDEF' text = 'Default' data_type = VALUE #( typ = 'I' ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_block( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~end_block( ).
     DATA(lv_html) = zcl_gg_host_renderer=>render_selection(
       iv_session_id = 'S'
       iv_page_id    = 'P'
@@ -713,22 +713,22 @@ CLASS ltcl_host IMPLEMENTATION.
 * The active tab's subscreen is framed in a panel right under its tab strip,
 * ahead of fields declared after the tabbed block; the other tab is not shown.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_tabbed_block( VALUE #( name = 'TB' lines = 5 ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_tab( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_tabbed_block( VALUE #( name = 'TB' lines = 5 ) ).
+    lo_screen->zif_gg_sel_screen_builder_v1~add_tab( VALUE #(
       name = 'TAB1' text = 'General' subscreen = '0100' ucomm = 'UT1' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_tab( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_tab( VALUE #(
       name = 'TAB2' text = 'Details' subscreen = '0200' ucomm = 'UT2' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_tabbed_block( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~end_tabbed_block( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~add_parameter( VALUE #(
       name = 'P_MAIN' text = 'Main' data_type = VALUE #( typ = 'C' length = 10 ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_screen( VALUE #( number = '0100' as_subscreen = abap_true ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_screen( VALUE #( number = '0100' as_subscreen = abap_true ) ).
+    lo_screen->zif_gg_sel_screen_builder_v1~add_parameter( VALUE #(
       name = 'P_NAME' text = 'Name' data_type = VALUE #( typ = 'C' length = 10 ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_screen( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_screen( VALUE #( number = '0200' as_subscreen = abap_true ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~end_screen( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_screen( VALUE #( number = '0200' as_subscreen = abap_true ) ).
+    lo_screen->zif_gg_sel_screen_builder_v1~add_parameter( VALUE #(
       name = 'P_COUNT' text = 'Count' data_type = VALUE #( typ = 'I' ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_screen( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~end_screen( ).
     DATA(lv_html) = zcl_gg_host_renderer=>render_selection(
       iv_session_id = 'S'
       iv_page_id    = 'P'
@@ -752,16 +752,16 @@ CLASS ltcl_host IMPLEMENTATION.
 * The label the program set in the tab field replaces the declared text; a tab
 * whose field is empty keeps it.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_tabbed_block( VALUE #( name = 'TB' lines = 5 ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_tab( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_tabbed_block( VALUE #( name = 'TB' lines = 5 ) ).
+    lo_screen->zif_gg_sel_screen_builder_v1~add_tab( VALUE #(
       name = 'TAB1' text = 'TAB1' subscreen = '0100' ucomm = 'UT1' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_tab( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~add_tab( VALUE #(
       name = 'TAB2' text = 'Details' subscreen = '0200' ucomm = 'UT2' ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_tabbed_block( ).
-    lo_screen->zif_gg_selection_screen_builder_v1~begin_screen( VALUE #( number = '0100' as_subscreen = abap_true ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~add_parameter( VALUE #(
+    lo_screen->zif_gg_sel_screen_builder_v1~end_tabbed_block( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~begin_screen( VALUE #( number = '0100' as_subscreen = abap_true ) ).
+    lo_screen->zif_gg_sel_screen_builder_v1~add_parameter( VALUE #(
       name = 'P_NAME' text = 'Name' data_type = VALUE #( typ = 'C' length = 10 ) ) ).
-    lo_screen->zif_gg_selection_screen_builder_v1~end_screen( ).
+    lo_screen->zif_gg_sel_screen_builder_v1~end_screen( ).
     DATA(lt_values) = lo_screen->get_values( ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( line_exists( lt_values[ name = 'TAB1' ] ) ) ).
     lt_values[ name = 'TAB1' ]-value = 'General'.

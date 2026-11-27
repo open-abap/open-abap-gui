@@ -7,7 +7,10 @@ const buildDirectory = resolve(process.cwd(), "build");
 const htmlFile = resolve(buildDirectory, "index.html");
 const screenshotsDirectory = resolve(buildDirectory, "screenshots");
 const previewUrl = pathToFileURL(htmlFile).href;
-const viewport = {width: 1440, height: 900};
+// Each screenshot is the session frame of the shell, which sits beside the
+// rail of sessions (196px wide, see zcl_gg_shell), so the frame keeps 1440x900.
+const shot = {width: 1440, height: 900};
+const viewport = {width: shot.width + 196, height: shot.height};
 
 function escapeHtml(value) {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
@@ -44,7 +47,7 @@ async function writeScreenshotIndex(transactions) {
       const source = escapeHtml(filename);
       const tcode = filename.replace(/\.[^.]+$/, "");
       const description = escapeHtml(descriptions.get(tcode) || "No description available");
-      return `        <figure><a href="${source}"><img src="${source}" alt="${label}" width="${viewport.width}" height="${viewport.height}" loading="lazy"></a><figcaption><strong>${label}</strong><span class="description">${description}</span></figcaption></figure>`;
+      return `        <figure><a href="${source}"><img src="${source}" alt="${label}" width="${shot.width}" height="${shot.height}" loading="lazy"></a><figcaption><strong>${label}</strong><span class="description">${description}</span></figcaption></figure>`;
     })
     .join("\n");
 
@@ -109,16 +112,45 @@ page.on("requestfailed", (request) => {
   browserErrors.push(`request: ${request.url()} :: ${request.failure()?.errorText || "failed"}`);
 });
 
-async function waitForPreview() {
-  await page.locator(".wb-appbar").waitFor({state: "visible", timeout: 30000});
-  await page.waitForFunction(() => !document.body.innerText.includes("Preview failed"));
+const frames = page.locator("#gg-frames");
+const screen = page.frameLocator("#gg-frames iframe:not([hidden])");
+
+// Opens a route in the shell's session through the hash, as a link to the
+// preview does. The frame is emptied first, so the wait below sees the new
+// page, not the one before.
+async function openRoute(route) {
+  currentPage = `${previewUrl}#${route}`;
+  await page.evaluate((value) => {
+    document.querySelector("#gg-frames iframe:not([hidden])")?.contentDocument?.body?.replaceChildren();
+    window.location.hash = value;
+  }, route);
+  await screen.locator(".wb-appbar, main h1").first().waitFor({state: "visible", timeout: 30000});
+  if (await screen.getByText("Preview failed").count() > 0) {
+    throw new Error(`Preview failed: ${await screen.locator("main pre").textContent()}`);
+  }
+  // The host's error pages show in the session like any page; the shell keeps
+  // their status on the frame.
+  const status = Number(await page.locator("#gg-frames iframe:not([hidden])").getAttribute("data-gg-status"));
+  if (status >= 400) {
+    throw new Error(`Preview failed: HTTP ${status}: ${await screen.locator("body").innerText()}`);
+  }
+}
+
+async function capture(name) {
+  await frames.screenshot({
+    path: resolve(screenshotsDirectory, `${name.toLowerCase()}.png`),
+    animations: "disabled",
+  });
 }
 
 try {
+  // The preview opens on the session shell, with the workbench in its first
+  // session; every page is then opened in that session, see openRoute.
   await page.goto(previewUrl, {waitUntil: "load"});
-  await waitForPreview();
+  const workbench = screen;
+  await workbench.locator(".wb-appbar").waitFor({state: "visible", timeout: 30000});
 
-  const transactions = await page.locator('a[href^="/transaction?tcode="]').evaluateAll((links) => {
+  const transactions = await workbench.locator('a[href^="/transaction?tcode="]').evaluateAll((links) => {
     const entries = links.map((link) => {
       const href = link.getAttribute("href") || "";
       const tcode = new URL(href, "https://open-abap-gui.invalid").searchParams.get("tcode");
@@ -136,7 +168,7 @@ try {
   }
 
   const examplePrograms = await converterExamplePrograms();
-  const programs = (await page.locator('a[href^="/program?name="]').evaluateAll((links) => links.map((link) => {
+  const programs = (await workbench.locator('a[href^="/program?name="]').evaluateAll((links) => links.map((link) => {
     const href = link.getAttribute("href") || "";
     const program = new URL(href, "https://open-abap-gui.invalid").searchParams.get("name");
     const description = link.querySelector(".wb-app-description")?.textContent?.trim() || "";
@@ -146,25 +178,13 @@ try {
     .sort((a, b) => a.program.localeCompare(b.program, undefined, {numeric: true}));
 
   for (const {tcode} of transactions) {
-    currentPage = `${previewUrl}#/transaction?tcode=${encodeURIComponent(tcode)}`;
-    await page.goto(currentPage, {waitUntil: "load"});
-    await waitForPreview();
-    await page.screenshot({
-      path: resolve(screenshotsDirectory, `${tcode.toLowerCase()}.png`),
-      fullPage: false,
-      animations: "disabled",
-    });
+    await openRoute(`/transaction?tcode=${encodeURIComponent(tcode)}`);
+    await capture(tcode);
   }
 
   for (const {program} of programs) {
-    currentPage = `${previewUrl}#/program?name=${encodeURIComponent(program)}`;
-    await page.goto(currentPage, {waitUntil: "load"});
-    await waitForPreview();
-    await page.screenshot({
-      path: resolve(screenshotsDirectory, `${program.toLowerCase()}.png`),
-      fullPage: false,
-      animations: "disabled",
-    });
+    await openRoute(`/program?name=${encodeURIComponent(program)}`);
+    await capture(program);
   }
 
   if (browserErrors.length > 0) {

@@ -72,8 +72,8 @@ CLASS zcl_gg_system_dictionary IMPLEMENTATION.
     lv_name = iv_name.
     SHIFT lv_object_type LEFT DELETING LEADING space.
     SHIFT lv_name LEFT DELETING LEADING space.
-    TRANSLATE lv_object_type TO UPPER CASE.
-    TRANSLATE lv_name TO UPPER CASE.
+    lv_object_type = to_upper( lv_object_type ).
+    lv_name = to_upper( lv_name ).
     lt_types = zif_gg_dictionary_service_v1~get_object_types( ).
     IF NOT line_exists( lt_types[ table_line = lv_object_type ] ).
       rs_object-error = 'Dictionary object type is not supported.'.
@@ -124,7 +124,7 @@ CLASS zcl_gg_system_dictionary IMPLEMENTATION.
 
     lv_object_type = iv_object_type.
     SHIFT lv_object_type LEFT DELETING LEADING space.
-    TRANSLATE lv_object_type TO UPPER CASE.
+    lv_object_type = to_upper( lv_object_type ).
     CASE lv_object_type.
       WHEN zif_gg_system_types_v1=>ddic_table.
         rt_names = VALUE string_table( ( `ZSFLIGHT` ) ).

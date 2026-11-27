@@ -4,7 +4,7 @@ CLASS zcl_gg_host_screen DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * operation-specific layout data needed by the HTML renderer.
 
   PUBLIC SECTION.
-    INTERFACES zif_gg_selection_screen_builder_v1.
+    INTERFACES zif_gg_sel_screen_builder_v1.
 
     TYPES: BEGIN OF ty_block,
              block  TYPE zif_gg_selection_screen_types=>ty_block,
@@ -290,7 +290,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     INSERT ls_state INTO TABLE mt_states.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_parameter.
+  METHOD zif_gg_sel_screen_builder_v1~add_parameter.
     add_value(
       iv_name  = is_parameter-name
       iv_value = is_parameter-default ).
@@ -319,7 +319,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_checkbox.
+  METHOD zif_gg_sel_screen_builder_v1~add_checkbox.
     add_value(
       iv_name  = is_checkbox-name
       iv_value = CONV string( is_checkbox-default ) ).
@@ -336,7 +336,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_modif_id = is_checkbox-modif_id ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_radiobutton.
+  METHOD zif_gg_sel_screen_builder_v1~add_radiobutton.
     DATA lv_ucomm TYPE zif_gg_selection_screen_types=>ty_ucomm.
     DATA lv_default TYPE abap_bool.
 
@@ -384,7 +384,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_modif_id = is_radiobutton-modif_id ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_listbox.
+  METHOD zif_gg_sel_screen_builder_v1~add_listbox.
 * The entries are the fixed values of the field's domain, read
 * now rather than copied into the program. Entries the program passes win,
 * and a VRM list set at runtime replaces either.
@@ -413,7 +413,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       it_fixed_values   = lt_fixed_values ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_select_option.
+  METHOD zif_gg_sel_screen_builder_v1~add_select_option.
     add_value(
       iv_name  = is_select_option-name
       is_range = is_select_option-default ).
@@ -434,7 +434,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_modif_id     = is_select_option-modif_id ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_pushbutton.
+  METHOD zif_gg_sel_screen_builder_v1~add_pushbutton.
     add_element(
       iv_kind     = 'PUSHBUTTON'
       iv_name     = is_pushbutton-name
@@ -445,7 +445,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_modif_id = is_pushbutton-modif_id ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_comment.
+  METHOD zif_gg_sel_screen_builder_v1~add_comment.
     add_element(
       iv_kind           = 'COMMENT'
       iv_name           = is_comment-name
@@ -460,7 +460,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_uline.
+  METHOD zif_gg_sel_screen_builder_v1~add_uline.
     add_element(
       iv_kind     = 'ULINE'
       iv_position = is_uline-position
@@ -468,22 +468,22 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_modif_id = is_uline-modif_id ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_skip.
+  METHOD zif_gg_sel_screen_builder_v1~add_skip.
     add_element( iv_kind   = 'SKIP'
                  iv_length = iv_lines ).
     mv_line = mv_line + iv_lines.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~new_line.
+  METHOD zif_gg_sel_screen_builder_v1~new_line.
     mv_line = mv_line + 1.
     mv_position = 1.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~set_position.
+  METHOD zif_gg_sel_screen_builder_v1~set_position.
     mv_position = iv_position.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_function_key.
+  METHOD zif_gg_sel_screen_builder_v1~add_function_key.
     add_element(
       iv_kind   = 'FUNCTION_KEY'
       iv_text   = is_function_key-text
@@ -491,7 +491,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_number = is_function_key-number ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~begin_block.
+  METHOD zif_gg_sel_screen_builder_v1~begin_block.
     DATA lv_parent TYPE i.
 
     READ TABLE mt_block_stack INTO lv_parent INDEX lines( mt_block_stack ).
@@ -503,26 +503,26 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
     APPEND lines( mt_blocks ) TO mt_block_stack.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~end_block.
+  METHOD zif_gg_sel_screen_builder_v1~end_block.
     IF mv_block_depth > 0.
       mv_block_depth = mv_block_depth - 1.
       DELETE mt_block_stack INDEX lines( mt_block_stack ).
     ENDIF.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~begin_line.
+  METHOD zif_gg_sel_screen_builder_v1~begin_line.
     mv_in_line = abap_true.
     mv_line = mv_line + 1.
     mv_position = 1.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~end_line.
+  METHOD zif_gg_sel_screen_builder_v1~end_line.
     mv_in_line = abap_false.
     mv_position = 0.
     mv_line = mv_line + 1.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~begin_tabbed_block.
+  METHOD zif_gg_sel_screen_builder_v1~begin_tabbed_block.
     mv_tabbed_block = is_tabbed_block-name.
     add_element(
       iv_kind  = 'TABBED_BLOCK'
@@ -530,7 +530,7 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_lines = is_tabbed_block-lines ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~add_tab.
+  METHOD zif_gg_sel_screen_builder_v1~add_tab.
 * The label set in the tab field at runtime travels in the values; it has no
 * state, as it is no input field.
     add_value( is_tab-name ).
@@ -548,11 +548,11 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
                     selected  = xsdbool( lines( mt_tabs ) = 0 ) ) TO mt_tabs.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~end_tabbed_block.
+  METHOD zif_gg_sel_screen_builder_v1~end_tabbed_block.
     CLEAR mv_tabbed_block.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~begin_screen.
+  METHOD zif_gg_sel_screen_builder_v1~begin_screen.
     APPEND is_screen TO mt_screens.
     mv_screen = is_screen-number.
     add_element(
@@ -562,11 +562,11 @@ CLASS zcl_gg_host_screen IMPLEMENTATION.
       iv_as_subscreen = is_screen-as_subscreen ).
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~end_screen.
+  METHOD zif_gg_sel_screen_builder_v1~end_screen.
     CLEAR mv_screen.
   ENDMETHOD.
 
-  METHOD zif_gg_selection_screen_builder_v1~get_ddic_text.
+  METHOD zif_gg_sel_screen_builder_v1~get_ddic_text.
     DATA lo_type    TYPE REF TO cl_abap_typedescr.
     DATA lo_table   TYPE REF TO cl_abap_tabledescr.
     DATA lo_struct  TYPE REF TO cl_abap_structdescr.

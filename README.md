@@ -6,6 +6,8 @@ Work in progress.
 
 Preview of `main`: https://open-abap.github.io/open-abap-gui-preview-deployments/main/
 
+Documentation: [architecture](docs/architecture/README.md) and [design decisions](docs/decisions/README.md), see [docs/](docs/README.md).
+
 ## Usage
 
 Classic reports (`*.prog.abap`) are converted to classes, transpiled, and served in the browser through [express-icf-shim](https://github.com/open-abap/express-icf-shim).

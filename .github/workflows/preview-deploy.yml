@@ -45,6 +45,9 @@ jobs:
 
       - run: npm run web:build
 
+      # The session shell, in the built preview and on the npm start server; npm test builds no preview.
+      - run: npx playwright test test/specs/web-sessions.spec.mjs
+
       - name: Push preview deployment
         run: |
           set -euo pipefail

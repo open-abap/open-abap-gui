@@ -49,12 +49,12 @@ INTERFACE zif_gg_session_v1 PUBLIC.
 
   METHODS import_memory
     IMPORTING
-      iv_id           TYPE string
-      iv_name         TYPE string
+      iv_id    TYPE string
+      iv_name  TYPE string
+    EXPORTING
+      ev_found TYPE abap_bool
     CHANGING
-      cv_value        TYPE any
-    RETURNING
-      VALUE(rv_found) TYPE abap_bool.
+      cv_value TYPE any.
 
   METHODS free_memory
     IMPORTING

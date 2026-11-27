@@ -1,18 +1,19 @@
-import {test, expect} from "../fixtures.mjs";
+import {readFile} from "node:fs/promises";
+import {test, expect, workbenchUrl} from "../fixtures.mjs";
 
 test("transaction links start the real report and dynpro examples", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
   await page.getByRole("link", {name: "ZGG_EX_001"}).click();
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "LIST");
   await expect(page.locator(".gg-list")).toContainText("hello world");
 
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
   await page.getByRole("link", {name: "ZGG_EX_058"}).click();
   await expect(page.locator("[data-page-kind]")).toHaveAttribute("data-page-kind", "DYNPRO");
 });
 
 test("the command form accepts /n and normalizes the dynpro tcode", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
   const command = page.getByRole("textbox", {name: "Command"});
   await expect(command).toHaveAttribute("name", "command");
   await expect(command.locator("xpath=ancestor::form")).toHaveAttribute("action", "/transaction");
@@ -41,7 +42,7 @@ test("F1 stays silent until a focused field exposes real help", async ({page, ho
 });
 
 test("the status bar paints each message type in its own colour", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
   const feedback = page.locator(".wb-status-feedback");
 
   // An error arrives from the server; the rest are announced by the shell.
@@ -150,7 +151,7 @@ test("invalid commands clear the command field and leave the old session open", 
 });
 
 test("invalid workbench commands render in the bottom message bar", async ({page, host}) => {
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
 
   const command = page.getByRole("textbox", {name: "Command"});
   await command.fill("NOT_A_TRANSACTION");
@@ -177,7 +178,7 @@ test("invalid workbench commands render in the bottom message bar", async ({page
 test("a status message never changes the height of the status bar", async ({page, host}) => {
   const barHeight = () => page.locator(".wb-statusbar").evaluate((element) => element.getBoundingClientRect().height);
 
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
   const idle = await barHeight();
 
   const command = page.getByRole("textbox", {name: "Command"});
@@ -206,7 +207,7 @@ test("a status message stays prominent without motion", async ({browser, host}) 
   const context = await browser.newContext({reducedMotion: "reduce"});
   const page = await context.newPage();
   try {
-    await page.goto(`${host.baseUrl}/`);
+    await page.goto(workbenchUrl(host));
     const command = page.getByRole("textbox", {name: "Command"});
     await command.fill("NOT_A_TRANSACTION");
     await command.press("Enter");
@@ -222,4 +223,92 @@ test("a status message stays prominent without motion", async ({browser, host}) 
   } finally {
     await context.close();
   }
+});
+
+// In a browser tab /o opens the new session in a new tab, like SAP GUI opens a
+// new window; each tab keeps its own program, and /i closes the tab again.
+test("/o opens a session in a new tab and /i closes it", async ({page, host}) => {
+  await page.goto(`${host.baseUrl}/transaction?tcode=SE16`);
+  await page.getByRole("button", {name: "Table Contents", exact: true}).click();
+  await expect(page.locator('[data-screen="0150"]')).toHaveCount(1);
+  await page.locator('input[name="P_T1_MAX"]').fill("2");
+
+  const command = page.getByRole("textbox", {name: "Command"});
+  const popupPromise = page.waitForEvent("popup");
+  await command.fill("/ose11");
+  await command.press("Enter");
+  const popup = await popupPromise;
+  await popup.waitForLoadState();
+  await expect(popup.locator("#wb-page-title")).toContainText("Dictionary");
+  await expect(popup.locator('meta[name="gg-window"]')).not.toHaveAttribute("content", "W0");
+  await expect(command).toHaveValue("");
+
+  // The first tab's program carries on, with its own screen.
+  await expect(page.locator('[data-screen="0150"]')).toHaveCount(1);
+  await page.getByRole("button", {name: "Execute", exact: true}).click();
+  await expect(page.locator('[data-screen="0200"]')).toHaveCount(1);
+  await expect(page.getByText("2 of 5 rows returned; hard maximum reached.", {exact: true})).toBeVisible();
+
+  const closed = popup.waitForEvent("close");
+  const popupCommand = popup.getByRole("textbox", {name: "Command"});
+  await popupCommand.fill("/i");
+  await popupCommand.press("Enter");
+  await closed;
+
+  // With one session left, End Session is not offered.
+  await page.goto(workbenchUrl(host));
+  await page.getByRole("menuitem", {name: "System"}).click();
+  await expect(page.getByRole("menuitem", {name: "End Session"})).toBeDisabled();
+});
+
+// GUI_DOWNLOAD's file is a blob: URL, which has the page's origin; the script
+// that names the tab's session in its links must leave it alone.
+test("a list saved to a local file downloads in a second tab", async ({page, host}) => {
+  await page.goto(workbenchUrl(host));
+  await page.getByRole("menuitem", {name: "System"}).click();
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("menuitem", {name: "Create Session"}).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState();
+  const window = await popup.locator('meta[name="gg-window"]').getAttribute("content");
+  expect(window).not.toBe("W0");
+
+  await popup.goto(`${host.baseUrl}/ZCL_GG_EX_095?gg_window=${window}`);
+  await expect(popup.locator('meta[name="gg-window"]')).toHaveAttribute("content", window);
+  await popup.getByRole("menuitem", {name: "List"}).click();
+  await popup.getByRole("button", {name: "Save to local file"}).click();
+  const dialog = popup.getByRole("dialog", {name: "Save list in file"});
+  await dialog.getByRole("radio", {name: "Spreadsheet"}).check();
+  await dialog.getByRole("textbox", {name: "File name"}).fill("carriers.xls");
+  const downloaded = popup.waitForEvent("download");
+  await dialog.getByRole("button", {name: "Save"}).click();
+  const download = await downloaded;
+  expect(download.suggestedFilename()).toBe("carriers.xls");
+  expect(await readFile(await download.path(), "utf8")).toContain("LH	Lufthansa	EUR");
+});
+
+// A link on a page of a second tab starts its program in that tab's session.
+test("System > Create Session opens a tab whose links stay in its session", async ({page, host}) => {
+  await page.goto(workbenchUrl(host));
+  await page.getByRole("menuitem", {name: "System"}).click();
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("menuitem", {name: "Create Session"}).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState();
+  await expect(popup.locator("#wb-app-panel")).toBeVisible();
+  const window = await popup.locator('meta[name="gg-window"]').getAttribute("content");
+  expect(window).not.toBe("W0");
+
+  await popup.getByRole("link", {name: "SE16"}).click();
+  await expect(popup).toHaveURL(new RegExp(`[?&]gg_window=${window}(&|$)`));
+  await expect(popup.locator('meta[name="gg-window"]')).toHaveAttribute("content", window);
+  await popup.getByRole("button", {name: "Table Contents", exact: true}).click();
+  await expect(popup.locator('[data-screen="0150"]')).toHaveCount(1);
+
+  // The tab was opened from a page, so the browser lets /i close it.
+  const closed = popup.waitForEvent("close");
+  const popupCommand = popup.getByRole("textbox", {name: "Command"});
+  await popupCommand.fill("/i");
+  await popupCommand.press("Enter");
+  await closed;
 });

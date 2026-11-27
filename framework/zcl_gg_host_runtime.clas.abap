@@ -24,6 +24,9 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 * CALL TRANSACTION ... AND SKIP FIRST SCREEN: the first screen is processed
 * with Enter as soon as its PBO has filled it.
         iv_skip_first_screen     TYPE abap_bool DEFAULT abap_false
+* The transaction code the program was started with, or the program name of
+* one started without a transaction, as SUBMIT does; see transaction_of.
+        iv_tcode                 TYPE string OPTIONAL
       RETURNING
         VALUE(rs_response)       TYPE zif_gg_host_html_v1=>ty_response.
 
@@ -46,6 +49,49 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS clear.
 
+* Ends every program running in a GUI session of the preview shell, see
+* zcl_gg_host_windows.
+    CLASS-METHODS close_window
+      IMPORTING
+        iv_window TYPE string.
+
+* What a running program is listed as in the session shell: the transaction
+* it was started with, or its program name when SUBMIT or the workbench
+* started it without one. A program started by CALL TRANSACTION or SUBMIT is
+* listed while it runs, and its caller again once it returns. Initial for a
+* program not running.
+    CLASS-METHODS transaction_of
+      IMPORTING
+        iv_session_id   TYPE string
+      RETURNING
+        VALUE(rv_tcode) TYPE string.
+
+* The GUI session a running program belongs to; initial for one not running.
+    CLASS-METHODS window_of
+      IMPORTING
+        iv_session_id    TYPE string
+      RETURNING
+        VALUE(rv_window) TYPE string.
+
+* Whether a program runs in the GUI session; with no sessions in use, whether
+* any runs.
+    CLASS-METHODS runs_in_window
+      IMPORTING
+        iv_window      TYPE string
+      RETURNING
+        VALUE(rv_runs) TYPE abap_bool.
+
+* The GUI state the running program left behind: its controls, ALV trees and
+* screen attributes. A GUI session of the shell keeps its own copy.
+    CLASS-METHODS save_gui_state
+      RETURNING
+        VALUE(rr_state) TYPE REF TO data.
+
+* Puts a saved GUI state back; without one, the GUI starts empty.
+    CLASS-METHODS restore_gui_state
+      IMPORTING
+        ir_state TYPE REF TO data OPTIONAL.
+
   PRIVATE SECTION.
 * One CALL SCREEN of the running program: the screen that called, and where
 * its PAI continues when the called sequence ends.
@@ -57,7 +103,11 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     TYPES: BEGIN OF ty_session,
              session_id          TYPE string,
+* The GUI session of the preview shell the program runs in.
+             window              TYPE string,
              program             TYPE zif_gg_session_types_v1=>ty_program,
+* See transaction_of.
+             tcode               TYPE string,
              batch               TYPE abap_bool,
              report              TYPE REF TO zif_gg_report_v1,
              submit_report       TYPE REF TO zif_gg_report_v1,
@@ -84,6 +134,12 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
              selection_start     TYPE abap_bool,
            END OF ty_session.
     TYPES ty_sessions TYPE STANDARD TABLE OF ty_session WITH DEFAULT KEY.
+
+    TYPES: BEGIN OF ty_gui_state,
+             controls TYPE REF TO data,
+             trees    TYPE cl_alv_tree_base=>ty_instances,
+             dynpro   TYPE REF TO data,
+           END OF ty_gui_state.
 
 * A return from a called sequence ends its CALL SCREEN; a new CALL SCREEN
 * starts one, called from the screen that was current.
@@ -292,7 +348,9 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
       RETURN.
     ENDIF.
     ls_session-session_id = lv_session_id.
+    ls_session-window = zcl_gg_host_windows=>current( ).
     ls_session-program = iv_program.
+    ls_session-tcode = to_upper( iv_tcode ).
     ls_session-batch = iv_batch.
     ls_session-report = io_report.
     ls_session-submit_report = io_submit_report.
@@ -658,21 +716,25 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
         io_dynpro_program    = lo_dynpro
         iv_program           = CONV #( ls_transaction-class_name )
         iv_caller            = lv_caller
-        iv_skip_first_screen = is_navigation-skip_first_screen ).
+        iv_skip_first_screen = is_navigation-skip_first_screen
+        iv_tcode             = CONV #( ls_transaction-tcode ) ).
     ELSEIF is_navigation-kind = zcx_gg_control_flow=>kind_submit_return
         OR is_navigation-kind = zcx_gg_control_flow=>kind_submit.
+* SUBMIT names a program, not a transaction.
       rs_response = start(
         io_report                = lo_report
         it_input                 = is_submit-values
         iv_interactive           = abap_false
         iv_selection_screen_only = is_submit-via_selection_screen
-        iv_caller                = lv_caller ).
+        iv_caller                = lv_caller
+        iv_tcode                 = is_navigation-target ).
     ELSE.
       rs_response = start(
         io_report            = lo_report
         iv_program           = CONV #( ls_transaction-class_name )
         iv_caller            = lv_caller
-        iv_skip_first_screen = is_navigation-skip_first_screen ).
+        iv_skip_first_screen = is_navigation-skip_first_screen
+        iv_tcode             = CONV #( ls_transaction-tcode ) ).
     ENDIF.
   ENDMETHOD.
 
@@ -912,7 +974,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_program             = ls_session-program
           iv_batch               = ls_session-batch
           it_input               = lt_input
-          iv_user_command        = CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm )
+          iv_user_command        = CONV zif_gg_list_proc_types_v1=>ty_ucomm( is_request-ucomm )
           iv_list_value          = is_request-value
           iv_list_target         = is_request-target
           is_list_find           = ls_session-last_result-list_outcome-find
@@ -1108,7 +1170,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lv_class_name TYPE string.
 
     lv_class_name = iv_program.
-    TRANSLATE lv_class_name TO UPPER CASE.
+    lv_class_name = to_upper( lv_class_name ).
     REPLACE FIRST OCCURRENCE OF 'ZGG_' IN lv_class_name WITH 'ZCL_GG_'.
 * Each name is a guess, so only a class that does not exist is skipped; a
 * constructor that fails is an application crash.
@@ -1119,7 +1181,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDTRY.
     IF ro_report IS NOT BOUND.
       lv_class_name = iv_program.
-      TRANSLATE lv_class_name TO UPPER CASE.
+      lv_class_name = to_upper( lv_class_name ).
       IF lv_class_name CP 'ZGG_GUI_*'.
         REPLACE FIRST OCCURRENCE OF 'ZGG_GUI_' IN lv_class_name WITH 'ZCL_CV_'.
       ELSE.
@@ -1284,6 +1346,70 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     CLEAR mt_sessions.
     CLEAR mv_session_id.
     zcl_gg_host_compatibility=>clear_parameters( ).
+  ENDMETHOD.
+
+  METHOD save_gui_state.
+    DATA lr_state TYPE REF TO ty_gui_state.
+
+    CREATE DATA lr_state.
+    lr_state->controls = zcl_gg_gui_runtime=>save_state( ).
+    lr_state->trees = cl_alv_tree_base=>save_instances( ).
+    lr_state->dynpro = zcl_gg_host_dynpro=>save_state( ).
+    rr_state = lr_state.
+  ENDMETHOD.
+
+  METHOD restore_gui_state.
+    DATA lr_none TYPE REF TO data.
+    FIELD-SYMBOLS <ls_state> TYPE ty_gui_state.
+
+    IF ir_state IS NOT BOUND.
+      zcl_gg_gui_runtime=>clear( ).
+      cl_alv_tree_base=>clear_instances( ).
+      zcl_gg_host_dynpro=>restore_state( lr_none ).
+      RETURN.
+    ENDIF.
+    ASSIGN ir_state->* TO <ls_state>.
+    zcl_gg_gui_runtime=>restore_state( <ls_state>-controls ).
+    cl_alv_tree_base=>restore_instances( <ls_state>-trees ).
+    zcl_gg_host_dynpro=>restore_state( <ls_state>-dynpro ).
+  ENDMETHOD.
+
+  METHOD transaction_of.
+    IF iv_session_id IS INITIAL.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_sessions INTO DATA(ls_session) WITH KEY session_id = iv_session_id.
+    IF sy-subrc = 0.
+      rv_tcode = ls_session-tcode.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD window_of.
+    IF iv_session_id IS INITIAL.
+      RETURN.
+    ENDIF.
+    READ TABLE mt_sessions INTO DATA(ls_session) WITH KEY session_id = iv_session_id.
+    IF sy-subrc = 0.
+      rv_window = ls_session-window.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD runs_in_window.
+    rv_runs = xsdbool( line_exists( mt_sessions[ window = iv_window ] ) ).
+  ENDMETHOD.
+
+  METHOD close_window.
+    DATA lt_ids TYPE string_table.
+
+    IF iv_window IS INITIAL.
+      RETURN.
+    ENDIF.
+    LOOP AT mt_sessions INTO DATA(ls_session) WHERE window = iv_window.
+      APPEND ls_session-session_id TO lt_ids.
+    ENDLOOP.
+    LOOP AT lt_ids INTO DATA(lv_id).
+      close( lv_id ).
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD next_session_id.

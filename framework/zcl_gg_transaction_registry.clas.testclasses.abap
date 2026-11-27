@@ -7,6 +7,8 @@ CLASS ltcl_gg_transaction_registry DEFINITION FINAL FOR TESTING DURATION SHORT R
     METHODS normalizes_and_looks_up FOR TESTING.
     METHODS rejects_unsupported_commands FOR TESTING.
     METHODS returns_to_menu FOR TESTING.
+    METHODS opens_session FOR TESTING.
+    METHODS ends_session FOR TESTING.
 
 ENDCLASS.
 
@@ -47,7 +49,7 @@ CLASS ltcl_gg_transaction_registry IMPLEMENTATION.
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-error
       exp = 'Unknown transaction code: zgg_ex_999' ).
-    LOOP AT VALUE string_table( ( `ZGG_EX_001` ) ( `/oZGG_EX_001` ) ( `/nUNKNOWN` ) ( `/nZGG_EX_001 extra` ) ) INTO DATA(lv_command).
+    LOOP AT VALUE string_table( ( `ZGG_EX_001` ) ( `/xZGG_EX_001` ) ( `/nUNKNOWN` ) ( `/oUNKNOWN` ) ( `/nZGG_EX_001 extra` ) ) INTO DATA(lv_command).
       ls_result = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
       cl_abap_unit_assert=>assert_false( act = ls_result-valid ).
       cl_abap_unit_assert=>assert_not_initial( act = ls_result-error ).
@@ -63,7 +65,50 @@ CLASS ltcl_gg_transaction_registry IMPLEMENTATION.
       cl_abap_unit_assert=>assert_true( act = ls_result-menu ).
       cl_abap_unit_assert=>assert_initial( act = ls_result-tcode ).
       cl_abap_unit_assert=>assert_initial( act = ls_result-error ).
+      cl_abap_unit_assert=>assert_false( act = ls_result-open_session ).
     ENDLOOP.
+  ENDMETHOD.
+
+* /o takes the same transaction codes as /n and opens them in a new session; a
+* bare /o opens the menu there.
+  METHOD opens_session.
+    DATA ls_result TYPE zcl_gg_transaction_command=>ty_result.
+
+    LOOP AT VALUE string_table( ( `/o` ) ( `/O` ) ( ` /o ` ) ) INTO DATA(lv_command).
+      ls_result = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
+      cl_abap_unit_assert=>assert_true( act = ls_result-valid ).
+      cl_abap_unit_assert=>assert_true( act = ls_result-menu ).
+      cl_abap_unit_assert=>assert_true( act = ls_result-open_session ).
+      cl_abap_unit_assert=>assert_false( act = ls_result-end_session ).
+    ENDLOOP.
+    ls_result = zcl_gg_transaction_command=>parse( iv_command = `/o zgg_ex_001` ).
+    cl_abap_unit_assert=>assert_false( act = ls_result-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-error
+      exp = 'The transaction code must immediately follow /o.' ).
+    ls_result = zcl_gg_transaction_command=>parse( iv_command = `/ozgg_ex_999` ).
+    cl_abap_unit_assert=>assert_false( act = ls_result-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-error
+      exp = 'Unknown transaction code: zgg_ex_999' ).
+  ENDMETHOD.
+
+* /i ends the current session and takes nothing after it.
+  METHOD ends_session.
+    DATA ls_result TYPE zcl_gg_transaction_command=>ty_result.
+
+    LOOP AT VALUE string_table( ( `/i` ) ( `/I` ) ( ` /i ` ) ) INTO DATA(lv_command).
+      ls_result = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
+      cl_abap_unit_assert=>assert_true( act = ls_result-valid ).
+      cl_abap_unit_assert=>assert_true( act = ls_result-end_session ).
+      cl_abap_unit_assert=>assert_false( act = ls_result-open_session ).
+      cl_abap_unit_assert=>assert_false( act = ls_result-menu ).
+    ENDLOOP.
+    ls_result = zcl_gg_transaction_command=>parse( iv_command = `/i se38` ).
+    cl_abap_unit_assert=>assert_false( act = ls_result-valid ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-error
+      exp = 'Nothing may follow /i.' ).
   ENDMETHOD.
 
 ENDCLASS.

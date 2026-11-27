@@ -44,3 +44,21 @@ test("ZCL_GG_EX_078 - F4 reaches the value help of a selection field and of a ra
   await expect(page.locator(".gg-range-row")).toHaveCount(3);
   await expect(page.locator('[name="S_RNG-1-LOW"]')).toHaveValue("AA");
 });
+
+// A select-option's help names the option, and its field on the page is the
+// LOW one. No example opens a list for a select-option, so the field carries
+// the select-option's name here; the page's own script does the rest.
+test("ZCL_GG_EX_078 - a value picked for an option goes into its LOW field", async ({page, host}) => {
+  await openExample(page, host, 78);
+  await clickHelp(page, "P_CAR", "Value help for Carrier");
+  await page.waitForLoadState("load");
+  const modal = page.getByRole("dialog", {name: "Value help"});
+  await expect(modal).toHaveAttribute("data-help-field", "P_CAR");
+  await page.locator('[name="P_CAR"]').evaluate((field) => {
+    field.setAttribute("name", "P_CAR-LOW");
+    field.removeAttribute("data-abap-name");
+  });
+  await modal.locator(".gg-value-help li").nth(1).dblclick();
+  await expect(page.locator('[name="P_CAR-LOW"]')).toHaveValue("LH");
+  await expect(modal).toBeHidden();
+});

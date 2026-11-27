@@ -96,7 +96,7 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS css_class
       IMPORTING
-        is_format       TYPE zif_gg_list_processing_types_v1=>ty_format
+        is_format       TYPE zif_gg_list_proc_types_v1=>ty_format
       RETURNING
         VALUE(rv_class) TYPE string.
 
@@ -649,18 +649,18 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
 
     rv_class = 'gg-format'.
     CASE is_format-color.
-      WHEN zif_gg_list_processing_types_v1=>color_heading.
+      WHEN zif_gg_list_proc_types_v1=>color_heading.
         rv_class = rv_class && ' gg-color-heading'.
-      WHEN zif_gg_list_processing_types_v1=>color_total.
+      WHEN zif_gg_list_proc_types_v1=>color_total.
         rv_class = rv_class && ' gg-color-total'.
         lv_total = abap_true.
-      WHEN zif_gg_list_processing_types_v1=>color_key.
+      WHEN zif_gg_list_proc_types_v1=>color_key.
         rv_class = rv_class && ' gg-color-key'.
-      WHEN zif_gg_list_processing_types_v1=>color_positive.
+      WHEN zif_gg_list_proc_types_v1=>color_positive.
         rv_class = rv_class && ' gg-color-positive'.
-      WHEN zif_gg_list_processing_types_v1=>color_negative.
+      WHEN zif_gg_list_proc_types_v1=>color_negative.
         rv_class = rv_class && ' gg-color-negative'.
-      WHEN zif_gg_list_processing_types_v1=>color_group.
+      WHEN zif_gg_list_proc_types_v1=>color_group.
         rv_class = rv_class && ' gg-color-group'.
         lv_subtotal = abap_true.
       WHEN OTHERS.

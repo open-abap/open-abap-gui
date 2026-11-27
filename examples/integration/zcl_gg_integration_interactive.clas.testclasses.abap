@@ -175,7 +175,7 @@ CLASS ltcl_gg_integration_int IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_equals(
       act = ls_result-line_formats[ 1 ]-color
-      exp = zif_gg_list_processing_types_v1=>color_positive ).
+      exp = zif_gg_list_proc_types_v1=>color_positive ).
     cl_abap_unit_assert=>assert_true( ls_result-line_formats[ 1 ]-intensified ).
   ENDMETHOD.
 

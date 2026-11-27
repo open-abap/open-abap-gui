@@ -85,11 +85,26 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rs_result)       TYPE ty_result.
 
+* The screen attributes of the running dynpro program, kept per GUI session
+* by zcl_gg_host_windows.
+    CLASS-METHODS save_state
+      RETURNING
+        VALUE(rr_state) TYPE REF TO data.
+
+    CLASS-METHODS restore_state
+      IMPORTING
+        ir_state TYPE REF TO data.
+
   PRIVATE SECTION.
 * The field attributes the screens are defined with. Each PBO starts from
 * them, and LOOP AT SCREEN changes them from there.
     CLASS-DATA mt_static_states TYPE zif_gg_dynpro_types_v1=>ty_states.
     CLASS-DATA mt_static_controls TYPE zcl_gg_host_dynpro_builder=>ty_controls.
+
+    TYPES: BEGIN OF ty_static_state,
+             states   TYPE zif_gg_dynpro_types_v1=>ty_states,
+             controls TYPE zcl_gg_host_dynpro_builder=>ty_controls,
+           END OF ty_static_state.
 
     TYPES: BEGIN OF ty_active_subscreen,
              area   TYPE zif_gg_dynpro_types_v1=>ty_field_name,
@@ -113,13 +128,13 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
     "! and its PBO runs first.
     CLASS-METHODS apply_shown
       IMPORTING
-        is_shown          TYPE ty_shown
-        iv_screen         TYPE zif_gg_dynpro_types_v1=>ty_screen_number
-        io_session        TYPE REF TO zcl_gg_host_session
+        is_shown   TYPE ty_shown
+        iv_screen  TYPE zif_gg_dynpro_types_v1=>ty_screen_number
+        io_session TYPE REF TO zcl_gg_host_session
+      EXPORTING
+        ev_applied TYPE abap_bool
       CHANGING
-        ct_states         TYPE zif_gg_dynpro_types_v1=>ty_states
-      RETURNING
-        VALUE(rv_applied) TYPE abap_bool.
+        ct_states  TYPE zif_gg_dynpro_types_v1=>ty_states.
 
     "! The PBO of a program whose flow logic has modules but no steps.
     CLASS-METHODS run_output_modules
@@ -466,13 +481,13 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS process_frontend
       IMPORTING
-        iv_ok_code     TYPE zif_gg_dynpro_types_v1=>ty_field_name
+        iv_ok_code   TYPE zif_gg_dynpro_types_v1=>ty_field_name
+      EXPORTING
+        ev_kind      TYPE string
       CHANGING
-        cv_ucomm       TYPE zif_gg_dynpro_types_v1=>ty_ucomm
-        cv_submitted   TYPE abap_bool
-        ct_values      TYPE zif_gg_dynpro_types_v1=>ty_values
-      RETURNING
-        VALUE(rv_kind) TYPE string.
+        cv_ucomm     TYPE zif_gg_dynpro_types_v1=>ty_ucomm
+        cv_submitted TYPE abap_bool
+        ct_values    TYPE zif_gg_dynpro_types_v1=>ty_values.
 
     CLASS-METHODS dispatch_after_input
       IMPORTING
@@ -499,6 +514,27 @@ CLASS zcl_gg_host_dynpro DEFINITION PUBLIC FINAL CREATE PUBLIC.
 ENDCLASS.
 
 CLASS zcl_gg_host_dynpro IMPLEMENTATION.
+
+  METHOD save_state.
+    DATA lr_state TYPE REF TO ty_static_state.
+
+    CREATE DATA lr_state.
+    lr_state->states = mt_static_states.
+    lr_state->controls = mt_static_controls.
+    rr_state = lr_state.
+  ENDMETHOD.
+
+  METHOD restore_state.
+    FIELD-SYMBOLS <ls_state> TYPE ty_static_state.
+
+    CLEAR: mt_static_states, mt_static_controls.
+    IF ir_state IS NOT BOUND.
+      RETURN.
+    ENDIF.
+    ASSIGN ir_state->* TO <ls_state>.
+    mt_static_states = <ls_state>-states.
+    mt_static_controls = <ls_state>-controls.
+  ENDMETHOD.
 
   METHOD run.
     DATA lo_builder TYPE REF TO zcl_gg_host_dynpro_builder.
@@ -599,13 +635,16 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
       WHEN iv_screen IS INITIAL THEN io_program->get_initial_screen( )
       ELSE iv_screen ).
 * The screen the user saw is the one PAI works on; its PBO is not run again.
-    DATA(lv_replay_pbo) = xsdbool( apply_shown(
-                                     EXPORTING
-                                       is_shown   = is_shown
-                                       iv_screen  = lv_screen
-                                       io_session = lo_session
-                                     CHANGING
-                                       ct_states  = lt_states ) = abap_false ).
+    apply_shown(
+      EXPORTING
+        is_shown   = is_shown
+        iv_screen  = lv_screen
+        io_session = lo_session
+      IMPORTING
+        ev_applied = DATA(lv_applied)
+      CHANGING
+        ct_states  = lt_states ).
+    DATA(lv_replay_pbo) = xsdbool( lv_applied = abap_false ).
     lv_ok_code = ok_code_field(
       it_screens = lt_screens
       iv_screen  = lv_screen ).
@@ -1059,9 +1098,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
     lv_ucomm = iv_ucomm.
     lv_submitted = iv_submitted.
     lv_after_module = iv_after_module.
-    lv_event_kind = process_frontend(
+    process_frontend(
       EXPORTING
         iv_ok_code   = iv_ok_code
+      IMPORTING
+        ev_kind      = lv_event_kind
       CHANGING
         cv_ucomm     = lv_ucomm
         cv_submitted = lv_submitted
@@ -1314,10 +1355,11 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD apply_shown.
+    CLEAR ev_applied.
     IF is_shown-screen IS INITIAL OR is_shown-screen <> iv_screen.
       RETURN.
     ENDIF.
-    rv_applied = abap_true.
+    ev_applied = abap_true.
     ct_states = is_shown-states.
     IF is_shown-status IS NOT INITIAL.
       io_session->zif_gg_dialog_session_v1~set_status( is_shown-status ).
@@ -1646,8 +1688,8 @@ CLASS zcl_gg_host_dynpro IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD process_frontend.
-    rv_kind = cl_gui_cfw=>process_frontend( ).
-    IF rv_kind <> 'S'.
+    ev_kind = cl_gui_cfw=>process_frontend( ).
+    IF ev_kind <> 'S'.
       RETURN.
     ENDIF.
     cv_ucomm = cl_gui_cfw=>consume_new_ok_code( ).

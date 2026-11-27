@@ -14,7 +14,7 @@ CLASS ltcl_gg_host_screen IMPLEMENTATION.
 
   METHOD ddic_text_of_parameter.
     DATA lv_program TYPE program.
-    DATA lo_builder TYPE REF TO zif_gg_selection_screen_builder_v1.
+    DATA lo_builder TYPE REF TO zif_gg_sel_screen_builder_v1.
 
     lo_builder = NEW zcl_gg_host_screen( ).
     cl_abap_unit_assert=>assert_equals(
@@ -25,7 +25,7 @@ CLASS ltcl_gg_host_screen IMPLEMENTATION.
 
   METHOD ddic_text_of_select_option.
     DATA lt_programs TYPE RANGE OF program.
-    DATA lo_builder TYPE REF TO zif_gg_selection_screen_builder_v1.
+    DATA lo_builder TYPE REF TO zif_gg_sel_screen_builder_v1.
 
     lo_builder = NEW zcl_gg_host_screen( ).
     cl_abap_unit_assert=>assert_equals(
@@ -36,7 +36,7 @@ CLASS ltcl_gg_host_screen IMPLEMENTATION.
 
   METHOD ddic_text_without_dictionary.
     DATA lv_plain TYPE c LENGTH 5.
-    DATA lo_builder TYPE REF TO zif_gg_selection_screen_builder_v1.
+    DATA lo_builder TYPE REF TO zif_gg_sel_screen_builder_v1.
 
     lo_builder = NEW zcl_gg_host_screen( ).
     cl_abap_unit_assert=>assert_equals(
@@ -70,7 +70,7 @@ CLASS ltcl_gg_host_radio_group IMPLEMENTATION.
 
   METHOD first_button_without_default.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    DATA(lo_builder) = CAST zif_gg_selection_screen_builder_v1( lo_screen ).
+    DATA(lo_builder) = CAST zif_gg_sel_screen_builder_v1( lo_screen ).
 
     lo_builder->add_radiobutton( VALUE #( name = 'P_SYNC' radio_group = 'G1' ) ).
     lo_builder->add_radiobutton( VALUE #( name = 'P_BACK' radio_group = 'G1' ) ).
@@ -87,7 +87,7 @@ CLASS ltcl_gg_host_radio_group IMPLEMENTATION.
 
   METHOD later_button_with_default.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    DATA(lo_builder) = CAST zif_gg_selection_screen_builder_v1( lo_screen ).
+    DATA(lo_builder) = CAST zif_gg_sel_screen_builder_v1( lo_screen ).
 
     lo_builder->add_radiobutton( VALUE #( name = 'P_SYNC' radio_group = 'G1' ) ).
     lo_builder->add_radiobutton( VALUE #( name = 'P_BACK' radio_group = 'G1' default = abap_true ) ).
@@ -104,7 +104,7 @@ CLASS ltcl_gg_host_radio_group IMPLEMENTATION.
 
   METHOD groups_are_independent.
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
-    DATA(lo_builder) = CAST zif_gg_selection_screen_builder_v1( lo_screen ).
+    DATA(lo_builder) = CAST zif_gg_sel_screen_builder_v1( lo_screen ).
 
     lo_builder->add_radiobutton( VALUE #( name = 'P_A1' radio_group = 'G1' ) ).
     lo_builder->add_radiobutton( VALUE #( name = 'P_A2' radio_group = 'G1' ) ).

@@ -134,11 +134,11 @@ CLASS zcl_gg_host_compatibility DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     METHODS render_classic_table
       IMPORTING
-        is_request     TYPE zif_gg_compatibility_v1=>ty_alv_request
+        is_request TYPE zif_gg_compatibility_v1=>ty_alv_request
+      EXPORTING
+        ev_html    TYPE string
       CHANGING
-        ct_outtab      TYPE STANDARD TABLE
-      RETURNING
-        VALUE(rv_html) TYPE string.
+        ct_outtab  TYPE STANDARD TABLE.
 
     METHODS append_classic_event
       IMPORTING
@@ -204,15 +204,15 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     DATA lv_action TYPE string.
     DATA lv_disposition TYPE string.
 
+    CLEAR ev_returncode.
     IF mv_popup_interactive = abap_false.
-      CLEAR rv_returncode.
       RETURN.
     ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_disposition.
     IF lv_action = 'VALUE'.
 * Cancel is no exception: the function module returns A.
       IF lv_disposition = 'CANCEL'.
-        rv_returncode = 'A'.
+        ev_returncode = 'A'.
         sy-subrc = 0.
         RETURN.
       ENDIF.
@@ -234,7 +234,6 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
           ENDIF.
         ENDIF.
       ENDLOOP.
-      CLEAR rv_returncode.
       sy-subrc = 0.
       RETURN.
     ENDIF.
@@ -253,18 +252,17 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
     DATA lv_action TYPE string.
     DATA lv_choice TYPE string.
 
+    CLEAR ev_choice.
     IF mv_popup_interactive = abap_false.
-      CLEAR rv_choice.
       RETURN.
     ENDIF.
     SPLIT mv_popup_action AT ':' INTO lv_action lv_choice.
     IF lv_action = 'TABLE'.
 * Cancel raises BREAK_OFF, the function module's first exception.
       IF lv_choice IS INITIAL OR lv_choice CN '0123456789' OR lv_choice = '0'.
-        CLEAR rv_choice.
         sy-subrc = 1.
       ELSE.
-        rv_choice = lv_choice.
+        ev_choice = CONV i( lv_choice ).
         sy-subrc = 0.
       ENDIF.
       RETURN.
@@ -534,8 +532,15 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_display.
+    render_classic_table(
+      EXPORTING
+        is_request = is_request
+      IMPORTING
+        ev_html    = DATA(lv_html)
+      CHANGING
+        ct_outtab  = ct_outtab ).
     zcl_gg_gui_runtime=>set_external_html(
-      |<section class="gg-classic-alv" aria-label="Classic ALV" data-list-type="{ is_request-list_type }"><header><h2>{ zcl_gg_gui_runtime=>escape_html( COND string( WHEN is_request-grid_title IS INITIAL THEN is_request-title ELSE is_request-grid_title ) ) }</h2><p>Classic function-module ALV routed through the semantic renderer; callbacks remain server-owned.</p></header>{ render_classic_table( EXPORTING is_request = is_request CHANGING ct_outtab = ct_outtab ) }</section>| ).
+      |<section class="gg-classic-alv" aria-label="Classic ALV" data-list-type="{ is_request-list_type }"><header><h2>{ zcl_gg_gui_runtime=>escape_html( COND string( WHEN is_request-grid_title IS INITIAL THEN is_request-title ELSE is_request-grid_title ) ) }</h2><p>Classic function-module ALV routed through the semantic renderer; callbacks remain server-owned.</p></header>{ lv_html }</section>| ).
     sy-subrc = 0.
   ENDMETHOD.
 
@@ -565,9 +570,11 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_compatibility_v1~alv_block_append.
-    DATA(lv_html) = render_classic_table(
+    render_classic_table(
       EXPORTING
         is_request = is_request
+      IMPORTING
+        ev_html    = DATA(lv_html)
       CHANGING
         ct_outtab  = ct_outtab ).
     APPEND |<section class="gg-classic-alv-block" aria-label="Classic ALV block { lines( mt_classic_blocks ) + 1 }"><h2>{ zcl_gg_gui_runtime=>escape_html( is_request-title ) }</h2>{ lv_html }</section>| TO mt_classic_blocks.
@@ -728,7 +735,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
   METHOD zif_gg_compatibility_v1~set_dynamic_selection_request.
     mv_dynamic_action = iv_action.
-    TRANSLATE mv_dynamic_action TO UPPER CASE.
+    mv_dynamic_action = to_upper( mv_dynamic_action ).
     mt_dynamic_input = it_values.
   ENDMETHOD.
 
@@ -1177,6 +1184,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   METHOD render_classic_table.
     DATA lo_salv TYPE REF TO cl_salv_table.
     DATA lv_title TYPE string.
+    CLEAR ev_html.
     lv_title = COND string( WHEN is_request-grid_title IS INITIAL
                             THEN is_request-title
                             ELSE is_request-grid_title ).
@@ -1189,9 +1197,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
           CHANGING
             t_table      = ct_outtab ).
         lo_salv->set_list_header( lv_title ).
-        rv_html = lo_salv->get_html( ).
+        ev_html = lo_salv->get_html( ).
       CATCH cx_salv_error cx_salv_no_check cx_salv_method_not_supported INTO DATA(lx_error).
-        rv_html = |<p data-native-capability="unavailable">Classic ALV semantic renderer failed safely: { zcl_gg_gui_runtime=>escape_html( lx_error->get_text( ) ) }</p>|.
+        ev_html = |<p data-native-capability="unavailable">Classic ALV semantic renderer failed safely: { zcl_gg_gui_runtime=>escape_html( lx_error->get_text( ) ) }</p>|.
     ENDTRY.
   ENDMETHOD.
 

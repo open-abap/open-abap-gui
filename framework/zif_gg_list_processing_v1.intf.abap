@@ -8,7 +8,7 @@ INTERFACE zif_gg_list_processing_v1 PUBLIC.
     IMPORTING
       io_session         TYPE REF TO zif_gg_session_v1
     RETURNING
-      VALUE(rs_settings) TYPE zif_gg_list_processing_types_v1=>ty_settings.
+      VALUE(rs_settings) TYPE zif_gg_list_proc_types_v1=>ty_settings.
 
   "! Corresponds to TOP-OF-PAGE. NO STANDARD PAGE HEADING suppresses only
   "! the built-in header and does not suppress this event.
@@ -33,21 +33,21 @@ INTERFACE zif_gg_list_processing_v1 PUBLIC.
   "! Corresponds to AT LINE-SELECTION. The selected line contains HIDE data.
   METHODS at_line_selection
     IMPORTING
-      is_line    TYPE zif_gg_list_processing_types_v1=>ty_line
+      is_line    TYPE zif_gg_list_proc_types_v1=>ty_line
       io_session TYPE REF TO zif_gg_session_v1.
 
   "! Corresponds to AT USER-COMMAND.
   METHODS at_user_command
     IMPORTING
-      iv_ucomm   TYPE zif_gg_list_processing_types_v1=>ty_ucomm
-      is_line    TYPE zif_gg_list_processing_types_v1=>ty_line
+      iv_ucomm   TYPE zif_gg_list_proc_types_v1=>ty_ucomm
+      is_line    TYPE zif_gg_list_proc_types_v1=>ty_line
       io_session TYPE REF TO zif_gg_session_v1.
 
   "! Corresponds to AT PFnn. Prefer a status and at_user_command in new code.
   METHODS at_pf
     IMPORTING
       iv_key     TYPE i
-      is_line    TYPE zif_gg_list_processing_types_v1=>ty_line
+      is_line    TYPE zif_gg_list_proc_types_v1=>ty_line
       io_session TYPE REF TO zif_gg_session_v1.
 
 ENDINTERFACE.

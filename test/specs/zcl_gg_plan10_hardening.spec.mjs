@@ -1,4 +1,4 @@
-import {test, expect, openExample} from "../fixtures.mjs";
+import {test, expect, openExample, workbenchUrl} from "../fixtures.mjs";
 
 async function rejectedDispatch(page, request) {
   const sessionId = await page.locator("[data-page-kind]").getAttribute("data-session-id");
@@ -35,7 +35,7 @@ test("PLAN10 - rejects forged commands, rows, paths, and node-like identifiers",
   expect(node.status).toBe(400);
   expect(node.body.error).toMatch(/Control event is not offered/);
 
-  await page.goto(`${host.baseUrl}/`);
+  await page.goto(workbenchUrl(host));
   const unsafePath = page.getByRole("textbox", {name: "Command"});
   await unsafePath.fill("/n../../etc");
   await unsafePath.press("Enter");

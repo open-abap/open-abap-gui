@@ -70,14 +70,20 @@ export function createAbapHtmlHostServer() {
   });
 
   // Every request is handed to the fixed ABAP IF_HTTP_EXTENSION handler,
-  // which owns the application behavior for the deployed GUI.
+  // which owns the application behavior for the deployed GUI. The GUI sessions
+  // share the host's static GUI state, which each request puts in place for
+  // its own session (zcl_gg_host_windows), and the transpiled ABAP yields at
+  // every await; so the requests run one after the other.
+  let pending = Promise.resolve();
   app.use(async (request, response) => {
+    const run = pending.then(() => cl_express_icf_shim.run({
+      req: request,
+      res: response,
+      class: "ZCL_GG_HTTP_HANDLER",
+    }));
+    pending = run.catch(() => undefined);
     try {
-      await cl_express_icf_shim.run({
-        req: request,
-        res: response,
-        class: "ZCL_GG_HTTP_HANDLER",
-      });
+      await run;
     } catch (error) {
       answerFailure(error, request, response);
     }
