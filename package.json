@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "abaplint",
     "lint:framework": "node test/lint-framework.mjs",
+    "build:sap": "node test/build-sap.mjs",
     "transpile": "abap_transpile",
     "build:converter": "tsc -p converter",
     "transpile:test": "node test/transpile-tests.mjs",

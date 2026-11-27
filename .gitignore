@@ -1,5 +1,6 @@
 output
 build
+sap-build
 node_modules
 regression-work
 test-results
