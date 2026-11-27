@@ -5,9 +5,7 @@ CLASS cl_dd_link_element DEFINITION PUBLIC INHERITING FROM cl_dd_element
     METHODS frontend_event RETURNING VALUE(result) TYPE string.
     METHODS raise_clicked.
 
-    EVENTS clicked
-      EXPORTING
-        VALUE(sender) TYPE REF TO cl_dd_link_element.
+    EVENTS clicked.
 
   PRIVATE SECTION.
     DATA mo_bridge TYPE REF TO lcl_link_bridge.
@@ -28,6 +26,6 @@ CLASS cl_dd_link_element IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD raise_clicked.
-    RAISE EVENT clicked EXPORTING sender = me.
+    RAISE EVENT clicked.
   ENDMETHOD.
 ENDCLASS.

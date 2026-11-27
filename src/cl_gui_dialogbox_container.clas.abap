@@ -1,9 +1,7 @@
 CLASS cl_gui_dialogbox_container DEFINITION PUBLIC INHERITING FROM cl_gui_container.
   PUBLIC SECTION.
 
-    EVENTS close
-      EXPORTING
-        VALUE(sender) TYPE REF TO cl_gui_dialogbox_container.
+    EVENTS close.
 
     METHODS constructor
       IMPORTING
@@ -66,7 +64,7 @@ CLASS cl_gui_dialogbox_container IMPLEMENTATION.
 
   METHOD dispatch_frontend_event.
     IF event = 'CLOSE'.
-      RAISE EVENT close EXPORTING sender = me.
+      RAISE EVENT close.
     ENDIF.
   ENDMETHOD.
 

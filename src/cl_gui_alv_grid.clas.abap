@@ -63,7 +63,7 @@ CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base GLO
         it_hyperlink         TYPE any OPTIONAL
         it_alv_graphics      TYPE any OPTIONAL
         it_except_qinfo      TYPE any OPTIONAL
-        ir_salv_adapter      TYPE REF TO any OPTIONAL
+        ir_salv_adapter      TYPE REF TO object OPTIONAL
       CHANGING
         it_outtab            TYPE STANDARD TABLE
         it_fieldcatalog      TYPE any OPTIONAL

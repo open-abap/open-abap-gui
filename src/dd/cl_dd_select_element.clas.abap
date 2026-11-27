@@ -5,9 +5,7 @@ CLASS cl_dd_select_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element
     DATA options TYPE sdydo_option_tab.
     DATA value TYPE sdydo_value.
 
-    EVENTS selected
-      EXPORTING
-        VALUE(sender) TYPE REF TO cl_dd_select_element.
+    EVENTS selected.
 
     METHODS set_value
       IMPORTING
@@ -22,6 +20,6 @@ ENDCLASS.
 CLASS cl_dd_select_element IMPLEMENTATION.
   METHOD set_value.
     me->value = value.
-    RAISE EVENT selected EXPORTING sender = me.
+    RAISE EVENT selected.
   ENDMETHOD.
 ENDCLASS.
