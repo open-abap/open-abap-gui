@@ -52,7 +52,8 @@
     "align_pseudo_comments": true,
     "invalid_table_index": true,
     "cds_check_syntax": true,
-    "xml_bom": false,
+    "xml_bom": true,
+    "final_newline": true,
     "no_prefixes": false,
     "clear_exporting_parameters": true,
     "no_macros": {
