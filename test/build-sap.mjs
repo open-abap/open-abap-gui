@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
-// Builds a copy of src, framework and examples that installs into a real SAP
+// Builds a copy of src, framework and examples (without examples/integration)
+// that installs into a real SAP
 // system. The SAP-named classes, interfaces and DDIC objects in src clash with
 // the system's own, so abaplint renames them (the "rename" patterns in
 // abaplint.jsonc) together with every reference to them. The type pools and
@@ -35,6 +36,13 @@ const sapOwned = [
   "src/standard/ddic/sscrfields.tabl.xml",
   "src/standard/ddic/varid.tabl.xml",
   "src/standard/ddic/varit.tabl.xml",
+];
+
+// Left out of the copy. The integration classes exist for the tests on the
+// transpiled code; the SE16 unit test needs zcl_gg_db_helper from that folder.
+const omitted = [
+  "src/examples/integration",
+  "src/examples/system/zcl_gg_se16.clas.testclasses.abap",
 ];
 
 // Not ABAP objects. They stay in the repository but outside abapGit's starting
@@ -152,6 +160,9 @@ for (const folder of ["src", "deps", ...outsideSrc.map(f => f.to)]) {
 }
 for (const folder of layout) {
   fs.cpSync(path.join(repository, folder.from), path.join(output, folder.to), {recursive: true});
+}
+for (const relative of omitted) {
+  fs.rmSync(path.join(output, relative), {recursive: true});
 }
 config.global.files = ["/src/**/*.*"];
 config.rename.output = "";

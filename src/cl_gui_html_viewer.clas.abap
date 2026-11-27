@@ -147,7 +147,7 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
     DATA lv_line        TYPE cnht_post_data_line.
     DATA lt_postdata    TYPE cnht_post_data_tab.
     DATA lt_query_table TYPE cnht_query_table.
-    DATA ls_query       TYPE cnht_query_struct.
+    DATA ls_query       LIKE LINE OF lt_query_table.
     DATA lt_pairs       TYPE string_table.
     DATA lv_pair        TYPE string.
     DATA lv_name        TYPE string.

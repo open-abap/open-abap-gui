@@ -80,12 +80,12 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
       iv_runtime    = abap_true
       iv_session_id = `S1`
       iv_page_id    = `P1`
-      is_status     = VALUE #( active_ucomm = VALUE #( ( `BACK` ) ) ) ).
+      is_status     = VALUE #( active_ucomm = VALUE #( ( 'BACK' ) ) ) ).
     DATA(lv_workbench_html) = zcl_gg_workbench_utility=>render_top(
       iv_runtime    = abap_true
       iv_session_id = `S1`
       iv_page_id    = `P1`
-      is_status     = VALUE #( active_ucomm = VALUE #( ( `NEXT` ) ) ) ).
+      is_status     = VALUE #( active_ucomm = VALUE #( ( 'NEXT' ) ) ) ).
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_program_html CS 'value="COMMAND:BACK"' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_program_html CS 'aria-label="Back"' ) ).

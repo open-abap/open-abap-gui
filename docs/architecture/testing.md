@@ -31,7 +31,8 @@ shortened names of their own, such as `zcl_gg_gui_easy_splitter_cont`.
 The type pools, the function group and the tables `sscrfields`, `varid` and
 `varit` are left out; the copy uses SAP's own. The tables keep their names
 because examples declare `TABLES` work areas for them, which are named after the
-table. The example programs are renamed too, so they use the copied controls,
+table. `examples/integration/` and the SE16 unit test, which uses
+`zcl_gg_db_helper` from it, are left out as well. The example programs are renamed too, so they use the copied controls,
 not SAP's. The build fails if the renamed copy does not compile, or if a name
 breaks SAP's naming rules (`allowed_object_naming`).
 
