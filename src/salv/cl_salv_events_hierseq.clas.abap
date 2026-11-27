@@ -1,4 +1,4 @@
-CLASS cl_salv_events_hierseq DEFINITION PUBLIC INHERITING FROM cl_salv_events.
+CLASS cl_salv_events_hierseq DEFINITION PUBLIC INHERITING FROM cl_salv_events GLOBAL FRIENDS cl_salv_hierseq_table.
   PUBLIC SECTION.
 
     EVENTS link_click
