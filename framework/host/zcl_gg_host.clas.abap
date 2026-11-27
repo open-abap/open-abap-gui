@@ -127,17 +127,15 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
 
     CLASS-METHODS retry_selection
       IMPORTING
-        iv_active        TYPE abap_bool
-        iv_screen        TYPE zif_gg_selection_screen_types=>ty_screen_number
-        io_report        TYPE REF TO zif_gg_report_v1
-        io_session       TYPE REF TO zcl_gg_host_session
-        it_input         TYPE zif_gg_selection_screen_types=>ty_values
-        it_states        TYPE zif_gg_selection_screen_types=>ty_states
+        iv_screen  TYPE zif_gg_selection_screen_types=>ty_screen_number
+        io_report  TYPE REF TO zif_gg_report_v1
+        io_session TYPE REF TO zcl_gg_host_session
+        it_input   TYPE zif_gg_selection_screen_types=>ty_values
+        it_states  TYPE zif_gg_selection_screen_types=>ty_states
       CHANGING
-        ct_values        TYPE zif_gg_selection_screen_types=>ty_values
-        cv_ended         TYPE abap_bool
-      RETURNING
-        VALUE(rv_active) TYPE abap_bool.
+        cv_active  TYPE abap_bool
+        ct_values  TYPE zif_gg_selection_screen_types=>ty_values
+        cv_ended   TYPE abap_bool.
 
     CLASS-METHODS resume_selection_call
       IMPORTING
@@ -759,17 +757,17 @@ CLASS zcl_gg_host IMPLEMENTATION.
         THEN rs_result-navigation-target
         ELSE lv_display_screen ).
       IF lv_paused = abap_false.
-        lv_selection_screen_active = retry_selection(
+        retry_selection(
           EXPORTING
-          iv_active  = lv_selection_screen_active
-          iv_screen  = iv_selection_screen
-          io_report  = io_report
-          io_session = lo_session
-          it_input   = it_retry_input
-          it_states  = lt_states
+            iv_screen  = iv_selection_screen
+            io_report  = io_report
+            io_session = lo_session
+            it_input   = it_retry_input
+            it_states  = lt_states
           CHANGING
-          ct_values  = lt_values
-          cv_ended   = lv_ended ).
+            cv_active  = lv_selection_screen_active
+            ct_values  = lt_values
+            cv_ended   = lv_ended ).
 
         IF lv_call_selection = abap_true.
           resume_selection_call(
@@ -1120,8 +1118,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD retry_selection.
-    rv_active = iv_active.
-    IF iv_active = abap_false OR it_input IS INITIAL.
+    IF cv_active = abap_false OR it_input IS INITIAL.
       RETURN.
     ENDIF.
 
@@ -1150,7 +1147,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
           it_values  = ct_values
           io_session = io_session ).
         cv_ended = abap_false.
-        rv_active = abap_false.
+        cv_active = abap_false.
       CATCH zcx_gg_control_flow.
         RETURN.
     ENDTRY.

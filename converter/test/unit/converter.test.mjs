@@ -3237,6 +3237,7 @@ test("gives a class that uses text symbols the program's text pool", () => {
   };
   const source = "WRITE TEXT-001.\n* TEXT-002 in a comment\nWRITE 'Third'(003).\n";
   const xml = emitClassXml(ir, source, { withUnitTests: true });
+  assert.ok(xml.startsWith("﻿<?xml"), "class XML starts with a byte order mark");
   assert.match(xml, /<CLSNAME>ZCL_TEXTS<\/CLSNAME>/);
   assert.match(xml, /<DESCRIPT>Texts &amp; more<\/DESCRIPT>/);
   assert.match(xml, /<WITH_UNIT_TESTS>X<\/WITH_UNIT_TESTS>/);

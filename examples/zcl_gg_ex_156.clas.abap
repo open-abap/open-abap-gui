@@ -291,11 +291,13 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
             gs_field-value = 'LH'.
             APPEND gs_field TO gt_fields.
             TRY.
-                gv_returncode = io_session->get_compatibility( )->popup_get_values(
+                io_session->get_compatibility( )->popup_get_values(
                   EXPORTING
-                    is_request = VALUE #( title = 'Choose airline' )
+                    is_request    = VALUE #( title = 'Choose airline' )
+                  IMPORTING
+                    ev_returncode = gv_returncode
                   CHANGING
-                    ct_fields  = gt_fields ).
+                    ct_fields     = gt_fields ).
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_3ce2c0dc07).
                 RAISE EXCEPTION TYPE zcx_gg_control_flow
                   EXPORTING
@@ -311,9 +313,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
             ENDIF.
           WHEN 'TABLE'.
             TRY.
-                gv_choice = io_session->get_compatibility( )->popup_with_table_display(
+                io_session->get_compatibility( )->popup_with_table_display(
                   EXPORTING
                     is_request = VALUE #( title = 'Choose connection' start_column = 10 start_row = 5 end_column = 60 end_row = 10 )
+                  IMPORTING
+                    ev_choice  = gv_choice
                   CHANGING
                     ct_values  = gt_connections ).
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_6b4164868e).
@@ -374,11 +378,13 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
         CLEAR gv_ok_code.
       WHEN 'C_3CE2C0DC07'.
         TRY.
-            gv_returncode = io_session->get_compatibility( )->popup_get_values(
+            io_session->get_compatibility( )->popup_get_values(
               EXPORTING
-                is_request = VALUE #( title = 'Choose airline' )
+                is_request    = VALUE #( title = 'Choose airline' )
+              IMPORTING
+                ev_returncode = gv_returncode
               CHANGING
-                ct_fields  = gt_fields ).
+                ct_fields     = gt_fields ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_3ce2c0dc07).
             RAISE EXCEPTION TYPE zcx_gg_control_flow
               EXPORTING
@@ -395,9 +401,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
         CLEAR gv_ok_code.
       WHEN 'C_6B4164868E'.
         TRY.
-            gv_choice = io_session->get_compatibility( )->popup_with_table_display(
+            io_session->get_compatibility( )->popup_with_table_display(
               EXPORTING
                 is_request = VALUE #( title = 'Choose connection' start_column = 10 start_row = 5 end_column = 60 end_row = 10 )
+              IMPORTING
+                ev_choice  = gv_choice
               CHANGING
                 ct_values  = gt_connections ).
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_6b4164868e).

@@ -33,9 +33,11 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
       iv_action = ''
       it_values = VALUE #( ) ).
     TRY.
-        lv_choice = lo_compatibility->popup_with_table_display(
+        lo_compatibility->popup_with_table_display(
           EXPORTING
             is_request = VALUE #( title = 'Choose a row' )
+          IMPORTING
+            ev_choice  = lv_choice
           CHANGING
             ct_values  = lt_values ).
         cl_abap_unit_assert=>fail( 'The table popup must suspend on first display' ).
@@ -53,9 +55,11 @@ CLASS ltcl_gg_compatibility_popup IMPLEMENTATION.
     lo_compatibility->set_popup_request(
       iv_action = 'TABLE:2'
       it_values = VALUE #( ) ).
-    lv_choice = lo_compatibility->popup_with_table_display(
+    lo_compatibility->popup_with_table_display(
       EXPORTING
         is_request = VALUE #( title = 'Choose a row' )
+      IMPORTING
+        ev_choice  = lv_choice
       CHANGING
         ct_values  = lt_values ).
     cl_abap_unit_assert=>assert_equals( act = lv_choice

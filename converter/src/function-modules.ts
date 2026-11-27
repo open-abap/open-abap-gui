@@ -89,6 +89,12 @@ function returningCall(target: string | undefined, method: string, args: string)
     : `DATA(lv_ggconv_fm_result) = io_session->get_compatibility( )->${method}( ${args} ).`;
 }
 
+// For methods with CHANGING parameters, which return their result through an
+// EXPORTING parameter instead of RETURNING.
+function importingCall(target: string | undefined, method: string, exporting: string, result: string, changing: string): string {
+  return `io_session->get_compatibility( )->${method}( EXPORTING ${exporting}${target ? ` IMPORTING ${result} = ${target}` : ""} CHANGING ${changing} ).`;
+}
+
 function requestFields(raw: string, mapping: Record<string, string | undefined>): string {
   return request(Object.entries(mapping).map(([output, input]) => input === undefined ? undefined : field(input, functionParameter(raw, input), output)));
 }
@@ -112,19 +118,19 @@ function lowerPopup(raw: string, name: string): string {
   if (name === "POPUP_GET_VALUES") {
     const target = functionParameter(raw, "returncode");
     const fields = functionParameter(raw, "fields");
-    const args = `EXPORTING is_request = ${requestFields(raw, {
+    const request = `is_request = ${requestFields(raw, {
       title: "popup_title", no_value_check: "no_value_check", start_column: "start_column", start_row: "start_row",
-    })} CHANGING ct_fields = ${fields ?? "VALUE #( )"}`;
-    return returningCall(target, "popup_get_values", args);
+    })}`;
+    return importingCall(target, "popup_get_values", request, "ev_returncode", `ct_fields = ${fields ?? "VALUE #( )"}`);
   }
   if (name === "POPUP_WITH_TABLE_DISPLAY") {
     const target = functionParameter(raw, "choise") ?? functionParameter(raw, "choice");
     const values = functionParameter(raw, "valuetab");
-    const args = `EXPORTING is_request = ${requestFields(raw, {
+    const request = `is_request = ${requestFields(raw, {
       title: "titletext", start_column: "startpos_col", start_row: "startpos_row",
       end_column: "endpos_col", end_row: "endpos_row",
-    })} CHANGING ct_values = ${values ?? "VALUE #( )"}`;
-    return returningCall(target, "popup_with_table_display", args);
+    })}`;
+    return importingCall(target, "popup_with_table_display", request, "ev_choice", `ct_values = ${values ?? "VALUE #( )"}`);
   }
   const returnCode = functionParameter(raw, "return_code");
   const selected = functionParameter(raw, "selected_month");

@@ -148,14 +148,14 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
     IMPORTING is_request TYPE ty_popup_inform_request.
 
   METHODS popup_get_values
-    IMPORTING is_request           TYPE ty_popup_values_request
-    CHANGING  ct_fields            TYPE STANDARD TABLE
-    RETURNING VALUE(rv_returncode) TYPE ty_answer.
+    IMPORTING is_request    TYPE ty_popup_values_request
+    EXPORTING ev_returncode TYPE ty_answer
+    CHANGING  ct_fields     TYPE STANDARD TABLE.
 
   METHODS popup_with_table_display
-    IMPORTING is_request       TYPE ty_popup_table_request
-    CHANGING  ct_values        TYPE STANDARD TABLE
-    RETURNING VALUE(rv_choice) TYPE i.
+    IMPORTING is_request TYPE ty_popup_table_request
+    EXPORTING ev_choice  TYPE i
+    CHANGING  ct_values  TYPE STANDARD TABLE.
 
   METHODS popup_to_select_month
     IMPORTING is_request        TYPE ty_month_request
