@@ -42,7 +42,13 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
            END OF ty_error_response.
 
     CLASS-DATA mv_environment_ready TYPE abap_bool.
+* The route of the request in progress: its path below the service's node.
+    CLASS-DATA mv_path TYPE string.
     CLASS-DATA mt_environments TYPE STANDARD TABLE OF REF TO zif_gg_host_environment_v1 WITH EMPTY KEY.
+
+    CLASS-METHODS mount
+      IMPORTING
+        server TYPE REF TO if_http_server.
 
     CLASS-METHODS handle_get
       IMPORTING
@@ -222,6 +228,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD if_http_extension~handle_request.
     DATA lv_method TYPE string.
 
+    mount( server ).
 * The host's own transaction errors show their message. Any other exception
 * is one no program handled, and the request is answered with its
 * explanation, so the server keeps serving.
@@ -266,6 +273,28 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
         send_failure( server   = server
                       ix_error = lx_error ).
     ENDTRY.
+    zcl_gg_host_html=>set_base( `` ).
+  ENDMETHOD.
+
+  METHOD mount.
+    DATA lv_info TYPE string.
+    DATA lv_base TYPE string.
+
+* The handler routes on ~path_info, the path below the node it is served
+* from, and the pages link and post below that node: ~path without its
+* ~path_info. Served at the root, or by a host that sets no ~path_info, the
+* two are the same and the routes are the paths themselves.
+    mv_path = server->request->get_header_field( '~path' ).
+    lv_info = server->request->get_header_field( '~path_info' ).
+    IF lv_info IS NOT INITIAL AND lv_info <> mv_path
+        AND strlen( lv_info ) < strlen( mv_path )
+        AND substring( val = mv_path
+                       off = strlen( mv_path ) - strlen( lv_info ) ) = lv_info.
+      lv_base = substring( val = mv_path
+                           len = strlen( mv_path ) - strlen( lv_info ) ).
+      mv_path = lv_info.
+    ENDIF.
+    zcl_gg_host_html=>set_base( lv_base ).
   ENDMETHOD.
 
   METHOD handle_get.
@@ -282,7 +311,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lo_program TYPE REF TO object.
     DATA lo_report TYPE REF TO zif_gg_report_v1.
 
-    lv_path = server->request->get_header_field( '~path' ).
+    lv_path = mv_path.
     REPLACE FIRST OCCURRENCE OF '?' IN lv_path WITH ''.
     IF lv_path = c_refresh_svg_path.
       send_refresh_svg( server ).
@@ -401,7 +430,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lo_workbench TYPE REF TO zif_gg_raw_html_v1.
     DATA ls_response TYPE zif_gg_host_html_v1=>ty_response.
 
-    lv_path = server->request->get_header_field( '~path' ).
+    lv_path = mv_path.
     IF lv_path = '/transaction'.
       lv_content_type = server->request->get_header_field( 'content-type' ).
       IF lv_content_type IS NOT INITIAL AND lv_content_type NP 'application/x-www-form-urlencoded*'.
@@ -570,7 +599,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lv_path       TYPE string.
     DATA lv_session_id TYPE string.
 
-    lv_path = server->request->get_header_field( '~path' ).
+    lv_path = mv_path.
     IF lv_path NP '/session/*'.
       send_method_not_allowed( server ).
       RETURN.
@@ -1257,7 +1286,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF rv_window IS INITIAL.
-      lv_path = server->request->get_header_field( '~path' ).
+      lv_path = mv_path.
       IF server->request->get_header_field( 'content-type' ) CS 'application/json'.
 * A script's JSON names the program it is for in its body.
         /ui2/cl_json=>deserialize(
@@ -1312,9 +1341,9 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     lv_method = server->request->get_method( ).
     lv_method = to_upper( lv_method ).
     rv_is_shell = xsdbool( lv_method = 'GET'
-      AND server->request->get_header_field( '~path' ) = '/'
+      AND mv_path = '/'
       AND server->request->get_header_field( 'x-gg-window' ) IS INITIAL
-      AND server->request->get_header_field( '~request_uri' ) = '/' ).
+      AND server->request->get_header_field( '~request_uri' ) = server->request->get_header_field( '~path' ) ).
   ENDMETHOD.
 
   METHOD send_workbench_error.

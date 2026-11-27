@@ -123,7 +123,26 @@ CLASS zcl_gg_host_html DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_value) TYPE string.
 
+    "! The path the host is served at, which the HTTP handler reads from each
+    "! request: empty at the root of the server. Only a plain URL path is
+    "! taken, so it goes into an attribute or a script string as it is.
+    CLASS-METHODS set_base
+      IMPORTING
+        iv_base TYPE string.
+
+    "! A route of the host, such as /dispatch, as a page links or posts to it.
+    CLASS-METHODS url
+      IMPORTING
+        iv_path       TYPE string
+      RETURNING
+        VALUE(rv_url) TYPE string.
+
   PRIVATE SECTION.
+    CONSTANTS c_path_characters TYPE string
+      VALUE 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/-_.~%'.
+
+    CLASS-DATA mv_base TYPE string.
+
     CLASS-METHODS normalize_identifier
       IMPORTING
         iv_text        TYPE string
@@ -144,6 +163,19 @@ CLASS zcl_gg_host_html IMPLEMENTATION.
 
   METHOD escape_attribute.
     rv_text = escape_text( iv_text ).
+  ENDMETHOD.
+
+  METHOD set_base.
+* No //, which would start a URL of another host.
+    IF iv_base CO c_path_characters AND iv_base CP '/*' AND iv_base NS '//'.
+      mv_base = iv_base.
+    ELSE.
+      CLEAR mv_base.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD url.
+    rv_url = mv_base && iv_path.
   ENDMETHOD.
 
   METHOD normalize_identifier.

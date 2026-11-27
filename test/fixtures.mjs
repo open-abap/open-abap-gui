@@ -12,10 +12,10 @@ export async function stopHost(child) {
 }
 
 // Starts test/start-server.mjs, or another entry point given as Node arguments.
-export async function startHost(args = ["test/start-server.mjs"]) {
+export async function startHost(args = ["test/start-server.mjs"], env = {}) {
   const child = spawn(process.execPath, args, {
     cwd: process.cwd(),
-    env: {...process.env, OPEN_ABAP_GUI_PORT: "0"},
+    env: {...process.env, ...env, OPEN_ABAP_GUI_PORT: "0"},
     stdio: ["ignore", "pipe", "pipe"],
   });
   const started = new Promise((resolve, reject) => {

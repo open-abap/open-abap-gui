@@ -38,6 +38,11 @@ const cl_express_icf_shim = globalThis.abap.Classes.CL_EXPRESS_ICF_SHIM;
 
 const MAX_BODY_BYTES = 1024 * 1024;
 
+// The path the GUI is served at, as an ICF node serves it on a system; the
+// root when unset. The handler reads it from each request as ~path without
+// ~path_info.
+const BASE = process.env.OPEN_ABAP_GUI_BASE ?? "";
+
 // ZCL_GG_HTTP_HANDLER answers every ABAP exception itself. A request that
 // still fails, in JavaScript, is answered here with the error's explanation,
 // and the server keeps serving. The log gets the stack; the response gets it
@@ -80,6 +85,7 @@ export function createAbapHtmlHostServer() {
       req: request,
       res: response,
       class: "ZCL_GG_HTTP_HANDLER",
+      base: BASE,
     }));
     pending = run.catch(() => undefined);
     try {

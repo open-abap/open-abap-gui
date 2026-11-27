@@ -20,7 +20,7 @@ CLASS ltcl_shell IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '"x-gg-window": session.window' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'gg-window" content=' ) ).
 * The first session opens on the route in the hash, which must be a path of this host.
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'request(first, hashRoute());' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'request(first, BASE + hashRoute());' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'return sameSite(url) && url.host === location.host ? route(url) : "/";' ) ).
 * A route keeps one leading slash, so it never names another host.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'return path.replace(/^\/+/, "/") + url.search;' ) ).
