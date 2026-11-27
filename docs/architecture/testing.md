@@ -15,8 +15,8 @@ and diffs it against `main`.
 
 ## On a real SAP system
 
-`npm run build:sap` writes `sap-build/`, a copy of `src/` and `framework/` that
-installs next to SAP's own controls. The `rename` patterns in `abaplint.jsonc`
+`npm run build:sap` writes `sap-build/`, a copy of `src/`, `framework/` and
+`examples/` that installs next to SAP's own controls. The `rename` patterns in `abaplint.jsonc`
 give the SAP-named objects customer names, together with every reference:
 
 | in the repository | in the copy |
@@ -28,12 +28,18 @@ DDIC gets `zgg_` rather than `z_gg_`: SAP allows no underscore in the second or
 third character of a table or structure name. Nine class and interface names
 would pass SAP's 30 characters with the `_gg_` prefix; the patterns give them
 shortened names of their own, such as `zcl_gg_gui_easy_splitter_cont`.
-The type pools and the function group are left out; the copy uses SAP's own.
-The build fails if the renamed copy does not compile, if a reference still
-names an old object, or if a name is longer than 30 characters.
+The type pools, the function group and the tables `sscrfields`, `varid` and
+`varit` are left out; the copy uses SAP's own. The tables keep their names
+because examples declare `TABLES` work areas for them, which are named after the
+table. The example programs are renamed too, so they use the copied controls,
+not SAP's. The build fails if the renamed copy does not compile, or if a name
+breaks SAP's naming rules (`allowed_object_naming`).
 
-`sap-build/` is an abapGit repository with everything under `src/`: `framework/`
-becomes `src/framework/`, and every folder has a `package.devc.xml`. Folder
+`sap-build/` is an abapGit repository with everything under `src/`: `src/`
+becomes `src/standard/`, `framework/` becomes `src/framework/`, `examples/`
+becomes `src/examples/`, and every folder has a `package.devc.xml`. The
+examples' screen flow logic (`*.prog.screen_NNNN.abap`) is copied as it is;
+abapGit does not know that format. Folder
 logic is `PREFIX`, so the subpackages are named after the root package and
 never collide with SAP's own. Push it to a branch, pull it into a local package
 such as `$GG_TEST`, and run ABAP Unit on the package. The icon notices sit in

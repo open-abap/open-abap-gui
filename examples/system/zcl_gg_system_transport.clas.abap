@@ -246,7 +246,7 @@ CLASS zcl_gg_system_transport IMPLEMENTATION.
   METHOD normalized.
     rv_text = iv_text.
     SHIFT rv_text LEFT DELETING LEADING space.
-    TRANSLATE rv_text TO UPPER CASE.
+    rv_text = to_upper( rv_text ).
   ENDMETHOD.
 
 ENDCLASS.

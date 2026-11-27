@@ -3,30 +3,36 @@ import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
-// Builds a copy of src and framework that installs into a real SAP system.
-// The SAP-named classes, interfaces and DDIC objects in src clash with the
-// system's own, so abaplint renames them (the "rename" patterns in
+// Builds a copy of src, framework and examples that installs into a real SAP
+// system. The SAP-named classes, interfaces and DDIC objects in src clash with
+// the system's own, so abaplint renames them (the "rename" patterns in
 // abaplint.jsonc) together with every reference to them. The type pools and
 // the function group stay SAP's: they are dropped from the copy. The output
-// folder is an abapGit repository with everything under src/, framework/ as
-// src/framework/, and a package per folder: push it to a branch and pull it
-// into a local package. Its .abapgit.xml and abaplint.jsonc are checked in;
-// the script writes only src/ and assets/.
+// folder is an abapGit repository with everything under src/ (src/ as
+// src/standard/, framework/ as src/framework/, examples/ as src/examples/) and
+// a package per folder: push it to a branch and pull it into a local package.
+// Its .abapgit.xml and abaplint.jsonc are checked in; the script writes only
+// src/ and assets/.
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const config = JSON.parse(fs.readFileSync(path.join(repository, "abaplint.jsonc"), "utf8"));
 const output = path.join(repository, config.rename.output);
 // Repository folder -> folder in the copy.
 const layout = [
-  {from: "src", to: "src"},
+  {from: "src", to: "src/standard"},
   {from: "framework", to: "src/framework"},
+  {from: "examples", to: "src/examples"},
 ];
 
 // SAP already ships these under the same names, and nothing in them refers to
-// a renamed object.
+// a renamed object. The tables keep their names because examples declare work
+// areas for them with TABLES, which are named after the table.
 const sapOwned = [
-  "src/ddic/pools",
-  "src/fugr",
+  "src/standard/ddic/pools",
+  "src/standard/fugr",
+  "src/standard/ddic/sscrfields.tabl.xml",
+  "src/standard/ddic/varid.tabl.xml",
+  "src/standard/ddic/varit.tabl.xml",
 ];
 
 // Not ABAP objects. They stay in the repository but outside abapGit's starting
@@ -49,76 +55,6 @@ function runAbaplint(extraArgs) {
   const summary = result.stdout.split("\n").filter(line => line.trim() !== "" && !/^(rm|write|update|Renaming|Clone:) /.test(line));
   console.log(summary.join("\n"));
   return {status: result.status ?? 1, stdout: result.stdout};
-}
-
-function walk(folder) {
-  return fs.readdirSync(folder, {withFileTypes: true}).flatMap(entry => {
-    const full = path.join(folder, entry.name);
-    return entry.isDirectory() ? walk(full) : [full];
-  });
-}
-
-// Same matching as abaplint's rename: the first pattern whose type and name
-// match wins.
-function renamedName(type, name) {
-  for (const pattern of config.rename.patterns) {
-    if (!type.match(pattern.type)) {
-      continue;
-    }
-    const regex = new RegExp(pattern.oldName, "i");
-    if (regex.test(name)) {
-      return name.replace(regex, pattern.newName);
-    }
-  }
-  return undefined;
-}
-
-// Old name -> new name, upper case, for every object the patterns rename.
-function renamedObjects() {
-  const renamed = new Map();
-  for (const file of layout.flatMap(folder => walk(path.join(repository, folder.from)))) {
-    const match = /^([a-z0-9_]+)\.(clas|intf|tabl|ttyp|dtel)\.(abap|xml)$/.exec(path.basename(file));
-    const newName = match && renamedName(match[2].toUpperCase(), match[1]);
-    if (newName) {
-      renamed.set(match[1].toUpperCase(), newName.toUpperCase());
-    }
-  }
-  return renamed;
-}
-
-// Where a DDIC object names another object.
-const ddicReference = /<(ROLLNAME|ROWTYPE|REFTYPE|PRECFIELD|DOMNAME|CHECKTABLE)>([A-Z0-9_]+)<\/\1>/g;
-
-// The syntax check alone misses a stale reference when a dependency defines an
-// object of the old name (open-abap-core has lvc_fname, for one), so look for
-// the old names in DDIC references and where ABAP can only mean a type, class
-// or interface. Several old DDIC names (program, file_table) are also common
-// variable names, so a plain word search is too noisy.
-function staleReferences(renamed) {
-  const names = [...renamed.keys()].join("|");
-  const inAbap = [
-    String.raw`\b(${names})\s*(=>|~)`,
-    String.raw`\b(TYPE|REF\s+TO|TABLE\s+OF|RANGE\s+OF|LINE\s+OF|INHERITING\s+FROM|INTERFACES|INTERFACE|CLASS|NEW|CAST|VALUE|CONV|REF|CORRESPONDING)\s+(${names})(?![\w-])`,
-    String.raw`\b(RAISING|FRIENDS)\s+([\w\s]*\s)?(${names})(?![\w-])`,
-  ].map(source => new RegExp(source, "i"));
-  const inDdic = new RegExp(String.raw`^(${names})$`, "i");
-  const hits = [];
-  for (const file of walk(output)) {
-    const lines = fs.readFileSync(file, "utf8").split("\n");
-    lines.forEach((line, index) => {
-      let stale = false;
-      if (file.endsWith(".abap")) {
-        const code = line.startsWith("*") ? "" : line.replace(/".*$/, "").replace(/'[^']*'|`[^`]*`|\|[^|]*\|/g, "");
-        stale = inAbap.some(regex => regex.test(code));
-      } else if (/\.(tabl|ttyp|dtel)\.xml$/.test(file)) {
-        stale = [...line.matchAll(ddicReference)].some(match => inDdic.test(match[2]));
-      }
-      if (stale) {
-        hits.push(`${path.relative(output, file)}:${index + 1}: ${line.trim()}`);
-      }
-    });
-  }
-  return hits;
 }
 
 function folders(folder) {
@@ -146,12 +82,6 @@ function writePackages() {
   }
 }
 
-function tooLongNames() {
-  return walk(output)
-    .map(file => path.basename(file).replace(/\..*$/, ""))
-    .filter((name, index, all) => name.length > 30 && all.indexOf(name) === index);
-}
-
 // Rename inline inside a copy laid out as the output: the repository stays
 // untouched, and framework/ is already in src/framework/. abaplint takes its
 // base folder from the config's location. Only the generated folders are
@@ -164,11 +94,12 @@ for (const folder of layout) {
 }
 config.global.files = ["/src/**/*.*"];
 config.rename.output = "";
-config.rules = {
-  parser_error: true,
-  check_syntax: true,
-  unknown_types: true,
-};
+// allowed_object_naming catches names SAP rejects: too long, or a table with
+// an underscore in its second or third character. Each rule keeps its settings
+// from abaplint.jsonc, such as the examples it excludes.
+config.rules = Object.fromEntries(
+  ["parser_error", "check_syntax", "unknown_types", "allowed_object_naming"]
+    .map(rule => [rule, config.rules[rule] ?? true]));
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
 let status = 1;
@@ -178,20 +109,10 @@ try {
   if (rename.status !== 0 || !rename.stdout.includes("Renames applied")) {
     console.error("build:sap: abaplint did not apply the renames");
   } else {
-    // The renamed copy must still compile on its own: a reference the rename
-    // missed now points at an object that no longer exists.
+    // The renamed copy must still compile, and its new names must be ones SAP
+    // accepts.
     console.log("build:sap: checking the renamed copy");
     status = runAbaplint([]).status;
-    const stale = staleReferences(renamedObjects());
-    if (stale.length > 0) {
-      console.error(`build:sap: references to old names remain:\n${stale.join("\n")}`);
-      status = 1;
-    }
-    const long = tooLongNames();
-    if (long.length > 0) {
-      console.error(`build:sap: names longer than 30 characters: ${long.join(", ")}`);
-      status = 1;
-    }
   }
 } finally {
   fs.rmSync(configPath, {force: true});

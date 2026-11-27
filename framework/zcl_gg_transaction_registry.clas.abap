@@ -120,7 +120,7 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
                             off = 0
                             len = lv_length ).
     ENDIF.
-    TRANSLATE lv_tcode TO UPPER CASE.
+    lv_tcode = to_upper( lv_tcode ).
     lv_error = validate_tcode( iv_tcode = lv_tcode ).
     IF lv_error IS INITIAL.
       rv_tcode = lv_tcode.
@@ -189,7 +189,7 @@ CLASS zcl_gg_transaction_registry IMPLEMENTATION.
                               off = 0
                               len = lv_tcode_length ).
       ENDIF.
-      TRANSLATE lv_tcode TO UPPER CASE.
+      lv_tcode = to_upper( lv_tcode ).
       lv_error = validate_tcode( iv_tcode = lv_tcode ).
       IF lv_error IS NOT INITIAL.
         RAISE EXCEPTION TYPE zcx_gg_transaction_error EXPORTING

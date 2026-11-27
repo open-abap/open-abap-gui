@@ -728,7 +728,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
 
   METHOD zif_gg_compatibility_v1~set_dynamic_selection_request.
     mv_dynamic_action = iv_action.
-    TRANSLATE mv_dynamic_action TO UPPER CASE.
+    mv_dynamic_action = to_upper( mv_dynamic_action ).
     mt_dynamic_input = it_values.
   ENDMETHOD.
 

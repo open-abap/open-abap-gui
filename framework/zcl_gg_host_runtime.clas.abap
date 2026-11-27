@@ -1170,7 +1170,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     DATA lv_class_name TYPE string.
 
     lv_class_name = iv_program.
-    TRANSLATE lv_class_name TO UPPER CASE.
+    lv_class_name = to_upper( lv_class_name ).
     REPLACE FIRST OCCURRENCE OF 'ZGG_' IN lv_class_name WITH 'ZCL_GG_'.
 * Each name is a guess, so only a class that does not exist is skipped; a
 * constructor that fails is an application crash.
@@ -1181,7 +1181,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     ENDTRY.
     IF ro_report IS NOT BOUND.
       lv_class_name = iv_program.
-      TRANSLATE lv_class_name TO UPPER CASE.
+      lv_class_name = to_upper( lv_class_name ).
       IF lv_class_name CP 'ZGG_GUI_*'.
         REPLACE FIRST OCCURRENCE OF 'ZGG_GUI_' IN lv_class_name WITH 'ZCL_CV_'.
       ELSE.

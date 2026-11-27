@@ -240,7 +240,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
           ENDIF.
         ENDIF.
         lv_method = server->request->get_method( ).
-        TRANSLATE lv_method TO UPPER CASE.
+        lv_method = to_upper( lv_method ).
         CASE lv_method.
           WHEN 'GET'.
             handle_get( server ).
@@ -372,7 +372,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     ENDIF.
     lv_class_name = substring( val = lv_path
                                off = 1 ).
-    TRANSLATE lv_class_name TO UPPER CASE.
+    lv_class_name = to_upper( lv_class_name ).
     lt_transactions = zcl_gg_transaction_registry=>get_all( ).
     READ TABLE lt_transactions INTO ls_transaction
       WITH KEY class_name = lv_class_name.
@@ -920,7 +920,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
     LOOP AT it_fields INTO DATA(ls_field).
       lv_name = ls_field-name.
-      TRANSLATE lv_name TO LOWER CASE.
+      lv_name = to_lower( lv_name ).
       IF lv_name NP 'gg-free-*'.
         CONTINUE.
       ENDIF.
@@ -1310,7 +1310,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
     DATA lv_method TYPE string.
 
     lv_method = server->request->get_method( ).
-    TRANSLATE lv_method TO UPPER CASE.
+    lv_method = to_upper( lv_method ).
     rv_is_shell = xsdbool( lv_method = 'GET'
       AND server->request->get_header_field( '~path' ) = '/'
       AND server->request->get_header_field( 'x-gg-window' ) IS INITIAL

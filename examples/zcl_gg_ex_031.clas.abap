@@ -61,7 +61,7 @@ CLASS zcl_gg_ex_031 IMPLEMENTATION.
   METHOD zif_gg_report_v1~at_selection_screen_on_field.
     IF iv_name = 'P_CARR'.
       mv_p_carr = ct_values[ name = 'P_CARR' ]-value.
-      TRANSLATE mv_p_carr TO UPPER CASE.
+      mv_p_carr = to_upper( mv_p_carr ).
       IF ct_values[ name = 'P_CARR' ]-value <> mv_p_carr.
         ct_values[ name = 'P_CARR' ]-value = |{ mv_p_carr }|.
       ENDIF.

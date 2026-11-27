@@ -58,7 +58,7 @@ CLASS zcl_gg_transaction_command IMPLEMENTATION.
     lv_prefix = substring( val = lv_command
                            off = 0
                            len = 2 ).
-    TRANSLATE lv_prefix TO UPPER CASE.
+    lv_prefix = to_upper( lv_prefix ).
     IF lv_prefix = '/I'.
       IF strlen( lv_command ) > 2.
         rs_result-error = 'Nothing may follow /i.'.
@@ -73,7 +73,7 @@ CLASS zcl_gg_transaction_command IMPLEMENTATION.
       RETURN.
     ENDIF.
     rs_result-open_session = xsdbool( lv_prefix = '/O' ).
-    TRANSLATE lv_prefix TO LOWER CASE.
+    lv_prefix = to_lower( lv_prefix ).
     lv_tcode = substring( val = lv_command
                           off = 2 ).
 *   A bare /n ends the current transaction and returns to the menu; a bare /o

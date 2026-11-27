@@ -141,7 +141,7 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
 
     lv_table_name = iv_table_name.
     SHIFT lv_table_name LEFT DELETING LEADING space.
-    TRANSLATE lv_table_name TO UPPER CASE.
+    lv_table_name = to_upper( lv_table_name ).
     LOOP AT permitted_tables( ) INTO DATA(lv_table).
       IF lv_table = lv_table_name.
         rv_index = sy-tabix.
