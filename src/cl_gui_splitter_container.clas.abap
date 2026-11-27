@@ -99,6 +99,7 @@ CLASS cl_gui_splitter_container DEFINITION PUBLIC INHERITING FROM cl_gui_contain
         column           TYPE i
       RETURNING
         VALUE(container) TYPE REF TO cl_gui_container.
+    METHODS free REDEFINITION.
 
   PRIVATE SECTION.
     TYPES: BEGIN OF ty_cell,

@@ -878,11 +878,11 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD write_dynamic_ranges.
-    FIELD-SYMBOLS <lt_ranges> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lt_ranges> TYPE STANDARD TABLE.
     FIELD-SYMBOLS <ls_group> TYPE any.
-    FIELD-SYMBOLS <lt_franges> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lt_franges> TYPE STANDARD TABLE.
     FIELD-SYMBOLS <ls_frange> TYPE any.
-    FIELD-SYMBOLS <lt_options> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lt_options> TYPE STANDARD TABLE.
     FIELD-SYMBOLS <ls_option> TYPE any.
     FIELD-SYMBOLS <lv_group_table> TYPE any.
     FIELD-SYMBOLS <lv_frange_field> TYPE any.
@@ -935,9 +935,9 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD write_dynamic_where.
-    FIELD-SYMBOLS <lt_where> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lt_where> TYPE STANDARD TABLE.
     FIELD-SYMBOLS <ls_where> TYPE any.
-    FIELD-SYMBOLS <lt_where_lines> TYPE ANY TABLE.
+    FIELD-SYMBOLS <lt_where_lines> TYPE STANDARD TABLE.
     FIELD-SYMBOLS <ls_where_line> TYPE any.
     FIELD-SYMBOLS <lv_where_table> TYPE any.
     FIELD-SYMBOLS <lv_where_line> TYPE any.
