@@ -455,8 +455,17 @@ CLASS zcl_gg_ex_154 IMPLEMENTATION.
           WHEN 'OPEN'.
             cl_gui_frontend_services=>execute(
               EXPORTING
-                document = CONV string( gv_document )
-              EXCEPTIONS cntl_error = 1 error_no_gui = 2 bad_parameter = 3 file_not_found = 4 path_not_found = 5 file_extension_unknown = 6 error_execute_failed = 7 synchronous_failed = 8 not_supported_by_gui = 9 OTHERS = 10 ).
+                document                        = CONV string( gv_document )
+              EXCEPTIONS cntl_error             = 1
+                         error_no_gui           = 2
+                         bad_parameter          = 3
+                         file_not_found         = 4
+                         path_not_found         = 5
+                         file_extension_unknown = 6
+                         error_execute_failed   = 7
+                         synchronous_failed     = 8
+                         not_supported_by_gui   = 9
+                         OTHERS                 = 10 ).
             CASE sy-subrc.
               WHEN 0.
                 gv_state = 'Document handed to the browser'.

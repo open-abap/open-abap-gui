@@ -131,7 +131,8 @@ CLASS zcl_gg_ex_137 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'ALV sort and filter' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_SORT' position = VALUE #( row = 400 column = 5 width = 160 height = 26 ) ) text = 'Sort direction' ucomm = 'SORT' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_FILTER' position = VALUE #( row = 400 column = 185 width = 120 height = 26 ) ) text = 'Only LH' ucomm = 'FILTER' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_NOFILTER' position = VALUE #( row = 400 column = 325 width = 140 height = 26 ) ) text = 'All airlines' ucomm = 'NOFILTER' ) ).

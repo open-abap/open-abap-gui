@@ -1,5 +1,5 @@
 CLASS cl_dd_link_element DEFINITION PUBLIC INHERITING FROM cl_dd_element
-  FRIENDS cl_dd_area.
+  GLOBAL FRIENDS cl_dd_area.
   PUBLIC SECTION.
     METHODS constructor.
     METHODS frontend_event RETURNING VALUE(result) TYPE string.

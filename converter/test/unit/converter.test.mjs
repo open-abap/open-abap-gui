@@ -1424,7 +1424,7 @@ test("lowers MESSAGE ID ... TYPE ... NUMBER with dynamic parts", async () => {
     filename: "zmsg_dynamic_id.prog.abap",
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
-  assert.match(result.classSource, /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = sy-msgid number = sy-msgno v1 = sy-msgv1 v2 = sy-msgv2 v3 = sy-msgv3 v4 = sy-msgv4 display_like = zif_gg_session_types_v1=>message_type_error \) \)\./);
+  assert.match(flat(result.classSource), /io_session->message\( VALUE #\( type = zif_gg_session_types_v1=>message_type_info id = sy-msgid number = sy-msgno v1 = sy-msgv1 v2 = sy-msgv2 v3 = sy-msgv3 v4 = sy-msgv4 display_like = zif_gg_session_types_v1=>message_type_error \) \)\./);
   // The s of sy-msgty is not a literal type S.
   assert.match(result.classSource, /io_session->message\( VALUE #\( type = sy-msgty id = sy-msgid number = sy-msgno v1 = sy-msgv1 \) \)\./);
   assert.match(result.classSource, /type = zif_gg_session_types_v1=>message_type_warning text = 'set TYPE e here'/);
@@ -1655,7 +1655,7 @@ test("converts composite fixtures with nested includes, routines, and database a
   });
   assert.equal(localClass.supported, true);
   assert.equal(localClass.helperSources.length, 1);
-  assert.match(localClass.classSource, /FRIENDS zcl_composite_local_clas_h1/);
+  assert.match(localClass.classSource, /GLOBAL FRIENDS zcl_composite_local_clas_h1/);
   assert.match(localClass.helperSources[0].source, /CLASS zcl_composite_local_clas_h1 DEFINITION PUBLIC/);
 
   const database = await convertProgram({
@@ -1865,10 +1865,12 @@ test("passes the resizing attributes of a custom control to the dynpro builder",
       flowLogic: [{ screen: "0100", pbo: [{ name: "STATUS_0100" }], pai: [] }],
     },
   });
-  assert.match(converted.classSource,
-    /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_MAIN' [^\n]* \) resizing = VALUE #\( vertical = abap_true min_height = 234 horizontal = abap_true min_width = 350 \) \) \)\./);
-  assert.match(converted.classSource, /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_FIXED' [^\n]*\) \) \) \)\./);
-  assert.doesNotMatch(converted.classSource, /name = 'CC_FIXED'[^\n]*resizing/);
+  // Long statements are wrapped: compare them as one line, a statement ending
+  // at its period.
+  assert.match(flat(converted.classSource),
+    /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_MAIN' [^.]* \) resizing = VALUE #\( vertical = abap_true min_height = 234 horizontal = abap_true min_width = 350 \) \) \)\./);
+  assert.match(flat(converted.classSource), /add_custom_control\( VALUE #\( control = VALUE #\( name = 'CC_FIXED' [^.]*\) \) \) \)\./);
+  assert.doesNotMatch(flat(converted.classSource), /name = 'CC_FIXED'[^.]*resizing/);
 });
 
 test("loads report-owned dynpro XML and every matching screen flow file", async () => {
@@ -3066,7 +3068,7 @@ test("hoists local classes into collision-free helper class sources", async () =
   assert.equal(result.reportIR.localClasses.length, 1);
   assert.equal(result.reportIR.localClasses[0].generatedName, "ZCL_LOCAL_H1");
   assert.match(result.classSource, /DATA go_events TYPE REF TO zcl_local_h1\./);
-  assert.match(result.classSource, /CLASS zcl_local DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_local_h1\./);
+  assert.match(result.classSource, /CLASS zcl_local DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_local_h1\./);
   assert.equal(result.helperSources.length, 1);
   assert.match(result.helperSources[0].source, /CLASS zcl_local_h1 DEFINITION PUBLIC FINAL INHERITING FROM cl_super CREATE PUBLIC\./);
   assert.match(result.helperSources[0].source, /METHODS on_event FOR EVENT changed OF cl_gui_alv_grid IMPORTING sender\./);
@@ -3081,7 +3083,7 @@ test("hoists local classes into collision-free helper class sources", async () =
     existingClassNames: ["ZCL_LOCAL_H1"],
   });
   assert.equal(collision.reportIR.localClasses[0].generatedName, "ZCL_LOCAL_H1_1");
-  assert.match(collision.classSource, /FRIENDS zcl_local_h1_1\./);
+  assert.match(collision.classSource, /GLOBAL FRIENDS zcl_local_h1_1\./);
 });
 
 test("renames hoisted local classes in FORM parameter types", async () => {

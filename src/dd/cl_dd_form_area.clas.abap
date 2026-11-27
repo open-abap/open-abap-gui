@@ -53,7 +53,9 @@ CLASS cl_dd_form_area IMPLEMENTATION.
     input_element->maxlength = maxlength.
     input_element->tooltip = tooltip.
     input_element->a11y_label = a11y_label.
-    html_content = html_content && |<label>{ escape_html( a11y_label ) }<input type="text" name="{ escape_html( CONV string( name ) ) }" value="{ escape_html( CONV string( value ) ) }" size="{ size }" maxlength="{ maxlength }" title="{ escape_html( tooltip ) }"></label>|.
+    html_content = html_content
+                   && |<label>{ escape_html( a11y_label ) }<input type="text" name="{ escape_html( CONV string( name ) ) }" value="{ escape_html( CONV string( value ) ) }" size="{ size }" maxlength="{ maxlength }" |
+                   && |title="{ escape_html( tooltip ) }"></label>|.
     lv_fragment = substring(
       val = html_content
       off = lv_start ).

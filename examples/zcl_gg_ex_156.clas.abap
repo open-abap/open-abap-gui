@@ -256,7 +256,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
         CASE gv_ok_code.
           WHEN 'CONFIRM'.
             TRY.
-                gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar = 'Cancel booking' text_question = 'Cancel the booking for LH 0400?' text_button_1 = 'Yes' text_button_2 = 'No' display_cancel_button = abap_false ) ).
+                gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar              = 'Cancel booking'
+                                                                                         text_question         = 'Cancel the booking for LH 0400?'
+                                                                                         text_button_1         = 'Yes'
+                                                                                         text_button_2         = 'No'
+                                                                                         display_cancel_button = abap_false ) ).
 
               CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_f1bd5416a3).
                 RAISE EXCEPTION TYPE zcx_gg_control_flow
@@ -347,7 +351,11 @@ CLASS zcl_gg_ex_156 IMPLEMENTATION.
         RETURN.
       WHEN 'C_F1BD5416A3'.
         TRY.
-            gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar = 'Cancel booking' text_question = 'Cancel the booking for LH 0400?' text_button_1 = 'Yes' text_button_2 = 'No' display_cancel_button = abap_false ) ).
+            gv_answer = io_session->get_compatibility( )->popup_to_confirm( VALUE #( titlebar              = 'Cancel booking'
+                                                                                     text_question         = 'Cancel the booking for LH 0400?'
+                                                                                     text_button_1         = 'Yes'
+                                                                                     text_button_2         = 'No'
+                                                                                     display_cancel_button = abap_false ) ).
 
           CATCH zcx_gg_control_flow INTO DATA(lx_popup_c_f1bd5416a3).
             RAISE EXCEPTION TYPE zcx_gg_control_flow

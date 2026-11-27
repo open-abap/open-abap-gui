@@ -1,4 +1,4 @@
-CLASS cl_salv_events_tree DEFINITION PUBLIC INHERITING FROM cl_salv_events FRIENDS cl_salv_tree.
+CLASS cl_salv_events_tree DEFINITION PUBLIC INHERITING FROM cl_salv_events GLOBAL FRIENDS cl_salv_tree.
   PUBLIC SECTION.
 
     INTERFACES if_salv_events_tree.

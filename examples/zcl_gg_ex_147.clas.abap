@@ -4,7 +4,7 @@
 * Source SHA-256: b532ba1ec520061aeac4a7184725e7fc7ec5031bd3f92239b4411dba559c4a27
 * Target class: ZCL_GG_EX_147
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_gg_ex_147 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_147_h1.
+CLASS zcl_gg_ex_147 DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_gg_ex_147_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -131,7 +131,8 @@ CLASS zcl_gg_ex_147 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'SALV selections and events' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_SHOW' position = VALUE #( row = 400 column = 5 width = 160 height = 26 ) ) text = 'Show selection' ucomm = 'SHOW' ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'LBL_STATE' position = VALUE #( row = 452 column = 5 width = 60 height = 26 ) ) text = 'State' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'GV_STATE' position = VALUE #( row = 452 column = 75 width = 600 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 60 ) ) ).

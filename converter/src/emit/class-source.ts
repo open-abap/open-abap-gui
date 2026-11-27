@@ -2764,7 +2764,7 @@ export function emitClassSource(ir: ReportIR, options: ClassOptions): string {
       : ir.screenMetadata?.screens?.length ? ir.screenMetadata : undefined),
   ];
   const friends = (ir.localClasses ?? []).map((localClass) => localClass.generatedName!.toLowerCase());
-  const friendAddition = friends.length ? ` FRIENDS ${friends.join(" ")}` : "";
+  const friendAddition = friends.length ? ` GLOBAL FRIENDS ${friends.join(" ")}` : "";
   const definition = [`CLASS ${className} DEFINITION PUBLIC FINAL CREATE PUBLIC${friendAddition}.`, "", "  PUBLIC SECTION.", ...interfaces.map((name) => `    INTERFACES ${name}.`), ""];
   if (members.length) definition.push("  PRIVATE SECTION.", ...members.flatMap((line) => line.split("\n").map((part) => `    ${part}`)), "");
   definition.push("ENDCLASS.", "", `CLASS ${className} IMPLEMENTATION.`, "");

@@ -1,4 +1,4 @@
-CLASS cl_dd_table_element DEFINITION PUBLIC FRIENDS cl_dd_area.
+CLASS cl_dd_table_element DEFINITION PUBLIC GLOBAL FRIENDS cl_dd_area.
   PUBLIC SECTION.
 
     DATA table_of_columns TYPE sdydo_object_table.

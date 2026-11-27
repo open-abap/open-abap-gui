@@ -121,7 +121,9 @@ CLASS zcl_gg_ex_113 IMPLEMENTATION.
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Booking' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'LBL_CUSTOMER' position = VALUE #( row = 10 column = 5 width = 100 height = 26 ) ) text = 'Customer' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'GV_CUSTOMER' position = VALUE #( row = 10 column = 115 width = 200 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 20 ) required = abap_true ) ).
+    io_builder->add_input_field( VALUE #( control   = VALUE #( name = 'GV_CUSTOMER' position = VALUE #( row = 10 column = 115 width = 200 height = 26 ) )
+                                          data_type = VALUE #( typ = 'C' length = 20 )
+                                          required  = abap_true ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'LBL_STATE' position = VALUE #( row = 62 column = 5 width = 100 height = 26 ) ) text = 'State' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'GV_STATE' position = VALUE #( row = 62 column = 115 width = 400 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 40 ) ) ).
     io_builder->end_screen( ).

@@ -112,7 +112,8 @@ CLASS zcl_gg_ex_123 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Read-only text editor' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->end_screen( ).
   ENDMETHOD.
 

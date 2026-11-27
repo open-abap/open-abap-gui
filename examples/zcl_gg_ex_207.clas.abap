@@ -4,7 +4,7 @@
 * Source SHA-256: c5753feac70ff24a080289f420c7393aedc2143b1bc549bdcf8c33acc4365413
 * Target class: ZCL_GG_EX_207
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_gg_ex_207 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_207_h1.
+CLASS zcl_gg_ex_207 DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_gg_ex_207_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

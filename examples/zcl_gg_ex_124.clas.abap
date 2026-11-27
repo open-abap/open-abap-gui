@@ -125,7 +125,8 @@ CLASS zcl_gg_ex_124 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Picture control' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 400 height = 312 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 400 height = 312 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_FIT' position = VALUE #( row = 348 column = 5 width = 160 height = 26 ) ) text = 'Fit and center' ucomm = 'FIT' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_NORMAL' position = VALUE #( row = 348 column = 185 width = 140 height = 26 ) ) text = 'Normal size' ucomm = 'NORMAL' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_CLEAR' position = VALUE #( row = 348 column = 345 width = 100 height = 26 ) ) text = 'Clear' ucomm = 'CLEAR' ) ).

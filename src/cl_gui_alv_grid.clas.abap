@@ -1,6 +1,6 @@
 * cl_salv_table is a friend so a SALV table renders through this grid: it
 * supplies its function toolbar and reads the grid markup for fullscreen output.
-CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base FRIENDS cl_salv_table.
+CLASS cl_gui_alv_grid DEFINITION PUBLIC INHERITING FROM cl_gui_alv_grid_base GLOBAL FRIENDS cl_salv_table.
   PUBLIC SECTION.
     METHODS enable_fullscreen_events.
 
@@ -1201,7 +1201,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         mv_menu_html = '<ul class="gg-alv-context-menu" role="menu">'.
         LOOP AT zcl_gg_context_menu_state=>get_items( lo_menu ) INTO DATA(ls_menuitem) WHERE hidden = abap_false.
           APPEND ls_menuitem-fcode TO mt_menu_fcodes.
-          mv_menu_html = mv_menu_html && |<li><button type="submit" role="menuitem" { function_attributes( ls_menuitem-fcode ) }{ COND string( WHEN ls_menuitem-disabled = abap_true THEN ` disabled` ) }>{ zcl_gg_gui_runtime=>escape_html( ls_menuitem-text ) }</button></li>|.
+          mv_menu_html = mv_menu_html
+                         && |<li><button type="submit" role="menuitem" { function_attributes( ls_menuitem-fcode ) }{ COND string( WHEN ls_menuitem-disabled = abap_true THEN ` disabled` ) }>|
+                         && |{ zcl_gg_gui_runtime=>escape_html( ls_menuitem-text ) }</button></li>|.
         ENDLOOP.
         mv_menu_html = mv_menu_html && '</ul>'.
         refresh_table_display( ).
@@ -1357,7 +1359,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         ENDLOOP.
         lv_body = lv_body && |</select></label><label>Text <input name="{ frontend_field_name( 'layout_term' ) }" type="text"></label>|.
         IF mv_layout_dialog = mc_fc_filter.
-          lv_body = lv_body && |<label>Comparison <select name="{ frontend_field_name( 'layout_option' ) }"><option>EQ</option><option>NE</option><option>CP</option><option>GE</option><option>LE</option></select></label>|.
+          lv_body = lv_body
+                    && |<label>Comparison <select name="{ frontend_field_name( 'layout_option' ) }"><option>EQ</option><option>NE</option><option>CP</option><option>GE</option><option>LE</option></select></label>|.
         ENDIF.
       WHEN mc_fc_current_variant.
         lv_title = 'Change Layout'.
@@ -1366,7 +1369,10 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
           DATA(lv_heading) = COND string( WHEN ls_fieldcat-coltext IS NOT INITIAL THEN ls_fieldcat-coltext
                                           WHEN ls_fieldcat-scrtext_l IS NOT INITIAL THEN ls_fieldcat-scrtext_l
                                           ELSE ls_fieldcat-fieldname ).
-          lv_body = lv_body && |<li><label><input type="checkbox" name="{ frontend_field_name( |layout_col:{ ls_fieldcat-fieldname }| ) }" value="X"{ COND string( WHEN ls_fieldcat-no_out IS INITIAL THEN ` checked` ) }>{ zcl_gg_gui_runtime=>escape_html( lv_heading ) }</label><label>Position <input type="number" min="1" name="{ frontend_field_name( |layout_pos:{ ls_fieldcat-fieldname }| ) }" value="{ sy-tabix }"></label></li>|.
+          lv_body = lv_body
+                    && |<li><label><input type="checkbox" name="{ frontend_field_name( |layout_col:{ ls_fieldcat-fieldname }| ) }" value="X"{ COND string( WHEN ls_fieldcat-no_out IS INITIAL THEN ` checked` ) }>|
+                    && |{ zcl_gg_gui_runtime=>escape_html( lv_heading ) }</label><label>Position <input type="number" min="1" name="{ frontend_field_name( |layout_pos:{ ls_fieldcat-fieldname }| ) }" value="{ sy-tabix }|
+                    && |"></label></li>|.
         ENDLOOP.
         lv_body = |<p>Displayed columns</p><ul class="gg-alv-layout-columns">{ lv_body }</ul>|.
       WHEN mc_fc_load_variant OR mc_fc_maintain_variant.
@@ -1379,7 +1385,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
             THEN |<td><button type="submit" { submit_attributes( iv_event  = 'LAYOUT'
                                                                  iv_param1 = 'DELETE'
                                                                  iv_param2 = CONV string( ls_layout-variant ) ) }>Delete</button></td>| ).
-          lv_body = lv_body && |<tr><td><button type="submit" { lv_load }>{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_layout-variant ) ) }</button></td><td>{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_layout-text ) ) }</td><td>{ COND string( WHEN ls_layout-default = abap_true THEN `Default` ) }</td>{ lv_manage }</tr>|.
+          lv_body = lv_body
+                    && |<tr><td><button type="submit" { lv_load }>{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_layout-variant ) ) }</button></td><td>|
+                    && |{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_layout-text ) ) }</td><td>{ COND string( WHEN ls_layout-default = abap_true THEN `Default` ) }</td>{ lv_manage }</tr>|.
         ENDLOOP.
         lv_body = COND #( WHEN lv_body IS INITIAL THEN `<p>No layouts saved</p>`
                           ELSE |<table><thead><tr><th scope="col">Layout</th><th scope="col">Description</th><th scope="col">Default</th></tr></thead><tbody>{ lv_body }</tbody></table>| ).
@@ -1846,7 +1854,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       RETURN.
     ENDIF.
     DATA(lv_label) = COND string( WHEN ls_icon-label IS INITIAL THEN iv_code ELSE ls_icon-label ).
-    result = |<span class="gg-alv-icon" role="img" aria-label="{ zcl_gg_gui_runtime=>escape_html( lv_label ) }" style="display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = iv_code ) }</span>|.
+    result = |<span class="gg-alv-icon" role="img" aria-label="{ zcl_gg_gui_runtime=>escape_html( lv_label ) }" style="display:inline-flex;align-items:center;font-size:16px">|
+             && |{ zcl_gg_host_icons=>icon( iv_name = iv_code ) }</span>|.
   ENDMETHOD.
 
   METHOD alv_light_html.
@@ -1867,7 +1876,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         result = zcl_gg_gui_runtime=>escape_html( iv_value ).
         RETURN.
     ENDCASE.
-    result = |<span class="gg-alv-light" role="img" aria-label="{ lv_label }" data-light="{ iv_value }" style="display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = lv_code ) }</span>|.
+    result = |<span class="gg-alv-light" role="img" aria-label="{ lv_label }" data-light="{ iv_value }" style="display:inline-flex;align-items:center;font-size:16px">{ zcl_gg_host_icons=>icon( iv_name = lv_code ) }|
+             && |</span>|.
   ENDMETHOD.
 
   METHOD alv_symbol_html.
@@ -2040,7 +2050,10 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         iv_param2 = CONV string( is_cell-fieldname ) ).
       lv_cell_content = lv_cell_content && |<button type="submit" class="gg-help-button" aria-label="Value help { zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) }" { lv_f4_attributes }>...</button>|.
     ENDIF.
-    result = |<td{ lv_double_click }{ lv_context }{ COND string( WHEN lv_bad = abap_true THEN ` aria-invalid="true"` ) } class="gg-grid-cell { lv_cell_state_class } { is_cell-type_class }{ lv_disabled_class }" data-subtotal="{ COND string( WHEN is_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ zcl_gg_gui_runtime=>escape_html( is_cell-emphasize ) }" data-lvc-color="{ zcl_gg_gui_runtime=>escape_html( lv_cell_color_code ) }" data-lvc-style="{ lv_lvc_style }" style="{ lv_cell_color_style }"{ COND string( WHEN is_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) }">{ lv_cell_content }</td>|.
+    result = |<td{ lv_double_click }{ lv_context }{ COND string( WHEN lv_bad = abap_true THEN ` aria-invalid="true"` ) } class="gg-grid-cell { lv_cell_state_class } { is_cell-type_class }{ lv_disabled_class }" |
+             && |data-subtotal="{ COND string( WHEN is_cell-subtotal = abap_true THEN 'true' ELSE 'false' ) }" data-emphasize="{ zcl_gg_gui_runtime=>escape_html( is_cell-emphasize ) }" |
+             && |data-lvc-color="{ zcl_gg_gui_runtime=>escape_html( lv_cell_color_code ) }" data-lvc-style="{ lv_lvc_style }" style="{ lv_cell_color_style }|
+             && |"{ COND string( WHEN is_cell-f4 = abap_true THEN ` data-f4="true"` ELSE `` ) } data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) }">{ lv_cell_content }</td>|.
   ENDMETHOD.
 
   METHOD render_cell_content.
@@ -2049,18 +2062,23 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
     DATA(lv_row_text) = |{ iv_row_index }|.
     DATA(lv_fieldname) = CONV string( is_cell-fieldname ).
     IF is_cell-dropdown > 0.
-      result = |<select name="{ lv_name }" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+      result = |<select name="{ lv_name }" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }|
+               && |"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
       LOOP AT mt_drop_down INTO DATA(ls_drop) WHERE handle = is_cell-dropdown.
-        result = result && |<option value="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_drop-value ) ) }"{ COND string( WHEN ls_drop-value = is_cell-text THEN ` selected` ELSE `` ) }>{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_drop-value ) ) }</option>|.
+        result = result
+                 && |<option value="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_drop-value ) ) }"{ COND string( WHEN ls_drop-value = is_cell-text THEN ` selected` ELSE `` ) }>|
+                 && |{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_drop-value ) ) }</option>|.
       ENDLOOP.
       result = result && `</select>`.
     ELSEIF is_cell-checkbox = abap_true.
       IF control_id IS NOT INITIAL.
         result = |<input type="hidden" name="{ lv_name }" value="">|.
       ENDIF.
-      result = |{ result }<input type="checkbox" value="X" name="{ lv_name }" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-text = 'X' OR is_cell-text = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+      result = |{ result }<input type="checkbox" value="X" name="{ lv_name }" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }|
+               && |"{ COND string( WHEN is_cell-text = 'X' OR is_cell-text = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
     ELSEIF is_cell-editable = abap_true.
-      result = |<input type="text" name="{ lv_name }" value="{ zcl_gg_gui_runtime=>escape_html( is_cell-text ) }" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
+      result = |<input type="text" name="{ lv_name }" value="{ zcl_gg_gui_runtime=>escape_html( is_cell-text ) }" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }|
+               && |"{ COND string( WHEN is_cell-style_disabled = abap_true THEN ` disabled aria-disabled="true"` ELSE `` ) }>|.
     ELSEIF is_cell-style_button = abap_true.
       DATA(lv_button_type) = COND string( WHEN control_id IS INITIAL THEN 'type="button"' ).
       IF control_id IS NOT INITIAL.
@@ -2068,14 +2086,16 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
                                                              iv_param1 = lv_row_text
                                                              iv_param2 = lv_fieldname ) }|.
       ENDIF.
-      result = |<button { lv_button_type } class="gg-alv-style-button" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }" style="background:#fff2a8;border:1px solid #bca848;padding:2px 10px;color:#25384a;border-radius:2px">{ zcl_gg_gui_runtime=>escape_html( is_cell-text ) }</button>|.
+      result = |<button { lv_button_type } class="gg-alv-style-button" aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) } row { iv_row_index }" style="background:#fff2a8;border:1px |
+               && |solid #bca848;padding:2px 10px;color:#25384a;border-radius:2px">{ zcl_gg_gui_runtime=>escape_html( is_cell-text ) }</button>|.
     ELSEIF is_cell-hotspot = abap_true AND control_id IS NOT INITIAL.
       DATA(lv_hotspot) = submit_attributes( iv_event  = 'HOTSPOT'
                                             iv_param1 = lv_row_text
                                             iv_param2 = lv_fieldname ).
       result = |<button type="submit" class="gg-alv-hotspot" { lv_hotspot }>{ zcl_gg_gui_runtime=>escape_html( is_cell-text ) }</button>|.
     ELSEIF is_cell-hotspot = abap_true.
-      result = |<button type="submit" name="gg_action" value="COMMAND:ALV-HOTSPOT-{ iv_row_index }-{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) }">{ zcl_gg_gui_runtime=>escape_html( is_cell-text ) }</button>|.
+      result = |<button type="submit" name="gg_action" value="COMMAND:ALV-HOTSPOT-{ iv_row_index }-{ zcl_gg_gui_runtime=>escape_html( CONV string( is_cell-fieldname ) ) }">|
+               && |{ zcl_gg_gui_runtime=>escape_html( is_cell-text ) }</button>|.
     ELSEIF is_cell-exception_light = abap_true.
       result = alv_light_html( is_cell-text ).
     ELSEIF is_cell-icon = abap_true.
@@ -2098,7 +2118,8 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
     lv_is_subtotal = xsdbool( iv_subtotal_field IS NOT INITIAL ).
     IF lv_is_subtotal = abap_true.
-      result = |<tr class="gg-grid-subtotal gg-state-subtotal" data-subtotal-field="{ zcl_gg_gui_runtime=>escape_html( CONV string( iv_subtotal_field ) ) }" data-subtotal-value="{ zcl_gg_gui_runtime=>escape_html( iv_subtotal_value ) }">{ COND string( WHEN ms_layout-no_rowmark = abap_false THEN `<th scope="row">Subtotal</th>` ) }|.
+      result = |<tr class="gg-grid-subtotal gg-state-subtotal" data-subtotal-field="{ zcl_gg_gui_runtime=>escape_html( CONV string( iv_subtotal_field ) ) }" |
+               && |data-subtotal-value="{ zcl_gg_gui_runtime=>escape_html( iv_subtotal_value ) }">{ COND string( WHEN ms_layout-no_rowmark = abap_false THEN `<th scope="row">Subtotal</th>` ) }|.
     ELSE.
       result = |<tr class="gg-grid-total gg-state-total">{ COND string( WHEN ms_layout-no_rowmark = abap_false THEN `<th scope="row">Total</th>` ) }|.
     ENDIF.
@@ -2147,7 +2168,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       lv_data_subtotal = COND string(
         WHEN lv_is_subtotal = abap_true THEN 'true'
         ELSE 'false' ).
-      result = result && |<td class="gg-grid-cell { lv_cell_state_class } gg-grid-total-cell" data-subtotal="{ lv_data_subtotal }" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }">{ zcl_gg_gui_runtime=>escape_html( lv_value ) }</td>|.
+      result = result
+               && |<td class="gg-grid-cell { lv_cell_state_class } gg-grid-total-cell" data-subtotal="{ lv_data_subtotal }" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }">|
+               && |{ zcl_gg_gui_runtime=>escape_html( lv_value ) }</td>|.
     ENDLOOP.
     result = result && '</tr>'.
   ENDMETHOD.
@@ -2187,7 +2210,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
                  AND ( ms_variant-report IS INITIAL OR mv_variant_save IS INITIAL ) ).
           CONTINUE.
         ENDIF.
-        lv_buttons = lv_buttons && |<button class="gg-alv-tool-button" type="submit" { function_attributes( CONV #( ls_standard-function ) ) } title="{ ls_standard-quickinfo }" aria-label="{ ls_standard-quickinfo }">{ zcl_gg_host_icons=>icon( iv_name = CONV string( ls_standard-icon ) ) }</button>|.
+        lv_buttons = lv_buttons
+                     && |<button class="gg-alv-tool-button" type="submit" { function_attributes( CONV #( ls_standard-function ) ) } title="{ ls_standard-quickinfo }" aria-label="{ ls_standard-quickinfo }">|
+                     && |{ zcl_gg_host_icons=>icon( iv_name = CONV string( ls_standard-icon ) ) }</button>|.
       ENDLOOP.
     ENDIF.
 * Application functions follow the standard ones, to the right of the
@@ -2204,7 +2229,9 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         THEN submit_attributes( iv_event  = 'MENU'
                                 iv_param1 = CONV string( ls_button-function ) )
         ELSE function_attributes( CONV #( ls_button-function ) ) ).
-      lv_buttons = lv_buttons && |<button type="submit" { lv_button_attrs } title="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_button-quickinfo ) ) }" aria-label="{ zcl_gg_gui_runtime=>escape_html( lv_label ) }"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ` disabled aria-disabled="true"` ELSE `` ) }>{ zcl_gg_gui_runtime=>escape_html( lv_label ) }</button>|.
+      lv_buttons = lv_buttons
+                   && |<button type="submit" { lv_button_attrs } title="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_button-quickinfo ) ) }" aria-label="{ zcl_gg_gui_runtime=>escape_html( lv_label ) }|
+                   && |"{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ` disabled aria-disabled="true"` ELSE `` ) }>{ zcl_gg_gui_runtime=>escape_html( lv_label ) }</button>|.
     ENDLOOP.
     IF lv_buttons IS NOT INITIAL.
       result = |<div class="gg-alv-toolbar" role="toolbar" aria-label="ALV toolbar" data-toolbar-scope="control">{ lv_buttons }</div>|.
@@ -2238,7 +2265,13 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       row        = `0` ).
 * A title set with set_gridtitle wins over the layout title.
     lv_title = COND #( WHEN mv_gridtitle IS INITIAL THEN ms_layout-grid_title ELSE mv_gridtitle ).
-    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ zcl_gg_gui_runtime=>escape_html( CONV string( lv_title ) ) }</h2></header>{ COND string( WHEN control_id IS NOT INITIAL THEN |<input type="hidden" name="{ frontend_field_name( 'present' ) }" value="X">| ) }{ render_protocol( ) }{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }{ render_layout_dialog( ) }{ mv_menu_html }<div class="gg-alv-grid-area"{ lv_grid_drop }><table data-sortable="true" data-zebra="{ COND string( WHEN ms_layout-zebra = abap_true THEN `true` ELSE `false` ) }" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ zcl_gg_gui_runtime=>escape_html( CONV string( ms_variant-variant ) ) }"{ COND string( WHEN lv_title IS NOT INITIAL THEN | aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( lv_title ) ) }"| ) }><thead><tr>{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col" class="gg-alv-selector"><span class="gg-sr-only">Row selection</span></th>` ) }|.
+    result = |<section class="gg-alv" aria-label="ALV grid"><header><h2>{ zcl_gg_gui_runtime=>escape_html( CONV string( lv_title ) ) }</h2></header>|
+             && |{ COND string( WHEN control_id IS NOT INITIAL THEN |<input type="hidden" name="{ frontend_field_name( 'present' ) }" value="X">| ) }{ render_protocol( ) }|
+             && |{ COND string( WHEN mv_toolbar_visible = abap_true THEN lv_toolbar ELSE `` ) }{ render_layout_dialog( ) }{ mv_menu_html }<div class="gg-alv-grid-area"{ lv_grid_drop }><table data-sortable="true" |
+             && |data-zebra="{ COND string( WHEN ms_layout-zebra = abap_true THEN `true` ELSE `false` ) }" data-field-count="{ lines( mt_fieldcatalog ) }" data-ready-for-input="{ mv_ready_for_input }" |
+             && |data-filtered-rows="{ lines( mt_filtered_entries ) }" data-variant="{ zcl_gg_gui_runtime=>escape_html( CONV string( ms_variant-variant ) ) }|
+             && |"{ COND string( WHEN lv_title IS NOT INITIAL THEN | aria-label="{ zcl_gg_gui_runtime=>escape_html( CONV string( lv_title ) ) }"| ) }><thead><tr>|
+             && |{ COND string( WHEN lv_row_marks = abap_true THEN `<th scope="col" class="gg-alv-selector"><span class="gg-sr-only">Row selection</span></th>` ) }|.
     LOOP AT mt_fieldcatalog INTO DATA(ls_fieldcat).
       IF ls_fieldcat-no_out IS INITIAL AND ls_fieldcat-tech IS INITIAL.
         DATA(lv_heading) = ls_fieldcat-coltext.
@@ -2248,7 +2281,10 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         IF lv_heading IS INITIAL.
           lv_heading = ls_fieldcat-fieldname.
         ENDIF.
-        result = result && |<th class="gg-grid-column { cl_gui_control=>state_class( iv_total = xsdbool( ls_fieldcat-do_sum = 'X' ) ) }" scope="col" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-inttype ) ) }" data-sortable="true">{ zcl_gg_gui_runtime=>escape_html( CONV string( lv_heading ) ) }</th>|.
+        result = result
+                 && |<th class="gg-grid-column { cl_gui_control=>state_class( iv_total = xsdbool( ls_fieldcat-do_sum = 'X' ) ) }" scope="col" |
+                 && |data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-fieldname ) ) }" data-inttype="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_fieldcat-inttype ) ) }" |
+                 && |data-sortable="true">{ zcl_gg_gui_runtime=>escape_html( CONV string( lv_heading ) ) }</th>|.
       ENDIF.
     ENDLOOP.
     result = result && |</tr></thead><tbody>|.
@@ -2283,9 +2319,16 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
       IF lv_row_drag IS NOT INITIAL.
         REPLACE FIRST OCCURRENCE OF ' tabindex="0"' IN lv_row_drop WITH ''.
       ENDIF.
-      result = result && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" data-lvc-color="{ zcl_gg_gui_runtime=>escape_html( ls_row-color_code ) }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }{ lv_row_color_attr }{ lv_row_drag }{ lv_row_drop }>|.
+      result = result
+               && |<tr class="gg-grid-row { lv_row_state_class }" data-row-index="{ ls_row-index }" data-lvc-color="{ zcl_gg_gui_runtime=>escape_html( ls_row-color_code ) }" |
+               && |aria-selected="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }"{ COND string( WHEN lv_selected = abap_true THEN ` selected` ELSE `` ) }{ lv_row_color_attr }{ lv_row_drag }|
+               && |{ lv_row_drop }>|.
       IF lv_row_marks = abap_true.
-        result = result && |<td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }" style="{ ls_row-color_style }"><button type="button" class="gg-alv-row-selector" data-gg-row-select aria-label="Select row { ls_row-index }" aria-pressed="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }" style="width:1.5em;padding:0" aria-keyshortcuts="Space">&#9656;</button><input type="hidden" name="{ COND string( WHEN control_id IS INITIAL THEN |gg-alv-row-{ ls_row-index }| ELSE frontend_field_name( |row:{ ls_row-index }| ) ) }" value="{ ls_row-index }"{ COND string( WHEN lv_selected = abap_true THEN `` ELSE ` disabled` ) }></td>|.
+        result = result
+                 && |<td class="gg-grid-cell { cl_gui_control=>state_class( iv_selected = lv_selected ) }" style="{ ls_row-color_style }"><button type="button" class="gg-alv-row-selector" data-gg-row-select |
+                 && |aria-label="Select row { ls_row-index }" aria-pressed="{ COND string( WHEN lv_selected = abap_true THEN `true` ELSE `false` ) }" style="width:1.5em;padding:0" aria-keyshortcuts="Space">&#9656;|
+                 && |</button><input type="hidden" name="{ COND string( WHEN control_id IS INITIAL THEN |gg-alv-row-{ ls_row-index }| ELSE frontend_field_name( |row:{ ls_row-index }| ) ) }" value="{ ls_row-index }|
+                 && |"{ COND string( WHEN lv_selected = abap_true THEN `` ELSE ` disabled` ) }></td>|.
       ENDIF.
       LOOP AT ls_row-cells INTO DATA(ls_cell).
         result = result && render_cell(

@@ -1,5 +1,5 @@
 CLASS cl_dd_select_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element
-  FRIENDS cl_dd_form_area.
+  GLOBAL FRIENDS cl_dd_form_area.
   PUBLIC SECTION.
 
     DATA options TYPE sdydo_option_tab.

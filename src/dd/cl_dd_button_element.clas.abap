@@ -1,5 +1,5 @@
 CLASS cl_dd_button_element DEFINITION PUBLIC INHERITING FROM cl_dd_form_element
-  FRIENDS cl_dd_form_area.
+  GLOBAL FRIENDS cl_dd_form_area.
   PUBLIC SECTION.
 
     EVENTS clicked

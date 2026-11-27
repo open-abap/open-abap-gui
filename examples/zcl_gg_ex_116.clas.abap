@@ -145,10 +145,38 @@ CLASS zcl_gg_ex_116 IMPLEMENTATION.
     io_builder->add_input_field( VALUE #( control = VALUE #( name = 'GV_CARRID' position = VALUE #( row = 10 column = 115 width = 30 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 3 ) value_help = abap_true ) ).
     io_builder->end_screen( ).
     io_builder->begin_screen( VALUE #( number = '0200' title = 'Flights' next_screen = '0200' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_FLIGHTS' position = VALUE #( row = 10 column = 5 width = 600 height = 156 ) ) visible_rows = 5 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_true ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_FLIGHTS' name = 'CONNID' state_name = 'GS_FLIGHT-CONNID' title = 'Flight' data_type = VALUE #( typ = 'C' length = 4 ) width = 60 input = abap_false required = abap_false checkbox = abap_false ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_FLIGHTS' name = 'CITYFROM' state_name = 'GS_FLIGHT-CITYFROM' title = 'From' data_type = VALUE #( typ = 'C' length = 20 ) width = 200 input = abap_true required = abap_false checkbox = abap_false ) ).
-    io_builder->add_table_column( VALUE #( table_control = 'TC_FLIGHTS' name = 'CITYTO' state_name = 'GS_FLIGHT-CITYTO' title = 'To' data_type = VALUE #( typ = 'C' length = 20 ) width = 200 input = abap_true required = abap_false checkbox = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_FLIGHTS' position = VALUE #( row = 10 column = 5 width = 600 height = 156 ) )
+                                              visible_rows   = 5
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_true ) ).
+    io_builder->add_table_column( VALUE #( table_control = 'TC_FLIGHTS'
+                                           name          = 'CONNID'
+                                           state_name    = 'GS_FLIGHT-CONNID'
+                                           title         = 'Flight'
+                                           data_type     = VALUE #( typ = 'C' length = 4 )
+                                           width         = 60
+                                           input         = abap_false
+                                           required      = abap_false
+                                           checkbox      = abap_false ) ).
+    io_builder->add_table_column( VALUE #( table_control = 'TC_FLIGHTS'
+                                           name          = 'CITYFROM'
+                                           state_name    = 'GS_FLIGHT-CITYFROM'
+                                           title         = 'From'
+                                           data_type     = VALUE #( typ = 'C' length = 20 )
+                                           width         = 200
+                                           input         = abap_true
+                                           required      = abap_false
+                                           checkbox      = abap_false ) ).
+    io_builder->add_table_column( VALUE #( table_control = 'TC_FLIGHTS'
+                                           name          = 'CITYTO'
+                                           state_name    = 'GS_FLIGHT-CITYTO'
+                                           title         = 'To'
+                                           data_type     = VALUE #( typ = 'C' length = 20 )
+                                           width         = 200
+                                           input         = abap_true
+                                           required      = abap_false
+                                           checkbox      = abap_false ) ).
     io_builder->end_table_control( ).
     io_builder->end_screen( ).
   ENDMETHOD.

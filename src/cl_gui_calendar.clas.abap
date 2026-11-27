@@ -385,7 +385,8 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     IF lv_month_span > 0.
       lv_month_header = lv_month_header && |<th class="gg-calendar-month-heading" scope="colgroup" colspan="{ lv_month_span }">{ lv_previous_month_label }</th>|.
     ENDIF.
-    result = |<div class="gg-calendar-week-scroll" role="region" aria-label="Calendar weeks" data-month-count="10" data-week-count="{ lv_week_count }" data-selection-style="{ mv_selection_style }"><table class="gg-calendar-week-grid" aria-label="Calendar by week"><thead><tr><th scope="col" rowspan="2">WN</th>{ lv_month_header }</tr><tr>{ lv_week_header }</tr></thead><tbody>|.
+    result = |<div class="gg-calendar-week-scroll" role="region" aria-label="Calendar weeks" data-month-count="10" data-week-count="{ lv_week_count }" data-selection-style="{ mv_selection_style }"><table |
+             && |class="gg-calendar-week-grid" aria-label="Calendar by week"><thead><tr><th scope="col" rowspan="2">WN</th>{ lv_month_header }</tr><tr>{ lv_week_header }</tr></thead><tbody>|.
     LOOP AT lt_day_rows INTO lv_day_row.
       result = result && |{ lv_day_row }</tr>|.
     ENDLOOP.
@@ -453,9 +454,11 @@ CLASS cl_gui_calendar IMPLEMENTATION.
       DATA(lv_event) = frontend_event_value( event  = 'DATE_SELECTED'
                                              params = VALUE #( ( lv_date_text ) ) ).
       DATA(lv_label) = |{ iv_date(4) }-{ iv_date+4(2) }-{ iv_date+6(2) }|.
-      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ zcl_gg_gui_runtime=>escape_html( lv_day_title ) }"><button type="submit" name="gg_control_event" value="{ lv_event }" formnovalidate aria-label="{ lv_label }">{ lv_day_text }</button></td>|.
+      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" |
+               && |title="{ zcl_gg_gui_runtime=>escape_html( lv_day_title ) }"><button type="submit" name="gg_control_event" value="{ lv_event }" formnovalidate aria-label="{ lv_label }">{ lv_day_text }</button></td>|.
     ELSE.
-      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" title="{ zcl_gg_gui_runtime=>escape_html( lv_day_title ) }"><span>{ lv_day_text }</span></td>|.
+      result = |<td class="{ lv_day_class }" data-date="{ lv_date_text }" aria-selected="{ COND string( WHEN lv_selected = abap_true THEN 'true' ELSE 'false' ) }" |
+               && |title="{ zcl_gg_gui_runtime=>escape_html( lv_day_title ) }"><span>{ lv_day_text }</span></td>|.
     ENDIF.
   ENDMETHOD.
 

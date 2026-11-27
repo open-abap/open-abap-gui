@@ -112,7 +112,8 @@ CLASS cl_dd_document IMPLEMENTATION.
   METHOD initialize_document.
     CLEAR html_content.
     CLEAR: mv_right_area, mv_document_html, mv_table_area, mv_form_open.
-    html_content = |<section class="gg-dd-document" aria-label="Dynamic document" data-background="{ background_color }">{ zcl_gg_host_icons=>sprite( ) }<style>{ render_document_styles( ) }</style><div class="gg-dd-content">|.
+    html_content = |<section class="gg-dd-document" aria-label="Dynamic document" data-background="{ background_color }">{ zcl_gg_host_icons=>sprite( ) }<style>{ render_document_styles( ) }</style><div |
+                   && |class="gg-dd-content">|.
   ENDMETHOD.
 
   METHOD display_document.

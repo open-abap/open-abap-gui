@@ -78,7 +78,11 @@ CLASS zcl_gg_ex_096 IMPLEMENTATION.
   METHOD zif_gg_report_v1~start_of_selection.
     io_session->get_list( )->set_title( 'Stacked list messages' ).
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
-    io_session->get_list( )->set_status( VALUE #( status = 'LIST' active_ucomm = VALUE #( ( 'MESSAGES' ) ) active_pf_keys = VALUE #( ( 13 ) ) icon_bar = VALUE #( ( ucomm = 'MESSAGES' label = 'Messages' icon = 'ICON_INFORMATION' ) ) pf_actions = VALUE #( ( number = 13 ucomm = 'MESSAGES' ) ) ) ).
+    io_session->get_list( )->set_status( VALUE #( status         = 'LIST'
+                                                  active_ucomm   = VALUE #( ( 'MESSAGES' ) )
+                                                  active_pf_keys = VALUE #( ( 13 ) )
+                                                  icon_bar       = VALUE #( ( ucomm = 'MESSAGES' label = 'Messages' icon = 'ICON_INFORMATION' ) )
+                                                  pf_actions     = VALUE #( ( number = 13 ucomm = 'MESSAGES' ) ) ) ).
     lo_writer->write_field( VALUE #( text = 'message list' placement = VALUE #( new_line = abap_true ) ) ).
     io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_success text = 'Saved successfully' ) ).
     io_session->message( VALUE #( type = zif_gg_session_types_v1=>message_type_success text = 'Review the selection' display_like = zif_gg_session_types_v1=>message_type_warning ) ).

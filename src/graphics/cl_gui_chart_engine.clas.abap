@@ -226,11 +226,15 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
         IF horizontal = abap_true.
           lv_x = 2 * c_margin + lv_stack_offset.
           lv_y = c_margin + lv_offset.
-          result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_length }" height="{ lv_bar }" fill="{ color( lv_series_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_category ) }: { lv_value }</title></rect>|.
+          result = result
+                   && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_length }" height="{ lv_bar }" fill="{ color( lv_series_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_category ) }: { lv_value }</title>|
+                   && |</rect>|.
         ELSE.
           lv_x = c_margin + lv_offset.
           lv_y = c_height - c_margin - lv_length - lv_stack_offset.
-          result = result && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_bar }" height="{ lv_length }" fill="{ color( lv_series_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_category ) }: { lv_value }</title></rect>|.
+          result = result
+                   && |<rect x="{ lv_x }" y="{ lv_y }" width="{ lv_bar }" height="{ lv_length }" fill="{ color( lv_series_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_category ) }: { lv_value }</title>|
+                   && |</rect>|.
         ENDIF.
         IF lv_stacked = abap_true.
           lv_stack_offset = lv_stack_offset + lv_length.
@@ -272,7 +276,9 @@ CLASS cl_gui_chart_engine IMPLEMENTATION.
       IF lv_value = lv_total.
         result = result && |<circle cx="280" cy="130" r="90" fill="{ color( lv_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_label ) }: { lv_value }</title></circle>|.
       ELSE.
-        result = result && |<path d="M 280 130 L { lv_x1 } { lv_y1 } A 90 90 0 { lv_large } 1 { lv_x2 } { lv_y2 } Z" fill="{ color( lv_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_label ) }: { lv_value }</title></path>|.
+        result = result
+                 && |<path d="M 280 130 L { lv_x1 } { lv_y1 } A 90 90 0 { lv_large } 1 { lv_x2 } { lv_y2 } Z" fill="{ color( lv_index ) }"><title>{ zcl_gg_gui_runtime=>escape_html( lv_label ) }: { lv_value }</title>|
+                 && |</path>|.
       ENDIF.
       lv_angle = lv_next.
     ENDLOOP.

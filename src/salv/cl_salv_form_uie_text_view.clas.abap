@@ -67,6 +67,7 @@ CLASS cl_salv_form_uie_text_view IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD render_html.
-    result = |<span class="gg-salv-form-text" id="{ get_id( ) }"{ COND string( WHEN mv_label_id IS NOT INITIAL THEN | role="group" aria-labelledby="{ html( mv_label_id ) }"| ) } title="{ html( mv_tooltip ) }">{ html( mv_text ) }</span>|.
+    result = |<span class="gg-salv-form-text" id="{ get_id( ) }"{ COND string( WHEN mv_label_id IS NOT INITIAL THEN | role="group" aria-labelledby="{ html( mv_label_id ) }"| ) } title="{ html( mv_tooltip ) }">|
+             && |{ html( mv_text ) }</span>|.
   ENDMETHOD.
 ENDCLASS.

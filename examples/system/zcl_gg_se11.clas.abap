@@ -191,7 +191,11 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD add_field_table.
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = iv_name position = VALUE #( row = iv_row column = 18 width = 700 height = iv_rows * 30 + 30 ) ) visible_rows = iv_rows selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = iv_name position = VALUE #( row = iv_row column = 18 width = 700 height = iv_rows * 30 + 30 ) )
+                                              visible_rows   = iv_rows
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_false ) ).
     io_builder->add_table_column( VALUE #( table_control = iv_name name = 'FIELD_POSITION' title = 'Pos.' data_type = VALUE #( typ = 'N' length = 4 ) width = 55 ) ).
     io_builder->add_table_column( VALUE #( table_control = iv_name name = 'FIELD_NAME' title = 'Field' data_type = VALUE #( typ = 'C' length = 30 ) width = 120 ) ).
     io_builder->add_table_column( VALUE #( table_control = iv_name name = 'FIELD_KEY' title = 'Key' data_type = VALUE #( typ = 'C' length = 3 ) width = 50 ) ).
@@ -217,8 +221,13 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_OBJECT_TYPE' position = VALUE #( row = 18 column = 18 width = 140 ) ) text = 'Object type' ) ).
     io_builder->add_listbox( VALUE #( control = VALUE #( name = 'P_OBJECT_TYPE' position = VALUE #( row = 12 column = 170 width = 220 ) ) data_type = VALUE #( typ = 'C' length = 20 ) fixed_values = lt_fixed_values ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_OBJECT_NAME' position = VALUE #( row = 60 column = 18 width = 140 ) ) text = 'Object name' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_OBJECT_NAME' position = VALUE #( row = 54 column = 170 width = 220 ) ) data_type = VALUE #( typ = 'C' length = 30 ) value_help = abap_true required = abap_true uppercase = abap_true ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_CHOOSER_INFO' position = VALUE #( row = 102 column = 18 width = 540 ) ) text = 'Display reads server-owned Dictionary metadata. Change and Create are unavailable.' ) ).
+    io_builder->add_input_field( VALUE #( control    = VALUE #( name = 'P_OBJECT_NAME' position = VALUE #( row = 54 column = 170 width = 220 ) )
+                                          data_type  = VALUE #( typ = 'C' length = 30 )
+                                          value_help = abap_true
+                                          required   = abap_true
+                                          uppercase  = abap_true ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_CHOOSER_INFO' position = VALUE #( row = 102 column = 18 width = 540 ) )
+                                   text    = 'Display reads server-owned Dictionary metadata. Change and Create are unavailable.' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_CAPABILITY' position = VALUE #( row = 142 column = 18 width = 540 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DISPLAY' position = VALUE #( row = 198 column = 18 width = 96 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CHANGE' position = VALUE #( row = 198 column = 124 width = 96 ) ) text = 'Change' ucomm = 'CHANGE' ) ).
@@ -231,17 +240,37 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TAB_DELIVERY' position = VALUE #( row = 118 column = 18 width = 120 ) ) text = 'Delivery class' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_TAB_DELIVERY' position = VALUE #( row = 114 column = 150 width = 120 ) ) data_type = VALUE #( typ = 'C' length = 4 ) ) ).
     io_builder->add_tabstrip( VALUE #( control = VALUE #( name = 'TAB_DICTIONARY' position = VALUE #( row = 150 column = 18 width = 700 height = 32 ) ) ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_ATTRIBUTES' position = VALUE #( row = 150 column = 18 width = 110 ) ) tabstrip = 'TAB_DICTIONARY' text = 'Attributes' subscreen = screen_table ucomm = 'ATTRIBUTES' ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_FIELDS' position = VALUE #( row = 150 column = 138 width = 90 ) ) tabstrip = 'TAB_DICTIONARY' text = 'Fields' subscreen = screen_table ucomm = 'FIELDS' ) ).
+    io_builder->add_tab( VALUE #( control   = VALUE #( name = 'TAB_ATTRIBUTES' position = VALUE #( row = 150 column = 18 width = 110 ) )
+                                  tabstrip  = 'TAB_DICTIONARY'
+                                  text      = 'Attributes'
+                                  subscreen = screen_table
+                                  ucomm     = 'ATTRIBUTES' ) ).
+    io_builder->add_tab( VALUE #( control   = VALUE #( name = 'TAB_FIELDS' position = VALUE #( row = 150 column = 138 width = 90 ) )
+                                  tabstrip  = 'TAB_DICTIONARY'
+                                  text      = 'Fields'
+                                  subscreen = screen_table
+                                  ucomm     = 'FIELDS' ) ).
     io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_KEYS' position = VALUE #( row = 150 column = 240 width = 80 ) ) tabstrip = 'TAB_DICTIONARY' text = 'Keys' subscreen = screen_table ucomm = 'KEYS' ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_CHECKS' position = VALUE #( row = 150 column = 330 width = 90 ) ) tabstrip = 'TAB_DICTIONARY' text = 'Checks' subscreen = screen_table ucomm = 'CHECKS' ) ).
-    io_builder->add_tab( VALUE #( control = VALUE #( name = 'TAB_TECHNICAL' position = VALUE #( row = 150 column = 430 width = 110 ) ) tabstrip = 'TAB_DICTIONARY' text = 'Technical settings' subscreen = screen_table ucomm = 'TECHNICAL' ) ).
+    io_builder->add_tab( VALUE #( control   = VALUE #( name = 'TAB_CHECKS' position = VALUE #( row = 150 column = 330 width = 90 ) )
+                                  tabstrip  = 'TAB_DICTIONARY'
+                                  text      = 'Checks'
+                                  subscreen = screen_table
+                                  ucomm     = 'CHECKS' ) ).
+    io_builder->add_tab( VALUE #( control   = VALUE #( name = 'TAB_TECHNICAL' position = VALUE #( row = 150 column = 430 width = 110 ) )
+                                  tabstrip  = 'TAB_DICTIONARY'
+                                  text      = 'Technical settings'
+                                  subscreen = screen_table
+                                  ucomm     = 'TECHNICAL' ) ).
     add_field_table( io_builder = io_builder
                      iv_name    = 'TC_FIELDS'
                      iv_row     = 194
                      iv_rows    = 8 ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TAB_CHECKS' position = VALUE #( row = 476 column = 18 width = 200 ) ) text = 'Checks and entry help' ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_CHECKS' position = VALUE #( row = 506 column = 18 width = 560 height = 130 ) ) visible_rows = 3 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_CHECKS' position = VALUE #( row = 506 column = 18 width = 560 height = 130 ) )
+                                              visible_rows   = 3
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_false ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_CHECKS' name = 'CHECK_FIELD' title = 'Field' data_type = VALUE #( typ = 'C' length = 30 ) width = 150 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_CHECKS' name = 'CHECK_TABLE' title = 'Check table' data_type = VALUE #( typ = 'C' length = 30 ) width = 150 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_CHECKS' name = 'CHECK_HELP' title = 'Search help' data_type = VALUE #( typ = 'C' length = 30 ) width = 180 ) ).
@@ -255,7 +284,8 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->begin_screen( VALUE #( number = screen_structure title = 'Dictionary: Display Structure' height = 360 ) ).
     add_header( io_builder = io_builder
                 iv_prefix  = 'STR' ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_STR_INFO' position = VALUE #( row = 118 column = 18 width = 560 ) ) text = 'A structure has components but no delivery class, contents or technical settings.' ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_STR_INFO' position = VALUE #( row = 118 column = 18 width = 560 ) )
+                                   text    = 'A structure has components but no delivery class, contents or technical settings.' ) ).
     add_field_table( io_builder = io_builder
                      iv_name    = 'TC_STR_FIELDS'
                      iv_row     = 154
@@ -289,7 +319,11 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_DOM_VALUE_TABLE' position = VALUE #( row = 190 column = 18 width = 150 ) ) text = 'Value table' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_DOM_VALUE_TABLE' position = VALUE #( row = 186 column = 190 width = 200 ) ) data_type = VALUE #( typ = 'C' length = 30 ) ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_DOM_FIXED' position = VALUE #( row = 224 column = 18 width = 200 ) ) text = 'Fixed values' ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_DOM_FIXED' position = VALUE #( row = 254 column = 18 width = 480 height = 130 ) ) visible_rows = 3 selection_mode = 'NONE' with_hscroll = abap_false with_vscroll = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_DOM_FIXED' position = VALUE #( row = 254 column = 18 width = 480 height = 130 ) )
+                                              visible_rows   = 3
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_false
+                                              with_vscroll   = abap_false ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_DOM_FIXED' name = 'FIXED_VALUE' title = 'Fixed value' data_type = VALUE #( typ = 'C' length = 30 ) width = 150 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_DOM_FIXED' name = 'FIXED_TEXT' title = 'Short description' data_type = VALUE #( typ = 'C' length = 60 ) width = 300 ) ).
     io_builder->end_table_control( ).
@@ -321,7 +355,11 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SHL_DIALOG' position = VALUE #( row = 156 column = 18 width = 170 ) ) text = 'Dialog type' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_SHL_DIALOG' position = VALUE #( row = 152 column = 210 width = 260 ) ) data_type = VALUE #( typ = 'C' length = 40 ) ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SHL_PARAMS' position = VALUE #( row = 190 column = 18 width = 200 ) ) text = 'Search help parameters' ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_SHL_PARAMS' position = VALUE #( row = 220 column = 18 width = 600 height = 100 ) ) visible_rows = 2 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_SHL_PARAMS' position = VALUE #( row = 220 column = 18 width = 600 height = 100 ) )
+                                              visible_rows   = 2
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_false ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_SHL_PARAMS' name = 'PARAM_NAME' title = 'Parameter' data_type = VALUE #( typ = 'C' length = 30 ) width = 150 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_SHL_PARAMS' name = 'PARAM_IMPORT' title = 'IMP' data_type = VALUE #( typ = 'C' length = 3 ) width = 70 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_SHL_PARAMS' name = 'PARAM_EXPORT' title = 'EXP' data_type = VALUE #( typ = 'C' length = 3 ) width = 70 ) ).
@@ -338,7 +376,11 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_ENQ_MODE' position = VALUE #( row = 156 column = 18 width = 170 ) ) text = 'Lock mode' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_ENQ_MODE' position = VALUE #( row = 152 column = 210 width = 240 ) ) data_type = VALUE #( typ = 'C' length = 40 ) ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_ENQ_PARAMS' position = VALUE #( row = 190 column = 18 width = 200 ) ) text = 'Lock parameters' ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_ENQ_PARAMS' position = VALUE #( row = 220 column = 18 width = 540 height = 130 ) ) visible_rows = 3 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_ENQ_PARAMS' position = VALUE #( row = 220 column = 18 width = 540 height = 130 ) )
+                                              visible_rows   = 3
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_false ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_ENQ_PARAMS' name = 'LOCK_PARAM' title = 'Parameter' data_type = VALUE #( typ = 'C' length = 30 ) width = 150 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_ENQ_PARAMS' name = 'LOCK_TABLE' title = 'Table' data_type = VALUE #( typ = 'C' length = 30 ) width = 150 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_ENQ_PARAMS' name = 'LOCK_FIELD' title = 'Field' data_type = VALUE #( typ = 'C' length = 30 ) width = 150 ) ).
@@ -364,7 +406,8 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TYP_SOURCE' position = VALUE #( row = 122 column = 18 width = 300 ) ) text = 'Type group source' ) ).
     lv_column = 1.
     WHILE lv_column <= 5.
-      io_builder->add_output_field( VALUE #( control = VALUE #( name = |O_TYP_LINE_{ lv_column }| position = VALUE #( row = 122 + lv_column * 32 column = 18 width = 560 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
+      io_builder->add_output_field( VALUE #( control   = VALUE #( name = |O_TYP_LINE_{ lv_column }| position = VALUE #( row = 122 + lv_column * 32 column = 18 width = 560 ) )
+                                             data_type = VALUE #( typ = 'C' length = 120 ) ) ).
       lv_column = lv_column + 1.
     ENDWHILE.
     io_builder->end_screen( ).
@@ -546,8 +589,10 @@ CLASS zcl_gg_se11 IMPLEMENTATION.
                           iv_row = lv_row
                           iv_value = ls_field-search_help CHANGING ct_values = ct_values ).
     ENDLOOP.
-    put_value( EXPORTING iv_name = 'O_TAB_TECHNICAL'
-                         iv_value = |Data class { is_object-technical-data_class }, size category { is_object-technical-size_category }, { is_object-technical-buffering }, log changes { COND string( WHEN is_object-technical-log_changes = abap_true THEN 'on' ELSE 'off' ) }| CHANGING ct_values = ct_values ).
+    put_value( EXPORTING iv_name   = 'O_TAB_TECHNICAL'
+                         iv_value  = |Data class { is_object-technical-data_class }, size category { is_object-technical-size_category }, { is_object-technical-buffering }, log changes |
+                                     && |{ COND string( WHEN is_object-technical-log_changes = abap_true THEN 'on' ELSE 'off' ) }|
+               CHANGING  ct_values = ct_values ).
   ENDMETHOD.
 
   METHOD put_view_detail.

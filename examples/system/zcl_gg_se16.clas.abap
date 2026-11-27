@@ -170,7 +170,8 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
     DATA lv_position TYPE i.
 
     io_builder->begin_screen( VALUE #( number = criteria_screen( iv_index ) title = |Data Browser: { iv_table }| height = 200 + lines( it_fields ) * 40 ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = |P_T{ iv_index }_TITLE| position = VALUE #( row = 14 column = 18 width = 620 ) ) text = |Selection criteria generated from the Dictionary metadata of { iv_table }.| ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = |P_T{ iv_index }_TITLE| position = VALUE #( row = 14 column = 18 width = 620 ) )
+                                   text    = |Selection criteria generated from the Dictionary metadata of { iv_table }.| ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = |P_T{ iv_index }_HFIELD| position = VALUE #( row = 54 column = 18 width = 230 ) ) text = 'Field' ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = |P_T{ iv_index }_HOP| position = VALUE #( row = 54 column = 256 width = 130 ) ) text = 'Operator' ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = |P_T{ iv_index }_HLOW| position = VALUE #( row = 54 column = 396 width = 110 ) ) text = 'Value' ) ).
@@ -180,14 +181,23 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
       lv_row = 84 + ( sy-tabix - 1 ) * 40.
       lv_position = ls_field-position.
       io_builder->add_text( VALUE #( control = VALUE #( name = |P_T{ iv_index }_LBL{ lv_position }| position = VALUE #( row = lv_row + 6 column = 18 width = 230 ) ) text = field_label( ls_field ) ) ).
-      io_builder->add_listbox( VALUE #( control = VALUE #( name = |P_T{ iv_index }_OP{ lv_position }| position = VALUE #( row = lv_row column = 256 width = 130 ) ) data_type = VALUE #( typ = 'C' length = 2 ) fixed_values = operator_values( ) ) ).
-      io_builder->add_input_field( VALUE #( control = VALUE #( name = |P_T{ iv_index }_LOW{ lv_position }| position = VALUE #( row = lv_row column = 396 width = 110 ) ) data_type = VALUE #( typ = ls_field-int_type length = ls_field-length decimals = ls_field-decimals ) value_help = xsdbool( ls_field-search_help IS NOT INITIAL ) uppercase = abap_true ) ).
-      io_builder->add_input_field( VALUE #( control = VALUE #( name = |P_T{ iv_index }_HIGH{ lv_position }| position = VALUE #( row = lv_row column = 546 width = 110 ) ) data_type = VALUE #( typ = ls_field-int_type length = ls_field-length decimals = ls_field-decimals ) uppercase = abap_true ) ).
+      io_builder->add_listbox( VALUE #( control      = VALUE #( name = |P_T{ iv_index }_OP{ lv_position }| position = VALUE #( row = lv_row column = 256 width = 130 ) )
+                                        data_type    = VALUE #( typ = 'C' length = 2 )
+                                        fixed_values = operator_values( ) ) ).
+      io_builder->add_input_field( VALUE #( control    = VALUE #( name = |P_T{ iv_index }_LOW{ lv_position }| position = VALUE #( row = lv_row column = 396 width = 110 ) )
+                                            data_type  = VALUE #( typ = ls_field-int_type length = ls_field-length decimals = ls_field-decimals )
+                                            value_help = xsdbool( ls_field-search_help IS NOT INITIAL )
+                                            uppercase  = abap_true ) ).
+      io_builder->add_input_field( VALUE #( control   = VALUE #( name = |P_T{ iv_index }_HIGH{ lv_position }| position = VALUE #( row = lv_row column = 546 width = 110 ) )
+                                            data_type = VALUE #( typ = ls_field-int_type length = ls_field-length decimals = ls_field-decimals )
+                                            uppercase = abap_true ) ).
       io_builder->add_checkbox( VALUE #( control = VALUE #( name = |P_T{ iv_index }_OUT{ lv_position }| position = VALUE #( row = lv_row column = 690 width = 110 ) ) text = 'Output' ) ).
     ENDLOOP.
     lv_row = 104 + lines( it_fields ) * 40.
     io_builder->add_text( VALUE #( control = VALUE #( name = |P_T{ iv_index }_TMAX| position = VALUE #( row = lv_row + 6 column = 18 width = 230 ) ) text = 'Maximum number of hits' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = |P_T{ iv_index }_MAX| position = VALUE #( row = lv_row column = 256 width = 110 ) ) data_type = VALUE #( typ = 'N' length = 3 ) required = abap_true ) ).
+    io_builder->add_input_field( VALUE #( control   = VALUE #( name = |P_T{ iv_index }_MAX| position = VALUE #( row = lv_row column = 256 width = 110 ) )
+                                          data_type = VALUE #( typ = 'N' length = 3 )
+                                          required  = abap_true ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = |P_T{ iv_index }_CAP| position = VALUE #( row = lv_row + 40 column = 18 width = 620 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = |P_T{ iv_index }_RUN| position = VALUE #( row = lv_row + 82 column = 18 width = 120 ) ) text = 'Execute' ucomm = 'EXECUTE' ) ).
     io_builder->end_screen( ).
@@ -204,10 +214,18 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
     io_builder->add_output_field( VALUE #( control = VALUE #( name = |P_T{ iv_index }_OCNT| position = VALUE #( row = 48 column = 115 width = 180 ) ) data_type = VALUE #( typ = 'N' length = 20 ) ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = |P_T{ iv_index }_OFB| position = VALUE #( row = 82 column = 18 width = 620 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = |P_T{ iv_index }_OFLD| position = VALUE #( row = 116 column = 18 width = 620 ) ) data_type = VALUE #( typ = 'C' length = 200 ) ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = lv_container position = VALUE #( row = 150 column = 18 width = 900 height = 240 ) ) visible_rows = 8 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_true ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = lv_container position = VALUE #( row = 150 column = 18 width = 900 height = 240 ) )
+                                              visible_rows   = 8
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_true ) ).
     LOOP AT it_fields INTO DATA(ls_field).
       lv_position = ls_field-position.
-      io_builder->add_table_column( VALUE #( table_control = lv_container name = |P_T{ iv_index }_C{ lv_position }| title = COND string( WHEN ls_field-description IS INITIAL THEN ls_field-name ELSE ls_field-description ) data_type = VALUE #( typ = ls_field-int_type length = ls_field-length decimals = ls_field-decimals ) width = 130 ) ).
+      io_builder->add_table_column( VALUE #( table_control = lv_container
+                                             name          = |P_T{ iv_index }_C{ lv_position }|
+                                             title         = COND string( WHEN ls_field-description IS INITIAL THEN ls_field-name ELSE ls_field-description )
+                                             data_type     = VALUE #( typ = ls_field-int_type length = ls_field-length decimals = ls_field-decimals )
+                                             width         = 130 ) ).
     ENDLOOP.
     io_builder->end_table_control( ).
     io_builder->end_screen( ).
@@ -219,8 +237,14 @@ CLASS zcl_gg_se16 IMPLEMENTATION.
 
     io_builder->begin_screen( VALUE #( number = screen_table_name title = 'Data Browser' height = 260 ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TABLE' position = VALUE #( row = 18 column = 18 width = 145 ) ) text = 'Table name' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_TABLE' position = VALUE #( row = 12 column = 175 width = 220 ) ) data_type = VALUE #( typ = 'C' length = 30 ) search_help = 'DDIC_TABLE' value_help = abap_true required = abap_true uppercase = abap_true ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TABLE_INFO' position = VALUE #( row = 58 column = 18 width = 620 ) ) text = 'Table Contents opens the selection screen generated from the field metadata of that table.' ) ).
+    io_builder->add_input_field( VALUE #( control     = VALUE #( name = 'P_TABLE' position = VALUE #( row = 12 column = 175 width = 220 ) )
+                                          data_type   = VALUE #( typ = 'C' length = 30 )
+                                          search_help = 'DDIC_TABLE'
+                                          value_help  = abap_true
+                                          required    = abap_true
+                                          uppercase   = abap_true ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TABLE_INFO' position = VALUE #( row = 58 column = 18 width = 620 ) )
+                                   text    = 'Table Contents opens the selection screen generated from the field metadata of that table.' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_CAPABILITY' position = VALUE #( row = 98 column = 18 width = 620 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_SELECTION' position = VALUE #( row = 150 column = 18 width = 120 ) ) text = 'Table Contents' ucomm = 'SELECTION' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CHANGE' position = VALUE #( row = 150 column = 150 width = 100 ) ) text = 'Change' ucomm = 'CHANGE' ) ).

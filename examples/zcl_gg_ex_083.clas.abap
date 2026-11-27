@@ -167,7 +167,8 @@ CLASS zcl_gg_ex_083 IMPLEMENTATION.
           lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_booking-customer ) placement = VALUE #( new_line = abap_true ) ) ).
           lo_writer->write_field( VALUE #( text = lo_writer->format_value( iv_value = gs_booking-seats ) ) ).
         ENDLOOP.
-        lo_writer->write_field( VALUE #( text = |Chosen in list { io_session->get_list( )->get_context( )-list_index }, line { io_session->get_list( )->get_context( )-selected_line }| placement = VALUE #( new_line = abap_true ) ) ).
+        lo_writer->write_field( VALUE #( text      = |Chosen in list { io_session->get_list( )->get_context( )-list_index }, line { io_session->get_list( )->get_context( )-selected_line }|
+                                         placement = VALUE #( new_line = abap_true ) ) ).
     ENDCASE.
   ENDMETHOD.
 
