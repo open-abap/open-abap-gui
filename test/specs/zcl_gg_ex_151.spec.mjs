@@ -7,9 +7,10 @@ test("ZCL_GG_EX_151 — shows the program's HTML in the viewer", async ({page, h
   await expectPageKind(page, "DYNPRO");
   await expect(viewer(page).locator("h1")).toHaveText("Flights");
   await expect(viewer(page).locator("tr")).toHaveCount(4);
-  // Forms are needed for the sapevent anchors, scripts never run.
+  // Forms are needed for the sapevent anchors, scripts never run; the page's
+  // origin lets the session shell send the forms through the session.
   await expect(page.locator('iframe[title="HTML viewer"]')).toHaveAttribute(
-    "sandbox", "allow-forms allow-top-navigation-by-user-activation");
+    "sandbox", "allow-forms allow-same-origin allow-top-navigation-by-user-activation");
 });
 
 test("ZCL_GG_EX_151 — a SAPEVENT link raises sapevent with action and getdata", async ({page, host}) => {

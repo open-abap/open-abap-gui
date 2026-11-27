@@ -1335,16 +1335,20 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 * A page names its GUI session in what it sends next.
     DATA(lv_html) = iv_html.
     DATA(lv_script) = COND string( WHEN iv_page_script = abap_true THEN zcl_gg_host_windows=>script( ) ).
-    IF lv_html CS '</head>'.
-      REPLACE FIRST OCCURRENCE OF '</head>' IN lv_html WITH lv_script && '</head>'.
+    FIND FIRST OCCURRENCE OF '</head>' IN lv_html IGNORING CASE MATCH OFFSET DATA(lv_head).
+    IF sy-subrc = 0.
+      lv_html = substring( val = lv_html
+                           len = lv_head ) && lv_script && substring( val = lv_html
+                                                                      off = lv_head ).
     ELSE.
       lv_html = lv_html && lv_script.
     ENDIF.
 * The host's own asset goes into the page, so a page shows it in a host that
-* serves no files, as the browser preview, and in a frame of the shell.
+* serves no files, as the browser preview, and in a frame of the shell. Only
+* an image source is the asset: the same text in a field's value is data.
     IF lv_html CS c_refresh_svg_path.
-      REPLACE ALL OCCURRENCES OF |"{ c_refresh_svg_path }"| IN lv_html
-        WITH |"data:image/svg+xml;base64,{ cl_http_utility=>encode_base64( zcl_gg_host_icons=>refresh_svg( ) ) }"|.
+      REPLACE ALL OCCURRENCES OF | src="{ c_refresh_svg_path }"| IN lv_html
+        WITH | src="data:image/svg+xml;base64,{ cl_http_utility=>encode_base64( zcl_gg_host_icons=>refresh_svg( ) ) }"|.
     ENDIF.
 * A page carries the icons it shows, not the whole icon set.
     server->response->set_cdata( zcl_gg_host_icons=>prune_sprite( lv_html ) ).

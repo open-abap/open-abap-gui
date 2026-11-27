@@ -12,7 +12,7 @@ import {fileURLToPath} from "node:url";
 // src/standard/, framework/ as src/framework/, examples/ as src/examples/) and
 // a package per folder: push it to a branch and pull it into a local package.
 // Its .abapgit.xml and abaplint.jsonc are checked in; the script writes only
-// src/ and assets/.
+// src/ and assets/, including the package and object XML files abapGit needs.
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const config = JSON.parse(fs.readFileSync(path.join(repository, "abaplint.jsonc"), "utf8"));
@@ -82,6 +82,65 @@ function writePackages() {
   }
 }
 
+// abapGit reads an object's properties from its XML file, which most classes
+// and every interface in the repository go without: abaplint needs only the
+// source. Each one missing gets the minimal file abapGit itself writes.
+function abapGitXml(serializer, body) {
+  return `\uFEFF<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="${serializer}" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+${body}
+  </asx:values>
+ </asx:abap>
+</abapGit>
+`;
+}
+
+function writeObjectXml() {
+  let written = 0;
+  for (const folder of folders(path.join(output, "src"))) {
+    for (const file of fs.readdirSync(folder)) {
+      const match = /^([^.]+)\.(clas|intf)\.abap$/.exec(file);
+      if (match === null) {
+        continue;
+      }
+      const [, name, type] = match;
+      const xml = path.join(folder, `${name}.${type}.xml`);
+      if (fs.existsSync(xml)) {
+        continue;
+      }
+      const upper = name.replaceAll("#", "/").toUpperCase();
+      if (type === "intf") {
+        fs.writeFileSync(xml, abapGitXml("LCL_OBJECT_INTF", `   <VSEOINTERF>
+    <CLSNAME>${upper}</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>${upper}</DESCRIPT>
+    <EXPOSURE>2</EXPOSURE>
+    <STATE>1</STATE>
+    <UNICODE>X</UNICODE>
+   </VSEOINTERF>`), "utf8");
+      } else {
+        // Every exception class is named CX_ or ZCX_, see the rename patterns.
+        const category = /^z?cx_/.test(name) ? "\n    <CATEGORY>40</CATEGORY>" : "";
+        const tests = fs.existsSync(path.join(folder, `${name}.clas.testclasses.abap`))
+          ? "\n    <WITH_UNIT_TESTS>X</WITH_UNIT_TESTS>" : "";
+        fs.writeFileSync(xml, abapGitXml("LCL_OBJECT_CLAS", `   <VSEOCLASS>
+    <CLSNAME>${upper}</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>${upper}</DESCRIPT>${category}
+    <STATE>1</STATE>
+    <CLSCCINCL>X</CLSCCINCL>
+    <FIXPT>X</FIXPT>
+    <UNICODE>X</UNICODE>${tests}
+   </VSEOCLASS>`), "utf8");
+      }
+      written += 1;
+    }
+  }
+  return written;
+}
+
 // Rename inline inside a copy laid out as the output: the repository stays
 // untouched, and framework/ is already in src/framework/. abaplint takes its
 // base folder from the config's location. Only the generated folders are
@@ -126,6 +185,7 @@ if (status === 0) {
     fs.renameSync(path.join(output, folder.from), path.join(output, folder.to));
   }
   writePackages();
+  console.log(`build:sap: wrote ${writeObjectXml()} missing class and interface XML files`);
 
   console.log(`build:sap: wrote ${path.relative(repository, output)}`);
 }

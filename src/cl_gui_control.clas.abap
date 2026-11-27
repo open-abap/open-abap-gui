@@ -1033,7 +1033,9 @@ CLASS cl_gui_control IMPLEMENTATION.
 * The document registered sapevent and the caller supplied a transport, so its
 * sapevent anchors and forms become forms that submit to it. Submitting a form and, on a real
 * click, replacing the top page are the only two things this needs; scripts
-* stay blocked and the frame keeps its opaque origin. The forms of the
+* stay blocked. The frame has the page's origin, so a page shown inside
+* another one, as a session of the shell, can send these submits itself
+* instead of letting them replace the top page. The forms of the
 * document go first, so that the forms made of anchors are not looked at again.
             lv_srcdoc = rewrite_sapevent_forms( document   = lv_srcdoc
                                                 sapevent   = is_sapevent
@@ -1041,7 +1043,7 @@ CLASS cl_gui_control IMPLEMENTATION.
             lv_srcdoc = rewrite_sapevent( document   = lv_srcdoc
                                           sapevent   = is_sapevent
                                           control_id = is_snapshot-control_id ).
-            lv_sandbox = `allow-forms allow-top-navigation-by-user-activation`.
+            lv_sandbox = `allow-forms allow-same-origin allow-top-navigation-by-user-activation`.
           ENDIF.
           lv_iframe_source = |srcdoc="{ escape( lv_srcdoc ) }"|.
         ELSEIF safe_url( is_snapshot-payload ) = abap_true.

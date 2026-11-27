@@ -1,4 +1,4 @@
-import {access} from "node:fs/promises";
+import {access, readFile} from "node:fs/promises";
 import {resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {test, expect} from "playwright/test";
@@ -219,6 +219,51 @@ for (const host of hosts) {
       await expect(help.locator("li")).toHaveText(["AA", "LH", "SQ"]);
       await help.locator("li", {hasText: "LH"}).dblclick();
       await expect(frame.locator('input[name="P_T1_LOW1"]')).toHaveValue("LH");
+    });
+
+    // The viewer's sapevent forms post to the top window, the shell; they go
+    // through the session instead, so the shell and its sessions stay.
+    test("a SAPEVENT link in an HTML viewer stays in its session", async ({page}) => {
+      await page.goto(`${running.base}#/ZCL_GG_EX_151`, {waitUntil: "load"});
+      const viewer = onScreen(page).frameLocator('iframe[title="HTML viewer"]');
+      await expect(viewer.locator("h1")).toHaveText("Flights", {timeout: 30000});
+      await command(page, "/ose16");
+      await expect(railEntries(page)).toHaveCount(2);
+      await railEntries(page).nth(0).locator(".gg-rail-select").click();
+
+      await viewer.getByRole("button", {name: "UA 0941"}).click();
+      await expect(viewer.locator("h1")).toHaveText("Flight UA 0941");
+      await expect(page.locator("#gg-rail")).toBeVisible();
+      await expect(railEntries(page)).toHaveCount(2);
+
+      await viewer.getByLabel("Seats").fill("5");
+      await viewer.getByRole("button", {name: "Book"}).click();
+      await expect(viewer.locator("p").first()).toHaveText("Frankfurt to San Francisco, 215 seats occupied.");
+      await viewer.getByRole("button", {name: "Back to the flights"}).click();
+      await expect(viewer.locator("h1")).toHaveText("Flights");
+
+      // The other session is still open on the host.
+      await railEntries(page).nth(1).locator(".gg-rail-select").click();
+      await onScreen(page).getByRole("button", {name: "Table Contents", exact: true}).click();
+      await expect(onScreen(page).locator('[data-screen="0150"]')).toHaveCount(1);
+    });
+
+    // The file is a blob: URL of the session's page, which the page's and the
+    // shell's link handlers must leave to the browser.
+    test("a list saved to a local file downloads from a session", async ({page}) => {
+      await page.goto(`${running.base}#/ZCL_GG_EX_095`, {waitUntil: "load"});
+      const frame = onScreen(page);
+      await expect(frame.locator("[data-page-kind]")).toHaveCount(1, {timeout: 30000});
+      await frame.getByRole("menuitem", {name: "List"}).click();
+      await frame.getByRole("button", {name: "Save to local file"}).click();
+      const dialog = frame.getByRole("dialog", {name: "Save list in file"});
+      await dialog.getByRole("radio", {name: "Spreadsheet"}).check();
+      await dialog.getByRole("textbox", {name: "File name"}).fill("carriers.xls");
+      const downloaded = page.waitForEvent("download");
+      await dialog.getByRole("button", {name: "Save"}).click();
+      const download = await downloaded;
+      expect(download.suggestedFilename()).toBe("carriers.xls");
+      expect(await readFile(await download.path(), "utf8")).toContain("LH	Lufthansa	EUR");
     });
   });
 }

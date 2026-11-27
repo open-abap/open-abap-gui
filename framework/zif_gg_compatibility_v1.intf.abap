@@ -147,14 +147,17 @@ INTERFACE zif_gg_compatibility_v1 PUBLIC.
   METHODS popup_to_inform
     IMPORTING is_request TYPE ty_popup_inform_request.
 
+* The results are generic, like the function modules' parameters, so a
+* program's variable of any type takes them: popup_get_values sets a
+* ty_answer, popup_with_table_display the number of the chosen line.
   METHODS popup_get_values
     IMPORTING is_request    TYPE ty_popup_values_request
-    EXPORTING ev_returncode TYPE ty_answer
+    EXPORTING ev_returncode TYPE any
     CHANGING  ct_fields     TYPE STANDARD TABLE.
 
   METHODS popup_with_table_display
     IMPORTING is_request TYPE ty_popup_table_request
-    EXPORTING ev_choice  TYPE i
+    EXPORTING ev_choice  TYPE any
     CHANGING  ct_values  TYPE STANDARD TABLE.
 
   METHODS popup_to_select_month

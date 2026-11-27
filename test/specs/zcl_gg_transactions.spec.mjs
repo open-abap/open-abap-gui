@@ -1,3 +1,4 @@
+import {readFile} from "node:fs/promises";
 import {test, expect, workbenchUrl} from "../fixtures.mjs";
 
 test("transaction links start the real report and dynpro examples", async ({page, host}) => {
@@ -258,6 +259,32 @@ test("/o opens a session in a new tab and /i closes it", async ({page, host}) =>
   await page.goto(workbenchUrl(host));
   await page.getByRole("menuitem", {name: "System"}).click();
   await expect(page.getByRole("menuitem", {name: "End Session"})).toBeDisabled();
+});
+
+// GUI_DOWNLOAD's file is a blob: URL, which has the page's origin; the script
+// that names the tab's session in its links must leave it alone.
+test("a list saved to a local file downloads in a second tab", async ({page, host}) => {
+  await page.goto(workbenchUrl(host));
+  await page.getByRole("menuitem", {name: "System"}).click();
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("menuitem", {name: "Create Session"}).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState();
+  const window = await popup.locator('meta[name="gg-window"]').getAttribute("content");
+  expect(window).not.toBe("W0");
+
+  await popup.goto(`${host.baseUrl}/ZCL_GG_EX_095?gg_window=${window}`);
+  await expect(popup.locator('meta[name="gg-window"]')).toHaveAttribute("content", window);
+  await popup.getByRole("menuitem", {name: "List"}).click();
+  await popup.getByRole("button", {name: "Save to local file"}).click();
+  const dialog = popup.getByRole("dialog", {name: "Save list in file"});
+  await dialog.getByRole("radio", {name: "Spreadsheet"}).check();
+  await dialog.getByRole("textbox", {name: "File name"}).fill("carriers.xls");
+  const downloaded = popup.waitForEvent("download");
+  await dialog.getByRole("button", {name: "Save"}).click();
+  const download = await downloaded;
+  expect(download.suggestedFilename()).toBe("carriers.xls");
+  expect(await readFile(await download.path(), "utf8")).toContain("LH	Lufthansa	EUR");
 });
 
 // A link on a page of a second tab starts its program in that tab's session.

@@ -262,7 +262,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       IF lv_choice IS INITIAL OR lv_choice CN '0123456789' OR lv_choice = '0'.
         sy-subrc = 1.
       ELSE.
-        ev_choice = lv_choice.
+        ev_choice = CONV i( lv_choice ).
         sy-subrc = 0.
       ENDIF.
       RETURN.

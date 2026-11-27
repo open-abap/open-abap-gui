@@ -2,7 +2,6 @@ output
 build
 sap-build/src
 sap-build/assets
-sap-build/assets
 node_modules
 regression-work
 test-results

@@ -211,7 +211,8 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
 * and same-site link. form.submit() skips the submit event, so the forms are
 * stamped on load and submit() stamps as well; the guard keeps a second page
 * in the same window object, as in the shell's frames, from wrapping it
-* again; the shell marks its own wrapper the same way.
+* again; the shell marks its own wrapper the same way. Download links and
+* blob: URLs, which share the page's origin, are left alone.
     rv_html = |<meta name="gg-window" content="{ mv_current }">| &&
       '<script>(function(){var id="' && mv_current && '";var name="' && c_parameter && '";var named=id!=="' && c_first_window && '";' &&
       'var stamp=function(form){if(!named){return;}var field=form.querySelector("input[name=" + name + "]");if(!field){field=document["cr"+"eateElement"]("input");field.type="hidden";field.name=name;form.appendChild(field);}field.value=id;};' &&
@@ -222,7 +223,7 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
       'var field=form.querySelector("input[name=command]");' &&
       'if(field&&!event.defaultPrevented&&/^\s*\/o/i.test(field.value)){form.target="_blank";setTimeout(function(){form.removeAttribute("target");field.value="";},0);}},true);' &&
       'document.addEventListener("click",function(event){if(!named){return;}var link=event.target&&event.target.closest?event.target.closest("a[href]"):null;if(!link){return;}' &&
-      'var url=new URL(link.getAttribute("href"),location.href);if(url.origin!==location.origin||url.protocol==="javascript:"){return;}' &&
+      'var url=new URL(link.getAttribute("href"),location.href);if(link.hasAttribute("download")||!/^https?:$/.test(url.protocol)||url.origin!==location.origin){return;}' &&
       'url.searchParams.set(name,id);link.setAttribute("href",url.pathname+url.search+url.hash);},true);' &&
       '}());</script>'.
   ENDMETHOD.

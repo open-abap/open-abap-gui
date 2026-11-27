@@ -251,6 +251,12 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'activate(created);' && ` ` &&
       '}, function (error) {' && ` ` &&
       'removeSession(created);' && ` ` &&
+      '/* The host opened the window already; end it there as well, or the host counts' && ` ` &&
+      'a session the rail does not show, and lets the last one shown end. */' && ` ` &&
+      'fetch("/transaction", {method: "POST", headers: {"x-gg-window": created.window},' && ` ` &&
+      'body: new URLSearchParams({session: "end"})}).catch(function () {' && ` ` &&
+      'return undefined;' && ` ` &&
+      '});' && ` ` &&
       'throw error;' && ` ` &&
       '});' && ` ` &&
       '}' && ` ` &&
@@ -288,7 +294,8 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'if (!session.handlers) {' && ` ` &&
       'session.handlers = {' && ` ` &&
       'click: function (event) { handleClick(session, event); },' && ` ` &&
-      'submit: function (event) { handleSubmit(session, event); }' && ` ` &&
+      'submit: function (event) { handleSubmit(session, event); },' && ` ` &&
+      'load: function (event) { relay(session, event.target); }' && ` ` &&
       '};' && ` ` &&
       '}' && ` ` &&
       'var handlers = session.handlers;' && ` ` &&
@@ -296,6 +303,13 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'win.removeEventListener("submit", handlers.submit, true);' && ` ` &&
       'win.addEventListener("click", handlers.click, true);' && ` ` &&
       'win.addEventListener("submit", handlers.submit, true);' && ` ` &&
+      '/* The load event of an element stops at its document, so the frames of the' && ` ` &&
+      'page are watched there, the ones loaded already included. */' && ` ` &&
+      'win.document.removeEventListener("load", handlers.load, true);' && ` ` &&
+      'win.document.addEventListener("load", handlers.load, true);' && ` ` &&
+      'Array.prototype.forEach.call(win.document.querySelectorAll("iframe"), function (nested) {' && ` ` &&
+      'relay(session, nested);' && ` ` &&
+      '});' && ` ` &&
       '/* form.submit() skips the submit event, as in the F-key script; route it' && ` ` &&
       'through the shell as well, or it would navigate the frame away. */' && ` ` &&
       'var proto = win.HTMLFormElement.prototype;' && ` ` &&
@@ -309,6 +323,25 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '/* The next page in the frame keeps this wrapper; the mark keeps its script from' && ` ` &&
       'wrapping it again, see zcl_gg_host_windows=>script. */' && ` ` &&
       'proto.submit.ggWindow = true;' && ` ` &&
+      '}' && ` ` &&
+      '}' && ` ` &&
+      '/* An HTML viewer shows its document in an iframe of the page, sandboxed without' && ` ` &&
+      'scripts, whose sapevent forms post to the top window: the shell, which they' && ` ` &&
+      'would replace, ending every session. Its submits go through the session like' && ` ` &&
+      'those of the page; a frame of another site is left alone. */' && ` ` &&
+      'function relay(session, nested) {' && ` ` &&
+      'if (!isElement(nested) || nested.tagName !== "IFRAME") {' && ` ` &&
+      'return;' && ` ` &&
+      '}' && ` ` &&
+      'try {' && ` ` &&
+      'var nestedWin = nested.contentWindow;' && ` ` &&
+      'if (!nestedWin || !nestedWin.document) {' && ` ` &&
+      'return;' && ` ` &&
+      '}' && ` ` &&
+      'nestedWin.removeEventListener("submit", session.handlers.submit, true);' && ` ` &&
+      'nestedWin.addEventListener("submit", session.handlers.submit, true);' && ` ` &&
+      '} catch (error) {' && ` ` &&
+      'return;' && ` ` &&
       '}' && ` ` &&
       '}' && ` ` &&
       'function formBody(form, submitter) {' && ` ` &&
@@ -335,7 +368,9 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'return;' && ` ` &&
       '}' && ` ` &&
       'var url = new URL(href, location.href);' && ` ` &&
-      'if (!sameSite(url)) {' && ` ` &&
+      '/* A download link, such as the blob: URL of GUI_DOWNLOAD, which shares the' && ` ` &&
+      'page''s origin, is the browser''s to follow. */' && ` ` &&
+      'if (link.hasAttribute("download") || !/^(https?|file):$/.test(url.protocol) || !sameSite(url)) {' && ` ` &&
       'return;' && ` ` &&
       '}' && ` ` &&
       'event.preventDefault();' && ` ` &&
