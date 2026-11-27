@@ -90,14 +90,14 @@ CLASS zcl_gg_system_table_data IMPLEMENTATION.
       RETURN.
     ENDIF.
     lo_struct ?= lo_type.
-    lo_struct->get_ddic_field_list(
-      RECEIVING
-        rt_components = lt_ddic
-      EXCEPTIONS
-        not_found     = 1
-        no_ddic_type  = 2
-        OTHERS        = 3 ).
-    IF sy-subrc <> 0.
+* A functional call: the returning parameter has another name on a system
+* than in open-abap-core. A structure outside the dictionary is ruled out
+* before the call instead of through its exceptions.
+    IF lo_struct->is_ddic_type( ) = abap_false.
+      RETURN.
+    ENDIF.
+    lt_ddic = lo_struct->get_ddic_field_list( ).
+    IF lt_ddic IS INITIAL.
       RETURN.
     ENDIF.
     DATA(ls_object) = lo_dictionary->zif_gg_dictionary_service_v1~get_object(
