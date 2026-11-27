@@ -132,7 +132,7 @@ function folders(folder) {
 function writePackages() {
   for (const folder of folders(path.join(output, "src"))) {
     const relative = path.relative(output, folder).split(path.sep).join("/");
-    fs.writeFileSync(path.join(folder, "package.devc.xml"), `<?xml version="1.0" encoding="utf-8"?>
+    fs.writeFileSync(path.join(folder, "package.devc.xml"), `\uFEFF<?xml version="1.0" encoding="utf-8"?>
 <abapGit version="v1.0.0" serializer="LCL_OBJECT_DEVC" serializer_version="v1.0.0">
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
@@ -143,17 +143,6 @@ function writePackages() {
  </asx:abap>
 </abapGit>
 `, "utf8");
-  }
-}
-
-// abapGit writes its XML files with a UTF-8 byte order mark; the repository's
-// have none.
-function addXmlByteOrderMarks() {
-  for (const file of walk(path.join(output, "src")).filter(f => f.endsWith(".xml"))) {
-    const content = fs.readFileSync(file, "utf8");
-    if (!content.startsWith("﻿")) {
-      fs.writeFileSync(file, `﻿${content}`, "utf8");
-    }
   }
 }
 
@@ -216,7 +205,6 @@ if (status === 0) {
     fs.renameSync(path.join(output, folder.from), path.join(output, folder.to));
   }
   writePackages();
-  addXmlByteOrderMarks();
 
   console.log(`build:sap: wrote ${path.relative(repository, output)}`);
 }
