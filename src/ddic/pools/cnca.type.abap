@@ -9,8 +9,8 @@ CONSTANTS cnca_sel_month TYPE i VALUE 4.
 CONSTANTS cnca_sel_interval TYPE i VALUE 8.
 
 TYPES: BEGIN OF cnca_s_selection,
-         date_begin TYPE cnca_utc_date,
-         date_end   TYPE cnca_utc_date,
+         date        TYPE cnca_utc_date,
+         action_flag TYPE i,
        END OF cnca_s_selection.
 TYPES cnca_itab_selection TYPE STANDARD TABLE OF cnca_s_selection WITH DEFAULT KEY.
 
