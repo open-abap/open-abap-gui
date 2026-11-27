@@ -45,9 +45,11 @@ ENDCLASS.
 
 CLASS cl_salv_columns IMPLEMENTATION.
   METHOD get.
+    DATA ls_ref LIKE LINE OF value.
     LOOP AT mt_columns INTO DATA(ls_column).
-      APPEND VALUE #( columnname = ls_column-columnname
-                      r_column   = ls_column-column ) TO value.
+      ls_ref-columnname = ls_column-columnname.
+      ls_ref-r_column = ls_column-column.
+      APPEND ls_ref TO value.
     ENDLOOP.
   ENDMETHOD.
 
