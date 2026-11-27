@@ -34,7 +34,9 @@ CLASS lcl_ok_code_program IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~build_flow_logic.
     DATA lt_screens TYPE STANDARD TABLE OF zif_gg_dynpro_types_v1=>ty_screen_number WITH DEFAULT KEY.
 
-    lt_screens = VALUE #( ( '0100' ) ( '0200' ) ( '0300' ) ).
+    APPEND '0100' TO lt_screens.
+    APPEND '0200' TO lt_screens.
+    APPEND '0300' TO lt_screens.
     LOOP AT lt_screens INTO DATA(lv_screen).
       io_builder->begin_screen( lv_screen ).
       io_builder->begin_pbo( ).
