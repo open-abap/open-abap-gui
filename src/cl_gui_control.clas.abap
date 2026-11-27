@@ -1,4 +1,4 @@
-CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object FRIENDS cl_gui_cfw zcl_gg_gui_runtime.
+CLASS cl_gui_control DEFINITION PUBLIC INHERITING FROM cl_gui_object GLOBAL FRIENDS cl_gui_cfw zcl_gg_gui_runtime.
   PUBLIC SECTION.
     DATA parent TYPE REF TO cl_gui_container.
 
@@ -855,9 +855,18 @@ CLASS cl_gui_control IMPLEMENTATION.
       lv_standalone_height = standalone_height( ).
     ENDIF.
     IF iv_document = abap_true.
-      result = |<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GUI controls</title><style>.gg-control\{position:absolute;box-sizing:border-box\}.gg-controls\{position:relative;min-height:240px\}.gg-control[hidden]\{display:none\}.gg-textedit-shell\{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid #6b8298;background:#edf5fb\}.gg-textedit-shell textarea\{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:auto!important;flex:1;min-height:0\}.gg-textedit-toolbar\{display:flex;align-items:center;min-height:22px;padding:0 6px;background:#d9e8f5;border:1px solid #a6bdd0;font:12px system-ui,sans-serif\}.gg-textedit-statusbar\{padding:2px 6px;border-top:1px solid #a6bdd0;color:#40566b;font:11px system-ui,sans-serif\}textarea[data-fixed-font="1"]\{font-family:ui-monospace,SFMono-Regular,Consolas,monospace\}.gg-toolbar-menu\{margin:4px 0 0;padding:4px;min-width:160px;list-style:none;border:1px solid #6b8298;background:#fff;box-shadow:0 2px 5px #0003\}.gg-toolbar-menu li\{margin:0;padding:0\}.gg-toolbar-menu button\{width:100%;padding:3px 8px;border:0;background:transparent;text-align:left\}.gg-toolbar-menu button:hover,.gg-toolbar-menu button:focus-visible\{background:#d9e8f5\}.gg-toolbar-menu-separator\{height:1px;margin:4px 0;background:#a6bdd0\}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible\{outline:2px solid #2668a3;outline-offset:2px\}</style></head><body><main class="gg-controls" aria-label="GUI controls">|.
+      result = |<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GUI controls</title><style>.gg-control\{position:absolute;|
+               && |box-sizing:border-box\}.gg-controls\{position:relative;min-height:240px\}.gg-control[hidden]\{display:none\}.gg-textedit-shell\{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid |
+               && |#6b8298;background:#edf5fb\}.gg-textedit-shell textarea\{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:auto!important;flex:1;min-height:0\}|
+               && |.gg-textedit-toolbar\{display:flex;align-items:center;min-height:22px;padding:0 6px;background:#d9e8f5;border:1px solid #a6bdd0;font:12px system-ui,sans-serif\}.gg-textedit-statusbar\{padding:2px 6px;|
+               && |border-top:1px solid #a6bdd0;color:#40566b;font:11px system-ui,sans-serif\}textarea[data-fixed-font="1"]\{font-family:ui-monospace,SFMono-Regular,Consolas,monospace\}.gg-toolbar-menu\{margin:4px 0 0;|
+               && |padding:4px;min-width:160px;list-style:none;border:1px solid #6b8298;background:#fff;box-shadow:0 2px 5px #0003\}.gg-toolbar-menu li\{margin:0;padding:0\}.gg-toolbar-menu button\{width:100%;|
+               && |padding:3px 8px;border:0;background:transparent;text-align:left\}.gg-toolbar-menu button:hover,.gg-toolbar-menu button:focus-visible\{background:#d9e8f5\}.gg-toolbar-menu-separator\{height:1px;|
+               && |margin:4px 0;background:#a6bdd0\}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,[tabindex="0"]:focus-visible\{outline:2px solid #2668a3;|
+               && |outline-offset:2px\}</style></head><body><main class="gg-controls" aria-label="GUI controls">|.
     ELSEIF iv_container_name IS NOT INITIAL.
-      result = |<section class="gg-controls gg-control-host" aria-label="GUI controls" data-control-host="{ escape( iv_container_name ) }" style="position:relative;width:100%;height:100%;min-height:0;box-sizing:border-box;overflow:auto">|.
+      result = |<section class="gg-controls gg-control-host" aria-label="GUI controls" data-control-host="{ escape( iv_container_name ) }" style="position:relative;width:100%;height:100%;min-height:0;|
+               && |box-sizing:border-box;overflow:auto">|.
     ELSEIF line_exists( mt_snapshots[ fill_screen = abap_true visible = abap_true ] ).
 * The screen sizes this section, see .gg-controls-screen in ZCL_GG_HOST_HTML.
       result = |<section class="gg-controls gg-controls-standalone gg-controls-screen" aria-label="GUI controls">|.
@@ -971,7 +980,11 @@ CLASS cl_gui_control IMPLEMENTATION.
           is_sapevent  = is_sapevent ).
 * The title bar shows the caption, and its close button raises the CLOSE
 * event of the dialog box.
-        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title"><span>{ escape( is_snapshot-payload ) }</span><button class="gg-dialog-close" type="submit" name="gg_control_event" value="{ escape( |{ is_snapshot-control_id }\|CLOSE| ) }" formnovalidate aria-label="Close" title="Close">&#x2715;</button></header><div class="gg-dialog-body">{ lv_dialog_html }</div></section>|.
+        result = |<section class="gg-control gg-container gg-dialog-modeless { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DIALOGBOX_CONTAINER" |
+                 && |data-modeless="true" data-dialog-left="{ is_snapshot-left }" data-dialog-top="{ is_snapshot-top }" data-dialog-width="{ is_snapshot-width }" data-dialog-height="{ is_snapshot-height }" |
+                 && |role="dialog" aria-modal="false" aria-label="{ escape( is_snapshot-payload ) }"{ iv_hidden }><header class="gg-dialog-title"><span>{ escape( is_snapshot-payload ) }</span><button |
+                 && |class="gg-dialog-close" type="submit" name="gg_control_event" value="{ escape( |{ is_snapshot-control_id }\|CLOSE| ) }" formnovalidate aria-label="Close" title="Close">&#x2715;</button></header>|
+                 && |<div class="gg-dialog-body">{ lv_dialog_html }</div></section>|.
       WHEN 'CUSTOM_CONTAINER' OR 'DOCKING_CONTAINER'.
         DATA(lv_container_html) = ``.
         IF is_snapshot-kind = 'DOCKING_CONTAINER'.
@@ -979,10 +992,12 @@ CLASS cl_gui_control IMPLEMENTATION.
             iv_parent_id = is_snapshot-control_id
             is_sapevent  = is_sapevent ).
         ENDIF.
-        result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }{ lv_container_html }</section>|.
+        result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" |
+                 && |data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }{ lv_container_html }</section>|.
       WHEN 'LIST_TREE'.
         DATA(lv_list_tree_heading) = escape( is_snapshot-payload ).
-        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="LIST_TREE" data-hierarchy-header="{ lv_list_tree_heading }"{ iv_hidden }{ iv_disabled }>{ COND string( WHEN is_snapshot-payload IS NOT INITIAL THEN |<h2>{ lv_list_tree_heading }</h2>| ELSE `` ) }{ is_snapshot-html }</div>|.
+        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="LIST_TREE" data-hierarchy-header="{ lv_list_tree_heading }"{ iv_hidden }|
+                 && |{ iv_disabled }>{ COND string( WHEN is_snapshot-payload IS NOT INITIAL THEN |<h2>{ lv_list_tree_heading }</h2>| ELSE `` ) }{ is_snapshot-html }</div>|.
       WHEN 'SPLITTER_CONTAINER' OR 'EASY_SPLITTER'.
         result = render_splitter_html(
           is_snapshot    = is_snapshot
@@ -991,7 +1006,8 @@ CLASS cl_gui_control IMPLEMENTATION.
           iv_state_class = iv_state_class
           is_sapevent    = is_sapevent ).
       WHEN 'ALV_GRID' OR 'ALV_TREE' OR 'SIMPLE_TREE' OR 'COLUMN_TREE'.
-        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-payload="{ escape( is_snapshot-payload ) }"{ iv_hidden }{ iv_disabled }>{ is_snapshot-html }</div>|.
+        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" |
+                 && |data-payload="{ escape( is_snapshot-payload ) }"{ iv_hidden }{ iv_disabled }>{ is_snapshot-html }</div>|.
       WHEN 'TOOLBAR'.
         result = render_toolbar_html(
           is_snapshot    = is_snapshot
@@ -1022,7 +1038,11 @@ CLASS cl_gui_control IMPLEMENTATION.
         DATA(lv_picture_border) = COND string(
           WHEN is_snapshot-picture_border <> 0 THEN ' border:1px solid #6b8298;'
           ELSE '' ).
-        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }{ lv_picture_border }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="PICTURE" data-picture-state="{ escape( is_snapshot-picture_state ) }" data-display-mode="{ is_snapshot-picture_display_mode }" role="img" aria-label="{ escape( COND string( WHEN is_snapshot-picture_alt_text IS INITIAL THEN 'Picture' ELSE is_snapshot-picture_alt_text ) ) }"{ iv_hidden }><img src="{ lv_url }" alt="{ escape( COND string( WHEN is_snapshot-picture_alt_text IS INITIAL THEN 'Picture' ELSE is_snapshot-picture_alt_text ) ) }" style="width:100%;height:100%;object-fit:{ lv_picture_fit };object-position:{ lv_picture_position }"></div>|.
+        result = |<div class="gg-control { iv_state_class }" style="{ iv_style }{ lv_picture_border }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="PICTURE" |
+                 && |data-picture-state="{ escape( is_snapshot-picture_state ) }" data-display-mode="{ is_snapshot-picture_display_mode }" role="img" |
+                 && |aria-label="{ escape( COND string( WHEN is_snapshot-picture_alt_text IS INITIAL THEN 'Picture' ELSE is_snapshot-picture_alt_text ) ) }"{ iv_hidden }><img src="{ lv_url }" |
+                 && |alt="{ escape( COND string( WHEN is_snapshot-picture_alt_text IS INITIAL THEN 'Picture' ELSE is_snapshot-picture_alt_text ) ) }" style="width:100%;height:100%;object-fit:{ lv_picture_fit };|
+                 && |object-position:{ lv_picture_position }"></div>|.
       WHEN 'HTML_VIEWER'.
         DATA(lv_srcdoc) = is_snapshot-html.
         DATA(lv_iframe_style) = iv_style && `border:0;`.
@@ -1049,17 +1069,24 @@ CLASS cl_gui_control IMPLEMENTATION.
         ELSEIF safe_url( is_snapshot-payload ) = abap_true.
           lv_iframe_source = |src="{ escape( is_snapshot-payload ) }"|.
         ENDIF.
-        result = |<iframe class="gg-control { iv_state_class }" style="{ lv_iframe_style }" id="{ escape( is_snapshot-control_id ) }" title="HTML viewer" sandbox="{ lv_sandbox }"{ iv_hidden } { lv_iframe_source }></iframe>|.
+        result = |<iframe class="gg-control { iv_state_class }" style="{ lv_iframe_style }" id="{ escape( is_snapshot-control_id ) }" title="HTML viewer" sandbox="{ lv_sandbox }"{ iv_hidden } { lv_iframe_source }>|
+                 && |</iframe>|.
       WHEN 'DRAGDROP'.
-        result = |<section class="gg-control gg-dragdrop-fallback { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DRAGDROP" data-native-capability="unavailable" data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="Legacy ActiveX drag and drop unavailable"{ iv_hidden }><textarea readonly aria-label="Legacy drag and drop fallback">Legacy ActiveX drag/drop is unavailable in the browser.</textarea></section>|.
+        result = |<section class="gg-control gg-dragdrop-fallback { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="DRAGDROP" data-native-capability="unavailable" |
+                 && |data-payload="{ escape( is_snapshot-payload ) }" role="region" aria-label="Legacy ActiveX drag and drop unavailable"{ iv_hidden }><textarea readonly aria-label="Legacy drag and drop fallback">|
+                 && |Legacy ActiveX drag/drop is unavailable in the browser.</textarea></section>|.
       WHEN 'CALENDAR'.
-        result = |<section class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="CALENDAR" data-date-range="{ escape( is_snapshot-payload ) }" role="group" aria-label="Calendar"{ iv_hidden }>{ is_snapshot-html }</section>|.
+        result = |<section class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="CALENDAR" data-date-range="{ escape( is_snapshot-payload ) }" |
+                 && |role="group" aria-label="Calendar"{ iv_hidden }>{ is_snapshot-html }</section>|.
       WHEN 'SELECTOR'.
-        result = |<select class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( is_snapshot-control_id ) }" data-control-kind="SELECTOR" aria-label="Selector"{ iv_hidden }{ iv_disabled }>{ COND string( WHEN is_snapshot-html IS INITIAL THEN |<option>{ escape( is_snapshot-payload ) }</option>| ELSE is_snapshot-html ) }</select>|.
+        result = |<select class="gg-control { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( is_snapshot-control_id ) }" data-control-kind="SELECTOR" |
+                 && |aria-label="Selector"{ iv_hidden }{ iv_disabled }>{ COND string( WHEN is_snapshot-html IS INITIAL THEN |<option>{ escape( is_snapshot-payload ) }</option>| ELSE is_snapshot-html ) }</select>|.
       WHEN 'CHART_ENGINE'.
-        result = |<div class="gg-control gg-graphic { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="CHART_ENGINE" data-payload="{ escape( is_snapshot-payload ) }"{ iv_hidden }>{ is_snapshot-html }</div>|.
+        result = |<div class="gg-control gg-graphic { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="CHART_ENGINE" data-payload="{ escape( is_snapshot-payload ) }|
+                 && |"{ iv_hidden }>{ is_snapshot-html }</div>|.
       WHEN 'BARCHART' OR 'GP_PRES'.
-        result = |<figure class="gg-control gg-graphic" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" role="img" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }<figcaption>{ escape( is_snapshot-payload ) }</figcaption></figure>|.
+        result = |<figure class="gg-control gg-graphic" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" role="img" |
+                 && |aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }>{ is_snapshot-html }<figcaption>{ escape( is_snapshot-payload ) }</figcaption></figure>|.
       WHEN 'TIMER'.
 * A running timer counts its interval down in the browser and then posts its
 * FINISHED event with the form it sits in.
@@ -1069,17 +1096,23 @@ CLASS cl_gui_control IMPLEMENTATION.
           result = |<div class="gg-control" id="{ escape( is_snapshot-control_id ) }" data-control-kind="TIMER" data-running="false" aria-hidden="true" hidden></div>|.
         ELSE.
           SPLIT is_snapshot-payload AT '|' INTO DATA(lv_interval) DATA(lv_timer_event).
-          result = |<div class="gg-control" id="{ escape( is_snapshot-control_id ) }" data-control-kind="TIMER" data-running="true" data-interval="{ escape( lv_interval ) }" aria-hidden="true" hidden><button type="submit" name="gg_control_event" value="{ lv_timer_event }" formnovalidate tabindex="-1"></button></div>|
-            && |<script>(function()\{var t=document.getElementById("{ escape( is_snapshot-control_id ) }"),sent=false;document.addEventListener("submit",function(e)\{if(sent)\{e.preventDefault();\}sent=true;\},true);setTimeout(function()\{if(!sent)\{t.querySelector("button").click();\}\},1000*Number(t.getAttribute("data-interval")));\})();</script>|.
+          result = |<div class="gg-control" id="{ escape( is_snapshot-control_id ) }" data-control-kind="TIMER" data-running="true" data-interval="{ escape( lv_interval ) }" aria-hidden="true" hidden><button |
+                   && |type="submit" name="gg_control_event" value="{ lv_timer_event }" formnovalidate tabindex="-1"></button></div>|
+            && |<script>(function()\{var t=document.getElementById("{ escape( is_snapshot-control_id ) }"),sent=false;document.addEventListener("submit",function(e)\{if(sent)\{e.preventDefault();\}sent=true;\},true);|
+            && |setTimeout(function()\{if(!sent)\{t.querySelector("button").click();\}\},1000*Number(t.getAttribute("data-interval")));\})();</script>|.
         ENDIF.
       WHEN OTHERS.
-        result = |<div class="gg-control" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }"{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</div>|.
+        result = |<div class="gg-control" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }"{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }|
+                 && |</div>|.
     ENDCASE.
   ENDMETHOD.
 
   METHOD standalone_external_script.
     IF iv_container_name IS INITIAL.
-      result = `<script>(function(){var place=function(){var roots=document.querySelectorAll(".gg-controls-standalone");for(var i=0;i<roots.length;i++){var root=roots[i],external=null,children=root.children;for(var j=0;j<children.length;j++){if(children[j].classList.contains("gg-external")){external=children[j];break;}}if(!external){continue;}var rootBounds=root.getBoundingClientRect(),bottom=0;for(var k=0;k<children.length;k++){var child=children[k];if(child===external||child.hidden||window.getComputedStyle(child).position!=="absolute"){continue;}var bounds=child.getBoundingClientRect();bottom=Math.max(bottom,bounds.bottom-rootBounds.top);}external.style.marginTop=Math.ceil(bottom+8)+"px";}};place();window.addEventListener("resize",place);})();</script>`.
+      result = `<script>(function(){var place=function(){var roots=document.querySelectorAll(".gg-controls-standalone");for(var i=0;i<roots.length;i++){var root=roots[i],external=null,children=root.children;for(var j=0;`
+               && `j<children.length;j++){if(children[j].classList.contains("gg-external")){external=children[j];break;}}if(!external){continue;}var rootBounds=root.getBoundingClientRect(),bottom=0;for(var k=0;`
+               && `k<children.length;k++){var child=children[k];if(child===external||child.hidden||window.getComputedStyle(child).position!=="absolute"){continue;}var bounds=child.getBoundingClientRect();`
+               && `bottom=Math.max(bottom,bounds.bottom-rootBounds.top);}external.style.marginTop=Math.ceil(bottom+8)+"px";}};place();window.addEventListener("resize",place);})();</script>`.
     ENDIF.
   ENDMETHOD.
 
@@ -1273,7 +1306,9 @@ CLASS cl_gui_control IMPLEMENTATION.
     DATA(lv_splitter_html) = render_nested_html(
       iv_parent_id = is_snapshot-control_id
       is_sapevent  = is_sapevent ).
-    result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" data-layout-state="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }><div class="gg-splitter-layout" style="display:grid;width:100%;height:100%;min-height:0;overflow:hidden;grid-template-columns:{ lv_column_tracks };grid-template-rows:{ lv_row_tracks };">{ lv_splitter_html }</div></section>|.
+    result = |<section class="gg-control gg-container { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" data-control-kind="{ escape( is_snapshot-kind ) }" |
+             && |data-layout-state="{ escape( is_snapshot-payload ) }" role="region" aria-label="{ escape( is_snapshot-kind ) }"{ iv_hidden }><div class="gg-splitter-layout" style="display:grid;width:100%;height:100%;|
+             && |min-height:0;overflow:hidden;grid-template-columns:{ lv_column_tracks };grid-template-rows:{ lv_row_tracks };">{ lv_splitter_html }</div></section>|.
   ENDMETHOD.
 
   METHOD render_toolbar_html.
@@ -1285,7 +1320,8 @@ CLASS cl_gui_control IMPLEMENTATION.
         THEN 'gg-control-toolbar gg-alv-toolbar'
       ELSE 'gg-control-toolbar' ).
 
-    result = |<div class="gg-control { lv_toolbar_class } { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" role="toolbar" aria-label="{ COND string( WHEN lv_is_alv_toolbar = abap_true THEN 'ALV toolbar' ELSE 'Control toolbar' ) }" data-toolbar-scope="control"{ iv_hidden }>|.
+    result = |<div class="gg-control { lv_toolbar_class } { iv_state_class }" style="{ iv_style }" id="{ escape( is_snapshot-control_id ) }" role="toolbar" |
+             && |aria-label="{ COND string( WHEN lv_is_alv_toolbar = abap_true THEN 'ALV toolbar' ELSE 'Control toolbar' ) }" data-toolbar-scope="control"{ iv_hidden }>|.
     LOOP AT is_snapshot-buttons INTO DATA(ls_button).
       IF lv_is_alv_toolbar = abap_false AND lines( is_snapshot-buttons ) > 6 AND sy-tabix = 7.
         result = result && '<details class="gg-toolbar-overflow"><summary>More toolbar actions</summary><div role="toolbar" aria-label="More control toolbar actions">'.
@@ -1322,7 +1358,10 @@ CLASS cl_gui_control IMPLEMENTATION.
         lv_toolbar_button_class = lv_toolbar_button_class && ` gg-alv-tool-button`.
       ENDIF.
       DATA(lv_toolbar_event) = escape( is_snapshot-control_id && '|FUNCTION|' && ls_button-function ).
-      result = result && |<button class="{ lv_toolbar_button_class }" type="submit" name="gg_control_event" value="{ lv_toolbar_event }" formnovalidate title="{ escape( CONV string( ls_button-quickinfo ) ) }" aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ lv_button_icon }{ escape( CONV string( ls_button-text ) ) }</button>|.
+      result = result
+               && |<button class="{ lv_toolbar_button_class }" type="submit" name="gg_control_event" value="{ lv_toolbar_event }" formnovalidate title="{ escape( CONV string( ls_button-quickinfo ) ) }" |
+               && |aria-label="{ escape( lv_button_label ) }" aria-keyshortcuts="Enter" data-toolbar-button-type="{ ls_button-butn_type }"{ lv_toolbar_type }{ lv_toolbar_menu }{ lv_toolbar_checked }|
+               && |{ COND string( WHEN ls_button-disabled IS NOT INITIAL THEN ' disabled aria-disabled="true"' ELSE '' ) }>{ lv_button_icon }{ escape( CONV string( ls_button-text ) ) }</button>|.
     ENDLOOP.
     IF lv_is_alv_toolbar = abap_false AND lines( is_snapshot-buttons ) > 6.
       result = result && '</div></details>'.
@@ -1332,7 +1371,9 @@ CLASS cl_gui_control IMPLEMENTATION.
 
   METHOD render_textedit_html.
     DATA lt_textedit_lines TYPE string_table.
-    DATA(lv_textedit_attrs) = | data-wordwrap-mode="{ is_snapshot-text_wordwrap_mode }" data-wordwrap-position="{ is_snapshot-text_wordwrap_position }" data-wrap-to-linebreak="{ is_snapshot-text_wrap_to_linebreak }" data-fixed-font="{ is_snapshot-text_fixed_font }" data-modified="{ is_snapshot-text_modified }" data-cursor-line="{ is_snapshot-text_cursor_line }" data-cursor-position="{ is_snapshot-text_cursor_pos }" data-protected-from="{ is_snapshot-text_protected_from }" data-protected-to="{ is_snapshot-text_protected_to }"|.
+    DATA(lv_textedit_attrs) = | data-wordwrap-mode="{ is_snapshot-text_wordwrap_mode }" data-wordwrap-position="{ is_snapshot-text_wordwrap_position }" data-wrap-to-linebreak="{ is_snapshot-text_wrap_to_linebreak }" |
+                              && |data-fixed-font="{ is_snapshot-text_fixed_font }" data-modified="{ is_snapshot-text_modified }" data-cursor-line="{ is_snapshot-text_cursor_line }" |
+                              && |data-cursor-position="{ is_snapshot-text_cursor_pos }" data-protected-from="{ is_snapshot-text_protected_from }" data-protected-to="{ is_snapshot-text_protected_to }"|.
     SPLIT is_snapshot-payload AT cl_abap_char_utilities=>newline INTO TABLE lt_textedit_lines.
     DATA(lv_textedit_line_count) = lines( lt_textedit_lines ).
     IF lv_textedit_line_count = 0.
@@ -1355,24 +1396,40 @@ CLASS cl_gui_control IMPLEMENTATION.
     IF is_snapshot-text_fixed_font <> 0.
       lv_textedit_style = lv_textedit_style && `font-family:ui-monospace,SFMono-Regular,Consolas,monospace;`.
     ENDIF.
-    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ lv_textedit_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( |gg-ctl:{ is_snapshot-control_id }:TEXT| ) }" data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ lv_textedit_wrap }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }</textarea>|.
+    DATA(lv_textedit_html) = |<textarea class="gg-control { iv_state_class }" style="{ lv_textedit_style }" id="{ escape( is_snapshot-control_id ) }" name="{ escape( |gg-ctl:{ is_snapshot-control_id }:TEXT| ) }" |
+                             && |data-control-kind="TEXTEDIT" aria-label="Text editor"{ lv_textedit_attrs }{ lv_textedit_aria_readonly }{ lv_textedit_wrap }{ iv_hidden }{ iv_disabled }>{ escape( is_snapshot-payload ) }|
+                             && |</textarea>|.
     IF is_snapshot-text_toolbar_mode = abap_true OR is_snapshot-text_statusbar_mode = abap_true.
       result = |<section class="gg-textedit-shell gg-control { iv_state_class }" style="{ lv_shell_style }" id="{ escape( is_snapshot-control_id ) }-shell" aria-label="Text editor shell"{ iv_hidden }>|.
       IF is_snapshot-text_toolbar_mode = abap_true.
-        result = result && '<div class="gg-textedit-toolbar" style="display:flex;align-items:center;gap:2px;min-height:26px;padding:2px 4px;background:#d9e8f5;border:1px solid #a6bdd0;font:12px system-ui,sans-serif" role="toolbar" aria-label="Text editor tools">'.
+        result = result
+                 && '<div class="gg-textedit-toolbar" style="display:flex;align-items:center;gap:2px;min-height:26px;padding:2px 4px;background:#d9e8f5;border:1px solid #a6bdd0;font:12px system-ui,'
+                 && 'sans-serif" role="toolbar" aria-label="Text editor tools">'.
         result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_CUT" title="Cut" aria-label="Cut">{ zcl_gg_host_icons=>icon( iv_name = 'edit' ) }</button>|.
-        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_COPY" title="Copy" aria-label="Copy">{ zcl_gg_host_icons=>icon( iv_name = 'file-code' ) }</button>|.
-        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_PASTE" title="Paste" aria-label="Paste">{ zcl_gg_host_icons=>icon( iv_name = 'folder-open' ) }</button>|.
-        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_UNDO" title="Undo" aria-label="Undo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-back-up' ) }</button>|.
-        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_REDO" title="Redo" aria-label="Redo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-forward-up' ) }</button>|.
+        result = result
+                 && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_COPY" title="Copy" aria-label="Copy">{ zcl_gg_host_icons=>icon( iv_name = 'file-code' ) }</button>|.
+        result = result
+                 && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_PASTE" title="Paste" aria-label="Paste">{ zcl_gg_host_icons=>icon( iv_name = 'folder-open' ) }|
+                 && |</button>|.
+        result = result
+                 && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_UNDO" title="Undo" aria-label="Undo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-back-up' ) }</button>|.
+        result = result
+                 && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_REDO" title="Redo" aria-label="Redo">{ zcl_gg_host_icons=>icon( iv_name = 'arrow-forward-up' ) }|
+                 && |</button>|.
         result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_FIND" title="Find" aria-label="Find">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
-        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_SAVE" title="Save" aria-label="Save">{ zcl_gg_host_icons=>icon( iv_name = 'device-floppy' ) }</button>|.
-        result = result && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_PRINT" title="Print" aria-label="Print">{ zcl_gg_host_icons=>icon( iv_name = 'printer' ) }</button>|.
+        result = result
+                 && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_SAVE" title="Save" aria-label="Save">{ zcl_gg_host_icons=>icon( iv_name = 'device-floppy' ) }</button>|.
+        result = result
+                 && |<button class="gg-textedit-tool-button" type="submit" name="gg_action" value="COMMAND:TEXTEDIT_PRINT" title="Print" aria-label="Print">{ zcl_gg_host_icons=>icon( iv_name = 'printer' ) }</button>|.
         result = result && '</div>'.
       ENDIF.
       result = result && lv_textedit_html.
       IF is_snapshot-text_statusbar_mode = abap_true.
-        result = result && |<div class="gg-textedit-statusbar" style="display:flex;justify-content:flex-end;flex:0 0 auto;padding:2px 6px;border-top:1px solid #a6bdd0;color:#40566b;font:11px system-ui,sans-serif" role="status" aria-label="Text editor status" data-modified="{ is_snapshot-text_modified }"><span style="min-width:160px;padding:2px 6px;border-left:1px solid #d0d9e0">Li { lv_textedit_cursor_line }, Co { lv_textedit_cursor_column }</span><span style="min-width:160px;padding:2px 6px;border-left:1px solid #d0d9e0">Ln 1 - Ln { lv_textedit_line_count } of { lv_textedit_line_count } lines</span></div>|.
+        result = result
+                 && |<div class="gg-textedit-statusbar" style="display:flex;justify-content:flex-end;flex:0 0 auto;padding:2px 6px;border-top:1px solid #a6bdd0;color:#40566b;font:11px system-ui,sans-serif" |
+                 && |role="status" aria-label="Text editor status" data-modified="{ is_snapshot-text_modified }"><span style="min-width:160px;padding:2px 6px;border-left:1px solid #d0d9e0">Li { lv_textedit_cursor_line }|
+                 && |, Co { lv_textedit_cursor_column }</span><span style="min-width:160px;padding:2px 6px;border-left:1px solid #d0d9e0">Ln 1 - Ln { lv_textedit_line_count } of { lv_textedit_line_count } lines</span>|
+                 && |</div>|.
       ENDIF.
       result = result && '</section>'.
     ELSE.
@@ -1518,7 +1575,9 @@ CLASS cl_gui_control IMPLEMENTATION.
         DATA(lv_cell_html) = render_nested_html(
           iv_parent_id = ls_snapshot-control_id
           is_sapevent  = is_sapevent ).
-        result = result && |<div class="gg-splitter-cell" style="position:relative;min-width:0;min-height:0;box-sizing:border-box;overflow:auto;border:1px solid #b2c7d8;background:#f7fbff" id="{ escape( ls_snapshot-control_id ) }" data-control-kind="SPLITTER_CELL" aria-label="Splitter cell">{ lv_cell_html }</div>|.
+        result = result
+                 && |<div class="gg-splitter-cell" style="position:relative;min-width:0;min-height:0;box-sizing:border-box;overflow:auto;border:1px solid #b2c7d8;background:#f7fbff" |
+                 && |id="{ escape( ls_snapshot-control_id ) }" data-control-kind="SPLITTER_CELL" aria-label="Splitter cell">{ lv_cell_html }</div>|.
         CONTINUE.
       ENDIF.
       DATA(lv_style) = `position:relative;left:0;top:0;box-sizing:border-box;`.

@@ -2,6 +2,7 @@ import { ABAPObject, ArtifactsRules, Config, Edits, Expressions, MemoryFile, Nod
 import type { IEdit, Position, Token } from "@abaplint/core";
 import {textLiteral} from "./abap-text.js";
 import {parsesAsStatement} from "../abap/ast.js";
+import {wrapLongLines} from "./line-wrap.js";
 
 const DECLARATIONS = new Set([
   "Data", "DataBegin", "DataEnd", "Constant", "ConstantBegin", "ConstantEnd", "Static", "StaticBegin", "StaticEnd",
@@ -178,12 +179,21 @@ export function applyStyleFixes(source: string, className: string): string {
     registry.parse();
   }
   breakRemainingExpressions(registry, filename, source);
-  for (let count = 0; count < MAX_EDITS; count++) {
-    registry.parse();
-    const fixes = nextFixes(registry);
-    if (!fixes.length) break;
-    Edits.applyEditList(registry, fixes);
-  }
-  // The line-break fix leaves the blank before the new line behind.
-  return (registry.getFileByName(filename)?.getRaw() ?? source).replace(/[ \t]+$/gm, "");
+  const fix = () => {
+    for (let count = 0; count < MAX_EDITS; count++) {
+      registry.parse();
+      const fixes = nextFixes(registry);
+      if (!fixes.length) break;
+      Edits.applyEditList(registry, fixes);
+    }
+    // The line-break fix leaves the blank before the new line behind.
+    return (registry.getFileByName(filename)?.getRaw() ?? source).replace(/[ \t]+$/gm, "");
+  };
+  const fixed = fix();
+  // Lines still too long for the lint, and for SAP, are wrapped, and the
+  // parameters the wrapping puts on lines of their own aligned.
+  const wrapped = wrapLongLines(fixed, filename);
+  if (wrapped === fixed) return fixed;
+  registry.updateFile(new MemoryFile(filename, wrapped));
+  return fix();
 }

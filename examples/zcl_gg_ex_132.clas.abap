@@ -122,7 +122,8 @@ CLASS zcl_gg_ex_132 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Control refresh' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_REFRESH' position = VALUE #( row = 400 column = 5 width = 120 height = 26 ) ) text = 'Refresh' ucomm = 'REFRESH' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_TOGGLE' position = VALUE #( row = 400 column = 145 width = 160 height = 26 ) ) text = 'Enable/disable' ucomm = 'TOGGLE' ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'LBL_STATE' position = VALUE #( row = 452 column = 5 width = 60 height = 26 ) ) text = 'State' ) ).

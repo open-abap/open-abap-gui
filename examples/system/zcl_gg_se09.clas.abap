@@ -47,11 +47,19 @@ CLASS zcl_gg_se09 IMPLEMENTATION.
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_OWNER' position = VALUE #( row = 48 column = 18 width = 125 ) ) text = 'Owner' ) ).
     io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_OWNER' position = VALUE #( row = 42 column = 155 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 12 ) value_help = abap_true ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_REQUEST' position = VALUE #( row = 84 column = 18 width = 125 ) ) text = 'Request / task' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_REQUEST' position = VALUE #( row = 78 column = 155 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 12 ) value_help = abap_true required = abap_true uppercase = abap_true ) ).
+    io_builder->add_input_field( VALUE #( control    = VALUE #( name = 'P_REQUEST' position = VALUE #( row = 78 column = 155 width = 180 ) )
+                                          data_type  = VALUE #( typ = 'C' length = 12 )
+                                          value_help = abap_true
+                                          required   = abap_true
+                                          uppercase  = abap_true ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_TYPE' position = VALUE #( row = 120 column = 18 width = 125 ) ) text = 'Request type' ) ).
-    io_builder->add_listbox( VALUE #( control = VALUE #( name = 'P_TYPE' position = VALUE #( row = 114 column = 155 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 12 ) fixed_values = VALUE #( ( key = 'WORKBENCH' text = 'Workbench' ) ( key = 'CUSTOMIZING' text = 'Customizing' ) ) ) ).
+    io_builder->add_listbox( VALUE #( control      = VALUE #( name = 'P_TYPE' position = VALUE #( row = 114 column = 155 width = 180 ) )
+                                      data_type    = VALUE #( typ = 'C' length = 12 )
+                                      fixed_values = VALUE #( ( key = 'WORKBENCH' text = 'Workbench' ) ( key = 'CUSTOMIZING' text = 'Customizing' ) ) ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_STATUS' position = VALUE #( row = 156 column = 18 width = 125 ) ) text = 'Request status' ) ).
-    io_builder->add_listbox( VALUE #( control = VALUE #( name = 'P_STATUS' position = VALUE #( row = 150 column = 155 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 12 ) fixed_values = VALUE #( ( key = 'ALL' text = 'All statuses' ) ( key = 'MODIFIABLE' text = 'Modifiable' ) ( key = 'RELEASED' text = 'Released' ) ) ) ).
+    io_builder->add_listbox( VALUE #( control      = VALUE #( name = 'P_STATUS' position = VALUE #( row = 150 column = 155 width = 180 ) )
+                                      data_type    = VALUE #( typ = 'C' length = 12 )
+                                      fixed_values = VALUE #( ( key = 'ALL' text = 'All statuses' ) ( key = 'MODIFIABLE' text = 'Modifiable' ) ( key = 'RELEASED' text = 'Released' ) ) ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'P_CAPABILITY' position = VALUE #( row = 192 column = 18 width = 540 ) ) data_type = VALUE #( typ = 'C' length = 120 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DISPLAY' position = VALUE #( row = 238 column = 18 width = 96 ) ) text = 'Display' ucomm = 'DISPLAY' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_CREATE' position = VALUE #( row = 238 column = 124 width = 96 ) ) text = 'Create' ucomm = 'CREATE' ) ).

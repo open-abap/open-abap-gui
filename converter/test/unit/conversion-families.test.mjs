@@ -15,6 +15,8 @@ import { repositoryRoot } from "../repository.mjs";
 
 const fixture = (name) => fs.readFile(path.join(repositoryRoot, "converter", "test", "fixtures", name), "utf8");
 const errors = (result, ...codes) => result.diagnostics.filter((item) => codes.includes(item.code));
+// Long statements are wrapped over several lines.
+const flat = (source) => source.replace(/\s+/g, " ");
 const method = (source, name) => new RegExp(`METHOD ${name.replace(/[~]/g, "\\~")}\\.[\\s\\S]*?ENDMETHOD\\.`).exec(source)?.[0] ?? "";
 
 // GGCONV-REG-018: a carried-over statement got the rename of a global, a
@@ -277,7 +279,7 @@ test("WRITE ... TO is carried over as the formatting statement it is, UNIT inclu
   assert.match(start, /^\s+WRITE sy-datum TO lv_formatted_weight DD\/MM\/YYYY\.$/m);
   assert.match(start, /^\s+WRITE lv_weight TO lv_formatted_weight CURRENCY ls_summary-currency NO-GROUPING\.$/m);
   // A list WRITE hands its unit to the writer; HIDE stays with the last list line.
-  assert.match(start, /write_field\( VALUE #\( text = lo_writer->format_value\( iv_value = lv_weight \) placement = VALUE #\( new_line = abap_true \) write_format = VALUE #\( unit = \|\{ ls_summary-weight_unit \}\| \) hide = VALUE #\( \( name = 'LV_WEIGHT'/);
+  assert.match(flat(start), /write_field\( VALUE #\( text = lo_writer->format_value\( iv_value = lv_weight \) placement = VALUE #\( new_line = abap_true \) write_format = VALUE #\( unit = \|\{ ls_summary-weight_unit \}\| \) hide = VALUE #\( \( name = 'LV_WEIGHT'/);
 
   const obsolete = await convertProgram({
     source: "REPORT zreg_write_index.\nDATA gt_lines TYPE STANDARD TABLE OF string WITH DEFAULT KEY.\nDATA gv_value TYPE i.\nSTART-OF-SELECTION.\n  WRITE gv_value TO gt_lines INDEX 1.",

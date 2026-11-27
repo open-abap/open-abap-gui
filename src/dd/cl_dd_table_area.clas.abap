@@ -1,4 +1,4 @@
-CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area FRIENDS cl_dd_area.
+CLASS cl_dd_table_area DEFINITION PUBLIC INHERITING FROM cl_dd_area GLOBAL FRIENDS cl_dd_area.
   PUBLIC SECTION.
 
     METHODS new_row

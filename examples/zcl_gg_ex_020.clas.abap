@@ -37,7 +37,12 @@ CLASS zcl_gg_ex_020 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_select_option( VALUE #( name = 'S_CARR' text = 'Carrier' data_type = VALUE #( typ = 'C' length = 3 ) no_extension = abap_true no_intervals = abap_true default = VALUE #( sign = 'I' option = 'EQ' low = 'LH' ) ) ).
+    io_builder->add_select_option( VALUE #( name         = 'S_CARR'
+                                            text         = 'Carrier'
+                                            data_type    = VALUE #( typ = 'C' length = 3 )
+                                            no_extension = abap_true
+                                            no_intervals = abap_true
+                                            default      = VALUE #( sign = 'I' option = 'EQ' low = 'LH' ) ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.

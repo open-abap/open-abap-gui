@@ -4,7 +4,7 @@
 * Source SHA-256: 7cb87a513588767913cf724862380d28ec9d5e0354042ada61b65173e2324bd8
 * Target class: ZCL_GG_EX_153
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_gg_ex_153 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_153_h1 zcl_gg_ex_153_h2.
+CLASS zcl_gg_ex_153 DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_gg_ex_153_h1 zcl_gg_ex_153_h2.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -135,7 +135,8 @@ CLASS zcl_gg_ex_153 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Drag and drop from a tree to a grid' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 520 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 520 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->end_screen( ).
   ENDMETHOD.
 

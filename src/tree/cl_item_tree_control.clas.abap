@@ -268,7 +268,13 @@ CLASS cl_item_tree_control IMPLEMENTATION.
       ELSE.
         DATA(lv_value) = frontend_event_value( event  = lv_event
                                                params = VALUE #( ( node_key ) ( ls_item-item_name ) ) ).
-        result = result && |<button class="gg-tree-item" type="submit" name="gg_control_event" value="{ lv_value }" formnovalidate{ COND string( WHEN lv_event = 'CHECKBOX' THEN | role="checkbox" aria-checked="{ COND string( WHEN ls_item-chosen = abap_true THEN 'true' ELSE 'false' ) }"| ELSE COND string( WHEN lv_event = 'LINK' THEN ` role="link"` ) ) }>{ zcl_gg_gui_runtime=>escape_html( ls_item-text ) }</button>|.
+        result = result
+                 && |<button class="gg-tree-item" type="submit" name="gg_control_event" value="{ lv_value }" |
+                 && |formnovalidate|
+                 && COND string( WHEN lv_event = 'CHECKBOX'
+                                 THEN | role="checkbox" aria-checked="{ COND string( WHEN ls_item-chosen = abap_true THEN 'true' ELSE 'false' ) }"|
+                                 ELSE COND string( WHEN lv_event = 'LINK' THEN ` role="link"` ) )
+                 && |>{ zcl_gg_gui_runtime=>escape_html( ls_item-text ) }</button>|.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.

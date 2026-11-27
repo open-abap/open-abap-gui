@@ -4,7 +4,7 @@
 * Source SHA-256: c5afd08f82a20668adb6f83214723fb65002dfa04543b956224585ab2e1c3002
 * Target class: ZCL_EXAMPLE_INCSEL
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_example_incsel DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_example_incsel_h1.
+CLASS zcl_example_incsel DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_example_incsel_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

@@ -134,13 +134,15 @@ CLASS cl_gui_ilidragndrop_control IMPLEMENTATION.
   METHOD show_contextmenu.
     mv_context_visible = abap_true.
     cl_gui_control=>set_payload( control = me
-                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-menu=visible; items={ lines( mt_context_items ) }| ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-menu=visible; |
+                                           && |items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD hide_contextmenu.
     mv_context_visible = abap_false.
     cl_gui_control=>set_payload( control = me
-                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-menu=hidden; items={ lines( mt_context_items ) }| ).
+                                 payload = |Legacy ActiveX drag/drop unavailable; geometry={ mv_left },{ mv_top },{ mv_width },{ mv_height }; mode={ mv_drag_mode }; context-menu=hidden; |
+                                           && |items={ lines( mt_context_items ) }| ).
   ENDMETHOD.
 
   METHOD clear_contextmenu.

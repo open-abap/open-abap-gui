@@ -4,7 +4,7 @@
 * Source SHA-256: 34eb261da90a8acca564d067009e4b24d2dabc98b0c7f358fdc768b3261b755b
 * Target class: ZCL_GG_EX_159
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_gg_ex_159 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_159_h1.
+CLASS zcl_gg_ex_159 DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_gg_ex_159_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -122,7 +122,8 @@ CLASS zcl_gg_ex_159 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Multi-month calendar' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_CALENDAR' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_CALENDAR' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_THIS_YEAR' position = VALUE #( row = 348 column = 5 width = 100 height = 26 ) ) text = '2026' ucomm = 'THIS_YEAR' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_NEXT_YEAR' position = VALUE #( row = 348 column = 115 width = 100 height = 26 ) ) text = '2027' ucomm = 'NEXT_YEAR' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_CLEAR' position = VALUE #( row = 348 column = 225 width = 180 height = 26 ) ) text = 'Clear selection' ucomm = 'CLEAR' ) ).

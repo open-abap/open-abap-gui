@@ -121,7 +121,8 @@ CLASS zcl_gg_ex_133 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Control validation' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_CHECK' position = VALUE #( row = 348 column = 5 width = 120 height = 26 ) ) text = 'Check' ucomm = 'CHECK' ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'LBL_STATE' position = VALUE #( row = 400 column = 5 width = 60 height = 26 ) ) text = 'State' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'GV_STATE' position = VALUE #( row = 400 column = 75 width = 600 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 60 ) ) ).

@@ -4,7 +4,7 @@
 * Source SHA-256: d809d2da407fd1d0c1ee2375dc2d9b98bfaa376ff95958b92b9f9f0b53fe8b70
 * Target class: ZCL_EXAMPLE_FORMPARM
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_example_formparm DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_example_formparm_h1.
+CLASS zcl_example_formparm DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_example_formparm_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

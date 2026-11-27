@@ -132,7 +132,8 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       '.wb-app-link:hover,.wb-app-link:focus{background:#dce9f6;color:#073b78;text-decoration:underline;outline:0}' &&
       '.wb-content{flex:1;min-width:0;min-height:0;padding:0;background:#fff;overflow:hidden}' &&
       '.wb-logo-only{height:100%;min-height:0;display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden}' &&
-      '.wb-welcome-art{flex:1 1 auto;width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;position:relative;overflow:hidden;border-radius:0;background:linear-gradient(135deg,#f6f9fc 0%,#e1ebf6 58%,#c6d8e9 100%);border:0}' &&
+      '.wb-welcome-art{flex:1 1 auto;width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;position:relative;overflow:hidden;'
+      && 'border-radius:0;background:linear-gradient(135deg,#f6f9fc 0%,#e1ebf6 58%,#c6d8e9 100%);border:0}' &&
       '.wb-logo-mark{display:block;width:min(42vw,280px);max-width:72%;max-height:64%;height:auto;filter:drop-shadow(0 8px 8px rgba(23,74,128,.18))}' &&
       '.wb-wordmark{position:relative;z-index:1;padding:8px 12px;color:#174a80;font:bold clamp(24px,4vw,48px) Arial;text-shadow:0 1px 1px #fff;border-bottom:clamp(3px,.4vw,6px) solid #4d82b6}' &&
       '@media(max-width:760px){.wb-workspace{margin-left:10px;margin-right:10px}}' &&
@@ -148,7 +149,9 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = rv_html && '<div class="wb-workspace"><aside class="wb-app-panel" id="wb-app-panel"><div class="wb-app-heading">Transactions</div><nav aria-label="Transactions"><ul class="wb-app-list">'.
     LOOP AT lt_transactions INTO ls_transaction.
       lv_tcode_url = cl_http_utility=>escape_url( CONV string( ls_transaction-tcode ) ).
-      rv_html = rv_html && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_transaction-tcode ) ) }" href="/transaction?tcode={ zcl_gg_host_html=>escape_attribute( lv_tcode_url ) }">| &&
+      rv_html = rv_html
+                && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_transaction-tcode ) ) }" href="/transaction?tcode={ zcl_gg_host_html=>escape_attribute( lv_tcode_url ) }|
+                && |">| &&
         zcl_gg_host_icons=>icon( iv_name = `file-code` ) &&
         |<span>{ zcl_gg_host_html=>escape_text( CONV string( ls_transaction-tcode ) ) }</span><span class="wb-app-description">{ zcl_gg_host_html=>escape_text( ls_transaction-description ) }</span></a></li>|.
     ENDLOOP.
@@ -164,7 +167,8 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       rv_html = rv_html && '<div class="wb-app-heading">Reports</div><nav aria-label="Reports"><ul class="wb-app-list">'.
       LOOP AT lt_programs INTO ls_program.
         lv_program_url = cl_http_utility=>escape_url( CONV string( ls_program-program ) ).
-        rv_html = rv_html && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_program-program ) ) }" href="/program?name={ zcl_gg_host_html=>escape_attribute( lv_program_url ) }">| &&
+        rv_html = rv_html
+                  && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_program-program ) ) }" href="/program?name={ zcl_gg_host_html=>escape_attribute( lv_program_url ) }">| &&
           zcl_gg_host_icons=>icon( iv_name = `file-code` ) &&
           |<span>{ zcl_gg_host_html=>escape_text( CONV string( ls_program-program ) ) }</span><span class="wb-app-description">{ zcl_gg_host_html=>escape_text( ls_program-description ) }</span></a></li>|.
       ENDLOOP.
@@ -183,19 +187,24 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     rv_html = '<div class="wb-splitter" role="separator" aria-orientation="vertical" aria-label="Resize application list" aria-controls="wb-app-panel" aria-valuemin="160" tabindex="0"></div>' &&
       '<script>(function(){var panel=document.getElementById("wb-app-panel");var splitter=panel&&panel.nextElementSibling;if(!splitter){return;}var key="gg-workbench-panel-width";var min=160;' &&
       'var max=function(){return Math.max(min,panel.parentElement.clientWidth-240);};' &&
-      'var apply=function(width){width=Math.round(Math.min(max(),Math.max(min,width)));panel.style.width=width+"px";panel.style.flexBasis=width+"px";splitter.setAttribute("aria-valuemax",String(max()));splitter.setAttribute("aria-valuenow",String(width));return width;};' &&
+      'var apply=function(width){width=Math.round(Math.min(max(),Math.max(min,width)));panel.style.width=width+"px";panel.style.flexBasis=width+"px";splitter.setAttribute("aria-valuemax",String(max()));'
+      && 'splitter.setAttribute("aria-valuenow",String(width));return width;};' &&
       'var store=function(width){try{localStorage.setItem(key,String(width));}catch(e){}};var stored=null;try{stored=Number(localStorage.getItem(key));}catch(e){}' &&
       'apply(stored||panel.getBoundingClientRect().width);' &&
-      'splitter.addEventListener("pointerdown",function(event){if(event.button!==0){return;}event.preventDefault();splitter.focus();splitter.setPointerCapture(event.pointerId);splitter.classList.add("wb-splitter--active");var left=panel.getBoundingClientRect().left;' &&
-      'var move=function(e){apply(e.clientX-left);};var stop=function(){splitter.classList.remove("wb-splitter--active");splitter.removeEventListener("pointermove",move);splitter.removeEventListener("pointerup",stop);splitter.removeEventListener("pointercancel",stop);store(Number(splitter.getAttribute("aria-valuenow")));};' &&
+      'splitter.addEventListener("pointerdown",function(event){if(event.button!==0){return;}event.preventDefault();splitter.focus();splitter.setPointerCapture(event.pointerId);splitter.classList.add("wb-splitter--active'
+      && '");var left=panel.getBoundingClientRect().left;' &&
+      'var move=function(e){apply(e.clientX-left);};var stop=function(){splitter.classList.remove("wb-splitter--active");splitter.removeEventListener("pointermove",move);splitter.removeEventListener("pointerup",stop);'
+      && 'splitter.removeEventListener("pointercancel",stop);store(Number(splitter.getAttribute("aria-valuenow")));};' &&
       'splitter.addEventListener("pointermove",move);splitter.addEventListener("pointerup",stop);splitter.addEventListener("pointercancel",stop);});' &&
-      'splitter.addEventListener("keydown",function(event){var width=panel.getBoundingClientRect().width;var next=event.key==="ArrowLeft"?width-16:event.key==="ArrowRight"?width+16:event.key==="Home"?min:event.key==="End"?max():null;if(next===null){return;}event.preventDefault();store(apply(next));});' &&
+      'splitter.addEventListener("keydown",function(event){var width=panel.getBoundingClientRect().width;var next=event.key==="ArrowLeft"?width-16:event.key==="ArrowRight"?width+16:event.key==="Home"?min:event.key==="En'
+      && 'd"?max():null;if(next===null){return;}event.preventDefault();store(apply(next));});' &&
       'window.addEventListener("resize",function(){apply(panel.getBoundingClientRect().width);});}());</script>'.
   ENDMETHOD.
 
   METHOD render_logo.
     rv_html = '<div class="wb-welcome-art" role="img" aria-label="open-abap"><svg class="wb-logo-mark" viewBox="0 0 108 108" aria-hidden="true" focusable="false">' &&
-      '<defs><linearGradient id="wb-logo-edge-base"><stop stop-color="#174a80" offset="0" /><stop stop-color="#174a80" stop-opacity="0" offset="1" /></linearGradient><linearGradient id="wb-logo-edge" href="#wb-logo-edge-base" x1="56.318806" y1="114.51591" x2="162.49908" y2="114.51591" gradientUnits="userSpaceOnUse" gradientTransform="matrix(.98451947,0,0,.97446173,-52.524478,127.5605)" /></defs>' &&
+      '<defs><linearGradient id="wb-logo-edge-base"><stop stop-color="#174a80" offset="0" /><stop stop-color="#174a80" stop-opacity="0" offset="1" /></linearGradient><linearGradient id="wb-logo-edge" href="#wb-logo-edge'
+      && '-base" x1="56.318806" y1="114.51591" x2="162.49908" y2="114.51591" gradientUnits="userSpaceOnUse" gradientTransform="matrix(.98451947,0,0,.97446173,-52.524478,127.5605)" /></defs>' &&
       '<g transform="translate(-56.318804,-55.73065)" fill-rule="evenodd" stroke="url(#wb-logo-edge)" stroke-width="11.10588932" stroke-linejoin="round">' &&
       '<path fill="#24466f" d="m 63.950965,107.79279 v 25.35781 l 20.46392,14.16915 v -22.09656 z" />' &&
       '<path fill="#f7fbff" d="m 84.414885,125.22319 72.909565,-15.3697 v 41.86591 l -72.909565,-4.39965 z" />' &&

@@ -137,7 +137,8 @@ CLASS zcl_gg_ex_157 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'ALV layouts' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_GRID' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_GRID' position = VALUE #( row = 10 column = 5 width = 780 height = 364 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_SHOW' position = VALUE #( row = 400 column = 5 width = 160 height = 26 ) ) text = 'Current layout' ucomm = 'SHOW' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'GV_LAYOUT' position = VALUE #( row = 400 column = 175 width = 120 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 12 ) ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'GV_LAYOUT_TEXT' position = VALUE #( row = 400 column = 305 width = 400 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 40 ) ) ).

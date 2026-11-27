@@ -215,7 +215,8 @@ CLASS zcl_gg_host_windows IMPLEMENTATION.
 * blob: URLs, which share the page's origin, are left alone.
     rv_html = |<meta name="gg-window" content="{ mv_current }">| &&
       '<script>(function(){var id="' && mv_current && '";var name="' && c_parameter && '";var named=id!=="' && c_first_window && '";' &&
-      'var stamp=function(form){if(!named){return;}var field=form.querySelector("input[name=" + name + "]");if(!field){field=document["cr"+"eateElement"]("input");field.type="hidden";field.name=name;form.appendChild(field);}field.value=id;};' &&
+      'var stamp=function(form){if(!named){return;}var field=form.querySelector("input[name=" + name + "]");if(!field){field=document["cr"+"eateElement"]("input");field.type="hidden";field.name=name;'
+      && 'form.appendChild(field);}field.value=id;};' &&
       'var stampAll=function(){Array.prototype.forEach.call(document.forms,stamp);};' &&
       'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",stampAll);}else{stampAll();}' &&
       'var proto=HTMLFormElement.prototype;if(named&&!proto.submit.ggWindow){var submit=proto.submit;proto.submit=function(){stamp(this);return submit.call(this);};proto.submit.ggWindow=true;}' &&

@@ -49,7 +49,8 @@ CLASS ltcl_gui_timer IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( zcl_gg_gui_runtime=>render_html( ) CS 'data-running="false"' ) ).
     lo_timer->run( ).
     DATA(lv_html) = zcl_gg_gui_runtime=>render_html( ).
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-interval="2" aria-hidden="true" hidden><button type="submit" name="gg_control_event" value="{ zcl_gg_gui_runtime=>get_control_id( control = lo_timer ) }\|FINISHED"| ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-interval="2" aria-hidden="true" hidden><button type="submit" name="gg_control_event" |
+                                                                && |value="{ zcl_gg_gui_runtime=>get_control_id( control = lo_timer ) }\|FINISHED"| ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<script>' ) ).
     zcl_gg_gui_runtime=>clear( ).
   ENDMETHOD.

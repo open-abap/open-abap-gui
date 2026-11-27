@@ -4,7 +4,7 @@
 * Source SHA-256: 47d95cc216ae30b71ea09116c0854c368937b3a5cafad41a566d2462415fa788
 * Target class: ZCL_GG_EX_130
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_gg_ex_130 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_130_h1.
+CLASS zcl_gg_ex_130 DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_gg_ex_130_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -119,7 +119,8 @@ CLASS zcl_gg_ex_130 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Dynamic document events' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 312 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'LBL_STATE' position = VALUE #( row = 348 column = 5 width = 60 height = 26 ) ) text = 'State' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'GV_STATE' position = VALUE #( row = 348 column = 75 width = 600 height = 26 ) ) data_type = VALUE #( typ = 'C' length = 60 ) ) ).
     io_builder->end_screen( ).

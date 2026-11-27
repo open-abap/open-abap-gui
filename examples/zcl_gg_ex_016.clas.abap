@@ -35,7 +35,15 @@ CLASS zcl_gg_ex_016 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~build_screen.
-    io_builder->add_parameter( VALUE #( name = 'P_NAME' text = 'Name' data_type = VALUE #( typ = 'C' length = 20 ) modif_id = 'ABC' memory_id = 'ZGG' search_help = 'ZGG_SH' value_help = abap_true obligatory = abap_true lower_case = abap_true ) ).
+    io_builder->add_parameter( VALUE #( name        = 'P_NAME'
+                                        text        = 'Name'
+                                        data_type   = VALUE #( typ = 'C' length = 20 )
+                                        modif_id    = 'ABC'
+                                        memory_id   = 'ZGG'
+                                        search_help = 'ZGG_SH'
+                                        value_help  = abap_true
+                                        obligatory  = abap_true
+                                        lower_case  = abap_true ) ).
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~initialization.

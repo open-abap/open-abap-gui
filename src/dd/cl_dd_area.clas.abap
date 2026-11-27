@@ -1,4 +1,4 @@
-CLASS cl_dd_area DEFINITION PUBLIC FRIENDS cl_dd_form_area cl_dd_table_area cl_dd_table_element.
+CLASS cl_dd_area DEFINITION PUBLIC GLOBAL FRIENDS cl_dd_form_area cl_dd_table_area cl_dd_table_element.
   PUBLIC SECTION.
 
     CONSTANTS col_background_level2 TYPE i VALUE 35.
@@ -227,7 +227,9 @@ CLASS cl_dd_area IMPLEMENTATION.
     link->url = url.
     link->text = text.
     link->tooltip = tooltip.
-    html_content = html_content && |<a class="gg-dd-link" data-gg-click-event="{ link->frontend_event( ) }" href="{ escape_html( CONV string( url ) ) }" title="{ escape_html( tooltip ) }"{ COND string( WHEN name IS INITIAL THEN `` ELSE | id="{ escape_html( CONV string( name ) ) }"| ) }>{ escape_html( CONV string( text ) ) }</a>|.
+    html_content = html_content
+                   && |<a class="gg-dd-link" data-gg-click-event="{ link->frontend_event( ) }" href="{ escape_html( CONV string( url ) ) }" title="{ escape_html( tooltip ) }|
+                   && |"{ COND string( WHEN name IS INITIAL THEN `` ELSE | id="{ escape_html( CONV string( name ) ) }"| ) }>{ escape_html( CONV string( text ) ) }</a>|.
   ENDMETHOD.
 
   METHOD underline.
@@ -310,7 +312,9 @@ CLASS cl_dd_area IMPLEMENTATION.
     CONDENSE lv_fontsize NO-GAPS.
     CONDENSE lv_fontstyle NO-GAPS.
     CONDENSE lv_emphasis NO-GAPS.
-    result = |<span class="gg-dd-text { escape_html( CONV string( style_class ) ) }" data-gg-style="{ escape_html( lv_style ) }" data-gg-color="{ escape_html( lv_color ) }" data-gg-fontsize="{ escape_html( lv_fontsize ) }" data-gg-fontstyle="{ escape_html( lv_fontstyle ) }" data-gg-emphasis="{ escape_html( lv_emphasis ) }" title="{ escape_html( a11y_tooltip ) }">{ lv_text }</span>|.
+    result = |<span class="gg-dd-text { escape_html( CONV string( style_class ) ) }" data-gg-style="{ escape_html( lv_style ) }" data-gg-color="{ escape_html( lv_color ) }" |
+             && |data-gg-fontsize="{ escape_html( lv_fontsize ) }" data-gg-fontstyle="{ escape_html( lv_fontstyle ) }" data-gg-emphasis="{ escape_html( lv_emphasis ) }" title="{ escape_html( a11y_tooltip ) }">|
+             && |{ lv_text }</span>|.
   ENDMETHOD.
 
   METHOD render_icon_html.

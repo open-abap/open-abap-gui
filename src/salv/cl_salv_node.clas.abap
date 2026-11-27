@@ -1,4 +1,4 @@
-CLASS cl_salv_node DEFINITION PUBLIC FRIENDS cl_salv_nodes cl_salv_tree.
+CLASS cl_salv_node DEFINITION PUBLIC GLOBAL FRIENDS cl_salv_nodes cl_salv_tree.
   PUBLIC SECTION.
 
     METHODS constructor

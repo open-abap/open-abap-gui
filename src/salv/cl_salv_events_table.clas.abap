@@ -1,4 +1,4 @@
-CLASS cl_salv_events_table DEFINITION PUBLIC INHERITING FROM cl_salv_events FRIENDS cl_salv_table.
+CLASS cl_salv_events_table DEFINITION PUBLIC INHERITING FROM cl_salv_events GLOBAL FRIENDS cl_salv_table.
   PUBLIC SECTION.
 
     INTERFACES if_salv_events_actions_table.

@@ -29,7 +29,8 @@ CLASS zcl_gg_integration_flights IMPLEMENTATION.
     DATA(lo_writer) = io_session->get_list( )->get_writer( ).
 
     LOOP AT it_flights INTO DATA(ls_flight).
-      lo_writer->write_field( VALUE #( text = |{ ls_flight-carrid }/{ ls_flight-connid } { ls_flight-fldate } { ls_flight-price DECIMALS = 2 } { ls_flight-currency } { ls_flight-cityfrom }->{ ls_flight-cityto }| placement = VALUE #( new_line = abap_true ) ) ).
+      lo_writer->write_field( VALUE #( text      = |{ ls_flight-carrid }/{ ls_flight-connid } { ls_flight-fldate } { ls_flight-price DECIMALS = 2 } { ls_flight-currency } { ls_flight-cityfrom }->{ ls_flight-cityto }|
+                                       placement = VALUE #( new_line = abap_true ) ) ).
     ENDLOOP.
 
     IF it_flights IS INITIAL.

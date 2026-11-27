@@ -295,7 +295,9 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
         DATA(lv_heading_span) = colspan( iv_index = sy-tabix
                                          iv_count = lines( lt_heading_columns )
                                          iv_width = lv_width ).
-        lv_html = lv_html && |<th scope="col" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_heading_column-columnname ) ) }"{ lv_heading_span }>{ zcl_gg_gui_runtime=>escape_html( column_heading( ls_heading_column-r_column ) ) }</th>|.
+        lv_html = lv_html
+                  && |<th scope="col" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_heading_column-columnname ) ) }"{ lv_heading_span }>|
+                  && |{ zcl_gg_gui_runtime=>escape_html( column_heading( ls_heading_column-r_column ) ) }</th>|.
       ENDLOOP.
       lv_html = lv_html && `</tr>`.
     ENDDO.
@@ -370,7 +372,11 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
         lv_key = condense( CONV string( <key> ) ).
       ENDIF.
     ENDIF.
-    result = |<tr data-level="{ iv_level }"{ COND string( WHEN iv_level = 1 THEN | data-group-key="{ zcl_gg_gui_runtime=>escape_html( lv_key ) }"| ELSE | data-parent-key="{ zcl_gg_gui_runtime=>escape_html( lv_key ) }"{ COND string( WHEN iv_expanded = abap_false THEN ` hidden` ) }| ) }>|.
+    result = |<tr data-level="{ iv_level }"|
+             && COND string( WHEN iv_level = 1
+                             THEN | data-group-key="{ zcl_gg_gui_runtime=>escape_html( lv_key ) }"|
+                             ELSE | data-parent-key="{ zcl_gg_gui_runtime=>escape_html( lv_key ) }"{ COND string( WHEN iv_expanded = abap_false THEN ` hidden` ) }| )
+             && |>|.
     LOOP AT it_columns INTO DATA(ls_column).
       DATA(lv_index) = sy-tabix.
       ASSIGN COMPONENT ls_column-columnname OF STRUCTURE is_row TO <value>.
@@ -382,8 +388,11 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
                                     iv_count = lines( it_columns )
                                     iv_width = iv_width ).
       DATA(lv_toggle) = COND string( WHEN iv_level = 1 AND lv_index = 1
-        THEN |<button type="button" data-hierseq-toggle aria-expanded="{ COND string( WHEN is_expanded( is_row ) = abap_true THEN 'true' ELSE 'false' ) }" aria-label="Toggle { zcl_gg_gui_runtime=>escape_html( lv_key ) }">&#9662;</button>| ).
-      result = result && |<td data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_column-columnname ) ) }"{ COND string( WHEN lv_type CA 'IPFbsa8' THEN ` class="gg-type-number"` ) }{ lv_cell_span }>{ lv_toggle }{ zcl_gg_gui_runtime=>escape_html( condense( CONV string( <value> ) ) ) }</td>|.
+        THEN |<button type="button" data-hierseq-toggle aria-expanded="{ COND string( WHEN is_expanded( is_row ) = abap_true THEN 'true' ELSE 'false' ) }" aria-label="Toggle { zcl_gg_gui_runtime=>escape_html( lv_key ) }|
+             && |">&#9662;</button>| ).
+      result = result
+               && |<td data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_column-columnname ) ) }"{ COND string( WHEN lv_type CA 'IPFbsa8' THEN ` class="gg-type-number"` ) }{ lv_cell_span }>{ lv_toggle }|
+               && |{ zcl_gg_gui_runtime=>escape_html( condense( CONV string( <value> ) ) ) }</td>|.
     ENDLOOP.
     result = result && `</tr>`.
   ENDMETHOD.
@@ -462,7 +471,9 @@ CLASS cl_salv_hierseq_table IMPLEMENTATION.
       ENDLOOP.
       DATA(lv_total_text) = format_total_value( iv_value  = lv_total
                                                 iv_sample = lv_sample ).
-      result = result && |<td class="gg-grid-cell gg-state-total gg-type-number" data-total="true" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_column-columnname ) ) }"{ lv_colspan }>{ zcl_gg_gui_runtime=>escape_html( lv_total_text ) }</td>|.
+      result = result
+               && |<td class="gg-grid-cell gg-state-total gg-type-number" data-total="true" data-fieldname="{ zcl_gg_gui_runtime=>escape_html( CONV string( ls_column-columnname ) ) }"{ lv_colspan }>|
+               && |{ zcl_gg_gui_runtime=>escape_html( lv_total_text ) }</td>|.
     ENDLOOP.
     result = result && `</tr></tfoot>`.
   ENDMETHOD.

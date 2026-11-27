@@ -223,7 +223,7 @@ test("helper classes reach the report's constants and types through the owner", 
   assert.match(helper, /DATA ms_params TYPE zcl_cv_helper=>ty_params\./);
   // The constants stay private; the helper is a friend of the owner.
   const [definition] = result.classSource.split("CLASS zcl_cv_helper IMPLEMENTATION.");
-  assert.match(definition, /FRIENDS zcl_cv_helper_h1/);
+  assert.match(definition, /GLOBAL FRIENDS zcl_cv_helper_h1/);
   assert.match(definition.split("PRIVATE SECTION.")[1], /CONSTANTS gc_cmd_refresh TYPE sy-ucomm VALUE 'REFRESH'\./);
 });
 

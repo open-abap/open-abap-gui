@@ -204,7 +204,11 @@
       "exclude": ["zgg_ex_185\\.prog\\.abap$"]
     },
     "message_exists": true,
-    "line_length": false,
+    "line_length": {
+      "severity": "Error",
+      "length": 220,
+      "maxIssuesPerFile": 10
+    },
     "names_no_dash": true,
     "modify_only_own_db_tables": true,
     "start_at_tab": {

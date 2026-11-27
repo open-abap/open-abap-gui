@@ -92,7 +92,12 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
   METHOD zif_gg_dynpro_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = screen_initial title = 'ABAP Editor: Initial Screen' height = 430 ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_PROGRAM' position = VALUE #( row = 18 column = 18 width = 145 ) ) text = 'Program' ) ).
-    io_builder->add_input_field( VALUE #( control = VALUE #( name = 'P_PROGRAM' position = VALUE #( row = 12 column = 175 width = 260 ) ) data_type = VALUE #( typ = 'C' length = 40 ) search_help = 'ABAP_PROGRAM' value_help = abap_true required = abap_true uppercase = abap_true ) ).
+    io_builder->add_input_field( VALUE #( control     = VALUE #( name = 'P_PROGRAM' position = VALUE #( row = 12 column = 175 width = 260 ) )
+                                          data_type   = VALUE #( typ = 'C' length = 40 )
+                                          search_help = 'ABAP_PROGRAM'
+                                          value_help  = abap_true
+                                          required    = abap_true
+                                          uppercase   = abap_true ) ).
     io_builder->add_box( VALUE #( control = VALUE #( name = 'B_SUBOBJECT' position = VALUE #( row = 58 column = 18 width = 420 height = 190 ) ) text = 'Subobjects' ) ).
     LOOP AT subobjects( ) INTO DATA(ls_subobject).
       io_builder->add_radiobutton( VALUE #( control = VALUE #( name = ls_subobject-control position = VALUE #( row = 56 + sy-tabix * 32 column = 34 width = 240 ) ) text = ls_subobject-text group = 'SUB' ) ).
@@ -107,8 +112,10 @@ CLASS zcl_gg_se38 IMPLEMENTATION.
     io_builder->begin_screen( VALUE #( number = screen_source title = 'ABAP Source Code' height = 470 ) ).
 * The editor grows with the work area; the text and the pushbuttons below it
 * move along.
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_SOURCE' position = VALUE #( row = 12 column = 18 width = 760 height = 340 ) ) resizing = VALUE #( vertical = abap_true min_height = 160 horizontal = abap_true min_width = 400 ) ) ).
-    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SOURCE_CAPABILITY' position = VALUE #( row = 366 column = 18 width = 540 ) ) text = 'Editing, Save, and Activate are disabled until a real repository compiler is available.' ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_SOURCE' position = VALUE #( row = 12 column = 18 width = 760 height = 340 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 160 horizontal = abap_true min_width = 400 ) ) ).
+    io_builder->add_text( VALUE #( control = VALUE #( name = 'T_SOURCE_CAPABILITY' position = VALUE #( row = 366 column = 18 width = 540 ) )
+                                   text    = 'Editing, Save, and Activate are disabled until a real repository compiler is available.' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_ATTRIBUTES' position = VALUE #( row = 408 column = 18 width = 100 ) ) text = 'Attributes' ucomm = 'ATTRIBUTES' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_DOCUMENTATION' position = VALUE #( row = 408 column = 128 width = 125 ) ) text = 'Documentation' ucomm = 'DOCUMENTATION' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'PB_TEXT_ELEMENTS' position = VALUE #( row = 408 column = 263 width = 120 ) ) text = 'Text Elements' ucomm = 'TEXT_ELEMENTS' ) ).

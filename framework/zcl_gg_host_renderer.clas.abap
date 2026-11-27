@@ -445,7 +445,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       RETURN.
     ENDIF.
     IF is_navigation-modal = abap_true.
-      DATA(lv_modal) = |<div class="gg-modal-backdrop" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-target="{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }"><section class="gg-modal-panel" role="dialog" aria-modal="true" aria-label="Selection screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }"><header class="gg-modal-header"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span><span class="gg-modal-kind">{ zcl_gg_host_html=>escape_text( is_navigation-kind ) }</span>{ COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>| ELSE `` ) }</header>|.
+      DATA(lv_modal) = |<div class="gg-modal-backdrop" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" |
+                       && |data-navigation-target="{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }"><section class="gg-modal-panel" role="dialog" aria-modal="true" aria-label="Selection screen |
+                       && |{ zcl_gg_host_html=>escape_text( is_navigation-target ) }"><header class="gg-modal-header"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span><span |
+                       && |class="gg-modal-kind">{ zcl_gg_host_html=>escape_text( is_navigation-kind ) }</span>|
+                       && COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
+                                       THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">|
+                                            && |Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>|
+                                       ELSE `` )
+                       && |</header>|.
       REPLACE FIRST OCCURRENCE OF '<main id="gg-main-content" aria-labelledby="wb-page-title">' IN rv_html WITH |<main id="gg-main-content" aria-labelledby="wb-page-title">{ lv_modal }|.
 * The backdrop covers the icon bar, so a selection screen shown as a popup
 * carries its Execute in the popup instead.
@@ -458,7 +466,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         REPLACE FIRST OCCURRENCE OF '</main>' IN rv_html WITH '</section></div></main>'.
       ENDIF.
     ELSE.
-      DATA(lv_navigation) = |<nav class="gg-navigation" aria-label="Host navigation" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-modal="false"><span>Transition target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span>{ COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>| ELSE `` ) }</nav>|.
+      DATA(lv_navigation) = |<nav class="gg-navigation" aria-label="Host navigation" data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }" data-navigation-modal="false"><span>Transition |
+                            && |target: { zcl_gg_host_html=>escape_text( is_navigation-target ) }</span>|
+                            && COND string( WHEN is_navigation-kind = zcx_gg_control_flow=>kind_call_selection_screen
+                                            THEN |<button type="submit" name="gg_action" value="SCREEN:{ zcl_gg_host_html=>escape_attribute( is_navigation-target ) }" form="gg-host-form">|
+                                                 && |Screen { zcl_gg_host_html=>escape_text( is_navigation-target ) }</button>|
+                                            ELSE `` )
+                            && |</nav>|.
       REPLACE FIRST OCCURRENCE OF '<main id="gg-main-content" aria-labelledby="wb-page-title">' IN rv_html WITH |<main id="gg-main-content" aria-labelledby="wb-page-title">{ lv_navigation }|.
     ENDIF.
   ENDMETHOD.
@@ -499,7 +513,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         ENDIF.
         lv_page = ls_line-page.
         lv_body = lv_body && |<section class="gg-list-page" data-page="{ ls_line-page }">|.
-        lv_body = lv_body && |<h2 class="gg-list-page-header" aria-label="List page { ls_line-page }"><span class="gg-list-page-title">{ zcl_gg_host_html=>escape_text( iv_title ) }</span><span class="gg-list-page-number" aria-label="Page { ls_line-page }">{ ls_line-page }</span></h2><div>|.
+        lv_body = lv_body
+                  && |<h2 class="gg-list-page-header" aria-label="List page { ls_line-page }"><span class="gg-list-page-title">{ zcl_gg_host_html=>escape_text( iv_title ) }</span><span class="gg-list-page-number" |
+                  && |aria-label="Page { ls_line-page }">{ ls_line-page }</span></h2><div>|.
       ENDIF.
 
       DATA(lv_line) = ``.
@@ -529,7 +545,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         ENDCASE.
         lv_line = lv_line && |<span class="gg-list-fragment { zcl_gg_host_html=>css_class( ls_fragment-format ) }" data-column="{ ls_fragment-position }"{ zcl_gg_host_html=>attribute( iv_name     = `title`
                                                                                                                                                                                         iv_value    = lv_fragment_title
-                                                                                                                                                                                        iv_optional = abap_true ) }>{ lv_fragment_html }</span>|.
+                                                                                                                                                                                        iv_optional = abap_true ) }>|
+                             && |{ lv_fragment_html }</span>|.
         lv_column = ls_fragment-position + strlen( ls_fragment-text ).
       ENDLOOP.
       IF ls_line-fragments IS INITIAL.
@@ -548,9 +565,18 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       DATA(lv_found) = COND string( WHEN is_list_outcome-found > 0 AND ls_line-index = is_list_outcome-found
                                     THEN ` data-found="true"` ).
       IF ls_line-fields IS INITIAL.
-        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" tabindex="0" data-line-index="{ ls_line-index }"{ lv_found } aria-current="{ COND string( WHEN ls_line-selected = abap_true OR lv_found IS NOT INITIAL THEN `true` ELSE `false` ) }">{ lv_line }</div>|.
+        lv_body = lv_body
+                  && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" tabindex="0" data-line-index="{ ls_line-index }"{ lv_found } |
+                  && |aria-current="{ COND string( WHEN ls_line-selected = abap_true OR lv_found IS NOT INITIAL THEN `true` ELSE `false` ) }">{ lv_line }</div>|.
       ELSE.
-        lv_body = lv_body && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" tabindex="0" data-line-index="{ ls_line-index }"{ lv_found } data-action-token="{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }"><button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_line-selected ) }" type="submit" name="gg_action" value="| && |LINE:{ ls_line-index }| && `|` && |{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }| && |" aria-label="Select line { ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</button></div>|.
+        lv_body = lv_body
+                  && |<div id="{ zcl_gg_host_html=>escape_attribute( lv_line_id ) }" class="gg-list-line { lv_line_state_class }" tabindex="0" data-line-index="{ ls_line-index }"{ lv_found } |
+                  && |data-action-token="{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }"><button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_line-selected ) }" type="submit" name="gg_action" |
+                  && |value="|
+                  && |LINE:{ ls_line-index }|
+                  && `|`
+                  && |{ zcl_gg_host_html=>escape_attribute( ls_line-token ) }|
+                  && |" aria-label="Select line { ls_line-index }" aria-current="{ COND string( WHEN ls_line-selected = abap_true THEN `true` ELSE `false` ) }">{ lv_line }</button></div>|.
       ENDIF.
     ENDLOOP.
     LOOP AT it_actions INTO DATA(ls_action).
@@ -582,11 +608,16 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDIF.
     lv_body = lv_body && render_list_dialog( is_list_outcome ).
 * Paging and Print are the browser's: it holds the list window.
-    lv_body = lv_body && |<script>(function()\{var w=document.querySelector(".gg-page--list .gg-work-area")\|\|document.scrollingElement;var run=function(c)\{switch(c)\{case"P--":w.scrollTop=0;break;case"P-":w.scrollTop-=w.clientHeight;break;case"P+":w.scrollTop+=w.clientHeight;break;case"P++":w.scrollTop=w.scrollHeight;break;case"PRI":window.print();break;default:return false;\}return true;\};|
-      && |document.addEventListener("click",function(e)\{var b=e.target&&e.target.closest?e.target.closest('button[value^="COMMAND:"]'):null;if(!b\|\|b.disabled)\{return;\}if(run(b.value.slice(8)))\{e.preventDefault();\}\},true);|
-      && |var f=document.querySelector(".gg-list-line[data-found]");if(f)\{f.scrollIntoView(\{block:"center"\});\}|
-      && |var d=document.querySelector("[data-list-dialog]");if(d)\{var i=d.querySelector("input[type=text]");if(i)\{i.focus();i.select();\}d.querySelectorAll("[data-list-dialog-close]").forEach(function(c)\{c.addEventListener("click",function()\{d.remove();\});\});\}|
-      && |\}());</script>| && render_downloads( is_list_outcome-downloads ).
+    lv_body = lv_body
+              && |<script>(function()\{var w=document.querySelector(".gg-page--list .gg-work-area")\|\|document.scrollingElement;var run=function(c)\{switch(c)\{case"P--":w.scrollTop=0;break;|
+              && |case"P-":w.scrollTop-=w.clientHeight;break;case"P+":w.scrollTop+=w.clientHeight;break;case"P++":w.scrollTop=w.scrollHeight;break;case"PRI":window.print();break;default:return false;\}return true;\};|
+              && |document.addEventListener("click",function(e)\{var b=e.target&&e.target.closest?e.target.closest('button[value^="COMMAND:"]'):null;if(!b\|\|b.disabled)\{return;\}|
+              && |if(run(b.value.slice(8)))\{e.preventDefault();\}\},true);|
+              && |var f=document.querySelector(".gg-list-line[data-found]");if(f)\{f.scrollIntoView(\{block:"center"\});\}|
+              && |var d=document.querySelector("[data-list-dialog]");if(d)\{var i=d.querySelector("input[type=text]");if(i)\{i.focus();i.select();\}d.querySelectorAll("[data-list-dialog-close]").forEach(function(c)\{c.a|
+              && |ddEventListener("click",function()\{d.remove();\});\});\}|
+              && |\}());</script>|
+              && render_downloads( is_list_outcome-downloads ).
     lv_body = lv_body && |<input type="hidden" name="row" value="{ iv_cursor }" data-list-cursor>|.
     rv_html = zcl_gg_host_html=>document(
       iv_session_id = iv_session_id
@@ -596,7 +627,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_csp_nonce  = is_context-csp_nonce
       is_status     = is_status
       it_messages   = it_messages
-      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
+      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><form method="post" action="/dispatch"><input type="hidden" name="session_id" |
+                      && |value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" |
+                      && |name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
   ENDMETHOD.
 
   METHOD render_list_dialog.
@@ -606,7 +639,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       WHEN zcl_gg_host_list_processor=>dialog_find.
         rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-list-dialog-title" data-list-dialog="FIND"><div class="gg-value-help-panel gg-popup-panel">|
           && |<header class="gg-value-help-header"><h2 id="gg-list-dialog-title">Find</h2></header><div class="gg-popup-body">|
-          && |<label class="gg-popup-field"><span>Find</span><input type="text" name="value" value="{ zcl_gg_host_html=>escape_attribute( is_outcome-find-term ) }"></label><label>Options <select name="target"><option value="">Ignore case, entire list</option><option value="CASE">Match case</option><option value="CURSOR">From cursor</option><option value="CASE_CURSOR">Match case, from cursor</option></select></label></div>|
+          && |<label class="gg-popup-field"><span>Find</span><input type="text" name="value" value="{ zcl_gg_host_html=>escape_attribute( is_outcome-find-term ) }"></label><label>Options <select name="target"><option |
+          && |value="">Ignore case, entire list</option><option value="CASE">Match case</option><option value="CURSOR">From cursor</option><option value="CASE_CURSOR">Match case, from cursor</option></select></label>|
+          && |</div>|
           && |<footer class="gg-popup-actions"><button type="submit" name="gg_action" value="COMMAND:{ zcl_gg_host_list_processor=>find }" formnovalidate>Find</button>|
           && |<button type="button" data-list-dialog-close>Cancel</button></footer></div></div>|.
       WHEN zcl_gg_host_list_processor=>dialog_save.
@@ -614,7 +649,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           && |<header class="gg-value-help-header"><h2 id="gg-list-dialog-title">Save list in file</h2></header><div class="gg-popup-body"><fieldset><legend>Format</legend>|
           && |<label><input type="radio" name="value" value="{ zcl_gg_host_list_processor=>format_unconverted }" checked> Unconverted</label>|
           && |<label><input type="radio" name="value" value="{ zcl_gg_host_list_processor=>format_spreadsheet }"> Spreadsheet</label>|
-          && |<label><input type="radio" name="value" value="{ zcl_gg_host_list_processor=>format_html }"> HTML format</label><label><input type="radio" name="value" value="RICHTEXT"> Rich text</label><label><input type="radio" name="value" value="CLIPBOARD"> Clipboard</label></fieldset>|
+          && |<label><input type="radio" name="value" value="{ zcl_gg_host_list_processor=>format_html }"> HTML format</label><label><input type="radio" name="value" value="RICHTEXT"> Rich text</label><label><input |
+          && |type="radio" name="value" value="CLIPBOARD"> Clipboard</label></fieldset>|
           && |<label class="gg-popup-field"><span>File name</span><input type="text" name="target" value="list.txt"></label></div>|
           && |<footer class="gg-popup-actions"><button type="submit" name="gg_action" value="COMMAND:{ zcl_gg_host_list_processor=>save_file }" formnovalidate>Save</button>|
           && |<button type="button" data-list-dialog-close>Cancel</button></footer></div></div>|.
@@ -668,7 +704,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 * The status name is the program's; the page shows its functions, not its name.
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page">|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
-    lv_body = lv_body && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT">|.
+    lv_body = lv_body
+              && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" |
+              && |value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" |
+              && |value="SUBMIT">|.
 
     lv_active_tab_screen = active_selection_screen(
       iv_default = is_context-screen
@@ -800,7 +839,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             lv_focus_attrs = ` autofocus`.
             lv_initial_focus = abap_true.
           ENDIF.
-          lv_body = lv_body && |<div class="gg-field gg-parameter { lv_state_class }"{ lv_field_root_attrs }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="{ COND string( WHEN ls_state-password = abap_true THEN `password` ELSE `text` ) }" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_focus_attrs }{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ lv_state_attrs }{ lv_message_attrs }>|.
+          lv_body = lv_body
+                    && |<div class="gg-field gg-parameter { lv_state_class }"{ lv_field_root_attrs }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">|
+                    && |{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><input type="{ COND string( WHEN ls_state-password = abap_true THEN `password` ELSE `text` ) }" |
+                    && |id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" |
+                    && |data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }|
+                    && |{ lv_focus_attrs }{ COND string( WHEN iv_help_name = ls_element-name AND iv_help_text IS NOT INITIAL THEN ` aria-describedby="gg-help-text"` ELSE `` ) }{ lv_state_attrs }{ lv_message_attrs }>|.
           lv_body = lv_body && value_help_button( iv_name       = CONV string( ls_element-name )
                                                   iv_label      = ls_element-text
                                                   iv_value_help = xsdbool( ls_element-value_help = abap_true OR ls_state-value_help = abap_true ) ).
@@ -823,7 +867,14 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_message_attrs = field_message_attrs(
             it_messages = it_messages
             iv_name     = CONV string( ls_element-name ) ).
-          lv_body = lv_body && |<div class="gg-field gg-choice { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><input type="hidden" name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value=""><input class="{ lv_state_class }" type="checkbox" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }" value="X"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }{ lv_message_attrs }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
+          lv_body = lv_body
+                    && |<div class="gg-field gg-choice { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><input type="hidden" |
+                    && |name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" value=""><input class="{ lv_state_class }" type="checkbox" |
+                    && |id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" |
+                    && |data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }" |
+                    && |value="X"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }|
+                    && |{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }{ lv_message_attrs }><label |
+                    && |for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
         WHEN 'RADIOBUTTON'.
           lv_element_id = zcl_gg_host_html=>identifier( iv_scope   = 'selection-field'
                                                         iv_program = CONV string( is_context-program )
@@ -834,7 +885,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_state_class = zcl_gg_host_html=>state_class(
             iv_disabled = xsdbool( ls_state-enabled = abap_false )
             iv_required = ls_state-obligatory ).
-          lv_body = lv_body && |<div class="gg-field gg-choice { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><input class="{ lv_state_class }" type="radio" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_state-group1 ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
+          lv_body = lv_body
+                    && |<div class="gg-field gg-choice { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><input class="{ lv_state_class }|
+                    && |" type="radio" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( ls_state-group1 ) ) }" |
+                    && |value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" |
+                    && |data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }"{ COND string( WHEN ls_value-value = 'X' OR ls_value-value = '1' THEN ` checked` ELSE `` ) }|
+                    && |{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">|
+                    && |{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label></div>|.
         WHEN 'LISTBOX'.
           lv_element_id = zcl_gg_host_html=>identifier( iv_scope   = 'selection-field'
                                                         iv_program = CONV string( is_context-program )
@@ -848,7 +905,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           lv_message_attrs = field_message_attrs(
             it_messages = it_messages
             iv_name     = CONV string( ls_element-name ) ).
-          lv_body = lv_body && |<div class="gg-field gg-parameter gg-listbox { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><label for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><select class="{ lv_state_class }" id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }"{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }{ lv_message_attrs }>|.
+          lv_body = lv_body
+                    && |<div class="gg-field gg-parameter gg-listbox { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) }><label |
+                    && |for="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</label><select class="{ lv_state_class }" |
+                    && |id="{ zcl_gg_host_html=>escape_attribute( lv_element_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" |
+                    && |data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-name ) ) }" data-selection-ucomm="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }|
+                    && |"{ COND string( WHEN ls_state-input = abap_false THEN ` disabled aria-disabled="true"` ELSE `` ) }{ state_attrs( ls_state ) }{ lv_message_attrs }>|.
           DATA(lt_fixed_values) = ls_state-fixed_values.
           IF lt_fixed_values IS INITIAL.
             lt_fixed_values = ls_element-fixed_values.
@@ -872,7 +934,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 * its name lines up in the same label column instead of sitting in a framed
 * box of its own. Only a multi-row range needs the row numbers.
 * LOOP AT SCREEN that makes a select-option inactive hides its whole row.
-          lv_body = lv_body && |<div class="gg-field gg-range { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) } role="group" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) }"><span class="gg-range-name">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</span><div class="gg-range-list{ COND string( WHEN lv_range_count > 1 THEN ` gg-range-list--numbered` ELSE `` ) }" data-range-list="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }">|.
+          lv_body = lv_body
+                    && |<div class="gg-field gg-range { lv_state_class }"{ COND string( WHEN ls_state-visible = abap_false OR ls_state-no_display = abap_true THEN ` hidden` ELSE `` ) } role="group" |
+                    && |aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) }"><span class="gg-range-name">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</span><div |
+                    && |class="gg-range-list{ COND string( WHEN lv_range_count > 1 THEN ` gg-range-list--numbered` ELSE `` ) }" data-range-list="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }">|.
           DO lv_range_count TIMES.
             CLEAR ls_range.
             READ TABLE ls_value-ranges INTO ls_range INDEX sy-index.
@@ -916,11 +981,21 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
               THEN ` autofocus` ELSE `` ).
             lv_initial_focus = xsdbool( lv_initial_focus = abap_true
                                         OR lv_focus_attrs IS NOT INITIAL ).
-            lv_body = lv_body && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }">{ COND string( WHEN lv_range_count > 1 THEN |<span class="gg-range-index" aria-hidden="true">{ sy-index }</span>| ELSE `` ) }<input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_low_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) } low"{ lv_type_attrs }{ lv_external_attrs }{ lv_state_attrs }{ lv_focus_attrs }>|.
+            lv_body = lv_body
+                      && |<div class="gg-range-row{ COND string( WHEN ls_element-no_intervals = abap_true THEN ` gg-range-row--single` ELSE `` ) }" data-range-index="{ sy-index }">|
+                      && |{ COND string( WHEN lv_range_count > 1 THEN |<span class="gg-range-index" aria-hidden="true">{ sy-index }</span>| ELSE `` ) }<input type="text" |
+                      && |id="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_low_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_low_display ) }" |
+                      && |aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) } low"{ lv_type_attrs }{ lv_external_attrs }{ lv_state_attrs }{ lv_focus_attrs }>|.
             IF ls_element-no_intervals = abap_false.
-              lv_body = lv_body && |<span class="gg-range-to" aria-hidden="true">to</span><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_high_display ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) } high"{ lv_type_attrs }{ lv_high_external_attrs }{ lv_optional_state_attrs }>|.
+              lv_body = lv_body
+                        && |<span class="gg-range-to" aria-hidden="true">to</span><input type="text" id="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" |
+                        && |name="{ zcl_gg_host_html=>escape_attribute( lv_high_name ) }" value="{ zcl_gg_host_html=>escape_attribute( lv_high_display ) }" |
+                        && |aria-label="{ zcl_gg_host_html=>escape_attribute( ls_element-text ) } high"{ lv_type_attrs }{ lv_high_external_attrs }{ lv_optional_state_attrs }>|.
             ENDIF.
-            lv_body = lv_body && |<input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" value="{ COND string( WHEN ls_range-sign IS INITIAL THEN `I` ELSE ls_range-sign ) }"><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" value="{ COND string( WHEN ls_range-option IS INITIAL THEN `EQ` ELSE ls_range-option ) }">|.
+            lv_body = lv_body
+                      && |<input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-SIGN" value="{ COND string( WHEN ls_range-sign IS INITIAL THEN `I` ELSE ls_range-sign ) }">|
+                      && |<input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_range_name ) }{ lv_row_suffix }-OPTION" |
+                      && |value="{ COND string( WHEN ls_range-option IS INITIAL THEN `EQ` ELSE ls_range-option ) }">|.
             lv_body = lv_body && range_row_actions(
               iv_name         = lv_range_name
               iv_label        = ls_element-text
@@ -956,7 +1031,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF lv_button_icon IS NOT INITIAL.
             lv_button_body = zcl_gg_host_icons=>icon( iv_name = lv_button_icon ) && lv_button_body.
           ENDIF.
-          lv_body = lv_body && |<button class="gg-selection-button" type="submit" formnovalidate name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }"{ lv_confirm_attrs }>{ lv_button_body }</button>|.
+          lv_body = lv_body
+                    && |<button class="gg-selection-button" type="submit" formnovalidate name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_element-ucomm ) ) }"{ lv_confirm_attrs }>|
+                    && |{ lv_button_body }</button>|.
         WHEN 'COMMENT'.
           lv_body = lv_body && |<p class="gg-selection-comment">{ zcl_gg_host_html=>escape_text( ls_element-text ) }</p>|.
         WHEN 'ULINE'.
@@ -1026,14 +1103,19 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_mode = COND string(
       WHEN is_selection-as_window = abap_true THEN 'Dialog window'
       ELSE 'Fullscreen dialog' ).
-    rv_html = |<section class="gg-free-selection-modal{ COND string( WHEN is_selection-as_window = abap_false THEN ` gg-free-selection-modal--fullscreen` ELSE `` ) }" role="dialog" aria-modal="true" aria-labelledby="gg-free-selection-title" data-free-selection="true"><div class="gg-free-selection-panel"><header class="gg-free-selection-header"><h2 id="gg-free-selection-title">{ zcl_gg_host_html=>escape_text( COND string( WHEN is_selection-title IS INITIAL THEN `Dynamic selections` ELSE is_selection-title ) ) }</h2><span>{ zcl_gg_host_html=>escape_text( lv_mode ) }</span></header><div class="gg-free-selection-body"><aside class="gg-free-selection-tree" aria-label="Available fields"><h3>Available fields</h3><div role="tree">|.
+    rv_html = |<section class="gg-free-selection-modal{ COND string( WHEN is_selection-as_window = abap_false THEN ` gg-free-selection-modal--fullscreen` ELSE `` ) }" role="dialog" aria-modal="true" |
+              && |aria-labelledby="gg-free-selection-title" data-free-selection="true"><div class="gg-free-selection-panel"><header class="gg-free-selection-header"><h2 id="gg-free-selection-title">|
+              && |{ zcl_gg_host_html=>escape_text( COND string( WHEN is_selection-title IS INITIAL THEN `Dynamic selections` ELSE is_selection-title ) ) }</h2><span>{ zcl_gg_host_html=>escape_text( lv_mode ) }</span>|
+              && |</header><div class="gg-free-selection-body"><aside class="gg-free-selection-tree" aria-label="Available fields"><h3>Available fields</h3><div role="tree">|.
     LOOP AT is_selection-fields INTO DATA(ls_field).
       lv_field_name = zcl_gg_host_html=>escape_attribute( ls_field-name ).
       lv_field_text = COND string(
         WHEN ls_field-text IS INITIAL THEN |{ ls_field-table_name }-{ ls_field-name }|
         ELSE ls_field-text ).
       lv_checked = COND string( WHEN ls_field-active = abap_true THEN ` checked` ELSE `` ).
-      rv_html = rv_html && |<label class="gg-free-selection-tree-item" role="treeitem"><input type="checkbox" name="gg-free-{ lv_field_name }-ACTIVE" value="X"{ lv_checked }><span>{ zcl_gg_host_html=>escape_text( lv_field_text ) }</span></label>|.
+      rv_html = rv_html
+                && |<label class="gg-free-selection-tree-item" role="treeitem"><input type="checkbox" name="gg-free-{ lv_field_name }-ACTIVE" value="X"{ lv_checked }><span>|
+                && |{ zcl_gg_host_html=>escape_text( lv_field_text ) }</span></label>|.
     ENDLOOP.
     rv_html = rv_html && |</div></aside><section class="gg-free-selection-criteria" aria-label="Selection criteria"><h3>Selection criteria</h3>|.
     LOOP AT is_selection-fields INTO ls_field.
@@ -1045,9 +1127,18 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_sign_e = COND string( WHEN ls_field-sign = 'E' THEN ` selected` ELSE `` ).
       lv_option_eq = COND string( WHEN ls_field-option = 'EQ' OR ls_field-option IS INITIAL THEN ` selected` ELSE `` ).
       lv_option_bt = COND string( WHEN ls_field-option = 'BT' THEN ` selected` ELSE `` ).
-      rv_html = rv_html && |<div class="gg-free-selection-row"><label for="gg-free-{ lv_field_name }-low">{ zcl_gg_host_html=>escape_text( lv_field_text ) }</label><select name="gg-free-{ lv_field_name }-SIGN" aria-label="{ zcl_gg_host_html=>escape_attribute( lv_field_text ) } sign"><option value="I"{ lv_sign_i }>Include</option><option value="E"{ lv_sign_e }>Exclude</option></select><select name="gg-free-{ lv_field_name }-OPTION" aria-label="{ zcl_gg_host_html=>escape_attribute( lv_field_text ) } option"><option value="EQ"{ lv_option_eq }>Equals</option><option value="BT"{ lv_option_bt }>Between</option></select><input id="gg-free-{ lv_field_name }-low" type="text" name="gg-free-{ lv_field_name }-LOW" value="{ zcl_gg_host_html=>escape_attribute( ls_field-low ) }" placeholder="Low"><input type="text" name="gg-free-{ lv_field_name }-HIGH" value="{ zcl_gg_host_html=>escape_attribute( ls_field-high ) }" placeholder="High" aria-label="{ zcl_gg_host_html=>escape_attribute( lv_field_text ) } high"></div>|.
+      rv_html = rv_html
+                && |<div class="gg-free-selection-row"><label for="gg-free-{ lv_field_name }-low">{ zcl_gg_host_html=>escape_text( lv_field_text ) }</label><select name="gg-free-{ lv_field_name }-SIGN" |
+                && |aria-label="{ zcl_gg_host_html=>escape_attribute( lv_field_text ) } sign"><option value="I"{ lv_sign_i }>Include</option><option value="E"{ lv_sign_e }>Exclude</option></select><select |
+                && |name="gg-free-{ lv_field_name }-OPTION" aria-label="{ zcl_gg_host_html=>escape_attribute( lv_field_text ) } option"><option value="EQ"{ lv_option_eq }>Equals</option><option |
+                && |value="BT"{ lv_option_bt }>Between</option></select><input id="gg-free-{ lv_field_name }-low" type="text" name="gg-free-{ lv_field_name }-LOW" |
+                && |value="{ zcl_gg_host_html=>escape_attribute( ls_field-low ) }" placeholder="Low"><input type="text" name="gg-free-{ lv_field_name }-HIGH" |
+                && |value="{ zcl_gg_host_html=>escape_attribute( ls_field-high ) }" placeholder="High" aria-label="{ zcl_gg_host_html=>escape_attribute( lv_field_text ) } high"></div>|.
     ENDLOOP.
-    rv_html = rv_html && |</section></div><footer class="gg-free-selection-actions" aria-label="Dynamic selection actions"><button type="submit" formnovalidate name="gg_free_action" value="APPLY">Apply</button><button type="submit" formnovalidate name="gg_free_action" value="CANCEL">Cancel</button><button type="submit" formnovalidate name="gg_free_action" value="RESET">Reset selection</button></footer></div></section>|.
+    rv_html = rv_html
+              && |</section></div><footer class="gg-free-selection-actions" aria-label="Dynamic selection actions"><button type="submit" formnovalidate name="gg_free_action" value="APPLY">Apply</button><button |
+              && |type="submit" formnovalidate name="gg_free_action" value="CANCEL">Cancel</button><button type="submit" formnovalidate name="gg_free_action" value="RESET">Reset selection</button></footer></div>|
+              && |</section>|.
   ENDMETHOD.
 
   METHOD render_dynpro_table.
@@ -1151,17 +1242,25 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           iv_value = lv_cell_value
           iv_type  = ls_column-data_type-typ ).
         IF ls_column-checkbox = abap_true.
-          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" value=""><input type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN ls_column-name ELSE ls_column-column_title ) ) } row { lv_row }" value="X"{ COND string( WHEN lv_cell_value = 'X' OR lv_cell_value = '1' THEN ` checked` ELSE `` ) }{ lv_cell_input_attrs }></td>|.
+          lv_table_body = lv_table_body
+                          && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" value=""><input type="checkbox" |
+                          && |name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" |
+                          && |aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN ls_column-name ELSE ls_column-column_title ) ) } row { lv_row }" |
+                          && |value="X"{ COND string( WHEN lv_cell_value = 'X' OR lv_cell_value = '1' THEN ` checked` ELSE `` ) }{ lv_cell_input_attrs }></td>|.
         ELSEIF ls_column-input = abap_true.
           lv_type_attrs = dynpro_type_attrs(
             is_data_type   = ls_column-data_type
             iv_extra_class = lv_state_class ).
-          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN ls_column-name ELSE ls_column-column_title ) ) } row { lv_row }" value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_cell_input_attrs }{ lv_cursor_attrs }></td>|.
+          lv_table_body = lv_table_body
+                          && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_cell_name ) }" |
+                          && |aria-label="{ zcl_gg_host_html=>escape_attribute( COND string( WHEN ls_column-column_title IS INITIAL THEN ls_column-name ELSE ls_column-column_title ) ) } row { lv_row }" |
+                          && |value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ lv_type_attrs }{ lv_external_attrs }{ lv_cell_input_attrs }{ lv_cursor_attrs }></td>|.
         ELSE.
           lv_output_class = data_type_class(
             iv_type        = ls_column-data_type-typ
             iv_extra_class = lv_state_class ).
-          lv_table_body = lv_table_body && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><output class="{ lv_output_class }"{ lv_external_attrs }>{ zcl_gg_host_html=>escape_text( lv_display_value ) }</output></td>|.
+          lv_table_body = lv_table_body
+                          && |<td class="gg-grid-cell { lv_state_class }"{ lv_cell_attrs }><output class="{ lv_output_class }"{ lv_external_attrs }>{ zcl_gg_host_html=>escape_text( lv_display_value ) }</output></td>|.
         ENDIF.
       ENDLOOP.
       lv_table_body = lv_table_body && |</tr>|.
@@ -1170,7 +1269,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_table_body = lv_table_body && |</tbody></table>| && render_table_scroll( is_control = is_control
                                                                                 iv_top     = lv_top
                                                                                 iv_lines   = lv_lines ).
-    rv_html = |<section class="gg-dynpro-control { lv_table_class }" style="{ iv_style }" data-table-control="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" data-selection-mode="{ zcl_gg_host_html=>escape_attribute( is_control-selection_mode ) }" data-hscroll="{ COND string( WHEN is_control-with_hscroll = abap_true THEN `true` ELSE `false` ) }" data-vscroll="{ COND string( WHEN is_control-with_vscroll = abap_true THEN `true` ELSE `false` ) }">{ lv_table_body }</section>|.
+    rv_html = |<section class="gg-dynpro-control { lv_table_class }" style="{ iv_style }" data-table-control="{ zcl_gg_host_html=>escape_attribute( lv_id ) }" |
+              && |data-selection-mode="{ zcl_gg_host_html=>escape_attribute( is_control-selection_mode ) }" data-hscroll="{ COND string( WHEN is_control-with_hscroll = abap_true THEN `true` ELSE `false` ) }" |
+              && |data-vscroll="{ COND string( WHEN is_control-with_vscroll = abap_true THEN `true` ELSE `false` ) }">{ lv_table_body }</section>|.
   ENDMETHOD.
 
   METHOD render_dynpro.
@@ -1247,15 +1348,26 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF iv_controls_html CS `data-control-kind="DOCKING_CONTAINER"`.
       lv_work_area_class = ` gg-work-area--docking`.
     ENDIF.
-    lv_body = lv_body && |<section class="gg-work-area{ lv_work_area_class }" aria-label="Dynpro work area"><section class="gg-dynpro" aria-label="Dynpro { zcl_gg_host_html=>escape_text( lv_title ) }" data-screen="{ is_screen-number }" data-modal="{ COND string( WHEN is_screen-modal = abap_true THEN `true` ELSE `false` ) }" data-cursor-field="{ zcl_gg_host_html=>escape_attribute( CONV string( is_cursor-field ) ) }" data-cursor-row="{ is_cursor-row }" style="{ lv_modal_style }">|.
+    lv_body = lv_body
+              && |<section class="gg-work-area{ lv_work_area_class }" aria-label="Dynpro work area"><section class="gg-dynpro" aria-label="Dynpro { zcl_gg_host_html=>escape_text( lv_title ) }" |
+              && |data-screen="{ is_screen-number }" data-modal="{ COND string( WHEN is_screen-modal = abap_true THEN `true` ELSE `false` ) }" |
+              && |data-cursor-field="{ zcl_gg_host_html=>escape_attribute( CONV string( is_cursor-field ) ) }" data-cursor-row="{ is_cursor-row }" style="{ lv_modal_style }">|.
     IF it_help_values IS NOT INITIAL.
-      lv_body = lv_body && |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_help_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
+      lv_body = lv_body
+                && |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_help_name ) }"><div |
+                && |class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close |
+                && |value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" |
+                && |role="region" aria-label="Value help"><ul>|.
       LOOP AT it_help_values INTO DATA(ls_help_value).
-        lv_body = lv_body && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_help_value-value ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_help_value-text IS INITIAL THEN ls_help_value-value ELSE ls_help_value-text ) ) }</li>|.
+        lv_body = lv_body
+                  && |<li data-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_help_value-name ) ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_help_value-value ) }" tabindex="0" role="option">|
+                  && |{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_help_value-text IS INITIAL THEN ls_help_value-value ELSE ls_help_value-text ) ) }</li>|.
       ENDLOOP.
       lv_body = lv_body && |</ul></section></div></div></div>|.
     ENDIF.
-    lv_body = lv_body && |<form method="post" action="/dispatch" id="gg-dynpro-form"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">|.
+    lv_body = lv_body
+              && |<form method="post" action="/dispatch" id="gg-dynpro-form"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" |
+              && |value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">|.
     LOOP AT it_values INTO ls_active_value
         WHERE container = `` AND row = 0.
       IF ls_active_value-name NP '*-ACTIVETAB'
@@ -1265,7 +1377,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
                                              subscreen_field = ls_active_value-name ] ).
         CONTINUE.
       ENDIF.
-      lv_body = lv_body && |<input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_active_value-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_active_value-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_active_value-value ) }">|.
+      lv_body = lv_body
+                && |<input type="hidden" name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_active_value-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_active_value-name ) ) }|
+                && |" value="{ zcl_gg_host_html=>escape_attribute( ls_active_value-value ) }">|.
     ENDLOOP.
     IF is_popup-kind IS NOT INITIAL.
       lv_body = lv_body && render_dynpro_popup( is_popup ).
@@ -1323,7 +1437,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_context_menu = render_context_menu(
         io_menu  = io_menu
         iv_field = iv_menu_field ).
-      lv_body = lv_body && lv_context_menu && '<script>(function(){var menu=document.querySelector(".gg-context-menu");if(!menu){return;}var close=function(){menu.hidden=true;};document.addEventListener("contextmenu",function(event){var field=event.target.closest?event.target.closest("[data-context-menu=true]"):null;if(!field){return;}event.preventDefault();menu.hidden=false;menu.style.left=event.clientX+"px";menu.style.top=event.clientY+"px";var first=menu.querySelector("button:not(:disabled)");if(first){first.focus();}});document.addEventListener("click",function(event){if(!menu.contains(event.target)){close();}});document.addEventListener("keydown",function(event){if(event.key==="Escape"&&!menu.hidden){event.preventDefault();close();}});}());</script>'.
+      lv_body = lv_body
+                && lv_context_menu
+                && '<script>(function(){var menu=document.querySelector(".gg-context-menu");if(!menu){return;}var close=function(){menu.hidden=true;};document.addEventListener("contextmenu",'
+                && 'function(event){var field=event.target.closest?event.target.closest("[data-context-menu=true]"):null;if(!field){return;}event.preventDefault();menu.hidden=false;menu.style.left=event.clientX+"px";'
+                && 'menu.style.top=event.clientY+"px";var first=menu.querySelector("button:not(:disabled)");if(first){first.focus();}});document.addEventListener("click",function(event){if(!menu.contains(event.target)){'
+                && 'close();}});document.addEventListener("keydown",function(event){if(event.key==="Escape"&&!menu.hidden){event.preventDefault();close();}});}());</script>'.
     ENDIF.
     lv_body = lv_body && |</form></section></section></section>|.
     rv_html = zcl_gg_host_html=>document(
@@ -1341,7 +1460,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF io_menu IS NOT BOUND OR iv_field IS INITIAL.
       RETURN.
     ENDIF.
-    rv_html = |<div class="gg-context-menu" data-context-menu-for="{ zcl_gg_host_html=>escape_attribute( iv_field ) }" role="menu" hidden><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( zcl_gg_context_menu_state=>get_items( io_menu = io_menu ) ) }</ul></div>|.
+    rv_html = |<div class="gg-context-menu" data-context-menu-for="{ zcl_gg_host_html=>escape_attribute( iv_field ) }" role="menu" hidden><ul class="gg-context-menu-list" role="none">|
+              && |{ render_context_menu_items( zcl_gg_context_menu_state=>get_items( io_menu = io_menu ) ) }</ul></div>|.
   ENDMETHOD.
 
   METHOD render_context_menu_items.
@@ -1356,11 +1476,15 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
       IF ls_item-submenu IS BOUND.
-        rv_html = rv_html && |<li class="gg-context-menu-group" role="none"><span class="gg-context-menu-group-label">{ zcl_gg_host_html=>escape_text( ls_item-text ) }</span><ul class="gg-context-menu-list" role="none">{ render_context_menu_items( zcl_gg_context_menu_state=>get_items( io_menu = ls_item-submenu ) ) }</ul></li>|.
+        rv_html = rv_html
+                  && |<li class="gg-context-menu-group" role="none"><span class="gg-context-menu-group-label">{ zcl_gg_host_html=>escape_text( ls_item-text ) }</span><ul class="gg-context-menu-list" role="none">|
+                  && |{ render_context_menu_items( zcl_gg_context_menu_state=>get_items( io_menu = ls_item-submenu ) ) }</ul></li>|.
         CONTINUE.
       ENDIF.
       lv_state = COND string( WHEN ls_item-disabled = abap_true THEN ` disabled` ELSE `` ).
-      rv_html = rv_html && |<li role="none"><button class="gg-context-menu-item" type="submit" name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( ls_item-fcode ) }" role="menuitem" formnovalidate{ lv_state }>{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.
+      rv_html = rv_html
+                && |<li role="none"><button class="gg-context-menu-item" type="submit" name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( ls_item-fcode ) }" role="menuitem" formnovalidate{ lv_state }>|
+                && |{ zcl_gg_host_html=>escape_text( ls_item-text ) }</button></li>|.
     ENDLOOP.
   ENDMETHOD.
 
@@ -1534,7 +1658,12 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           iv_type  = is_control-data_type-typ ).
         lv_field_attrs = field_message_attrs( it_messages = it_messages
                                               iv_name     = CONV string( is_control-name ) ).
-        rv_html = |<span class="gg-dynpro-control gg-dynpro-field { iv_state_class }" style="{ iv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"><span class="gg-visually-hidden">{ zcl_gg_host_html=>escape_text( COND string( WHEN is_control-text IS INITIAL THEN is_control-name ELSE is_control-text ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_control-context_menu = abap_true THEN ` data-context-menu="true"` ELSE `` ) } value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }"{ COND string( WHEN is_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_type_attrs }{ lv_external_attrs }{ iv_attrs }{ lv_field_attrs }></label>{ lv_help_html }</span>|.
+        rv_html = |<span class="gg-dynpro-control gg-dynpro-field { iv_state_class }" style="{ iv_style }"><label for="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"><span class="gg-visually-hidden">|
+                  && |{ zcl_gg_host_html=>escape_text( COND string( WHEN is_control-text IS INITIAL THEN is_control-name ELSE is_control-text ) ) }</span><input id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" |
+                  && |name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }|
+                  && |"{ COND string( WHEN is_control-context_menu = abap_true THEN ` data-context-menu="true"` ELSE `` ) } value="{ zcl_gg_host_html=>escape_attribute( lv_display_value ) }|
+                  && |"{ COND string( WHEN is_control-password = abap_true THEN ` type="password"` ELSE ` type="text"` ) }{ lv_type_attrs }{ lv_external_attrs }{ iv_attrs }{ lv_field_attrs }></label>{ lv_help_html }|
+                  && |</span>|.
       WHEN 'OUTPUT'.
         lv_output_class = data_type_class(
           iv_type        = is_control-data_type-typ
@@ -1550,9 +1679,11 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
             val = lv_display_value
             off = 6 ).
           SPLIT lv_output_icon AT space INTO lv_output_icon lv_output_text.
-          rv_html = |<output class="gg-dynpro-control { lv_output_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" aria-readonly="true"{ lv_external_attrs }>{ zcl_gg_host_icons=>icon( iv_name = |icon_{ lv_output_icon }| ) }{ zcl_gg_host_html=>escape_text( lv_output_text ) }</output>|.
+          rv_html = |<output class="gg-dynpro-control { lv_output_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" aria-readonly="true"{ lv_external_attrs }>|
+                    && |{ zcl_gg_host_icons=>icon( iv_name = |icon_{ lv_output_icon }| ) }{ zcl_gg_host_html=>escape_text( lv_output_text ) }</output>|.
         ELSE.
-          rv_html = |<output class="gg-dynpro-control { lv_output_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" aria-readonly="true"{ lv_external_attrs }>{ zcl_gg_host_html=>escape_text( lv_display_value ) }</output>|.
+          rv_html = |<output class="gg-dynpro-control { lv_output_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" aria-readonly="true"{ lv_external_attrs }>|
+                    && |{ zcl_gg_host_html=>escape_text( lv_display_value ) }</output>|.
         ENDIF.
       WHEN 'TEXT'.
         rv_html = |<span class="gg-dynpro-control { iv_state_class }" style="{ iv_style }">{ zcl_gg_host_html=>escape_text( is_control-text ) }</span>|.
@@ -1571,13 +1702,23 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           WHEN 'BACK'.
             lv_button_icon = zcl_gg_host_icons=>icon( iv_name = 'arrow-left' ).
         ENDCASE.
-        rv_html = |<button class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" type="submit" name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-ucomm ) ) }"{ COND string( WHEN is_control-ucomm = 'EXECUTE' THEN ` data-key="F8" aria-keyshortcuts="F8"` ELSE `` ) }{ iv_attrs }>{ lv_button_icon }<span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></button>|.
+        rv_html = |<button class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" type="submit" name="gg_ucomm" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-ucomm ) ) }|
+                  && |"{ COND string( WHEN is_control-ucomm = 'EXECUTE' THEN ` data-key="F8" aria-keyshortcuts="F8"` ELSE `` ) }{ iv_attrs }>{ lv_button_icon }<span>{ zcl_gg_host_html=>escape_text( is_control-text ) }|
+                  && |</span></button>|.
       WHEN 'CHECKBOX'.
-        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input type="hidden" name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value=""><input class="{ iv_state_class }" type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="X"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }><span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></label>|.
+        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input type="hidden" name="gg-unchecked-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="">|
+                  && |<input class="{ iv_state_class }" type="checkbox" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" |
+                  && |data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="X"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }|
+                  && |{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }><span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></label>|.
       WHEN 'RADIOBUTTON'.
-        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input class="{ iv_state_class }" type="radio" name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-group ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }><span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></label>|.
+        rv_html = |<label class="gg-dynpro-control { iv_state_class }" style="{ iv_style }"><input class="{ iv_state_class }" type="radio" |
+                  && |name="gg-radio-{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-group ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" |
+                  && |value="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ COND string( WHEN is_value-value = 'X' OR is_value-value = '1' THEN ` checked` ELSE `` ) }|
+                  && |{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }><span>{ zcl_gg_host_html=>escape_text( is_control-text ) }</span></label>|.
       WHEN 'LISTBOX'.
-        rv_html = |<select class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }"{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>|.
+        rv_html = |<select class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" id="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" |
+                  && |name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }" data-abap-name="{ zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }|
+                  && |"{ ucomm_attr( is_control-ucomm ) }{ iv_attrs }>|.
         rv_html = rv_html && listbox_options( it_fixed_values = CORRESPONDING #( is_control-fixed_values )
                                               iv_value        = is_value-value ) && |</select>|.
       WHEN 'BOX'.
@@ -1612,11 +1753,17 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           IF sy-subrc = 0 AND ls_tab_value-value IS NOT INITIAL.
             lv_tab_text = ls_tab_value-value.
           ENDIF.
-          rv_html = rv_html && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = lv_tab_selected ) }" type="submit" role="tab" name="gg_action" value="| && |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }" aria-selected="{ COND string( WHEN lv_tab_selected = abap_true THEN `true` ELSE `false` ) }" data-target-screen="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-subscreen ) ) }">{ zcl_gg_host_html=>escape_text( lv_tab_text ) }</button>|.
+          rv_html = rv_html
+                    && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = lv_tab_selected ) }" type="submit" role="tab" name="gg_action" value="|
+                    && |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }|
+                    && `|`
+                    && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }" aria-selected="{ COND string( WHEN lv_tab_selected = abap_true THEN `true` ELSE `false` ) }" |
+                    && |data-target-screen="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-subscreen ) ) }">{ zcl_gg_host_html=>escape_text( lv_tab_text ) }</button>|.
         ENDLOOP.
         rv_html = rv_html && |</div>|.
       WHEN 'SUBSCREEN_AREA'.
-        rv_html = |<section class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-subscreen-area="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" role="region" aria-label="Subscreen area { zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }"></section>|.
+        rv_html = |<section class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-subscreen-area="{ zcl_gg_host_html=>escape_attribute( iv_id ) }" role="region" aria-label="Subscreen area |
+                  && |{ zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }"></section>|.
       WHEN 'TABLE_CONTROL'.
         rv_html = render_dynpro_table(
           is_screen   = is_screen
@@ -1627,7 +1774,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
           it_values   = it_values
           it_states   = it_states ).
       WHEN 'CUSTOM_CONTROL'.
-        rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-custom-control="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"{ resizing_attrs( is_control-resizing ) } role="region" aria-label="Custom control { zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }">{ iv_controls_html }</div>|.
+        rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }" data-custom-control="{ zcl_gg_host_html=>escape_attribute( iv_id ) }"{ resizing_attrs( is_control-resizing ) } role="region" |
+                  && |aria-label="Custom control { zcl_gg_host_html=>escape_text( CONV string( is_control-name ) ) }">{ iv_controls_html }</div>|.
       WHEN OTHERS.
         rv_html = |<div class="gg-dynpro-control { iv_state_class }" style="{ iv_style }">{ zcl_gg_host_html=>escape_text( is_control-text ) }</div>|.
     ENDCASE.
@@ -1767,7 +1915,10 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_kind       = zif_gg_host_html_v1=>page_navigation
       iv_title      = iv_title
       iv_csp_nonce  = is_context-csp_nonce
-      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header><section class="gg-navigation-page" aria-label="Navigation transition"><p data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }">Continue to <strong>{ zcl_gg_host_html=>escape_text( is_navigation-target ) }</strong>.</p><form method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT"><button type="submit">Continue</button></form></section>| ).
+      iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header><section class="gg-navigation-page" aria-label="Navigation transition"><p |
+                      && |data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }">Continue to <strong>{ zcl_gg_host_html=>escape_text( is_navigation-target ) }</strong>.</p><form |
+                      && |method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" |
+                      && |value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT"><button type="submit">Continue</button></form></section>| ).
   ENDMETHOD.
 
   METHOD listbox_options.
@@ -1779,7 +1930,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       rv_html = |<option value="{ zcl_gg_host_html=>escape_attribute( lv_value ) }" selected>{ zcl_gg_host_html=>escape_text( lv_value ) }</option>|.
     ENDIF.
     LOOP AT it_fixed_values INTO DATA(ls_fixed).
-      rv_html = rv_html && |<option value="{ zcl_gg_host_html=>escape_attribute( ls_fixed-key ) }"{ COND string( WHEN ls_fixed-key = lv_value THEN ` selected` ELSE `` ) }>{ zcl_gg_host_html=>escape_text( ls_fixed-text ) }</option>|.
+      rv_html = rv_html
+                && |<option value="{ zcl_gg_host_html=>escape_attribute( ls_fixed-key ) }"{ COND string( WHEN ls_fixed-key = lv_value THEN ` selected` ELSE `` ) }>{ zcl_gg_host_html=>escape_text( ls_fixed-text ) }|
+                && |</option>|.
     ENDLOOP.
   ENDMETHOD.
 
@@ -1839,7 +1992,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     LOOP AT it_tabs INTO DATA(ls_tab).
       CHECK iv_block IS INITIAL OR ls_tab-block = iv_block.
       lv_tab_action = |TAB:{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-name ) ) }| && `|` && |{ zcl_gg_host_html=>escape_attribute( CONV string( ls_tab-ucomm ) ) }|.
-      rv_html = rv_html && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ) }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_icons=>text_html( ls_tab-text ) }</button>|.
+      rv_html = rv_html
+                && |<button class="{ zcl_gg_host_html=>state_class( iv_selected = ls_tab-selected ) }" type="submit" role="tab" name="gg_action" value="{ lv_tab_action }" |
+                && |aria-selected="{ COND string( WHEN ls_tab-selected = abap_true THEN `true` ELSE `false` ) }">{ zcl_gg_host_icons=>text_html( ls_tab-text ) }</button>|.
     ENDLOOP.
     rv_html = rv_html && |</nav>|.
   ENDMETHOD.
@@ -1892,11 +2047,13 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     IF iv_value_help = abap_false.
       RETURN.
     ENDIF.
-    rv_html = |<button class="gg-help-button" type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( iv_name ) }" aria-label="Value help for { zcl_gg_host_html=>escape_text( iv_label ) }">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
+    rv_html = |<button class="gg-help-button" type="submit" formnovalidate name="gg_action" value="VALUE_HELP:{ zcl_gg_host_html=>escape_attribute( iv_name ) }" aria-label="Value help for |
+              && |{ zcl_gg_host_html=>escape_text( iv_label ) }">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
   ENDMETHOD.
 
   METHOD range_editor_button.
-    rv_html = |<button class="gg-help-button gg-range-editor-open" type="button" data-range-editor-open="{ zcl_gg_host_html=>escape_attribute( iv_name ) }" aria-label="Multiple selection for { zcl_gg_host_html=>escape_text( iv_label ) }">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
+    rv_html = |<button class="gg-help-button gg-range-editor-open" type="button" data-range-editor-open="{ zcl_gg_host_html=>escape_attribute( iv_name ) }" aria-label="Multiple selection for |
+              && |{ zcl_gg_host_html=>escape_text( iv_label ) }">{ zcl_gg_host_icons=>icon( iv_name = 'search' ) }</button>|.
   ENDMETHOD.
 
   METHOD range_row_actions.
@@ -1924,23 +2081,48 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       APPEND VALUE #( sign = 'I' option = 'EQ' ) TO lt_ranges.
     ENDIF.
     DATA(lv_title_id) = |gg-range-editor-title-{ iv_name }|.
-    rv_html = |<div class="gg-range-editor-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="{ zcl_gg_host_html=>escape_attribute( lv_title_id ) }" data-range-editor-modal="{ zcl_gg_host_html=>escape_attribute( iv_name ) }"><div class="gg-value-help-panel gg-range-editor-panel"><header class="gg-value-help-header"><h2 id="{ zcl_gg_host_html=>escape_attribute( lv_title_id ) }">Multiple selection: { zcl_gg_host_html=>escape_text( iv_label ) }</h2><button class="gg-value-help-close" type="button" data-range-editor-close aria-label="Close multiple selection">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-range-editor-body"><p>Enter include or exclude values and ranges.</p><div class="gg-range-editor-list" data-range-editor-list="{ zcl_gg_host_html=>escape_attribute( iv_name ) }">|.
+    rv_html = |<div class="gg-range-editor-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="{ zcl_gg_host_html=>escape_attribute( lv_title_id ) }" |
+              && |data-range-editor-modal="{ zcl_gg_host_html=>escape_attribute( iv_name ) }"><div class="gg-value-help-panel gg-range-editor-panel"><header class="gg-value-help-header"><h2 |
+              && |id="{ zcl_gg_host_html=>escape_attribute( lv_title_id ) }">Multiple selection: { zcl_gg_host_html=>escape_text( iv_label ) }</h2><button class="gg-value-help-close" type="button" |
+              && |data-range-editor-close aria-label="Close multiple selection">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-range-editor-body"><p>Enter include or exclude values |
+              && |and ranges.</p><div class="gg-range-editor-list" data-range-editor-list="{ zcl_gg_host_html=>escape_attribute( iv_name ) }">|.
     LOOP AT lt_ranges INTO DATA(ls_editor_range).
       DATA(lv_editor_index) = sy-tabix.
       DATA(lv_editor_prefix) = |gg_editor_{ iv_name }-{ lv_editor_index }|.
-      rv_html = rv_html && |<div class="gg-range-editor-row" data-editor-index="{ lv_editor_index }"><select name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-SIGN" aria-label="Sign"><option value="I"{ COND string( WHEN ls_editor_range-sign <> 'E' THEN ` selected` ELSE `` ) }>Include</option><option value="E"{ COND string( WHEN ls_editor_range-sign = 'E' THEN ` selected` ELSE `` ) }>Exclude</option></select><select name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-OPTION" aria-label="Option"><option value="EQ"{ COND string( WHEN ls_editor_range-option = 'EQ' OR ls_editor_range-option IS INITIAL THEN ` selected` ELSE `` ) }>=</option><option value="BT"{ COND string( WHEN ls_editor_range-option = 'BT' THEN ` selected` ELSE `` ) }>Between</option><option value="GE"{ COND string( WHEN ls_editor_range-option = 'GE' THEN ` selected` ELSE `` ) }>>=</option><option value="LE"{ COND string( WHEN ls_editor_range-option = 'LE' THEN ` selected` ELSE `` ) }><=</option><option value="CP"{ COND string( WHEN ls_editor_range-option = 'CP' THEN ` selected` ELSE `` ) }>Contains</option><option value="NP"{ COND string( WHEN ls_editor_range-option = 'NP' THEN ` selected` ELSE `` ) }>Not contains</option></select><input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-LOW" value="{ zcl_gg_host_html=>escape_attribute( ls_editor_range-low ) }" aria-label="Low value">{ COND string( WHEN iv_no_intervals = abap_false THEN |<input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-HIGH" value="{ zcl_gg_host_html=>escape_attribute( ls_editor_range-high ) }" aria-label="High value">| ELSE `` ) }<button type="button" data-range-editor-remove aria-label="Remove range">x</button></div>|.
+      rv_html = rv_html
+                && |<div class="gg-range-editor-row" data-editor-index="{ lv_editor_index }"><select name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-SIGN" aria-label="Sign"><option |
+                && |value="I"{ COND string( WHEN ls_editor_range-sign <> 'E' THEN ` selected` ELSE `` ) }>Include</option><option value="E"{ COND string( WHEN ls_editor_range-sign = 'E' THEN ` selected` ELSE `` ) }>|
+                && |Exclude</option></select><select name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-OPTION" aria-label="Option"><option |
+                && |value="EQ"{ COND string( WHEN ls_editor_range-option = 'EQ' OR ls_editor_range-option IS INITIAL THEN ` selected` ELSE `` ) }>=</option><option |
+                && |value="BT"{ COND string( WHEN ls_editor_range-option = 'BT' THEN ` selected` ELSE `` ) }>Between</option><option |
+                && |value="GE"{ COND string( WHEN ls_editor_range-option = 'GE' THEN ` selected` ELSE `` ) }>>=</option><option value="LE"{ COND string( WHEN ls_editor_range-option = 'LE' THEN ` selected` ELSE `` ) }>|
+                && |<=</option><option value="CP"{ COND string( WHEN ls_editor_range-option = 'CP' THEN ` selected` ELSE `` ) }>Contains</option><option |
+                && |value="NP"{ COND string( WHEN ls_editor_range-option = 'NP' THEN ` selected` ELSE `` ) }>Not contains</option></select><input type="text" |
+                && |name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-LOW" value="{ zcl_gg_host_html=>escape_attribute( ls_editor_range-low ) }" aria-label="Low value">|
+                && COND string( WHEN iv_no_intervals = abap_false
+                                THEN |<input type="text" name="{ zcl_gg_host_html=>escape_attribute( lv_editor_prefix ) }-HIGH" |
+                                     && |value="{ zcl_gg_host_html=>escape_attribute( ls_editor_range-high ) }" aria-label="High value">|
+                                ELSE `` )
+                && |<button type="button" data-range-editor-remove aria-label="Remove range">x</button></div>|.
     ENDLOOP.
-    rv_html = rv_html && |</div><div class="gg-range-editor-actions"><button type="button" data-range-editor-add>Add row</button><span class="gg-range-editor-spacer"></span><button type="button" data-range-editor-cancel>Cancel</button><button type="button" data-range-editor-apply>Apply</button></div></div></div></div>|.
+    rv_html = rv_html
+              && |</div><div class="gg-range-editor-actions"><button type="button" data-range-editor-add>Add row</button><span class="gg-range-editor-spacer"></span><button type="button" data-range-editor-cancel>|
+              && |Cancel</button><button type="button" data-range-editor-apply>Apply</button></div></div></div></div>|.
   ENDMETHOD.
 
   METHOD render_selection_value_help.
-    rv_html = |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_name ) }"><div class="gg-value-help-panel"><header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" aria-label="Value help"><ul>|.
+    rv_html = |<div class="gg-value-help-modal" role="dialog" aria-modal="true" aria-labelledby="gg-value-help-title" data-help-field="{ zcl_gg_host_html=>escape_attribute( iv_name ) }"><div class="gg-value-help-panel">|
+              && |<header class="gg-value-help-header"><h2 id="gg-value-help-title">Value help</h2><button class="gg-value-help-close" type="button" data-value-help-close aria-label="Close value help">|
+              && |{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header><div class="gg-value-help-status" role="status" aria-label="Value help results"><section class="gg-value-help" role="region" |
+              && |aria-label="Value help"><ul>|.
     LOOP AT it_ranges INTO DATA(ls_range).
       DATA(lv_value) = ls_range-low.
       IF ls_range-high IS NOT INITIAL.
         lv_value = lv_value && | - { ls_range-high }|.
       ENDIF.
-      rv_html = rv_html && |<li data-name="{ zcl_gg_host_html=>escape_attribute( iv_name ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }" tabindex="0" role="option">{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
+      rv_html = rv_html
+                && |<li data-name="{ zcl_gg_host_html=>escape_attribute( iv_name ) }" data-value="{ zcl_gg_host_html=>escape_attribute( ls_range-low ) }" tabindex="0" role="option">|
+                && |{ zcl_gg_host_html=>escape_text( lv_value ) }</li>|.
     ENDLOOP.
     rv_html = rv_html && |</ul></section></div></div></div>|.
   ENDMETHOD.
@@ -1971,10 +2153,14 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     DATA(lv_next) = nmin( val1 = lv_last
                           val2 = iv_top + is_control-visible_rows ).
     rv_html = |<div class="gg-table-scroll" role="group" aria-label="Scroll { zcl_gg_host_html=>escape_attribute( CONV string( is_control-name ) ) }">|
-      && |<button type="submit" formnovalidate name="{ lv_name }" value="1" aria-label="First lines"{ COND string( WHEN iv_top <= 1 THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-up' ) }</button>|
-      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_previous }" aria-label="Previous lines"{ COND string( WHEN iv_top <= 1 THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'chevron-up' ) }</button>|
-      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_next }" aria-label="Next lines"{ COND string( WHEN iv_top >= lv_last THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'chevron-down' ) }</button>|
-      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_last }" aria-label="Last lines"{ COND string( WHEN iv_top >= lv_last THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-down' ) }</button>|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="1" aria-label="First lines"{ COND string( WHEN iv_top <= 1 THEN ` disabled` ) }>{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-up' ) }|
+      && |</button>|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_previous }" aria-label="Previous lines"{ COND string( WHEN iv_top <= 1 THEN ` disabled` ) }>|
+      && |{ zcl_gg_host_icons=>icon( iv_name = 'chevron-up' ) }</button>|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_next }" aria-label="Next lines"{ COND string( WHEN iv_top >= lv_last THEN ` disabled` ) }>|
+      && |{ zcl_gg_host_icons=>icon( iv_name = 'chevron-down' ) }</button>|
+      && |<button type="submit" formnovalidate name="{ lv_name }" value="{ lv_last }" aria-label="Last lines"{ COND string( WHEN iv_top >= lv_last THEN ` disabled` ) }>|
+      && |{ zcl_gg_host_icons=>icon( iv_name = 'arrow-bar-to-down' ) }</button>|
       && |</div>|.
   ENDMETHOD.
 
@@ -1999,16 +2185,18 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 * click on it is one the browser lets open a tab. The URL travels only as an
 * escaped attribute, and only an absolute http or https URL is followed.
         IF ls_download-url CP 'http://*' OR ls_download-url CP 'https://*'.
-          rv_html = rv_html && |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-execute-title-{ lv_index }" data-gg-execute hidden>|
-            && |<div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 id="gg-execute-title-{ lv_index }">Open document</h2></header>|
-            && |<div class="gg-popup-body"><p>The browser did not open a new tab. Follow the link to open the document:</p>|
-            && |<p><a class="gg-execute-link" href="{ zcl_gg_host_html=>escape_attribute( ls_download-url ) }" target="_blank" rel="noopener noreferrer" data-gg-execute-link>{ zcl_gg_host_html=>escape_text( ls_download-url ) }</a></p></div>|
-            && |<footer class="gg-popup-actions"><button type="button" data-gg-execute-close>Close</button></footer></div></div>|
-            && |<script>(function()\{var d=document.currentScript.previousElementSibling,a=d.querySelector("[data-gg-execute-link]"),u,w=null;|
-            && |try\{u=new URL(a.getAttribute("href"));\}catch(e)\{d.remove();return;\}if(u.protocol!=="https:"&&u.protocol!=="http:")\{d.remove();return;\}|
-            && |try\{w=window.open("","_blank");\}catch(e)\{w=null;\}|
-            && |if(w)\{try\{w.opener=null;w.location.replace(u.href);d.remove();return;\}catch(e)\{try\{w.close();\}catch(f)\{\}\}\}|
-            && |var hide=function()\{d.hidden=true;\};a.addEventListener("click",hide);d.querySelector("[data-gg-execute-close]").addEventListener("click",hide);d.hidden=false;a.focus();\})();</script>|.
+          rv_html = rv_html
+                    && |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-execute-title-{ lv_index }" data-gg-execute hidden>|
+                    && |<div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 id="gg-execute-title-{ lv_index }">Open document</h2></header>|
+                    && |<div class="gg-popup-body"><p>The browser did not open a new tab. Follow the link to open the document:</p>|
+                    && |<p><a class="gg-execute-link" href="{ zcl_gg_host_html=>escape_attribute( ls_download-url ) }" target="_blank" rel="noopener noreferrer" data-gg-execute-link>|
+                    && |{ zcl_gg_host_html=>escape_text( ls_download-url ) }</a></p></div>|
+                    && |<footer class="gg-popup-actions"><button type="button" data-gg-execute-close>Close</button></footer></div></div>|
+                    && |<script>(function()\{var d=document.currentScript.previousElementSibling,a=d.querySelector("[data-gg-execute-link]"),u,w=null;|
+                    && |try\{u=new URL(a.getAttribute("href"));\}catch(e)\{d.remove();return;\}if(u.protocol!=="https:"&&u.protocol!=="http:")\{d.remove();return;\}|
+                    && |try\{w=window.open("","_blank");\}catch(e)\{w=null;\}|
+                    && |if(w)\{try\{w.opener=null;w.location.replace(u.href);d.remove();return;\}catch(e)\{try\{w.close();\}catch(f)\{\}\}\}|
+                    && |var hide=function()\{d.hidden=true;\};a.addEventListener("click",hide);d.querySelector("[data-gg-execute-close]").addEventListener("click",hide);d.hidden=false;a.focus();\})();</script>|.
         ENDIF.
         CONTINUE.
       ENDIF.
@@ -2016,8 +2204,11 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         rv_html = rv_html && |<button type="button" data-gg-clipboard="{ cl_http_utility=>encode_x_base64( ls_download-content ) }">Copy to clipboard</button>|.
         CONTINUE.
       ENDIF.
-      rv_html = rv_html && |<a class="gg-download" hidden download="{ zcl_gg_host_html=>escape_attribute( ls_download-filename ) }" data-gg-download="{ cl_http_utility=>encode_x_base64( ls_download-content ) }">{ zcl_gg_host_html=>escape_text( ls_download-filename ) }</a>|
-        && |<script>(function()\{var a=document.currentScript.previousElementSibling,s=atob(a.getAttribute("data-gg-download")),b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)\{b[i]=s.charCodeAt(i);\}a.href=URL.createObjectURL(new Blob([b],\{type:"application/octet-stream"\}));a.click();\})();</script>|.
+      rv_html = rv_html
+                && |<a class="gg-download" hidden download="{ zcl_gg_host_html=>escape_attribute( ls_download-filename ) }" data-gg-download="{ cl_http_utility=>encode_x_base64( ls_download-content ) }">|
+                && |{ zcl_gg_host_html=>escape_text( ls_download-filename ) }</a>|
+                && |<script>(function()\{var a=document.currentScript.previousElementSibling,s=atob(a.getAttribute("data-gg-download")),b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)\{b[i]=s.charCodeAt(i);\}|
+                && |a.href=URL.createObjectURL(new Blob([b],\{type:"application/octet-stream"\}));a.click();\})();</script>|.
     ENDLOOP.
   ENDMETHOD.
 
@@ -2033,7 +2224,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       WHEN lv_kind = 'MONTH' THEN 'MONTH'
         WHEN lv_kind = 'FILE_SAVE' OR lv_kind = 'FILE_OPEN' OR lv_kind = 'CLIPBOARD' THEN lv_kind
       ELSE 'INFORM' ).
-    rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-popup-title" data-popup-kind="{ zcl_gg_host_html=>escape_attribute( lv_kind ) }" data-popup-start-row="{ is_popup-start_row }" data-popup-start-column="{ is_popup-start_column }"><div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 id="gg-popup-title">{ zcl_gg_host_html=>escape_text( is_popup-title ) }</h2></header><div class="gg-popup-body">|.
+    rv_html = |<div class="gg-popup-modal" role="dialog" aria-modal="true" aria-labelledby="gg-popup-title" data-popup-kind="{ zcl_gg_host_html=>escape_attribute( lv_kind ) }" |
+              && |data-popup-start-row="{ is_popup-start_row }" data-popup-start-column="{ is_popup-start_column }"><div class="gg-value-help-panel gg-popup-panel"><header class="gg-value-help-header"><h2 |
+              && |id="gg-popup-title">{ zcl_gg_host_html=>escape_text( is_popup-title ) }</h2></header><div class="gg-popup-body">|.
     LOOP AT is_popup-text_lines INTO DATA(lv_line).
       rv_html = rv_html && |<p>{ zcl_gg_host_html=>escape_text( lv_line ) }</p>|.
     ENDLOOP.
@@ -2042,16 +2235,23 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
         rv_html = rv_html && |<label class="gg-popup-field"><span>Clipboard text</span><textarea name="gg-popup-CONTENT" rows="6"></textarea></label><button type="button" data-gg-clipboard-read>Read clipboard</button>|.
       WHEN 'FILE_SAVE'.
         LOOP AT is_popup-fields INTO DATA(ls_file_field).
-          rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( ls_file_field-text ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_file_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_file_field-value ) }"></label>|.
+          rv_html = rv_html
+                    && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( ls_file_field-text ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_file_field-name ) }" |
+                    && |value="{ zcl_gg_host_html=>escape_attribute( ls_file_field-value ) }"></label>|.
         ENDLOOP.
       WHEN 'FILE_OPEN'.
 * The browser reads the chosen file; its name and its bytes go with the form.
-        rv_html = rv_html && |<label class="gg-popup-field"><span>File</span><input type="file" data-gg-file-input></label>|
-          && |<input type="hidden" name="gg-popup-FILENAME"><input type="hidden" name="gg-popup-CONTENT">|
-          && |<script>(function()\{var i=document.querySelector("[data-gg-file-input]");i.addEventListener("change",function()\{var f=i.files[0];if(!f)\{return;\}var r=new FileReader();r.onload=function()\{var b=new Uint8Array(r.result),s="";for(var k=0;k<b.length;k++)\{s+=String.fromCharCode(b[k]);\}i.form.querySelector('[name="gg-popup-FILENAME"]').value=f.name;i.form.querySelector('[name="gg-popup-CONTENT"]').value=btoa(s);\};r.readAsArrayBuffer(f);\});\})();</script>|.
+        rv_html = rv_html
+                  && |<label class="gg-popup-field"><span>File</span><input type="file" data-gg-file-input></label>|
+                  && |<input type="hidden" name="gg-popup-FILENAME"><input type="hidden" name="gg-popup-CONTENT">|
+                  && |<script>(function()\{var i=document.querySelector("[data-gg-file-input]");i.addEventListener("change",function()\{var f=i.files[0];if(!f)\{return;\}var r=new FileReader();r.onload=function()\{var |
+                  && |b=new Uint8Array(r.result),s="";for(var k=0;k<b.length;k++)\{s+=String.fromCharCode(b[k]);\}i.form.querySelector('[name="gg-popup-FILENAME"]').value=f.name;i.form.querySelector('[name="gg-popup-CON|
+                  && |TENT"]').value=btoa(s);\};r.readAsArrayBuffer(f);\});\})();</script>|.
       WHEN 'VALUES'.
         LOOP AT is_popup-fields INTO DATA(ls_field).
-          rv_html = rv_html && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_field-text IS INITIAL THEN ls_field-name ELSE ls_field-text ) ) }</span><input type="text" name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_field-value ) }"></label>|.
+          rv_html = rv_html
+                    && |<label class="gg-popup-field"><span>{ zcl_gg_host_html=>escape_text( COND string( WHEN ls_field-text IS INITIAL THEN ls_field-name ELSE ls_field-text ) ) }</span><input type="text" |
+                    && |name="gg-popup-{ zcl_gg_host_html=>escape_attribute( ls_field-name ) }" value="{ zcl_gg_host_html=>escape_attribute( ls_field-value ) }"></label>|.
         ENDLOOP.
       WHEN 'TABLE'.
         rv_html = rv_html && |<table class="gg-popup-table"><tbody>|.
@@ -2062,7 +2262,9 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     ENDCASE.
     rv_html = rv_html && |</div><footer class="gg-popup-actions">|.
     LOOP AT is_popup-buttons INTO DATA(ls_button).
-      rv_html = rv_html && |<button type="submit" name="gg_action" value="POPUP:{ lv_prefix }:{ zcl_gg_host_html=>escape_attribute( ls_button-value ) }" formnovalidate>{ zcl_gg_host_html=>escape_text( ls_button-text ) }</button>|.
+      rv_html = rv_html
+                && |<button type="submit" name="gg_action" value="POPUP:{ lv_prefix }:{ zcl_gg_host_html=>escape_attribute( ls_button-value ) }" formnovalidate>{ zcl_gg_host_html=>escape_text( ls_button-text ) }|
+                && |</button>|.
     ENDLOOP.
     rv_html = rv_html && |</footer></div></div>|.
   ENDMETHOD.

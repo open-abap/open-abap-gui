@@ -4,7 +4,7 @@
 * Source SHA-256: 194d04542a4ca15cfe4fbd77f45416df05da4a2d4a0c202fc48f4e4e28baf0bf
 * Target class: ZCL_EXAMPLE_EVENTS
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_example_events DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_example_events_h1.
+CLASS zcl_example_events DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_example_events_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.

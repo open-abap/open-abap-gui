@@ -105,7 +105,11 @@ CLASS zcl_gg_system_request_view IMPLEMENTATION.
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_REQ_TEXT' position = VALUE #( row = 110 column = 140 width = 380 ) ) data_type = VALUE #( typ = 'C' length = 60 ) ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'T_REQ_STATUS' position = VALUE #( row = 148 column = 18 width = 115 ) ) text = 'Status' ) ).
     io_builder->add_output_field( VALUE #( control = VALUE #( name = 'O_REQ_STATUS' position = VALUE #( row = 144 column = 140 width = 180 ) ) data_type = VALUE #( typ = 'C' length = 20 ) ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_TASKS' position = VALUE #( row = 182 column = 18 width = 540 height = 80 ) ) visible_rows = 2 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_TASKS' position = VALUE #( row = 182 column = 18 width = 540 height = 80 ) )
+                                              visible_rows   = 2
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_false ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_TASKS' name = 'TASK_ID' title = 'Task' data_type = VALUE #( typ = 'C' length = 12 ) width = 130 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_TASKS' name = 'TASK_OWNER' title = 'Owner' data_type = VALUE #( typ = 'C' length = 20 ) width = 150 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_TASKS' name = 'TASK_STATUS' title = 'Status' data_type = VALUE #( typ = 'C' length = 20 ) width = 150 ) ).
@@ -134,7 +138,11 @@ CLASS zcl_gg_system_request_view IMPLEMENTATION.
     io_builder->end_screen( ).
 
     io_builder->begin_screen( VALUE #( number = screen_objects title = 'Transport Objects' height = 260 ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_OBJECTS' position = VALUE #( row = 18 column = 18 width = 540 height = 100 ) ) visible_rows = 3 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_false ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_OBJECTS' position = VALUE #( row = 18 column = 18 width = 540 height = 100 ) )
+                                              visible_rows   = 3
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_false ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_OBJECTS' name = 'OBJECT_TYPE' title = 'Type' data_type = VALUE #( typ = 'C' length = 8 ) width = 100 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_OBJECTS' name = 'OBJECT_NAME' title = 'Name' data_type = VALUE #( typ = 'C' length = 30 ) width = 170 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_OBJECTS' name = 'OBJECT_TEXT' title = 'Description' data_type = VALUE #( typ = 'C' length = 60 ) width = 250 ) ).
@@ -147,7 +155,11 @@ CLASS zcl_gg_system_request_view IMPLEMENTATION.
     io_builder->end_screen( ).
 
     io_builder->begin_screen( VALUE #( number = screen_logs title = 'Transport Logs' height = 280 ) ).
-    io_builder->begin_table_control( VALUE #( control = VALUE #( name = 'TC_LOGS' position = VALUE #( row = 18 column = 18 width = 540 height = 140 ) ) visible_rows = 4 selection_mode = 'NONE' with_hscroll = abap_true with_vscroll = abap_true ) ).
+    io_builder->begin_table_control( VALUE #( control        = VALUE #( name = 'TC_LOGS' position = VALUE #( row = 18 column = 18 width = 540 height = 140 ) )
+                                              visible_rows   = 4
+                                              selection_mode = 'NONE'
+                                              with_hscroll   = abap_true
+                                              with_vscroll   = abap_true ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_LOGS' name = 'LOG_SEVERITY' title = 'Severity' data_type = VALUE #( typ = 'C' length = 8 ) width = 100 ) ).
     io_builder->add_table_column( VALUE #( table_control = 'TC_LOGS' name = 'LOG_TEXT' title = 'Message' data_type = VALUE #( typ = 'C' length = 120 ) width = 400 ) ).
     io_builder->end_table_control( ).

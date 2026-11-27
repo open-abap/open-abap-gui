@@ -7,12 +7,13 @@ import {fileURLToPath} from "node:url";
 // system. The SAP-named classes, interfaces and DDIC objects in src clash with
 // the system's own, so abaplint renames them (the "rename" patterns in
 // abaplint.jsonc) together with every reference to them. The type pools and
-// the function group stay SAP's: they are dropped from the copy. The output
+// the function group stay SAP's: they move to deps/, outside abapGit's starting
+// folder, where the output's abaplint.jsonc finds them as a dependency. The output
 // folder is an abapGit repository with everything under src/ (src/ as
 // src/standard/, framework/ as src/framework/, examples/ as src/examples/) and
 // a package per folder: push it to a branch and pull it into a local package.
 // Its .abapgit.xml and abaplint.jsonc are checked in; the script writes only
-// src/ and assets/, including the package and object XML files abapGit needs.
+// src/, deps/ and assets/, including the package and object XML files abapGit needs.
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const config = JSON.parse(fs.readFileSync(path.join(repository, "abaplint.jsonc"), "utf8"));
@@ -26,7 +27,8 @@ const layout = [
 
 // SAP already ships these under the same names, and nothing in them refers to
 // a renamed object. The tables keep their names because examples declare work
-// areas for them with TABLES, which are named after the table.
+// areas for them with TABLES, which are named after the table. Each moves from
+// src/standard/ to deps/.
 const sapOwned = [
   "src/standard/ddic/pools",
   "src/standard/fugr",
@@ -145,7 +147,7 @@ function writeObjectXml() {
 // untouched, and framework/ is already in src/framework/. abaplint takes its
 // base folder from the config's location. Only the generated folders are
 // cleared: .abapgit.xml and abaplint.jsonc in the output are checked in.
-for (const folder of ["src", ...outsideSrc.map(f => f.to)]) {
+for (const folder of ["src", "deps", ...outsideSrc.map(f => f.to)]) {
   fs.rmSync(path.join(output, folder), {recursive: true, force: true});
 }
 for (const folder of layout) {
@@ -179,7 +181,9 @@ try {
 
 if (status === 0) {
   for (const relative of sapOwned) {
-    fs.rmSync(path.join(output, relative), {recursive: true, force: true});
+    const target = path.join(output, "deps", path.relative("src/standard", relative));
+    fs.mkdirSync(path.dirname(target), {recursive: true});
+    fs.renameSync(path.join(output, relative), target);
   }
   for (const folder of outsideSrc) {
     fs.renameSync(path.join(output, folder.from), path.join(output, folder.to));

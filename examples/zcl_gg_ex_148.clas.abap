@@ -4,7 +4,7 @@
 * Source SHA-256: 6559d91f989c6ebfb38c7adbff3333f09705b9343cafe1ec08a4cc6d6369d0a8
 * Target class: ZCL_GG_EX_148
 * This file is generated migration output; it is safe to edit after review.
-CLASS zcl_gg_ex_148 DEFINITION PUBLIC FINAL CREATE PUBLIC FRIENDS zcl_gg_ex_148_h1.
+CLASS zcl_gg_ex_148 DEFINITION PUBLIC FINAL CREATE PUBLIC GLOBAL FRIENDS zcl_gg_ex_148_h1.
 
   PUBLIC SECTION.
     INTERFACES zif_gg_report_v1.
@@ -130,7 +130,8 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_screens.
     io_builder->begin_screen( VALUE #( number = '0100' title = 'Bar chart' next_screen = '0100' ok_code = 'GV_OK_CODE' width = 800 height = 644 ) ).
-    io_builder->add_custom_control( VALUE #( control = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 416 ) ) resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
+    io_builder->add_custom_control( VALUE #( control  = VALUE #( name = 'CC_MAIN' position = VALUE #( row = 10 column = 5 width = 780 height = 416 ) )
+                                             resizing = VALUE #( vertical = abap_true min_height = 130 horizontal = abap_true min_width = 200 ) ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_BARS' position = VALUE #( row = 452 column = 5 width = 100 height = 26 ) ) text = 'Bars' ucomm = 'BARS' ) ).
     io_builder->add_pushbutton( VALUE #( control = VALUE #( name = 'BTN_COLUMNS' position = VALUE #( row = 452 column = 125 width = 100 height = 26 ) ) text = 'Columns' ucomm = 'COLUMNS' ) ).
     io_builder->add_text( VALUE #( control = VALUE #( name = 'LBL_STATE' position = VALUE #( row = 504 column = 5 width = 60 height = 26 ) ) text = 'State' ) ).
@@ -293,7 +294,8 @@ CLASS zcl_gg_ex_148 IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD form_render.
-    go_chart->set_customizing( data = |<?xml version="1.0" encoding="utf-8"?><SAPChartCustomizing version="1.1"><GlobalSettings><Defaults><ChartType>{ gv_chart_type }</ChartType></Defaults></GlobalSettings><Elements><ChartElements><Title><Caption>Occupied seats per airline</Caption></Title></ChartElements></Elements></SAPChartCustomizing>| ).
+    go_chart->set_customizing( data = |<?xml version="1.0" encoding="utf-8"?><SAPChartCustomizing version="1.1"><GlobalSettings><Defaults><ChartType>{ gv_chart_type }</ChartType></Defaults></GlobalSettings><Elements>|
+                                      && |<ChartElements><Title><Caption>Occupied seats per airline</Caption></Title></ChartElements></Elements></SAPChartCustomizing>| ).
     go_chart->render( ).
     gv_state = |Chart type { gv_chart_type }|.
   ENDMETHOD.

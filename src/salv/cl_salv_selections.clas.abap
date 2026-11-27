@@ -1,4 +1,4 @@
-CLASS cl_salv_selections DEFINITION PUBLIC FRIENDS cl_salv_table.
+CLASS cl_salv_selections DEFINITION PUBLIC GLOBAL FRIENDS cl_salv_table.
   PUBLIC SECTION.
 
     INTERFACES if_salv_c_selection_mode.
