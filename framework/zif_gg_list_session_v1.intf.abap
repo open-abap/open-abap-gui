@@ -30,11 +30,11 @@ INTERFACE zif_gg_list_session_v1 PUBLIC.
       iv_level       TYPE i OPTIONAL
       iv_index       TYPE i
     RETURNING
-      VALUE(rs_line) TYPE zif_gg_list_processing_types_v1=>ty_line.
+      VALUE(rs_line) TYPE zif_gg_list_proc_types_v1=>ty_line.
 
   METHODS modify_line
     IMPORTING
-      is_line TYPE zif_gg_list_processing_types_v1=>ty_line.
+      is_line TYPE zif_gg_list_proc_types_v1=>ty_line.
 
   METHODS set_title
     IMPORTING

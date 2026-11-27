@@ -1,4 +1,4 @@
-INTERFACE zif_gg_list_processing_types_v1 PUBLIC.
+INTERFACE zif_gg_list_proc_types_v1 PUBLIC.
 
 * Vocabulary shared between a program that writes a classic list and
 * whatever renders and drives that list, see zif_gg_list_processing_v1

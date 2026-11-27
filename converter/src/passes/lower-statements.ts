@@ -376,7 +376,7 @@ function createdObject(ast: StatementAst): { target?: string; targetToken?: Node
 }
 
 const LIST_COLOR_REWRITES: Replacement[] = Object.entries(LIST_COLOR_CONSTANTS)
-  .map(([name, constant]) => [name, `zif_gg_list_processing_types_v1=>${constant}`]);
+  .map(([name, constant]) => [name, `zif_gg_list_proc_types_v1=>${constant}`]);
 
 // The statements the lowering visitor rewrites into scaffold operations. The
 // manifest records the rule used for each statement; a statement with no rule
@@ -1053,7 +1053,7 @@ function parseWrite(raw: string, context: LoweringContext): string {
   if (additions.noSign) format.push("no_sign = abap_true");
   if (additions.justification) {
     const name = additions.justification === "LEFT-JUSTIFIED" ? "left" : additions.justification === "CENTERED" ? "center" : "right";
-    format.push(`justification = zif_gg_list_processing_types_v1=>justify_${name}`);
+    format.push(`justification = zif_gg_list_proc_types_v1=>justify_${name}`);
   }
   const value = valueExpression(rest, context);
   const formatted = /^'(?:''|[^'])*'$|^\|.*\|$/s.test(value)
@@ -1061,7 +1061,7 @@ function parseWrite(raw: string, context: LoweringContext): string {
     : `lo_writer->format_value( iv_value = ${value}${additions.dateMask ? ` iv_date_mask = '${additions.dateMask}'` : ""} )`;
   const fields = [`text = ${formatted}`];
   const fieldFormat = [];
-  if (colorField) fieldFormat.push(`color = zif_gg_list_processing_types_v1=>${colorField}`);
+  if (colorField) fieldFormat.push(`color = zif_gg_list_proc_types_v1=>${colorField}`);
   if (intensified) fieldFormat.push("intensified = abap_true");
   if (inverse) fieldFormat.push("inverse = abap_true");
   if (hotspot) fieldFormat.push("hotspot = abap_true");
@@ -1108,7 +1108,7 @@ function parseFormat(raw: string, context: LoweringContext): string {
   const colorText = color ? ast.source(color).toUpperCase() : "";
   if (/^\d+$/.test(colorText)) fields.push(`color = ${colorText}`);
   const constant = LIST_COLOR_CONSTANTS[colorText as keyof typeof LIST_COLOR_CONSTANTS];
-  if (constant) fields.push(`color = zif_gg_list_processing_types_v1=>${constant}`);
+  if (constant) fields.push(`color = zif_gg_list_proc_types_v1=>${constant}`);
   if (colorText === "=" && operand) fields.push(`color = ${valueExpression(ast.source(operand).toUpperCase(), context)}`);
   for (const [keyword, field] of [["INTENSIFIED", "intensified"], ["INVERSE", "inverse"], ["HOTSPOT", "hotspot"], ["INPUT", "input"]]) {
     const value = ast.after(keyword, ast.node);
@@ -1790,8 +1790,8 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
     if (color && ast) {
       const [, value, toggle] = (color as Nodes.ExpressionNode).getChildren().map((child) => ast.source(child));
       const constant = LIST_COLOR_CONSTANTS[(value ?? "").toUpperCase() as keyof typeof LIST_COLOR_CONSTANTS];
-      lines.push(`${line}-format-color = ${toggle?.toUpperCase() === "OFF" ? "zif_gg_list_processing_types_v1=>color_background"
-        : constant ? `zif_gg_list_processing_types_v1=>${constant}` : valueExpression(value ?? "", context)}.`);
+      lines.push(`${line}-format-color = ${toggle?.toUpperCase() === "OFF" ? "zif_gg_list_proc_types_v1=>color_background"
+        : constant ? `zif_gg_list_proc_types_v1=>${constant}` : valueExpression(value ?? "", context)}.`);
     }
     lines.push(`io_session->get_list( )->modify_line( ${line} ).`);
     return lines.join("\n");

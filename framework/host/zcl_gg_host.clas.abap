@@ -17,7 +17,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              line         TYPE i,
              cursor_field TYPE zif_gg_session_types_v1=>ty_name,
              cursor_value TYPE string,
-             ucomm        TYPE zif_gg_list_processing_types_v1=>ty_ucomm,
+             ucomm        TYPE zif_gg_list_proc_types_v1=>ty_ucomm,
              pf_key       TYPE i,
            END OF ty_list_step.
     TYPES ty_list_steps TYPE STANDARD TABLE OF ty_list_step WITH DEFAULT KEY.
@@ -39,7 +39,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
              help_name           TYPE string,
              terminal            TYPE string,
              dialog_suppressed   TYPE abap_bool,
-             settings            TYPE zif_gg_list_processing_types_v1=>ty_settings,
+             settings            TYPE zif_gg_list_proc_types_v1=>ty_settings,
              status              TYPE zif_gg_session_types_v1=>ty_gui_status,
              title               TYPE string,
              submit              TYPE zif_gg_session_types_v1=>ty_submit,
@@ -81,7 +81,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_help_name           TYPE zif_gg_selection_screen_types=>ty_name OPTIONAL
         iv_exit_ucomm          TYPE zif_gg_selection_screen_types=>ty_ucomm OPTIONAL
         iv_line_index          TYPE i OPTIONAL
-        iv_user_command        TYPE zif_gg_list_processing_types_v1=>ty_ucomm OPTIONAL
+        iv_user_command        TYPE zif_gg_list_proc_types_v1=>ty_ucomm OPTIONAL
         iv_cursor_field        TYPE zif_gg_session_types_v1=>ty_name OPTIONAL
         iv_cursor_value        TYPE string OPTIONAL
         iv_pf_key              TYPE i OPTIONAL
@@ -181,7 +181,7 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
       IMPORTING
         it_path         TYPE ty_list_steps OPTIONAL
         iv_line_index   TYPE i
-        iv_user_command TYPE zif_gg_list_processing_types_v1=>ty_ucomm
+        iv_user_command TYPE zif_gg_list_proc_types_v1=>ty_ucomm
         iv_cursor_field TYPE zif_gg_session_types_v1=>ty_name
         iv_cursor_value TYPE string
         iv_pf_key       TYPE i

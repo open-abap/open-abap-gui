@@ -974,7 +974,7 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
           iv_program             = ls_session-program
           iv_batch               = ls_session-batch
           it_input               = lt_input
-          iv_user_command        = CONV zif_gg_list_processing_types_v1=>ty_ucomm( is_request-ucomm )
+          iv_user_command        = CONV zif_gg_list_proc_types_v1=>ty_ucomm( is_request-ucomm )
           iv_list_value          = is_request-value
           iv_list_target         = is_request-target
           is_list_find           = ls_session-last_result-list_outcome-find

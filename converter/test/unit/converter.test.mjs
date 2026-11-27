@@ -325,7 +325,7 @@ test("lowers classic named WRITE hotspot and color formatting", async () => {
   });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /GGCONV-E516/);
-  assert.match(result.classSource, /format = VALUE #\( color = zif_gg_list_processing_types_v1=>color_key hotspot = abap_true \)/);
+  assert.match(result.classSource, /format = VALUE #\( color = zif_gg_list_proc_types_v1=>color_key hotspot = abap_true \)/);
 });
 
 test("lowers classic list color constants through the scaffold interface", async () => {
@@ -345,8 +345,8 @@ test("lowers classic list color constants through the scaffold interface", async
   });
   assert.equal(result.supported, true);
   assert.doesNotMatch(result.classSource, /abap\.builtin\.col_(?:normal|negative)/);
-  assert.match(result.classSource, /zif_gg_list_processing_types_v1=>color_normal/);
-  assert.match(result.classSource, /zif_gg_list_processing_types_v1=>color_negative/);
+  assert.match(result.classSource, /zif_gg_list_proc_types_v1=>color_normal/);
+  assert.match(result.classSource, /zif_gg_list_proc_types_v1=>color_negative/);
   assert.match(result.classSource, /set_format\( VALUE #\( BASE lo_writer->get_format\( \) color = lv_color \) \)/i);
   assert.match(result.classSource, /io_session->get_list\( \)->get_context\( \)-page/);
 });
@@ -1105,7 +1105,7 @@ test("lowers classic list statements the way SAP runs them", async () => {
   // Choosing a line restores the hidden globals.
   assert.match(result.classSource, /IF line_exists\( is_line-fields\[ name = 'GS_ROW-ID' \] \)\.\s+gs_row-id = is_line-fields\[ name = 'GS_ROW-ID' \]-value\./);
   // MODIFY LINE n reads line n itself; a bare INVERSE means ON.
-  assert.match(result.classSource, /DATA\(ls_modify_line_1\) = io_session->get_list\( \)->read_line\( iv_index = 2 \)\.\s+ls_modify_line_1-format-inverse = abap_true\.\s+ls_modify_line_1-format-color = zif_gg_list_processing_types_v1=>color_negative\.\s+io_session->get_list\( \)->modify_line\( ls_modify_line_1 \)\./);
+  assert.match(result.classSource, /DATA\(ls_modify_line_1\) = io_session->get_list\( \)->read_line\( iv_index = 2 \)\.\s+ls_modify_line_1-format-inverse = abap_true\.\s+ls_modify_line_1-format-color = zif_gg_list_proc_types_v1=>color_negative\.\s+io_session->get_list\( \)->modify_line\( ls_modify_line_1 \)\./);
 });
 
 test("types untyped FORM parameters generically", async () => {

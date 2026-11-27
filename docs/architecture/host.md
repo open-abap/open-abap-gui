@@ -17,7 +17,7 @@ HTML pages.
 ## Processors
 
 A program describes its screens through builders
-(`zif_gg_selection_screen_builder_v1`, `zif_gg_dynpro_builder_v1`), and does
+(`zif_gg_sel_screen_builder_v1`, `zif_gg_dynpro_builder_v1`), and does
 everything else through the session object it gets in every callback
 (`zcl_gg_host_session`). Behind them sit the processors:
 
