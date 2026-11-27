@@ -432,7 +432,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selected_nodes.
-    FIELD-SYMBOLS <selected_nodes> TYPE ANY TABLE.
+    FIELD-SYMBOLS <selected_nodes> TYPE STANDARD TABLE.
     ASSIGN ct_selected_nodes TO <selected_nodes>.
     IF sy-subrc = 0.
       LOOP AT mt_html_nodes INTO DATA(ls_node) WHERE selected = abap_true.

@@ -227,7 +227,12 @@ CLASS cl_gui_calendar IMPLEMENTATION.
     ENDCASE.
     mv_date_begin = lv_begin.
     mv_date_end = lv_end.
-    mt_selection = VALUE #( ( date_begin = mv_date_begin date_end = mv_date_end ) ).
+    CLEAR mt_selection.
+    lv_date = lv_begin.
+    WHILE lv_date <= lv_end.
+      APPEND VALUE #( date = lv_date ) TO mt_selection.
+      lv_date = lv_date + 1.
+    ENDWHILE.
     refresh_html( ).
     RAISE EVENT date_selected
       EXPORTING

@@ -106,6 +106,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
       EXCEPTIONS
         cntl_error
         cntb_error_fcode.
+    METHODS free REDEFINITION.
 
   PROTECTED SECTION.
     METHODS dispatch_frontend_event REDEFINITION.

@@ -79,6 +79,8 @@ CLASS cl_gui_column_tree DEFINITION PUBLIC INHERITING FROM cl_item_tree_control.
         end_column      TYPE any OPTIONAL
         all_columns     TYPE abap_bool OPTIONAL
         include_heading TYPE abap_bool OPTIONAL.
+    METHODS free REDEFINITION.
+    METHODS set_registered_events REDEFINITION.
 
   PROTECTED SECTION.
     METHODS refresh_tree_html REDEFINITION.

@@ -1094,7 +1094,7 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_selected_columns.
-    FIELD-SYMBOLS <columns> TYPE ANY TABLE.
+    FIELD-SYMBOLS <columns> TYPE STANDARD TABLE.
     ASSIGN et_sel_columns TO <columns>.
     IF sy-subrc <> 0.
       RETURN.
