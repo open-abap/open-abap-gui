@@ -486,7 +486,7 @@ CLASS zcl_gg_host_compatibility IMPLEMENTATION.
       EXPORTING
         p_name         = iv_rollname
       RECEIVING
-        type           = lo_type
+        p_descr_ref    = lo_type
       EXCEPTIONS
         type_not_found = 1
         OTHERS         = 2 ).
