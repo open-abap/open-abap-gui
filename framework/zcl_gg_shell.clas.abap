@@ -137,6 +137,8 @@ CLASS zcl_gg_shell IMPLEMENTATION.
 * comments are block comments.
     rv_text = '(function () {' && ` ` &&
       'var NEW_WINDOW = "new";' && ` ` &&
+      '/* Where the host is served; its routes are paths below it. */' && ` ` &&
+      'var BASE = "' && zcl_gg_host_html=>url( `` ) && '";' && ` ` &&
       'var COMMAND_FORM = "wb-command-transaction";' && ` ` &&
       'var COLLAPSED_KEY = "open-abap-gui.rail-collapsed";' && ` ` &&
       'var shell = document.getElementById("gg-shell");' && ` ` &&
@@ -253,7 +255,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'removeSession(created);' && ` ` &&
       '/* The host opened the window already; end it there as well, or the host counts' && ` ` &&
       'a session the rail does not show, and lets the last one shown end. */' && ` ` &&
-      'fetch("/transaction", {method: "POST", headers: {"x-gg-window": created.window},' && ` ` &&
+      'fetch(BASE + "/transaction", {method: "POST", headers: {"x-gg-window": created.window},' && ` ` &&
       'body: new URLSearchParams({session: "end"})}).catch(function () {' && ` ` &&
       'return undefined;' && ` ` &&
       '});' && ` ` &&
@@ -487,7 +489,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'if (end) {' && ` ` &&
       'var ending = byKey(end.getAttribute("data-end-session"));' && ` ` &&
       'if (ending) {' && ` ` &&
-      'request(ending, "/transaction", {method: "POST", body: new URLSearchParams({session: "end"})});' && ` ` &&
+      'request(ending, BASE + "/transaction", {method: "POST", body: new URLSearchParams({session: "end"})});' && ` ` &&
       '}' && ` ` &&
       'return;' && ` ` &&
       '}' && ` ` &&
@@ -497,7 +499,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'return;' && ` ` &&
       '}' && ` ` &&
       'if (event.target.closest("#gg-rail-new")) {' && ` ` &&
-      'request(active, "/transaction", {method: "POST", body: new URLSearchParams({session: "open"})});' && ` ` &&
+      'request(active, BASE + "/transaction", {method: "POST", body: new URLSearchParams({session: "open"})});' && ` ` &&
       'return;' && ` ` &&
       '}' && ` ` &&
       'if (event.target.closest("#gg-rail-collapse")) {' && ` ` &&
@@ -522,7 +524,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '}' && ` ` &&
       '}' && ` ` &&
       'window.addEventListener("hashchange", function () {' && ` ` &&
-      'request(active, hashRoute());' && ` ` &&
+      'request(active, BASE + hashRoute());' && ` ` &&
       '});' && ` ` &&
       '/* A reload or a closed tab ends the sessions of the page on the host; a page' && ` ` &&
       'the browser kept and shows again has none any more, so it starts afresh. */' && ` ` &&
@@ -534,7 +536,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       'return;' && ` ` &&
       '}' && ` ` &&
       'try {' && ` ` &&
-      'fetch("/transaction", {method: "POST", keepalive: true, headers: {"x-gg-window": named.window},' && ` ` &&
+      'fetch(BASE + "/transaction", {method: "POST", keepalive: true, headers: {"x-gg-window": named.window},' && ` ` &&
       'body: new URLSearchParams({session: "close"})}).catch(function () {' && ` ` &&
       'return undefined;' && ` ` &&
       '});' && ` ` &&
@@ -549,7 +551,7 @@ CLASS zcl_gg_shell IMPLEMENTATION.
       '});' && ` ` &&
       'var first = createSession(NEW_WINDOW);' && ` ` &&
       'activate(first);' && ` ` &&
-      'request(first, hashRoute());' && ` ` &&
+      'request(first, BASE + hashRoute());' && ` ` &&
       '}());'.
   ENDMETHOD.
 

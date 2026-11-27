@@ -591,17 +591,17 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     ENDLOOP.
 
     IF iv_runtime = abap_true OR iv_session_id IS NOT INITIAL OR iv_page_id IS NOT INITIAL.
-      lv_forms = |<form id="{ form_workbench }" method="get" action="/" hidden></form>|.
+      lv_forms = |<form id="{ form_workbench }" method="get" action="{ zcl_gg_host_html=>url( `/` ) }" hidden></form>|.
       IF lv_dispatch = abap_true.
         lv_forms = lv_forms &&
-          |<form id="{ form_dispatch }" method="post" action="/dispatch" hidden>| &&
+          |<form id="{ form_dispatch }" method="post" action="{ zcl_gg_host_html=>url( `/dispatch` ) }" hidden>| &&
           |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }">| &&
           |<input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"></form>|.
       ENDIF.
     ENDIF.
 
     rv_html = '<section class="wb-commandbar" role="region" aria-label="Standard command toolbar" data-toolbar-scope="standard-command"><form id="' &&
-      form_transaction && '" method="post" action="/transaction">' &&
+      form_transaction && '" method="post" action="' && zcl_gg_host_html=>url( `/transaction` ) && '">' &&
       '<label class="wb-sr-only" for="ToolbarOkCode">Command</label>' &&
 *     The command field is never pre-filled. A command is consumed when it is
 *     submitted, so a rejected one is not echoed back for accidental resend.

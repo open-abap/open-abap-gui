@@ -150,7 +150,8 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
     LOOP AT lt_transactions INTO ls_transaction.
       lv_tcode_url = cl_http_utility=>escape_url( CONV string( ls_transaction-tcode ) ).
       rv_html = rv_html
-                && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_transaction-tcode ) ) }" href="/transaction?tcode={ zcl_gg_host_html=>escape_attribute( lv_tcode_url ) }|
+                && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_transaction-tcode ) ) }" |
+                && |href="{ zcl_gg_host_html=>url( `/transaction` ) }?tcode={ zcl_gg_host_html=>escape_attribute( lv_tcode_url ) }|
                 && |">| &&
         zcl_gg_host_icons=>icon( iv_name = `file-code` ) &&
         |<span>{ zcl_gg_host_html=>escape_text( CONV string( ls_transaction-tcode ) ) }</span><span class="wb-app-description">{ zcl_gg_host_html=>escape_text( ls_transaction-description ) }</span></a></li>|.
@@ -168,7 +169,8 @@ CLASS zcl_gg_workbench IMPLEMENTATION.
       LOOP AT lt_programs INTO ls_program.
         lv_program_url = cl_http_utility=>escape_url( CONV string( ls_program-program ) ).
         rv_html = rv_html
-                  && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_program-program ) ) }" href="/program?name={ zcl_gg_host_html=>escape_attribute( lv_program_url ) }">| &&
+                  && |<li><a class="wb-app-link" aria-label="{ zcl_gg_host_html=>escape_attribute( CONV string( ls_program-program ) ) }" |
+                  && |href="{ zcl_gg_host_html=>url( `/program` ) }?name={ zcl_gg_host_html=>escape_attribute( lv_program_url ) }">| &&
           zcl_gg_host_icons=>icon( iv_name = `file-code` ) &&
           |<span>{ zcl_gg_host_html=>escape_text( CONV string( ls_program-program ) ) }</span><span class="wb-app-description">{ zcl_gg_host_html=>escape_text( ls_program-description ) }</span></a></li>|.
       ENDLOOP.

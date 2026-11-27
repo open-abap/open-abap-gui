@@ -11,6 +11,11 @@
 | POST | `/dispatch` | a user action on the current page |
 | DELETE | `/session/<id>` | close a running program |
 
+The paths are the request's `~path_info`, the part below where the handler
+is served; at the root of the server that is the whole path. The pages link
+and post below the same place, `~path` without its `~path_info`, so the
+handler can sit below any path, as an ICF node serves it.
+
 A request names its GUI session in the `x-gg-window` header or the
 `gg_window` field; one that names neither belongs to the session of the
 running program it is for (its `session_id`, in a form, a JSON body or

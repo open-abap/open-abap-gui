@@ -481,7 +481,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
 * A sapevent anchor posts the SAPEVENT event of its viewer, as a control
 * event of the page.
     rs_sapevent = VALUE #(
-      url          = '/dispatch'
+      url          = zcl_gg_host_html=>url( `/dispatch` )
       action_field = 'gg_control_event'
       fields       = VALUE #(
         ( name = 'session_id' value = iv_session_id )
@@ -627,7 +627,7 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_csp_nonce  = is_context-csp_nonce
       is_status     = is_status
       it_messages   = it_messages
-      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><form method="post" action="/dispatch"><input type="hidden" name="session_id" |
+      iv_body       = |<section class="gg-page gg-page--list" aria-label="List page"><form method="post" action="{ zcl_gg_host_html=>url( `/dispatch` ) }"><input type="hidden" name="session_id" |
                       && |value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" |
                       && |name="action" value="SUBMIT">{ lv_body }{ COND string( WHEN lv_nav IS NOT INITIAL THEN |<nav class="gg-action-row" aria-label="List actions">{ lv_nav }</nav>| ELSE `` ) }</form></section>| ).
   ENDMETHOD.
@@ -705,7 +705,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
     lv_body = |<section class="gg-page gg-page--selection" aria-label="Selection page">|.
     lv_body = lv_body && selection_help_section( iv_help_text ).
     lv_body = lv_body
-              && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" action="/dispatch"><input type="hidden" name="session_id" |
+              && |<section class="gg-work-area gg-selection" aria-label="Selection work area"><form id="gg-host-form" method="post" |
+              && |action="{ zcl_gg_host_html=>url( `/dispatch` ) }"><input type="hidden" name="session_id" |
               && |value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" |
               && |value="SUBMIT">|.
 
@@ -1366,7 +1367,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       lv_body = lv_body && |</ul></section></div></div></div>|.
     ENDIF.
     lv_body = lv_body
-              && |<form method="post" action="/dispatch" id="gg-dynpro-form"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" |
+              && |<form method="post" action="{ zcl_gg_host_html=>url( `/dispatch` ) }" id="gg-dynpro-form">|
+              && |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" |
               && |value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="action" value="SUBMIT">|.
     LOOP AT it_values INTO ls_active_value
         WHERE container = `` AND row = 0.
@@ -1917,7 +1919,8 @@ CLASS zcl_gg_host_renderer IMPLEMENTATION.
       iv_csp_nonce  = is_context-csp_nonce
       iv_body       = |<header><h1>{ zcl_gg_host_html=>escape_text( iv_title ) }</h1></header><section class="gg-navigation-page" aria-label="Navigation transition"><p |
                       && |data-navigation-kind="{ zcl_gg_host_html=>escape_attribute( is_navigation-kind ) }">Continue to <strong>{ zcl_gg_host_html=>escape_text( is_navigation-target ) }</strong>.</p><form |
-                      && |method="post" action="/dispatch"><input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" |
+                      && |method="post" action="{ zcl_gg_host_html=>url( `/dispatch` ) }">|
+                      && |<input type="hidden" name="session_id" value="{ zcl_gg_host_html=>escape_attribute( iv_session_id ) }"><input type="hidden" name="page_id" |
                       && |value="{ zcl_gg_host_html=>escape_attribute( iv_page_id ) }"><input type="hidden" name="gg_action" value="SUBMIT"><button type="submit">Continue</button></form></section>| ).
   ENDMETHOD.
 
