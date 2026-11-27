@@ -1,0 +1,53 @@
+name: builds deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: builds-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+      - run: npm ci
+      - run: npm run build:sap
+
+      # Create the BUILDS_DEPLOY_KEY repository secret after adding the deploy key (with write access).
+      - name: Check out builds repository
+        uses: actions/checkout@v6
+        with:
+          repository: open-abap/open-abap-gui-builds
+          ref: main
+          path: builds
+          ssh-key: ${{ secrets.BUILDS_DEPLOY_KEY }}
+
+      - name: Push sap-build
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/builds"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Replace everything but the git metadata and the repository's own README.
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name README.md -exec rm -rf -- {} +
+          cp -R "$GITHUB_WORKSPACE/sap-build/." .
+          git add --all
+
+          if git diff --cached --quiet; then
+            echo "Build is unchanged"
+          else
+            git commit -m "Build of $GITHUB_REPOSITORY@$GITHUB_SHA"
+            git push origin HEAD:main
+          fi
