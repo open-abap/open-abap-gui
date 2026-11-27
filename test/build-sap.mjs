@@ -10,7 +10,8 @@ import {fileURLToPath} from "node:url";
 // the function group stay SAP's: they are dropped from the copy. The output
 // folder is an abapGit repository with everything under src/, framework/ as
 // src/framework/, and a package per folder: push it to a branch and pull it
-// into a local package.
+// into a local package. Its .abapgit.xml and abaplint.jsonc are checked in;
+// the script writes only src/ and assets/.
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const config = JSON.parse(fs.readFileSync(path.join(repository, "abaplint.jsonc"), "utf8"));
@@ -25,7 +26,6 @@ const layout = [
 // a renamed object.
 const sapOwned = [
   "src/ddic/pools",
-  "src/dd/sdydo.type.abap",
   "src/fugr",
 ];
 
@@ -146,6 +146,17 @@ function writePackages() {
   }
 }
 
+// abapGit writes its XML files with a UTF-8 byte order mark; the repository's
+// have none.
+function addXmlByteOrderMarks() {
+  for (const file of walk(path.join(output, "src")).filter(f => f.endsWith(".xml"))) {
+    const content = fs.readFileSync(file, "utf8");
+    if (!content.startsWith("﻿")) {
+      fs.writeFileSync(file, `﻿${content}`, "utf8");
+    }
+  }
+}
+
 function tooLongNames() {
   return walk(output)
     .map(file => path.basename(file).replace(/\..*$/, ""))
@@ -154,8 +165,11 @@ function tooLongNames() {
 
 // Rename inline inside a copy laid out as the output: the repository stays
 // untouched, and framework/ is already in src/framework/. abaplint takes its
-// base folder from the config's location.
-fs.rmSync(output, {recursive: true, force: true});
+// base folder from the config's location. Only the generated folders are
+// cleared: .abapgit.xml and abaplint.jsonc in the output are checked in.
+for (const folder of ["src", ...outsideSrc.map(f => f.to)]) {
+  fs.rmSync(path.join(output, folder), {recursive: true, force: true});
+}
 for (const folder of layout) {
   fs.cpSync(path.join(repository, folder.from), path.join(output, folder.to), {recursive: true});
 }
@@ -202,25 +216,7 @@ if (status === 0) {
     fs.renameSync(path.join(output, folder.from), path.join(output, folder.to));
   }
   writePackages();
-
-  // PREFIX keeps the subpackages under the root package's name, so folder
-  // names such as salv or tree never collide with SAP's own packages.
-  fs.writeFileSync(path.join(output, ".abapgit.xml"), `<?xml version="1.0" encoding="utf-8"?>
-<asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
- <asx:values>
-  <DATA>
-   <MASTER_LANGUAGE>E</MASTER_LANGUAGE>
-   <STARTING_FOLDER>/src/</STARTING_FOLDER>
-   <FOLDER_LOGIC>PREFIX</FOLDER_LOGIC>
-   <IGNORE>
-    <item>/.gitignore</item>
-    <item>/LICENSE</item>
-    <item>/README.md</item>
-   </IGNORE>
-  </DATA>
- </asx:values>
-</asx:abap>
-`, "utf8");
+  addXmlByteOrderMarks();
 
   console.log(`build:sap: wrote ${path.relative(repository, output)}`);
 }

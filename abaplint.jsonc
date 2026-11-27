@@ -27,11 +27,10 @@
       { "type": "CLAS", "oldName": "^cx_salv_method_not_supported$", "newName": "zcx_gg_salv_meth_not_supported" },
       { "type": "INTF", "oldName": "^if_salv_events_actions_table$", "newName": "zif_gg_salv_events_actions_tab" },
       { "type": "INTF", "oldName": "^if_salv_c_function_position$", "newName": "zif_gg_salv_c_function_pos" },
-      { "type": "DTEL", "oldName": "^salv_de_layout_restriction$", "newName": "z_gg_salv_de_layout_restrict" },
       { "type": "CLAS", "oldName": "^cl_(.*)$", "newName": "zcl_gg_$1" },
       { "type": "CLAS", "oldName": "^cx_(.*)$", "newName": "zcx_gg_$1" },
       { "type": "INTF", "oldName": "^if_(.*)$", "newName": "zif_gg_$1" },
-      { "type": "TABL|TTYP|DTEL", "oldName": "^([^z].*)$", "newName": "z_gg_$1" }
+      { "type": "TABL|TTYP|DTEL", "oldName": "^([^z].*)$", "newName": "zgg_$1" }
     ]
   },
   "dependencies": [
