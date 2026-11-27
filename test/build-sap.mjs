@@ -86,26 +86,14 @@ function renamedObjects() {
   return renamed;
 }
 
-// abaplint renames the references in ABAP code, but not all of them in DDIC:
-// .INCLUDEs, some data elements of fields, and reference types to classes keep
-// the old name.
+// Where a DDIC object names another object.
 const ddicReference = /<(ROLLNAME|ROWTYPE|REFTYPE|PRECFIELD|DOMNAME|CHECKTABLE)>([A-Z0-9_]+)<\/\1>/g;
 
-function renameReferencesInDdic(renamed) {
-  for (const file of walk(output).filter(f => /\.(tabl|ttyp|dtel)\.xml$/.test(f))) {
-    const before = fs.readFileSync(file, "utf8");
-    const after = before.replace(ddicReference,
-      (whole, tag, name) => renamed.has(name) ? `<${tag}>${renamed.get(name)}</${tag}>` : whole);
-    if (after !== before) {
-      fs.writeFileSync(file, after, "utf8");
-    }
-  }
-}
-
 // The syntax check alone misses a stale reference when a dependency defines an
-// object of the old name, so look for the old names where ABAP can only mean a
-// type, class or interface. Several old DDIC names (program, file_table) are
-// also common variable names, so a plain word search is too noisy.
+// object of the old name (open-abap-core has lvc_fname, for one), so look for
+// the old names in DDIC references and where ABAP can only mean a type, class
+// or interface. Several old DDIC names (program, file_table) are also common
+// variable names, so a plain word search is too noisy.
 function staleReferences(renamed) {
   const names = [...renamed.keys()].join("|");
   const inAbap = [
@@ -164,9 +152,9 @@ function tooLongNames() {
     .filter((name, index, all) => name.length > 30 && all.indexOf(name) === index);
 }
 
-// Rename inside a copy: abaplint's own output folder mode mangles Windows paths
-// when the drive letter's case differs, and inline mode must not touch the
-// repository. abaplint takes its base folder from the config's location.
+// Rename inline inside a copy laid out as the output: the repository stays
+// untouched, and framework/ is already in src/framework/. abaplint takes its
+// base folder from the config's location.
 fs.rmSync(output, {recursive: true, force: true});
 for (const folder of layout) {
   fs.cpSync(path.join(repository, folder.from), path.join(output, folder.to), {recursive: true});
@@ -187,13 +175,11 @@ try {
   if (rename.status !== 0 || !rename.stdout.includes("Renames applied")) {
     console.error("build:sap: abaplint did not apply the renames");
   } else {
-    const renamed = renamedObjects();
-    renameReferencesInDdic(renamed);
     // The renamed copy must still compile on its own: a reference the rename
     // missed now points at an object that no longer exists.
     console.log("build:sap: checking the renamed copy");
     status = runAbaplint([]).status;
-    const stale = staleReferences(renamed);
+    const stale = staleReferences(renamedObjects());
     if (stale.length > 0) {
       console.error(`build:sap: references to old names remain:\n${stale.join("\n")}`);
       status = 1;
