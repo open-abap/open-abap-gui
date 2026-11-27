@@ -1,4 +1,4 @@
-CLASS cl_salv_columns_tree DEFINITION PUBLIC INHERITING FROM cl_salv_columns.
+CLASS cl_salv_columns_tree DEFINITION PUBLIC INHERITING FROM cl_salv_columns GLOBAL FRIENDS cl_salv_tree.
   PUBLIC SECTION.
 
     METHODS set_exception_column

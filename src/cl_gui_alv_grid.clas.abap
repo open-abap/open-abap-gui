@@ -1183,7 +1183,7 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
         READ TABLE mt_source_rows INTO DATA(ls_f4row) WITH KEY index = lv_row.
         READ TABLE ls_f4row-cells INTO DATA(ls_f4cell) WITH KEY fieldname = ls_column-fieldname.
         RAISE EVENT onf4 EXPORTING e_fieldname = ls_column-fieldname
-          e_fieldvalue                         = ls_f4cell-text
+          e_fieldvalue                         = CONV lvc_value( ls_f4cell-text )
                                    es_row_no   = ls_row_no
           er_event_data                        = NEW cl_alv_event_data( )
                                    e_display   = xsdbool( ls_f4cell-editable = abap_false ).
@@ -2352,7 +2352,10 @@ CLASS cl_gui_alv_grid IMPLEMENTATION.
 
   METHOD get_selected_rows.
     et_index_rows = mt_selected_rows.
-    et_row_no = mt_selected_rows.
+    CLEAR et_row_no.
+    LOOP AT mt_selected_rows INTO DATA(ls_selected_row).
+      APPEND VALUE #( row_id = ls_selected_row-index ) TO et_row_no.
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.
