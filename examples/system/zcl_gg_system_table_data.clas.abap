@@ -62,7 +62,14 @@ CLASS zcl_gg_system_table_data IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_gg_table_data_service_v1~get_fields.
+* The fields are the ones RTTS describes for the table. The dictionary
+* fixture only adds what the table's metadata does not carry, such as the
+* texts and the search help of fields without a data element.
     DATA(lo_dictionary) = NEW zcl_gg_system_dictionary( ).
+    DATA lo_type TYPE REF TO cl_abap_typedescr.
+    DATA lo_struct TYPE REF TO cl_abap_structdescr.
+    DATA lt_ddic TYPE ddfields.
+    DATA ls_field TYPE zif_gg_system_types_v1=>ty_ddic_field.
     DATA lt_names TYPE string_table.
     DATA lv_table_name TYPE string.
 
@@ -71,10 +78,58 @@ CLASS zcl_gg_system_table_data IMPLEMENTATION.
     IF NOT line_exists( lt_names[ table_line = lv_table_name ] ).
       RETURN.
     ENDIF.
+    cl_abap_typedescr=>describe_by_name(
+      EXPORTING
+        p_name         = lv_table_name
+      RECEIVING
+        p_descr_ref    = lo_type
+      EXCEPTIONS
+        type_not_found = 1
+        OTHERS         = 2 ).
+    IF sy-subrc <> 0 OR lo_type->kind <> cl_abap_typedescr=>kind_struct.
+      RETURN.
+    ENDIF.
+    lo_struct ?= lo_type.
+    lo_struct->get_ddic_field_list(
+      RECEIVING
+        rt_components = lt_ddic
+      EXCEPTIONS
+        not_found     = 1
+        no_ddic_type  = 2
+        OTHERS        = 3 ).
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
     DATA(ls_object) = lo_dictionary->zif_gg_dictionary_service_v1~get_object(
       iv_object_type = zif_gg_system_types_v1=>ddic_table
       iv_name        = lv_table_name ).
-    rt_fields = ls_object-fields.
+    LOOP AT lt_ddic INTO DATA(ls_ddic).
+      ls_field = VALUE #(
+        position     = ls_ddic-position
+        name         = ls_ddic-fieldname
+        key_flag     = xsdbool( ls_ddic-keyflag = abap_true )
+        data_element = ls_ddic-rollname
+        data_type    = ls_ddic-datatype
+        int_type     = ls_ddic-inttype
+        length       = ls_ddic-leng
+        decimals     = ls_ddic-decimals
+        check_table  = ls_ddic-checktable
+        description  = ls_ddic-fieldtext ).
+      READ TABLE ls_object-fields INTO DATA(ls_known) WITH KEY name = ls_field-name.
+      IF sy-subrc = 0.
+        IF ls_field-data_element IS INITIAL.
+          ls_field-data_element = ls_known-data_element.
+        ENDIF.
+        IF ls_field-check_table IS INITIAL.
+          ls_field-check_table = ls_known-check_table.
+        ENDIF.
+        IF ls_field-description IS INITIAL.
+          ls_field-description = ls_known-description.
+        ENDIF.
+        ls_field-search_help = ls_known-search_help.
+      ENDIF.
+      APPEND ls_field TO rt_fields.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD zif_gg_table_data_service_v1~validate.
