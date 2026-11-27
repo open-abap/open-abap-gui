@@ -1,4 +1,4 @@
-CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control.
+CLASS cl_gui_container DEFINITION PUBLIC INHERITING FROM cl_gui_control GLOBAL FRIENDS cl_gui_control.
   PUBLIC SECTION.
     CLASS-DATA screen0 TYPE REF TO cl_gui_container.
     CLASS-DATA default_screen TYPE REF TO cl_gui_container.

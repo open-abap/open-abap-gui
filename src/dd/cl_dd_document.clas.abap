@@ -1,4 +1,4 @@
-CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area.
+CLASS cl_dd_document DEFINITION PUBLIC INHERITING FROM cl_dd_area GLOBAL FRIENDS cl_dd_area.
   PUBLIC SECTION.
 
     DATA html_control TYPE REF TO cl_gui_html_viewer.
