@@ -39,7 +39,7 @@
     "check_ddic": true,
     "check_include": true,
     "check_syntax": {
-      "exclude": ["zgg_ex_187\\.prog\\.abap$", "zgg_ex_202\\.prog\\.abap$", "zgg_ex_205\\.prog\\.abap$"]
+      "exclude": ["zgg_ex_202\\.prog\\.abap$", "zgg_ex_205\\.prog\\.abap$"]
     },
     "check_transformation_exists": true,
     "dynpro_checks": true,
@@ -57,7 +57,7 @@
     "range_row_values": true,
     "superclass_final": true,
     "unknown_types": {
-      "exclude": ["zgg_ex_193_f01\\.prog\\.abap$", "zgg_ex_195\\.prog\\.abap$", "zgg_ex_202\\.prog\\.abap$", "zgg_ex_203\\.prog\\.abap$"]
+      "exclude": ["zgg_ex_202\\.prog\\.abap$"]
     },
     "xml_bom": true,
     "xml_consistency": true
