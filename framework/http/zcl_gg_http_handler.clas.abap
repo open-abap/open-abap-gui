@@ -1377,16 +1377,17 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 * The shell is the node's address with no query of its own. A system's logon
 * adds sap-client and the like to it, which are not the shell's.
     lv_uri = server->request->get_header_field( '~request_uri' ).
-    SPLIT lv_uri AT '?' INTO lv_uri lv_query.
-    IF lv_query IS NOT INITIAL.
+    IF lv_uri CS '?'.
+      SPLIT lv_uri AT '?' INTO lv_uri lv_query.
+      IF lv_query IS INITIAL.
+        RETURN.
+      ENDIF.
       SPLIT lv_query AT '&' INTO TABLE lt_parameters.
       LOOP AT lt_parameters INTO lv_parameter.
-        IF to_lower( lv_parameter ) NP 'sap-*'.
+        IF lv_parameter NP 'sap-*'.
           RETURN.
         ENDIF.
       ENDLOOP.
-    ELSEIF server->request->get_header_field( '~request_uri' ) CS '?'.
-      RETURN.
     ENDIF.
     rv_is_shell = xsdbool( lv_uri = server->request->get_header_field( '~path' ) ).
   ENDMETHOD.

@@ -91,6 +91,7 @@ CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
         iv_info        TYPE string OPTIONAL
         iv_script      TYPE string OPTIONAL
         iv_query       TYPE string OPTIONAL
+        iv_uri         TYPE string OPTIONAL
         iv_window      TYPE string OPTIONAL
         it_fields      TYPE tihttpnvp OPTIONAL
       RETURNING
@@ -106,6 +107,7 @@ CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
     METHODS shell_at_a_node FOR TESTING.
     METHODS shell_with_a_logon_query FOR TESTING.
     METHODS query_of_its_own_is_no_shell FOR TESTING.
+    METHODS bare_query_is_no_shell FOR TESTING.
     METHODS transaction_below_a_node FOR TESTING.
     METHODS session_is_stateful FOR TESTING.
 
@@ -141,7 +143,8 @@ CLASS ltcl_mount IMPLEMENTATION.
     ENDIF.
     mo_request->if_http_entity~set_header_field(
       name  = '~request_uri'
-      value = iv_path && COND string( WHEN iv_query IS NOT INITIAL THEN |?{ iv_query }| ) ).
+      value = COND string( WHEN iv_uri IS SUPPLIED THEN iv_uri
+                           ELSE iv_path && COND string( WHEN iv_query IS NOT INITIAL THEN |?{ iv_query }| ) ) ).
     IF iv_window IS NOT INITIAL.
       mo_request->if_http_entity~set_header_field( name  = 'x-gg-window'
                                                    value = iv_window ).
@@ -249,6 +252,15 @@ CLASS ltcl_mount IMPLEMENTATION.
     DATA(lv_html) = run( iv_path  = '/'
                          iv_info  = '/'
                          iv_query = 'sap-client=001&x=1' ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
+  ENDMETHOD.
+
+* A browser sends a bare ? for the workbench's empty GET form outside the shell.
+  METHOD bare_query_is_no_shell.
+    DATA(lv_html) = run( iv_path   = |{ c_base }/|
+                         iv_info   = ``
+                         iv_script = c_base
+                         iv_uri    = |{ c_base }/?| ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
   ENDMETHOD.
 
