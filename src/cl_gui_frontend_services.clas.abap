@@ -549,6 +549,7 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
 * run another operation than OPEN or wait until the document is closed.
     DATA lv_scheme TYPE string.
     DATA lv_rest TYPE string.
+    DATA lv_control TYPE string.
 
     DATA(lo_host) = zcl_gg_host_compatibility=>current( ).
     IF lo_host IS NOT BOUND.
@@ -573,9 +574,15 @@ CLASS cl_gui_frontend_services IMPLEMENTATION.
     ENDIF.
 * An address with a host, and no blanks, control characters, backslashes or
 * credentials, which browsers would repair or show in a misleading way. The
-* runtime's matches( ) takes no POSIX classes, \s and \xhh are what it knows.
-    IF NOT matches( val   = lv_document
-                    regex = `[A-Za-z]+://[A-Za-z0-9\[][^/?#@\\\s\x00-\x1F\x7F]*([/?#][^\\\s\x00-\x1F\x7F]*)?` ).
+* control characters are checked without a regex: open-abap's matches( ) takes
+* no POSIX classes and SAP's POSIX regex knows no \xhh.
+    DO 32 TIMES.
+      lv_control = lv_control && cl_abap_conv_in_ce=>uccpi( sy-index - 1 ).
+    ENDDO.
+    lv_control = lv_control && cl_abap_conv_in_ce=>uccpi( 127 ).
+    IF lv_document CA lv_control
+        OR NOT matches( val   = lv_document
+                        regex = `[A-Za-z]+://[A-Za-z0-9\[][^/?#@\\ ]*([/?#][^\\ ]*)?` ).
       RAISE bad_parameter.
     ENDIF.
     lo_host->add_url( lv_document ).

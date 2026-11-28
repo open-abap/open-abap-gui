@@ -76,10 +76,9 @@ function parameterTyping(ir: ReportIR, ast: StatementAst, section: RoutineParame
   // The typing without its leading TYPE or LIKE.
   const type = typingWords(ast, typing.getChildren().slice(1));
   const skeleton = ast.skeleton(typing);
-  // A standard table type has the default key; a sorted or hashed one keeps
-  // its key generic, as no key fits every table the FORM accepts.
-  if (skeleton === "TYPE STANDARD TABLE OF _") return named(`TYPE ${type} WITH DEFAULT KEY`);
-  if (/^TYPE (?:SORTED|HASHED|INDEX|ANY) TABLE OF _$/.test(skeleton) || skeleton === "LIKE REF TO _") return named(`${skeleton.split(" ")[0]} ${type}`);
+  // TYPE STANDARD TABLE OF x is no FORM typing: abaplint, as SAP, reads a
+  // generic table and OF and x as two more parameters.
+  if (skeleton === "LIKE REF TO _") return named(`LIKE ${type}`);
   return { type, ...(skeleton.startsWith("LIKE ") ? { like: true } : {}) };
 }
 

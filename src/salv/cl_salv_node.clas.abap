@@ -53,7 +53,7 @@ CLASS cl_salv_node DEFINITION PUBLIC GLOBAL FRIENDS cl_salv_nodes cl_salv_tree.
 
     METHODS set_row_style
       IMPORTING
-        value TYPE i.
+        value TYPE salv_de_constant.
 
     METHODS set_collapsed_icon
       IMPORTING

@@ -13,7 +13,7 @@ CLASS cl_salv_nodes DEFINITION PUBLIC.
         expanded_icon  TYPE any OPTIONAL
         enabled        TYPE abap_bool OPTIONAL
         visible        TYPE abap_bool OPTIONAL
-        row_style      TYPE any OPTIONAL
+        row_style      TYPE salv_de_constant OPTIONAL
       RETURNING
         VALUE(node)    TYPE REF TO cl_salv_node
       RAISING

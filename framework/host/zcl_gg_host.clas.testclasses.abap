@@ -637,6 +637,8 @@ CLASS ltcl_host IMPLEMENTATION.
   METHOD selection_listbox_values.
 * Entries come from the domain of the rollname, a VRM list replaces them, and
 * the current value stays selected even when no entry has it.
+    DATA lv_domain_options TYPE string.
+
     DATA(lo_screen) = NEW zcl_gg_host_screen( ).
     lo_screen->zif_gg_sel_screen_builder_v1~add_listbox( VALUE #(
       name = 'P_BOOL' text = 'Boolean' default = 'X'
@@ -663,8 +665,16 @@ CLASS ltcl_host IMPLEMENTATION.
       it_elements   = lo_screen->get_elements( )
       it_tabs       = lo_screen->get_tabs( ) ).
 
-    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
-      '<option value="">False</option><option value="X" selected>True</option></select>' ) ).
+* The order and texts of the domain's values are the system's, in the logon
+* language, so the expected entries are read from the domain too.
+    LOOP AT zcl_gg_host_compatibility=>domain_fixed_values( 'ABAP_BOOLEAN' ) INTO DATA(ls_value).
+      lv_domain_options = lv_domain_options
+        && |<option value="{ ls_value-key }"{ COND string( WHEN ls_value-key = 'X' THEN ` selected` ) }>|
+        && |{ ls_value-text }</option>|.
+    ENDLOOP.
+    cl_abap_unit_assert=>assert_char_cp( act = lv_domain_options
+                                         exp = '*<option value="X" selected>*' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |{ lv_domain_options }</select>| ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
       '<option value="Z" selected>Z</option><option value="A">Add</option></select>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS
