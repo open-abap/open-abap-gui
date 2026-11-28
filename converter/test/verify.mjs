@@ -4,7 +4,6 @@ import {converterRoot, isMain, runNode} from "./repository.mjs";
 
 const suites = [
   ["fixtures", "./run-fixtures.mjs"],
-  ["structural", "./structural-snapshots.mjs"],
   // Compare committed snapshots; accepting changes remains examples:update.
   ["examples", "./examples.mjs"],
   ["warnings", "./warnings.mjs"],

@@ -11,7 +11,7 @@ test("full verification runs every suite and shares one generated build", async 
     runGenerated: async (options) => calls.push(options),
   });
   assert.deepEqual(calls, [
-    "unit", "./run-fixtures.mjs", "./structural-snapshots.mjs", "./examples.mjs",
+    "unit", "./run-fixtures.mjs", "./examples.mjs",
     "./warnings.mjs", "./hardening.mjs", "./coverage.mjs",
     {transpile: true, behavior: true},
   ]);

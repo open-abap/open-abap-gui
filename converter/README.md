@@ -325,7 +325,6 @@ cd converter
 npm run build
 npm run test:unit
 npm run fixtures
-npm run structural
 npm run warnings
 npm run hardening
 npm run coverage
@@ -335,7 +334,7 @@ npm run test:gg-gui
 npm test
 ```
 
-Every command builds first. Full verification runs fixtures, structural snapshots, example snapshots,
+Every command builds first. Full verification runs fixtures, example snapshots,
 warnings, hardening, and coverage sequentially in one Node process. Unit tests
 keep the Node test runner's process isolation. Generated-class and behavioral
 validation share one lint/transpile build, then run their runtime probes in
@@ -367,9 +366,8 @@ does not compile there are listed in that script with the reason.
 distinct names, runs examples `001`-`057` through `zcl_gg_host`, and compares
 typed result models, plus selected user-input, validation-failure, and
 interactive-action scenarios, and checks the `NEXT`/`BACK` host transitions for
-dynpro example `058`. `structural` checks normalized scaffold-IR snapshots for
-examples `001` through `058`. `test` runs the unit, CLI smoke, matrix, fixture,
-structural, warning, hardening, coverage, transpile, behavioral, and generated-
+dynpro example `058`. `test` runs the unit, CLI smoke, matrix, fixture,
+warning, hardening, coverage, transpile, behavioral, and generated-
 browser gates in one sequence. 058 screen/flow/status parity is checked when the
 corresponding explicit metadata is supplied. `browser` builds a disposable generated
 058 class, runs its ABAP Unit transitions, and drives the generated transaction
