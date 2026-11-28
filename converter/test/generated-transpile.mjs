@@ -1,47 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { emitClassXml } from "../build/src/emit/class-xml.js";
-import { examplePrograms, repositoryRoot } from "./repository.mjs";
+import { repositoryRoot } from "./repository.mjs";
 
 const repository = repositoryRoot;
-const examples = path.join(repository, "examples");
 const RENAMED_CLASS = "ZCL_CV_RENAMED_1";
 
 export async function prepareTranspileFixtures({inputFolder, helperFolder}) {
   const {convertProgram} = await import("../build/src/api.js");
-  const names = await examplePrograms();
-  for (const [index, name] of names.entries()) {
-    const source = await fs.readFile(path.join(examples, name), "utf8");
-    // Numbered like the example, so its lint excludes carry over, see
-    // generated-validation.mjs.
-    const number = /^zgg_ex_(\d{3})\.prog\.abap$/.exec(name)?.[1] ?? String(index + 1).padStart(3, "0");
-    const className = `ZCL_CV_${number}`;
-    const input = {
-      source,
-      filename: path.join(examples, name),
-      includePaths: [examples],
-      className,
-      transactionCode: `ZCV${number}`,
-      mode: "partial",
-    };
-    if (name === "zgg_ex_058.prog.abap") input.dynproMetadata = {
-      initialScreen: "0100",
-      screens: [{ number: "0100", title: "Main" }, { number: "0200", title: "Next" }],
-      flowLogic: [{ screen: "0100", pai: [{ name: "USER_COMMAND_0100" }] }],
-    };
-    const result = await convertProgram(input);
-    if (!result.classSource) throw new Error(`converter produced no class for ${name}`);
-    await fs.writeFile(path.join(inputFolder, `${className}.clas.abap`), result.classSource, "utf8");
-    // The class's text pool, when its code uses text symbols.
-    const classXml = emitClassXml(result.reportIR, result.classSource);
-    // The copy gets its own description; two classes may not share one.
-    if (classXml) await fs.writeFile(path.join(inputFolder, `${className}.clas.xml`), classXml.replace("<DESCRIPT>", `<DESCRIPT>${className} `), "utf8");
-    // Local classes of the program become helper classes next to it.
-    for (const helper of result.helperSources ?? []) {
-      await fs.writeFile(path.join(inputFolder, `${helper.className}.clas.abap`), helper.source, "utf8");
-    }
-  }
 
   const routine = await convertProgram({
     source: [

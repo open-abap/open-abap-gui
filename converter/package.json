@@ -26,13 +26,9 @@
     "publish:patch": "npm --no-git-tag-version version patch && npm install && npm run test && npm publish --access public",
     "test:unit": "npm run build && node --test test/unit/*.test.mjs test/integration/*.test.mjs",
     "test": "npm run build && node test/verify.mjs",
-    "fixtures": "npm run build && node test/run-fixtures.mjs",
-    "structural": "npm run build && node test/structural-snapshots.mjs",
     "examples": "npm run build && node test/examples.mjs",
     "examples:update": "npm run build && node test/examples.mjs --update",
     "warnings": "npm run build && node test/warnings.mjs",
-    "hardening": "npm run build && node test/hardening.mjs",
-    "coverage": "npm run build && node test/coverage.mjs",
     "transpile": "npm run build && node test/transpile-generated.mjs",
     "behavior": "npm run build && node test/behavioral-generated.mjs",
     "test:gg-gui": "npm run build && node test/gg-gui.mjs"

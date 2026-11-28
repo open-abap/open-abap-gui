@@ -1630,11 +1630,19 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
       fields.push(`values = io_session->get_compatibility( )->selection_table_to_values( ${valueExpression(selectionTable, context)} )`);
     }
     if (ast.hasPhrase("VIA SELECTION-SCREEN")) fields.push("via_selection_screen = abap_true");
-    // WITH s_x IN VALUE #( ... ), as the last selection before AND RETURN.
+    // WITH s_x IN VALUE #( ... ) or WITH s_x IN range_table, as the last
+    // selection before AND RETURN. A range table's LOW and HIGH are typed
+    // like its field, the host's are strings: CORRESPONDING converts each row.
     const last = children.filter((child) => !(child.get() instanceof Expressions.AndReturn) && !/^[.,]$/.test(ast.source(child))).slice(-4);
     if (last.length === 4 && ast.source(last[0]).toUpperCase() === "WITH" && last[1].get() instanceof Expressions.FieldSub
-        && ast.source(last[2]).toUpperCase() === "IN" && /^VALUE\s+#\(/i.test(ast.source(last[3]))) {
-      fields.push(`values = VALUE #( ( name = '${ast.source(last[1]).toUpperCase()}' ranges = ${ast.source(last[3])} ) )`);
+        && ast.source(last[2]).toUpperCase() === "IN") {
+      const selection = ast.source(last[1]).toUpperCase();
+      const rows = ast.source(last[3]);
+      if (/^VALUE\s+#\(/i.test(rows)) {
+        fields.push(`values = VALUE #( ( name = '${selection}' ranges = ${rows} ) )`);
+      } else if (/^[A-Z_][A-Z0-9_]*(?:(?:-|->|=>)[A-Z_][A-Z0-9_]*)*$/i.test(rows)) {
+        fields.push(`values = VALUE #( ( name = '${selection}' ranges = CORRESPONDING #( ${valueExpression(rows, context)} ) ) )`);
+      }
     }
     const id = continuationId(statement, context);
     if (ast.findDirect(Expressions.AndReturn)) {
