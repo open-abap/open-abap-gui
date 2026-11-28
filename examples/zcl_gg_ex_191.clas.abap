@@ -138,6 +138,12 @@ CLASS zcl_gg_ex_191 IMPLEMENTATION.
 
   METHOD zif_gg_screen_provider_v1~build_flow_logic.
     io_builder->begin_screen( '0100' ).
+    io_builder->begin_pbo( ).
+    io_builder->add_module( VALUE #( name = 'STATUS_0100' ) ).
+    io_builder->end_processing( ).
+    io_builder->begin_pai( ).
+    io_builder->add_module( VALUE #( name = 'USER_COMMAND_0100' on_input = abap_true ) ).
+    io_builder->end_processing( ).
     io_builder->end_screen( ).
   ENDMETHOD.
 

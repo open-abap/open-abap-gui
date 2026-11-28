@@ -1913,6 +1913,12 @@ test("loads report-owned dynpro XML and every matching screen flow file", async 
   assert.equal(metadata.textPool.UNDERSCORE, "File_name");
   assert.equal(metadata.files.screens.length, 2);
 
+  // abapGit fails the import of a dynpro without its flow logic file.
+  await assert.rejects(loadDynproMetadata({
+    filename: metadataFilename.replace(/\.prog\.xml$/i, ".prog.abap"),
+    screenFiles: [{ filename: "dynpro_metadata.prog.screen_0100.abap", source: "PROCESS BEFORE OUTPUT.\nPROCESS AFTER INPUT.\n" }],
+  }), /flow logic file not found: dynpro_metadata\.prog\.screen_0200\.abap$/);
+
   metadata.screens[0].elements[2].visibleLength = 8;
   metadata.screens[0].elements[2].position.visibleWidth = 8;
 
