@@ -14,12 +14,13 @@ ENDCLASS.
 CLASS ltcl_gg_exception_text IMPLEMENTATION.
 
   METHOD names_class_and_attributes.
-* A missing function module: no text of its own, only the FUNCTION it names.
+* A missing function module names the FUNCTION. The text that follows it on
+* SAP is the system's, open-abap has none, so only its place is checked.
     DATA(lx_error) = NEW cx_sy_dyn_call_illegal_func( function = 'RPY_TRANSACTION_READ' ).
 
-    cl_abap_unit_assert=>assert_equals(
+    cl_abap_unit_assert=>assert_char_cp(
       act = zcl_gg_exception_text=>describe( lx_error )
-      exp = `CX_SY_DYN_CALL_ILLEGAL_FUNC (FUNCTION = RPY_TRANSACTION_READ)` ).
+      exp = `CX_SY_DYN_CALL_ILLEGAL_FUNC (FUNCTION = RPY_TRANSACTION_READ)*` ).
   ENDMETHOD.
 
   METHOD uses_the_exception_text.
@@ -36,19 +37,19 @@ CLASS ltcl_gg_exception_text IMPLEMENTATION.
       function = 'Z_CALLER'
       previous = lx_inner ).
 
-    cl_abap_unit_assert=>assert_equals(
+    cl_abap_unit_assert=>assert_char_cp(
       act = zcl_gg_exception_text=>describe( lx_outer )
-      exp = |CX_SY_DYN_CALL_ILLEGAL_FUNC (FUNCTION = Z_CALLER)\n|
-         && |Caused by: CX_SY_DYN_CALL_ILLEGAL_FUNC (FUNCTION = RPY_TRANSACTION_READ)| ).
+      exp = |CX_SY_DYN_CALL_ILLEGAL_FUNC (FUNCTION = Z_CALLER)*\n|
+         && |Caused by: CX_SY_DYN_CALL_ILLEGAL_FUNC (FUNCTION = RPY_TRANSACTION_READ)*| ).
   ENDMETHOD.
 
   METHOD details_one_per_line.
     DATA(lx_error) = NEW cx_sy_dyn_call_illegal_func( function = 'RPY_TRANSACTION_READ' ).
 
-    cl_abap_unit_assert=>assert_equals(
+    cl_abap_unit_assert=>assert_char_cp(
       act = zcl_gg_exception_text=>details( lx_error )
       exp = |Unhandled exception CX_SY_DYN_CALL_ILLEGAL_FUNC\n|
-         && |FUNCTION = RPY_TRANSACTION_READ| ).
+         && |*FUNCTION = RPY_TRANSACTION_READ| ).
   ENDMETHOD.
 
   METHOD details_follow_previous.
@@ -57,13 +58,14 @@ CLASS ltcl_gg_exception_text IMPLEMENTATION.
       function = 'Z_CALLER'
       previous = lx_inner ).
 
-    cl_abap_unit_assert=>assert_equals(
+* The texts of both exceptions are the system's; SAP and open-abap differ.
+    cl_abap_unit_assert=>assert_char_cp(
       act = zcl_gg_exception_text=>details( lx_outer )
       exp = |Unhandled exception CX_SY_DYN_CALL_ILLEGAL_FUNC\n|
-         && |FUNCTION = Z_CALLER\n|
+         && |*FUNCTION = Z_CALLER\n|
          && |\n|
          && |Caused by CX_SY_MOVE_CAST_ERROR\n|
-         && |Casting failed, types not compatible| ).
+         && |+*| ).
   ENDMETHOD.
 
   METHOD details_show_raise_position.

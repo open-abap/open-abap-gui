@@ -16,7 +16,7 @@ CLASS cl_gui_toolbar DEFINITION PUBLIC INHERITING FROM cl_gui_control.
 
     METHODS add_button
       IMPORTING
-        fcode       TYPE clike
+        fcode       TYPE ui_func
         icon        TYPE c
         is_disabled TYPE abap_bool OPTIONAL
         butn_type   TYPE i
