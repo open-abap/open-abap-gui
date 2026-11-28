@@ -43,6 +43,15 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_html) TYPE string.
 
+* A page as it was, with the status bar showing another message.
+    CLASS-METHODS with_status_message
+      IMPORTING
+        iv_html        TYPE string
+        iv_message     TYPE string
+        iv_type        TYPE zif_gg_session_types_v1=>ty_message_type DEFAULT zif_gg_session_types_v1=>message_type_error
+      RETURNING
+        VALUE(rv_html) TYPE string.
+
 * The id of the status bar message, which a field the message is about
 * refers to with aria-describedby.
     CONSTANTS status_message_id TYPE string VALUE 'wb-status-message'.
@@ -50,6 +59,19 @@ CLASS zcl_gg_workbench_utility DEFINITION PUBLIC FINAL CREATE PUBLIC.
     CONSTANTS message_details_id TYPE string VALUE 'wb-message-details'.
 
   PRIVATE SECTION.
+    CONSTANTS c_statusbar_open TYPE string VALUE '<footer class="wb-statusbar">'.
+    CONSTANTS c_status_context TYPE string VALUE '<div class="wb-status-context">'.
+    CONSTANTS c_statusbar_close TYPE string VALUE '</footer>'.
+    CONSTANTS c_details_close TYPE string VALUE '</dl></div></div>'.
+
+    CLASS-METHODS status_feedback
+      IMPORTING
+        iv_message       TYPE string
+        iv_type          TYPE zif_gg_session_types_v1=>ty_message_type
+        iv_details_attrs TYPE string OPTIONAL
+      RETURNING
+        VALUE(rv_html)   TYPE string.
+
     CONSTANTS form_workbench TYPE string VALUE 'wb-command-workbench'.
     CONSTANTS form_dispatch  TYPE string VALUE 'wb-command-dispatch'.
     CONSTANTS form_transaction TYPE string VALUE 'wb-command-transaction'.
@@ -655,7 +677,7 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
     rv_html = |<div id="{ message_details_id }" class="wb-dialog" role="dialog" aria-modal="true" aria-labelledby="wb-message-details-title" hidden>| &&
       |<div class="wb-dialog-panel"><header class="wb-dialog-header"><h2 id="wb-message-details-title">Technical information</h2>| &&
       |<button class="wb-dialog-close" type="button" data-message-details-close aria-label="Close technical information">{ zcl_gg_host_icons=>icon( iv_name = 'circle-x' ) }</button></header>| &&
-      |<dl>{ lv_rows }</dl></div></div>|.
+      |<dl>{ lv_rows }| && c_details_close.
   ENDMETHOD.
 
   METHOD status_group.
@@ -741,9 +763,72 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       && 'event.stopPropagation();if(event.key==="Escape"){event.preventDefault();hide();}else if(event.key==="Tab"){event.preventDefault();close.focus();}},true);}());</script>'.
   ENDMETHOD.
 
+  METHOD with_status_message.
+    DATA lt_footers TYPE match_result_tab.
+    DATA lv_from TYPE i.
+    DATA lv_to TYPE i.
+    DATA lv_end TYPE i.
+    DATA lv_rest TYPE i.
+
+    rv_html = iv_html.
+* The page's own status bar is the last one: a program's output comes before it.
+    FIND ALL OCCURRENCES OF c_statusbar_open IN iv_html RESULTS lt_footers.
+    IF lt_footers IS INITIAL.
+      RETURN.
+    ENDIF.
+    lv_from = lt_footers[ lines( lt_footers ) ]-offset + strlen( c_statusbar_open ).
+    FIND FIRST OCCURRENCE OF c_status_context IN SECTION OFFSET lv_from OF iv_html MATCH OFFSET lv_to.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    FIND FIRST OCCURRENCE OF c_statusbar_close IN SECTION OFFSET lv_to OF iv_html MATCH OFFSET lv_end.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    lv_end = lv_end + strlen( c_statusbar_close ).
+* The technical information of the old message goes with it; the new one has
+* none.
+    lv_rest = lv_end.
+    IF substring( val = iv_html
+                  off = lv_end ) CP |<div id="{ message_details_id }"*|.
+      FIND FIRST OCCURRENCE OF c_details_close IN SECTION OFFSET lv_end OF iv_html MATCH OFFSET lv_rest.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+      lv_rest = lv_rest + strlen( c_details_close ).
+    ENDIF.
+    rv_html = substring( val = iv_html
+                         len = lv_from )
+              && status_feedback( iv_message = iv_message
+                                  iv_type    = iv_type )
+              && substring( val = iv_html
+                            off = lv_to
+                            len = lv_end - lv_to )
+              && substring( val = iv_html
+                            off = lv_rest ).
+  ENDMETHOD.
+
+  METHOD status_feedback.
+    DATA lv_icon TYPE string.
+
+    IF iv_message IS INITIAL.
+      rv_html = |<span id="{ status_message_id }" class="wb-status-feedback" aria-live="polite"></span>|.
+      RETURN.
+    ENDIF.
+* The icon takes the colour of the message type; the title carries the full
+* text when the bar has to cut it short.
+    lv_icon = SWITCH #( iv_type
+      WHEN zif_gg_session_types_v1=>message_type_success THEN `circle-check`
+      WHEN zif_gg_session_types_v1=>message_type_info THEN `info-circle`
+      WHEN zif_gg_session_types_v1=>message_type_warning THEN `alert-triangle`
+      ELSE `alert-octagon` ).
+    rv_html = |<span id="{ status_message_id }"{ status_attrs( iv_type ) } title="{ zcl_gg_host_html=>escape_attribute( iv_message ) }"{ iv_details_attrs }>| &&
+      zcl_gg_host_icons=>icon( lv_icon ) &&
+      |<span class="wb-status-text">{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span></span>|.
+  ENDMETHOD.
+
   METHOD render_bottom.
     DATA lv_feedback TYPE string.
-    DATA lv_icon TYPE string.
     DATA lv_details TYPE string.
     DATA lv_details_attrs TYPE string.
 
@@ -752,23 +837,12 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
       lv_details_attrs = | aria-haspopup="dialog" aria-controls="{ message_details_id }"|.
     ENDIF.
 
-    IF iv_message IS INITIAL.
-      lv_feedback = |<span id="{ status_message_id }" class="wb-status-feedback" aria-live="polite"></span>|.
-    ELSE.
-* The icon takes the colour of the message type; the title carries the full
-* text when the bar has to cut it short.
-      lv_icon = SWITCH #( iv_type
-        WHEN zif_gg_session_types_v1=>message_type_success THEN `circle-check`
-        WHEN zif_gg_session_types_v1=>message_type_info THEN `info-circle`
-        WHEN zif_gg_session_types_v1=>message_type_warning THEN `alert-triangle`
-        ELSE `alert-octagon` ).
-      lv_feedback = |<span id="{ status_message_id }"{ status_attrs( iv_type ) } title="{ zcl_gg_host_html=>escape_attribute( iv_message ) }"{ lv_details_attrs }>| &&
-        zcl_gg_host_icons=>icon( lv_icon ) &&
-        |<span class="wb-status-text">{ zcl_gg_host_html=>escape_text( iv_text = iv_message ) }</span></span>|.
-    ENDIF.
-    rv_html = '<footer class="wb-statusbar">'
+    lv_feedback = status_feedback( iv_message       = iv_message
+                                   iv_type          = iv_type
+                                   iv_details_attrs = lv_details_attrs ).
+    rv_html = c_statusbar_open
               && lv_feedback
-              && '<div class="wb-status-context"><span>System:&nbsp;' &&
+              && c_status_context && '<span>System:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-sysid ) ) &&
       '</span><span>Client:&nbsp;' &&
       zcl_gg_host_html=>escape_text( CONV string( sy-mandt ) ) &&

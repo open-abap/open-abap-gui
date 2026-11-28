@@ -204,6 +204,16 @@ CLASS zcl_gg_http_handler DEFINITION PUBLIC FINAL CREATE PUBLIC.
         iv_page_id    TYPE string OPTIONAL
         iv_status     TYPE i DEFAULT 200.
 
+* A command the command field cannot carry out leaves the program on screen:
+* its page again, with the error in the status bar. With no program running in
+* the GUI session it goes to the workbench.
+    CLASS-METHODS send_command_error
+      IMPORTING
+        server        TYPE REF TO if_http_server
+        iv_error      TYPE string
+        iv_session_id TYPE string
+        iv_page_id    TYPE string.
+
     CLASS-METHODS send_failure
       IMPORTING
         server   TYPE REF TO if_http_server
@@ -468,7 +478,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       ENDCASE.
       ls_command = zcl_gg_transaction_command=>parse( iv_command = lv_command ).
       IF ls_command-valid = abap_false.
-        send_workbench_error(
+        send_command_error(
           server        = server
           iv_session_id = lv_session_id
           iv_page_id    = lv_page_id
@@ -478,7 +488,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       IF ls_command-end_session = abap_true.
         lv_close_error = zcl_gg_host_windows=>end( zcl_gg_host_windows=>current( ) ).
         IF lv_close_error IS NOT INITIAL.
-          send_workbench_error(
+          send_command_error(
             server        = server
             iv_session_id = lv_session_id
             iv_page_id    = lv_page_id
@@ -514,7 +524,7 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       ENDIF.
       ls_transaction = zcl_gg_transaction_registry=>lookup( iv_tcode = CONV string( ls_command-tcode ) ).
       IF ls_transaction-tcode IS INITIAL.
-        send_workbench_error(
+        send_command_error(
           server        = server
           iv_session_id = lv_session_id
           iv_page_id    = lv_page_id
@@ -1349,6 +1359,28 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
       AND mv_path = '/'
       AND server->request->get_header_field( 'x-gg-window' ) IS INITIAL
       AND server->request->get_header_field( '~request_uri' ) = server->request->get_header_field( '~path' ) ).
+  ENDMETHOD.
+
+  METHOD send_command_error.
+    DATA ls_response TYPE zif_gg_host_html_v1=>ty_response.
+
+    IF iv_session_id IS NOT INITIAL
+        AND zcl_gg_host_runtime=>window_of( iv_session_id ) = zcl_gg_host_windows=>current( ).
+      ls_response = zcl_gg_host_runtime=>current_response( iv_session_id ).
+    ENDIF.
+    IF ls_response-valid = abap_false.
+      send_workbench_error(
+        server        = server
+        iv_session_id = iv_session_id
+        iv_page_id    = iv_page_id
+        iv_error      = iv_error ).
+      RETURN.
+    ENDIF.
+    ls_response-html = zcl_gg_workbench_utility=>with_status_message(
+      iv_html    = ls_response-html
+      iv_message = iv_error ).
+    send_runtime_response( server      = server
+                           is_response = ls_response ).
   ENDMETHOD.
 
   METHOD send_workbench_error.

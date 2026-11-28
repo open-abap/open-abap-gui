@@ -152,9 +152,16 @@ for (const host of hosts) {
 
     test("a command error keeps the running transaction in the rail", async ({page}) => {
       await open(page, "ZGG_EX_003");
+      const program = onScreen(page).locator(".wb-runtime-content");
+      const session = await program.getAttribute("data-session-id");
       await command(page, "/xyz");
       await expect(statusMessage(onScreen(page))).not.toHaveText("");
       await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("ZGG_EX_003");
+      // the program's screen stays, not the workbench
+      await expect(program).toHaveAttribute("data-session-id", session);
+      await command(page, "/nNOPE");
+      await expect(statusMessage(onScreen(page))).toContainText("NOPE");
+      await expect(program).toHaveAttribute("data-session-id", session);
     });
 
     // A screen whose own status maps F3 gets it once, as that function key.
