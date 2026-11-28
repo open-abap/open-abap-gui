@@ -61,9 +61,16 @@ CLASS ltcl_server DEFINITION FINAL FOR TESTING.
   PUBLIC SECTION.
     INTERFACES if_http_server PARTIALLY IMPLEMENTED.
 
+    DATA mv_stateful TYPE i VALUE -1.
+
 ENDCLASS.
 
 CLASS ltcl_server IMPLEMENTATION.
+
+  METHOD if_http_server~set_session_stateful.
+    mv_stateful = stateful.
+  ENDMETHOD.
+
 ENDCLASS.
 
 CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
@@ -73,6 +80,7 @@ CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
 
     DATA mo_request TYPE REF TO ltcl_entity.
     DATA mo_response TYPE REF TO ltcl_entity.
+    DATA mo_server TYPE REF TO ltcl_server.
 
     CLASS-METHODS class_teardown.
     METHODS teardown.
@@ -94,6 +102,7 @@ CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
     METHODS transaction_below_a_mount FOR TESTING.
     METHODS unsafe_mount_is_not_echoed FOR TESTING.
     METHODS mount_of_another_host FOR TESTING.
+    METHODS session_is_stateful FOR TESTING.
 
 ENDCLASS.
 
@@ -129,10 +138,10 @@ CLASS ltcl_mount IMPLEMENTATION.
                                                    value = iv_window ).
     ENDIF.
 
-    DATA(lo_server) = NEW ltcl_server( ).
-    lo_server->if_http_server~request = mo_request.
-    lo_server->if_http_server~response = mo_response.
-    NEW zcl_gg_http_handler( )->if_http_extension~handle_request( lo_server ).
+    mo_server = NEW #( ).
+    mo_server->if_http_server~request = mo_request.
+    mo_server->if_http_server~response = mo_response.
+    NEW zcl_gg_http_handler( )->if_http_extension~handle_request( mo_server ).
     rv_html = mo_response->mv_cdata.
   ENDMETHOD.
 
@@ -209,6 +218,23 @@ CLASS ltcl_mount IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'var BASE = "";' ) ).
+  ENDMETHOD.
+
+* The GUI state of a request must still be there for the next one, so the
+* shell and every request of a session ask for a stateful session.
+  METHOD session_is_stateful.
+    run( iv_path = '/'
+         iv_info = '/' ).
+    cl_abap_unit_assert=>assert_equals( act = mo_server->mv_stateful
+                                        exp = if_http_server=>co_enabled ).
+
+    run( iv_path   = '/transaction'
+         iv_info   = '/transaction'
+         iv_query  = 'tcode=ZGG_EX_001'
+         iv_window = zcl_gg_host_windows=>c_new_window
+         it_fields = VALUE #( ( name = 'tcode' value = 'ZGG_EX_001' ) ) ).
+    cl_abap_unit_assert=>assert_equals( act = mo_server->mv_stateful
+                                        exp = if_http_server=>co_enabled ).
   ENDMETHOD.
 
 ENDCLASS.
