@@ -58,13 +58,24 @@ export function isReference(entry: TokenEntry | undefined): boolean {
   return !NAMES.some((type) => parent instanceof type) && !inComponentList(entry) && !inTypeNameQualified(entry);
 }
 
+// A value bound to a parameter of a method call or NEW, where the parameter's
+// type must be met: `m( x )`, `m( p = x )`, `NEW #( p = x )`.
+function inMethodParameter(entry: TokenEntry): boolean {
+  return entry.ancestors.some((node) => {
+    const expression = node.get();
+    return expression instanceof Expressions.MethodCallParam
+      || expression instanceof Expressions.ParameterS
+      || expression instanceof Expressions.MethodParameters;
+  });
+}
+
 // Applies [pattern, replacement] pairs in order, each to the result of the
 // ones before, at references only. A pattern is a regular expression source
 // without anchors, e.g. a name or `screen-(input|output)`, and the replacement
-// may use its groups.
+// may use its groups. A third element replaces a match passed to a method.
 export function replaceIdentifiers(text: string | undefined, replacements: readonly Replacement[] | undefined): string {
   let output = String(text ?? "");
-  for (const [name, replacement] of replacements ?? []) {
+  for (const [name, replacement, inParameter] of replacements ?? []) {
     // A data object reached through a reference, a table row or a call is no
     // type: a TABLES work area moved to the owner class, mo_owner->sflight, is
     // still typed TYPE sflight, its dictionary structure.
@@ -81,7 +92,8 @@ export function replaceIdentifiers(text: string | undefined, replacements: reado
     for (const match of output.matchAll(pattern)) {
       const entry = ast.tokenAt(match.index);
       if (!isReference(entry) || (dataOnly && entry!.parent.get() instanceof Expressions.TypeName)) continue;
-      result += output.slice(last, match.index) + match[0].replace(whole, replacement);
+      const value = inParameter !== undefined && inMethodParameter(entry!) ? inParameter : replacement;
+      result += output.slice(last, match.index) + match[0].replace(whole, value);
       last = match.index + match[0].length;
     }
     output = result + output.slice(last);

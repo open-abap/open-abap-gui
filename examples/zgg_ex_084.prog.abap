@@ -1,7 +1,7 @@
 REPORT zgg_ex_084.
 
 DATA gv_row TYPE c LENGTH 1.
-DATA gv_secret TYPE string.
+DATA gv_secret TYPE c LENGTH 10.
 
 START-OF-SELECTION.
   gv_row = 'A'.

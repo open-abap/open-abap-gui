@@ -44,6 +44,23 @@ test("keeps the selection screen number in events, FORM calls and compatibility 
   assert.doesNotMatch(result.classSource, /gv_screen = ''|IF '' =|iv_screen = ''/);
 });
 
+test("converts the screen number to sy-dynnr where it is passed to a method", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zscreen_method.",
+      "DATA go_dock TYPE REF TO cl_gui_docking_container.",
+      "AT SELECTION-SCREEN OUTPUT.",
+      "  go_dock = NEW #( repid = sy-repid dynnr = sy-dynnr ).",
+      "  IF sy-dynnr = '1000'.",
+      "  ENDIF.",
+    ].join("\n"),
+    filename: "zscreen_method.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /dynnr = CONV sy-dynnr\( iv_screen \)/);
+  assert.match(result.classSource, /IF iv_screen = '1000'\./);
+});
+
 test("applies a radio group's USER-COMMAND to every button of the group", async () => {
   const result = await convertProgram({
     source: [
