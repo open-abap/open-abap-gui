@@ -784,7 +784,8 @@ CLASS zcl_gg_workbench_utility IMPLEMENTATION.
               && ')[.\\/-](\\d{4})$/);if(match){field.value=match[3]+match[2]+match[1];}}else if(type==="T"){match=value.match(/^(\\d{2})[:.](\\d{2})[:.](\\d{2})$/);if(match){field.value=match[1]+match[2]+match[3];}}});'
               && '};document.querySelectorAll("form").forEach(function(form){form.addEventListener("submit",function(){normalizeAbapFields(form);});});document.querySelectorAll(".wb-command-button,'
               && '.wb-toolbar-button").forEach(function(button){button.addEventListener("click",function(){if(button.disabled){return;}announce((button.getAttribute("title")||button.getAttribute("aria-label")||"Command"'
-              && ')+" pressed");});});document.addEventListener("keydown",function(event){if(event.key!=="F3"&&event.code!=="F3"){return;}var back=document.querySelector(".wb-command-button--back:not(:disabled)");'
+              && ')+" pressed");});});document.addEventListener("keydown",function(event){if(event.defaultPrevented||(event.key!=="F3"&&event.code!=="F3")){return;}'
+              && 'var back=document.querySelector(".wb-command-button--back:not(:disabled)");'
               && 'if(!back){return;}event.preventDefault();back.click();});document.addEventListener("keydown",function(event){if(event.key!=="F4"&&event.code!=="F4"){return;}var field=document.activeElement;'
               && 'if(!field){return;}var group=field.closest(".gg-dynpro-field,.gg-field,.gg-range");if(!group){return;}var help=group.querySelector(".gg-help-button:not(:disabled)");if(!help){return;}'
               && 'event.preventDefault();help.click();});}());</script></body></html>'.
