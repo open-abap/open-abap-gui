@@ -20,8 +20,11 @@ import { screenWorkArea, unmappedScreenComponents } from "./screen-states.js";
 import type { SelectionOptions } from "./collect-selection-screens.js";
 import type { Continuation, DynamicAlv, FieldSymbolReference, LocalClass, Metadata, Routine, RoutineParameter, SelectionState, Statement } from "../types.js";
 
-/** A [pattern, replacement] pair for replaceIdentifiers. */
-export type Replacement = [string, string];
+/**
+ * A [pattern, replacement] pair for replaceIdentifiers, with an optional
+ * replacement used instead where the match is passed to a method parameter.
+ */
+export type Replacement = [string, string, string?];
 
 /**
  * What lowering a statement needs to know about the method it is lowered
@@ -728,6 +731,14 @@ function selectionScreenNumber(context: LoweringContext): string {
   return "io_session->get_context( )-selection-screen";
 }
 
+// The host's screen numbers are TYPE n, sy-dynnr is TYPE c. A method
+// parameter typed sy-dynnr, DYNNR of a docking container, takes only the
+// latter, so a value passed to a method is converted.
+function screenNumberRewrite(context: LoweringContext): Replacement {
+  const number = selectionScreenNumber(context);
+  return ["sy-dynnr", number, `CONV sy-dynnr( ${number} )`];
+}
+
 // Values a report can read that do not exist, or mean something else, in the
 // generated class: system fields held by the session, the SCREEN work area of
 // LOOP AT SCREEN, and the list color constants. Statements carried over as
@@ -743,7 +754,7 @@ function dataValueRewrites(context: LoweringContext): Replacement[] {
     // SSCRFIELDS-UCOMM holds the selection screen's function code during PAI.
     ["sscrfields-ucomm", context.ucomm ?? "sscrfields-ucomm"],
     ["sy-subrc", context.subrc ?? "sy-subrc"],
-    ["sy-dynnr", selectionScreenNumber(context)],
+    screenNumberRewrite(context),
     // The lines a table control shows, which a dynpro module gets from the host.
     ...(context.event === "dynpro" ? [["sy-loopc", "is_context-loop_count"] as Replacement] : []),
     ["screen-name", `${screen}name`],
@@ -868,7 +879,7 @@ function valueExpression(expression: string, context: LoweringContext): string {
     ["sy-ucomm", context.ucomm ?? "iv_ucomm"],
     ["sscrfields-ucomm", context.ucomm ?? "iv_ucomm"],
     ["sy-repid", "io_session->get_context( )-program-program"],
-    ["sy-dynnr", selectionScreenNumber(context)],
+    screenNumberRewrite(context),
     ["sy-batch", "io_session->get_context( )-program-batch"],
     ["sy-subrc", context.subrc ?? "sy-subrc"],
     ["sy-lsind", "io_session->get_list( )->get_context( )-level"],
@@ -1693,7 +1704,7 @@ function lowerSingleStatement(statement: Statement, context: LoweringContext): s
     const compatible = lowerCompatibilityFunction(replaceOutsideStrings(raw, [
       ...context.replacements,
       ["sy-repid", "io_session->get_context( )-program-program"],
-      ["sy-dynnr", selectionScreenNumber(context)],
+      screenNumberRewrite(context),
     ])) ?? rewriteStatementValues(raw.replace(/,\s*$/, "."), context);
     const popupContinuation = context.continuations?.find(item => item.filename === statement.filename
       && item.span.start.line === statement.span.start.line && item.span.start.column === statement.span.start.column);

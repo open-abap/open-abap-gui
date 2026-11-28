@@ -47,7 +47,7 @@ CLASS ltcl_entity IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD if_http_request~get_method.
-    meth = mv_method.
+    method = mv_method.
   ENDMETHOD.
 
   METHOD if_http_response~set_status.

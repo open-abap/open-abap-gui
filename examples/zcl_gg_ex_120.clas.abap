@@ -268,7 +268,7 @@ CLASS zcl_gg_ex_120 IMPLEMENTATION.
       WHEN 'STATUS_0100'.
         IF go_dock IS INITIAL.
           go_dock = NEW #( repid     = io_session->get_context( )-program-program
-                           dynnr     = io_session->get_context( )-dynpro-screen
+                           dynnr     = CONV sy-dynnr( io_session->get_context( )-dynpro-screen )
                            side      = gv_side
                            extension = gv_extension
                            caption   = 'Docked tools' ).
