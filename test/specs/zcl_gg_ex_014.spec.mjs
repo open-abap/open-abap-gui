@@ -1,8 +1,11 @@
-import {test, expect, openExample, submit, expectPageKind} from "../fixtures.mjs";
+import {test, expect, openExample, expectPageKind} from "../fixtures.mjs";
 
-test(`ZCL_GG_EX_014 — exposes STOP as a navigation state`, async ({page, host}) => {
+// STOP leaves START-OF-SELECTION and goes on to END-OF-SELECTION; the list
+// shows what both wrote.
+test(`ZCL_GG_EX_014 — STOP goes on to END-OF-SELECTION`, async ({page, host}) => {
   await openExample(page, host, 14);
-  await expectPageKind(page, "NAVIGATION");
-  await expect(page.locator("[data-navigation-kind]")).toHaveAttribute("data-navigation-kind", "STOP");
-  await expect(page.locator(".gg-list")).toHaveCount(0);
+  await expectPageKind(page, "LIST");
+  await expect(page.locator("[data-navigation-kind]")).toHaveCount(0);
+  await expect(page.locator(".gg-list")).toContainText("before");
+  await expect(page.locator(".gg-list")).toContainText("end");
 });

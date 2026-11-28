@@ -977,6 +977,11 @@ CLASS zcl_gg_host IMPLEMENTATION.
   METHOD navigation_for.
     DATA ls_continuation TYPE zif_gg_session_types_v1=>ty_continuation.
 
+* STOP goes on to END-OF-SELECTION in the same run: there is nothing to
+* continue to, so it is no navigation to pause at.
+    IF ix_flow->mv_kind = zcx_gg_control_flow=>kind_stop.
+      RETURN.
+    ENDIF.
     ls_continuation = io_session->get_continuation( ).
     rs_navigation-kind = ix_flow->mv_kind.
     rs_navigation-continuation = ls_continuation-id.
