@@ -704,9 +704,14 @@ export async function loadDynproMetadata({
     flowByNumber.set(item.number, flow);
     loadedFiles.push({ filename: flow.filename, number: item.number, source });
   }
+  // abapGit refuses to import a program whose dynpro has no flow logic file,
+  // so a missing one is an error here too rather than an empty PBO/PAI.
+  const missing = metadata.screens
+    .filter((screen: Metadata) => !flowByNumber.has(screen.number))
+    .map((screen: Metadata) => `${path.basename(reportFilename).replace(/\.prog\.abap$/i, "")}.prog.screen_${screen.number}.abap`);
+  if (missing.length) throw new Error(`flow logic file not found: ${missing.join(", ")}`);
   metadata.flowLogic = metadata.screens.map((screen: Metadata) => {
-    const flow = flowByNumber.get(screen.number);
-    if (!flow) return { screen: screen.number, pbo: [], pai: [] };
+    const flow = flowByNumber.get(screen.number)!;
     screen.flowLogic = flow;
     screen.flowFilename = flow.filename;
     return flow;
