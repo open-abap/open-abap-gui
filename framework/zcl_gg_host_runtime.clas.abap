@@ -73,6 +73,14 @@ CLASS zcl_gg_host_runtime DEFINITION PUBLIC FINAL CREATE PUBLIC.
       RETURNING
         VALUE(rv_window) TYPE string.
 
+* The page a running program shows now, as a repeated submission gets it;
+* not valid for a program not running.
+    CLASS-METHODS current_response
+      IMPORTING
+        iv_session_id      TYPE string
+      RETURNING
+        VALUE(rs_response) TYPE zif_gg_host_html_v1=>ty_response.
+
 * Whether a program runs in the GUI session; with no sessions in use, whether
 * any runs.
     CLASS-METHODS runs_in_window
@@ -1391,6 +1399,14 @@ CLASS zcl_gg_host_runtime IMPLEMENTATION.
     READ TABLE mt_sessions INTO DATA(ls_session) WITH KEY session_id = iv_session_id.
     IF sy-subrc = 0.
       rv_window = ls_session-window.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD current_response.
+    READ TABLE mt_sessions INTO DATA(ls_session)
+      WITH KEY session_id = iv_session_id.
+    IF sy-subrc = 0.
+      rs_response = response_for( ls_session ).
     ENDIF.
   ENDMETHOD.
 

@@ -102,6 +102,7 @@ CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
     METHODS transaction_below_a_mount FOR TESTING.
     METHODS unsafe_mount_is_not_echoed FOR TESTING.
     METHODS mount_of_another_host FOR TESTING.
+    METHODS command_error_keeps_screen FOR TESTING.
     METHODS session_is_stateful FOR TESTING.
 
 ENDCLASS.
@@ -209,6 +210,59 @@ CLASS ltcl_mount IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'var BASE = "";' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'x"y' ) ).
+  ENDMETHOD.
+
+* A command the command field cannot carry out answers with the running
+* program's page and the error in the status bar, not with the workbench.
+  METHOD command_error_keeps_screen.
+    DATA lv_window TYPE string.
+    DATA lv_session TYPE string.
+    DATA lv_page TYPE string.
+    DATA lv_command TYPE string.
+
+    DATA(lv_html) = run( iv_path   = '/transaction'
+                         iv_info   = '/transaction'
+                         iv_query  = 'tcode=ZGG_EX_001'
+                         iv_window = zcl_gg_host_windows=>c_new_window
+                         it_fields = VALUE #( ( name = 'tcode' value = 'ZGG_EX_001' ) ) ).
+    lv_window = mo_response->if_http_entity~get_header_field( 'x-gg-window' ).
+    FIND FIRST OCCURRENCE OF REGEX 'data-session-id="([^"]+)"' IN lv_html SUBMATCHES lv_session.
+    FIND FIRST OCCURRENCE OF REGEX 'data-page-id="([^"]+)"' IN lv_html SUBMATCHES lv_page.
+    cl_abap_unit_assert=>assert_not_initial( lv_session ).
+
+    LOOP AT VALUE string_table( ( `/xyz` ) ( `/nNOPE` ) ) INTO lv_command.
+      lv_html = run( iv_method = 'POST'
+                     iv_path   = '/transaction'
+                     iv_info   = '/transaction'
+                     iv_window = lv_window
+                     it_fields = VALUE #( ( name = 'command' value = lv_command )
+                                          ( name = 'session_id' value = lv_session )
+                                          ( name = 'page_id' value = lv_page ) ) ).
+      cl_abap_unit_assert=>assert_equals( act = mo_response->mv_status
+                                          exp = 200 ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |data-session-id="{ lv_session }"| ) ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'class="wb-status-text"' ) ).
+      cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'href="/transaction?tcode=' ) ).
+      cl_abap_unit_assert=>assert_equals( act = mo_response->if_http_entity~get_header_field( 'x-gg-transaction' )
+                                          exp = 'ZGG_EX_001' ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS COND string( WHEN lv_command = `/xyz`
+                                                                                 THEN `Unsupported command`
+                                                                                 ELSE `Unknown transaction code: NOPE` ) ) ).
+    ENDLOOP.
+
+* The page that came back is the program's current one: a command from it runs.
+    FIND FIRST OCCURRENCE OF REGEX 'data-page-id="([^"]+)"' IN lv_html SUBMATCHES lv_page.
+    lv_html = run( iv_method = 'POST'
+                   iv_path   = '/transaction'
+                   iv_info   = '/transaction'
+                   iv_window = lv_window
+                   it_fields = VALUE #( ( name = 'command' value = '/nZGG_EX_001' )
+                                        ( name = 'session_id' value = lv_session )
+                                        ( name = 'page_id' value = lv_page ) ) ).
+    cl_abap_unit_assert=>assert_equals( act = mo_response->mv_status
+                                        exp = 200 ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'class="wb-status-text"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS |data-session-id="{ lv_session }"| ) ).
   ENDMETHOD.
 
 * A mount that starts with // would make every link a URL of another host.
