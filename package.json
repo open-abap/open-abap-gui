@@ -26,8 +26,8 @@
   },
   "license": "",
   "dependencies": {
-    "@abaplint/cli": "^2.120.124",
-    "@abaplint/core": "^2.120.124",
+    "@abaplint/cli": "^2.120.125",
+    "@abaplint/core": "^2.120.125",
     "@abaplint/database-sqlite": "^2.14.35",
     "@abaplint/runtime": "^2.14.41",
     "@abaplint/transpiler-cli": "^2.14.41",
