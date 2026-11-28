@@ -164,6 +164,27 @@ for (const host of hosts) {
       await expect(program).toHaveAttribute("data-session-id", session);
     });
 
+    // A screen whose own status maps F3 gets it once, as that function key.
+    test("F3 on a nested screen leaves that one screen", async ({page}) => {
+      await open(page, "ZGG_EX_111");
+      await onScreen(page).getByRole("button", {name: "Call screen 200"}).click();
+      await expect(onScreen(page).locator('[data-screen="0200"]')).toHaveCount(1);
+      await onScreen(page).locator('[data-screen="0200"]').press("F3");
+      await expect(onScreen(page).locator('[data-screen="0100"]')).toHaveCount(1);
+      await expect(statusMessage(onScreen(page))).not.toContainText("Unknown host session");
+      await expect(railEntries(page).first().locator(".gg-rail-code")).toHaveText("ZGG_EX_111");
+    });
+
+    test("F3 on the first screen of a dynpro ends it once", async ({page}) => {
+      for (const tcode of ["ZGG_EX_111", "ZGG_EX_110"]) {
+        await open(page, tcode);
+        await onScreen(page).locator("[data-screen]").first().press("F3");
+        await expect(onScreen(page).locator("#wb-app-panel")).toBeVisible();
+        await expect(statusMessage(onScreen(page))).not.toContainText("Unknown host session");
+        await expect(page.locator("iframe").first()).toHaveAttribute("data-gg-status", "200");
+      }
+    });
+
     test("SUBMIT lists the submitted program in the rail", async ({page}) => {
       await open(page);
       await command(page, "/nZGG_EX_053");
