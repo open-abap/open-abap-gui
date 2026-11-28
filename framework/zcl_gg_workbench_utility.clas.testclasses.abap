@@ -10,6 +10,8 @@ CLASS ltcl_gg_workbench_utility DEFINITION FINAL FOR TESTING DURATION SHORT RISK
     METHODS renders_bottom FOR TESTING.
     METHODS renders_bottom_message_types FOR TESTING.
     METHODS renders_message_details FOR TESTING.
+    METHODS swaps_status_message FOR TESTING.
+    METHODS keeps_page_without_status_bar FOR TESTING.
 
 ENDCLASS.
 
@@ -306,6 +308,36 @@ CLASS ltcl_gg_workbench_utility IMPLEMENTATION.
     lv_html = zcl_gg_workbench_utility=>render_bottom( iv_message = 'boom' ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'id="wb-message-details"' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'aria-haspopup' ) ).
+  ENDMETHOD.
+
+* Another message in the status bar of a rendered page; the old message's
+* technical information goes with it.
+  METHOD swaps_status_message.
+    DATA(lv_page) = |<main>x</main>| && zcl_gg_workbench_utility=>render_bottom(
+      iv_message = 'old message'
+      iv_type    = zif_gg_session_types_v1=>message_type_success
+      is_message = VALUE #( type = zif_gg_session_types_v1=>message_type_success id = 'ZX' number = '001' text = 'old message' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_page CS 'id="wb-message-details"' ) ).
+
+    DATA(lv_html) = zcl_gg_workbench_utility=>with_status_message(
+      iv_html    = lv_page
+      iv_message = 'new message' ).
+
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<span class="wb-status-text">new message</span>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-status-error' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'old message' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'id="wb-message-details"' ) ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'aria-controls=' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<main>x</main>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'wb-status-context' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '</script>' ) ).
+  ENDMETHOD.
+
+  METHOD keeps_page_without_status_bar.
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_gg_workbench_utility=>with_status_message( iv_html    = '<p>no bar</p>'
+                                                           iv_message = 'm' )
+      exp = '<p>no bar</p>' ).
   ENDMETHOD.
 
 ENDCLASS.
