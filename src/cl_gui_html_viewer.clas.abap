@@ -142,6 +142,8 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
   METHOD dispatch_frontend_event.
     DATA lv_action      TYPE string.
     DATA lv_getdata     TYPE string.
+    DATA lv_action_c    TYPE c LENGTH 256.
+    DATA lv_getdata_c   TYPE c LENGTH 2048.
     DATA lv_body        TYPE string.
     DATA lv_offset      TYPE i.
     DATA lv_line        TYPE cnht_post_data_line.
@@ -205,10 +207,13 @@ CLASS cl_gui_html_viewer IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
+* The event's ACTION and GETDATA are TYPE c: a string does not fit them.
+    lv_action_c = lv_action.
+    lv_getdata_c = lv_getdata.
     RAISE EVENT sapevent
       EXPORTING
-        action      = lv_action
-        getdata     = lv_getdata
+        action      = lv_action_c
+        getdata     = lv_getdata_c
         postdata    = lt_postdata
         query_table = lt_query_table.
   ENDMETHOD.

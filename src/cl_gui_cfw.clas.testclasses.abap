@@ -1070,6 +1070,7 @@ CLASS ltcl_test IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD html_viewer_sapevent_postdata.
+    DATA lt_query TYPE cnht_query_table.
     DATA lt_events TYPE cntl_simple_events.
     DATA lv_long TYPE string.
 
@@ -1101,12 +1102,13 @@ CLASS ltcl_test IMPLEMENTATION.
       act = mt_sapevent_postdata
       exp = VALUE cnht_post_data_tab( ( 'comment=a b %26 c%3Dd 100%25&mode=x' ) ) ).
 * query_table is the pairs of getdata, decoded, and then the fields.
+    lt_query = VALUE #( ( name = 'key' value = 'a b!' )
+                        ( name = 'flag' value = '' )
+                        ( name = 'comment' value = 'a b & c=d 100%' )
+                        ( name = 'mode' value = 'x' ) ).
     cl_abap_unit_assert=>assert_equals(
       act = mt_sapevent_query
-      exp = VALUE cnht_query_table( ( name = 'key' value = 'a b!' )
-                                    ( name = 'flag' value = '' )
-                                    ( name = 'comment' value = 'a b & c=d 100%' )
-                                    ( name = 'mode' value = 'x' ) ) ).
+      exp = lt_query ).
 
 * A long form is cut into lines of 256 characters.
     lv_long = repeat( val = 'y'

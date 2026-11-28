@@ -555,7 +555,7 @@ CLASS cl_gui_alv_tree IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_outtab_line.
-    FIELD-SYMBOLS <outtab> TYPE ANY TABLE.
+    FIELD-SYMBOLS <outtab> TYPE STANDARD TABLE.
     FIELD-SYMBOLS <outtab_line> TYPE any.
     ASSIGN mt_outtab->* TO <outtab>.
     IF sy-subrc <> 0.

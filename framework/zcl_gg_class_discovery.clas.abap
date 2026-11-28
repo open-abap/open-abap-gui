@@ -22,7 +22,7 @@ CLASS zcl_gg_class_discovery DEFINITION PUBLIC FINAL CREATE PUBLIC.
            END OF ty_s_key.
     TYPES: BEGIN OF ty_s_source,
              progname TYPE c LENGTH 40,
-             data     TYPE string,
+             data     TYPE reposrc-data,
            END OF ty_s_source.
 
 ENDCLASS.
