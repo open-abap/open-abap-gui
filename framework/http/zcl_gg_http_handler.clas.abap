@@ -284,14 +284,35 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD mount.
     DATA lv_info TYPE string.
     DATA lv_base TYPE string.
+    DATA lv_script TYPE string.
 
-* The handler routes on ~path_info, the path below the node it is served
-* from, and the pages link and post below that node: ~path without its
-* ~path_info. Served at the root, or by a host that sets no ~path_info, the
-* two are the same and the routes are the paths themselves.
+* The handler routes on the path below the node it is served from, and the
+* pages link and post below that node. On a system ~script_name is the node
+* and ~path_info the rest, which is empty at the node itself; a host that sets
+* no ~script_name has ~path without its ~path_info as the node. Served at the
+* root, or by a host that sets neither, the routes are the paths themselves.
     mv_path = server->request->get_header_field( '~path' ).
     lv_info = server->request->get_header_field( '~path_info' ).
-    IF lv_info IS NOT INITIAL AND lv_info <> mv_path
+    lv_script = server->request->get_header_field( '~script_name' ).
+    IF strlen( lv_script ) > 1 AND substring( val = lv_script
+                                              off = strlen( lv_script ) - 1 ) = '/'.
+      lv_script = substring( val = lv_script
+                             len = strlen( lv_script ) - 1 ).
+    ENDIF.
+    IF strlen( lv_script ) > 1 AND strlen( mv_path ) >= strlen( lv_script )
+        AND substring( val = mv_path
+                       len = strlen( lv_script ) ) = lv_script
+        AND ( strlen( mv_path ) = strlen( lv_script )
+          OR substring( val = mv_path
+                        off = strlen( lv_script )
+                        len = 1 ) = '/' ).
+      lv_base = lv_script.
+      mv_path = substring( val = mv_path
+                           off = strlen( lv_script ) ).
+      IF mv_path IS INITIAL.
+        mv_path = '/'.
+      ENDIF.
+    ELSEIF lv_info IS NOT INITIAL AND lv_info <> mv_path
         AND strlen( lv_info ) < strlen( mv_path )
         AND substring( val = mv_path
                        off = strlen( mv_path ) - strlen( lv_info ) ) = lv_info.
@@ -1342,13 +1363,33 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
 
   METHOD is_shell_request.
     DATA lv_method TYPE string.
+    DATA lv_uri TYPE string.
+    DATA lv_query TYPE string.
+    DATA lt_parameters TYPE string_table.
+    DATA lv_parameter TYPE string.
 
     lv_method = server->request->get_method( ).
     lv_method = to_upper( lv_method ).
-    rv_is_shell = xsdbool( lv_method = 'GET'
-      AND mv_path = '/'
-      AND server->request->get_header_field( 'x-gg-window' ) IS INITIAL
-      AND server->request->get_header_field( '~request_uri' ) = server->request->get_header_field( '~path' ) ).
+    IF lv_method <> 'GET' OR mv_path <> '/'
+        OR server->request->get_header_field( 'x-gg-window' ) IS NOT INITIAL.
+      RETURN.
+    ENDIF.
+* The shell is the node's address with no query of its own. A system's logon
+* adds sap-client and the like to it, which are not the shell's.
+    lv_uri = server->request->get_header_field( '~request_uri' ).
+    IF lv_uri CS '?'.
+      SPLIT lv_uri AT '?' INTO lv_uri lv_query.
+      IF lv_query IS INITIAL.
+        RETURN.
+      ENDIF.
+      SPLIT lv_query AT '&' INTO TABLE lt_parameters.
+      LOOP AT lt_parameters INTO lv_parameter.
+        IF lv_parameter NP 'sap-*'.
+          RETURN.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+    rv_is_shell = xsdbool( lv_uri = server->request->get_header_field( '~path' ) ).
   ENDMETHOD.
 
   METHOD send_workbench_error.

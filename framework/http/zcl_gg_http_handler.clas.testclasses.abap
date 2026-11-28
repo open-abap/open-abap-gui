@@ -89,7 +89,9 @@ CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
         iv_method      TYPE string DEFAULT 'GET'
         iv_path        TYPE string
         iv_info        TYPE string OPTIONAL
+        iv_script      TYPE string OPTIONAL
         iv_query       TYPE string OPTIONAL
+        iv_uri         TYPE string OPTIONAL
         iv_window      TYPE string OPTIONAL
         it_fields      TYPE tihttpnvp OPTIONAL
       RETURNING
@@ -102,6 +104,11 @@ CLASS ltcl_mount DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS
     METHODS transaction_below_a_mount FOR TESTING.
     METHODS unsafe_mount_is_not_echoed FOR TESTING.
     METHODS mount_of_another_host FOR TESTING.
+    METHODS shell_at_a_node FOR TESTING.
+    METHODS shell_with_a_logon_query FOR TESTING.
+    METHODS query_of_its_own_is_no_shell FOR TESTING.
+    METHODS bare_query_is_no_shell FOR TESTING.
+    METHODS transaction_below_a_node FOR TESTING.
     METHODS session_is_stateful FOR TESTING.
 
 ENDCLASS.
@@ -130,9 +137,14 @@ CLASS ltcl_mount IMPLEMENTATION.
       mo_request->if_http_entity~set_header_field( name  = '~path_info'
                                                    value = iv_info ).
     ENDIF.
+    IF iv_script IS SUPPLIED.
+      mo_request->if_http_entity~set_header_field( name  = '~script_name'
+                                                   value = iv_script ).
+    ENDIF.
     mo_request->if_http_entity~set_header_field(
       name  = '~request_uri'
-      value = iv_path && COND string( WHEN iv_query IS NOT INITIAL THEN |?{ iv_query }| ) ).
+      value = COND string( WHEN iv_uri IS SUPPLIED THEN iv_uri
+                           ELSE iv_path && COND string( WHEN iv_query IS NOT INITIAL THEN |?{ iv_query }| ) ) ).
     IF iv_window IS NOT INITIAL.
       mo_request->if_http_entity~set_header_field( name  = 'x-gg-window'
                                                    value = iv_window ).
@@ -209,6 +221,60 @@ CLASS ltcl_mount IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
     cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS 'var BASE = "";' ) ).
     cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS 'x"y' ) ).
+  ENDMETHOD.
+
+* On a system the node itself has an empty ~path_info, and ~script_name is
+* the node, with or without the slash after it.
+  METHOD shell_at_a_node.
+    DATA(lv_html) = run( iv_path   = c_base
+                         iv_info   = ``
+                         iv_script = c_base ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |var BASE = "{ c_base }";| ) ).
+
+    lv_html = run( iv_path   = |{ c_base }/|
+                   iv_info   = ``
+                   iv_script = c_base ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |var BASE = "{ c_base }";| ) ).
+  ENDMETHOD.
+
+* A logon adds sap-client and the like to the address; it is still the shell.
+  METHOD shell_with_a_logon_query.
+    DATA(lv_html) = run( iv_path   = |{ c_base }/|
+                         iv_info   = ``
+                         iv_script = c_base
+                         iv_query  = 'sap-client=001&sap-language=EN' ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
+  ENDMETHOD.
+
+  METHOD query_of_its_own_is_no_shell.
+    DATA(lv_html) = run( iv_path  = '/'
+                         iv_info  = '/'
+                         iv_query = 'sap-client=001&x=1' ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
+  ENDMETHOD.
+
+* A browser sends a bare ? for the workbench's empty GET form outside the shell.
+  METHOD bare_query_is_no_shell.
+    DATA(lv_html) = run( iv_path   = |{ c_base }/|
+                         iv_info   = ``
+                         iv_script = c_base
+                         iv_uri    = |{ c_base }/?| ).
+    cl_abap_unit_assert=>assert_false( act = xsdbool( lv_html CS '<div id="gg-frames"></div>' ) ).
+  ENDMETHOD.
+
+  METHOD transaction_below_a_node.
+    DATA(lv_html) = run( iv_path   = |{ c_base }/transaction|
+                         iv_info   = '/transaction'
+                         iv_script = c_base
+                         iv_query  = 'tcode=ZGG_EX_001&sap-client=001'
+                         iv_window = zcl_gg_host_windows=>c_new_window
+                         it_fields = VALUE #( ( name = 'tcode' value = 'ZGG_EX_001' ) ) ).
+
+    cl_abap_unit_assert=>assert_equals( act = mo_response->mv_status
+                                        exp = 200 ).
+    cl_abap_unit_assert=>assert_true( act = xsdbool( lv_html CS |action="{ c_base }/dispatch"| ) ).
   ENDMETHOD.
 
 * A mount that starts with // would make every link a URL of another host.
