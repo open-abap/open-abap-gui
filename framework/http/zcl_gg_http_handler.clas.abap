@@ -228,6 +228,11 @@ CLASS zcl_gg_http_handler IMPLEMENTATION.
   METHOD if_http_extension~handle_request.
     DATA lv_method TYPE string.
 
+* GUI sessions, the programs running in them and their controls are static
+* state (decision 10). On a system that state lasts only as long as the ICF
+* session, so the session is stateful; a host that runs in one process keeps
+* it anyway.
+    server->set_session_stateful( ).
     mount( server ).
 * The host's own transaction errors show their message. Any other exception
 * is one no program handled, and the request is answered with its
