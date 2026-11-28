@@ -22,6 +22,14 @@ CLASS lcl_report DEFINITION FINAL CREATE PUBLIC.
       RETURNING
         VALUE(ro_writer) TYPE REF TO zif_gg_list_writer_v1.
 
+* Moves the typed fields into typed variables, the way a converted report
+* fills its PARAMETERS and SELECT-OPTIONS in every event.
+    METHODS move_typed
+      IMPORTING
+        it_values      TYPE zif_gg_selection_screen_types=>ty_values
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
 ENDCLASS.
 
 CLASS lcl_report IMPLEMENTATION.
@@ -32,6 +40,19 @@ CLASS lcl_report IMPLEMENTATION.
 
   METHOD writer.
     ro_writer = io_session->get_list( )->get_writer( ).
+  ENDMETHOD.
+
+  METHOD move_typed.
+    DATA lv_int TYPE i.
+    DATA lv_dec TYPE p LENGTH 8 DECIMALS 2.
+    DATA lv_flt TYPE f.
+    DATA lt_int TYPE RANGE OF i.
+
+    lv_int = it_values[ name = 'P_INT' ]-value.
+    lv_dec = it_values[ name = 'P_DEC' ]-value.
+    lv_flt = it_values[ name = 'P_FLT' ]-value.
+    lt_int = CORRESPONDING #( it_values[ name = 'S_INT' ]-ranges ).
+    rv_text = |{ lv_int } { lv_dec } { lines( lt_int ) }|.
   ENDMETHOD.
 
   METHOD zif_gg_report_v1~start_of_selection.
@@ -92,6 +113,10 @@ CLASS lcl_report IMPLEMENTATION.
         io_session->message( VALUE #(
           type = zif_gg_session_types_v1=>message_type_error
           text = 'bad input' ) ).
+
+      WHEN 'TYPED'.
+        APPEND 'START' TO events.
+        lo_writer->write_field( VALUE #( text = move_typed( it_values ) ) ).
 
       WHEN 'GUI'.
         lo_gui_container = NEW cl_gui_custom_container( container_name = 'HOST_GUI' ).
@@ -176,6 +201,29 @@ CLASS lcl_report IMPLEMENTATION.
           text       = 'Carrier'
           data_type  = VALUE #( typ = 'C' length = 3 )
           obligatory = abap_true ) ).
+      WHEN 'TYPED'.
+        io_builder->add_parameter( VALUE #(
+          name      = 'P_INT'
+          text      = 'Integer'
+          data_type = VALUE #( typ = 'I' )
+          default   = '42' ) ).
+        io_builder->add_parameter( VALUE #(
+          name      = 'P_DEC'
+          text      = 'Decimal'
+          data_type = VALUE #( typ = 'P' decimals = 2 ) ) ).
+        io_builder->add_parameter( VALUE #(
+          name      = 'P_FLT'
+          text      = 'Float'
+          data_type = VALUE #( typ = 'F' ) ) ).
+        io_builder->add_select_option( VALUE #(
+          name      = 'S_INT'
+          text      = 'Integers'
+          data_type = VALUE #( typ = 'I' ) ) ).
+        io_builder->add_parameter( VALUE #(
+          name       = 'P_REQ'
+          text       = 'Required'
+          data_type  = VALUE #( typ = 'C' length = 3 )
+          obligatory = abap_true ) ).
       WHEN OTHERS.
         RETURN.
     ENDCASE.
@@ -210,6 +258,9 @@ CLASS lcl_report IMPLEMENTATION.
         <ls_state>-visible = abap_false.
       ENDLOOP.
     ENDIF.
+    IF mv_mode = 'TYPED'.
+      move_typed( ct_values ).
+    ENDIF.
     IF mv_mode = 'OUTPUT'.
       ct_values[ name = 'P_CARR' ]-value = 'OUT'.
       ct_states[ name = 'P_CARR' ]-visible = abap_false.
@@ -221,6 +272,10 @@ CLASS lcl_report IMPLEMENTATION.
     IF mv_mode = 'TABS'.
       DATA(ls_context) = io_session->get_context( ).
       APPEND |PAI:{ iv_screen }:{ ls_context-selection-screen }:{ iv_ucomm }| TO events.
+    ENDIF.
+    IF mv_mode = 'TYPED'.
+      APPEND 'PAI' TO events.
+      move_typed( ct_values ).
     ENDIF.
     IF mv_mode = 'OUTPUT'.
       io_session->message( VALUE #(
@@ -329,6 +384,9 @@ CLASS ltcl_host DEFINITION FINAL FOR TESTING DURATION SHORT RISK LEVEL HARMLESS.
     METHODS selection_other_screen_events FOR TESTING.
     METHODS html_gui_fixture FOR TESTING.
     METHODS replaces_a_host_session FOR TESTING.
+    METHODS typed_input_rejected FOR TESTING.
+    METHODS typed_range_rejected FOR TESTING.
+    METHODS typed_input_accepted FOR TESTING.
 
 ENDCLASS.
 
@@ -824,6 +882,87 @@ CLASS ltcl_host IMPLEMENTATION.
     ls_stale = zcl_gg_host_runtime=>dispatch( ls_request ).
     cl_abap_unit_assert=>assert_false( act = ls_stale-valid ).
     zcl_gg_host_runtime=>clear( ).
+  ENDMETHOD.
+
+  METHOD typed_input_rejected.
+    DATA lt_cases TYPE STANDARD TABLE OF zif_gg_selection_screen_types=>ty_value WITH DEFAULT KEY.
+
+* What the field cannot hold keeps the selection screen, with the field
+* named in an error message, before the obligatory check and before
+* AT SELECTION-SCREEN or START-OF-SELECTION run.
+    lt_cases = VALUE #(
+      ( name = 'P_INT' value = 'abc' )
+      ( name = 'P_INT' value = '1e3' )
+      ( name = 'P_INT' value = '99999999999999999999' )
+      ( name = 'P_DEC' value = '1,5x' )
+      ( name = 'P_DEC' value = '12345678901234567890' )
+      ( name = 'P_FLT' value = 'x1' ) ).
+    LOOP AT lt_cases INTO DATA(ls_case).
+      DATA(lo_report) = NEW lcl_report( 'TYPED' ).
+      DATA(ls_result) = zcl_gg_host=>run(
+        io_report = lo_report
+        it_input  = VALUE #( ( ls_case ) ) ).
+
+      cl_abap_unit_assert=>assert_equals(
+        act = lines( ls_result-messages )
+        exp = 1
+        msg = ls_case-value ).
+      cl_abap_unit_assert=>assert_equals(
+        act = ls_result-messages[ 1 ]-type
+        exp = zif_gg_session_types_v1=>message_type_error ).
+      cl_abap_unit_assert=>assert_equals(
+        act = ls_result-messages[ 1 ]-field
+        exp = ls_case-name
+        msg = ls_case-value ).
+      cl_abap_unit_assert=>assert_true( ls_result-selection_active ).
+      cl_abap_unit_assert=>assert_initial( ls_result-lines ).
+      cl_abap_unit_assert=>assert_initial( lo_report->events ).
+* The screen shows what was typed, not the value before it.
+      cl_abap_unit_assert=>assert_equals(
+        act = ls_result-values[ name = ls_case-name ]-value
+        exp = ls_case-value ).
+      cl_abap_unit_assert=>assert_true( act = xsdbool( ls_result-html CS 'data-page-kind="SELECTION"' ) ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD typed_range_rejected.
+    DATA(lo_report) = NEW lcl_report( 'TYPED' ).
+    DATA(ls_result) = zcl_gg_host=>run(
+      io_report = lo_report
+      it_input  = VALUE #( ( name   = 'S_INT'
+                             ranges = VALUE #( ( sign = 'I' option = 'BT' low = '1' high = '1x' ) ) ) ) ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lines( ls_result-messages )
+      exp = 1 ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-messages[ 1 ]-field
+      exp = 'S_INT' ).
+    cl_abap_unit_assert=>assert_true( ls_result-selection_active ).
+    cl_abap_unit_assert=>assert_initial( lo_report->events ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-values[ name = 'S_INT' ]-ranges[ 1 ]-high
+      exp = '1x' ).
+  ENDMETHOD.
+
+  METHOD typed_input_accepted.
+    DATA(lo_report) = NEW lcl_report( 'TYPED' ).
+    DATA(ls_result) = zcl_gg_host=>run(
+      io_report = lo_report
+      it_input  = VALUE #(
+        ( name = 'P_DEC' value = '-1.5' )
+        ( name = 'P_FLT' value = '2.5E3' )
+        ( name = 'P_INT' value = '7-' )
+        ( name = 'P_REQ' value = 'ABC' )
+        ( name = 'S_INT' ranges = VALUE #( ( sign = 'I' option = 'BT' low = '1' high = '9' ) ) ) ) ).
+
+    cl_abap_unit_assert=>assert_initial( ls_result-messages ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_report->events
+      exp = VALUE string_table( ( `PAI` ) ( `START` ) ) ).
+    cl_abap_unit_assert=>assert_equals(
+      act = ls_result-lines
+      exp = VALUE zcl_gg_host_list=>ty_text_lines( ( `-7 -1.50 1` ) ) ).
   ENDMETHOD.
 
 ENDCLASS.

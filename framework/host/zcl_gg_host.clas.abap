@@ -251,6 +251,24 @@ CLASS zcl_gg_host DEFINITION PUBLIC FINAL CREATE PUBLIC.
         it_values  TYPE zif_gg_selection_screen_types=>ty_values
         io_session TYPE REF TO zcl_gg_host_session.
 
+* The error message for an input the field's type cannot hold, or empty when
+* it can. Only numeric types are checked: a move into C, N, D or T does not
+* fail, whatever the input.
+    CLASS-METHODS conversion_error
+      IMPORTING
+        iv_name        TYPE zif_gg_selection_screen_types=>ty_name
+        is_data_type   TYPE zif_gg_selection_screen_types=>ty_data_type
+        iv_value       TYPE string
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
+    CLASS-METHODS input_conversion_error
+      IMPORTING
+        it_elements    TYPE zcl_gg_host_screen=>ty_elements
+        is_input       TYPE zif_gg_selection_screen_types=>ty_value
+      RETURNING
+        VALUE(rv_text) TYPE string.
+
     CLASS-METHODS merge_submit_values
       IMPORTING
         is_submit        TYPE zif_gg_session_types_v1=>ty_submit
@@ -352,6 +370,9 @@ CLASS zcl_gg_host IMPLEMENTATION.
     DATA lt_event_screens TYPE STANDARD TABLE OF zif_gg_selection_screen_types=>ty_screen_number
       WITH DEFAULT KEY.
     DATA lt_screen_states TYPE zif_gg_selection_screen_types=>ty_states.
+    DATA lt_rejected_input TYPE zif_gg_selection_screen_types=>ty_values.
+    DATA lv_first_conversion_error TYPE string.
+    DATA lv_first_rejected_name TYPE zif_gg_selection_screen_types=>ty_name.
 
 * Process the displayed subscreen before its enclosing selection screen.
 * The current command may be a tab click; its outgoing tab still owns PAI.
@@ -392,9 +413,23 @@ CLASS zcl_gg_host IMPLEMENTATION.
         io_session = io_session ).
     ENDIF.
 
+* Input the field's type cannot hold never reaches the program: the screen
+* keeps it and rejects it before any PAI event. Until then the program goes on
+* seeing the value the field held before.
     LOOP AT it_input INTO DATA(ls_input_before_output).
       IF line_exists( ct_values[ name = ls_input_before_output-name ] ).
-        MODIFY TABLE ct_values FROM ls_input_before_output.
+        DATA(lv_conversion_error) = input_conversion_error(
+          it_elements = it_elements
+          is_input    = ls_input_before_output ).
+        IF lv_conversion_error IS INITIAL.
+          MODIFY TABLE ct_values FROM ls_input_before_output.
+        ELSE.
+          INSERT ls_input_before_output INTO TABLE lt_rejected_input.
+          IF lv_first_conversion_error IS INITIAL.
+            lv_first_conversion_error = lv_conversion_error.
+            lv_first_rejected_name = ls_input_before_output-name.
+          ENDIF.
+        ENDIF.
       ENDIF.
     ENDLOOP.
 
@@ -448,6 +483,17 @@ CLASS zcl_gg_host IMPLEMENTATION.
         AND iv_help_name IS INITIAL
         AND iv_value_request IS INITIAL.
       RETURN.
+    ENDIF.
+
+* Cancel leaves the screen without looking at its fields.
+    IF lv_first_conversion_error IS NOT INITIAL AND iv_ucomm <> 'ECAN'.
+      LOOP AT lt_rejected_input INTO DATA(ls_rejected_input).
+        MODIFY TABLE ct_values FROM ls_rejected_input.
+      ENDLOOP.
+      io_session->zif_gg_session_v1~message( VALUE #(
+        type  = zif_gg_session_types_v1=>message_type_error
+        text  = lv_first_conversion_error
+        field = lv_first_rejected_name ) ).
     ENDIF.
 
     LOOP AT lt_event_screens INTO lv_event_screen.
@@ -1509,6 +1555,76 @@ CLASS zcl_gg_host IMPLEMENTATION.
           RETURN.
       ENDCASE.
     ENDLOOP.
+  ENDMETHOD.
+
+  METHOD input_conversion_error.
+    READ TABLE it_elements INTO DATA(ls_element)
+      WITH KEY name = is_input-name.
+    IF sy-subrc <> 0.
+      RETURN.
+    ENDIF.
+    rv_text = conversion_error(
+      iv_name      = is_input-name
+      is_data_type = ls_element-data_type
+      iv_value     = is_input-value ).
+    LOOP AT is_input-ranges INTO DATA(ls_range).
+      IF rv_text IS NOT INITIAL.
+        RETURN.
+      ENDIF.
+      rv_text = conversion_error(
+        iv_name      = is_input-name
+        is_data_type = ls_element-data_type
+        iv_value     = ls_range-low ).
+      IF rv_text IS INITIAL.
+        rv_text = conversion_error(
+          iv_name      = is_input-name
+          is_data_type = ls_element-data_type
+          iv_value     = ls_range-high ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD conversion_error.
+* An int8 parameter has the screen type I as well, so I is checked against
+* the int8 range: a number an int8 holds is never rejected.
+    CONSTANTS lc_int8_max TYPE p LENGTH 16 DECIMALS 0 VALUE '9223372036854775807'.
+    CONSTANTS lc_int8_min TYPE p LENGTH 16 DECIMALS 0 VALUE '-9223372036854775808'.
+    DATA lv_int TYPE i.
+    DATA lv_integer TYPE p LENGTH 16 DECIMALS 0.
+    DATA lv_float TYPE f.
+    DATA lr_packed TYPE REF TO data.
+    DATA lv_length TYPE i.
+    FIELD-SYMBOLS <lv_packed> TYPE any.
+
+    IF iv_value IS INITIAL.
+      RETURN.
+    ENDIF.
+    TRY.
+        CASE is_data_type-typ.
+          WHEN 'I'.
+* The program's own move decides what is a number, a trailing minus included.
+            TRY.
+                lv_int = iv_value.
+                lv_integer = lv_int.
+              CATCH cx_sy_conversion_overflow.
+                lv_integer = iv_value.
+            ENDTRY.
+            IF lv_integer > lc_int8_max OR lv_integer < lc_int8_min.
+              RAISE EXCEPTION TYPE cx_sy_conversion_overflow.
+            ENDIF.
+          WHEN 'F'.
+            lv_float = iv_value.
+          WHEN 'P'.
+            lv_length = COND #( WHEN is_data_type-length > 0 THEN is_data_type-length ELSE 8 ).
+            CREATE DATA lr_packed TYPE p LENGTH lv_length DECIMALS is_data_type-decimals.
+            ASSIGN lr_packed->* TO <lv_packed>.
+            <lv_packed> = iv_value.
+        ENDCASE.
+      CATCH cx_sy_conversion_overflow.
+        rv_text = |{ iv_name } is a numeric field and { iv_value } is out of its range.|.
+      CATCH cx_sy_conversion_error.
+        rv_text = |{ iv_name } is a numeric field and only accepts a number.|.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD validate_required.
