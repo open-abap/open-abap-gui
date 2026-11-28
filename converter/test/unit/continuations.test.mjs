@@ -214,3 +214,18 @@ test("keeps helper method bodies that write, using the helper's stored session",
   assert.match(statusBody, /DATA\(lo_writer\) = io_session->get_list\( \)->get_writer\( \)\./);
   assert.match(statusBody, /text = lo_writer->format_value\( iv_value = iv_text \)/);
 });
+
+test("passes a range table given to SUBMIT WITH ... IN as the selection's values", async () => {
+  const result = await convertProgram({
+    source: [
+      "REPORT zsubmit_range.",
+      "DATA gt_carr TYPE RANGE OF zsflight-carrid.",
+      "START-OF-SELECTION.",
+      "  gt_carr = VALUE #( ( sign = 'I' option = 'EQ' low = 'LH' ) ).",
+      "  SUBMIT zother WITH s_carr IN gt_carr AND RETURN.",
+    ].join("\n"),
+    filename: "zsubmit_range.prog.abap",
+  });
+  assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
+  assert.match(result.classSource, /values = VALUE #\( \( name = 'S_CARR' ranges = CORRESPONDING #\( gt_carr \) \) \)/);
+});
