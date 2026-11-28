@@ -118,7 +118,7 @@ CLASS ltcl_tree_model IMPLEMENTATION.
       node_key       = 'CHILD'
       expand_parents = abap_true ).
     lo_model->get_expanded_nodes( IMPORTING node_key_table = lt_expanded ).
-    lv_summary = lo_model->get_state_summary( ).
+    lv_summary = CAST cl_tree_model( lo_model )->get_state_summary( ).
 
     cl_abap_unit_assert=>assert_equals(
       act = lv_parent

@@ -1,4 +1,4 @@
-CLASS cl_salv_functions_list DEFINITION PUBLIC INHERITING FROM cl_salv_functions.
+CLASS cl_salv_functions_list DEFINITION PUBLIC INHERITING FROM cl_salv_functions GLOBAL FRIENDS cl_salv_table.
   PUBLIC SECTION.
 
     METHODS set_default

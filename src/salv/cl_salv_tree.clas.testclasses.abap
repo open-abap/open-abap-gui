@@ -18,12 +18,12 @@ CLASS ltcl_salv_tree_support DEFINITION FINAL FOR TESTING DURATION SHORT RISK LE
   PRIVATE SECTION.
     METHODS renders_hierarchy_and_state FOR TESTING
       RAISING
-        cx_salv_error
-        cx_salv_msg.
+        cx_salv_msg
+        cx_salv_error.
     METHODS renders_typed_items_and_events FOR TESTING
       RAISING
-        cx_salv_error
-        cx_salv_msg.
+        cx_salv_msg
+        cx_salv_error.
 ENDCLASS.
 
 CLASS ltcl_salv_tree_support IMPLEMENTATION.

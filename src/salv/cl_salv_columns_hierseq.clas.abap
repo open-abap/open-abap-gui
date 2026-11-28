@@ -1,4 +1,4 @@
-CLASS cl_salv_columns_hierseq DEFINITION PUBLIC INHERITING FROM cl_salv_columns_list.
+CLASS cl_salv_columns_hierseq DEFINITION PUBLIC INHERITING FROM cl_salv_columns_list GLOBAL FRIENDS cl_salv_hierseq_level.
   PUBLIC SECTION.
 
     METHODS set_expand_column
