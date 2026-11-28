@@ -86,6 +86,16 @@ test("converts a basic report deterministically", async () => {
   assert.equal(first.manifest.sourceToOutput.start_of_selection, "ZCL_GG_EX_001~start_of_selection");
 });
 
+test("rejects a source over the line or byte limit", async () => {
+  const source = "REPORT z_limit.\n" + "*x\n".repeat(10);
+  const lines = await convertProgram({ source, filename: "z_limit.prog.abap", maxSourceLines: 3 });
+  assert.equal(lines.supported, false);
+  assert.ok(lines.diagnostics.some((item) => item.code === "GGCONV-E108"));
+  const bytes = await convertProgram({ source, filename: "z_limit.prog.abap", maxSourceBytes: 10 });
+  assert.equal(bytes.supported, false);
+  assert.ok(bytes.diagnostics.some((item) => item.code === "GGCONV-E107"));
+});
+
 test("lowers a selection parameter into a typed screen definition", async () => {
   const source = await fixture("zgg_ex_015.prog.abap");
   const result = await convertProgram({ source, filename: "zgg_ex_015.prog.abap" });

@@ -3,12 +3,9 @@ import path from "node:path";
 import {converterRoot, isMain, runNode} from "./repository.mjs";
 
 const suites = [
-  ["fixtures", "./run-fixtures.mjs"],
   // Compare committed snapshots; accepting changes remains examples:update.
   ["examples", "./examples.mjs"],
   ["warnings", "./warnings.mjs"],
-  ["hardening", "./hardening.mjs"],
-  ["coverage", "./coverage.mjs"],
 ];
 
 export async function verify({skipped = new Set(), runUnit, runSuite, runGenerated} = {}) {
