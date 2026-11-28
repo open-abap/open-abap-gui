@@ -1154,12 +1154,11 @@ test("keeps multi-word FORM parameter typings and VALUE parameters", async () =>
     source: [
       "REPORT zform_typing.",
       "TYPES ty_t TYPE STANDARD TABLE OF i WITH DEFAULT KEY.",
-      "TYPES ty_pt_of TYPE i.",
       "DATA gt TYPE ty_t.",
       "DATA gr TYPE REF TO data.",
       "DATA gv TYPE i.",
       "START-OF-SELECTION.",
-      "  PERFORM f USING gt gt gt gt gt gt gr 1 CHANGING gt gv.",
+      "  PERFORM f USING gt gt gt gt gt gt gv gv gr 1 CHANGING gt gv.",
       "FORM f USING pt_any TYPE ANY TABLE",
       "             pt_std TYPE STANDARD TABLE",
       "             pt_idx TYPE INDEX TABLE",
@@ -1177,13 +1176,14 @@ test("keeps multi-word FORM parameter typings and VALUE parameters", async () =>
   });
   assert.equal(result.supported, true, JSON.stringify(result.diagnostics));
   for (const [name, type] of [["pt_any", "ANY TABLE"], ["pt_std", "STANDARD TABLE"], ["pt_idx", "INDEX TABLE"],
-    ["pt_hsh", "HASHED TABLE"], ["pt_srt", "SORTED TABLE"], ["pr_data", "REF TO data"], ["pt_of", "ty_pt_of_2"],
+    ["pt_hsh", "HASHED TABLE"], ["pt_srt", "SORTED TABLE"], ["pr_data", "REF TO data"],
+    ["pt_of", "STANDARD TABLE"], ["of", "any"], ["i", "any"],
     ["VALUE\\(pv_u\\)", "i"], ["VALUE\\(pt_c\\)", "ty_t"], ["VALUE\\(pv_c\\)", "i"]]) {
     assert.match(result.classSource, new RegExp(`^\\s+${name}\\s+TYPE ${type}\\.?$`, "m"), name);
   }
-  // STANDARD TABLE OF x has no place in a method signature, so it gets a named
-  // type, which avoids the program's own ty_pt_of.
-  assert.match(result.classSource, /TYPES ty_pt_of_2 TYPE STANDARD TABLE OF i WITH DEFAULT KEY\./);
+  // As on SAP, TYPE STANDARD TABLE OF i is no FORM typing: pt_of is a generic
+  // standard table, OF and i are two more untyped parameters.
+  assert.doesNotMatch(result.classSource, /TYPES ty_pt_of/);
 });
 
 test("keeps LIKE and resolves STRUCTURE in FORM parameter typings", async () => {
@@ -1202,7 +1202,7 @@ test("keeps LIKE and resolves STRUCTURE in FORM parameter typings", async () => 
       "DATA gr TYPE REF TO ty_s.",
       "DATA go_grid TYPE REF TO cl_gui_alv_grid.",
       "START-OF-SELECTION.",
-      "  PERFORM f TABLES gt gt_old gt USING gs gs gs gs gt gs-a gr gr go_grid gt_srt.",
+      "  PERFORM f TABLES gt gt_old gt USING gs gs gs gs gt gs-a gr gr go_grid gt_srt gs gs.",
       "FORM f TABLES pt_s STRUCTURE gs",
       "              pt_old STRUCTURE gt_old",
       "              pt_ddic STRUCTURE mara",
@@ -1225,7 +1225,7 @@ test("keeps LIKE and resolves STRUCTURE in FORM parameter typings", async () => 
   for (const [name, typing] of [["pt_s", "TYPE ty_pt_s"], ["pt_old", "TYPE ty_pt_old"], ["pt_ddic", "TYPE ty_pt_ddic"],
     ["ps_like", "LIKE gs"], ["ps_struc", "LIKE gs"], ["ps_old", "LIKE LINE OF gt_old"], ["ps_line", "LIKE LINE OF gt"],
     ["pt_like", "LIKE gt"], ["pv_a", "LIKE gs-a"], ["pr_like", "LIKE gr"], ["pr_ref", "TYPE ty_pr_ref"],
-    ["po_grid", "LIKE go_grid"], ["pt_srt", "TYPE ty_pt_srt"]]) {
+    ["po_grid", "LIKE go_grid"], ["pt_srt", "TYPE SORTED TABLE"], ["of", "TYPE any"], ["ty_s", "TYPE any"]]) {
     assert.match(result.classSource, new RegExp(`^\\s+${name}\\s+${typing}\\.?$`, "m"), name);
   }
   // STRUCTURE names a line type, of a data object, a header-line table or the
@@ -1236,7 +1236,6 @@ test("keeps LIKE and resolves STRUCTURE in FORM parameter typings", async () => 
     "TYPES ty_pt_old TYPE STANDARD TABLE OF ty_pt_old_line WITH DEFAULT KEY.",
     "TYPES ty_pt_ddic TYPE STANDARD TABLE OF mara WITH DEFAULT KEY.",
     "TYPES ty_pr_ref LIKE REF TO gs.",
-    "TYPES ty_pt_srt TYPE SORTED TABLE OF ty_s.",
   ]) {
     assert.ok(result.classSource.includes(types), types);
   }
