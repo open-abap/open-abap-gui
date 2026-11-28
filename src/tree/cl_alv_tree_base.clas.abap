@@ -904,10 +904,10 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_node_context_menu.
-    RAISE EVENT node_context_menu_request
-      EXPORTING
-        node_key = i_node_key
-        menu     = c_menu.
+* node_context_menu_request is cl_gui_alv_tree's event, which it raises
+* itself on a frontend context menu request (TREE_CONTEXT). The base class
+* leaves the menu as passed.
+    RETURN.
   ENDMETHOD.
 
   METHOD set_hierarchy_help_fields.
@@ -938,10 +938,10 @@ CLASS cl_alv_tree_base IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_item_context_menu.
-    RAISE EVENT node_context_menu_request
-      EXPORTING
-        node_key = i_node_key
-        menu     = c_menu.
+* node_context_menu_request is cl_gui_alv_tree's event, which it raises
+* itself on a frontend context menu request (TREE_CONTEXT). The base class
+* leaves the menu as passed.
+    RETURN.
   ENDMETHOD.
 
   METHOD add_children_to_control.
