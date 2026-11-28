@@ -68,7 +68,7 @@ CLASS zcl_gg_class_discovery IMPLEMENTATION.
           RECEIVING
             rt_names = lt_implementation_names.
         rt_names = lt_implementation_names.
-      CATCH cx_sy_dyn_call_illegal_class.
+      CATCH cx_sy_dyn_call_error.
         lv_fm = `SEO_INTERFACE_IMPLEM_GET_ALL`.
         TRY.
             ls_key-intkey = lv_interface.

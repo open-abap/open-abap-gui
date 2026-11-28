@@ -37,7 +37,7 @@ CLASS zcl_gg_integration_variants IMPLEMENTATION.
       DATA(lt_loaded) = zcl_gg_host_variant=>load( 'FLIGHT_VARIANT' ).
       LOOP AT lt_loaded INTO DATA(ls_loaded).
         IF line_exists( ct_values[ name = ls_loaded-name ] ).
-          ct_values[ name = ls_loaded-name ] = ls_loaded.
+          MODIFY TABLE ct_values FROM ls_loaded.
         ENDIF.
       ENDLOOP.
       IF lt_loaded IS INITIAL.

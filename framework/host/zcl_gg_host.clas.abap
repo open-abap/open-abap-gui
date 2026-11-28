@@ -394,7 +394,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
 
     LOOP AT it_input INTO DATA(ls_input_before_output).
       IF line_exists( ct_values[ name = ls_input_before_output-name ] ).
-        ct_values[ name = ls_input_before_output-name ] = ls_input_before_output.
+        MODIFY TABLE ct_values FROM ls_input_before_output.
       ENDIF.
     ENDLOOP.
 
@@ -418,7 +418,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
           ct_states  = lt_screen_states ).
       LOOP AT lt_screen_states INTO ls_output_state.
         IF line_exists( ct_states[ name = ls_output_state-name ] ).
-          ct_states[ name = ls_output_state-name ] = ls_output_state.
+          MODIFY TABLE ct_states FROM ls_output_state.
         ENDIF.
       ENDLOOP.
     ENDLOOP.
@@ -1126,7 +1126,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     TRY.
         LOOP AT it_input INTO DATA(ls_input).
           IF line_exists( ct_values[ name = ls_input-name ] ).
-            ct_values[ name = ls_input-name ] = ls_input.
+            MODIFY TABLE ct_values FROM ls_input.
           ENDIF.
         ENDLOOP.
 
@@ -1165,7 +1165,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
     TRY.
         LOOP AT it_input INTO DATA(ls_input).
           IF line_exists( ct_values[ name = ls_input-name ] ).
-            ct_values[ name = ls_input-name ] = ls_input.
+            MODIFY TABLE ct_values FROM ls_input.
           ENDIF.
         ENDLOOP.
 
@@ -1383,7 +1383,7 @@ CLASS zcl_gg_host IMPLEMENTATION.
           ct_states  = ct_states ).
       LOOP AT it_input INTO DATA(ls_input).
         IF line_exists( ct_values[ name = ls_input-name ] ).
-          ct_values[ name = ls_input-name ] = ls_input.
+          MODIFY TABLE ct_values FROM ls_input.
         ENDIF.
       ENDLOOP.
       IF iv_resume_subrc = 0.
